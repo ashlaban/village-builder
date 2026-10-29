@@ -486,7 +486,8 @@
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i);
     if (farm) card(farm[0], [...farm[1], where]);
-    else card(b.name, [line, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []), where]);
+    else card(b.name, [line, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+      ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
     if (!w) return;

@@ -132,6 +132,7 @@ VB['sim/layout'] = (() => {
         const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand);
       }
     }
+    for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }

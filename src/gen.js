@@ -267,6 +267,20 @@ const ArchGen = (() => {
       trees[i] = treesMax[i] = k;
     }
 
+    // ---- stones: every meadow tile has at least 30; up to +100 more next to hills, fading to nothing beyond 2 tiles ----
+    const stones = new Uint8Array(N), hillDist = new Uint8Array(N).fill(9), hq = [];
+    for (let i = 0; i < N; i++) if (biome[i] === B.HILLS) { hillDist[i] = 0; hq.push(i); }
+    for (let h = 0; h < hq.length; h++) {
+      const i = hq[h]; if (hillDist[i] >= 3) continue;
+      for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && hillDist[j] > hillDist[i] + 1) { hillDist[j] = hillDist[i] + 1; hq.push(j); } }
+    }
+    for (let i = 0; i < N; i++) {
+      if (biome[i] !== B.MEADOW) continue;
+      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), rn = mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
+      const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
+      stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+    }
+
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
     const region = new Int32Array(N), regKey = new Map(), regions = [];
@@ -340,11 +354,12 @@ const ArchGen = (() => {
     // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
     // @state w.ang: Float32Array, 2 per tile; texture direction (cos, sin)
     // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
+    // @state w.stones: Uint8Array per tile; stones on meadow tiles, 30..255 (few < 85, some < 170, many above); 0 elsewhere and on fields
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang, trees, treesMax,
+      region, regions, tr, tg, tb, ang, trees, treesMax, stones,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -588,6 +603,9 @@ const ArchGen = (() => {
         if (u < 0.07) { const [x, y] = spot(0.4); items.push({ t: 'broad', x, y, sc: 0.95, v: (rnd() * 10) | 0 }); }
         else if (u < 0.13) { const [x, y] = spot(0.5); items.push({ t: 'shrub', x, y, v: (rnd() * 4) | 0 }); }
         if (full) items.push({ t: 'flowers', x: hx[i], y: hy[i], s: (rnd() * 1e9) >>> 0 });
+        if (full && w.stones) {
+          for (let k = Math.ceil(w.stones[i] / 70); k > 0; k--) { const [x, y] = spot(0.6); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
+        }
       } else if (b === B.HEATH) {
         const n = 2 + ((rnd() * 2) | 0);
         for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'shrub', x, y, v: (rnd() * 4) | 0 }); }
