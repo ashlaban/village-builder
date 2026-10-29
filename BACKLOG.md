@@ -14,7 +14,7 @@ Refactor rules (every task titled "Refactor:"):
 Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR.
 
 ## VB-001: Make the test suite fail on regressions
-Status: ready
+Status: done (2026-10-29, ed5c5ed)
 Priority: 1
 Size: S
 Design ref: none (test infrastructure)
