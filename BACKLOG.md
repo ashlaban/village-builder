@@ -184,7 +184,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-012: One module list, a module namespace and a Node loader
-Status: ready
+Status: done (2026-10-29, 938bf05)
 Priority: 1
 Size: M
 Design ref: none (code structure)
