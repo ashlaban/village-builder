@@ -264,7 +264,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-017: Refactor: family records and agents into modules
-Status: ready
+Status: done (2026-10-29, 4fece5b)
 Priority: 1
 Size: S
 Design ref: none (code structure)
