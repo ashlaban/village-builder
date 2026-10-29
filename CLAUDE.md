@@ -22,7 +22,7 @@ Work is planned in `BACKLOG.md`; read its header for the task rules (status valu
 - `Sim.seed(w, seed, scenario)` (`src/sim.js`) makes the state `st`; `Sim.advance(st, hours)` runs it. Scenarios: `founders`, `heirs`.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script in `src/body.html` draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
-  `visualDirty`, `naturalDeaths`, `driftMul`.
+  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `visualDirty` and `rigDirty` after redrawing).
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions

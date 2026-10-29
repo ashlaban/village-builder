@@ -341,6 +341,25 @@ const Sim = (() => {
 
   function makeState(w, rand, R, households, farmsteads, villages, used, scenario) {
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
+    // @state st.t: number; game time in hours since the start of year 1 (negative before it)
+    // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
+    // @state st.scenario: string; 'founders' or 'heirs'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age, ...}
+    //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
+    // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), wood (loads), ledger[], hungryDays, waterDay, cookDay, dissolved}
+    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
+    //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert}; state 'occupied', 'derelict' or 'ruin'; condition 0..1
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood}; center is a tile index, farmsteads are ids
+    // @state st.used: Set of tile indexes taken by houses and fields
+    // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
+    // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
+    // @state st.pathCache: Map of route key to path. st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
+    // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
+    // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
+    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
+    // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
+    // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(),

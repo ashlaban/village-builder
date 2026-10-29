@@ -20,6 +20,14 @@ for (const f of files) {
   if (long.length > b.longLines) errors.push(...long.map((n) => `${f}:${n} line over ${MAX_COLS} characters (${long.length} long lines, baseline ${b.longLines})`));
   if (lines.length < b.lines && b.lines > MAX_LINES || long.length < b.longLines) notes.push(`${f}: improved (lines ${b.lines} -> ${lines.length}, long lines ${b.longLines} -> ${long.length}); run lint.js --update`);
 }
+// every top-level key of w and st must have an @state tag: `// @state st.a,b: ...` or `// @state st.a: ...`
+const tagged = { w: new Set(), st: new Set() };
+for (const f of files) for (const line of fs.readFileSync(path.join(root, f), 'utf8').split('\n').filter((l) => l.includes('@state '))) for (const m of line.matchAll(/\b(w|st)\.([\w,]+)/g)) m[2].split(',').forEach((k) => tagged[m[1]].add(k));
+const VB = require('../src/load.js');
+const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const w = worldOf(7), states = [VB.sim.seed(worldOf(7), 7, 'founders'), VB.sim.seed(worldOf(7), 7, 'heirs')];
+for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: top-level key w.${k} has no @state tag`);
+for (const k of new Set(states.flatMap((s) => Object.keys(s)))) if (k !== 'w' && !tagged.st.has(k)) errors.push(`src/sim.js: top-level key st.${k} has no @state tag`);
 if (process.argv.includes('--update')) {
   const next = {};
   for (const f of files) {

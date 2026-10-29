@@ -313,6 +313,25 @@ const ArchGen = (() => {
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
+    // @state w.seed,name: number, string; the generator seed and the map's name
+    // @state w.R,COLS,ROWS,RR: numbers; hex circumradius (map units), grid columns, grid rows, region radius (tiles)
+    // @state w.W,H,HW,AP: numbers; map width and height, hex width and hex apothem (map units)
+    // @state w.N,STEP,CW,CH,KS: numbers; tile count COLS*ROWS, coarse-grid step (map units), coarse grid size, scale vs the first prototype
+    // @state w.elev,shade,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), hillshade (~1 flat), tint
+    // @state w.cdist,chex: coarse-cell arrays; distance to the nearest land tile (map units, 1e9 if none), tile index under the cell
+    // @state w.csample: function(arr, x, y); bilinear sample of a coarse-cell array at a map position
+    // @state w.hx,hy: Float32Array per tile; tile centre in map units
+    // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
+    // @state w.biome: Uint8Array per tile; B.* code
+    // @state w.water,ocean: Uint8Array per tile; 1 = water, 1 = open sea (0 for lakes)
+    // @state w.hrnd: Float32Array per tile; fixed random number 0..1
+    // @state w.landDist: Int16Array per tile; steps to the nearest land tile (0 on land, 999 if none)
+    // @state w.nb: Int32Array, 6 per tile; neighbour tile indexes in direction order, -1 off the map
+    // @state w.region: Int32Array per tile; index into w.regions
+    // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
+    // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
+    // @state w.ang: Float32Array, 2 per tile; texture direction (cos, sin)
+    // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
