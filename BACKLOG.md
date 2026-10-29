@@ -277,7 +277,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-018: Refactor: job board and inheritance into modules
-Status: ready
+Status: done (2026-10-29, 248dd7f)
 Priority: 1
 Size: S
 Design ref: none (code structure)
