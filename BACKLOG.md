@@ -121,7 +121,7 @@ Notes / questions:
 - The sowing window (spring days 1–10) is not to be changed by this task. If the 3-year runs leave fields unsown or households hungry because of the longer tilling, mark the task blocked and report how many fields went unsown per year; Kim decides whether to widen the window.
 
 ## VB-008: Summer upkeep of growing fields
-Status: ready
+Status: done (2026-10-29, ffb05df)
 Priority: 3
 Size: S
 Design ref: Economy and jobs, Long work and processing (Summer upkeep: Decided). Kim, 2026-10-29: numbers below agreed.
