@@ -76,7 +76,7 @@ Notes / questions:
 - Out of scope: filters by entity level, claims, chunk caching.
 
 ## VB-005: Trees per wooded tile
-Status: ready
+Status: done (2026-10-29, cccbf69)
 Priority: 2
 Size: M
 Design ref: Land and ecology (Trees per tile, Showing trees, Cleared woodland: Decided). Kim, 2026-10-29: numbers below; one growth model for all trees; regrowth applies only to tiles that still have trees.
