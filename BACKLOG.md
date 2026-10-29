@@ -160,10 +160,10 @@ Notes / questions:
 - Watch: one field made before spring day 10 yields about 80 grain in the first autumn, much less than a household eats in a year. Hunger in year 2 is possible with these stores; the run reports it rather than changing stores.
 
 ## VB-011: Map generation screen with size, seed and starting scenario
-Status: needs-review
+Status: ready
 Priority: 3
 Size: L
-Design ref: Starting scenarios. Kim, 2026-10-29: a landing screen to set the map before generating it: map size (tiny/small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes). Sizes as below. Founders scales its required land mass to the map. Populous Villages on medium and large maps holds 800–950 people in a few large, more medium and many small villages. Villages are made by shared generators, not hard-coded per scenario. The "(debug)" label goes.
+Design ref: Starting scenarios. Kim, 2026-10-29: a landing screen to set the map before generating it: map size (tiny/small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes). Sizes as below. Founders scales its required land mass to the map. Populous Villages on medium and large maps holds 800–950 people in a few large, more medium and many small villages. Villages are made by shared generators, not hard-coded per scenario. The "(debug)" label goes. Kim, 2026-10-29: village size bands and household sizes below agreed; at most two generations pre-generated; smaller population targets on Tiny and Small maps.
 Goal: Open the game on a map generation screen where the player sets map size, seed and starting scenario, then generates the map. Add a Populous Villages scenario, and make all scenarios build their villages through the same generators.
 Acceptance criteria:
 - [ ] The page opens on the generation screen (no map is generated until the player presses Generate). It has: map size (Tiny / Small / Medium / Large), a seed field, a starting scenario choice (Founders, Heirs and empty farms, Populous Villages) and a Generate button. "New archipelago" returns to the screen with the last choices filled in. The toolbar `scenarioSel` dropdown is removed, and no scenario carries a "(debug)" label anywhere in the UI.
@@ -171,14 +171,14 @@ Acceptance criteria:
 - [ ] The seed field is pre-filled with a random seed; the player may type their own (integer, up to 9 digits). The same seed, size and scenario always give the same map and settlement.
 - [ ] Founders' minimum land mass scales with the map: `round(1500 × tiles / (280 × 200))`, so 1500 on Medium as today. On Medium, Founders output for seeds 7 and 42 is unchanged.
 - [ ] Shared generators: villages are made by one village generator (site, farm placement, fields, fence, commons wood, names) and households by one household generator, called with a spec (e.g. number of farms, household makeup). Founders, Heirs and Populous Villages all build through them; scenario code only chooses specs and sites and sets nothing on a village or farm directly. A test checks that a field added to the village generator's output appears in all three scenarios.
-- [ ] Populous Villages (`Sim.seed(wd, seed, 'populous')`), on Medium and Large maps: only villages (no lone farms), 800–950 people in total. Village sizes are drawn from three bands, as agreed below, with many small, fewer medium and a few large. The generator keeps placing villages until the population is in range, or reports why it could not.
+- [ ] Populous Villages (`Sim.seed(wd, seed, 'populous')`): only villages (no lone farms). Population target by map size: Tiny 130–170, Small 320–380, Medium and Large 800–950. The generator keeps placing villages until the population is in range, or reports why it could not.
+- [ ] Village sizes are drawn from three bands: small 2–5 farms (about 60% of villages), medium 6–10 (about 30%), large 12–16 (about 10%).
+- [ ] Households in Populous Villages hold 4–9 people, about 6 on average: a couple, their children, and sometimes a servant. At most two generations are pre-generated: no grandparents, living or on record.
 - [ ] Populous Villages holds meetings and appears in the customs panel like the other scenarios.
 - [ ] If a scenario finds no settlement site on the chosen map, the screen says so and lets the player pick another seed or size, instead of only a console warning.
 - [ ] The URL hash skips the screen and opens a map directly: today's `#s123` and `#h123` keep working (Medium), extended to carry size and the new scenario.
-- [ ] `tests/smoke.js` starts on the screen, generates a Tiny Populous Villages map and checks the settlers list is non-empty, with no console errors. A test checks that Medium and Large Populous Villages maps for seeds 7 and 42 hold 800–950 people.
+- [ ] `tests/smoke.js` starts on the screen, generates a Tiny Populous Villages map and checks the settlers list is non-empty, with no console errors. A test checks that Populous Villages maps of each size for seeds 7 and 42 land in their population range, use all three village size bands on Medium and Large, and have no household with more than two generations.
 Notes / questions:
-- Village size bands, suggested: small 2–5 farms (about 60% of villages), medium 6–10 (about 30%), large 12–16 (about 10%). With households of about 6, 800–950 people is about 140–160 farms, e.g. 3 large, 8 medium and 20 small villages.
-- Household makeup in Populous Villages, suggested: several generations on record as in Heirs, 4–9 people per household (couple, children, sometimes an elder parent or a servant), about 6 on average.
-- Tiny and Small Populous Villages: scale the population with the map's tile count (suggested: about 150 on Tiny, 350 on Small), or keep 800–950?
-- Spacing between villages and starting customs for Populous Villages are left to the generators' defaults unless stated.
+- With households of about 6, 800–950 people is about 140–160 farms, e.g. 3 large, 8 medium and 20 small villages.
+- Spacing between villages and starting customs for Populous Villages are left to the generators' defaults.
 - VB-003 (every farm in a village) changes how lone farms are made; if it is done first, the shared village generator also makes one-farm villages.
