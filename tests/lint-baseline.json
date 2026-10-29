@@ -39,9 +39,17 @@
   "lines": 172,
   "longLines": 0
  },
+ "src/sim/society.js": {
+  "lines": 121,
+  "longLines": 0
+ },
+ "src/sim/lifecycle.js": {
+  "lines": 127,
+  "longLines": 0
+ },
  "src/sim.js": {
-  "lines": 437,
-  "longLines": 24
+  "lines": 251,
+  "longLines": 8
  },
  "src/load.js": {
   "lines": 5,
