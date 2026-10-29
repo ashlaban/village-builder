@@ -216,7 +216,7 @@ Notes / questions:
 - `grep -rn "^// @sys" src` then prints the module map.
 
 ## VB-014: CLAUDE.md, a short guide for agents
-Status: ready
+Status: done (2026-10-29, be6aa67)
 Priority: 1
 Size: S
 Design ref: none (documentation)
