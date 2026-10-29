@@ -32,6 +32,7 @@ Acceptance criteria:
 - [ ] After any frame, the shown time is at most 5 game minutes behind simulation time, at 1×, 3× and 10× with 16 ms frames (a smoke test checks this at 10×).
 - [ ] Pause, speed buttons, "Skip a year" and regenerating still leave the clock correct.
 Notes / questions:
+
 ## VB-003: Every farm in a village, and an owner for every tile
 Status: ready
 Priority: 2
@@ -48,6 +49,7 @@ Acceptance criteria:
 - [ ] The tile info panel shows the owner ("Norrgården household", "Ulsäter village"), or nothing for unowned tiles.
 - [ ] A test checks the seeding rules, that every farm has a village, and the hand-over to the village on extinction.
 Notes / questions:
+
 ## VB-004: Ownership map overlay
 Status: ready
 Priority: 3
@@ -92,6 +94,7 @@ Acceptance criteria:
 - [ ] A test checks determinism, that every meadow tile has at least 30, and that tiles next to hills average more stones than tiles more than 2 tiles away.
 Notes / questions:
 - Cleared stones become a store in VB-010.
+
 ## VB-007: Tilling and threshing as multi-day work
 Status: ready
 Priority: 2
