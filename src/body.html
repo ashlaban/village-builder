@@ -1049,9 +1049,20 @@
     return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
   }
   let tAcc = 0;
+  // The clock shown is the UI's own state: simulation time floored to 5 game minutes, redrawn only when that value changes.
+  let uiClock = null, uiClockSt = null;
+  function updateClock() {
+    const step = Math.floor(st.t * 12 + 1e-9);
+    if (step === uiClock && st === uiClockSt) return;
+    uiClock = step; uiClockSt = st;
+    const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
+    $('clockDate').textContent = `${Sim.SEASONS[c.season][0].toUpperCase() + Sim.SEASONS[c.season].slice(1)}, day ${c.sday + 1}`;
+    $('clockYear').textContent = `Year ${c.year}, ${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  }
   function updateSettlement(dt) {
     if (!st) return;
     if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
@@ -1098,9 +1109,6 @@
     tAcc += dt;
     if (tAcc > 0.25) {
       tAcc = 0;
-      const hh = Math.floor(c.hour), mm = Math.floor(((c.hour - hh) * 60) / 10) * 10;
-      $('clockDate').textContent = `${Sim.SEASONS[c.season][0].toUpperCase() + Sim.SEASONS[c.season].slice(1)}, day ${c.sday + 1}`;
-      $('clockYear').textContent = `Year ${c.year}, ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
       if (!$('settlers').hidden) renderSettlers();
       if (selPawn >= 0) showPawn(selPawn);
     }

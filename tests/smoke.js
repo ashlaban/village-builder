@@ -25,6 +25,7 @@ class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w
 class Text extends Obj { constructor(o) { super(o); this.text = o.text; } }
 win.PIXI = { Rectangle, Text, Application, Container: Obj, Sprite: Obj, TilingSprite: Obj, Graphics, Texture: class { constructor(o) { this.o = o; } }, CanvasSource: class { constructor(o) { if (!o.resource) throw new Error('no resource'); } } };
 for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) win.eval(m[1].replace(/^const (\w+) =/gm, 'var $1 ='));
+let simSt = null; { const adv = win.Sim.advance; win.Sim.advance = (st, h) => { simSt = st; return adv(st, h); }; }
 const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds'];
 const state = () => { const lay = APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
 const tick = (n) => { for (let k = 0; k < n; k++) for (const f of tickers) { try { f({ deltaMS: 16 }); } catch (e) { if (!globalThis.__err) { globalThis.__err = 1; console.log('FRAME ERROR:', e.message); fail('frame error: ' + e.message); } throw e; } } };
@@ -37,6 +38,16 @@ const iv = setInterval(async () => {
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('scenarioSel').value);
+  // the shown clock follows simulation time within 5 game minutes (at 10x, 16 ms frames), in whole 5-minute steps
+  const shownMin = () => { const m = /Year (\d+), (\d\d):(\d\d)/.exec(doc.getElementById('clockYear').textContent); return m ? (+m[2]) * 60 + (+m[3]) : -1; };
+  for (const sp of [1, 3, 10]) {
+    q(`[data-speed="${sp}"]`).click();
+    for (let k = 0; k < 400; k++) {
+      tick(1); const shown = shownMin(), real = Math.floor(simSt.t * 60 + 1e-6) % 1440, lag = (real - shown + 1440) % 1440;
+      if (shown < 0 || shown % 5 !== 0 || lag > 5) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
+    }
+  }
+  q('[data-speed="1"]').click();
   doc.getElementById('settlersBtn').click(); tick(20);
   console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
