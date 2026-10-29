@@ -1,0 +1,1535 @@
+</style>
+</head>
+<body>
+<div id="stage" aria-label="Map of the archipelago"></div>
+<div class="vignette"></div>
+
+<div class="hud top">
+  <header class="chart panel">
+    <h1 id="name">Archipelago</h1>
+    <p class="meta" id="meta"></p>
+    <p class="hint" id="hint"></p>
+    <div class="actions">
+      <button class="primary" id="regen" type="button">New archipelago</button>
+      <select id="scenarioSel" aria-label="Starting scenario"><option value="founders">Founders</option><option value="heirs">Heirs and empty farms (debug)</option></select>
+      <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
+      <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
+      <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
+      <button id="treeBtn" type="button">Family tree</button>
+      <button id="customsBtn" type="button" aria-pressed="false">Customs</button>
+      <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
+    </div>
+    <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
+  </header>
+  <div class="clock panel" id="clock">
+    <div><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
+    <div class="speed" role="group" aria-label="Game speed">
+      <button type="button" data-speed="0" aria-pressed="false">Pause</button>
+      <button type="button" data-speed="1" aria-pressed="true">1×</button>
+      <button type="button" data-speed="3" aria-pressed="false">3×</button>
+      <button type="button" data-speed="10" aria-pressed="false">10×</button>
+    </div>
+  </div>
+</div>
+<div class="lod" id="lod" hidden></div>
+<aside class="drawer panel" id="drawer" hidden aria-label="Customs and debug tools">
+  <button class="dclose" id="drawerClose" type="button">Close</button>
+  <div id="drawerBody"></div>
+</aside>
+
+<div class="hud bottom">
+  <aside class="tile panel" id="tile" hidden aria-live="polite">
+    <strong id="tileName"></strong>
+    <span id="tileElev"></span>
+    <span id="tileCoord"></span>
+    <span id="tileExtra" hidden></span>
+    <span id="tileMore" hidden></span>
+  </aside>
+  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump">
+    <canvas id="mmBase"></canvas>
+    <canvas id="mmView"></canvas>
+  </div>
+</div>
+
+<div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
+  <div class="tree-card panel">
+    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
+    <div class="tree-body">
+      <div class="tree-scroll"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
+      <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
+    </div>
+  </div>
+</div>
+
+<div class="loader" id="loader">
+  <div>
+    <p id="loadText">Raising the land</p>
+    <div class="bar"><i id="loadBar"></i></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@8.14.3/dist/pixi.min.js"></script>
+<script>
+/*__GEN__*/
+</script>
+<script>
+/*__CULTURE__*/
+</script>
+<script>
+/*__SIM__*/
+</script>
+<script>
+(async () => {
+  const G = ArchGen, LV = G.LV, TEX = G.TEX;
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler or tile for details.' : 'Drag to explore, scroll to zoom, point at a settler or tile for details.';
+
+  function failed(msg) {
+    const p = $('loadText'); p.textContent = msg; p.classList.add('err');
+    document.querySelector('.loader .bar').style.display = 'none';
+  }
+  if (!window.PIXI) { failed('The rendering library didn’t load. Check your connection and reload the page.'); return; }
+  const app = new PIXI.Application();
+  try {
+    await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2), preference: 'webgl' });
+  } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
+  stage.appendChild(app.canvas);
+  const texFrom = (canvas, opts = {}) => new PIXI.Texture({ source: new PIXI.CanvasSource({ resource: canvas, ...opts }) });
+
+  // ---- layers, bottom to top ----
+  const world = new PIXI.Container();
+  app.stage.addChild(world);
+  const L = {};
+  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
+  const lodLayer = [L.lod0, L.lod1, L.lod2];
+  L.regions.visible = false;
+
+  // ---- static textures ----
+  const SPR = G.makeSprites(makeCanvas);
+  function waveCanvas(seed, n, alpha) {
+    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), r = G.mulberry32(seed);
+    g.lineCap = 'round';
+    for (let k = 0; k < n; k++) {
+      const x = r() * S, y = r() * S, rad = 5 + r() * 9, a0 = Math.PI * (1.2 + r() * 0.1), a1 = Math.PI * (1.68 + r() * 0.12);
+      g.strokeStyle = `rgba(255,255,255,${alpha * (0.5 + r() * 0.5)})`; g.lineWidth = 1 + r() * 0.7;
+      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.beginPath(); g.arc(x + ox, y + oy, rad, a0, a1); g.stroke(); }
+    }
+    return c;
+  }
+  function cloudCanvas(seed) {
+    const c = makeCanvas(400, 240), g = c.getContext('2d'), r = G.mulberry32(seed);
+    for (let k = 0; k < 28; k++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r());
+      const x = 200 + Math.cos(a) * d * 115, y = 122 + Math.sin(a) * d * 48, rad = 26 + r() * 42 * (1 - d * 0.45);
+      const gr = g.createRadialGradient(x, y - rad * 0.25, 0, x, y, rad);
+      gr.addColorStop(0, 'rgba(255,255,255,0.6)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.28)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
+    }
+    return c;
+  }
+  const waveTexA = texFrom(waveCanvas(11, 34, 0.9), { addressMode: 'repeat' });
+  const waveTexB = texFrom(waveCanvas(23, 22, 0.8), { addressMode: 'repeat' });
+  const cloudTex = [1, 2, 3, 4].map((s) => texFrom(cloudCanvas(s * 97)));
+
+  // ---- state ----
+  let w = null, loc = null;
+  const cam = { x: 0, y: 0, z: 0.2 };
+  let zt = 0.2, anchor = { x: 0, y: 0 };
+  const vel = { x: 0, y: 0 };
+  let intro = null, sel = -1, hoverDirty = true, waves = [], clouds = [], regionG = null;
+  const hoverG = new PIXI.Graphics();
+  L.hover.addChild(hoverG);
+
+  const zMin = () => (w ? Math.min(app.screen.width / w.W, app.screen.height / w.H) : 0.1);
+  const zMax = 2.6;
+  function clampCam() {
+    if (!w) return;
+    cam.z = clamp(cam.z, zMin(), zMax);
+    const vw = app.screen.width / cam.z, vh = app.screen.height / cam.z;
+    cam.x = vw >= w.W ? w.W / 2 : clamp(cam.x, vw / 2, w.W - vw / 2);
+    cam.y = vh >= w.H ? w.H / 2 : clamp(cam.y, vh / 2, w.H - vh / 2);
+  }
+  function zoomAt(sx, sy, f) {
+    const r = stage.getBoundingClientRect();
+    const ox = sx - r.left - r.width / 2, oy = sy - r.top - r.height / 2;
+    const wx = cam.x + ox / cam.z, wy = cam.y + oy / cam.z;
+    cam.z = clamp(cam.z * f, zMin(), zMax);
+    cam.x = wx - ox / cam.z; cam.y = wy - oy / cam.z;
+  }
+  const toWorld = (sx, sy) => {
+    const r = stage.getBoundingClientRect();
+    return [cam.x + (sx - r.left - r.width / 2) / cam.z, cam.y + (sy - r.top - r.height / 2) / cam.z];
+  };
+  const viewRect = (m = 0, c = cam) => {
+    const vw = app.screen.width / c.z, vh = app.screen.height / c.z;
+    return [c.x - vw / 2 - m, c.y - vh / 2 - m, c.x + vw / 2 + m, c.y + vh / 2 + m];
+  };
+  const stopIntro = () => { intro = null; };
+
+  // ---- level-of-detail chunks ----
+  // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
+  const chunks = new Map();
+  let job = null, frameNo = 0, T = 2, pending = 0;
+  const ckey = (l, cx, cy) => l * 1e6 + cy * 1000 + cx;
+  const nCols = (l) => Math.ceil(w.W / LV[l].size), nRows = (l) => Math.ceil(w.H / LV[l].size);
+  function rangeIn(l, r) {
+    const s = LV[l].size;
+    return [Math.max(0, Math.floor(r[0] / s)), Math.max(0, Math.floor(r[1] / s)), Math.min(nCols(l) - 1, Math.floor(r[2] / s)), Math.min(nRows(l) - 1, Math.floor(r[3] / s))];
+  }
+  const TH0 = 0.63, TH1 = 0.22, HY = 1.06;
+  function levelFor(z, cur) {
+    let l = z >= TH0 ? 0 : z >= TH1 ? 1 : 2;
+    if (cur === 0 && l !== 0 && z >= TH0 / HY) l = 0;
+    if (cur === 1 && l === 0 && z < TH0 * HY) l = 1;
+    if (cur === 1 && l === 2 && z >= TH1 / HY) l = 1;
+    if (cur === 2 && l === 1 && z < TH1 * HY) l = 2;
+    return l;
+  }
+  function* chunkJob(wd, l, cx, cy, canvas) {
+    const ctx = canvas.getContext('2d'), img = ctx.createImageData(TEX, TEX);
+    yield* G.bakeChunk(wd, l, cx, cy, img);
+    ctx.putImageData(img, 0, 0);
+    yield 1;
+    G.decorateChunk(wd, ctx, l, cx, cy, SPR);
+  }
+  function addChunk(l, cx, cy, canvas) {
+    const s = LV[l].size;
+    const spr = new PIXI.Sprite(texFrom(canvas, { autoGenerateMipmaps: true, mipmapFilter: 'linear' }));
+    spr.position.set(cx * s, cy * s); spr.scale.set(s / TEX); spr.visible = false;
+    lodLayer[l].addChild(spr);
+    chunks.set(ckey(l, cx, cy), { l, cx, cy, spr, canvas, seen: frameNo });
+  }
+  function dropChunk(k) {
+    const ch = chunks.get(k);
+    if (!ch) return;
+    ch.spr.destroy({ texture: true, textureSource: true });
+    chunks.delete(k);
+  }
+  function wantedList() {
+    const out = [], seen = new Set();
+    const add = (l, rect, bias) => {
+      if (l > 1) return;
+      const [a, b, c, d] = rangeIn(l, rect), mx = (rect[0] + rect[2]) / 2, my = (rect[1] + rect[3]) / 2, s = LV[l].size;
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) {
+        const k = ckey(l, cx, cy);
+        if (chunks.has(k) || seen.has(k)) continue;
+        seen.add(k);
+        out.push({ l, cx, cy, k, d: Math.hypot((cx + 0.5) * s - mx, (cy + 0.5) * s - my) + bias });
+      }
+    };
+    if (intro) {
+      // during the opening glide, paint the destination: a few mid-level chunks first as a fallback, then full detail
+      if (intro.T === 0) add(1, intro.rect, 0);
+      add(intro.T, intro.rect, 1e7);
+    }
+    else {
+      add(T, viewRect(LV[T].size * 0.25), 0);
+      // once the close view is done, paint the mid level under it too, so zooming out is instant
+      if (T === 0) add(1, viewRect(0), 1e7);
+    }
+    out.sort((p, q) => p.d - q.d);
+    return out;
+  }
+  function schedule(budget) {
+    const want = wantedList();
+    pending = want.length + (job ? 1 : 0);
+    if (job && !want.some((q) => q.k === job.k) && job.rows < 0.5) job = null; // panned away: drop half-done work
+    const t0 = performance.now();
+    while (performance.now() - t0 < budget) {
+      if (!job) {
+        while (want.length && chunks.has(want[0].k)) want.shift();
+        const nx = want.shift();
+        if (!nx) break;
+        const canvas = makeCanvas(TEX, TEX);
+        job = { ...nx, canvas, wd: w, rows: 0, gen: chunkJob(w, nx.l, nx.cx, nx.cy, canvas) };
+      }
+      const r = job.gen.next();
+      if (r.done) {
+        if (job.wd === w) addChunk(job.l, job.cx, job.cy, job.canvas);
+        job = null;
+      } else job.rows = r.value;
+    }
+  }
+  function visit(l, cx, cy, view) {
+    const ch = chunks.get(ckey(l, cx, cy));
+    if (ch) ch.seen = frameNo;
+    if (l === T) { if (ch) { ch.spr.visible = true; return true; } return false; }
+    const s = LV[l].size;
+    const r = [Math.max(view[0], cx * s), Math.max(view[1], cy * s), Math.min(view[2], (cx + 1) * s - 0.01), Math.min(view[3], (cy + 1) * s - 0.01)];
+    const [a, b, c, d] = rangeIn(l - 1, r);
+    let all = true;
+    for (let y = b; y <= d; y++) for (let x = a; x <= c; x++) if (!visit(l - 1, x, y, view)) all = false;
+    if (!all && ch) ch.spr.visible = true;
+    return all || !!ch;
+  }
+  function display() {
+    for (const ch of chunks.values()) ch.spr.visible = false;
+    const view = viewRect(0), [a, b, c, d] = rangeIn(2, view);
+    for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) visit(2, cx, cy, view);
+    // keep memory bounded: evict the least recently seen chunks of levels 0 and 1
+    for (const l of [0, 1]) {
+      const [a2, b2, c2, d2] = rangeIn(l, viewRect(LV[l].size * 0.25));
+      const cap = Math.ceil((c2 - a2 + 1) * (d2 - b2 + 1) * 1.6) + 8;
+      const list = [...chunks.values()].filter((ch) => ch.l === l);
+      if (list.length <= cap) continue;
+      list.sort((p, q) => p.seen - q.seen);
+      for (let k = 0; k < list.length - cap; k++) if (list[k].seen < frameNo) dropChunk(ckey(l, list[k].cx, list[k].cy));
+    }
+  }
+
+  // ---- grid, built lazily in pieces of one level-1 chunk each ----
+  const gridPieces = new Map();
+  function gridPiece(cx, cy) {
+    const k = cy * 1000 + cx;
+    let g = gridPieces.get(k);
+    if (g) return g;
+    g = new PIXI.Graphics();
+    const s = LV[1].size, R = w.R, vx = [], vy = [];
+    for (let j = 0; j < 6; j++) { const a = (Math.PI / 180) * (30 + 60 * j); vx.push(Math.cos(a) * R); vy.push(Math.sin(a) * R); }
+    const r0 = Math.max(0, Math.floor((cy * s - R) / (1.5 * R))), r1 = Math.min(w.ROWS - 1, Math.ceil(((cy + 1) * s - R) / (1.5 * R)));
+    for (let row = r0; row <= r1; row++) for (let col = 0; col < w.COLS; col++) {
+      const i = row * w.COLS + col, x = w.hx[i], y = w.hy[i];
+      if (x < cx * s || x >= (cx + 1) * s || y < cy * s || y >= (cy + 1) * s) continue;
+      g.moveTo(x + vx[2], y + vy[2]).lineTo(x + vx[3], y + vy[3]).lineTo(x + vx[4], y + vy[4]).lineTo(x + vx[5], y + vy[5]);
+    }
+    g.stroke({ width: 1, color: 0x0a2830, alpha: 0.22, pixelLine: true });
+    L.grid.addChild(g); gridPieces.set(k, g);
+    return g;
+  }
+  let gridOn = true;
+  function updateGrid() {
+    const a = gridOn ? clamp((w.HW * cam.z - 18) / 22, 0, 1) : 0;
+    L.grid.visible = a > 0.01;
+    if (!L.grid.visible) return;
+    L.grid.alpha = a;
+    for (const g of gridPieces.values()) g.visible = false;
+    const [a1, b1, c1, d1] = rangeIn(1, viewRect(0));
+    for (let cy = b1; cy <= d1; cy++) for (let cx = a1; cx <= c1; cx++) gridPiece(cx, cy).visible = true;
+  }
+
+  // ---- region borders: tile edges between different regions, where at least one side is land ----
+  function buildRegions(wd) {
+    const g = new PIXI.Graphics(), R = wd.R, NA = [0, -60, -120];
+    for (let i = 0; i < wd.N; i++) for (let d = 0; d < 3; d++) {
+      const j = wd.nb[i * 6 + d];
+      if (j < 0 || wd.region[i] === wd.region[j] || (wd.water[i] && wd.water[j])) continue;
+      const a0 = ((NA[d] - 30) * Math.PI) / 180, a1 = ((NA[d] + 30) * Math.PI) / 180;
+      g.moveTo(wd.hx[i] + Math.cos(a0) * R, wd.hy[i] + Math.sin(a0) * R).lineTo(wd.hx[i] + Math.cos(a1) * R, wd.hy[i] + Math.sin(a1) * R);
+    }
+    g.stroke({ width: 1, color: 0xfff1d0, alpha: 0.75, pixelLine: true });
+    return g;
+  }
+
+  // ---- loader ----
+  const loader = $('loader');
+  const setLoad = (text, p) => { if (text) $('loadText').textContent = text; if (p != null) $('loadBar').style.width = (p * 100).toFixed(1) + '%'; };
+  async function drive(gen, onP) {
+    let r, last = performance.now();
+    while (!(r = gen.next()).done) {
+      onP(r.value);
+      if (performance.now() - last > 30) { await frame(); last = performance.now(); }
+    }
+    return r.value;
+  }
+
+  let building = false;
+  async function build(seed, scenario = $('scenarioSel').value) {
+    $('scenarioSel').value = scenario;
+    building = true; $('regen').disabled = true;
+    loader.classList.remove('done');
+    setLoad('Raising the land', 0);
+    await frame(); await frame();
+    const wd = await drive(G.generate(seed), (p) => setLoad(null, p * 0.5));
+    setLoad('Settling the founders', 0.52); await frame();
+    let sim = null;
+    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement site on this map for this scenario', e); }
+    treeSel = -1; selPawn = -1;
+    setLoad('Painting the overview', 0.55); await frame();
+    const wc = makeCanvas(wd.CW, wd.CH);
+    G.bakeWater(wd, wc.getContext('2d'));
+    const nx2 = Math.ceil(wd.W / LV[2].size), ny2 = Math.ceil(wd.H / LV[2].size), over = [];
+    for (let cy = 0; cy < ny2; cy++) for (let cx = 0; cx < nx2; cx++) {
+      const canvas = makeCanvas(TEX, TEX);
+      await drive(chunkJob(wd, 2, cx, cy, canvas), (p) => setLoad(null, 0.55 + ((over.length + p) / (nx2 * ny2)) * 0.4));
+      over.push({ cx, cy, canvas });
+    }
+    setLoad('Drawing the regions', 0.96); await frame();
+
+    // swap in the new world
+    job = null;
+    for (const k of [...chunks.keys()]) dropChunk(k);
+    for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
+    if (regionG) { regionG.destroy(); regionG = null; }
+    w = wd; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
+    const water = new PIXI.Sprite(texFrom(wc));
+    water.scale.set(wd.STEP); water.position.set(-wd.STEP / 2, -wd.STEP / 2);
+    L.water.addChild(water);
+    for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
+    regionG = buildRegions(wd); L.regions.addChild(regionG);
+    if (!waves.length) {
+      waves = [new PIXI.TilingSprite({ texture: waveTexA, width: wd.W, height: wd.H }), new PIXI.TilingSprite({ texture: waveTexB, width: wd.W, height: wd.H })];
+      waves[1].tileScale.set(1.7);
+      for (const s of waves) L.waves.addChild(s);
+    }
+    makeClouds(wd);
+    drawMinimap(wd, wc, over);
+    await buildSettlement(wd, sim);
+    const landRegions = wd.regions.filter((r) => r.land > 0).length;
+    $('name').textContent = wd.name;
+    $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    document.title = `${wd.name}, a hex archipelago`;
+
+    // Opening move: start on the whole chart, then glide down through the clouds to the village.
+    let best = sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
+    for (let i = 0; i < wd.N && bd >= 0; i++) {
+      if (wd.water[i]) continue;
+      const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
+      if (d < bd) { bd = d; best = i; }
+    }
+    const z0 = zMin(), z1 = clamp(34 / wd.HW, z0, zMax);
+    const tx = best >= 0 ? wd.hx[best] : wd.W / 2, ty = best >= 0 ? wd.hy[best] : wd.H / 2;
+    const end = { x: tx, y: ty, z: z1 };
+    T = 2;
+    if (reduceMotion) { cam.x = tx; cam.y = ty; cam.z = z1; }
+    else {
+      cam.x = wd.W / 2; cam.y = wd.H / 2; cam.z = z0;
+      intro = { t: -0.6, d: 3.8, x0: cam.x, y0: cam.y, z0, x1: tx, y1: ty, z1, T: levelFor(z1, 1), rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, end) };
+    }
+    zt = cam.z; vel.x = vel.y = 0;
+    loader.classList.add('done');
+    building = false; $('regen').disabled = false;
+  }
+
+  function makeClouds(wd) {
+    for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); }
+    clouds = [];
+    const r = G.mulberry32(wd.seed * 7 + 3), K = wd.KS;
+    for (let k = 0; k < 13; k++) {
+      const tex = cloudTex[k % cloudTex.length], s = (1.8 + r() * 1.8) * K;
+      const spr = new PIXI.Sprite(tex), sh = new PIXI.Sprite(tex);
+      spr.anchor.set(0.5); sh.anchor.set(0.5); spr.scale.set(s, s * (0.8 + r() * 0.4)); sh.scale.copyFrom(spr.scale);
+      sh.tint = 0x06202c;
+      spr.x = r() * (wd.W + 800 * K) - 400 * K; spr.y = r() * wd.H;
+      L.shadows.addChild(sh); L.clouds.addChild(spr);
+      clouds.push({ spr, sh, vx: (9 + r() * 9) * K, vy: (r() - 0.5) * 3 * K });
+    }
+  }
+
+  // ---- minimap ----
+  const mmBase = $('mmBase'), mmView = $('mmView'), mmBox = $('minimap');
+  let mmLast = '';
+  function drawMinimap(wd, wc, over) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round(mmBox.clientWidth * dpr), ch = Math.round((cw * wd.H) / wd.W);
+    for (const c of [mmBase, mmView]) { c.width = cw; c.height = ch; }
+    const g = mmBase.getContext('2d'), k = cw / wd.W, s = LV[2].size;
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(wc, 0, 0, wc.width * wd.STEP * k, wc.height * wd.STEP * k);
+    for (const o of over) g.drawImage(o.canvas, o.cx * s * k, o.cy * s * k, s * k, s * k);
+    mmLast = '';
+  }
+  function drawMinimapView() {
+    const vw = app.screen.width / cam.z, vh = app.screen.height / cam.z;
+    const key = `${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.z.toFixed(4)},${mmView.width}`;
+    if (key === mmLast) return; mmLast = key;
+    const g = mmView.getContext('2d'), sx = mmView.width / w.W, sy = mmView.height / w.H;
+    g.clearRect(0, 0, mmView.width, mmView.height);
+    const x = (cam.x - vw / 2) * sx, y = (cam.y - vh / 2) * sy, rw = vw * sx, rh = vh * sy;
+    g.fillStyle = 'rgba(4,18,28,0.32)';
+    g.fillRect(0, 0, mmView.width, mmView.height);
+    g.clearRect(x, y, rw, rh);
+    g.strokeStyle = 'rgba(255,255,255,0.95)'; g.lineWidth = Math.max(1.5, mmView.width / 120);
+    g.strokeRect(x, y, rw, rh);
+  }
+  function mmJump(e) {
+    if (!w) return;
+    const r = mmBox.getBoundingClientRect();
+    stopIntro(); vel.x = vel.y = 0;
+    cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
+  }
+  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
+
+  // ---- tile info ----
+  function showTile(i) {
+    const box = $('tile');
+    if (i < 0 || !w) { box.hidden = true; return; }
+    const b = G.BIOMES[w.biome[i]], col = i % w.COLS, row = (i / w.COLS) | 0;
+    let line;
+    if (w.water[i]) {
+      const d = w.csample(w.cdist, w.hx[i], w.hy[i]);
+      const m = b.key === 'lake' ? 2 + 28 * (1 - Math.exp(-d / 70)) : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
+      line = `Depth about ${Math.round(m)} m`;
+    } else {
+      const soil = w.hm[i] < 0.33 ? 'dry ground' : w.hm[i] < 0.56 ? 'fresh ground' : 'damp ground';
+      line = `Elevation ${Math.max(2, Math.round(w.he[i] * 1400))} m, ${soil}`;
+    }
+    const rg = w.regions[w.region[i]];
+    const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
+    const farm = settlementTileInfo(i);
+    if (farm) card(farm[0], [...farm[1], where]);
+    else card(b.name, [line, where]);
+  }
+  function pick(sx, sy) {
+    if (!w) return;
+    const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
+    if (pw >= 0) { if (pw !== selPawn) selectPawn(pw); return; }
+    const i = loc(x, y, [0, 0]);
+    if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
+  }
+  function drawHover() {
+    hoverG.clear();
+    if (sel < 0 || !w || selPawn >= 0) return;
+    const pts = [];
+    for (let k = 0; k < 6; k++) { const a = (Math.PI / 180) * (30 + 60 * k); pts.push(w.hx[sel] + Math.cos(a) * w.R, w.hy[sel] + Math.sin(a) * w.R); }
+    hoverG.poly(pts).fill({ color: 0xffffff, alpha: 0.14 }).stroke({ width: 2.4 / cam.z, color: 0xffffff, alpha: 0.95 });
+  }
+
+  // ---- input ----
+  const pointers = new Map();
+  let drag = null, pinch = null, moved = 0;
+  stage.addEventListener('pointerdown', (e) => {
+    stage.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    stopIntro(); vel.x = vel.y = 0; zt = cam.z;
+    if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
+    else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: cam.z, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+      drag = null; moved = 99;
+    }
+  });
+  stage.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY); return; }
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      cam.x -= (mx - pinch.m.x) / cam.z; cam.y -= (my - pinch.m.y) / cam.z;
+      zoomAt(mx, my, (pinch.z * d) / pinch.d / cam.z);
+      pinch.m = { x: mx, y: my }; zt = cam.z;
+    } else if (drag) {
+      moved += Math.abs(dx) + Math.abs(dy);
+      cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+      const now = performance.now(), dt = Math.max(8, now - drag.t) / 1000;
+      vel.x = 0.75 * vel.x + 0.25 * (-dx / cam.z / dt); vel.y = 0.75 * vel.y + 0.25 * (-dy / cam.z / dt);
+      drag.t = now;
+    }
+  });
+  function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) {
+      if (drag && moved < 8) pick(e.clientX, e.clientY);
+      if (!drag || performance.now() - drag.t > 90) { vel.x = vel.y = 0; }
+      drag = null; pinch = null; stage.classList.remove('dragging');
+    } else if (pointers.size === 1) {
+      pinch = null; drag = { t: performance.now() }; vel.x = vel.y = 0;
+    }
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+  stage.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pointers.size) { sel = -1; selPawn = -1; hoverDirty = true; showTile(-1); } });
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault(); stopIntro();
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    zt = clamp(zt * Math.exp(-dy * (e.ctrlKey ? 0.008 : 0.0016)), zMin(), zMax);
+    anchor = { x: e.clientX, y: e.clientY };
+  }, { passive: false });
+
+  const keys = new Set();
+  window.addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('button')) return;
+    if (!$('tree').hidden) return;
+    const k = e.key.toLowerCase();
+    if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
+    if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
+    if (k === '1' || k === '2' || k === '3') setSpeed({ 1: 1, 2: 3, 3: 10 }[k]);
+    if (k === '+' || k === '=' || k === '-') {
+      stopIntro();
+      const r = stage.getBoundingClientRect();
+      anchor = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      zt = clamp(zt * (k === '-' ? 0.8 : 1.25), zMin(), zMax);
+    }
+  });
+  window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+  window.addEventListener('blur', () => keys.clear());
+
+  $('regen').addEventListener('click', () => { if (!building && !skipping) build((Math.random() * 1e6) | 0); });
+  function toggle(btn, fn) {
+    btn.addEventListener('click', () => {
+      const on = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(on)); fn(on);
+    });
+  }
+  toggle($('gridBtn'), (on) => { gridOn = on; });
+  toggle($('regionBtn'), (on) => { L.regions.visible = on; });
+  toggle($('settlersBtn'), (on) => { $('settlers').hidden = !on; if (on && st) { settlersHTML = ''; renderSettlers(); } });
+  let lastSpeed = 1;
+  function setSpeed(v) {
+    if (v > 0) lastSpeed = v;
+    speed = v;
+    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+  }
+  document.querySelectorAll('.speed button').forEach((bt) => bt.addEventListener('click', () => setSpeed(+bt.dataset.speed)));
+
+  // ======== pawns: a jointed rig of tintable parts from one atlas, so a thousand pawns still batch ========
+  // Parts are painted in greys (white = full colour) and tinted per pawn. 4 texels per world unit.
+  const PX = 4;
+  let atlas = null;
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function shadeRight(g, w, h, a = 0.22) { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${a})`); g.fillStyle = gr; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, w, h); g.globalCompositeOperation = 'source-over'; }
+  function partCanvases() {
+    const P = {};
+    const mk = (name, w, h, fn) => { const c = makeCanvas(w, h), g = c.getContext('2d'); fn(g, w, h); P[name] = c; };
+    mk('shadow', 34, 10, (g) => { const gr = g.createRadialGradient(17, 5, 0, 17, 5, 16); gr.addColorStop(0, 'rgba(20,28,18,0.42)'); gr.addColorStop(1, 'rgba(20,28,18,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(17, 5, 16, 4.5, 0, 0, 7); g.fill(); });
+    mk('hose', 9, 27, (g, w, h) => { g.fillStyle = '#fff'; rr(g, 0.5, 0, 8, 27, 3.5); g.fill(); shadeRight(g, w, h, 0.25); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(1, 12, 7, 1); });
+    mk('shoe', 12, 6, (g) => { g.fillStyle = 'rgb(86,60,40)'; g.beginPath(); g.moveTo(1, 5.5); g.lineTo(1, 1.5); g.quadraticCurveTo(4, 0, 8, 1.2); g.quadraticCurveTo(12, 2.5, 11.5, 5.5); g.closePath(); g.fill(); g.fillStyle = 'rgb(54,38,26)'; g.fillRect(1, 4.5, 10.5, 1.5); });
+    mk('tunic', 28, 37, (g, w, h) => {
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(5, 1); g.lineTo(23, 1); g.quadraticCurveTo(26, 2, 25.5, 6); g.lineTo(27.5, 35); g.quadraticCurveTo(14, 37.5, 0.5, 35); g.lineTo(2.5, 6); g.quadraticCurveTo(2, 2, 5, 1); g.closePath(); g.fill();
+      shadeRight(g, w, h, 0.26);
+      g.strokeStyle = 'rgba(0,0,0,0.12)'; g.lineWidth = 1; for (const x of [9, 15, 20]) { g.beginPath(); g.moveTo(x, 18); g.lineTo(x + (x - 14) * 0.25, 35); g.stroke(); }
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(17, 2.5, 4, 2, 0, 0, 7); g.fill();
+    });
+    mk('dress', 34, 55, (g, w, h) => {
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(9, 1); g.lineTo(25, 1); g.quadraticCurveTo(28, 2, 27, 7); g.lineTo(33.5, 53); g.quadraticCurveTo(17, 56, 0.5, 53); g.lineTo(7, 7); g.quadraticCurveTo(6, 2, 9, 1); g.closePath(); g.fill();
+      shadeRight(g, w, h, 0.26);
+      g.strokeStyle = 'rgba(0,0,0,0.11)'; g.lineWidth = 1.2; for (const x of [10, 15, 21, 26]) { g.beginPath(); g.moveTo(x - (x - 17) * 0.2, 20); g.lineTo(x + (x - 17) * 0.45, 53); g.stroke(); }
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(19, 2.5, 4, 2, 0, 0, 7); g.fill();
+    });
+    mk('apron', 12, 34, (g, w, h) => { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(2, 0); g.lineTo(10, 0); g.lineTo(11.5, 33); g.lineTo(0.5, 33); g.closePath(); g.fill(); shadeRight(g, w, h, 0.18); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(5, 4, 1, 28); });
+    mk('belt', 26, 4, (g) => { g.fillStyle = 'rgb(96,66,42)'; g.fillRect(0, 0.5, 26, 3); g.fillStyle = 'rgb(196,170,110)'; g.fillRect(17, 0, 4, 4); });
+    mk('sleeve', 8, 21, (g, w, h) => { g.fillStyle = '#fff'; rr(g, 0, 0, 8, 21, 3.6); g.fill(); shadeRight(g, w, h, 0.22); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(0.5, 18, 7, 1.2); });
+    mk('hand', 7, 7, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(3.5, 3.5, 3.3, 0, 7); g.fill(); g.fillStyle = 'rgba(0,0,0,0.14)'; g.beginPath(); g.arc(4.6, 4.2, 2, 0, 7); g.fill(); });
+    mk('head', 24, 25, (g, w, h) => {
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 12.5, 10, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(19.5, 10); g.quadraticCurveTo(23.5, 13.5, 20, 15.5); g.fill(); // nose
+      const gr = g.createLinearGradient(1, 0, 21, 0); gr.addColorStop(0, 'rgba(0,0,0,0.2)'); gr.addColorStop(0.5, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, 24, 25); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = 'rgba(0,0,0,0.16)'; g.beginPath(); g.ellipse(8.5, 13.5, 2.2, 3, 0, 0, 7); g.fill(); // ear
+      g.fillStyle = 'rgb(40,34,30)'; g.fillRect(15.5, 10.5, 2.2, 2.4); // eye
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(14.8, 8.6, 3.8, 1); // brow
+      g.fillStyle = 'rgba(150,60,50,0.35)'; g.fillRect(17, 18, 3, 1.1); // mouth
+      g.fillStyle = 'rgba(200,90,80,0.18)'; g.beginPath(); g.arc(16.5, 15, 2.4, 0, 7); g.fill(); // cheek
+    });
+    mk('hair', 24, 22, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 11.5, 10.6, Math.PI * 0.95, Math.PI * 2.08); g.lineTo(20, 8); g.quadraticCurveTo(13, 6.5, 9, 9); g.quadraticCurveTo(7, 15, 4.5, 20); g.quadraticCurveTo(0.5, 17, 0.5, 11); g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.15)'; g.lineWidth = 1; for (const x of [5, 9, 13]) { g.beginPath(); g.moveTo(x, 3); g.quadraticCurveTo(x - 2, 9, x - 3, 15); g.stroke(); } });
+    mk('beard', 14, 12, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(1, 0); g.quadraticCurveTo(2, 8, 8, 11.5); g.quadraticCurveTo(13.5, 10, 13, 4); g.lineTo(10.5, 5); g.quadraticCurveTo(8, 3, 6.5, 0.5); g.closePath(); g.fill(); g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(4, 6, 1, 4); g.fillRect(8, 7, 1, 4); });
+    mk('hood', 32, 36, (g, w, h) => {
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(15, 0.5); g.quadraticCurveTo(26, 0.5, 27, 12); g.lineTo(25, 12); g.quadraticCurveTo(22, 4.5, 15, 6); g.quadraticCurveTo(16, 16, 22, 23); g.lineTo(31, 26); g.quadraticCurveTo(31, 33, 26, 35); g.lineTo(4, 35); g.quadraticCurveTo(0, 30, 3, 24); g.quadraticCurveTo(1, 12, 5, 6); g.quadraticCurveTo(8, 0.5, 15, 0.5); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(5, 6); g.quadraticCurveTo(-1, 8, 0.5, 18); g.lineTo(3, 18); g.closePath(); g.fill(); // liripipe tail
+      shadeRight(g, w, h, 0.2);
+      g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(15, 6); g.quadraticCurveTo(16, 16, 22, 23); g.stroke();
+    });
+    mk('headcloth', 28, 32, (g, w, h) => {
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(13, 0.5); g.quadraticCurveTo(25, 0, 25, 11); g.lineTo(22.5, 11); g.quadraticCurveTo(21, 5, 14, 5.5); g.quadraticCurveTo(14.5, 15, 19, 21); g.lineTo(24, 22); g.quadraticCurveTo(24, 30, 17, 31); g.lineTo(5, 31); g.quadraticCurveTo(0, 22, 1.5, 12); g.quadraticCurveTo(3, 1, 13, 0.5); g.closePath(); g.fill();
+      shadeRight(g, w, h, 0.16);
+      g.strokeStyle = 'rgba(0,0,0,0.13)'; g.lineWidth = 1; for (const y of [12, 20, 27]) { g.beginPath(); g.moveTo(3, y); g.quadraticCurveTo(10, y + 2, 17, y - 1); g.stroke(); }
+    });
+    mk('braid', 7, 22, (g) => { g.fillStyle = '#fff'; for (let k = 0; k < 5; k++) { g.beginPath(); g.ellipse(3.5, 3 + k * 4, 3, 2.6, 0.3, 0, 7); g.fill(); } g.fillStyle = 'rgba(0,0,0,0.15)'; for (let k = 0; k < 5; k++) g.fillRect(1, 4 + k * 4, 5, 0.8); });
+    mk('band', 22, 4, (g) => { g.fillStyle = 'rgb(160,60,48)'; rr(g, 0, 0.5, 22, 3, 1.5); g.fill(); g.fillStyle = 'rgba(255,220,140,0.7)'; for (let x = 2; x < 20; x += 4) g.fillRect(x, 1.5, 1.5, 1); });
+    // tools and loads, drawn in their own colours; the grip is at the top
+    const wood = 'rgb(122,92,60)', iron = 'rgb(120,124,130)', ironHi = 'rgb(186,190,196)';
+    mk('hoe', 16, 46, (g) => { g.fillStyle = wood; g.fillRect(3, 0, 2.4, 42); g.fillStyle = iron; g.beginPath(); g.moveTo(3, 40); g.lineTo(15, 41); g.lineTo(15, 45.5); g.lineTo(3, 44); g.closePath(); g.fill(); g.fillStyle = ironHi; g.fillRect(4, 41, 10, 1); });
+    mk('axe', 16, 36, (g) => { g.fillStyle = wood; g.fillRect(3, 0, 2.6, 34); g.fillStyle = iron; g.beginPath(); g.moveTo(5, 25); g.quadraticCurveTo(11, 22, 15, 24); g.lineTo(15, 35); g.quadraticCurveTo(10, 34, 5, 32); g.closePath(); g.fill(); g.fillStyle = ironHi; g.fillRect(13.5, 24.5, 1.5, 10); });
+    mk('sickle', 18, 22, (g) => { g.fillStyle = wood; g.fillRect(2, 0, 3, 9); g.strokeStyle = iron; g.lineWidth = 2.2; g.beginPath(); g.moveTo(3.5, 9); g.quadraticCurveTo(4, 21, 12, 20); g.quadraticCurveTo(17.5, 18, 16, 11); g.stroke(); g.strokeStyle = ironHi; g.lineWidth = 0.8; g.beginPath(); g.moveTo(5, 10); g.quadraticCurveTo(5.5, 19, 12, 18.5); g.stroke(); });
+    mk('mallet', 16, 32, (g) => { g.fillStyle = wood; g.fillRect(3, 0, 2.4, 26); g.fillStyle = 'rgb(140,108,72)'; rr(g, 0, 24, 15, 8, 2.5); g.fill(); g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(0, 29.5, 15, 2.5); });
+    mk('basket', 16, 12, (g) => { g.fillStyle = 'rgb(170,134,80)'; g.beginPath(); g.moveTo(0.5, 1); g.lineTo(15.5, 1); g.quadraticCurveTo(15, 11.5, 8, 11.5); g.quadraticCurveTo(1, 11.5, 0.5, 1); g.fill(); g.strokeStyle = 'rgba(80,56,30,0.6)'; g.lineWidth = 0.8; for (let y = 3; y < 11; y += 2.5) { g.beginPath(); g.moveTo(1, y); g.lineTo(15, y); g.stroke(); } g.fillStyle = 'rgb(214,190,120)'; g.beginPath(); g.ellipse(8, 1.5, 7, 1.6, 0, 0, 7); g.fill(); });
+    mk('bucket', 10, 12, (g) => { g.strokeStyle = 'rgb(60,48,36)'; g.lineWidth = 0.9; g.beginPath(); g.arc(5, 4, 4.5, Math.PI, 0); g.stroke(); g.fillStyle = 'rgb(140,104,66)'; g.beginPath(); g.moveTo(1, 4); g.lineTo(9, 4); g.lineTo(8.2, 11.5); g.lineTo(1.8, 11.5); g.closePath(); g.fill(); g.fillStyle = 'rgb(70,58,48)'; g.fillRect(1.3, 6, 7.4, 0.9); g.fillRect(1.6, 9.5, 6.8, 0.9); g.fillStyle = 'rgb(120,170,190)'; g.fillRect(1.6, 4, 6.8, 1.2); });
+    mk('sheaf', 26, 14, (g) => { g.strokeStyle = 'rgb(214,178,92)'; g.lineWidth = 1.4; for (let k = 0; k < 14; k++) { const y = 3 + k * 0.6; g.beginPath(); g.moveTo(1, y + (k % 3)); g.quadraticCurveTo(12, y - 1, 25, y + 2 + (k % 4)); g.stroke(); } g.fillStyle = 'rgb(236,206,120)'; for (let k = 0; k < 7; k++) { g.beginPath(); g.ellipse(22 + (k % 3), 3 + k * 1.4, 2.2, 1.1, 0.4, 0, 7); g.fill(); } g.fillStyle = 'rgb(150,112,60)'; g.fillRect(10, 2, 2.4, 10); });
+    mk('logs', 24, 14, (g) => { const ends = [[5, 9], [11, 10], [17, 9], [8, 4.5], [14, 4.5], [20, 5]]; g.fillStyle = 'rgb(112,84,56)'; rr(g, 2, 2, 21, 11, 3); g.fill(); for (const [x, y] of ends) { g.fillStyle = 'rgb(206,176,124)'; g.beginPath(); g.arc(x, y, 2.9, 0, 7); g.fill(); g.strokeStyle = 'rgba(120,80,48,0.7)'; g.lineWidth = 0.7; g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.stroke(); } g.fillStyle = 'rgb(80,60,40)'; g.fillRect(12, 1, 1.5, 12); });
+    return P;
+  }
+  function buildAtlas() {
+    const P = partCanvases(), names = Object.keys(P), W = 256;
+    let x = 1, y = 1, rowH = 0;
+    const pos = {};
+    for (const n of names) { const c = P[n]; if (x + c.width + 1 > W) { x = 1; y += rowH + 2; rowH = 0; } pos[n] = [x, y, c.width, c.height]; x += c.width + 2; rowH = Math.max(rowH, c.height); }
+    const canvas = makeCanvas(W, y + rowH + 2), g = canvas.getContext('2d');
+    for (const n of names) g.drawImage(P[n], pos[n][0], pos[n][1]);
+    const source = new PIXI.CanvasSource({ resource: canvas, autoGenerateMipmaps: true });
+    const tex = {};
+    for (const n of names) tex[n] = new PIXI.Texture({ source, frame: new PIXI.Rectangle(...pos[n]) });
+    return tex;
+  }
+
+  // Clothing after medieval Swedish peasant dress: wool kirtles in undyed or plant-dyed colours, hose and turnshoes,
+  // hoods for men, a linen headcloth for married women and loose braided hair with a band for unmarried ones.
+  const DYES = [[198, 190, 172], [150, 122, 92], [162, 70, 52], [78, 104, 146], [196, 166, 78], [112, 126, 82], [128, 98, 124], [176, 160, 136]];
+  const HOSE = [[92, 82, 70], [72, 84, 100], [116, 76, 60], [86, 98, 74], [120, 108, 92]];
+  const SKINS = [[242, 208, 182], [232, 194, 164], [220, 180, 150]];
+  const HAIRS = [[232, 206, 142], [206, 164, 100], [158, 112, 66], [110, 78, 52], [76, 58, 44]];
+  const LINEN = [242, 238, 226];
+  const hex = (c, f = 1) => ((Math.min(255, c[0] * f) << 16) | (Math.min(255, c[1] * f) << 8) | Math.min(255, c[2] * f)) >>> 0;
+  function makeRig(p, married) {
+    const r = G.mulberry32(p.look), pick = (a) => a[(r() * a.length) | 0];
+    const look = { cloth: pick(DYES), cloth2: pick(DYES), hose: pick(HOSE), skin: pick(SKINS), hair: pick(HAIRS), beard: p.sex === 'm' && r() < 0.6, hood: p.sex === 'm' && r() < 0.45, hoodCol: pick(DYES) };
+    const S = (name, tint, ax = 0.5, ay = 0) => { const s = new PIXI.Sprite(atlas[name]); s.anchor.set(ax, ay); if (tint !== undefined) s.tint = tint; return s; };
+    const root = new PIXI.Container(); root.scale.set(1 / PX);
+    const shadow = S('shadow', undefined, 0.5, 0.5); root.addChild(shadow);
+    const leg = (x, back) => {
+      const c = new PIXI.Container(); c.position.set(x, -27);
+      const h = S('hose', hex(look.hose, back ? 0.78 : 1)); c.addChild(h);
+      const sh = S('shoe', back ? 0xcccccc : undefined, 0.3, 0.5); sh.position.set(1, 25.5); c.addChild(sh);
+      root.addChild(c); return c;
+    };
+    const legB = leg(-2, true), legF = leg(2, false);
+    const upper = new PIXI.Container(); upper.position.set(0, -27); root.addChild(upper);
+    const arm = (x, back) => {
+      const c = new PIXI.Container(); c.position.set(x, -24);
+      c.addChild(S('sleeve', hex(p.sex === 'f' ? look.cloth : look.cloth, back ? 0.74 : 1)));
+      const hand = new PIXI.Container(); hand.position.set(0, 21); c.addChild(hand);
+      hand.addChild(S('hand', hex(look.skin, back ? 0.85 : 1), 0.5, 0.5));
+      return { c, hand };
+    };
+    const aB = arm(-3, true); upper.addChild(aB.c);
+    const back = new PIXI.Sprite(); back.anchor.set(0.5, 0.5); back.position.set(-10, -16); upper.addChild(back); // load on the back
+    if (p.sex === 'f') {
+      const d = S('dress', hex(look.cloth)); d.position.set(0, -27); upper.addChild(d);
+      const ap = S('apron', hex(LINEN, 0.97)); ap.position.set(5.5, -14); upper.addChild(ap);
+      const bt = S('belt', 0xffffff); bt.scale.x = 0.78; bt.position.set(0.5, -15); upper.addChild(bt);
+    } else {
+      const t = S('tunic', hex(look.cloth)); t.position.set(0, -27); upper.addChild(t);
+      const bt = S('belt', 0xffffff); bt.position.set(0, -11); upper.addChild(bt);
+    }
+    const head = new PIXI.Container(); head.position.set(1, -27); upper.addChild(head);
+    if (p.sex === 'f' && !married) { const b = S('braid', hex(look.hair, 0.9), 0.5, 0); b.position.set(-9, -16); head.addChild(b); }
+    head.addChild(S('head', hex(look.skin), 0.46, 1));
+    if (p.sex === 'm') {
+      if (look.beard) { const bd = S('beard', hex(look.hair, 0.95), 0.5, 0); bd.position.set(3, -9); head.addChild(bd); }
+      const hood = S('hood', hex(look.hoodCol), 0.47, 1); hood.position.set(0, 7); hood.visible = look.hood; head.addChild(hood);
+      const hair = S('hair', hex(look.hair), 0.46, 1); hair.position.set(0, -2.5); hair.visible = !look.hood; head.addChild(hair);
+      look.hoodSprite = hood; look.hairSprite = hair;
+    } else if (married) {
+      const hc = S('headcloth', hex(LINEN), 0.46, 1); hc.position.set(0, 5); head.addChild(hc);
+    } else {
+      const hair = S('hair', hex(look.hair), 0.46, 1); hair.position.set(0, -2.5); head.addChild(hair);
+      const band = S('band', undefined, 0.5, 0.5); band.position.set(0, -19); band.rotation = -0.15; head.addChild(band);
+    }
+    const shoulder = new PIXI.Sprite(); shoulder.anchor.set(0.5, 0.75); shoulder.position.set(-1, -26); upper.addChild(shoulder); // load on the shoulder
+    const aF = arm(3, false); upper.addChild(aF.c);
+    const tool = new PIXI.Sprite(); tool.anchor.set(0.25, 0.05); aF.hand.addChild(tool);
+    const heldB = new PIXI.Sprite(); heldB.anchor.set(0.5, 0.1); aB.hand.addChild(heldB);
+    const heldF = new PIXI.Sprite(); heldF.anchor.set(0.5, 0.1); aF.hand.addChild(heldF);
+    return { root, legB, legF, upper, armB: aB.c, armF: aF.c, head, tool, back, shoulder, heldB, heldF, look, shadow };
+  }
+
+  // Poses: angles in radians. Arm 0 hangs down, negative swings forward and up. Upper body leans forward with positive angles.
+  const swing = (t, a, b) => a + (b - a) * (0.5 - 0.5 * Math.cos(t));
+  function strike(t) { const u = t % 1; return u < 0.7 ? u / 0.7 : 1 - (u - 0.7) / 0.3; } // slow lift, fast blow
+  function pose(R, a, t, winter) {
+    const s = a.stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim;
+    let legF = 0, legB = 0, armF = 0.05, armB = 0.05, lean = 0, bob = 0, headR = 0;
+    let tool = null, toolR = 0, back = null, shoulder = null, heldF = null, heldB = null;
+    if (walking || anim === 'sow') {
+      const k = anim === 'sow' && !walking ? 0.35 : 0.5;
+      legF = Math.sin(s) * k; legB = -Math.sin(s) * k;
+      armF = -Math.sin(s) * 0.42; armB = Math.sin(s) * 0.42;
+      bob = -Math.abs(Math.cos(s)) * 1.6; lean = 0.05;
+    } else {
+      bob = Math.sin(t * 2.1 + a.id) * 0.35; armF = 0.04 + Math.sin(t * 2.1 + a.id) * 0.03; armB = armF;
+    }
+    const cyc = t * 0.9 + a.id * 0.37;
+    if (!walking) switch (anim) {
+      case 'hoe': { const k = strike(cyc); lean = 0.3 - k * 0.12; armF = -0.55 - k * 2.0; armB = armF + 0.25; tool = 'hoe'; toolR = -0.15; legF = -0.25; legB = 0.25; break; }
+      case 'chop': { const k = strike(cyc * 1.1); lean = 0.12 + (1 - k) * 0.18; armF = -1.0 - k * 2.0; armB = armF + 0.2; tool = 'axe'; toolR = -0.1; legF = -0.3; legB = 0.3; break; }
+      case 'mallet': { const k = strike(cyc * 1.2); lean = 0.32; armF = -0.8 - k * 1.6; armB = 0.1; tool = 'mallet'; toolR = -0.05; legF = -0.2; legB = 0.2; break; }
+      case 'reap': { lean = 0.62; armF = swing(cyc * 4.2, -0.15, -1.25); armB = -0.9 + Math.sin(cyc * 4.2) * 0.1; tool = 'sickle'; toolR = 0.3; legF = -0.3; legB = 0.32; break; }
+      case 'gather': { const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
+      case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
+    }
+    if (anim === 'sow') { const k = swing(cyc * 5, -0.15, -1.7); armF = k; armB = -0.55; heldB = 'basket'; }
+    if (a.carry === 'sheaf') { shoulder = 'sheaf'; armF = -2.45; }
+    if (a.carry === 'logs') { back = 'logs'; armF = -0.35 + armF * 0.3; armB = -0.35 + armB * 0.3; lean += 0.12; }
+    if (a.carry === 'buckets') { heldF = 'bucket'; heldB = 'bucket'; armF = armF * 0.25 + 0.05; armB = armB * 0.25 + 0.05; }
+    if (!walking && anim === 'idle' && a.id % 3 === 0) headR = Math.sin(t * 0.4 + a.id) * 0.08;
+    R.legF.rotation = legF; R.legB.rotation = legB; R.armF.rotation = armF; R.armB.rotation = armB;
+    R.upper.rotation = lean; R.upper.y = -27 + bob; R.head.rotation = headR;
+    const set = (spr, name) => { if (name) { spr.texture = atlas[name]; spr.visible = true; } else spr.visible = false; };
+    set(R.tool, tool); R.tool.rotation = toolR; set(R.back, back); set(R.shoulder, shoulder); set(R.heldF, heldF); set(R.heldB, heldB);
+    R.shoulder.scale.set(1.7); R.shoulder.rotation = -0.35; R.back.scale.set(1.5); R.heldF.scale.set(1.35); R.heldB.scale.set(heldB === 'basket' ? 1.45 : 1.35);
+    if (R.look.hoodSprite) { const hood = R.look.hood || winter; R.look.hoodSprite.visible = hood; R.look.hairSprite.visible = !hood; }
+  }
+
+  // ======== farmstead art, after medieval Swedish building ========
+  // Unpainted log buildings with turf roofs on birch bark and a smoke hole (ljore) instead of a chimney,
+  // a storehouse on posts (härbre), a gapped barn (lada), a woodpile, the village well sweep (brunnsvinge),
+  // sheaf stooks (skylar) on reaped fields and a roundpole fence (gärdesgård) around the infields. 4 texels per unit.
+  function logCourse(g, x0, x1, y, h, base, r) {
+    const c = base.map((v) => v * (0.9 + r() * 0.18));
+    g.fillStyle = `rgb(${c.map((v) => v | 0)})`; rr(g, x0, y, x1 - x0, h, h / 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.13)'; g.fillRect(x0 + 2, y + 0.8, x1 - x0 - 4, 1.1);
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x0 + 1, y + h - 1.4, x1 - x0 - 2, 1.4);
+    g.strokeStyle = 'rgba(0,0,0,0.08)'; g.lineWidth = 0.6;
+    for (let k = 0; k < 4; k++) { const x = x0 + 6 + r() * (x1 - x0 - 12); g.beginPath(); g.moveTo(x, y + h * 0.35); g.lineTo(x + 6 + r() * 8, y + h * 0.45); g.stroke(); }
+  }
+  function logEnds(g, x, y0, n, h, r) {
+    for (let k = 0; k < n; k++) {
+      const y = y0 + k * h + h / 2;
+      g.fillStyle = 'rgb(150,124,94)'; g.beginPath(); g.ellipse(x, y, 2.6, h / 2 - 0.2, 0, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(70,50,30,0.5)'; g.lineWidth = 0.6; g.beginPath(); g.ellipse(x, y, 1.3, h / 4, 0, 0, 7); g.stroke();
+    }
+  }
+  function turf(g, pts, r, dark) {
+    g.fillStyle = dark ? 'rgb(92,104,58)' : 'rgb(104,118,64)'; g.beginPath(); pts.forEach(([x, y], k) => g[k ? 'lineTo' : 'moveTo'](x, y)); g.closePath(); g.fill();
+    g.save(); g.clip();
+    for (let k = 0; k < 260; k++) {
+      const x = r() * 110, y = r() * 60, l = 2 + r() * 3;
+      g.strokeStyle = r() < 0.5 ? 'rgba(70,88,40,0.75)' : 'rgba(150,164,92,0.65)'; g.lineWidth = 0.9;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 1.5, y - l); g.stroke();
+    }
+    for (let k = 0; k < 10; k++) { g.fillStyle = ['rgba(240,230,120,0.9)', 'rgba(250,250,240,0.9)', 'rgba(200,120,170,0.8)'][k % 3]; g.beginPath(); g.arc(r() * 100, r() * 40, 0.9, 0, 7); g.fill(); }
+    g.restore();
+  }
+  function stugaCanvas(v) {
+    const c = makeCanvas(104, 80), g = c.getContext('2d'), r = G.mulberry32(100 + v);
+    const logs = [[132, 108, 84], [120, 100, 80], [138, 116, 90]][v % 3];
+    g.fillStyle = 'rgba(20,30,20,0.32)'; g.beginPath(); g.ellipse(54, 73, 48, 7, 0, 0, 7); g.fill();
+    for (let x = 9; x < 94; x += 7 + r() * 3) { g.fillStyle = `rgb(${[130, 128, 122].map((q) => (q * (0.85 + r() * 0.25)) | 0)})`; g.beginPath(); g.ellipse(x, 69, 4.2, 2.6, 0, 0, 7); g.fill(); }
+    for (let k = 0; k < 6; k++) logCourse(g, 11, 93, 36 + k * 5.3, 5.3, logs, r);
+    logEnds(g, 9, 36, 6, 5.3, r); logEnds(g, 95, 36, 6, 5.3, r);
+    // low plank door with a heavy frame, and a small wind-eye with a shutter
+    g.fillStyle = 'rgb(92,70,48)'; g.fillRect(22, 44, 16, 24); g.fillStyle = 'rgb(66,48,32)'; g.fillRect(24, 46, 12, 22);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(28, 46, 0.8, 22); g.fillRect(32, 46, 0.8, 22);
+    g.fillStyle = 'rgb(46,40,36)'; g.fillRect(25, 51, 4, 1.4); g.fillRect(25, 62, 4, 1.4);
+    g.fillStyle = 'rgb(40,34,30)'; g.fillRect(62, 47, 8, 6); g.fillStyle = 'rgb(96,74,52)'; g.fillRect(70, 46, 5, 8);
+    // turf roof on birch bark, held by an eave log; ridge pole ends stick out at the gables
+    turf(g, [[3, 39], [101, 39], [89, 13], [15, 13]], r, v % 2);
+    g.fillStyle = 'rgb(226,218,200)'; g.fillRect(3, 37.5, 98, 2.5);
+    g.fillStyle = 'rgba(60,50,40,0.6)'; for (let x = 6; x < 100; x += 5 + r() * 4) g.fillRect(x, 38, 2, 0.8);
+    g.fillStyle = 'rgb(110,86,60)'; rr(g, 2, 39.5, 100, 3.4, 1.7); g.fill();
+    g.fillStyle = 'rgb(118,92,64)'; g.beginPath(); g.ellipse(14, 13.5, 2.6, 2.4, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(90, 13.5, 2.6, 2.4, 0, 0, 7); g.fill();
+    // smoke hole (ljore) near the ridge
+    g.fillStyle = 'rgb(96,74,52)'; g.fillRect(62, 8, 10, 7); g.fillStyle = 'rgb(34,28,24)'; g.fillRect(64, 9.5, 6, 3.5);
+    return c;
+  }
+  function harbreCanvas() {
+    const c = makeCanvas(56, 86), g = c.getContext('2d'), r = G.mulberry32(7);
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(30, 81, 24, 4.5, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(126,122,116)'; for (const x of [12, 42]) { g.beginPath(); g.ellipse(x, 79, 5, 3, 0, 0, 7); g.fill(); }
+    g.fillStyle = 'rgb(104,82,58)'; g.fillRect(10, 64, 4, 15); g.fillRect(40, 64, 4, 15);
+    for (let k = 0; k < 4; k++) logCourse(g, 9, 45, 44 + k * 5, 5, [126, 104, 80], r);
+    logEnds(g, 7.5, 44, 4, 5, r); logEnds(g, 46.5, 44, 4, 5, r);
+    // the upper storey overhangs on all sides, clad in boards
+    g.fillStyle = 'rgb(128,104,78)'; g.fillRect(3, 22, 50, 22);
+    g.fillStyle = 'rgba(0,0,0,0.16)'; for (let x = 7; x < 53; x += 4.5) g.fillRect(x, 22, 0.9, 22);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(3, 42, 50, 2);
+    g.fillStyle = 'rgb(70,52,36)'; g.fillRect(22, 26, 11, 15); g.fillStyle = 'rgb(50,40,32)'; g.fillRect(31, 33, 1.6, 1.6);
+    g.fillStyle = 'rgb(84,76,70)'; g.beginPath(); g.moveTo(0, 24); g.lineTo(56, 24); g.lineTo(47, 4); g.lineTo(9, 4); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(40,34,30,0.55)'; g.lineWidth = 0.8;
+    for (let y = 8; y < 24; y += 3.2) { const k = (y - 4) / 20; g.beginPath(); g.moveTo(9 - 9 * k, y); g.lineTo(47 + 9 * k, y); g.stroke(); for (let x = 10; x < 46; x += 4) { g.beginPath(); g.moveTo(x + (y % 2) * 2, y); g.lineTo(x + (y % 2) * 2, y - 3); g.stroke(); } }
+    // steps up to the door
+    g.fillStyle = 'rgb(112,88,62)'; g.save(); g.translate(40, 78); g.rotate(-1.25); g.fillRect(0, 0, 38, 3); g.restore();
+    return c;
+  }
+  function ladaCanvas() {
+    const c = makeCanvas(110, 72), g = c.getContext('2d'), r = G.mulberry32(11);
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(56, 67, 50, 6, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(40,32,26)'; g.fillRect(10, 30, 90, 34);
+    for (let k = 0; k < 5; k++) logCourse(g, 10, 100, 31 + k * 6.6, 5, [110, 94, 78], r); // gapped logs let the hay breathe
+    logEnds(g, 8, 31, 5, 6.6, r); logEnds(g, 102, 31, 5, 6.6, r);
+    g.fillStyle = 'rgb(102,80,58)'; g.fillRect(42, 37, 26, 27); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(54.6, 37, 0.9, 27);
+    g.strokeStyle = 'rgba(60,44,30,0.8)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(43, 63); g.lineTo(54, 38); g.moveTo(56, 38); g.lineTo(67, 63); g.stroke();
+    g.fillStyle = 'rgb(116,106,94)'; g.beginPath(); g.moveTo(3, 33); g.lineTo(107, 33); g.lineTo(93, 7); g.lineTo(17, 7); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(60,54,48,0.5)'; g.lineWidth = 0.9;
+    for (let x = 6; x < 106; x += 4.4) { const t = (x - 3) / 104; g.beginPath(); g.moveTo(x, 33); g.lineTo(17 + t * 76, 7); g.stroke(); }
+    g.fillStyle = 'rgb(84,74,64)'; g.fillRect(16, 5.5, 78, 3);
+    return c;
+  }
+  function woodpileCanvas(level) {
+    const c = makeCanvas(52, 30), g = c.getContext('2d'), r = G.mulberry32(level * 3 + 1);
+    g.fillStyle = 'rgba(20,30,20,0.28)'; g.beginPath(); g.ellipse(26, 27, 24, 3.5, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(96,74,50)'; g.fillRect(3, 24, 46, 3);
+    const rows = [0, 2, 3, 4][level];
+    for (let row = 0; row < rows; row++) for (let x = 6 + (row % 2) * 3; x < 47; x += 5.6) {
+      const y = 21 - row * 4.6;
+      g.fillStyle = `rgb(${[206, 174, 124].map((q) => (q * (0.88 + r() * 0.2)) | 0)})`; g.beginPath(); g.arc(x, y, 2.6, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(110,76,46,0.7)'; g.lineWidth = 0.8; g.beginPath(); g.arc(x, y, 2.6, 0, 7); g.stroke();
+    }
+    return c;
+  }
+  function wellSweepCanvas() {
+    const c = makeCanvas(100, 112), g = c.getContext('2d');
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(44, 106, 34, 5.5, 0, 0, 7); g.fill();
+    // log well curb
+    const r = G.mulberry32(3);
+    for (let k = 0; k < 3; k++) logCourse(g, 20, 54, 88 + k * 5, 5, [130, 108, 84], r);
+    g.fillStyle = 'rgb(36,50,60)'; g.beginPath(); g.ellipse(37, 88, 15, 3, 0, 0, 7); g.fill();
+    // forked post, sweep pole with a stone counterweight, rod and bucket
+    g.fillStyle = 'rgb(104,80,56)'; g.fillRect(70, 48, 4.5, 56);
+    g.strokeStyle = 'rgb(104,80,56)'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(71, 50); g.lineTo(67, 43); g.moveTo(74, 50); g.lineTo(78, 43); g.stroke();
+    g.strokeStyle = 'rgb(122,96,66)'; g.lineWidth = 3.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(36, 10); g.lineTo(94, 74); g.stroke();
+    g.fillStyle = 'rgb(124,120,114)'; g.beginPath(); g.ellipse(93, 76, 6, 5, 0, 0, 7); g.fill();
+    g.strokeStyle = 'rgb(86,66,46)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(37, 11); g.lineTo(37, 76); g.stroke();
+    g.fillStyle = 'rgb(140,104,66)'; g.beginPath(); g.moveTo(32, 76); g.lineTo(42, 76); g.lineTo(41, 84); g.lineTo(33, 84); g.closePath(); g.fill();
+    return c;
+  }
+  function stookCanvas(v) {
+    const c = makeCanvas(20, 24), g = c.getContext('2d'), r = G.mulberry32(20 + v);
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(12, 21.5, 8, 2.2, 0, 0, 7); g.fill();
+    for (let k = 0; k < 7; k++) {
+      const x = 4 + k * 2, top = 4 + Math.abs(k - 3) * 1.4;
+      g.strokeStyle = `rgb(${[214, 180, 96].map((q) => (q * (0.85 + r() * 0.25)) | 0)})`; g.lineWidth = 2.4;
+      g.beginPath(); g.moveTo(x, 21); g.lineTo(10 + (x - 10) * 0.25, top); g.stroke();
+    }
+    g.fillStyle = 'rgb(236,206,120)'; g.beginPath(); g.ellipse(10, 4, 3, 2.6, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(150,112,60)'; g.fillRect(7.5, 8, 5, 1.6);
+    return c;
+  }
+  function yardCanvas() {
+    const c = makeCanvas(170, 116), g = c.getContext('2d'), r = G.mulberry32(5);
+    const gr = g.createRadialGradient(85, 58, 8, 85, 58, 80);
+    gr.addColorStop(0, 'rgba(146,128,96,0.78)'); gr.addColorStop(0.7, 'rgba(146,128,96,0.4)'); gr.addColorStop(1, 'rgba(146,128,96,0)');
+    g.fillStyle = gr; g.save(); g.scale(1, 116 / 170); g.beginPath(); g.arc(85, 85, 82, 0, 7); g.fill(); g.restore();
+    for (let k = 0; k < 140; k++) { const a = r() * 6.28, d = Math.sqrt(r()) * 70; g.fillStyle = r() < 0.5 ? 'rgba(110,94,70,0.4)' : 'rgba(120,150,80,0.35)'; g.fillRect(85 + Math.cos(a) * d, 58 + Math.sin(a) * d * 0.68, 1.6, 1.6); }
+    return c;
+  }
+  // Roundpole fence along a stretch of hex edges: paired posts with slanted rails; a neglected stretch sags and loses rails.
+  function drawFence(g, s) {
+    g.clear();
+    const broken = s.cond < 0.45, r = G.mulberry32(s.id * 97 + (s.edges[0].tile | 0));
+    for (const e of s.edges) {
+      const dx = e.x2 - e.x1, dy = e.y2 - e.y1, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, n = Math.max(2, Math.round(L / 5.2));
+      for (let k = 0; k <= n; k++) {
+        const x = e.x1 + dx * (k / n), y = e.y1 + dy * (k / n);
+        g.moveTo(x - 0.5, y + 0.6).lineTo(x - 0.5, y - 5.2).moveTo(x + 0.6, y + 0.6).lineTo(x + 0.6, y - 5.2);
+      }
+      g.stroke({ width: 0.7, color: 0x6e6254, alpha: 0.95 });
+      for (let k = 0; k < n * 2; k++) {
+        if (broken && r() < 0.45) continue;
+        const t0 = (k / (n * 2)), x = e.x1 + dx * t0, y = e.y1 + dy * t0, run = 6.5;
+        g.moveTo(x, y - 0.2).lineTo(x + ux * run, y + uy * run - 4.6);
+      }
+      g.stroke({ width: 0.85, color: 0x9a8c78, alpha: 0.95 });
+      if (broken) { for (let k = 0; k < 2; k++) { const t0 = r(), x = e.x1 + dx * t0, y = e.y1 + dy * t0 + 1.5; g.moveTo(x, y).lineTo(x + ux * 6, y + uy * 6 + 0.8); } g.stroke({ width: 0.8, color: 0x8a7c68, alpha: 0.85 }); }
+    }
+  }
+
+  // ======== settlement layer ========
+  let st = null, speed = 1, selPawn = -1;
+  const HOUR_SECONDS = 2; // one game day lasts 48 seconds at 1x
+  let fieldTex = null, art = null;
+  let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [];
+  const ring = new PIXI.Graphics();
+
+  function hexClip(g, cx, cy, r) {
+    g.beginPath();
+    for (let k = 0; k < 6; k++) { const a = (Math.PI / 180) * (30 + 60 * k); g[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    g.closePath();
+  }
+  function fieldCanvas(stage, R) {
+    const S = 2, Wc = Math.ceil(Math.sqrt(3) * R * S) + 2, Hc = Math.ceil(2 * R * S) + 2, c = makeCanvas(Wc, Hc), g = c.getContext('2d');
+    const cx = Wc / 2, cy = Hc / 2, rr0 = R * S * 0.92, r = G.mulberry32(stage.length * 977 + 5);
+    const P = {
+      stubble: { base: [182, 164, 106], row: [150, 128, 78], hi: [204, 188, 130] },
+      plowed: { base: [108, 80, 54], row: [80, 58, 40], hi: [138, 106, 74] },
+      sown: { base: [118, 90, 62], row: [96, 72, 50], hi: [146, 116, 82] },
+      young: { base: [112, 94, 62], row: [98, 128, 60], hi: [132, 172, 78] },
+      growing: { base: [96, 116, 58], row: [80, 128, 52], hi: [128, 168, 78] },
+      ripe: { base: [190, 154, 74], row: [222, 190, 98], hi: [240, 214, 130] },
+      fallow: { base: [134, 150, 82], row: [146, 160, 88], hi: [176, 176, 104] },
+      scrub: { base: [116, 136, 74], row: [124, 142, 78], hi: [150, 160, 92] },
+    }[stage];
+    const rgb = (a, f = 1) => `rgb(${(a[0] * f) | 0},${(a[1] * f) | 0},${(a[2] * f) | 0})`;
+    g.save(); hexClip(g, cx, cy, rr0); g.clip();
+    g.fillStyle = rgb(P.base); g.fillRect(0, 0, Wc, Hc);
+    for (let y = 4; y < Hc; y += 9) {
+      if (stage === 'fallow' || stage === 'scrub') { for (let x = r() * 4; x < Wc; x += 2 + r() * 4) { if (stage === 'fallow' && r() < 0.35) { g.strokeStyle = r() < 0.5 ? 'rgba(196,186,120,0.8)' : 'rgba(90,120,56,0.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x + (r() - 0.5) * 2, y - 3); g.stroke(); } else if (stage === 'scrub' && r() < 0.14) { g.fillStyle = r() < 0.5 ? 'rgba(70,96,52,0.9)' : 'rgba(96,110,60,0.9)'; g.beginPath(); g.arc(x, y, 2.5 + r() * 2.5, 0, 7); g.fill(); } } continue; }
+      g.strokeStyle = rgb(P.row); g.lineWidth = stage === 'growing' || stage === 'ripe' ? 5 : stage === 'plowed' ? 4 : 3;
+      g.beginPath(); for (let x = 0; x <= Wc; x += 6) g[x ? 'lineTo' : 'moveTo'](x, y + Math.sin(x * 0.2 + y) * 0.8); g.stroke();
+      if (stage !== 'stubble') { g.strokeStyle = rgb(P.hi); g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, y - 2); g.lineTo(Wc, y - 2); g.stroke(); }
+      for (let x = r() * 6; x < Wc; x += stage === 'young' ? 1.5 + r() * 2 : 3 + r() * 5) {
+        if (stage === 'stubble') { g.strokeStyle = rgb(P.hi, 0.95 + r() * 0.1); g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x + 0.6, y - 2); g.stroke(); }
+        else if (stage === 'sown' && r() < 0.22) { g.fillStyle = 'rgba(214,196,140,0.8)'; g.fillRect(x, y - 1, 1.4, 1.4); }
+        else if (stage === 'plowed' && r() < 0.3) { g.fillStyle = 'rgba(60,44,30,0.6)'; g.fillRect(x, y + 1, 2.4, 1.6); }
+        else if (stage === 'young') { g.fillStyle = rgb(P.hi, 0.9 + r() * 0.2); g.fillRect(x, y - 2.5, 2.2, 3.5); }
+        else if (stage === 'ripe' && r() < 0.6) { g.fillStyle = rgb(P.hi); g.beginPath(); g.ellipse(x, y - 2, 1.2, 2, 0.3, 0, 7); g.fill(); }
+      }
+    }
+    for (let k = 0; k < 90; k++) { g.fillStyle = `rgba(0,0,0,${0.04 + r() * 0.05})`; g.fillRect(r() * Wc, r() * Hc, 1.5, 1.5); }
+    g.restore();
+    hexClip(g, cx, cy, rr0); g.strokeStyle = 'rgba(70,58,34,0.45)'; g.lineWidth = 2; g.stroke();
+    return c;
+  }
+  function curbCanvas() {
+    const c = makeCanvas(40, 30), g = c.getContext('2d'), r = G.mulberry32(9);
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(20, 26, 17, 3.5, 0, 0, 7); g.fill();
+    for (let k = 0; k < 3; k++) logCourse(g, 3, 37, 10 + k * 5, 5, [130, 108, 84], r);
+    g.fillStyle = 'rgb(36,50,60)'; g.beginPath(); g.ellipse(20, 10, 15, 3, 0, 0, 7); g.fill();
+    return c;
+  }
+  function puffCanvas() {
+    const c = makeCanvas(24, 24), g = c.getContext('2d'), gr = g.createRadialGradient(12, 12, 0, 12, 12, 12);
+    gr.addColorStop(0, 'rgba(225,225,220,0.9)'); gr.addColorStop(1, 'rgba(225,225,220,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 24, 24);
+    return c;
+  }
+  function makeArt(R) {
+    const T = (c) => texFrom(c, { autoGenerateMipmaps: true });
+    fieldTex = {}; for (const k of ['stubble', 'plowed', 'sown', 'young', 'growing', 'ripe', 'fallow', 'scrub']) fieldTex[k] = T(fieldCanvas(k, R));
+    art = {
+      stuga: [0, 1, 2].map((v) => T(stugaCanvas(v))), harbre: T(harbreCanvas()), lada: T(ladaCanvas()),
+      wood: [0, 1, 2, 3].map((l) => T(woodpileCanvas(l))), sweep: T(wellSweepCanvas()), curb: T(curbCanvas()),
+      stook: [0, 1].map((v) => T(stookCanvas(v))), yard: T(yardCanvas()), puff: T(puffCanvas()),
+    };
+    atlas = buildAtlas();
+  }
+  const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => { const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
+
+  function clearSettlement() {
+    // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
+    for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(), ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1;
+  }
+  async function buildSettlement(wd, s) {
+    clearSettlement();
+    st = s;
+    if (!st) return;
+    if (!art) makeArt(wd.R);
+    buildFarms(wd);
+    try { await Promise.race([document.fonts.load('italic 700 30px Alegreya'), new Promise((r) => setTimeout(r, 1500))]); } catch (e) { /* the fallback font is fine */ }
+    const mkLabel = (text, x, y, size) => {
+      const t = new PIXI.Text({ text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: { color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
+      t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
+    };
+    for (const v of st.villages) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, 30);
+    for (const f of st.farmsteads) if (f.village === null) mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24);
+  }
+  // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
+  function buildFarms(wd) {
+    for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()]) if (s2 !== ring) s2.destroy({ children: true });
+    fieldSprites = []; rigs = []; houseInfo = []; fences = [];
+    L.objects.sortableChildren = true;
+    for (const f of st.farmsteads) {
+      const hx = wd.hx[f.house], hy = wd.hy[f.house], empty = f.household === null, ruin = f.state === 'ruin';
+      for (const fd of f.fields) {
+        const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
+        sp.anchor.set(0.5); sp.scale.set(0.5); sp.rotation = f.rowAngle; sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
+        L.fields.addChild(sp);
+        const stooks = [], th = f.rowAngle;
+        for (let k = 0; k < 9; k++) {
+          const u = ((k % 3) - 1) * 12, v = (Math.floor(k / 3) - 1) * 12, jx = Math.sin(k * 7.1) * 2, jy = Math.cos(k * 3.3) * 2;
+          const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx, y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
+          const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9); sk.visible = false; stooks.push(sk);
+        }
+        fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+      }
+      const yard = place(art.yard, hx, hy + 2, 0.5, 0.5, L.fields); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
+      const v = f.id % 3;
+      // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
+      const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
+      const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95), stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
+      for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
+      if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
+      const wood = place(art.wood[0], hx + 13, hy + 16, 0.5, 0.9); wood.visible = !empty;
+      if (f.village === null) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
+      if (!empty) {
+        const puffs = [];
+        for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
+        houseInfo.push({ f, puffs, wood, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
+      }
+      if (f.fence) for (const s2 of f.fence) addFence(s2);
+    }
+    for (const v of st.villages) {
+      place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
+      for (const s2 of v.fence) addFence(s2);
+    }
+    for (const p of st.pawns) {
+      const married = Sim.spouseOf(st, p.id) !== null || (p.sex === 'f' && st.unions.some((u) => u.a === p.id || u.b === p.id));
+      const R = makeRig(p, married); R.root.visible = false;
+      L.objects.addChild(R.root); rigs.push(R);
+    }
+    L.objects.addChild(ring);
+    st.visualDirty = false; st.rigDirty.clear();
+  }
+  function addFence(s) { const g = new PIXI.Graphics(); drawFence(g, s); L.fences.addChild(g); fences.push({ g, s }); s.dirty = false; }
+
+  function cropStage(fd) {
+    if (fd.stage === 'stooks') return 'stubble';
+    if (fd.stage === 'fallow' || fd.stage === 'scrub') return fd.stage;
+    if (fd.stage !== 'growing') return fd.stage;
+    return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
+  }
+  let tAcc = 0;
+  function updateSettlement(dt) {
+    if (!st) return;
+    if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    if (st.visualDirty || st.rigDirty.size) buildFarms(w);
+    for (const o of fieldSprites) {
+      const s = cropStage(o.fd);
+      if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }
+      const on = o.fd.stage === 'stooks';
+      if (o.stooks[0].visible !== on) for (const sk of o.stooks) sk.visible = on;
+    }
+    for (const f of fences) if (f.s.dirty) { drawFence(f.g, f.s); f.s.dirty = false; }
+    const c = Sim.cal(st.t), show = cam.z > 0.28, winter = c.season === 3;
+    for (const a of st.agents) {
+      const R = rigs[a.id];
+      const pp = st.pawns[a.id];
+      R.root.visible = show && !a.inside && pp.died === null;
+      if (!R.root.visible) continue;
+      const k = pp.age < 6 ? 0.55 : pp.age < 10 ? 0.66 : pp.age < 14 ? 0.8 : pp.age < 17 ? 0.93 : 1; // children are smaller
+      R.root.position.set(a.x, a.y); R.root.scale.set((a.face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
+      pose(R, a, time, winter);
+    }
+    ring.clear();
+    if (selPawn >= 0 && rigs[selPawn].root.visible) {
+      const a = st.agents[selPawn];
+      ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
+    }
+    // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
+    const evening = c.hour >= 16 || c.hour < 8;
+    for (const h of houseInfo) {
+      const hh = st.households[h.f.household];
+      if (!hh) continue;
+      const cooking = st.agents.some((a) => a.job && a.job.kind === 'cook' && a.inside && st.pawns[a.id].household === hh.id);
+      const amt = 0.18 + (evening ? 0.3 : 0) + (winter ? 0.25 : 0) + (cooking ? 0.35 : 0);
+      h.puffs.forEach((p, k) => {
+        const ph = (time * 0.16 + k / h.puffs.length + h.f.id * 0.37) % 1;
+        p.visible = cam.z > 0.3; if (!p.visible) return;
+        p.position.set(h.cx + ph * 10 + Math.sin(ph * 6 + k) * 1.5, h.cy - ph * 24);
+        p.scale.set((0.2 + ph * 0.6) * 0.5); p.alpha = Math.min(0.9, (1 - ph) * amt * (ph < 0.1 ? ph * 10 : 1));
+      });
+      const level = hh.wood <= 0.5 ? 0 : hh.wood < 10 ? 1 : hh.wood < 22 ? 2 : 3;
+      if (h.wood.texture !== art.wood[level]) h.wood.texture = art.wood[level];
+    }
+    for (const l of labels) {
+      l.t.scale.set(0.55 / cam.z); l.t.position.set(l.x, l.y);
+      l.t.alpha = clamp((1.5 - cam.z) / 0.5, 0, 1); l.t.visible = l.t.alpha > 0.01;
+    }
+    tAcc += dt;
+    if (tAcc > 0.25) {
+      tAcc = 0;
+      const hh = Math.floor(c.hour), mm = Math.floor(((c.hour - hh) * 60) / 10) * 10;
+      $('clockDate').textContent = `${Sim.SEASONS[c.season][0].toUpperCase() + Sim.SEASONS[c.season].slice(1)}, day ${c.sday + 1}`;
+      $('clockYear').textContent = `Year ${c.year}, ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      if (!$('settlers').hidden) renderSettlers();
+      if (selPawn >= 0) showPawn(selPawn);
+    }
+  }
+
+  // ---- words ----
+  const isWidow = (p) => p.sex === 'f' && Sim.spouseOf(st, p.id) === null && st.unions.some((u) => (u.a === p.id || u.b === p.id) && u.end !== null);
+  const roleLine = (p) => {
+    if (p.role === 'farmer' && p.sex === 'f') return isWidow(p) ? 'Widow holding the farm (änka)' : 'Holds the farm (bonde)';
+    const r = Sim.ROLES[p.role]; return `${r.title} (${r.sv})`;
+  };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const farmOf = (p) => (p.household !== null && st.households[p.household] ? st.farmsteads[st.households[p.household].farmstead] : null);
+  const heirTo = (id) => st.households.filter((h) => !h.dissolved && Sim.heirRanking(st, h)[0] === id).map((h) => st.farmsteads[h.farmstead]);
+  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', mend: 'Mend the fence' };
+  function jobsLine(list) {
+    if (!list.length) return 'none open';
+    const n = {};
+    for (const j of list) { const k = JOBNAME[j.kind]; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claim === null ? 'open' : 'taken']++; }
+    return Object.entries(n).map(([k, v]) => `${k}${v.open + v.taken > 1 ? ` ×${v.open + v.taken}` : ''}${v.taken ? (v.open ? `, ${v.taken} under way` : ', under way') : ''}`).join('; ');
+  }
+  function fieldSummary(f) {
+    const n = {}, word = { stubble: 'stubble', plowed: 'hoed', sown: 'sown', young: 'sprouting', growing: 'growing', ripe: 'ripe', stooks: 'in stooks', fallow: 'gone to grass', scrub: 'gone to scrub' };
+    for (const fd of f.fields) { const s = fd.stage === 'stooks' ? 'stooks' : cropStage(fd); n[s] = (n[s] || 0) + 1; }
+    return Object.entries(n).map(([k, v]) => `${v} ${word[k]}`).join(', ');
+  }
+  const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
+  let settlersHTML = '';
+  function renderSettlers() {
+    let h = '';
+    const jobs = [...st.jobs.values()];
+    const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
+    for (const v of st.villages) {
+      const vj = jobs.filter((j) => j.owner.type === 'village' && j.owner.id === v.id);
+      const worst = Math.min(...v.fence.map((s) => s.cond));
+      const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
+      const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
+      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair. Shared well and woods.</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
+      h += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}</p>`;
+      for (const f of empties) h += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
+      h += '</div>';
+    }
+    for (const hh of st.households) {
+      if (hh.dissolved) continue;
+      const f = st.farmsteads[hh.farmstead], v = f.village !== null ? st.villages[f.village] : null;
+      const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
+      h += `<div class="farm"><h2>${esc(f.name)} <span>${v ? 'in ' + esc(v.name) : 'on its own'}</span></h2>`;
+      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
+      h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
+      for (const id of hh.members) {
+        const p = st.pawns[id];
+        h += `<li>${nm(id)} ${p.age}, ${esc(Sim.ROLES[p.role] ? (p.role === 'farmer' && p.sex === 'f' ? (isWidow(p) ? 'widow' : 'holder') : Sim.ROLES[p.role].title.toLowerCase()) : p.role)}<br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
+      }
+      h += '</ul></div>';
+    }
+    h += '<div class="log"><h2>Recent</h2>' + st.events.slice(0, 6).map((e) => { const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`; }).join('') + '</div>';
+    if (h !== settlersHTML) { settlersHTML = h; $('settlers').innerHTML = h; }
+  }
+  function focusPawn(id) {
+    const p = st.pawns[id]; if (p.died !== null) { treeSel = id; openTree(); return; }
+    const a = st.agents[id], f = farmOf(p);
+    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] : a.y, z1 = Math.max(cam.z, 1.5);
+    intro = { t: 0, d: 1.1, x0: cam.x, y0: cam.y, z0: cam.z, x1: x, y1: y, z1, T: levelFor(z1, 1), rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, { x, y, z: z1 }) };
+    selectPawn(id);
+  }
+  $('settlers').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
+  function selectPawn(id) { selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
+  function showPawn(id) {
+    const p = st.pawns[id], f = farmOf(p);
+    if (p.died !== null || !f) { card(Sim.fullName(p), ['Died']); return; }
+    const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
+    const holds = Sim.holdingOf(st, id), heirs = heirTo(id);
+    const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) => x.name).join(' and ')}` : p.retired ? `Retired at ${f.name}` : p.age >= 18 && st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
+    const rel = sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried';
+    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
+  }
+  function card(title, lines) {
+    $('tileName').textContent = title;
+    ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => { const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k]; });
+    $('tile').hidden = false;
+  }
+  function pawnAt(x, y) {
+    if (!st || cam.z <= 0.28) return -1;
+    let best = -1, bd = 1e9;
+    for (const a of st.agents) {
+      if (a.inside || st.pawns[a.id].died !== null) continue;
+      const dx = x - a.x, dy = y - (a.y - 9);
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 10) { const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = a.id; } }
+    }
+    return best;
+  }
+  function settlementTileInfo(i) {
+    if (!st) return null;
+    for (const f of st.farmsteads) {
+      const v = f.village !== null ? st.villages[f.village].name : null, where = v ? `${f.name}, ${v}` : f.name;
+      if (f.house === i) {
+        if (f.household === null) return [`${f.name}${v ? `, ${v}` : ''}`, [`Empty for ${emptyYears(f)} years: ${f.state === 'ruin' ? 'a ruin' : 'buildings at ' + Math.round(f.condition * 100) + '%'}`, 'No heir took it; claims come in the next batch']];
+        const hh = st.households[f.household], heirs = Sim.heirRanking(st, hh).slice(0, 3).map((q) => Sim.fullName(st.pawns[q]));
+        return [`${f.name}${v ? `, ${v}` : ''}`, [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`, heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line']];
+      }
+      const fd = f.fields.find((q) => q.tile === i);
+      if (fd) {
+        const word = { stubble: 'Stubble, waiting for spring', plowed: 'Hoed, ready for sowing', sown: 'Freshly sown', young: 'Sprouting', growing: 'Growing', ripe: 'Ripe for reaping', stooks: 'Sheaves drying in stooks', fallow: 'Untended, gone to grass', scrub: 'Untended, gone to scrub' }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
+        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+      }
+    }
+    for (const v of st.villages) if (v.center === i) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
+    return null;
+  }
+
+  // ======== family records ========
+  const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
+  function layoutTree(S) {
+    const gen = new Map();
+    const g = (id) => { if (gen.has(id)) return gen.get(id); const p = S.pawns[id]; const v = p.father === null && p.mother === null ? 0 : 1 + Math.max(p.father !== null ? g(p.father) : 0, p.mother !== null ? g(p.mother) : 0); gen.set(id, v); return v; };
+    S.pawns.forEach((p) => g(p.id));
+    // people who married in without parents on record sit in their spouse's row
+    for (let pass = 0; pass < 3; pass++) for (const u of S.unions) {
+      const a = S.pawns[u.a], b = S.pawns[u.b];
+      if (a.father === null && a.mother === null && gen.get(u.a) < gen.get(u.b)) gen.set(u.a, gen.get(u.b));
+      if (b.father === null && b.mother === null && gen.get(u.b) < gen.get(u.a)) gen.set(u.b, gen.get(u.a));
+    }
+    const rows = [];
+    for (const p of S.pawns) { const k = gen.get(p.id); (rows[k] = rows[k] || []).push(p.id); }
+    for (let k = 0; k < rows.length; k++) rows[k] = rows[k] || [];
+    const pos = new Map(), spouses = (id) => S.unions.filter((u) => u.a === id || u.b === id).map((u) => (u.a === id ? u.b : u.a));
+    let width = 0;
+    rows.forEach((ids, k) => {
+      const px = (id) => { const p = S.pawns[id], xs = [p.father, p.mother].filter((q) => q !== null && pos.has(q)).map((q) => pos.get(q).x); if (xs.length) return xs.reduce((a, b) => a + b, 0) / xs.length; const sp = spouses(id).map((q) => S.pawns[q]).find((q) => q.father !== null || q.mother !== null); return sp ? 1e5 : (S.pawns[id].household ?? 99) * 1000; };
+      const order = [...ids].sort((a, b) => px(a) - px(b) || S.pawns[a].born - S.pawns[b].born);
+      const placed = [], seen = new Set();
+      for (const id of order) {
+        const p = S.pawns[id];
+        if (seen.has(id)) continue;
+        // an in-law without parents is placed beside their spouse instead of on their own
+        if (p.father === null && p.mother === null && spouses(id).some((q) => gen.get(q) === k && (S.pawns[q].father !== null || S.pawns[q].mother !== null))) continue;
+        seen.add(id); placed.push([id, GAP]);
+        for (const sp of spouses(id)) if (!seen.has(sp) && gen.get(sp) === k) { seen.add(sp); placed.push([sp, SPOUSE_GAP]); }
+      }
+      for (const id of ids) if (!seen.has(id)) { seen.add(id); placed.push([id, GAP]); }
+      let x = 0;
+      placed.forEach(([id, gap], n) => { if (n) x += gap; pos.set(id, { x, y: k * ROW_H, gen: k }); x += NODE_W; });
+      width = Math.max(width, x);
+      rows[k] = placed.map(([id]) => id);
+    });
+    rows.forEach((ids) => { if (!ids.length) return; const last = pos.get(ids[ids.length - 1]).x + NODE_W, shift = (width - last) / 2; for (const id of ids) pos.get(id).x += shift; });
+    return { pos, rows, width, height: rows.length * ROW_H - (ROW_H - NODE_H) };
+  }
+  let treeSel = -1;
+  const yearStr = (y) => (y < 0 ? `\u2212${-y}` : String(y));
+  const deathYear = (p) => Math.floor(p.died / Sim.YEAR) + 1;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  function renderTree() {
+    const svg = $('treeSvg'); svg.textContent = '';
+    const { pos, width, height } = layoutTree(st), pad = 24;
+    svg.setAttribute('viewBox', `${-pad} ${-pad} ${width + pad * 2} ${height + pad * 2}`);
+    svg.setAttribute('width', width + pad * 2); svg.setAttribute('height', height + pad * 2);
+    const heirSet = new Set(st.households.filter((h) => !h.dissolved).map((h) => Sim.heirRanking(st, h)[0]).filter((x) => x !== undefined));
+    const links = el('g', { class: 'links' }, svg);
+    for (const u of st.unions) {
+      const a = pos.get(u.a), b = pos.get(u.b);
+      if (!a || !b || a.gen !== b.gen) continue;
+      const [l, r] = a.x < b.x ? [a, b] : [b, a], y = l.y + NODE_H / 2, x1 = l.x + NODE_W, x2 = r.x, mx = (x1 + x2) / 2;
+      el('line', { x1, y1: y, x2, y2: y, class: 'marriage' + (u.end !== null ? ' ended' : '') }, links);
+      el('circle', { cx: mx - 2.5, cy: y, r: 4, class: 'ring' }, links); el('circle', { cx: mx + 2.5, cy: y, r: 4, class: 'ring' }, links);
+      const kids = st.pawns.filter((p) => (p.father === u.a && p.mother === u.b) || (p.father === u.b && p.mother === u.a)).map((p) => pos.get(p.id));
+      if (kids.length) {
+        const ky = Math.min(...kids.map((q) => q.y)), bar = ky - (ROW_H - NODE_H) / 2, xs = kids.map((q) => q.x + NODE_W / 2);
+        el('path', { d: `M${mx},${y + 4} V${bar} M${Math.min(mx, ...xs)},${bar} H${Math.max(mx, ...xs)} ` + kids.map((q) => `M${q.x + NODE_W / 2},${bar} V${q.y}`).join(' '), class: 'descent' }, links);
+      }
+    }
+    for (const p of st.pawns) {
+      const q = pos.get(p.id), f = farmOf(p), dead = p.died !== null;
+      const g = el('g', { class: `tn ${p.sex}${p.id === treeSel ? ' sel' : ''}${dead ? ' dead' : ''}`, transform: `translate(${q.x},${q.y})`, tabindex: '0', role: 'button', 'data-pawn': p.id, 'aria-label': `${Sim.fullName(p)}${dead ? ', died' : ''}` }, svg);
+      el('rect', { width: NODE_W, height: NODE_H, rx: 10 }, g);
+      const t1 = el('text', { x: 14, y: 22, class: 'n' }, g); t1.textContent = Sim.fullName(p);
+      const t2 = el('text', { x: 14, y: 40, class: 's' }, g);
+      t2.textContent = dead ? `${yearStr(Sim.birthYear(p))} to ${yearStr(deathYear(p))}, aged ${Math.floor((p.died - p.born) / Sim.YEAR)}` : `${Sim.ROLES[p.role] ? (p.role === 'farmer' && p.sex === 'f' ? (isWidow(p) ? 'Widow' : 'Holder') : Sim.ROLES[p.role].title) : p.role}, ${p.age}`;
+      const t3 = el('text', { x: 14, y: 56, class: 's' }, g);
+      t3.textContent = dead ? (f ? `Lived at ${f.name}` : 'Before the landing') : heirSet.has(p.id) ? `Heir to ${heirTo(p.id).map((x) => x.name).join(', ')}` : f ? f.name : '';
+      if (heirSet.has(p.id) && !dead) el('circle', { cx: NODE_W - 14, cy: 14, r: 4.5, class: 'heir' }, g);
+    }
+  }
+  function renderTreeInfo() {
+    const box = $('treeInfo');
+    if (treeSel < 0) { box.innerHTML = '<p class="hint">Choose a person to see their family. Heirs are marked with a dot; the dead are greyed.</p>'; return; }
+    const p = st.pawns[treeSel], f = farmOf(p), v = f && f.village !== null ? st.villages[f.village].name : null, dead = p.died !== null;
+    const sp = Sim.spouseOf(st, p.id), kids = Sim.childrenOf(st, p.id), sibs = Sim.siblingsOf(st, p.id);
+    const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
+    const kin = sp !== null ? Sim.kinship(st, p.id, sp) : null;
+    const spouses = st.unions.filter((u) => u.a === p.id || u.b === p.id).map((u) => (u.a === p.id ? u.b : u.a));
+    const evs = (p.events || []).filter((e) => e.text).slice(-8).reverse().map((e) => `<li>Year ${yearStr(Math.floor(e.t / Sim.YEAR) + 1)}: ${esc(e.text)}</li>`).join('');
+    box.innerHTML = `<h3>${esc(Sim.fullName(p))}</h3>
+      <p>${dead ? `Lived from year ${yearStr(Sim.birthYear(p))} to ${yearStr(deathYear(p))}.` : `${esc(roleLine(p))}, ${p.age}. Born in year ${yearStr(Sim.birthYear(p))}${p.born < 0 ? ', before the landing' : ''}.`}</p>
+      ${f ? `<p>${dead ? 'Lived' : 'Lives'} at ${esc(f.name)}${v ? ` in ${esc(v)}` : ''}.</p>` : ''}
+      <dl>
+        <dt>Father</dt><dd>${p.father !== null ? nm(p.father) : `${esc(p.fatherName)}, known only from the patronymic`}</dd>
+        <dt>Mother</dt><dd>${p.mother !== null ? nm(p.mother) : 'Not on record'}</dd>
+        <dt>${dead ? 'Married' : 'Spouse'}</dt><dd>${sp !== null ? `${nm(sp)}, ${kin > 0 ? `kinship coefficient ${kin.toFixed(4)}` : 'not related by blood'}` : spouses.length ? spouses.map(nm).join(', ') + (dead ? '' : ' (widowed)') : 'Unmarried'}</dd>
+        <dt>Children</dt><dd>${kids.length ? kids.map(nm).join(', ') : 'None'}</dd>
+        <dt>Siblings</dt><dd>${sibs.length ? sibs.map(nm).join(', ') : p.father === null && p.mother === null ? 'Not on record' : 'None'}</dd>
+      </dl>
+      ${evs ? `<ul class="evs">${evs}</ul>` : ''}
+      ${dead ? '' : '<button type="button" class="primary" id="treeShow">Show on the map</button>'}`;
+  }
+  function openTree() {
+    if (!st) return;
+    $('tree').hidden = false; $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    const L2 = layoutTree(st), living = st.pawns.filter((p) => p.died === null).length;
+    $('treeSub').textContent = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages, ${L2.rows.length} ${L2.rows.length === 1 ? 'generation' : 'generations'}`;
+    if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
+    renderTree(); renderTreeInfo(); $('treeClose').focus();
+  }
+  const closeTree = () => { $('tree').hidden = true; $('treeBtn').focus(); };
+  $('treeBtn').addEventListener('click', openTree);
+  $('treeClose').addEventListener('click', closeTree);
+  $('tree').addEventListener('click', (e) => {
+    if (e.target === $('tree')) { closeTree(); return; }
+    if (e.target.id === 'treeShow') { closeTree(); focusPawn(treeSel); return; }
+    const n = e.target.closest('[data-pawn]');
+    if (n) { treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+  });
+  $('tree').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeTree();
+    const n = e.target.closest && e.target.closest('g[data-pawn]');
+    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+  });
+
+  // ======== customs and debug drawer ========
+  let drawerTab = null, skipping = false, drawerHTML = '';
+  const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
+  function openDrawer(tab) {
+    drawerTab = drawerTab === tab ? null : tab;
+    drawer.hidden = !drawerTab;
+    $('customsBtn').setAttribute('aria-pressed', String(drawerTab === 'customs'));
+    $('debugBtn').setAttribute('aria-pressed', String(drawerTab === 'debug'));
+    drawerHTML = ''; if (drawerTab === 'debug') buildDebug(); renderDrawer();
+  }
+  $('customsBtn').addEventListener('click', () => openDrawer('customs'));
+  $('debugBtn').addEventListener('click', () => openDrawer('debug'));
+  $('drawerClose').addEventListener('click', () => openDrawer(drawerTab));
+  const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
+  const nextMeeting = () => { const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS; return days; };
+  function renderDrawer() {
+    if (!drawerTab || !st) return;
+    if (drawerTab === 'customs') {
+      const env = st.cenv; let h = '<h2 class="dh">Customs</h2>';
+      const days = nextMeeting();
+      h += `<p class="dm">Attitudes drift every day; a village’s practice changes only at its meeting after harvest (next in ${days} ${days === 1 ? 'day' : 'days'}), the culture’s customs only at the reckoning that follows.</p>`;
+      for (const c of env.cultures) h += `<p class="dm"><strong>${esc(c.name)} culture</strong>, centred on ${esc(env.settlements[c.centres[0]].name)}${c.parent !== null ? `, split from ${esc(env.cultures[c.parent].name)}` : ''}.</p>`;
+      const setts = env.settlements;
+      for (const s of setts) {
+        const voices = s.members().filter((p) => env.voiceOf(p, s) > 0).length;
+        h += `<p class="dm">${esc(s.name)}: ${s.members().length} people, ${voices} with a voice; tie to the centre ${Math.round(s.tie * 100)}%${s.id !== env.cultures[s.culture].centres[0] ? `, ${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears ? `, ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}` : ''}.</p>`;
+      }
+      h += `<table class="cust"><thead><tr><th scope="col">Custom</th><th scope="col">Culture</th>${setts.map((s) => `<th scope="col">${esc(s.name)}</th>`).join('')}</tr></thead><tbody>`;
+      const sup = setts.map((s) => Culture.support(env, s.members(), (p) => env.voiceOf(p, s)).S);
+      Culture.DIMS.forEach((d, k) => {
+        const c = env.cultures[setts[0].culture], dots = Math.max(1, Math.round(d.m * 5));
+        h += `<tr><th scope="row">${esc(d.label)}<br><span class="mall" title="How easily it changes">${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</span></th><td>${esc(optLabel(k, c.customs[k]))}</td>`;
+        setts.forEach((s, si) => {
+          const cc = env.cultures[s.culture], dev = s.practice[k] !== cc.customs[k], o = Culture.OFF[k];
+          const segs = d.opts.map((op, j) => `<i style="width:${(sup[si][o + j] * 100).toFixed(1)}%;background:${BAR[j]}" title="${esc(op[1])}: ${Math.round(sup[si][o + j] * 100)}%"></i>`).join('');
+          h += `<td class="${dev ? 'dev' : ''}">${esc(optLabel(k, s.practice[k]))}<div class="sbar" aria-hidden="true">${segs}</div></td>`;
+        });
+        h += '</tr>';
+      });
+      h += '</tbody></table><p class="dm">Bars show voice-weighted support for each option today, in the order: ' + ['first', 'second', 'third', 'fourth'].map((n, j) => `<span class="sw" style="background:${BAR[j]}"></span>${n}`).join(' ') + ' option.</p>';
+      h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) => `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
+      if (h !== drawerHTML) { drawerHTML = h; $('drawerBody').innerHTML = h; }
+    } else updateDebug();
+  }
+  function buildDebug() {
+    const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
+    $('drawerBody').innerHTML = `<h2 class="dh">Debug</h2>
+      <p class="dm" id="dbgWhen"></p>
+      <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
+      <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button type="button" data-act="move">Run the moving round</button></div>
+      <p class="dm">Drift speed of attitudes</p>
+      <div class="dbg-row" role="group" aria-label="Drift speed">${[1, 10, 100].map((m) => `<button type="button" data-drift="${m}" aria-pressed="${st.driftMul === m}">×${m}</button>`).join('')}</div>
+      <label class="dchk"><input type="checkbox" id="dbgDeaths" ${st.naturalDeaths ? 'checked' : ''}> Natural deaths</label>
+      <h3 class="dh3">Selected person</h3>
+      <p class="dm" id="dbgSel"></p>
+      <div class="dbg-row"><button type="button" data-act="kill">Kill</button><button type="button" data-act="retire">Retire and hand over</button></div>
+      <div class="dbg-row"><select id="advDim" aria-label="Custom">${dims}</select><select id="advOpt" aria-label="Option"></select></div>
+      <div class="dbg-row"><button type="button" data-act="advP">Make them argue for it</button><button type="button" data-act="advV">Rally a fifth of the village</button></div>
+      <h3 class="dh3">Wants to move out</h3><p class="dm" id="dbgOut"></p>
+      <p class="dm" id="dbgMsg" aria-live="polite"></p>`;
+    const fillOpts = () => { const k = +$('advDim').value; $('advOpt').innerHTML = Culture.DIMS[k].opts.map((o, j) => `<option value="${j}">${esc(o[1])}</option>`).join(''); };
+    $('advDim').addEventListener('change', fillOpts); fillOpts();
+    $('dbgDeaths').addEventListener('change', (e) => { st.naturalDeaths = e.target.checked; });
+    updateDebug();
+  }
+  const selected = () => (selPawn >= 0 ? selPawn : treeSel >= 0 ? treeSel : -1);
+  function updateDebug() {
+    if (!$('dbgWhen')) return;
+    const c = Sim.cal(st.t), days = nextMeeting();
+    $('dbgWhen').textContent = skipping ? $('dbgWhen').textContent : `Year ${c.year}, ${Sim.SEASONS[c.season]} day ${c.sday + 1}. Next meetings in ${days} ${days === 1 ? 'day' : 'days'}.`;
+    const id = selected(), p = id >= 0 ? st.pawns[id] : null;
+    $('dbgSel').textContent = p ? `${Sim.fullName(p)}${p.died !== null ? ' (dead)' : `, ${p.age}, ${roleLine(p)}`}${p.advocate ? `; argues for “${optLabel(p.advocate.dim, p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the settlers list or in the family tree.';
+    const out = st.demand.filter((q) => st.pawns[q].alive);
+    $('dbgOut').textContent = out.length ? out.map((q) => `${Sim.fullName(st.pawns[q])} (${st.pawns[q].age}, ${st.villages[Sim.settlementIdOf(st, st.pawns[q])].name})`).join(', ') : 'Nobody right now.';
+  }
+  const dmsg = (t) => { const m = $('dbgMsg'); if (m) m.textContent = t; };
+  async function skipYears(n) {
+    if (skipping) return;
+    skipping = true;
+    const days = n * Sim.YEAR_DAYS;
+    for (let d = 0; d < days; d++) {
+      Sim.advance(st, Sim.DAY);
+      if (d % 4 === 3) { $('dbgWhen').textContent = `Skipping: day ${d + 1} of ${days}…`; await frame(); }
+    }
+    skipping = false; st.visualDirty = true; settlersHTML = ''; dmsg(`Skipped ${n} ${n === 1 ? 'year' : 'years'}.`); updateDebug();
+  }
+  drawer.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b || !st || skipping) return;
+    const id = selected(), p = id >= 0 ? st.pawns[id] : null;
+    if (b.dataset.drift) { st.driftMul = +b.dataset.drift; drawer.querySelectorAll('[data-drift]').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.drift === st.driftMul))); return; }
+    switch (b.dataset.act) {
+      case 'skip1': skipYears(1); break;
+      case 'skip10': skipYears(10); break;
+      case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
+      case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
+      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'by the debug panel'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'retire': { const hh = p ? Sim.holdingOf(st, id) : null; if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`); else dmsg('Select someone who holds a farm and has an heir.'); break; }
+      case 'advP': case 'advV': {
+        if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }
+        const dim = +$('advDim').value, opt = +$('advOpt').value, until = st.cenv.t + 10;
+        if (b.dataset.act === 'advP') { p.advocate = { dim, opt, until }; dmsg(`${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.`); }
+        else {
+          const s = st.cenv.settlements[Sim.settlementIdOf(st, p)], voiced = s.members().filter((q) => st.cenv.voiceOf(q, s) > 0).sort((x, y) => y.prestige - x.prestige);
+          const want = Math.max(1, Math.ceil(voiced.length * 0.2)); let n = 0;
+          for (const q of voiced) { if (n >= want) break; q.advocate = { dim, opt, until }; n++; }
+          dmsg(`${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.`);
+        }
+        break;
+      }
+    }
+    settlersHTML = ''; updateDebug();
+  });
+
+  // ---- frame loop ----
+  let time = 0;
+  const lodEl = $('lod');
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  let frameErrAt = -1e9;
+  const onFrame = (tk) => {
+    if (!w) return;
+    const dt = Math.min(0.05, tk.deltaMS / 1000);
+    time += dt; frameNo++;
+    if (intro) {
+      intro.t += dt;
+      const k = ease(clamp(intro.t / intro.d, 0, 1));
+      cam.x = intro.x0 + (intro.x1 - intro.x0) * k; cam.y = intro.y0 + (intro.y1 - intro.y0) * k;
+      cam.z = Math.exp(Math.log(intro.z0) + (Math.log(intro.z1) - Math.log(intro.z0)) * k); zt = cam.z;
+      if (intro.t >= intro.d) intro = null;
+    }
+    if (Math.abs(zt - cam.z) > 1e-4) zoomAt(anchor.x, anchor.y, (cam.z + (zt - cam.z) * Math.min(1, dt * 14)) / cam.z);
+    if (!drag && !pinch) {
+      cam.x += vel.x * dt; cam.y += vel.y * dt;
+      const decay = Math.exp(-dt * 4.5); vel.x *= decay; vel.y *= decay;
+    }
+    if (keys.size) {
+      const sp = 700 / cam.z;
+      if (keys.has('arrowleft') || keys.has('a')) cam.x -= sp * dt;
+      if (keys.has('arrowright') || keys.has('d')) cam.x += sp * dt;
+      if (keys.has('arrowup') || keys.has('w')) cam.y -= sp * dt;
+      if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
+    }
+    clampCam();
+    world.scale.set(cam.z);
+    world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);
+
+    T = levelFor(cam.z, T);
+    // paint in bigger slices while the view is still; keep frames smooth while it moves
+    const busy = intro || drag || pinch || keys.size || Math.abs(vel.x) + Math.abs(vel.y) > 2 || Math.abs(zt - cam.z) > 1e-3;
+    if (!building) schedule(intro ? 14 : busy ? 9 : 22);
+    display();
+    lodEl.hidden = pending === 0;
+    if (pending) lodEl.textContent = `Painting detail, ${pending} ${pending === 1 ? 'area' : 'areas'} left`;
+
+    // sea: wave crests only once they are big enough not to shimmer
+    const wa = clamp((cam.z - 0.14) / 0.3, 0, 1);
+    L.waves.visible = wa > 0.01;
+    if (!reduceMotion) {
+      waves[0].tilePosition.x += 6 * dt; waves[0].tilePosition.y += 2.5 * dt;
+      waves[1].tilePosition.x -= 4 * dt; waves[1].tilePosition.y += 3.5 * dt;
+    }
+    waves[0].alpha = (0.2 + (reduceMotion ? 0 : 0.05 * Math.sin(time * 0.8))) * wa;
+    waves[1].alpha = (0.12 + (reduceMotion ? 0 : 0.04 * Math.sin(time * 0.55 + 1.3))) * wa;
+    // clouds: visible on the overview, thinning out as you descend
+    const zm = zMin(), fade = clamp((zm * 2.3 - cam.z) / (zm * 1.3), 0, 1);
+    L.clouds.visible = L.shadows.visible = fade > 0.01;
+    L.clouds.alpha = 0.85 * fade; L.shadows.alpha = 0.16 * fade;
+    for (const c of clouds) {
+      if (!reduceMotion) { c.spr.x += c.vx * dt; c.spr.y += c.vy * dt; }
+      const hw = c.spr.width / 2;
+      if (c.spr.x - hw > w.W + 200 * w.KS) c.spr.x = -hw - 200 * w.KS;
+      c.sh.x = c.spr.x + 120 * w.KS; c.sh.y = c.spr.y + 90 * w.KS;
+    }
+    updateGrid();
+    updateSettlement(dt);
+    L.regions.alpha = clamp(1.25 - cam.z, 0.35, 1);
+    if (hoverDirty || sel >= 0) { drawHover(); hoverDirty = false; }
+    drawMinimapView();
+  };
+  // Pixi stops its ticker for good when a frame throws; catch it, say so, and keep the game running.
+  app.ticker.add((tk) => {
+    try { onFrame(tk); }
+    catch (e) {
+      console.error(e);
+      if (performance.now() - frameErrAt > 5000) { frameErrAt = performance.now(); lodEl.hidden = false; lodEl.textContent = `Something went wrong in a frame: ${e.message}`; }
+    }
+  });
+
+  // #s123 opens seed 123 with the founders; #h123 opens it with the heirs debug scenario
+  const hm = location.hash.match(/^#([sh]?)(\d{1,9})$/);
+  build(hm ? +hm[2] : (Math.random() * 1e6) | 0, hm && hm[1] === 'h' ? 'heirs' : 'founders');
+})();
+</script>
+</body>
+</html>

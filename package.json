@@ -1,0 +1,13 @@
+{
+  "name": "village-builder",
+  "private": true,
+  "scripts": {
+    "build": "python3 build.py",
+    "test": "node tests/regress.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
+    "calibrate": "node tests/calibrate.js natural 12 200"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "1.0.13",
+    "jsdom": "24.1.3"
+  }
+}
