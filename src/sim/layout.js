@@ -61,19 +61,23 @@ VB['sim/layout'] = (() => {
     };
   }
 
-  function findSite(w, rand, comp, filter) {
+  // cache (optional): a Float32Array of NaN that remembers site scores between calls on the same world.
+  function findSite(w, rand, comp, filter, cache = null) {
     let best = -1, bs = -Infinity;
     for (let i = 0; i < w.N; i++) {
       if (w.biome[i] !== B.MEADOW || (i * 7919) % 5 || !filter(i)) continue;
-      const s = siteScore(w, i) + rand() * 2;
+      if (cache && cache[i] !== cache[i]) cache[i] = siteScore(w, i);
+      const s = (cache ? cache[i] : siteScore(w, i)) + rand() * 2;
       if (s > bs) { bs = s; best = i; }
     }
     return best;
   }
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads) {
-    const village = { id, name: villageName(rand), center, farmsteads: [], fence: [], commonsWood: -1 };
+  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = []) {
+    let name = villageName(rand);
+    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1 };
     used.add(center);
-    const ring = [], { dist } = bfs(w, center, 2, land(w));
+    const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
     for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
     const greenAvoid = new Set([center]);
     for (let n = 0; n < nFarms; n++) {
@@ -100,6 +104,8 @@ VB['sim/layout'] = (() => {
         if (farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm)) {
           nm = farmsteads.some((g) => g.village === f.village && g.name === 'Mellangården') ? 'Nygården' : 'Mellangården';
         }
+        // a big village runs out of names: number the rest
+        for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
       } else {
         let coast = false, woods = 0, hills = 0, marsh = 0;
@@ -137,5 +143,42 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand, nearestWood };
+  // The lone farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
+  function findLoneFarm(w, used, rand, center, farmsteads) {
+    const { dist: reach } = bfs(w, center, 40, land(w));
+    let lone = null, ls = -Infinity;
+    for (const [j, d] of reach) {
+      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
+      const fields = placeFields(w, used, j, 3);
+      if (!fields) continue;
+      const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
+      if (s > ls) { ls = s; lone = { house: j, fields }; }
+    }
+    return lone ? makeFarmstead(w, farmsteads.length, lone.house, lone.fields, null, used) : null;
+  }
+  // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
+  const farmHooks = [];
+  // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
+  // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
+  function settlementGenerator(w, rand) {
+    const used = new Set(), farmsteads = [], villages = [];
+    return {
+      used, farmsteads, villages,
+      addVillage(center, nFarms) {
+        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
+        villages.push(v); return v;
+      },
+      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads); if (f) farmsteads.push(f); return f; },
+      finish() {
+        nameFarms(w, villages, farmsteads, rand);
+        finishLand(w, villages, farmsteads, used, rand);
+        for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
+        return this;
+      },
+    };
+  }
+  return {
+    settlementGenerator, farmHooks, placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand,
+    nearestWood, findLoneFarm,
+  };
 })();

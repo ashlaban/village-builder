@@ -156,6 +156,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
+.genscreen { position: fixed; inset: 0; z-index: 11; display: grid; place-items: center; padding: 16px; background: var(--sea); }
+.genscreen[hidden] { display: none; }
+.genscreen form { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
+.genscreen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; }
+.genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
+.genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
 .loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--sea); color: #e3eeea; transition: opacity 0.7s; }
 .loader.done { opacity: 0; pointer-events: none; }
 .loader p { margin: 0; text-align: center; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 22px; }
@@ -190,7 +197,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p class="hint" id="hint"></p>
     <div class="actions">
       <button class="primary" id="regen" type="button">New archipelago</button>
-      <select id="scenarioSel" aria-label="Starting scenario"><option value="founders">Founders</option><option value="heirs">Heirs and empty farms (debug)</option></select>
       <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
       <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
       <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
@@ -238,6 +244,29 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
     </div>
   </div>
+</div>
+
+<div class="genscreen" id="genScreen" hidden>
+  <form class="panel" id="genForm" autocomplete="off">
+    <h1>New archipelago</h1>
+    <label>Map size
+      <select id="genSize">
+        <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+        <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
+      </select>
+    </label>
+    <label>Seed
+      <input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required>
+    </label>
+    <label>Starting scenario
+      <select id="genScenario">
+        <option value="founders">Founders</option><option value="heirs">Heirs and empty farms</option>
+        <option value="populous">Populous Villages</option>
+      </select>
+    </label>
+    <p class="err" id="genMsg" role="alert" hidden></p>
+    <button class="primary" id="genGo" type="submit">Generate</button>
+  </form>
 </div>
 
 <div class="loader" id="loader">
@@ -1325,19 +1354,23 @@ VB['sim/layout'] = (() => {
     };
   }
 
-  function findSite(w, rand, comp, filter) {
+  // cache (optional): a Float32Array of NaN that remembers site scores between calls on the same world.
+  function findSite(w, rand, comp, filter, cache = null) {
     let best = -1, bs = -Infinity;
     for (let i = 0; i < w.N; i++) {
       if (w.biome[i] !== B.MEADOW || (i * 7919) % 5 || !filter(i)) continue;
-      const s = siteScore(w, i) + rand() * 2;
+      if (cache && cache[i] !== cache[i]) cache[i] = siteScore(w, i);
+      const s = (cache ? cache[i] : siteScore(w, i)) + rand() * 2;
       if (s > bs) { bs = s; best = i; }
     }
     return best;
   }
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads) {
-    const village = { id, name: villageName(rand), center, farmsteads: [], fence: [], commonsWood: -1 };
+  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = []) {
+    let name = villageName(rand);
+    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1 };
     used.add(center);
-    const ring = [], { dist } = bfs(w, center, 2, land(w));
+    const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
     for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
     const greenAvoid = new Set([center]);
     for (let n = 0; n < nFarms; n++) {
@@ -1364,6 +1397,8 @@ VB['sim/layout'] = (() => {
         if (farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm)) {
           nm = farmsteads.some((g) => g.village === f.village && g.name === 'Mellangården') ? 'Nygården' : 'Mellangården';
         }
+        // a big village runs out of names: number the rest
+        for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
       } else {
         let coast = false, woods = 0, hills = 0, marsh = 0;
@@ -1401,7 +1436,44 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand, nearestWood };
+  // The lone farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
+  function findLoneFarm(w, used, rand, center, farmsteads) {
+    const { dist: reach } = bfs(w, center, 40, land(w));
+    let lone = null, ls = -Infinity;
+    for (const [j, d] of reach) {
+      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
+      const fields = placeFields(w, used, j, 3);
+      if (!fields) continue;
+      const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
+      if (s > ls) { ls = s; lone = { house: j, fields }; }
+    }
+    return lone ? makeFarmstead(w, farmsteads.length, lone.house, lone.fields, null, used) : null;
+  }
+  // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
+  const farmHooks = [];
+  // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
+  // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
+  function settlementGenerator(w, rand) {
+    const used = new Set(), farmsteads = [], villages = [];
+    return {
+      used, farmsteads, villages,
+      addVillage(center, nFarms) {
+        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
+        villages.push(v); return v;
+      },
+      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads); if (f) farmsteads.push(f); return f; },
+      finish() {
+        nameFarms(w, villages, farmsteads, rand);
+        finishLand(w, villages, farmsteads, used, rand);
+        for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
+        return this;
+      },
+    };
+  }
+  return {
+    settlementGenerator, farmHooks, placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand,
+    nearestWood, findLoneFarm,
+  };
 })();
 </script>
 <script>
@@ -1967,15 +2039,22 @@ VB['sim/heirs'] = (() => {
     if (hh.holder === id) return hh.id;
     return heirRanking(st, hh)[0] === id ? hh.id : null;
   }
-  function wantsOut(st, p) {
+  // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
+  function firstHeirs(st) {
+    const out = new Set();
+    for (const hh of st.households) if (!hh.dissolved) { const first = heirRanking(st, hh)[0]; if (first !== undefined) out.add(first); }
+    return out;
+  }
+  function wantsOut(st, p, heirs = null) {
     if (!p.alive || p.age < 18 || p.retired) return false;
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
     if (placeIfMarried(st, p.id) !== null) return false;
-    for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false; // heir somewhere else
+    if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
+    else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut };
+  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs };
 })();
 </script>
 <script>
@@ -2110,7 +2189,7 @@ VB['sim/lifecycle'] = (() => {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'died') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -2206,7 +2285,7 @@ VB['sim/lifecycle'] = (() => {
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
-    st.demand = alive.filter((p) => wantsOut(st, p)).map((p) => p.id);
+    st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
     refreshPrestige(st);
     st.visualDirty = true;
   }
@@ -2231,36 +2310,13 @@ VB['sim/lifecycle'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
-VB['sim/scenarios'] = (() => {
-  const { B, mulberry32 } = VB['gen'];
-  const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
-  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
-  const { placeFields, siteScore, makeFarmstead, findSite, buildVillage, nameFarms, finishLand } = VB['sim/layout'];
-  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
-  const { placeAtHome } = VB['sim/agents'];
-  const { refreshRoles, wantsOut } = VB['sim/heirs'];
-  const { initCulture } = VB['sim/society'];
-  function seedFounders(w, seedNum) {
-    const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
-    const used = new Set(), comp = landComponents(w), farmsteads = [];
-    const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
-    if (center < 0) throw new Error('No village site found');
-    const village = buildVillage(w, used, rand, center, 3, 0, farmsteads), villages = [village];
-    const { dist: reach } = bfs(w, center, 40, land(w));
-    let lone = null, ls = -Infinity;
-    for (const [j, d] of reach) {
-      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
-      const fields = placeFields(w, used, j, 3);
-      if (!fields) continue;
-      const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
-      if (s > ls) { ls = s; lone = { house: j, fields }; }
-    }
-    if (lone) farmsteads.push(makeFarmstead(w, farmsteads.length, lone.house, lone.fields, null, used));
-    nameFarms(w, villages, farmsteads, rand);
-    finishLand(w, villages, farmsteads, used, rand);
-    const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
-    const households = [];
+// @sys sim/people: the household generators of the founders and populous scenarios
+VB['sim/people'] = (() => {
+  const { person, marry, makeHousehold, joinHousehold } = VB['sim/records'];
+
+  // Founders: a young couple on every farm, and two servants who join two of the households.
+  function foundersHouseholds(R, farmsteads) {
+    const rand = R.rand, households = [];
     farmsteads.forEach((f) => {
       const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
       const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
@@ -2271,15 +2327,96 @@ VB['sim/scenarios'] = (() => {
     const hand = person(R, { sex: 'm', age: 16 + ((rand() * 4) | 0), servant: true }),
       maid = person(R, { sex: 'f', age: 16 + ((rand() * 4) | 0), servant: true });
     joinHousehold(R, households[order[0]], hand); joinHousehold(R, households[order[1 % order.length]], maid);
+    return households;
+  }
+
+  // Household sizes 4 to 9, about 6 on average.
+  const SIZES = [[4, 0.15], [5, 0.2], [6, 0.25], [7, 0.2], [8, 0.12], [9, 0.08]];
+  function drawSize(rand) {
+    let u = rand();
+    for (const [n, p] of SIZES) { if (u < p) return n; u -= p; }
+    return 6;
+  }
+
+  // Populous: a couple, their children (two years apart) and sometimes a servant. Two generations only: the parents have no
+  // recorded parents, so there are no grandparents, living or on record.
+  function populousHouseholds(R, farmsteads, sizes) {
+    const rand = R.rand, households = [];
+    for (const f of farmsteads) {
+      const size = sizes[f.id], servant = size >= 6 && rand() < 0.25 ? 1 : 0, kids = size - 2 - servant;
+      const youngest = (rand() * 3) | 0, eldest = youngest + 2 * (kids - 1);
+      const wAge = Math.max(25 + ((rand() * 14) | 0), eldest + 19), hAge = wAge + ((rand() * 6) | 0) - 1;
+      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      const members = [man, wife];
+      marry(R, man, wife, eldest + 1 + ((rand() * 3) | 0));
+      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + 2 * k, father: man, mother: wife }));
+      const hh = makeHousehold(R, households.length, f, members, man);
+      if (servant) joinHousehold(R, hh, person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: 15 + ((rand() * 6) | 0), servant: true }));
+      households.push(hh);
+    }
+    return households;
+  }
+  return { foundersHouseholds, drawSize, populousHouseholds };
+})();
+</script>
+<script>
+// @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
+VB['sim/scenarios'] = (() => {
+  const { B, mulberry32 } = VB['gen'];
+  const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
+  const { settlementGenerator, findSite } = VB['sim/layout'];
+  const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
+  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
+  const { placeAtHome } = VB['sim/agents'];
+  const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
+  const { initCulture } = VB['sim/society'];
+  function seedFounders(w, seedNum) {
+    const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
+    const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
+    const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
+    if (center < 0) throw new Error('No village site found');
+    const gen = settlementGenerator(w, rand), village = gen.addVillage(center, 3), lone = gen.addLoneFarm(center);
+    const { used, farmsteads, villages } = gen.finish();
+    const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
+    const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
     initCulture(st, null); st.countDemand();
-    log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${farmsteads[farmsteads.length - 1].name}` : ''}.`);
+    log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
+    return st;
+  }
+  // Populous Villages: only villages, of three size bands, until the map holds the target population.
+  const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
+  const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
+  const VILLAGE_SPACING = 10; // steps between village centres
+  function seedPopulous(w, seedNum) {
+    const rand = mulberry32((seedNum * 2654435761) ^ 0x9091);
+    const [lo, hi] = POPULATION[w.N < 15000 ? 'tiny' : w.N < 40000 ? 'small' : 'big'], comp = landComponents(w);
+    const gen = settlementGenerator(w, rand), centres = [], sizes = [], scores = new Float32Array(w.N).fill(NaN);
+    let pop = 0;
+    while (pop < lo) {
+      let u = rand(), band = BANDS[BANDS.length - 1];
+      for (const b of BANDS) { if (u < b[0]) { band = b; break; } u -= b[0]; }
+      const farms = Math.min(band[1] + ((rand() * (band[2] - band[1] + 1)) | 0), Math.floor((hi - pop) / 9));
+      const free = (i) => comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
+      const c = findSite(w, rand, comp, free, scores);
+      if (c < 0) break;
+      centres.push(c);
+      for (const fid of gen.addVillage(c, farms).farmsteads) { sizes[fid] = drawSize(rand); pop += sizes[fid]; }
+    }
+    if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
+    const { used, farmsteads, villages } = gen.finish();
+    const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
+    const households = populousHouseholds(R, farmsteads, sizes);
+    const st = makeState(w, rand, R, households, farmsteads, villages, used, 'populous');
+    initCulture(st, null); st.countDemand();
+    log(st, `${R.pawns.length} people in ${villages.length} villages.`);
     return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x2a11);
-    const used = new Set(), comp = landComponents(w), farmsteads = [];
+    const comp = landComponents(w);
     const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
@@ -2287,10 +2424,8 @@ VB['sim/scenarios'] = (() => {
     let b = findSite(w, rand, comp, (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30);
     if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
     if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);
-    const vA = buildVillage(w, used, rand, a, 4, 0, farmsteads), vB = buildVillage(w, used, rand, b, 3, 1, farmsteads);
-    const villages = [vA, vB];
-    nameFarms(w, villages, farmsteads, rand);
-    finishLand(w, villages, farmsteads, used, rand);
+    const gen = settlementGenerator(w, rand), vA = gen.addVillage(a, 4), vB = gen.addVillage(b, 3);
+    const { used, farmsteads, villages } = gen.finish();
     const A = farmsteads.filter((f) => f.village === 0), Bf = farmsteads.filter((f) => f.village === 1);
     if (A.length < 4 || Bf.length < 3) throw new Error('Not enough room for the debug villages');
     const [A1, A2, A3, A4] = A, [B1, B2, B3] = Bf;
@@ -2350,7 +2485,7 @@ VB['sim/scenarios'] = (() => {
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
     // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders' or 'heirs'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age, ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
@@ -2383,11 +2518,14 @@ VB['sim/scenarios'] = (() => {
     };
     refreshRoles(st);
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
-    st.countDemand = () => { st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p)).map((p) => p.id); };
+    st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
     return st;
   }
-  function seed(w, seedNum, scenario = 'founders') { return scenario === 'heirs' ? seedHeirs(w, seedNum) : seedFounders(w, seedNum); }
-  return { seedFounders, seedHeirs, makeState, seed };
+
+  function seed(w, seedNum, scenario = 'founders') {
+    return scenario === 'heirs' ? seedHeirs(w, seedNum) : scenario === 'populous' ? seedPopulous(w, seedNum) : seedFounders(w, seedNum);
+  }
+  return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
 })();
 </script>
 <script>
@@ -2791,16 +2929,29 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
 
   let building = false;
-  async function build(seed, scenario = $('scenarioSel').value) {
-    $('scenarioSel').value = scenario;
+  const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
+  function showGenScreen(msg) {
+    $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
+    $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
+    $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
+  }
+  async function build(seed, scenario, size) {
+    choice = { seed, scenario, size };
+    $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
     loader.classList.remove('done');
     setLoad('Raising the land', 0);
     await frame(); await frame();
-    const wd = await drive(G.generate(seed), (p) => setLoad(null, p * 0.5));
+    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
     setLoad('Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement site on this map for this scenario', e); }
+    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement on this map for this scenario', e); }
+    if (!sim) {
+      building = false; $('regen').disabled = false;
+      showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
+      return;
+    }
     treeSel = -1; selPawn = -1;
     setLoad('Painting the overview', 0.55); await frame();
     const wc = makeCanvas(wd.CW, wd.CH);
@@ -3015,7 +3166,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) build((Math.random() * 1e6) | 0); });
+  $('regen').addEventListener('click', () => { if (!building && !skipping) showGenScreen(); });
+  $('genForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const seed = $('genSeed').value.trim();
+    if (!/^\d{1,9}$/.test(seed)) { $('genMsg').textContent = 'The seed is a whole number of up to 9 digits.'; $('genMsg').hidden = false; return; }
+    if (!building) build(+seed, $('genScenario').value, $('genSize').value);
+  });
   function toggle(btn, fn) {
     btn.addEventListener('click', () => {
       const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -3988,9 +4145,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
   });
 
-  // #s123 opens seed 123 with the founders; #h123 opens it with the heirs debug scenario
-  const hm = location.hash.match(/^#([sh]?)(\d{1,9})$/);
-  build(hm ? +hm[2] : (Math.random() * 1e6) | 0, hm && hm[1] === 'h' ? 'heirs' : 'founders');
+  // The page opens on the generation screen. A hash skips it: #<scenario><size><seed>, scenario s (founders), h (heirs) or p (populous),
+  // size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
+  const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
+  if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
+  else showGenScreen();
 })();
 </script>
 </body>

@@ -20,7 +20,7 @@ Work is planned in `BACKLOG.md`; read its header for the task rules (status valu
 ## Architecture
 - `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the painterly chunk bake.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it.
-  Scenarios: `founders`, `heirs`. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
+  Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script in `src/body.html` draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `visualDirty` and `rigDirty` after redrawing).

@@ -6,7 +6,7 @@ VB['sim/lifecycle'] = (() => {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'died') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -102,7 +102,7 @@ VB['sim/lifecycle'] = (() => {
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
-    st.demand = alive.filter((p) => wantsOut(st, p)).map((p) => p.id);
+    st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
     refreshPrestige(st);
     st.visualDirty = true;
   }

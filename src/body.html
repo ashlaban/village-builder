@@ -11,7 +11,6 @@
     <p class="hint" id="hint"></p>
     <div class="actions">
       <button class="primary" id="regen" type="button">New archipelago</button>
-      <select id="scenarioSel" aria-label="Starting scenario"><option value="founders">Founders</option><option value="heirs">Heirs and empty farms (debug)</option></select>
       <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
       <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
       <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
@@ -59,6 +58,29 @@
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
     </div>
   </div>
+</div>
+
+<div class="genscreen" id="genScreen" hidden>
+  <form class="panel" id="genForm" autocomplete="off">
+    <h1>New archipelago</h1>
+    <label>Map size
+      <select id="genSize">
+        <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+        <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
+      </select>
+    </label>
+    <label>Seed
+      <input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required>
+    </label>
+    <label>Starting scenario
+      <select id="genScenario">
+        <option value="founders">Founders</option><option value="heirs">Heirs and empty farms</option>
+        <option value="populous">Populous Villages</option>
+      </select>
+    </label>
+    <p class="err" id="genMsg" role="alert" hidden></p>
+    <button class="primary" id="genGo" type="submit">Generate</button>
+  </form>
 </div>
 
 <div class="loader" id="loader">
@@ -352,16 +374,29 @@
   }
 
   let building = false;
-  async function build(seed, scenario = $('scenarioSel').value) {
-    $('scenarioSel').value = scenario;
+  const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
+  function showGenScreen(msg) {
+    $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
+    $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
+    $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
+  }
+  async function build(seed, scenario, size) {
+    choice = { seed, scenario, size };
+    $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
     loader.classList.remove('done');
     setLoad('Raising the land', 0);
     await frame(); await frame();
-    const wd = await drive(G.generate(seed), (p) => setLoad(null, p * 0.5));
+    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
     setLoad('Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement site on this map for this scenario', e); }
+    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement on this map for this scenario', e); }
+    if (!sim) {
+      building = false; $('regen').disabled = false;
+      showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
+      return;
+    }
     treeSel = -1; selPawn = -1;
     setLoad('Painting the overview', 0.55); await frame();
     const wc = makeCanvas(wd.CW, wd.CH);
@@ -576,7 +611,13 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) build((Math.random() * 1e6) | 0); });
+  $('regen').addEventListener('click', () => { if (!building && !skipping) showGenScreen(); });
+  $('genForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const seed = $('genSeed').value.trim();
+    if (!/^\d{1,9}$/.test(seed)) { $('genMsg').textContent = 'The seed is a whole number of up to 9 digits.'; $('genMsg').hidden = false; return; }
+    if (!building) build(+seed, $('genScenario').value, $('genSize').value);
+  });
   function toggle(btn, fn) {
     btn.addEventListener('click', () => {
       const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -1549,9 +1590,11 @@
     }
   });
 
-  // #s123 opens seed 123 with the founders; #h123 opens it with the heirs debug scenario
-  const hm = location.hash.match(/^#([sh]?)(\d{1,9})$/);
-  build(hm ? +hm[2] : (Math.random() * 1e6) | 0, hm && hm[1] === 'h' ? 'heirs' : 'founders');
+  // The page opens on the generation screen. A hash skips it: #<scenario><size><seed>, scenario s (founders), h (heirs) or p (populous),
+  // size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
+  const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
+  if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
+  else showGenScreen();
 })();
 </script>
 </body>

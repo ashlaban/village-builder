@@ -2,7 +2,7 @@ const { JSDOM } = require('jsdom');
 const { createCanvas } = require('@napi-rs/canvas');
 const fs = require('fs');
 const html = fs.readFileSync(require('path').join(__dirname, '../index.html'), 'utf8').replace(/<script src=[^>]+><\/script>/, '');
-const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/#h7' });
+const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/' });
 const win = dom.window, doc = win.document;
 let failed = 0; const fail = (m) => { failed++; console.error('SMOKE FAIL:', m); };
 win.console.error = (...a) => fail('page console.error: ' + a.map(String).join(' '));
@@ -30,14 +30,24 @@ const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'gr
 const state = () => { const lay = APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
 const tick = (n) => { for (let k = 0; k < n; k++) for (const f of tickers) { try { f({ deltaMS: 16 }); } catch (e) { if (!globalThis.__err) { globalThis.__err = 1; console.log('FRAME ERROR:', e.message); fail('frame error: ' + e.message); } throw e; } } };
 const start = Date.now();
+const generate = (scenario, size, seed) => {
+  doc.getElementById('genScenario').value = scenario; doc.getElementById('genSize').value = size; doc.getElementById('genSeed').value = seed;
+  doc.getElementById('genForm').dispatchEvent(new win.Event('submit', { cancelable: true }));
+};
+let started = false;
 const iv = setInterval(async () => {
+  if (!started) {
+    if (Date.now() - start > 90000) { fail('the generation screen never appeared'); process.exit(1); }
+    if (doc.getElementById('genScreen').hidden) return;
+    started = true; generate('heirs', 'm', '7'); return;
+  }
   if (!doc.getElementById('loader').classList.contains('done')) { if (Date.now() - start > 90000) { fail('loader timeout'); process.exit(1); } return; }
   clearInterval(iv); if (globalThis.__ran) return; globalThis.__ran = 1;
   console.log('built', Date.now() - start, 'ms |', doc.getElementById('meta').textContent);
   let t = Date.now(); tick(300); console.log('after intro (300 frames,', Date.now() - t, 'ms):', state(), '| lod:', doc.getElementById('lod').hidden ? 'idle' : doc.getElementById('lod').textContent);
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
-  console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('scenarioSel').value);
+  console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
   // the shown clock follows simulation time within 5 game minutes (at 10x, 16 ms frames), in whole 5-minute steps
   const shownMin = () => { const m = /Year (\d+), (\d\d):(\d\d)/.exec(doc.getElementById('clockYear').textContent); return m ? (+m[2]) * 60 + (+m[3]) : -1; };
   for (const sp of [1, 3, 10]) {
@@ -78,7 +88,10 @@ const iv = setInterval(async () => {
   if (!doc.getElementById('dbgMsg').textContent.startsWith('Skipped')) fail('"Skip a year" did not finish');
   tick(10);
   console.log('log:', qa('#settlers .log p').slice(0, 6).map((p) => p.textContent).join(' / '));
-  doc.getElementById('scenarioSel').value = 'founders'; doc.getElementById('regen').click();
+  // back to the generation screen with the last choices filled in, then a Tiny Populous Villages map
+  doc.getElementById('regen').click();
+  if (doc.getElementById('genScreen').hidden || doc.getElementById('genSeed').value !== '7' || doc.getElementById('genScenario').value !== 'heirs') fail('the generation screen did not keep the last choices');
+  generate('populous', 't', '7');
   const iv2 = setInterval(() => { if (!doc.getElementById('regen').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('regen').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); if (!doc.querySelectorAll('#settlers .farm h2').length) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
