@@ -92,7 +92,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-006: Stones on meadow tiles
-Status: ready
+Status: done (2026-10-29, 45b76d2)
 Priority: 2
 Size: S
 Design ref: Land and ecology (Stones, Abandoned fields: Decided). Kim, 2026-10-29: every untouched meadow tile has some stones; extra stones near hills fade to nothing with distance.
