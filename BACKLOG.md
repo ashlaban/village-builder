@@ -290,7 +290,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-019: Refactor: culture wiring and the yearly round into modules
-Status: ready
+Status: done (2026-10-29, 86375f1)
 Priority: 1
 Size: S
 Design ref: none (code structure)
