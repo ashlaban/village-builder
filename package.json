@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "python3 build.py",
-    "test": "node tests/regress.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
+    "test": "node tests/regress.js && node tests/golden.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },
   "devDependencies": {
