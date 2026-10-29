@@ -325,7 +325,7 @@ Notes / questions:
 - Next batch, not yet written: split the page script in `src/body.html` (rendering, art, panels, family tree, debug) and `gen.js` (generation apart from painting).
 
 ## VB-021: Map generation screen with size, seed and starting scenario
-Status: ready
+Status: done (2026-10-29, ef75845)
 Priority: 3
 Size: L
 Design ref: Starting scenarios. Kim, 2026-10-29: a landing screen to set the map before generating it: map size (tiny/small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes). Sizes as below. Founders scales its required land mass to the map. Populous Villages on medium and large maps holds 800–950 people in a few large, more medium and many small villages. Villages are made by shared generators, not hard-coded per scenario. Depends on VB-016 and VB-020 (village layout and scenarios in their own modules); if either is not done, mark this blocked. The "(debug)" label goes. Kim, 2026-10-29: village size bands and household sizes below agreed; at most two generations pre-generated; smaller population targets on Tiny and Small maps.
