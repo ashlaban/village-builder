@@ -3,209 +3,15 @@
 const Sim = (() => {
   const G = VB['gen'], Culture = VB['culture'];
   const { B, mulberry32 } = G;
+  const {
+    DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, hazard, SPEED,
+  } = VB['sim/rules'];
+  const { bfs, pathTo, land, hexSteps, landComponents } = VB['sim/hex'];
+  const { placeFields, siteScore, makeFarmstead, findSite, buildVillage, nameFarms, finishLand } = VB['sim/layout'];
 
-  // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
-  const DAY = 24, SEASON_DAYS = 12, YEAR_DAYS = SEASON_DAYS * 4, YEAR = YEAR_DAYS * DAY;
-  const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
-  const cal = (t) => {
-    const day = Math.floor(t / DAY), y = Math.floor(day / YEAR_DAYS), doy = day - y * YEAR_DAYS;
-    return { year: y + 1, doy, season: Math.floor(doy / SEASON_DAYS), sday: doy % SEASON_DAYS, hour: t - day * DAY, day };
-  };
-  const WORK = [7, 17];
-
-  // ---- economy (rations = one adult's food for one game day) ----
-  const ECON = {
-    ration: { adult: 1, child: 0.5 },
-    fieldYield: 80, seedPerField: 20, // a 4:1 yield ratio
-    sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
-    woodPerTrip: 3, woodTarget: 30, woodUse: [0.35, 0.3, 0.5, 1.6],
-    startGrain: 180, startWood: 16,
-    fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
-  };
-  const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && FERTILITY[w.biome[i]] !== undefined;
-
-  // ---- roles and jobs: who prefers what; jobs carry an owner that decides who may take them ----
-  const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', prio: { plow: 10, sow: 10, reap: 9, haul: 8, wood: 7, mend: 6, water: 2, cook: 1 } },
-    wife: { title: 'Mistress of the house', sv: 'husfru', prio: { cook: 10, water: 9, reap: 7, haul: 6, sow: 5, wood: 2, mend: 2, plow: 2 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', prio: { plow: 9, wood: 9, haul: 8, reap: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
-    maid: { title: 'Maid', sv: 'piga', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1 } },
-    son: { title: 'Son of the house', sv: 'son', prio: { plow: 9, wood: 9, haul: 8, reap: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
-    daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1 } },
-    retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2 } },
-    child: { title: 'Child', sv: 'barn', prio: {} },
-  };
-  const KINDS = {
-    plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 4, field: true },
-    sow: { verb: 'Sowing', go: 'Going to sow', anim: 'sow', hours: 2, field: true },
-    reap: { verb: 'Reaping', go: 'Going to reap', anim: 'reap', hours: 5, field: true },
-    haul: { verb: 'Bringing in the sheaves', go: 'Going for the sheaves', anim: 'gather', hours: 0.7, carry: 'sheaf', back: 'Carrying sheaves to the barn' },
-    wood: { verb: 'Cutting firewood', go: 'Heading to the woods', anim: 'chop', hours: 3, carry: 'logs', back: 'Carrying firewood home' },
-    water: { verb: 'Drawing water', go: 'Going for water', anim: 'draw', hours: 0.5, carry: 'buckets', back: 'Carrying water home' },
-    cook: { verb: 'Cooking at the hearth', go: 'Going home to cook', anim: null, hours: 2, inside: true },
-    mend: { verb: 'Mending the fence', go: 'Going to mend the fence', anim: 'mallet', hours: 2.5 },
-  };
-
-  // ---- names ----
-  const MALE = ['Erik', 'Olof', 'Anders', 'Nils', 'Per', 'Lars', 'Jon', 'Sven', 'Håkan', 'Gunnar', 'Ivar', 'Björn', 'Arvid', 'Ragnar', 'Torsten', 'Mats', 'Hans', 'Jöns'];
-  const FEMALE = ['Kerstin', 'Karin', 'Ingrid', 'Brita', 'Märta', 'Elin', 'Sigrid', 'Astrid', 'Gunhild', 'Margit', 'Ragnhild', 'Ingeborg', 'Signe', 'Tora', 'Gertrud', 'Cecilia'];
-  const patronym = (father, sex) => father + (father.endsWith('s') ? '' : 's') + (sex === 'm' ? 'son' : 'dotter');
-  const DIRNAME = ['Öster', 'Norr', 'Norr', 'Väster', 'Söder', 'Söder'];
-
-  // ---- hex helpers ----
-  function bfs(w, from, maxSteps, pass) {
-    const dist = new Map([[from, 0]]), prev = new Map(), q = [from];
-    for (let h = 0; h < q.length; h++) {
-      const i = q[h], d = dist.get(i);
-      if (d >= maxSteps) continue;
-      for (let k = 0; k < 6; k++) {
-        const j = w.nb[i * 6 + k];
-        if (j < 0 || dist.has(j) || !pass(j)) continue;
-        dist.set(j, d + 1); prev.set(j, i); q.push(j);
-      }
-    }
-    return { dist, prev };
-  }
-  const pathTo = (prev, from, to) => { const p = [to]; while (p[0] !== from) { const q = prev.get(p[0]); if (q === undefined) return null; p.unshift(q); } return p; };
-  const land = (w) => (j) => !w.water[j];
-  function hexSteps(w, a, b) {
-    const ax = a % w.COLS, ay = (a / w.COLS) | 0, bx = b % w.COLS, by = (b / w.COLS) | 0;
-    const aq = ax - ((ay - (ay & 1)) >> 1), bq = bx - ((by - (by & 1)) >> 1), dq = aq - bq, dr = ay - by;
-    return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
-  }
-  function landComponents(w) {
-    const id = new Int32Array(w.N).fill(-1), size = [];
-    for (let s = 0; s < w.N; s++) {
-      if (w.water[s] || id[s] >= 0) continue;
-      const c = size.length, q = [s]; id[s] = c;
-      for (let h = 0; h < q.length; h++) for (let k = 0; k < 6; k++) { const j = w.nb[q[h] * 6 + k]; if (j >= 0 && !w.water[j] && id[j] < 0) { id[j] = c; q.push(j); } }
-      size.push(q.length);
-    }
-    return { id, size };
-  }
-
-  // ---- placing the founders ----
-  function placeFields(w, used, house, n, avoid) {
-    const cand = [];
-    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (farmable(w, j) && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j); }
-    if (cand.length < n) {
-      const { dist } = bfs(w, house, 2, (j) => farmable(w, j));
-      for (const [j, d] of dist) if (d === 2 && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j);
-    }
-    cand.sort((a, b) => FERTILITY[w.biome[b]] - FERTILITY[w.biome[a]]);
-    return cand.length >= n ? cand.slice(0, n) : null;
-  }
-  function siteScore(w, c) {
-    if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
-    const { dist } = bfs(w, c, 3, land(w));
-    let farm = 0;
-    for (const [j] of dist) if (farmable(w, j)) farm += FERTILITY[w.biome[j]];
-    const { dist: d6 } = bfs(w, c, 6, land(w));
-    let wood = 0, shore = 0;
-    for (const [j] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; }
-    for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
-    return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) - w.hp[c] * 6;
-  }
-  function villageName(rand) {
-    const A = ['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'], C = ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter'];
-    return A[(rand() * A.length) | 0] + C[(rand() * C.length) | 0];
-  }
-
-  // Fence (gärdesgård) around an infield: hex edges between enclosed land and open land, split into stretches.
-  function makeFence(w, infield, centre, owner, stretches, rand) {
-    const NA = [0, -60, -120, 180, 120, 60], edges = [];
-    for (const i of infield) for (let d = 0; d < 6; d++) {
-      const j = w.nb[i * 6 + d];
-      if (j < 0 || infield.has(j) || w.water[j]) continue;
-      const a0 = ((NA[d] - 30) * Math.PI) / 180, a1 = ((NA[d] + 30) * Math.PI) / 180, R = w.R;
-      const x1 = w.hx[i] + Math.cos(a0) * R, y1 = w.hy[i] + Math.sin(a0) * R, x2 = w.hx[i] + Math.cos(a1) * R, y2 = w.hy[i] + Math.sin(a1) * R;
-      edges.push({ x1, y1, x2, y2, tile: i, ang: Math.atan2((y1 + y2) / 2 - w.hy[centre], (x1 + x2) / 2 - w.hx[centre]) });
-    }
-    edges.sort((a, b) => a.ang - b.ang);
-    const out = [];
-    const per = Math.max(1, Math.ceil(edges.length / stretches));
-    for (let k = 0; k < edges.length; k += per) {
-      const es = edges.slice(k, k + per), m = es[(es.length / 2) | 0];
-      out.push({ id: out.length, edges: es, cond: 0.75 + rand() * 0.25, owner, tile: m.tile, mx: (m.x1 + m.x2) / 2, my: (m.y1 + m.y2) / 2 });
-    }
-    return out;
-  }
-
-  function makeFarmstead(w, id, house, fields, village, used) {
-    used.add(house); for (const j of fields) used.add(j);
-    const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
-    return { id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[t]] })), village: village ? village.id : null, household: null, name: '', rowAngle: a, fence: null };
-  }
   const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
 
   // ======== scenarios ========
-  function findSite(w, rand, comp, filter) {
-    let best = -1, bs = -Infinity;
-    for (let i = 0; i < w.N; i++) {
-      if (w.biome[i] !== B.MEADOW || (i * 7919) % 5 || !filter(i)) continue;
-      const s = siteScore(w, i) + rand() * 2;
-      if (s > bs) { bs = s; best = i; }
-    }
-    return best;
-  }
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads) {
-    const village = { id, name: villageName(rand), center, farmsteads: [], fence: [], commonsWood: -1 };
-    used.add(center);
-    const ring = [], { dist } = bfs(w, center, 2, land(w));
-    for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
-    const greenAvoid = new Set([center]);
-    for (let n = 0; n < nFarms; n++) {
-      let pick = null, ps = -1;
-      for (const h of ring) {
-        if (used.has(h) || farmsteads.some((f) => hexSteps(w, f.house, h) < 2)) continue;
-        const fields = placeFields(w, used, h, 3, greenAvoid);
-        if (!fields) continue;
-        const s = fields.reduce((a, j) => a + FERTILITY[w.biome[j]], 0) - hexSteps(w, h, center) * 0.3;
-        if (s > ps) { ps = s; pick = { house: h, fields }; }
-      }
-      if (!pick) break;
-      const f = makeFarmstead(w, farmsteads.length, pick.house, pick.fields, village, used);
-      farmsteads.push(f); village.farmsteads.push(f.id);
-    }
-    return village;
-  }
-  function nameFarms(w, villages, farmsteads, rand) {
-    for (const f of farmsteads) {
-      if (f.village !== null) {
-        const v = villages[f.village], dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
-        const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
-        let nm = DIRNAME[k] + 'gården';
-        if (farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm)) nm = farmsteads.some((g) => g.village === f.village && g.name === 'Mellangården') ? 'Nygården' : 'Mellangården';
-        f.name = nm;
-      } else {
-        let coast = false, woods = 0, hills = 0, marsh = 0;
-        const { dist: near } = bfs(w, f.house, 2, () => true);
-        for (const [j] of near) { if (w.water[j]) coast = true; const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++; }
-        const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
-        f.name = coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
-      }
-    }
-  }
-  function finishLand(w, villages, farmsteads, used, rand) {
-    const nearestWood = (from) => {
-      const { dist: dd } = bfs(w, from, 16, land(w));
-      let wl = -1, wd = Infinity;
-      for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
-      return wl;
-    };
-    for (const v of villages) {
-      v.commonsWood = nearestWood(v.center);
-      const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
-      v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
-    }
-    for (const f of farmsteads) {
-      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearestWood(f.house);
-      if (f.village === null) { const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand); }
-    }
-    w.dev = new Uint8Array(w.N);
-    for (const j of used) w.dev[j] = 1;
-  }
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
     const father = o.father !== undefined && o.father !== null ? R.pawns[o.father] : null;
@@ -715,7 +521,6 @@ const Sim = (() => {
     for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false; // heir somewhere else
     return true;
   }
-  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + (a < 10 ? 0.01 : 0); // per year, roughly pre-industrial adults
   function dailyLife(st, c) {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
@@ -1001,7 +806,6 @@ const Sim = (() => {
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
   }
 
-  const SPEED = 3; // tiles per game hour on foot
   function advance(st, hours) {
     let left = hours;
     while (left > 1e-9) {

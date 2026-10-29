@@ -11,9 +11,21 @@
   "lines": 221,
   "longLines": 16
  },
+ "src/sim/rules.js": {
+  "lines": 59,
+  "longLines": 0
+ },
+ "src/sim/hex.js": {
+  "lines": 39,
+  "longLines": 0
+ },
+ "src/sim/layout.js": {
+  "lines": 137,
+  "longLines": 0
+ },
  "src/sim.js": {
-  "lines": 1053,
-  "longLines": 53
+  "lines": 857,
+  "longLines": 45
  },
  "src/load.js": {
   "lines": 5,
