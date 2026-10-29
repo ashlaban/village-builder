@@ -235,7 +235,7 @@ Notes / questions:
 - Later tasks keep it current: VB-020 updates the file locations.
 
 ## VB-015: State schema as greppable tags
-Status: ready
+Status: done (2026-10-29, 997e2b4)
 Priority: 1
 Size: M
 Design ref: none (documentation)
