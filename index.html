@@ -2123,31 +2123,16 @@ VB['sim/lifecycle'] = (() => {
 })();
 </script>
 <script>
-// @sys sim: settlement simulation, family records, job board, yearly round
-// ===== Settlement simulation: founders, family records, a job board with ownership, role-driven planning =====
-const Sim = (() => {
-  const G = VB['gen'], Culture = VB['culture'];
-  const { B, mulberry32 } = G;
-  const {
-    DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, hazard, SPEED,
-  } = VB['sim/rules'];
-  const { bfs, pathTo, land, hexSteps, landComponents } = VB['sim/hex'];
-  const {
-    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship,
-    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, practice, farmPractice,
-  } = VB['sim/records'];
-  const {
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
-    moveAgent, describe,
-  } = VB['sim/agents'];
-  const { post, refreshJobs, mayTake, urgency, bid, planRound } = VB['sim/jobs'];
-  const { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut } = VB['sim/heirs'];
-  const { initCulture, updateTies, refreshPrestige, refreshInterests, noteContacts } = VB['sim/society'];
-  const { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife } = VB['sim/lifecycle'];
+// @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
+VB['sim/scenarios'] = (() => {
+  const { B, mulberry32 } = VB['gen'];
+  const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
   const { placeFields, siteScore, makeFarmstead, findSite, buildVillage, nameFarms, finishLand } = VB['sim/layout'];
-
-  // ======== scenarios ========
-
+  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
+  const { placeAtHome } = VB['sim/agents'];
+  const { refreshRoles, wantsOut } = VB['sim/heirs'];
+  const { initCulture } = VB['sim/society'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const used = new Set(), comp = landComponents(w), farmsteads = [];
@@ -2175,14 +2160,14 @@ const Sim = (() => {
       marry(R, man, wife, 1 + ((rand() * 4) | 0));
     });
     const order = households.map((h) => h.id).sort(() => rand() - 0.5);
-    const hand = person(R, { sex: 'm', age: 16 + ((rand() * 4) | 0), servant: true }), maid = person(R, { sex: 'f', age: 16 + ((rand() * 4) | 0), servant: true });
+    const hand = person(R, { sex: 'm', age: 16 + ((rand() * 4) | 0), servant: true }),
+      maid = person(R, { sex: 'f', age: 16 + ((rand() * 4) | 0), servant: true });
     joinHousehold(R, households[order[0]], hand); joinHousehold(R, households[order[1 % order.length]], maid);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
     initCulture(st, null); st.countDemand();
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${farmsteads[farmsteads.length - 1].name}` : ''}.`);
     return st;
   }
-
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x2a11);
@@ -2221,7 +2206,8 @@ const Sim = (() => {
     const g3m = dead('m', 65, 20), g3f = dead('f', 70, 14); marry(R, g3m, g3f, 45, 20);
     const lars = P({ sex: 'm', age: 61, father: g3m, mother: g3f });
     marry(R, lars, kerstin, 31);
-    const jon = P({ sex: 'm', age: 29, father: lars, mother: kerstin }), brita = P({ sex: 'f', age: 25, father: lars, mother: kerstin }), gunnar = P({ sex: 'm', age: 20, father: lars, mother: kerstin });
+    const jon = P({ sex: 'm', age: 29, father: lars, mother: kerstin }), brita = P({ sex: 'f', age: 25, father: lars, mother: kerstin }),
+      gunnar = P({ sex: 'm', age: 20, father: lars, mother: kerstin });
     // --- A2 and A4 share a line: two brothers; the elder married into A4, the younger kept A2 ---
     const g4m = dead('m', 60, 25), g4f = dead('f', 66, 18); marry(R, g4m, g4f, 64, 25);
     const anders = dead('m', 60, 4, { father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { father: g4m, mother: g4f });
@@ -2252,7 +2238,6 @@ const Sim = (() => {
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
     return st;
   }
-
   function makeState(w, rand, R, households, farmsteads, villages, used, scenario) {
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
@@ -2278,7 +2263,10 @@ const Sim = (() => {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(),
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
-      agents: R.pawns.map((p) => ({ id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6, ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0 })),
+      agents: R.pawns.map((p) => ({
+        id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
+        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
+      })),
       visualDirty: false, rigDirty: new Set(),
     };
     refreshRoles(st);
@@ -2286,20 +2274,19 @@ const Sim = (() => {
     st.countDemand = () => { st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p)).map((p) => p.id); };
     return st;
   }
-
-  // ======== culture wiring ========
-
-  // ======== succession ========
-
-  // ======== roles ========
-
-  // ======== the yearly round: meetings after harvest, then marriages and handovers ========
-  // ---- family-record queries ----
-
-  // ---- job board ----
-
-  // ---- agents ----
-
+  function seed(w, seedNum, scenario = 'founders') { return scenario === 'heirs' ? seedHeirs(w, seedNum) : seedFounders(w, seedNum); }
+  return { seedFounders, seedHeirs, makeState, seed };
+})();
+</script>
+<script>
+// @sys sim/clock: the hourly step, end of day, new year and Sim.advance
+VB['sim/clock'] = (() => {
+  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
+  const { log, age } = VB['sim/records'];
+  const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
+  const { refreshJobs, planRound } = VB['sim/jobs'];
+  const { noteContacts } = VB['sim/society'];
+  const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   function onHour(st, h, c) {
     if (st.cenv) noteContacts(st);
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
@@ -2330,7 +2317,11 @@ const Sim = (() => {
       if (g >= E.ripeAfterDays) fd.stage = 'ripe';
       else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
     }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) { fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`); }
+    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`);
+      }
+    }
     const decay = E.fenceDecay[c.season];
     const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
     // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub
@@ -2338,9 +2329,13 @@ const Sim = (() => {
       f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
       const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
-      for (const fd of f.fields) { const want = yrs > 8 ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage; if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; } }
+      for (const fd of f.fields) {
+        const want = yrs > 8 ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage; if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
+      }
     }
-    for (const s of all) { const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + st.rand())); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true; }
+    for (const s of all) {
+      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + st.rand())); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
+    }
   }
   function newYear(st, c) {
     st.weather = 0.75 + st.rand() * 0.45;
@@ -2348,7 +2343,6 @@ const Sim = (() => {
     log(st, `Year ${c.year} begins. The weather ${word}.`);
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
   }
-
   function advance(st, hours) {
     let left = hours;
     while (left > 1e-9) {
@@ -2367,10 +2361,29 @@ const Sim = (() => {
       if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
     }
   }
+  return { onHour, endOfDay, newYear, advance };
+})();
+</script>
+<script>
+// @sys sim: the public Sim object, assembled from the sim/* modules
+const Sim = (() => {
+  const Culture = VB['culture'];
+  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK } = VB['sim/rules'];
+  const {
+    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
+  } = VB['sim/records'];
+  const { describe } = VB['sim/agents'];
+  const { heirRanking, wantsOut, refreshRoles } = VB['sim/heirs'];
+  const { updateTies, refreshInterests } = VB['sim/society'];
+  const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
+  const { seed } = VB['sim/scenarios'];
+  const { advance } = VB['sim/clock'];
 
-  function seed(w, seedNum, scenario = 'founders') { return scenario === 'heirs' ? seedHeirs(w, seedNum) : seedFounders(w, seedNum); }
-  return { seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK,
-    killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture };
+  return {
+    seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
+    SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
+    isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture,
+  };
 })();
 VB['sim'] = Sim;
 if (typeof module !== 'undefined') module.exports = Sim;
