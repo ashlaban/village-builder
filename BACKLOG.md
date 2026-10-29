@@ -43,7 +43,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-003: Every farm in a village, and an owner for every tile
-Status: ready
+Status: blocked
 Priority: 2
 Size: M
 Design ref: Claims, ownership and territory (Ownership: Decided); Inheritance and expansion, Succession (no heir: the village holds the farm, Agreed). Kim, 2026-10-29: every farm belongs to a village; a lone farm is a normal village with one farm (no special flag), with its own meeting; an empty farm is owned by its village.
@@ -58,9 +58,10 @@ Acceptance criteria:
 - [ ] The tile info panel shows the owner ("Norrgården household", "Ulsäter village"), or nothing for unowned tiles.
 - [ ] A test checks the seeding rules, that every farm has a village, and the hand-over to the village on extinction.
 Notes / questions:
+- Blocked 2026-10-29 (nightly): the task needs two design decisions it does not state. (1) What is a lone farm's village called? It needs a name for the customs panel, the settlers panel and its meeting log: the farm's own name, or a name from `villageName`? (A generated name changes the random stream, so the golden file is re-recorded either way.) (2) What does the map label show for a one-farm village: the farm name, the village name, or both? Today a lone farm gets its own label and no green, well or village-name label. Answer these and set the task back to `ready`.
 
 ## VB-004: Ownership map overlay
-Status: ready
+Status: blocked
 Priority: 3
 Size: S
 Design ref: Claims, ownership and territory (Overlay: Decided). Kim, 2026-10-29: a simple first version is acceptable.
@@ -71,6 +72,7 @@ Acceptance criteria:
 - [ ] The overlay reflects ownership changes (e.g. a farm standing empty) on its next redraw; a full redraw on change is fine.
 - [ ] Smoke test toggles it on and off with no console errors.
 Notes / questions:
+- Blocked 2026-10-29 (nightly): depends on VB-003, which is blocked (see its notes).
 - Out of scope: filters by entity level, claims, chunk caching.
 
 ## VB-005: Trees per wooded tile
