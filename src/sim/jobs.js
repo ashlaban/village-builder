@@ -31,6 +31,7 @@ VB['sim/jobs'] = (() => {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
       }
+      if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
         f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
       if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });

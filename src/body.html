@@ -1146,7 +1146,7 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const farmOf = (p) => (p.household !== null && st.households[p.household] ? st.farmsteads[st.households[p.household].farmstead] : null);
   const heirTo = (id) => st.households.filter((h) => !h.dissolved && Sim.heirRanking(st, h)[0] === id).map((h) => st.farmsteads[h.farmstead]);
-  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', mend: 'Mend the fence' };
+  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', thresh: 'Thresh the grain', mend: 'Mend the fence' };
   function jobsLine(list) {
     if (!list.length) return 'none open';
     const n = {};
@@ -1180,7 +1180,7 @@
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>${v ? 'in ' + esc(v.name) : 'on its own'}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];

@@ -64,13 +64,14 @@ VB['sim/agents'] = (() => {
         j.field.held = Math.round(E.fieldYield * j.field.fert * st.weather * (0.9 + st.rand() * 0.2)); break;
       case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
       case 'cook': hh.cookDay = c.day; break;
+      case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
     st.jobs.delete(j.key);
   }
   function deposit(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], f = st.farmsteads[hh.farmstead];
     if (j.kind === 'haul') {
-      hh.grain += j.field.held; hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
+      hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
       if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
       j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
     }

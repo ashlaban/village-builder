@@ -31,7 +31,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood,
-      ledger: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
+      ledger: [], unthreshed: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;

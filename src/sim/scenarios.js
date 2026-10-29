@@ -121,7 +121,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age, ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), wood (loads), ledger[], hungryDays, waterDay, cookDay, dissolved}
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
+    //   ledger[], hungryDays, waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert}; state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood}; center is a tile index, farmsteads are ids

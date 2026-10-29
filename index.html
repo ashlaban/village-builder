@@ -1181,23 +1181,24 @@ VB['sim/rules'] = (() => {
 
   // ---- roles and jobs: who prefers what; jobs carry an owner that decides who may take them ----
   const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', prio: { plow: 10, sow: 10, reap: 9, haul: 8, wood: 7, mend: 6, water: 2, cook: 1 } },
-    wife: { title: 'Mistress of the house', sv: 'husfru', prio: { cook: 10, water: 9, reap: 7, haul: 6, sow: 5, wood: 2, mend: 2, plow: 2 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', prio: { plow: 9, wood: 9, haul: 8, reap: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
-    maid: { title: 'Maid', sv: 'piga', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1 } },
-    son: { title: 'Son of the house', sv: 'son', prio: { plow: 9, wood: 9, haul: 8, reap: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
-    daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1 } },
-    retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2 } },
+    farmer: { title: 'Farmer', sv: 'bonde', prio: { plow: 10, sow: 10, reap: 9, haul: 8, thresh: 8, wood: 7, mend: 6, water: 2, cook: 1 } },
+    wife: { title: 'Mistress of the house', sv: 'husfru', prio: { cook: 10, water: 9, reap: 7, haul: 6, sow: 5, wood: 2, mend: 2, plow: 2, thresh: 2 } },
+    farmhand: { title: 'Farmhand', sv: 'dräng', prio: { plow: 9, wood: 9, haul: 8, reap: 8, thresh: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
+    maid: { title: 'Maid', sv: 'piga', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1, thresh: 2 } },
+    son: { title: 'Son of the house', sv: 'son', prio: { plow: 9, wood: 9, haul: 8, reap: 8, thresh: 8, mend: 7, sow: 6, water: 3, cook: 0 } },
+    daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1, thresh: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2, thresh: 2 } },
     child: { title: 'Child', sv: 'barn', prio: {} },
   };
   const KINDS = {
-    plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 4, field: true },
+    plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 20, field: true },
     sow: { verb: 'Sowing', go: 'Going to sow', anim: 'sow', hours: 2, field: true },
     reap: { verb: 'Reaping', go: 'Going to reap', anim: 'reap', hours: 5, field: true },
     haul: { verb: 'Bringing in the sheaves', go: 'Going for the sheaves', anim: 'gather', hours: 0.7, carry: 'sheaf', back: 'Carrying sheaves to the barn' },
     wood: { verb: 'Cutting firewood', go: 'Heading to the woods', anim: 'chop', hours: 3, carry: 'logs', back: 'Carrying firewood home' },
     water: { verb: 'Drawing water', go: 'Going for water', anim: 'draw', hours: 0.5, carry: 'buckets', back: 'Carrying water home' },
     cook: { verb: 'Cooking at the hearth', go: 'Going home to cook', anim: null, hours: 2, inside: true },
+    thresh: { verb: 'Threshing in the barn', go: 'Going to the barn to thresh', anim: null, hours: 6, inside: true },
     mend: { verb: 'Mending the fence', go: 'Going to mend the fence', anim: 'mallet', hours: 2.5 },
   };
 
@@ -1478,7 +1479,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood,
-      ledger: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
+      ledger: [], unthreshed: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -1610,13 +1611,14 @@ VB['sim/agents'] = (() => {
         j.field.held = Math.round(E.fieldYield * j.field.fert * st.weather * (0.9 + st.rand() * 0.2)); break;
       case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
       case 'cook': hh.cookDay = c.day; break;
+      case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
     st.jobs.delete(j.key);
   }
   function deposit(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], f = st.farmsteads[hh.farmstead];
     if (j.kind === 'haul') {
-      hh.grain += j.field.held; hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
+      hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
       if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
       j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
     }
@@ -1739,6 +1741,7 @@ VB['sim/jobs'] = (() => {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
       }
+      if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
         f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
       if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
@@ -2338,7 +2341,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age, ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), wood (loads), ledger[], hungryDays, waterDay, cookDay, dissolved}
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
+    //   ledger[], hungryDays, waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert}; state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood}; center is a tile index, farmsteads are ids
@@ -3560,7 +3564,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const farmOf = (p) => (p.household !== null && st.households[p.household] ? st.farmsteads[st.households[p.household].farmstead] : null);
   const heirTo = (id) => st.households.filter((h) => !h.dissolved && Sim.heirRanking(st, h)[0] === id).map((h) => st.farmsteads[h.farmstead]);
-  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', mend: 'Mend the fence' };
+  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', thresh: 'Thresh the grain', mend: 'Mend the fence' };
   function jobsLine(list) {
     if (!list.length) return 'none open';
     const n = {};
@@ -3594,7 +3598,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>${v ? 'in ' + esc(v.name) : 'on its own'}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
