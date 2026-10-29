@@ -158,3 +158,24 @@ Notes / questions:
 - Job lengths: the game's 20 h of hoeing per field (VB-007) is the yardstick. History suggests breaking virgin grassland takes about 1.5–2× ordinary tillage, and stony ground halves the ploughing rate, so: break 30 h (1.5 × tilling); scrub 10 h; stones up to 20 h. A typical meadow tile then takes about 50 h, five working days for one person.
 - Extending the infield fence round new fields is out of scope.
 - Watch: one field made before spring day 10 yields about 80 grain in the first autumn, much less than a household eats in a year. Hunger in year 2 is possible with these stores; the run reports it rather than changing stores.
+
+## VB-011: Map generation screen with size, seed and starting scenario
+Status: needs-review
+Priority: 3
+Size: M
+Design ref: Starting scenarios. Kim, 2026-10-29: a screen to set the map before generating it: map size (small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes).
+Goal: Replace the bare "New archipelago" button and scenario dropdown with a map generation screen where the player sets map size, seed and starting scenario, then generates the map. Add a Populous Villages scenario.
+Acceptance criteria:
+- [ ] "New archipelago" opens a generation screen with: map size (Small / Medium / Large), a seed field, a starting scenario choice (Founders, Heirs and empty farms, Populous Villages), and a Generate button. The `scenarioSel` dropdown in the toolbar is removed.
+- [ ] Map size sets `cols` and `rows` passed to `G.generate(seed, opt)`; Medium is today's 280 × 200 tiles. Small and Large use the sizes agreed below.
+- [ ] The seed field is pre-filled with a random seed; the player may type their own (integer, up to 9 digits). The same seed, size and scenario always give the same map and settlement.
+- [ ] Populous Villages (`Sim.seed(wd, seed, 'populous')`): several villages of different sizes and no lone farms, with a higher population than the other scenarios, as agreed below. It holds meetings and appears in the customs panel like the others.
+- [ ] If the scenario finds no settlement site on the chosen map, the screen says so and lets the player pick another seed or size, instead of only a console warning.
+- [ ] The URL hash still opens a map directly (`#s123`, `#h123`), extended to carry size and the new scenario.
+- [ ] `tests/smoke.js` opens the screen, generates a Small Populous Villages map and checks the settlers list is non-empty, with no console errors.
+Notes / questions:
+- Map sizes: what tile counts for Small and Large? Suggestion: Small 180 × 130, Medium 280 × 200 (today), Large 380 × 270. Large roughly doubles generation time and memory. Founders needs a land mass of at least 1500 tiles, so Small maps will fail more often.
+- Populous Villages: how many villages, and how many farms in each (e.g. 3 villages of 3, 6 and 10 farms)? How far apart?
+- Populous Villages households: founder couples as in Founders, or several generations on record as in Heirs? How many servants? Any starting customs?
+- Does the screen show at first load, or does the first map still generate at once with a random seed (screen only on "New archipelago")?
+- Should "Heirs and empty farms" keep its "(debug)" label on the screen?
