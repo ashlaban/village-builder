@@ -348,3 +348,60 @@ Notes / questions:
 - With households of about 6, 800–950 people is about 140–160 farms, e.g. 3 large, 8 medium and 20 small villages.
 - Spacing between villages and starting customs for Populous Villages are left to the generators' defaults.
 - VB-003 (every farm in a village) changes how lone farms are made; if it is done first, the shared village generator also makes one-farm villages.
+
+## VB-022: Daily meals that always happen (unblocks VB-009)
+Status: needs-review
+Priority: 2
+Size: S
+Design ref: Economy and jobs, Long work and processing (Milling at home). Not checked tonight: the design snapshot could not be read in the nightly run.
+Goal: Make the daily `cook` job reliable, so that moving food from grain to rations (VB-009) does not create hungry days. In the founders runs the cook job is missed on the first days of spring (`cookDay` stays -1 for days 0-4), because everyone is busy with sowing work.
+Acceptance criteria (proposed):
+- [ ] Founders runs over 3 years at seeds 7, 42, 3 and 11 keep 0 hungry days when every household has food.
+- [ ] The cook job is done every day for every household that has food, or a household's first meals are covered by starting rations.
+Notes / questions:
+- Kim: which fix? (a) starting rations and flour for the first days, (b) a higher cook priority for the wife / cook may interrupt other work after 14:00, (c) the meal is made for the next day. See VB-009 for the numbers.
+
+## VB-023: Heirs scenario: the one-person household and the longer tilling
+Status: needs-review
+Priority: 2
+Size: S
+Design ref: Economy and jobs, Long work and processing (Tilling, Multi-day jobs). Not checked tonight.
+Goal: After VB-007 (tilling 20 h per field) the lone bachelor at B3 in the Heirs scenario brings in 0 of 3 crops in year 2 (seeds 7, 42, 3, 11) and hungry days rise (seed 7, first household: 3/12/15 after years 1-3 before, 5/14/26 after). Founders runs are unaffected.
+Acceptance criteria (proposed):
+- [ ] Decide what is right for a household with one worker, then record the expected crop count in `tests/heirs.js`.
+Notes / questions:
+- Kim: is it fine that a one-person household cannot till three fields in the sowing window (spring days 1-10)? Options: widen the window, give such farms fewer fields, or accept it as the scenario's point.
+
+## VB-024: Wood supply: how fast the forest runs out
+Status: needs-review
+Priority: 3
+Size: S
+Design ref: Land and ecology (Trees per tile, Cleared woodland). Not checked tonight.
+Goal: With the VB-005 numbers (60/80 trees per tile, 1 tree per trip, 3 loads per trip) a village's commons wood tile is felled to meadow in about 1.5 years, and the woodlot moves on every 1-2 years (5-year runs, all seeds tried). Check this is intended before Populous Villages maps (150 farms) are played for long.
+Acceptance criteria (proposed):
+- [ ] A run report: trees felled per year per village and forest tiles cleared per 10 years, for Founders and Populous Villages on Medium.
+- [ ] Kim decides whether `woodPerTrip`, trees per tile or the regrowth rate change.
+Notes / questions:
+- No code change proposed until Kim has seen the numbers.
+
+## VB-025: Browser smoke test in real Chromium
+Status: needs-review
+Priority: 3
+Size: M
+Design ref: none (test infrastructure)
+Goal: Tonight's page checks were done by hand in headless Chromium with PixiJS served from the npm package (the CDN is blocked in the nightly environment). `tests/smoke.js` uses jsdom and fake PixiJS, so it cannot see drawing errors (chunk repaint after felled trees, the generation screen, Large maps).
+Acceptance criteria (proposed):
+- [ ] A Playwright script loads `index.html`, generates a Tiny Populous Villages map, skips a year, and fails on any console error or page error.
+Notes / questions:
+- Needs a dev dependency (`playwright`, and `pixi.js` as a local file for the CDN script), so Kim must approve it.
+
+## VB-026: Farm names in big villages
+Status: needs-review
+Priority: 3
+Size: S
+Design ref: Naming of farms. Not checked tonight.
+Goal: Villages of 12-16 farms run out of direction names. VB-021 numbers the extra ones ("Östergården 2"), which is a placeholder. Villages are also named from 88 syllable pairs; a unique name is forced within a map.
+Acceptance criteria (proposed):
+- [ ] Kim chooses a naming rule for farms beyond the six directions plus Mellangården and Nygården.
+Notes / questions:
+- Options: numbers (now), owner or family names, landmarks (near the well, the hill, the shore).
