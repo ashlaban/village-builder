@@ -169,7 +169,7 @@ Notes / questions:
 - Watch: one field made before spring day 10 yields about 80 grain in the first autumn, much less than a household eats in a year. Hunger in year 2 is possible with these stores; the run reports it rather than changing stores.
 
 ## VB-011: Golden-state test for world, simulation and calibration
-Status: ready
+Status: done (2026-10-29, cb7b024)
 Priority: 1
 Size: S
 Design ref: none (test infrastructure for refactoring)
