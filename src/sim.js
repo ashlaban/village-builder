@@ -1,7 +1,6 @@
 // ===== Settlement simulation: founders, family records, a job board with ownership, role-driven planning =====
 const Sim = (() => {
-  const G = typeof ArchGen !== 'undefined' ? ArchGen : require('./gen.js');
-  const Culture = typeof globalThis.Culture !== 'undefined' ? globalThis.Culture : require('./culture.js');
+  const G = VB['gen'], Culture = VB['culture'];
   const { B, mulberry32 } = G;
 
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
@@ -1030,4 +1029,5 @@ const Sim = (() => {
   return { seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK,
     killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture };
 })();
+VB['sim'] = Sim;
 if (typeof module !== 'undefined') module.exports = Sim;

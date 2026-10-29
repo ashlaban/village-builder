@@ -1,5 +1,4 @@
-const G = require('../src/gen.js'); global.ArchGen = G; global.Culture = require('../src/culture.js');
-const Sim = require('../src/sim.js');
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const seed = +(process.argv[2] || 7);
 const it = G.generate(seed); let r; while (!(r = it.next()).done); const w = r.value;
 const st = Sim.seed(w, seed, 'heirs');

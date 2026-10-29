@@ -1,8 +1,7 @@
 // Golden-state test: hashes the generated world, the simulation state and calibration output.
 // `node tests/golden.js` checks against tests/golden.json; `--update` rewrites it.
 const crypto = require('crypto'), fs = require('fs'), path = require('path'), cp = require('child_process');
-const G = require('../src/gen.js'); global.ArchGen = G; global.Culture = require('../src/culture.js');
-const Sim = require('../src/sim.js');
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const FILE = path.join(__dirname, 'golden.json');
 const sha = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 16);
 
@@ -33,7 +32,7 @@ for (const seed of [7, 42]) {
   }
 }
 out.calibrate = sha(cp.execFileSync('node', [path.join(__dirname, 'calibrate.js'), 'natural', '2', '50'], { encoding: 'utf8' }).replace(/\(\d+\.\d s\)/g, '(timing)'));
-out.apiKeys = { Sim: sha(Object.keys(Sim).sort().join()), ArchGen: sha(Object.keys(G).sort().join()), Culture: sha(Object.keys(global.Culture).sort().join()) };
+out.apiKeys = { Sim: sha(Object.keys(Sim).sort().join()), ArchGen: sha(Object.keys(G).sort().join()), Culture: sha(Object.keys(VB.culture).sort().join()) };
 
 if (process.argv.includes('--update')) { fs.writeFileSync(FILE, JSON.stringify(out, null, 1) + '\n'); console.log('golden.json updated'); process.exit(0); }
 const want = JSON.parse(fs.readFileSync(FILE, 'utf8')), bad = [];

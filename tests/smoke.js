@@ -24,11 +24,7 @@ class Application { constructor() { APP = this; } async init(o) { this.canvas = 
 class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w, height: h }); } }
 class Text extends Obj { constructor(o) { super(o); this.text = o.text; } }
 win.PIXI = { Rectangle, Text, Application, Container: Obj, Sprite: Obj, TilingSprite: Obj, Graphics, Texture: class { constructor(o) { this.o = o; } }, CanvasSource: class { constructor(o) { if (!o.resource) throw new Error('no resource'); } } };
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-win.eval(scripts[0].replace('const ArchGen', 'var ArchGen'));
-win.eval(scripts[1].replace('const Culture', 'var Culture'));
-win.eval(scripts[2].replace('const Sim', 'var Sim'));
-win.eval(scripts[3]);
+for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) win.eval(m[1].replace(/^const (\w+) =/gm, 'var $1 ='));
 const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds'];
 const state = () => { const lay = APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
 const tick = (n) => { for (let k = 0; k < n; k++) for (const f of tickers) { try { f({ deltaMS: 16 }); } catch (e) { if (!globalThis.__err) { globalThis.__err = 1; console.log('FRAME ERROR:', e.message); fail('frame error: ' + e.message); } throw e; } } };

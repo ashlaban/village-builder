@@ -249,6 +249,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.14.3/dist/pixi.min.js"></script>
 <script>
+// ===== Module namespace =====
+// src/<path>.js registers as VB['<path>'] (e.g. src/sim/hex.js is VB['sim/hex']):
+//   VB['sim/hex'] = (() => { ...; return { ... }; })();
+// and reads what it needs at the top of its IIFE: const { bfs } = VB['sim/hex'];
+// A module reads only modules listed before it in src/manifest.json. Grep a key to find the module and its users.
+var VB = globalThis.VB = globalThis.VB || {};
+</script>
+<script>
 // ===== Archipelago generator: seeded terrain, hex tiles, regions, chunked painterly bake =====
 const ArchGen = (() => {
   const SQ3 = Math.sqrt(3);
@@ -857,8 +865,8 @@ const ArchGen = (() => {
 
   return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32 };
 })();
+VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;
-
 </script>
 <script>
 // ===== Customs: one culture-wide set, local practice per settlement, attitudes that drift day by day =====
@@ -1078,15 +1086,14 @@ const Culture = (() => {
 
   return { DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, entrepreneurs, meeting, cultureYear, split, support, normBlock };
 })();
+VB['culture'] = Culture;
 if (typeof module !== 'undefined') module.exports = Culture;
 if (typeof globalThis !== 'undefined') globalThis.Culture = Culture;
-
 </script>
 <script>
 // ===== Settlement simulation: founders, family records, a job board with ownership, role-driven planning =====
 const Sim = (() => {
-  const G = typeof ArchGen !== 'undefined' ? ArchGen : require('./gen.js');
-  const Culture = typeof globalThis.Culture !== 'undefined' ? globalThis.Culture : require('./culture.js');
+  const G = VB['gen'], Culture = VB['culture'];
   const { B, mulberry32 } = G;
 
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
@@ -2115,8 +2122,8 @@ const Sim = (() => {
   return { seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK,
     killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture };
 })();
+VB['sim'] = Sim;
 if (typeof module !== 'undefined') module.exports = Sim;
-
 </script>
 <script>
 (async () => {

@@ -606,4 +606,5 @@ const ArchGen = (() => {
 
   return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32 };
 })();
+VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;

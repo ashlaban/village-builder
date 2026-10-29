@@ -215,5 +215,6 @@ const Culture = (() => {
 
   return { DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, entrepreneurs, meeting, cultureYear, split, support, normBlock };
 })();
+VB['culture'] = Culture;
 if (typeof module !== 'undefined') module.exports = Culture;
 if (typeof globalThis !== 'undefined') globalThis.Culture = Culture;

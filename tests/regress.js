@@ -1,5 +1,4 @@
-const G = require('../src/gen.js'); global.ArchGen = G; global.Culture = require('../src/culture.js');
-const Sim = require('../src/sim.js');
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 let failed = 0; const fail = (m) => { failed++; console.error('REGRESSION:', m); };
 for (const seed of [7, 42]) {
   const it = G.generate(seed); let r; while (!(r = it.next()).done); const w = r.value;
