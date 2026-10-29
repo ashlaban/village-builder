@@ -303,7 +303,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-020: Refactor: scenarios and the clock into modules; `Sim` as a facade
-Status: ready
+Status: done (2026-10-29, b18c5fb)
 Priority: 1
 Size: S
 Design ref: none (code structure)
