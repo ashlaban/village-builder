@@ -19,36 +19,35 @@ Acceptance criteria:
 - [ ] No behaviour change in `src/`; no new dependencies.
 Notes / questions:
 
-## VB-002: Simulation steps of at most 5 game minutes
+## VB-002: Clock shows game time in 5-minute steps, apart from the simulation step
 Status: ready
 Priority: 1
 Size: S
-Design ref: Commands, time steps and views (Simulation step: Decided)
-Goal: `Sim.advance` in `src/sim.js` steps 0.1 game hours (6 minutes); the design says at most 5 minutes.
+Design ref: Commands, time steps and views (Clock and picture: Decided). Kim, 2026-10-29: the simulation may keep steps of up to 6 game minutes; the UI clock is its own state and must show time in steps of at most 5 game minutes. UI state and simulation state are not automatically the same.
+Goal: Today the clock shows 10-minute steps and is redrawn only in the 0.25 s panel refresh, so at 10× it jumps by over an hour. Give the UI its own clock state that follows simulation time in 5-minute steps and is redrawn every frame it changes.
 Acceptance criteria:
-- [ ] The largest step `advance` takes is 5/60 of a game hour, set by one named constant (e.g. `MAX_STEP`) exported from `Sim`.
-- [ ] Hourly events still fire exactly once per game hour: a test advances 2 game days in uneven chunks (e.g. 0.37 h at a time) and counts `onHour` calls, or an equivalent observable such as cooking done once a day per household.
-- [ ] The clock keeps showing 10-minute steps (unchanged).
-- [ ] `npm test` passes; 3 founder years in `tests/regress.js` take no more than 1.3× today's time on the same machine (report both numbers in the PR).
+- [ ] `Sim.advance` and its step size are unchanged (up to 0.1 game hours); `npm test` output for the simulation scripts is unchanged.
+- [ ] The UI keeps its own clock value (e.g. `uiClock`), derived each frame from simulation time and floored to 5 game minutes; minutes shown are always a multiple of 5.
+- [ ] The clock's DOM text is written in the frame loop whenever the 5-minute value changes, not in the 0.25 s refresh of the settlers and pawn panels; it is not rewritten when unchanged.
+- [ ] After any frame, the shown time is at most 5 game minutes behind simulation time, at 1×, 3× and 10× with 16 ms frames (a smoke test checks this at 10×).
+- [ ] Pause, speed buttons, "Skip a year" and regenerating still leave the clock correct.
 Notes / questions:
-
 ## VB-003: Every farm in a village, and an owner for every tile
 Status: ready
 Priority: 2
 Size: M
-Design ref: Claims, ownership and territory (Ownership: Decided); Inheritance and expansion, Succession (no heir: the village holds the farm, Agreed). Kim, 2026-10-29: every farm belongs to a village; a village can be degenerate (one farm, one household); an empty farm is owned by its village.
-Goal: Lone farms become one-farm ("degenerate") villages, so every farm has a village. Then give the world a per-tile owner, set at seeding and kept up to date, as the base for claims, the ownership overlay and making fields and meadows.
+Design ref: Claims, ownership and territory (Ownership: Decided); Inheritance and expansion, Succession (no heir: the village holds the farm, Agreed). Kim, 2026-10-29: every farm belongs to a village; a lone farm is a normal village with one farm (no special flag), with its own meeting; an empty farm is owned by its village.
+Goal: Lone farms become ordinary one-farm villages, so every farm has a village. Then give the world a per-tile owner, set at seeding and kept up to date, as the base for claims, the ownership overlay and making fields.
 Acceptance criteria:
-- [ ] Every farmstead has a non-null `village`. A lone farm gets its own village with `degenerate: true`, its one farm, its own fence (owned by that village) and its woodlot as `commonsWood`.
-- [ ] Customs behave exactly as today: a degenerate village is not a culture settlement; its people still take part in the nearest non-degenerate village's meeting (today's `settlementIdOf` rule). The customs panel lists the same settlements as before.
-- [ ] The map, settlers list, family tree and labels look as before: code that checked `f.village === null` now checks the degenerate flag (no green or well drawn; farm label as today).
+- [ ] Every farmstead has a non-null `village`; no village carries a lone/degenerate flag. A lone farm's village has the farm's house tile as its `center`, its woodlot as `commonsWood`, and its fence owned by the village.
+- [ ] Code that checked `f.village === null` is rewritten; where drawing differed (no green or well, the farm's own label), it now depends on the village having one farm.
+- [ ] A one-farm village is a culture settlement like any other: it holds its own meeting and appears in the customs panel. The heirs scenario (no lone farms) gives the same `tests/heirs.js` output as before, apart from added lines.
 - [ ] `st.owner` is a typed array with one entry per tile, encoding none, a household id or a village id; helpers `ownerOf(st, tile)` and `setOwner(st, tile, owner)` are exported.
-- [ ] At seeding, in both scenarios: each farmstead's house and field tiles belong to its household; each village's green (`center`, non-degenerate only) and commons wood belong to the village; all other tiles have no owner.
-- [ ] When a farm stands empty (`extinct`), its house and field tiles pass to its village (degenerate or not). Succession within the household leaves ownership unchanged.
+- [ ] At seeding, in both scenarios: each farmstead's house and field tiles belong to its household; each village's commons wood, and its `center` unless that is a house, belong to the village; all other tiles have no owner.
+- [ ] When a farm stands empty (`extinct`), its house and field tiles pass to its village. Succession within the household leaves ownership unchanged.
 - [ ] The tile info panel shows the owner ("Norrgården household", "Ulsäter village"), or nothing for unowned tiles.
-- [ ] A test checks the seeding rules, that every farm has a village, and the hand-over to the village on extinction. The heirs test output (`tests/heirs.js`) is unchanged apart from added lines.
+- [ ] A test checks the seeding rules, that every farm has a village, and the hand-over to the village on extinction.
 Notes / questions:
-
 ## VB-004: Ownership map overlay
 Status: ready
 Priority: 3
@@ -83,17 +82,16 @@ Notes / questions:
 Status: ready
 Priority: 2
 Size: S
-Design ref: Land and ecology (Stones, Abandoned fields: Decided). Kim, 2026-10-29: more stones near hills.
-Goal: Meadow tiles track a stone content that later slows breaking ground and yields building stone.
+Design ref: Land and ecology (Stones, Abandoned fields: Decided). Kim, 2026-10-29: every untouched meadow tile has some stones; extra stones near hills fade to nothing with distance.
+Goal: Meadow tiles track a stone content that later slows making a field (VB-010) and yields building stone.
 Acceptance criteria:
-- [ ] `w.stones` (0–255 per tile) is seeded deterministically for meadow tiles: base noise plus a bonus that falls off with distance to the nearest hills tile, reaching zero beyond 2 tiles. Other biomes 0.
+- [ ] `w.stones` (0–255 per tile) is seeded deterministically for meadow tiles: a base value from noise, never below 30, plus an extra up to +100 that falls off with distance to the nearest hills tile and is zero beyond 2 tiles; clamped to 255. Other biomes 0.
 - [ ] Field tiles hold 0 stones at seeding (fields are already made).
 - [ ] Tile info shows "few", "some" or "many" stones (thirds of the range).
 - [ ] The existing stone decorations on meadow tiles scale with the value.
-- [ ] A test checks determinism and that tiles next to hills average more stones than tiles far from them.
+- [ ] A test checks determinism, that every meadow tile has at least 30, and that tiles next to hills average more stones than tiles more than 2 tiles away.
 Notes / questions:
-- Cleared stones are not tracked as a store yet (comes with VB-010).
-
+- Cleared stones become a store in VB-010.
 ## VB-007: Tilling and threshing as multi-day work
 Status: ready
 Priority: 2
@@ -139,17 +137,21 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-010: Founders start on unmade land and make their fields
-Status: needs-review
+Status: ready
 Priority: 3
 Size: L
-Design ref: Starting scenarios (founders with next to no fields made: Decided; first year: Proposed); Goods and the farming year (Making a field: Decided). Kim, 2026-10-29: founders arrive at standing houses, with stores to last them through the first winter. Depends on VB-003 and VB-006.
-Goal: The founders scenario starts with houses standing but no fields made; households claim tiles, clear scrub and stones, and break ground before they can sow.
-Proposed acceptance criteria:
-- [ ] Founders start with houses, no fields, and grain for a full year's food plus seed for their planned fields.
-- [ ] A household claims its planned field tiles (owner = household), clears each one (`clear` job) and breaks the ground (`break` job); only then does the tile become a field in stubble.
-- [ ] Stones from clearing are kept as a household or village store of building stone.
-- [ ] A founders run reaches its first harvest by autumn of year 1 or year 2 without starving.
+Design ref: Starting scenarios (founders with next to no fields made: Decided); Goods and the farming year (Making a field: Decided); Land and ecology (Meadow to field: Decided). Kim, 2026-10-29: founders arrive at standing houses with stores to last through the first winter; farmers claim a meadow tile and turn it into a field when the household needs one; the same people as tilling do the work; job lengths from history, scaled to the game. Depends on VB-003, VB-006 and VB-007; if any is not done, mark this blocked.
+Goal: The founders scenario starts with houses but no fields. A household that needs more fields claims a meadow tile, clears it of scrub and stones, and breaks the ground; then it is a field in stubble, sown in the next sowing window.
+Acceptance criteria:
+- [ ] Founders scenario: houses as today, no fields; each household starts with grain for its rations for one full year (48 days, through the first winter) plus seed for the fields it wants (below). The heirs scenario is unchanged.
+- [ ] Demand: a household wants `ceil(1.1 × yearly rations / (0.75 × fieldYield))` fields, at most 4 (2–4 fields per farm). While it has fewer fields, counting the one in progress, it starts one new-field project at a time.
+- [ ] Choosing the tile: the farmer picks an unowned, unclaimed meadow tile within 4 tiles of the house, not a village centre, scoring fertility − 0.5 × stones/255 − 0.15 × distance; then the tile is owned by the household (`setOwner`).
+- [ ] `clear` job: 10 h for scrub plus 20 h × stones/255; it sets the tile's stones to 0 and adds `round(stones / 25)` loads to the household's stone store.
+- [ ] `break` job: 30 h; then the tile becomes a field in `stubble`, with fertility from its biome, and is drawn as a field.
+- [ ] `clear` and `break` use each role's `plow` priority; progress persists across days, as for other long jobs.
+- [ ] The household panel shows the stone store and any field in progress.
+- [ ] A founders run over 3 years at seeds 7 and 42 reports, per year: fields made per farm, fields sown, hungry days. Every farm has at least one field sown by year 2. Report the numbers in the PR; do not tune values to change them. If any farm has none sown by year 2, mark blocked with the numbers.
 Notes / questions:
-- Hours: a proposal is 8 h to clear scrub and 12 h to break ground, both scaled by up to ×2 on stony tiles (`w.stones`). Acceptable?
-- Who works on clearing and breaking (proposal: same priorities as `plow`)?
-- Are the planned field tiles chosen by the seeding code (as today), or by the households during play?
+- Job lengths: the game's 20 h of hoeing per field (VB-007) is the yardstick. History suggests breaking virgin grassland takes about 1.5–2× ordinary tillage, and stony ground halves the ploughing rate, so: break 30 h (1.5 × tilling); scrub 10 h; stones up to 20 h. A typical meadow tile then takes about 50 h, five working days for one person.
+- Extending the infield fence round new fields is out of scope.
+- Watch: one field made before spring day 10 yields about 80 grain in the first autumn, much less than a household eats in a year. Hunger in year 2 is possible with these stores; the run reports it rather than changing stores.
