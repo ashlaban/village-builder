@@ -15,6 +15,8 @@ const Sim = (() => {
     homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
     moveAgent, describe,
   } = VB['sim/agents'];
+  const { post, refreshJobs, mayTake, urgency, bid, planRound } = VB['sim/jobs'];
+  const { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut } = VB['sim/heirs'];
   const { placeFields, siteScore, makeFarmstead, findSite, buildVillage, nameFarms, finishLand } = VB['sim/layout'];
 
   // ======== scenarios ========
@@ -244,127 +246,6 @@ const Sim = (() => {
   }
 
   // ======== succession ========
-  // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false) {
-    const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village !== null ? f.village : 0);
-    const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
-    const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
-    const order = (ids) => [...ids].sort((a, b) => {
-      const pa = st.pawns[a], pb = st.pawns[b], s = sexRank(pa) - sexRank(pb);
-      if (s) return s;
-      if (cu.birthOrder === 'youngest') return pb.born - pa.born;
-      if (cu.birthOrder === 'chosen') { const ha = pa.household === hh.id ? 0 : 1, hb = pb.household === hh.id ? 0 : 1; if (ha !== hb) return ha - hb; }
-      return pa.born - pb.born;
-    });
-    const out = [], seen = new Set();
-    const lineOf = (id, depth) => {
-      if (depth > 3) return;
-      for (const c of order(childrenOf(st, id))) {
-        if (seen.has(c)) continue; seen.add(c);
-        if (st.pawns[c].died === null) out.push(c);
-        lineOf(c, depth + 1); // a dead child's children stand in their place; a living child's line follows them
-      }
-    };
-    lineOf(line, 0);
-    const direct = new Set(out);
-    // then the wider family: siblings and their lines, then the parents' siblings (cousins) and theirs
-    seen.add(line);
-    let anc = line;
-    for (let up = 0; up < 2; up++) {
-      const lp = st.pawns[anc];
-      if (lp.father === null && lp.mother === null) break;
-      const parent = lp.father !== null ? lp.father : lp.mother;
-      for (const s of order(childrenOf(st, parent).filter((q) => q !== anc))) { if (seen.has(s)) continue; seen.add(s); if (st.pawns[s].died === null) out.push(s); lineOf(s, 1); }
-      anc = parent; seen.add(parent);
-    }
-    const ok = out.filter((id) => {
-      const p = st.pawns[id];
-      if (cu.heirSex === 'sons' && p.sex === 'f') return false;
-      const own = holdingOf(st, id); if (own && own !== hh) return false; // already holds a farm
-      const sp = spouseOf(st, id); if (sp !== null) { const so = holdingOf(st, sp); if (so && so !== hh) return false; } // lives on a spouse's farm
-      return id !== hh.holder;
-    });
-    if (nested) return ok.filter((id) => direct.has(id));
-    // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
-    // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = new Set();
-    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) ownFirst.add(r[0]); }
-    const back = (id) => !direct.has(id) && ownFirst.has(id);
-    return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
-  }
-  function moveTo(st, id, hhId) {
-    const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
-    if (old) old.members = old.members.filter((m) => m !== id);
-    const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
-    p.household = hhId; p.servant = false;
-    const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', `Moved to ${st.farmsteads[hh.farmstead].name}`);
-  }
-  function transfer(st, hh, heir, reason) {
-    const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), old = hh.holder, op = st.pawns[old];
-    const hp = st.pawns[heir];
-    if (hp.household !== hh.id) {
-      const from = hp.household !== null ? st.households[hp.household] : null, sp = spouseOf(st, heir);
-      const kids = childrenOf(st, heir).filter((c) => st.pawns[c].alive && st.pawns[c].age < 18 && st.pawns[c].household === hp.household);
-      moveTo(st, heir, hh.id);
-      if (sp !== null && st.pawns[sp].alive && from && st.pawns[sp].household === from.id) moveTo(st, sp, hh.id);
-      for (const c of kids) moveTo(st, c, hh.id);
-    }
-    hh.holder = heir; f.line = heir;
-    if (op && op.alive && op.household === hh.id) { op.retired = true; const s = spouseOf(st, old); if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true; }
-    // shares for the siblings who do not inherit
-    if (cu.heirCount !== 'one') {
-      const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
-      const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * 120 + hh.grain * 0.5, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
-      for (const q of sibs) {
-        const reserve = 60 + hh.members.length * 30; // shares never eat the seed corn or the winter's food
-        const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
-        hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
-        if (due) personEvent(st, q, 'share', `Received ${paid} rations as a share of ${f.name}${due > paid ? `, ${due - paid} still owed` : ''}${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`);
-      }
-    }
-    personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`);
-    log(st, `${fullName(hp)} takes over ${f.name}${reason === 'death' ? ` after ${fullName(op)}` : reason === 'marriage' ? ' on marrying' : ' as the old holder retires'}.`);
-    st.visualDirty = true;
-  }
-  function extinct(st, hh) {
-    const f = st.farmsteads[hh.farmstead];
-    f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
-    for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
-    hh.dissolved = true;
-    for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
-    // anyone left moves in with their nearest kin, or into service elsewhere in the village
-    for (const id of [...hh.members]) {
-      const p = st.pawns[id]; if (!p.alive) continue;
-      const kinHome = kinNear(st, id).map((q) => st.pawns[q]).find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
-      const target = kinHome ? kinHome.household : st.households.filter((h) => !h.dissolved && h.id !== hh.id).sort((x, y) => x.members.length - y.members.length)[0];
-      if (target !== undefined) { moveTo(st, id, typeof target === 'number' ? target : target.id); if (!kinHome) st.pawns[id].servant = true; }
-    }
-    hh.members = [];
-    log(st, `${f.name} stands empty: no heir would take it.`);
-    st.visualDirty = true;
-  }
-  function succession(st, hh, reason) {
-    const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), dead = st.pawns[hh.holder];
-    const sp = spouseOf(st, dead.id, dead.died - 0.01);
-    const spouse = sp !== null && st.pawns[sp].alive && st.pawns[sp].household === hh.id ? sp : null;
-    const ranking = heirRanking(st, hh, cu), heir = ranking.length ? ranking[0] : null;
-    if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
-      hh.holder = spouse; if (cu.widow === 'outright') f.line = spouse;
-      personEvent(st, spouse, 'inherited', `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
-      log(st, `${fullName(st.pawns[spouse])} keeps ${f.name}${cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own' : ' until the heir comes of age'}.`);
-      st.visualDirty = true;
-      return;
-    }
-    if (heir === null) { extinct(st, hh); return; }
-    if (st.pawns[heir].age < 18) {
-      // a minor heir holds in name; the nearest adult kin in the house acts as guardian
-      const g = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18).sort((x, y) => x.born - y.born)[0];
-      hh.guardian = g ? g.id : null;
-    }
-    transfer(st, hh, heir, 'death');
-  }
   function killPawn(st, id, cause = 'died') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
@@ -384,20 +265,6 @@ const Sim = (() => {
   }
 
   // ======== roles ========
-  function refreshRoles(st) {
-    for (const p of st.pawns) {
-      if (p.died !== null) continue;
-      const hh = p.household !== null ? st.households[p.household] : null, a = age(st, p);
-      if (!hh) { p.role = a < 14 ? 'child' : 'farmhand'; continue; }
-      const sp = spouseOf(st, p.id);
-      if (hh.holder === p.id) p.role = 'farmer';
-      else if (sp !== null && sp === hh.holder) p.role = p.sex === 'f' ? 'wife' : 'farmer';
-      else if (p.retired) p.role = 'retired';
-      else if (a < 14) p.role = 'child';
-      else if (p.servant) p.role = p.sex === 'm' ? 'farmhand' : 'maid';
-      else p.role = p.sex === 'm' ? 'son' : 'daughter';
-    }
-  }
 
   // ======== the yearly round: meetings after harvest, then marriages and handovers ========
   function holdMeetings(st) {
@@ -422,12 +289,6 @@ const Sim = (() => {
     const phi = kinship(st, a, b), lim = { second: 1 / 64, first: 1 / 16, close: 1 / 8 }[cu.kinLimit];
     return phi < lim;
   };
-  function placeIfMarried(st, id) {
-    const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
-    if (!hh || hh.dissolved) return null;
-    if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh)[0] === id ? hh.id : null;
-  }
   function movingRound(st) {
     const env = st.cenv; refreshRoles(st);
     const alive = st.pawns.filter((p) => p.alive);
@@ -473,14 +334,6 @@ const Sim = (() => {
     refreshPrestige(st);
     st.visualDirty = true;
   }
-  function wantsOut(st, p) {
-    if (!p.alive || p.age < 18 || p.retired) return false;
-    if (isHolder(st, p.id)) return false;
-    const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id) !== null) return false;
-    for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false; // heir somewhere else
-    return true;
-  }
   function dailyLife(st, c) {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
@@ -505,76 +358,6 @@ const Sim = (() => {
   // ---- family-record queries ----
 
   // ---- job board ----
-  // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
-  // owned by its own household, or by its village if it lives there. Servants count as household members.
-  function post(st, key, kind, owner, site, extra) {
-    let j = st.jobs.get(key);
-    if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j); }
-    j.live = true;
-    return j;
-  }
-  function refreshJobs(st, c) {
-    const E = st.ECON;
-    for (const j of st.jobs.values()) j.live = false;
-    const inWork = c.hour >= WORK[0] - 1 && c.hour < WORK[1];
-    for (const f of st.farmsteads) {
-      if (f.household === null) continue;
-      const hh = st.households[f.household], own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const fk = `f${f.id}.${fd.id}`;
-        const sowing = c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
-        if (sowing && fd.stage === 'stubble') post(st, 'plow:' + fk, 'plow', own, fd.tile, { field: fd, farm: f });
-        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField + 10) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
-        if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
-        if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
-      }
-      if (f.woodlot >= 0 && hh.wood < E.woodTarget) {
-        post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
-        if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
-      }
-      if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own, f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
-      if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
-      if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
-    }
-    for (const v of st.villages) for (const s of v.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
-    for (const [k, j] of st.jobs) if (!j.live && j.claim === null) st.jobs.delete(k);
-  }
-  function mayTake(st, p, j) {
-    if (j.owner.type === 'household') return j.owner.id === p.household;
-    if (j.owner.type === 'village') return villageOf(st, p) === j.owner.id;
-    return true;
-  }
-  function urgency(st, j, c) {
-    const E = st.ECON, hh = j.farm ? st.households[j.farm.household] : null;
-    switch (j.kind) {
-      case 'plow': case 'sow': return 1 + c.sday / 8;
-      case 'reap': return 1.3 + (c.season === 2 ? c.sday / 5 : 0);
-      case 'haul': return 1.1;
-      case 'wood': return hh.wood < 8 ? 2.2 : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? 0.5 : 0);
-      case 'water': return c.hour < 10 ? 1.4 : 1;
-      case 'cook': return c.hour >= 15 ? 2.2 : 0.6;
-      case 'mend': return (1 - j.stretch.cond) * 2;
-    }
-    return 1;
-  }
-  // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
-  // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
-  function bid(st, a, j, c) {
-    const p = st.pawns[a.id];
-    if (j.claim !== null || !mayTake(st, p, j)) return -1;
-    const pr = ROLES[p.role].prio[j.kind] || 0;
-    if (pr <= 0 || (pr <= 2 && st.t - j.posted < 2)) return -1;
-    const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * 0.15 + st.rand() * 0.3;
-  }
-  function planRound(st, idle, c) {
-    const bids = [];
-    for (const a of idle) for (const j of st.jobs.values()) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j]); }
-    bids.sort((x, y) => y[0] - x[0]);
-    const busy = new Set();
-    for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
-    return busy;
-  }
 
   // ---- agents ----
 

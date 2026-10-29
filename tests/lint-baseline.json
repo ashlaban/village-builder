@@ -31,9 +31,17 @@
   "lines": 159,
   "longLines": 0
  },
+ "src/sim/jobs.js": {
+  "lines": 81,
+  "longLines": 0
+ },
+ "src/sim/heirs.js": {
+  "lines": 172,
+  "longLines": 0
+ },
  "src/sim.js": {
-  "lines": 654,
-  "longLines": 34
+  "lines": 437,
+  "longLines": 24
  },
  "src/load.js": {
   "lines": 5,
