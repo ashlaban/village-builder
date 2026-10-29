@@ -107,7 +107,7 @@ Notes / questions:
 - Cleared stones become a store in VB-010.
 
 ## VB-007: Tilling and threshing as multi-day work
-Status: ready
+Status: done (2026-10-29, 4384353)
 Priority: 2
 Size: M
 Design ref: Economy and jobs, Long work and processing (Tilling, Harvest, Multi-day jobs: Decided); Field cycle stages (Agreed). Kim, 2026-10-29: hours and roles below agreed.
