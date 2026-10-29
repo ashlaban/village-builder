@@ -4,6 +4,15 @@ Tasks for the village builder proof of concept. The nightly run takes only `Stat
 
 A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated. `needs-review` tasks list the questions Kim must answer first.
 
+Refactor rules (every task titled "Refactor:"):
+- Behaviour is unchanged: `npm test` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.
+- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted.
+- No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
+- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
+- Depends on VB-011 to VB-015; if any is not done, mark the task blocked.
+
+Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR.
+
 ## VB-001: Make the test suite fail on regressions
 Status: ready
 Priority: 1
@@ -159,17 +168,167 @@ Notes / questions:
 - Extending the infield fence round new fields is out of scope.
 - Watch: one field made before spring day 10 yields about 80 grain in the first autumn, much less than a household eats in a year. Hunger in year 2 is possible with these stores; the run reports it rather than changing stores.
 
-## VB-011: Map generation screen with size, seed and starting scenario
+## VB-011: Golden-state test for world, simulation and calibration
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (test infrastructure for refactoring)
+Goal: The refactor tasks (VB-016 onwards) must leave behaviour exactly as it is. World generation and the simulation are deterministic, so record a fingerprint of their output that `npm test` checks.
+Acceptance criteria:
+- [ ] `tests/golden.js` hashes, for seeds 7 and 42: the generated world (every typed array and number on `w`); and for each scenario (`founders`, `heirs`, default settings) the state after `Sim.seed` and after each of three calls to `Sim.advance(st, Sim.YEAR)`.
+- [ ] State hashing is canonical: object keys sorted; `Map` and `Set` as entries in insertion order; typed arrays as plain arrays; numbers as `toPrecision(12)`; functions skipped; `st.w` skipped (the world is hashed on its own); a shared or cyclic reference written as a back-reference to the path where the object was first seen.
+- [ ] Each top-level key of `st` gets its own hash, so a failure names what changed (e.g. `founders/42/year2: households, events`).
+- [ ] It also hashes the stdout of `node tests/calibrate.js natural 2 50`, and the sorted key lists of `Sim`, `ArchGen` and `Culture` (to catch renames).
+- [ ] Expected hashes are kept in `tests/golden.json`; `node tests/golden.js --update` rewrites the file. Only Node built-ins (`crypto`). Runs in under 15 s. Added to `npm test`.
+- [ ] Changing one `ECON` value locally (not committed) makes it fail and names the changed keys; the committed suite passes.
+Notes / questions:
+
+## VB-012: One module list, a module namespace and a Node loader
+Status: ready
+Priority: 1
+Size: M
+Design ref: none (code structure)
+Goal: Adding or splitting a source file today means editing `build.py`, the markers in `src/body.html`, `tests/smoke.js` (it evals the page's scripts by index and renames `const ArchGen`, `const Culture`, `const Sim`) and the `require`/global set-up at the top of every test. Put the module list in one place and give modules one way to register and find each other.
+Acceptance criteria:
+- [ ] `src/manifest.json` lists the JS modules in load order: `vb.js`, `gen.js`, `culture.js`, `sim.js`.
+- [ ] `src/vb.js` creates the namespace (`var VB = globalThis.VB = globalThis.VB || {};`) and documents the convention in at most 6 comment lines: `src/<path>.js` registers as `VB['<path>']` (e.g. `src/sim/hex.js` is `VB['sim/hex']`) with `VB['sim/hex'] = (() => { ...; return { ... }; })();`, and reads what it needs at the top of its IIFE, e.g. `const { bfs } = VB['sim/hex'];`. A module reads only modules listed before it. Grepping a key finds the module and every user.
+- [ ] `gen.js`, `culture.js` and `sim.js` also register as `VB['gen']`, `VB['culture']` and `VB['sim']` (the same objects; the `ArchGen`, `Culture` and `Sim` globals stay). `sim.js` reads `gen` and `culture` from `VB` instead of its `typeof`/`require` fallbacks.
+- [ ] `build.py` inlines each manifest file as its own `<script>`, in order, at one `<!--__MODULES__-->` marker in `src/body.html`, which replaces the three marker scripts. The page script stays last.
+- [ ] `python3 build.py --check` exits non-zero with a one-line message if `index.html` differs from a fresh build, without writing it; `npm test` runs it first.
+- [ ] `src/load.js` (Node only) creates `VB`, requires every manifest file in order and returns `VB`. `tests/regress.js`, `tests/heirs.js`, `tests/calibrate.js` and `tests/golden.js` load through it, with no direct `require('../src/…')` and no hand-set globals.
+- [ ] `tests/smoke.js` evals every inline `<script>` of `index.html` in document order, rewriting any top-level `const Name =` to `var Name =` generically; it names no modules and assumes no script count.
+- [ ] `npm test` passes; `tests/golden.json` unchanged.
+Notes / questions:
+
+## VB-013: Structure lint: module headers, file and line length
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: Keep files small and lines short as nightly work adds code, so an agent can grep for a line and read it without pulling in a whole file.
+Acceptance criteria:
+- [ ] `tests/lint.js` (Node built-ins only), run by `npm test`, checks every file in `src/manifest.json` and `src/load.js`: line 1 is `// @sys <key>: <purpose in one line>`, where `<key>` is the file's `VB` key (`sim/hex`, `gen`, …; `load` for `src/load.js`); at most 400 lines; no line over 160 characters.
+- [ ] Today's violations are recorded per file in `tests/lint-baseline.json` (line count, number of long lines). Lint fails if a file's count goes up or a file not in the baseline breaks a rule; for each failure it prints `file:line` and the rule.
+- [ ] When a count goes down, lint says so; `node tests/lint.js --update` lowers the baseline and never raises it.
+- [ ] `@sys` headers are added to all current modules; `src/body.html` is out of scope for this task.
+- [ ] `npm test` passes; `tests/golden.json` unchanged.
+Notes / questions:
+- `grep -rn "^// @sys" src` then prints the module map.
+
+## VB-014: CLAUDE.md, a short guide for agents
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (documentation)
+Goal: A file every agent reads first, so it can find the right code in a few greps instead of reading whole files. Short, each fact once, nothing grep can tell.
+Acceptance criteria:
+- [ ] `CLAUDE.md` at the root, at most 100 lines, with these parts:
+- [ ] What it is, in 2 lines, with the design doc ("Village builder: game design snapshot v0.3", https://claude.ai/artifact/H76cgchMVnZ56sdGA215es) and a pointer to `BACKLOG.md` and its rules.
+- [ ] Commands: build, `build.py --check`, test, `golden.js --update`, lint and `--update`, calibrate, play locally.
+- [ ] Finding things: `grep -rn "^// @sys" src` (module map), `grep -rn "@state" src` (state schema, VB-015), definitions are `function name(` or `const name = (`, `VB['<path>']` for a module and its users, and `// ----` section headers.
+- [ ] Architecture in at most 10 lines: `ArchGen.generate` makes the world `w`; `Sim.seed` makes the state `st`; `Sim.advance` runs it; `Culture` holds customs; the page script in `src/body.html` draws and only reads `st`, writing to it only through the `Sim` API and the flags it sets today (list them: `visualDirty`, `naturalDeaths`, `driftMul`).
+- [ ] Conventions: determinism (all randomness from a seeded `mulberry32`; no `Math.random` or `Date` in `src/` outside the page script); time in game hours, calendar constants in one place; ids are array indexes and never reused; where the tunables live (`ECON`, `ROLES`, `KINDS`, the culture's `DIMS` and `ARCHETYPES`), and which tables a new job kind or custom touches (check each claim against the code).
+- [ ] Working rules: the golden rule from BACKLOG.md, rebuild `index.html` before committing, keep `@sys` and `@state` lines current.
+- [ ] It copies nothing from the design doc and lists no individual functions.
+- [ ] No code changes; `npm test` passes.
+Notes / questions:
+- Later tasks keep it current: VB-020 updates the file locations.
+
+## VB-015: State schema as greppable tags
+Status: ready
+Priority: 1
+Size: M
+Design ref: none (documentation)
+Goal: Document every field of the world `w` and the state `st` once, next to the code that creates it, so `grep -rn "@state" src` gives the whole schema.
+Acceptance criteria:
+- [ ] Each top-level key of `st` has one `// @state st.<key>: <type>; <meaning, units>` line where it is created; arrays of records list their fields, e.g. `// @state st.households[]: {id, farmstead, holder, members[], grain (rations), wood (loads), hungryDays, dissolved}`.
+- [ ] The same for `w` in `gen.js`: each per-tile array with its type, range and meaning (e.g. `w.biome: Uint8Array per tile; B.* code`), and the scalar sizes in one line.
+- [ ] Units are stated (game hours, rations, loads, 0–1); lines are at most 160 characters.
+- [ ] `tests/lint.js` fails if a top-level key of `st` (founders and heirs, seed 7) or of `w` has no `@state` tag in `src/`.
+- [ ] Comments only; `tests/golden.json` unchanged.
+Notes / questions:
+
+## VB-016: Refactor: sim rules, hex helpers and village layout into modules
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: First step in splitting `src/sim.js` (1,033 lines) along its systems. Move the data tables and the pure world helpers, which nothing else they call depends on.
+Acceptance criteria:
+- [ ] `src/sim/rules.js` (`VB['sim/rules']`): `DAY`, `SEASON_DAYS`, `YEAR_DAYS`, `YEAR`, `SEASONS`, `cal`, `WORK`, `ECON`, `FERTILITY`, `farmable`, `ROLES`, `KINDS`, `MALE`, `FEMALE`, `patronym`, `DIRNAME`, `hazard`, `SPEED`.
+- [ ] `src/sim/hex.js` (`VB['sim/hex']`): `bfs`, `pathTo`, `land`, `hexSteps`, `landComponents`.
+- [ ] `src/sim/layout.js` (`VB['sim/layout']`): `placeFields`, `siteScore`, `villageName`, `makeFence`, `makeFarmstead`, `findSite`, `buildVillage`, `nameFarms`, `finishLand`.
+- [ ] `src/sim.js` reads them back with one destructuring line per module and keeps everything else; its exports are unchanged.
+- [ ] A helper used only by moved code moves with it. If a function would need a module later in the manifest, it stays in `src/sim.js` and the PR says so.
+- [ ] Refactor rules hold.
+Notes / questions:
+
+## VB-017: Refactor: family records and agents into modules
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: Move the person/household record helpers and pawn movement and work out of `src/sim.js`. Depends on VB-016.
+Acceptance criteria:
+- [ ] `src/sim/records.js` (`VB['sim/records']`): `person`, `marry`, `nameKit`, `makeHousehold`, `joinHousehold`, `personEvent`, `log`, `age`, `birthYear`, `fullName`, `spouseOf`, `childrenOf`, `siblingsOf`, `kinship`, `kinNear`, `villageOf`, `settlementIdOf`, `isHolder`, `holdingOf`, `practice`, `farmPractice`.
+- [ ] `src/sim/agents.js` (`VB['sim/agents']`): `homeSpot`, `placeAtHome`, `tileAt`, `route`, `walkTo`, `workSpot`, `start`, `release`, `complete`, `deposit`, `wantsWork`, `idleAbout`, `arrived`, `goHome`, `stepWork`, `moveAgent`, `describe`.
+- [ ] Same rules for helpers and late dependencies as VB-016.
+- [ ] Refactor rules hold.
+Notes / questions:
+
+## VB-018: Refactor: job board and inheritance into modules
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: Move the job board and succession out of `src/sim.js`; most feature tasks (VB-003, VB-007 to VB-010) then edit these small files instead. Depends on VB-017.
+Acceptance criteria:
+- [ ] `src/sim/jobs.js` (`VB['sim/jobs']`): `post`, `refreshJobs`, `mayTake`, `urgency`, `bid`, `planRound`.
+- [ ] `src/sim/heirs.js` (`VB['sim/heirs']`): `heirRanking`, `moveTo`, `transfer`, `extinct`, `succession`, `refreshRoles`, `placeIfMarried`, `wantsOut`.
+- [ ] Same rules for helpers and late dependencies as VB-016.
+- [ ] Refactor rules hold.
+Notes / questions:
+
+## VB-019: Refactor: culture wiring and the yearly round into modules
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: Move the code linking pawns to `Culture`, and deaths, retirement, meetings and the moving round, out of `src/sim.js`. Depends on VB-018.
+Acceptance criteria:
+- [ ] `src/sim/society.js` (`VB['sim/society']`): `initCulture`, `updateTies`, `refreshPrestige`, `refreshInterests`, `noteContacts`.
+- [ ] `src/sim/lifecycle.js` (`VB['sim/lifecycle']`): `killPawn`, `retireHolder`, `holdMeetings`, `kinOk`, `movingRound`, `dailyLife`.
+- [ ] Same rules for helpers and late dependencies as VB-016.
+- [ ] Refactor rules hold.
+Notes / questions:
+
+## VB-020: Refactor: scenarios and the clock into modules; `Sim` as a facade
+Status: ready
+Priority: 1
+Size: S
+Design ref: none (code structure)
+Goal: Finish the split: `src/sim.js` keeps only the public `Sim` object, built from the modules. Depends on VB-019.
+Acceptance criteria:
+- [ ] `src/sim/scenarios.js` (`VB['sim/scenarios']`): `seedFounders`, `seedHeirs`, `makeState`, `seed`.
+- [ ] `src/sim/clock.js` (`VB['sim/clock']`): `onHour`, `endOfDay`, `newYear`, `advance`.
+- [ ] `src/sim.js` only builds `Sim` (and `VB['sim']`) from the modules, with the same keys in the same order; at most 60 lines, no logic.
+- [ ] Every `src/sim/*.js` and `src/sim.js` has no lines over 160 characters; their lint baseline entries are removed.
+- [ ] `CLAUDE.md`: the tunables and "new job kind or custom" notes point to the new files.
+- [ ] Refactor rules hold.
+Notes / questions:
+- Next batch, not yet written: split the page script in `src/body.html` (rendering, art, panels, family tree, debug) and `gen.js` (generation apart from painting).
+
+## VB-021: Map generation screen with size, seed and starting scenario
 Status: ready
 Priority: 3
 Size: L
-Design ref: Starting scenarios. Kim, 2026-10-29: a landing screen to set the map before generating it: map size (tiny/small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes). Sizes as below. Founders scales its required land mass to the map. Populous Villages on medium and large maps holds 800–950 people in a few large, more medium and many small villages. Villages are made by shared generators, not hard-coded per scenario. The "(debug)" label goes. Kim, 2026-10-29: village size bands and household sizes below agreed; at most two generations pre-generated; smaller population targets on Tiny and Small maps.
+Design ref: Starting scenarios. Kim, 2026-10-29: a landing screen to set the map before generating it: map size (tiny/small/medium/large), seed, and starting scenario (Founders, Heirs and empty farms, and a new Populous Villages scenario: high population, only villages, of different sizes). Sizes as below. Founders scales its required land mass to the map. Populous Villages on medium and large maps holds 800–950 people in a few large, more medium and many small villages. Villages are made by shared generators, not hard-coded per scenario. Depends on VB-016 and VB-020 (village layout and scenarios in their own modules); if either is not done, mark this blocked. The "(debug)" label goes. Kim, 2026-10-29: village size bands and household sizes below agreed; at most two generations pre-generated; smaller population targets on Tiny and Small maps.
 Goal: Open the game on a map generation screen where the player sets map size, seed and starting scenario, then generates the map. Add a Populous Villages scenario, and make all scenarios build their villages through the same generators.
 Acceptance criteria:
 - [ ] The page opens on the generation screen (no map is generated until the player presses Generate). It has: map size (Tiny / Small / Medium / Large), a seed field, a starting scenario choice (Founders, Heirs and empty farms, Populous Villages) and a Generate button. "New archipelago" returns to the screen with the last choices filled in. The toolbar `scenarioSel` dropdown is removed, and no scenario carries a "(debug)" label anywhere in the UI.
 - [ ] Map size sets `cols` × `rows` passed to `G.generate(seed, opt)`: Tiny 120 × 85, Small 180 × 130, Medium 280 × 200 (today), Large 380 × 270.
 - [ ] The seed field is pre-filled with a random seed; the player may type their own (integer, up to 9 digits). The same seed, size and scenario always give the same map and settlement.
-- [ ] Founders' minimum land mass scales with the map: `round(1500 × tiles / (280 × 200))`, so 1500 on Medium as today. On Medium, Founders output for seeds 7 and 42 is unchanged.
+- [ ] Founders' minimum land mass scales with the map: `round(1500 × tiles / (280 × 200))`, so 1500 on Medium as today. On Medium, Founders output for seeds 7 and 42 is unchanged (its `tests/golden.json` entries, VB-011, stay the same).
 - [ ] Shared generators: villages are made by one village generator (site, farm placement, fields, fence, commons wood, names) and households by one household generator, called with a spec (e.g. number of farms, household makeup). Founders, Heirs and Populous Villages all build through them; scenario code only chooses specs and sites and sets nothing on a village or farm directly. A test checks that a field added to the village generator's output appears in all three scenarios.
 - [ ] Populous Villages (`Sim.seed(wd, seed, 'populous')`): only villages (no lone farms). Population target by map size: Tiny 130–170, Small 320–380, Medium and Large 800–950. The generator keeps placing villages until the population is in range, or reports why it could not.
 - [ ] Village sizes are drawn from three bands: small 2–5 farms (about 60% of villages), medium 6–10 (about 30%), large 12–16 (about 10%).
@@ -177,6 +336,7 @@ Acceptance criteria:
 - [ ] Populous Villages holds meetings and appears in the customs panel like the other scenarios.
 - [ ] If a scenario finds no settlement site on the chosen map, the screen says so and lets the player pick another seed or size, instead of only a console warning.
 - [ ] The URL hash skips the screen and opens a map directly: today's `#s123` and `#h123` keep working (Medium), extended to carry size and the new scenario.
+- [ ] If moving Heirs onto the shared generators changes its output, re-record the golden file (`node tests/golden.js --update`) and list the changed entries in the PR.
 - [ ] `tests/smoke.js` starts on the screen, generates a Tiny Populous Villages map and checks the settlers list is non-empty, with no console errors. A test checks that Populous Villages maps of each size for seeds 7 and 42 land in their population range, use all three village size bands on Medium and Large, and have no household with more than two generations.
 Notes / questions:
 - With households of about 6, 800–950 people is about 140–160 farms, e.g. 3 large, 8 medium and 20 small villages.
