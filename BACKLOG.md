@@ -29,7 +29,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-002: Clock shows game time in 5-minute steps, apart from the simulation step
-Status: ready
+Status: done (2026-10-29, 5a525b0)
 Priority: 1
 Size: S
 Design ref: Commands, time steps and views (Clock and picture: Decided). Kim, 2026-10-29: the simulation may keep steps of up to 6 game minutes; the UI clock is its own state and must show time in steps of at most 5 game minutes. UI state and simulation state are not automatically the same.
