@@ -519,6 +519,14 @@ const ArchGen = (() => {
       biome[i] = b;
     }
 
+    // ---- trees: a count per forest tile, +-20% around 60 (broadleaf) or 80 (pine) at full cover ----
+    const trees = new Float32Array(N), treesMax = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
+      const k = Math.round((biome[i] === B.PINE ? 80 : 60) * (0.8 + 0.4 * mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)()));
+      trees[i] = treesMax[i] = k;
+    }
+
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
     const region = new Int32Array(N), regKey = new Map(), regions = [];
@@ -591,11 +599,12 @@ const ArchGen = (() => {
     // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
     // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
     // @state w.ang: Float32Array, 2 per tile; texture direction (cos, sin)
+    // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang,
+      region, regions, tr, tg, tb, ang, trees, treesMax,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -798,6 +807,20 @@ const ArchGen = (() => {
 
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
   // a chunk edge are drawn identically on both sides.
+  // Density stage of a tile's trees: 4 (more than 75% of max left) down to 1 (25% or less), 0 when none are left.
+  function treeStage(w, i) {
+    const t = w.trees[i], m = w.treesMax[i];
+    return t <= 0 || m === 0 ? 0 : t > 0.75 * m ? 4 : t > 0.5 * m ? 3 : t > 0.25 * m ? 2 : 1;
+  }
+  // Changes a tile's biome and its baked base colour (the same formula as in generate).
+  function setBiome(w, i, b) {
+    const bi = BIOMES[b];
+    w.biome[i] = b;
+    const mc = Math.max(0, Math.min(1, w.csample(w.macro, w.hx[i], w.hy[i]))), t = 1 + (w.hrnd[i] - 0.5) * 0.07;
+    w.tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
+    w.tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;
+    w.tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
+  }
   function decorateChunk(w, ctx, l, cx, cy, S) {
     if (l >= 2) return;
     const { R, HW, AP, COLS, ROWS, hx, hy, biome, seed } = w;
@@ -813,11 +836,12 @@ const ArchGen = (() => {
       const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0);
       const spot = (rr) => { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rr * R; return [hx[i] + Math.cos(a) * d, hy[i] + Math.sin(a) * d * 0.9]; };
       if (b === B.FOREST || b === B.PINE) {
-        const n = (b === B.PINE ? 4 : 4) + ((rnd() * 2.4) | 0);
+        const n = (b === B.PINE ? 4 : 4) + ((rnd() * 2.4) | 0), shown = w.trees ? Math.max(1, Math.round((n * treeStage(w, i)) / 4)) : n;
         for (let k = 0; k < n; k++) {
           const [x, y] = spot(0.62);
           const pine = b === B.PINE ? rnd() < 0.92 : rnd() < 0.15;
-          items.push({ t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0 });
+          const item = { t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0 };
+          if (k < shown) items.push(item);
         }
       } else if (b === B.MEADOW) {
         const u = rnd();
@@ -884,7 +908,7 @@ const ArchGen = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32 };
+  return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32, treeStage, setBiome };
 })();
 VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;
@@ -1329,20 +1353,22 @@ VB['sim/layout'] = (() => {
       }
     }
   }
+  // The nearest forest tile within 16 steps that is not a house or field, or -1.
+  function nearestWood(w, used, from) {
+    const { dist: dd } = bfs(w, from, 16, land(w));
+    let wl = -1, wd = Infinity;
+    for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
+    return wl;
+  }
   function finishLand(w, villages, farmsteads, used, rand) {
-    const nearestWood = (from) => {
-      const { dist: dd } = bfs(w, from, 16, land(w));
-      let wl = -1, wd = Infinity;
-      for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
-      return wl;
-    };
+    const nearWood = (from) => nearestWood(w, used, from);
     for (const v of villages) {
-      v.commonsWood = nearestWood(v.center);
+      v.commonsWood = nearWood(v.center);
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
       v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
     }
     for (const f of farmsteads) {
-      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearestWood(f.house);
+      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearWood(f.house);
       if (f.village === null) {
         const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand);
       }
@@ -1350,7 +1376,53 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand };
+  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand, nearestWood };
+})();
+</script>
+<script>
+// @sys sim/forest: felling, regrowth and clearing of forest tiles
+VB['sim/forest'] = (() => {
+  const { B, treeStage, setBiome } = VB['gen'];
+  const { YEAR_DAYS } = VB['sim/rules'];
+  const { nearestWood } = VB['sim/layout'];
+  const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
+
+  function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
+
+  // A tile with no trees left becomes meadow for good; farms and villages that used it as a woodlot pick the nearest forest.
+  function clearTile(st, tile) {
+    const w = st.w;
+    w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
+    setBiome(w, tile, B.MEADOW);
+    st.treeDirty.add(tile); st.biomeDirty.add(tile);
+    for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
+    for (const f of st.farmsteads) {
+      if (f.woodlot !== tile) continue;
+      f.woodlot = f.village !== null ? st.villages[f.village].commonsWood : nearestWood(w, st.used, f.house);
+    }
+  }
+
+  // A completed firewood trip fells one tree from the farm's woodlot.
+  function fellTree(st, farm) {
+    const w = st.w, tile = farm.woodlot;
+    if (tile < 0 || w.trees[tile] <= 0) return;
+    const was = treeStage(w, tile);
+    w.trees[tile] = Math.max(0, w.trees[tile] - 1);
+    if (w.trees[tile] <= 0) { clearTile(st, tile); return; }
+    st.regrow.add(tile); stageChanged(st, tile, was);
+  }
+
+  // Once a game day: tiles with some trees but fewer than their maximum grow back.
+  function growTrees(st) {
+    const w = st.w;
+    for (const tile of st.regrow) {
+      const max = w.treesMax[tile], was = treeStage(w, tile);
+      w.trees[tile] = Math.min(max, w.trees[tile] + max / (REGROW_YEARS * YEAR_DAYS));
+      if (w.trees[tile] >= max) st.regrow.delete(tile);
+      stageChanged(st, tile, was);
+    }
+  }
+  return { fellTree, growTrees, clearTile };
 })();
 </script>
 <script>
@@ -1458,6 +1530,7 @@ VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
+  const { fellTree } = VB['sim/forest'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -1528,7 +1601,7 @@ VB['sim/agents'] = (() => {
       if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
       j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
     }
-    if (j.kind === 'wood') hh.wood += st.ECON.woodPerTrip;
+    if (j.kind === 'wood') { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); }
     if (j.kind === 'water') hh.waterDay = cal(st.t).day;
     st.jobs.delete(j.key);
     a.carry = null; a.job = null; a.phase = null;
@@ -2258,6 +2331,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
+    // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
+    // @state st.treeDirty,biomeDirty: Set of tile indexes whose tree density stage changed, or that turned to meadow; the page repaints them
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
@@ -2267,7 +2342,7 @@ VB['sim/scenarios'] = (() => {
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
       })),
-      visualDirty: false, rigDirty: new Set(),
+      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
     };
     refreshRoles(st);
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
@@ -2283,6 +2358,7 @@ VB['sim/scenarios'] = (() => {
 VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
+  const { growTrees } = VB['sim/forest'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
@@ -2310,6 +2386,7 @@ VB['sim/clock'] = (() => {
       if (hh.grain >= need) hh.grain -= need; else { hh.grain = 0; hh.hungryDays++; }
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
+    growTrees(st);
     const day = Math.floor(st.t / DAY);
     for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
@@ -2521,6 +2598,26 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!ch) return;
     ch.spr.destroy({ texture: true, textureSource: true });
     chunks.delete(k);
+  }
+  // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
+  // Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
+  function refreshTrees() {
+    const reach = 36 + 2 * w.R;
+    const overChunks = (tile, l) => {
+      const [x0, y0, x1, y1] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
+      const out = []; for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) out.push([cx, cy]);
+      return out;
+    };
+    for (const tile of st.treeDirty) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    for (const tile of st.biomeDirty) {
+      for (const [cx, cy] of overChunks(tile, 2)) {
+        const ch = chunks.get(ckey(2, cx, cy));
+        if (!ch) continue;
+        for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
+        ch.spr.texture.source.update();
+      }
+    }
+    st.treeDirty.clear(); st.biomeDirty.clear();
   }
   function wantedList() {
     const out = [], seen = new Set();
@@ -2784,7 +2881,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i);
     if (farm) card(farm[0], [...farm[1], where]);
-    else card(b.name, [line, where]);
+    else card(b.name, [line, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []), where]);
   }
   function pick(sx, sy) {
     if (!w) return;
@@ -3382,6 +3479,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
+    if (st.treeDirty.size) refreshTrees();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }
@@ -3429,6 +3527,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       tAcc = 0;
       if (!$('settlers').hidden) renderSettlers();
       if (selPawn >= 0) showPawn(selPawn);
+      else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
     }
   }
 

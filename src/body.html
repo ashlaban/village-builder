@@ -204,6 +204,26 @@
     ch.spr.destroy({ texture: true, textureSource: true });
     chunks.delete(k);
   }
+  // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
+  // Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
+  function refreshTrees() {
+    const reach = 36 + 2 * w.R;
+    const overChunks = (tile, l) => {
+      const [x0, y0, x1, y1] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
+      const out = []; for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) out.push([cx, cy]);
+      return out;
+    };
+    for (const tile of st.treeDirty) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    for (const tile of st.biomeDirty) {
+      for (const [cx, cy] of overChunks(tile, 2)) {
+        const ch = chunks.get(ckey(2, cx, cy));
+        if (!ch) continue;
+        for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
+        ch.spr.texture.source.update();
+      }
+    }
+    st.treeDirty.clear(); st.biomeDirty.clear();
+  }
   function wantedList() {
     const out = [], seen = new Set();
     const add = (l, rect, bias) => {
@@ -466,7 +486,7 @@
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i);
     if (farm) card(farm[0], [...farm[1], where]);
-    else card(b.name, [line, where]);
+    else card(b.name, [line, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []), where]);
   }
   function pick(sx, sy) {
     if (!w) return;
@@ -1064,6 +1084,7 @@
     if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
+    if (st.treeDirty.size) refreshTrees();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }
@@ -1111,6 +1132,7 @@
       tAcc = 0;
       if (!$('settlers').hidden) renderSettlers();
       if (selPawn >= 0) showPawn(selPawn);
+      else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
     }
   }
 

@@ -259,6 +259,14 @@ const ArchGen = (() => {
       biome[i] = b;
     }
 
+    // ---- trees: a count per forest tile, +-20% around 60 (broadleaf) or 80 (pine) at full cover ----
+    const trees = new Float32Array(N), treesMax = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
+      const k = Math.round((biome[i] === B.PINE ? 80 : 60) * (0.8 + 0.4 * mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)()));
+      trees[i] = treesMax[i] = k;
+    }
+
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
     const region = new Int32Array(N), regKey = new Map(), regions = [];
@@ -331,11 +339,12 @@ const ArchGen = (() => {
     // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
     // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
     // @state w.ang: Float32Array, 2 per tile; texture direction (cos, sin)
+    // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang,
+      region, regions, tr, tg, tb, ang, trees, treesMax,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -538,6 +547,20 @@ const ArchGen = (() => {
 
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
   // a chunk edge are drawn identically on both sides.
+  // Density stage of a tile's trees: 4 (more than 75% of max left) down to 1 (25% or less), 0 when none are left.
+  function treeStage(w, i) {
+    const t = w.trees[i], m = w.treesMax[i];
+    return t <= 0 || m === 0 ? 0 : t > 0.75 * m ? 4 : t > 0.5 * m ? 3 : t > 0.25 * m ? 2 : 1;
+  }
+  // Changes a tile's biome and its baked base colour (the same formula as in generate).
+  function setBiome(w, i, b) {
+    const bi = BIOMES[b];
+    w.biome[i] = b;
+    const mc = Math.max(0, Math.min(1, w.csample(w.macro, w.hx[i], w.hy[i]))), t = 1 + (w.hrnd[i] - 0.5) * 0.07;
+    w.tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
+    w.tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;
+    w.tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
+  }
   function decorateChunk(w, ctx, l, cx, cy, S) {
     if (l >= 2) return;
     const { R, HW, AP, COLS, ROWS, hx, hy, biome, seed } = w;
@@ -553,11 +576,12 @@ const ArchGen = (() => {
       const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0);
       const spot = (rr) => { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rr * R; return [hx[i] + Math.cos(a) * d, hy[i] + Math.sin(a) * d * 0.9]; };
       if (b === B.FOREST || b === B.PINE) {
-        const n = (b === B.PINE ? 4 : 4) + ((rnd() * 2.4) | 0);
+        const n = (b === B.PINE ? 4 : 4) + ((rnd() * 2.4) | 0), shown = w.trees ? Math.max(1, Math.round((n * treeStage(w, i)) / 4)) : n;
         for (let k = 0; k < n; k++) {
           const [x, y] = spot(0.62);
           const pine = b === B.PINE ? rnd() < 0.92 : rnd() < 0.15;
-          items.push({ t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0 });
+          const item = { t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0 };
+          if (k < shown) items.push(item);
         }
       } else if (b === B.MEADOW) {
         const u = rnd();
@@ -624,7 +648,7 @@ const ArchGen = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32 };
+  return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32, treeStage, setBiome };
 })();
 VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;

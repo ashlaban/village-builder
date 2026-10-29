@@ -3,6 +3,7 @@ VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
+  const { fellTree } = VB['sim/forest'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -73,7 +74,7 @@ VB['sim/agents'] = (() => {
       if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
       j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
     }
-    if (j.kind === 'wood') hh.wood += st.ECON.woodPerTrip;
+    if (j.kind === 'wood') { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); }
     if (j.kind === 'water') hh.waterDay = cal(st.t).day;
     st.jobs.delete(j.key);
     a.carry = null; a.job = null; a.phase = null;

@@ -112,20 +112,22 @@ VB['sim/layout'] = (() => {
       }
     }
   }
+  // The nearest forest tile within 16 steps that is not a house or field, or -1.
+  function nearestWood(w, used, from) {
+    const { dist: dd } = bfs(w, from, 16, land(w));
+    let wl = -1, wd = Infinity;
+    for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
+    return wl;
+  }
   function finishLand(w, villages, farmsteads, used, rand) {
-    const nearestWood = (from) => {
-      const { dist: dd } = bfs(w, from, 16, land(w));
-      let wl = -1, wd = Infinity;
-      for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
-      return wl;
-    };
+    const nearWood = (from) => nearestWood(w, used, from);
     for (const v of villages) {
-      v.commonsWood = nearestWood(v.center);
+      v.commonsWood = nearWood(v.center);
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
       v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
     }
     for (const f of farmsteads) {
-      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearestWood(f.house);
+      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearWood(f.house);
       if (f.village === null) {
         const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand);
       }
@@ -133,5 +135,5 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand };
+  return { placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand, nearestWood };
 })();
