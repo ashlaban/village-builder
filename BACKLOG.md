@@ -405,3 +405,71 @@ Acceptance criteria (proposed):
 - [ ] Kim chooses a naming rule for farms beyond the six directions plus Mellangården and Nygården.
 Notes / questions:
 - Options: numbers (now), owner or family names, landmarks (near the well, the hill, the shore).
+
+## VB-027: Births within marriage
+Status: ready
+Priority: 2
+Size: M
+Design ref: People, households and families (Births: Decided growth from births, Open model). Kim, 2026-10-29: natural births are the main source of growth; very limited immigration by boat comes in a later stage; the game is slow, and 40 hours or more to full population is fine; hunger postpones births (VB-028); children are spaced by explicit pregnancy and nursing. Births outside marriage come from courting and relationships between pawns, which are not designed yet, so they are left out here.
+Goal: There are no births today: `src/sim.js` has no conception or newborn code, so the population only shrinks. Married women have children, born into their mother's household, so the population grows from births. Marriage already needs a place to live (`movingRound`, `placeIfMarried`), so growth follows land.
+Acceptance criteria:
+- [ ] A married woman aged 15–49 who lives in her husband's household can conceive. Her chance per game day is a peak rate times an age factor from Coale and Trussell's (1974) natural-fertility schedule, relative to ages 20–24: 15–19 0.89, 20–24 1, 25–29 0.94, 30–34 0.86, 35–39 0.70, 40–44 0.36, 45–49 0.05.
+- [ ] Pregnancy lasts 36 game days (9 months at 4 game days a month); after a birth she cannot conceive for 48 game days (a year of nursing). Both show in the pawn panel.
+- [ ] The peak rate is set so that a woman married at 20 who stays married to 50 has about 7 births, one married at 25 about 5.5, with intervals of about 2.5–3 years at ages 20–34. `tests/calibrate.js` reports these three numbers.
+- [ ] Newborns: 105 boys to 100 girls; father and mother recorded; a given name and the father's patronymic (`patronym`); role child; a member of the mother's household; a "born" life event, and a "child born" event for each parent. They appear in the family tree and the settlers list.
+- [ ] Infant and child mortality: today's `hazard` adds 1% a year under age 10, so about 2% of infants die in their first year. Add a juvenile term that falls with age (Siler 1979) so that, with `naturalDeaths` on, about 20% die before age 1 and about a third before 15. `tests/calibrate.js` reports both shares.
+- [ ] A woman dies in childbirth with probability 1% per birth.
+- [ ] All randomness comes from `st.rand`; the same seed gives the same births.
+- [ ] `tests/births.js`: no birth to an unmarried woman or outside ages 15–49; every newborn has both parents and a household; two runs with the same seed match; a founders run over 50 years at seeds 7 and 42 reports births, deaths and population per decade (reported, not asserted).
+- [ ] Re-record the golden file and list the changed entries in the PR.
+Notes / questions:
+- Kim, 2026-10-29: the numbers above are accepted as starting values; the systems are tuned for gameplay later. They are approximate pre-industrial values (Coale and Trussell 1974; Swedish 18th-century records), not fitted.
+- Out of scope: births outside marriage. Kim, 2026-10-29: they depend on courting and relationships between pawns (not yet designed); the father is the man the woman was with; an unmarried mother and the father often marry quickly; whether such children inherit is a custom. A later task adds them once courting is designed.
+- Out of scope: twins, stillbirths, fostering.
+- Once VB-028 is done, hunger lowers the conception chance.
+
+## VB-028: Hunger has consequences
+Status: ready
+Priority: 2
+Size: M
+Design ref: Economy and jobs, Known gaps (hunger: Decided); Open questions (What hunger does). Kim, 2026-10-29: hunger can kill, mostly infants and the old; it slows work and postpones marriages and births. Who eats first when food is short is a culture custom, and parents of young children pull it towards children first. Sickness and households leaving are not part of this task.
+Goal: Today `endOfDay` only counts `hungryDays` when a household's food runs out, and nothing follows. Give each person a hunger level that raises the risk of death, mostly for infants and the old, slows work, and postpones marriages and births.
+Acceptance criteria:
+- [ ] A new custom in `Culture.DIMS`, "Who eats first when food is short" (`feedOrder`): equal shares; children first; those who work first. Default and malleability as the design doc gives them. It appears in the customs panel and changes at meetings like the others.
+- [ ] Parents with a child under 14 in their household add self-interest pressure on `feedOrder` towards children first, through `refreshInterests`, with the same weight as other self-interest pulls.
+- [ ] A household that is short eats what it has (today it eats nothing), shared out by `feedOrder`. Each member records the day's shortfall s = 1 − eaten / need, from 0 to 1.
+- [ ] Each member's hunger level h (0–1) is their mean shortfall over the last 12 game days (a season); the household's level is its members' mean. `hungryDays` stays, counting days the household was short.
+- [ ] Death: each member's daily `hazard` is multiplied by 1 + k(age) × h. The k values are set so that a household at h = 1 for a whole year has about twice the deaths of a fed one: about 2–3 times for those under 5 and over 60, about 1.3 times for ages 15–59. `tests/calibrate.js` reports these ratios. A death that falls in the added share of the risk is logged as hunger.
+- [ ] Work: members work at (1 − 0.4 × h) of their normal rate (job progress per hour).
+- [ ] Marriage: at the moving round, a person with h ≥ 0.5 does not marry that year.
+- [ ] Births: if VB-027 is done, the conception chance is multiplied by (1 − h); otherwise skip this and say so in the PR.
+- [ ] The household panel shows hunger as fed (h = 0), short (below 0.25), hungry (below 0.6) or starving.
+- [ ] If VB-009 is done, the rules apply to rations instead of grain.
+- [ ] `tests/smoke.js` (VB-001) checks the customs table against the number of entries in `Culture.DIMS` instead of a fixed 11.
+- [ ] A test checks each rule on constructed households: each `feedOrder` option shares food as described; more deaths at h = 1 in the right age groups (many seeded trials), slower job progress, no marriage at h ≥ 0.5, and h back to 0 after 12 fed days.
+- [ ] A founders run over 3 years at seeds 7 and 42 reports hungry days, deaths by cause and marriages per year (reported, not asserted). Re-record the golden file and list the changed entries in the PR.
+Notes / questions:
+- Kim, 2026-10-29: the numbers above, and the custom's default (equal shares) and malleability (0.5), are accepted as starting values; the systems are tuned for gameplay later. Roughly doubled deaths in a hungry year match pre-industrial famine years.
+- Out of scope: food from kin or the village, sickness, leaving the farm.
+- Kim, 2026-10-29: courting will replace the moving round's matchmaking (not yet designed). Until then the marriage hooks here live in `movingRound`; the courting task moves them.
+
+## VB-029: Marriage limit by degree, opening up when spouses are scarce
+Status: ready
+Priority: 2
+Size: M
+Design ref: People, households and families (Kinship: Decided limit by degree); Customs, How attitudes move (Scarcity: Decided, strength Open). Kim, 2026-10-29: judge the marriage limit by degree; the kinship coefficient is only shown; fewer marriages should make people more open to closer kin marrying; siblings never marry; degree is counted the civil way (both lines added), with a fourth, loosest option allowing uncle–niece; plentiful allowed spouses pull the limit slowly back towards stricter.
+Goal: `kinOk` compares Malécot's coefficient with 1/64, 1/16 or 1/8. In a closed population from 10 founders the average coefficient between two people tends towards about 1/20, so the stricter options bar most pairs within a few generations, although they are distant kin by descent. Judge the limit by degree instead, and let a shortage of allowed spouses push the custom towards closer kin.
+Acceptance criteria:
+- [ ] A helper `kinDegree(st, a, b)` (civil counting): for each common ancestor, add the generations from each person up to it; the pair's degree is the smallest such sum. Siblings and half-siblings 2, uncle–niece and aunt–nephew 3, first cousins 4, first cousins once removed 5, second cousins 6, third cousins 8; no common ancestor on record: no limit. A person never marries a direct ancestor or descendant.
+- [ ] `kinOk` uses the degree: "Third cousins or further" (`second`) allows degree 8 or more, "Second cousins or further" (`first`) 6 or more, "First cousins or further" (`close`) 4 or more, and a new loosest option, "Uncle–niece or further" (`uncle`), 3 or more. Degree 2 or less is never allowed, whatever the custom. Existing option keys and labels in `culture.js` are unchanged; the new option is listed last and starts with no support.
+- [ ] Under the default (`first`), first cousins once removed (degree 5) are now barred; today's coefficient test allows them (1/32 < 1/16). The PR reports how many heirs-scenario marriages this changes.
+- [ ] `kinship` (the coefficient) is still computed and shown for spouses and in the family tree, and is no longer used for the limit.
+- [ ] Scarcity: at each moving round, an adult who would marry (single, men 20+, women 18+, not retired, with a home under the residence custom) but finds no allowed partner, while one would be allowed under the next looser option, adds self-interest pressure on `kinLimit` towards that option, through the existing self-interest pull (`refreshInterests`), with the same weight as other self-interest pulls. The custom itself changes only at the yearly meeting, as for other customs.
+- [ ] Plenty: each adult who marries at the moving round, to a spouse also allowed under the next stricter option, adds pressure on `kinLimit` towards that option at half the weight of the scarcity pressure, so the limit can swing back, slowly.
+- [ ] The moving round counts adults blocked only by kin, per settlement; the meeting log shows the count.
+- [ ] Tests: degrees on a constructed pedigree (siblings, half-siblings, first cousins, uncle–niece, first cousins once removed, second and third cousins); siblings, half-siblings and direct lines never marry under any option, including `uncle`; with many blocked adults in one settlement, attitudes move towards the looser option within a few years, and back towards the stricter option more slowly when every marriage is between distant kin (seeded).
+- [ ] Re-record the golden file (marriages in the heirs scenario may change) and list the changed entries in the PR.
+Notes / questions:
+- Kim, 2026-10-29: numbers are starting values, tuned for gameplay later. The scarcity pressure starts at the weight of other self-interest pulls and the pull back at half that; the custom's malleability (0.12, the hardest to change) already slows it.
+- Without births (VB-027), the effect shows only in the heirs scenario; a long founders check waits for VB-027.
+- Kim, 2026-10-29: courting will replace the moving round's matchmaking (not yet designed). Until then the marriage hooks here live in `movingRound`; the courting task moves them.
