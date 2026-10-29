@@ -23,9 +23,17 @@
   "lines": 137,
   "longLines": 0
  },
+ "src/sim/records.js": {
+  "lines": 97,
+  "longLines": 0
+ },
+ "src/sim/agents.js": {
+  "lines": 159,
+  "longLines": 0
+ },
  "src/sim.js": {
-  "lines": 857,
-  "longLines": 45
+  "lines": 654,
+  "longLines": 34
  },
  "src/load.js": {
   "lines": 5,
