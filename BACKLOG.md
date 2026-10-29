@@ -249,7 +249,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-016: Refactor: sim rules, hex helpers and village layout into modules
-Status: ready
+Status: done (2026-10-29, 85a3fe0)
 Priority: 1
 Size: S
 Design ref: none (code structure)
