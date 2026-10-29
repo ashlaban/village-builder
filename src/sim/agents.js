@@ -58,10 +58,17 @@ VB['sim/agents'] = (() => {
     const j = a.job, E = st.ECON, hh = st.households[st.pawns[a.id].household], c = cal(st.t);
     switch (j.kind) {
       case 'plow': j.field.stage = 'plowed'; break;
-      case 'sow': if (hh.grain >= E.seedPerField) { hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day; } break;
+      case 'sow':
+        if (hh.grain >= E.seedPerField) {
+          hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day;
+          j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0;
+        } break;
+      case 'weed': j.field.weedOpen = false; break;
       case 'reap':
         j.field.stage = 'stooks'; j.field.reaped = c.day;
-        j.field.held = Math.round(E.fieldYield * j.field.fert * st.weather * (0.9 + st.rand() * 0.2)); break;
+        j.field.held = Math.round(E.fieldYield * j.field.fert * st.weather * (0.9 + st.rand() * 0.2)
+          * (1 - Math.min(E.weedCutMax, E.weedCut * j.field.weedMiss)));
+        j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0; break;
       case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
       case 'cook': hh.cookDay = c.day; break;
       case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;

@@ -38,6 +38,13 @@ VB['sim/clock'] = (() => {
       if (g >= E.ripeAfterDays) fd.stage = 'ripe';
       else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
     }
+    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household === null || fd.stage !== 'growing') continue;
+      if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
+      if (fd.weedOpen) fd.weedMiss++;
+      fd.weedOpen = true; fd.weedPosted = day;
+    }
     if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
         fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`);
