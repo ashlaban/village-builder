@@ -1,3 +1,4 @@
+// @sys sim: settlement simulation, family records, job board, yearly round
 // ===== Settlement simulation: founders, family records, a job board with ownership, role-driven planning =====
 const Sim = (() => {
   const G = VB['gen'], Culture = VB['culture'];

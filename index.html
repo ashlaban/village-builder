@@ -249,6 +249,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.14.3/dist/pixi.min.js"></script>
 <script>
+// @sys vb: module namespace and the convention for registering modules
 // ===== Module namespace =====
 // src/<path>.js registers as VB['<path>'] (e.g. src/sim/hex.js is VB['sim/hex']):
 //   VB['sim/hex'] = (() => { ...; return { ... }; })();
@@ -257,6 +258,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 var VB = globalThis.VB = globalThis.VB || {};
 </script>
 <script>
+// @sys gen: seeded terrain, hex tiles, regions and the painterly chunk bake
 // ===== Archipelago generator: seeded terrain, hex tiles, regions, chunked painterly bake =====
 const ArchGen = (() => {
   const SQ3 = Math.sqrt(3);
@@ -869,6 +871,7 @@ VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;
 </script>
 <script>
+// @sys culture: customs, per-settlement practice and day-by-day attitude drift
 // ===== Customs: one culture-wide set, local practice per settlement, attitudes that drift day by day =====
 // Two layers. Attitudes: every person holds a preference over the options of each custom, updated each game day
 // (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly
@@ -1091,6 +1094,7 @@ if (typeof module !== 'undefined') module.exports = Culture;
 if (typeof globalThis !== 'undefined') globalThis.Culture = Culture;
 </script>
 <script>
+// @sys sim: settlement simulation, family records, job board, yearly round
 // ===== Settlement simulation: founders, family records, a job board with ownership, role-driven planning =====
 const Sim = (() => {
   const G = VB['gen'], Culture = VB['culture'];

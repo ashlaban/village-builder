@@ -1,3 +1,4 @@
+// @sys culture: customs, per-settlement practice and day-by-day attitude drift
 // ===== Customs: one culture-wide set, local practice per settlement, attitudes that drift day by day =====
 // Two layers. Attitudes: every person holds a preference over the options of each custom, updated each game day
 // (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly

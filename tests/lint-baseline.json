@@ -1,0 +1,22 @@
+{
+ "src/vb.js": {
+  "lines": 7,
+  "longLines": 0
+ },
+ "src/gen.js": {
+  "lines": 611,
+  "longLines": 7
+ },
+ "src/culture.js": {
+  "lines": 221,
+  "longLines": 16
+ },
+ "src/sim.js": {
+  "lines": 1034,
+  "longLines": 53
+ },
+ "src/load.js": {
+  "lines": 5,
+  "longLines": 0
+ }
+}

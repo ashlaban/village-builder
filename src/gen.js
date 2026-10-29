@@ -1,3 +1,4 @@
+// @sys gen: seeded terrain, hex tiles, regions and the painterly chunk bake
 // ===== Archipelago generator: seeded terrain, hex tiles, regions, chunked painterly bake =====
 const ArchGen = (() => {
   const SQ3 = Math.sqrt(3);

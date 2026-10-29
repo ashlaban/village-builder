@@ -1,3 +1,4 @@
+// @sys vb: module namespace and the convention for registering modules
 // ===== Module namespace =====
 // src/<path>.js registers as VB['<path>'] (e.g. src/sim/hex.js is VB['sim/hex']):
 //   VB['sim/hex'] = (() => { ...; return { ... }; })();
