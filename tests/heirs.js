@@ -1,5 +1,4 @@
-const G = require('../src/gen.js'); global.ArchGen = G; global.Culture = require('../src/culture.js');
-const Sim = require('../src/sim.js');
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const seed = +(process.argv[2] || 7);
 const it = G.generate(seed); let r; while (!(r = it.next()).done); const w = r.value;
 const st = Sim.seed(w, seed, 'heirs');
@@ -19,9 +18,14 @@ show('start');
 console.log('  kinship Jon–Sigrid (cousins):', Sim.kinship(st, st.pawns.find((p) => p.given === st.pawns[st.households[0].members[2]].given).id, st.households[3].members[2]));
 // Olof's heir under B's practice, and under "any child"
 const olofHH = st.households[4];
-console.log('  B3 heirs, sons first:', Sim.heirRanking(st, olofHH).slice(0, 4).map(nm).join(' > '));
-console.log('  B3 heirs, any child :', Sim.heirRanking(st, olofHH, { ...Sim.practice(st, 1), heirSex: 'any' }).slice(0, 4).map(nm).join(' > '));
-console.log('  A2 heirs, sons only :', Sim.heirRanking(st, st.households[1], { ...Sim.practice(st, 0), heirSex: 'sons' }).slice(0, 4).map(nm).join(' > '));
+const checks = [
+  ['  B3 heirs, sons first:', Sim.heirRanking(st, olofHH).slice(0, 4).map(nm).join(' > '), 'Ivar Hansson > Karin Hansdotter > Ingeborg Hansdotter > Torsten Björnsson'],
+  ['  B3 heirs, any child :', Sim.heirRanking(st, olofHH, { ...Sim.practice(st, 1), heirSex: 'any' }).slice(0, 4).map(nm).join(' > '), 'Kerstin Björnsdotter > Torsten Björnsson > Karin Hansdotter > Ivar Hansson'],
+  ['  A2 heirs, sons only :', Sim.heirRanking(st, st.households[1], { ...Sim.practice(st, 0), heirSex: 'sons' }).slice(0, 4).map(nm).join(' > '), 'Lars Persson'],
+];
+let bad = 0;
+for (const [label, got, want] of checks) { console.log(label, got); if (seed === 7 && got !== want) { bad++; console.error(`HEIRS MISMATCH${label} expected "${want}"`); } }
+if (bad) process.exitCode = 1;
 st.naturalDeaths = false;
 let t0 = Date.now(); Sim.advance(st, Sim.YEAR); console.log(`\none year in ${Date.now() - t0} ms`);
 show('after the first meetings and moving round');
