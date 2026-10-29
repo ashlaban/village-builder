@@ -201,7 +201,7 @@ Acceptance criteria:
 Notes / questions:
 
 ## VB-013: Structure lint: module headers, file and line length
-Status: ready
+Status: done (2026-10-29, 2f2e558)
 Priority: 1
 Size: S
 Design ref: none (code structure)
