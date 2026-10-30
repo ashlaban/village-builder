@@ -50,7 +50,7 @@ const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members
 const tables = {
   households: () => st.households.map(hhRow),
   pawns: () => st.pawns.filter((p) => p.alive).map(pawnRow),
-  jobs: () => [...st.jobs.values()].map((j) => ({ id: j.id, key: j.key, kind: j.kind, owner: j.owner, site: j.site, claim: j.claim, done: j.done })),
+  jobs: () => [...st.jobs.values()].map((j) => ({ id: j.id, key: j.key, kind: j.kind, owner: j.owner, site: j.site, claims: j.claims, done: j.done })),
   customs: () => st.cenv.cultures.map((c, i) => ({ culture: i, ...plain(c) })),
   events: () => st.events,
   idle: () => idle.result(),

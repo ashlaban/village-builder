@@ -67,11 +67,16 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
     if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
   }
-  for (const j of st.jobs.values()) if (j.claim !== null) {
-    const a = st.agents[j.claim];
-    if (!a || a.job !== j) bad.push(`jobs[${j.key}]: claimed by agent ${j.claim}, whose job is ${a && a.job ? a.job.key : 'none'}`);
+  // jobs (VB-102): each worker of a job has it as its job, no worker twice, no more workers than the kind's hands
+  for (const j of st.jobs.values()) {
+    if (new Set(j.claims).size !== j.claims.length) bad.push(`jobs[${j.key}]: a worker listed twice in ${j.claims}`);
+    if (j.claims.length > globalThis.VB['sim/kinds'].KINDS[j.kind].hands) bad.push(`jobs[${j.key}]: ${j.claims.length} workers, more than its hands`);
+    for (const id of j.claims) {
+      const a = st.agents[id];
+      if (!a || a.job !== j) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
+    }
   }
-  for (const a of st.agents) if (a.job && a.job.claim !== a.id) bad.push(`agents[${a.id}]: job ${a.job.key} is claimed by ${a.job.claim}`);
+  for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   return bad;
 }
 module.exports = { checkState };

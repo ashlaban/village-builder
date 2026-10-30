@@ -5,7 +5,7 @@ VB['sim/agents'] = (() => {
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { finishStep } = VB['sim/expansion'];
-  const { KINDS, rowAngle } = VB['sim/kinds'];
+  const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -38,8 +38,9 @@ VB['sim/agents'] = (() => {
   }
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) => (KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
+  // The pawn joins the job's workers (j.claims) and sets out for it.
   function start(st, a, j) {
-    j.claim = a.id; a.job = j;
+    j.claims.push(a.id); a.job = j;
     const K = KINDS[j.kind];
     if (K.inside) { const [x, y] = homeSpot(st, a); a.phase = 'go'; walkTo(st, a, j.farm.house, x, y); return; }
     const [x, y] = workSpot(st, a, j);
@@ -48,10 +49,25 @@ VB['sim/agents'] = (() => {
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
   function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
-  function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
+  // The pawn leaves its job, which keeps its progress for whoever takes it up.
+  function release(st, a) {
+    if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
+    a.phase = null; a.work = null;
+  }
+  // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
+  function freeHands(st, j, finisher) {
+    for (const id of j.claims) {
+      if (id === finisher) continue;
+      const b = st.agents[id];
+      if (b.phase === 'go') b.path = null;
+      b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
+    }
+    j.claims = j.claims.filter((id) => id === finisher);
+  }
   // The work is done: a plot's step is finished (sim/expansion), any other job does what its kind says (sim/kinds).
   function complete(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    freeHands(st, j, a.id);
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
@@ -76,7 +92,7 @@ VB['sim/agents'] = (() => {
     if (a.phase === 'go') {
       const K = KINDS[a.job.kind];
       a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
-      if (K.field) { const th = rowAngle(a.job); a.work = { s: -13, dir: 1, row: -12, th, cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] }; }
+      if (K.field) a.work = { s: -13, dir: 1, row: firstRow(a.job, a), th: rowAngle(a.job), cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] };
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') { a.inside = true; a.phase = null; }
   }
@@ -101,6 +117,7 @@ VB['sim/agents'] = (() => {
     }
     if (j.done >= (j.hours ?? K.hours)) {
       if (K.carry) {
+        freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage
@@ -141,7 +158,7 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
+    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
     moveAgent, describe,
   };
 })();

@@ -18,13 +18,13 @@ module.exports = (Sim, st) => {
         bump(reasons, rows.length ? (rows.find((r) => r.reason) || { reason: 'has a bid, waits for the next round' }).reason.replace(/ until \d\d:\d\d/, '') : 'no job they may take');
       }
     }
-    for (const j of st.jobs.values()) if (j.claim === null) { if (!seen.has(j.id)) seen.set(j.id, j); } else if (seen.has(j.id)) {
+    for (const j of st.jobs.values()) if (!j.claims.length) { if (!seen.has(j.id)) seen.set(j.id, j); } else if (seen.has(j.id)) {
       (waits[j.kind] ||= []).push(st.t - j.posted); seen.delete(j.id);
     }
   }
   function endOfDay() {
     days++;
-    for (const j of st.jobs.values()) if (j.claim === null) bump(unclaimed, j.kind);
+    for (const j of st.jobs.values()) if (!j.claims.length) bump(unclaimed, j.kind);
   }
   function advanceYear() {
     for (let h = 0; h < Sim.YEAR; h++) {

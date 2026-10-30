@@ -1835,10 +1835,11 @@ VB['sim/rules'] = (() => {
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
-  // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
+  // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
+  // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
-    distanceWeight: 0.15, noise: 0.3,
+    distanceWeight: 0.15, noise: 0.3, join: 0.8,
     urgency: {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
@@ -2870,6 +2871,7 @@ VB['sim/kinds'] = (() => {
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
+  //   hands: how many pawns may work one job at once (VB-102: field, land and threshing work takes the whole household);
   //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
@@ -2877,20 +2879,23 @@ VB['sim/kinds'] = (() => {
   // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
   const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
-  // The start of the first row of a field tile.
+  // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
+  const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
+  // The start of the pawn's first row on a field tile.
   function onField(st, a, j) {
-    const w = st.w, th = rowAngle(j);
-    return [w.hx[j.site] - Math.cos(th) * 13 + Math.sin(th) * -12, w.hy[j.site] - Math.sin(th) * 13 - Math.cos(th) * -12];
+    const w = st.w, th = rowAngle(j), row = firstRow(j, a);
+    return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
     plow: {
-      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, type: 'tilling', field: true,
-      spot: onField, urgency: inWindow, done: (st, j) => { j.field.stage = 'plowed'; },
+      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
+      field: true, spot: onField, urgency: inWindow, done: (st, j) => { j.field.stage = 'plowed'; },
     },
     sow: {
-      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, type: 'tending', field: true, pace: 9,
+      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
+      field: true, pace: 9,
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
         const E = st.ECON;
@@ -2900,7 +2905,8 @@ VB['sim/kinds'] = (() => {
       },
     },
     reap: {
-      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, type: 'harvest', field: true,
+      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
+      field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
       done: (st, j, hh, c) => {
         const E = st.ECON, fd = j.field;
@@ -2911,7 +2917,7 @@ VB['sim/kinds'] = (() => {
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
-      anim: 'gather', hours: 0.7, type: 'harvest', carry: 'sheaf', to: 'barn',
+      anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => {
         hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
@@ -2921,7 +2927,7 @@ VB['sim/kinds'] = (() => {
     },
     wood: {
       verb: 'Cutting firewood', go: 'Heading to the woods', back: 'Carrying firewood home', name: 'Cut firewood', label: 'Firewood', anim: 'chop',
-      hours: 3, type: 'wood', carry: 'logs', to: 'woodpile',
+      hours: 3, hands: 1, type: 'wood', carry: 'logs', to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       // 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
@@ -2932,7 +2938,7 @@ VB['sim/kinds'] = (() => {
     },
     water: {
       verb: 'Drawing water', go: 'Going for water', back: 'Carrying water home', name: 'Fetch water', label: 'Water', anim: 'draw', hours: 0.5,
-      type: 'household', carry: 'buckets', to: 'door',
+      hands: 1, type: 'household', carry: 'buckets', to: 'door',
       spot: (st, a, j) => {
         const w = st.w;
         return st.villages[j.farm.village].well ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
@@ -2941,7 +2947,8 @@ VB['sim/kinds'] = (() => {
       deliver: (st, j, hh) => { hh.waterDay = cal(st.t).day; },
     },
     cook: {
-      verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, type: 'household', inside: true,
+      verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
+      inside: true,
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // grain above the seed reserve becomes the rations still missing for the coming meal
       done: (st, j, hh, c) => {
@@ -2950,28 +2957,29 @@ VB['sim/kinds'] = (() => {
       },
     },
     weed: {
-      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, type: 'tending', field: true,
-      spot: onField, done: (st, j) => { j.field.weedOpen = false; },
+      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
+      field: true, spot: onField, done: (st, j) => { j.field.weedOpen = false; },
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
-      type: 'threshing', inside: true, done: (st, j, hh) => { hh.grain += hh.unthreshed.shift() || 0; },
+      hands: Infinity, type: 'threshing', inside: true, done: (st, j, hh) => { hh.grain += hh.unthreshed.shift() || 0; },
     },
     clear: {
-      verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, type: 'tilling',
-      field: true, spot: onField, done: (st, j, hh) => finishClear(st, j.farm, hh),
+      verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
+      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishClear(st, j.farm, hh),
     },
     break: {
-      verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, type: 'tilling',
-      field: true, spot: onField, done: (st, j) => finishBreak(st, j.farm),
+      verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
+      type: 'tilling', field: true, spot: onField, done: (st, j) => finishBreak(st, j.farm),
     },
-    fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, type: 'wood' },
+    fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
     grub: {
-      verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, type: 'tilling',
-      field: true, spot: onField,
+      verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
+      type: 'tilling', field: true, spot: onField,
     },
     mend: {
-      verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, type: 'upkeep',
+      verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
+      type: 'upkeep',
       spot: (st, a, j) => {
         const w = st.w, s = j.stretch;
         return [s.mx + (w.hx[j.site] - s.mx) * 0.25, s.my + (w.hy[j.site] - s.my) * 0.25 + 3];
@@ -2980,9 +2988,11 @@ VB['sim/kinds'] = (() => {
       done: (st, j) => { j.stretch.cond = 1; j.stretch.dirty = true; },
     },
   };
+  // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
+  const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
   for (const r of Object.values(ROLES)) r.prio = Object.fromEntries(Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.work[K.type] ?? 0]));
-  return { KINDS, woodGoal, rowAngle };
+  return { KINDS, woodGoal, rowAngle, firstRow, isOpen };
 })();
 </script>
 <script>
@@ -2993,7 +3003,7 @@ VB['sim/agents'] = (() => {
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { finishStep } = VB['sim/expansion'];
-  const { KINDS, rowAngle } = VB['sim/kinds'];
+  const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -3026,8 +3036,9 @@ VB['sim/agents'] = (() => {
   }
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) => (KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
+  // The pawn joins the job's workers (j.claims) and sets out for it.
   function start(st, a, j) {
-    j.claim = a.id; a.job = j;
+    j.claims.push(a.id); a.job = j;
     const K = KINDS[j.kind];
     if (K.inside) { const [x, y] = homeSpot(st, a); a.phase = 'go'; walkTo(st, a, j.farm.house, x, y); return; }
     const [x, y] = workSpot(st, a, j);
@@ -3036,10 +3047,25 @@ VB['sim/agents'] = (() => {
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
   function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
-  function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
+  // The pawn leaves its job, which keeps its progress for whoever takes it up.
+  function release(st, a) {
+    if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
+    a.phase = null; a.work = null;
+  }
+  // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
+  function freeHands(st, j, finisher) {
+    for (const id of j.claims) {
+      if (id === finisher) continue;
+      const b = st.agents[id];
+      if (b.phase === 'go') b.path = null;
+      b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
+    }
+    j.claims = j.claims.filter((id) => id === finisher);
+  }
   // The work is done: a plot's step is finished (sim/expansion), any other job does what its kind says (sim/kinds).
   function complete(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    freeHands(st, j, a.id);
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
@@ -3064,7 +3090,7 @@ VB['sim/agents'] = (() => {
     if (a.phase === 'go') {
       const K = KINDS[a.job.kind];
       a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
-      if (K.field) { const th = rowAngle(a.job); a.work = { s: -13, dir: 1, row: -12, th, cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] }; }
+      if (K.field) a.work = { s: -13, dir: 1, row: firstRow(a.job, a), th: rowAngle(a.job), cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] };
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') { a.inside = true; a.phase = null; }
   }
@@ -3089,6 +3115,7 @@ VB['sim/agents'] = (() => {
     }
     if (j.done >= (j.hours ?? K.hours)) {
       if (K.carry) {
+        freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage
@@ -3129,7 +3156,7 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
+    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
     moveAgent, describe,
   };
 })();
@@ -3142,14 +3169,14 @@ VB['sim/jobs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob } = VB['sim/agents'];
-  const { KINDS, woodGoal } = VB['sim/kinds'];
+  const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
     let j = st.jobs.get(key);
-    if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j);
+    if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claims: [], posted: st.t, ...extra }; st.jobs.set(key, j);
       const ok = ownerKey(owner); if (!st.jobsBy.has(ok)) st.jobsBy.set(ok, new Set());
       st.jobsBy.get(ok).add(j); }
     j.live = true;
@@ -3163,7 +3190,7 @@ VB['sim/jobs'] = (() => {
     for (const f of st.farmsteads) {
       const hh = f.household === null ? null : st.households[f.household];
       const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
-      if (!j || j.claim !== null || !cookWanted(st, hh, c)) continue;
+      if (!j || j.claims.length || !cookWanted(st, hh, c)) continue;
       let best = null, top = 0;
       for (const id of hh.members) {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
@@ -3204,7 +3231,7 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
-    for (const j of st.jobs.values()) if (!j.live && j.claim === null) dropJob(st, j);
+    for (const j of st.jobs.values()) if (!j.live && !j.claims.length) dropJob(st, j);
   }
   function mayTake(st, p, j) {
     if (j.owner.type === 'household') return j.owner.id === p.household;
@@ -3214,16 +3241,18 @@ VB['sim/jobs'] = (() => {
   // A job's weight in a bid, as its kind says (sim/kinds).
   const urgency = (st, j, c) => (KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other);
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
-  // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
+  // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours. A job that k pawns already
+  // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (j.claim !== null || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
+    if (!isOpen(j) || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight) + st.rand() * MATCH.noise;
+    return (floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight) + st.rand() * MATCH.noise)
+      * MATCH.join ** j.claims.length;
   }
   // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
@@ -3237,13 +3266,13 @@ VB['sim/jobs'] = (() => {
     for (const j of st.jobs.values()) {
       if (!mayTake(st, p, j)) continue;
       const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0, row = { job: j.key, kind: j.kind, bid: null, reason: null };
-      if (j.claim !== null) row.reason = 'taken';
+      if (!isOpen(j)) row.reason = 'taken';
       else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
       else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
         row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
       } else {
         row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-        if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; }
+        if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; } else row.bid *= MATCH.join ** j.claims.length;
       }
       out.push(row);
     }
@@ -3266,16 +3295,31 @@ VB['sim/jobs'] = (() => {
     while (i < a.length || k < b.length) out.push(k >= b.length || (i < a.length && a[i].id < b[k].id) ? a[i++] : b[k++]);
     return out;
   }
+  // Where a bid of score s goes in bids[from..], which is sorted best first: after every bid at least as good.
+  function slot(bids, from, s) {
+    let lo = from, hi = bids.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (bids[m][0] >= s) lo = m + 1; else hi = m; }
+    return lo;
+  }
   function planRound(st, idle, c) {
     const bids = [];
     const none = new Set();
     for (const a of idle) {
       const p = st.pawns[a.id], hj = st.jobsBy.get(`household:${p.household}`) || none, vj = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
-      for (const j of mergeById(hj, vj)) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j]); }
+      for (const j of mergeById(hj, vj)) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
     }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
-    for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
+    for (let i = 0; i < bids.length; i++) {
+      const [s, a, j, k] = bids[i];
+      if (busy.has(a) || !isOpen(j)) continue;
+      // others joined the job earlier in this round: the bid falls by join for each, and waits its turn again
+      if (j.claims.length > k) {
+        const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
+        bids.splice(slot(bids, i + 1, b[0]), 0, b); continue;
+      }
+      start(st, a, j); busy.add(a);
+    }
     return busy;
   }
   return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound, explainIdle, idleLine };
@@ -4072,7 +4116,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
     // @state st.used: Set of tile indexes taken by houses and fields
-    // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
+    // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
+    //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
@@ -5382,7 +5427,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function jobsLine(list) {
     if (!list.length) return 'none open';
     const n = {};
-    for (const j of list) { const k = Sim.KINDS[j.kind].name; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claim === null ? 'open' : 'taken']++; }
+    for (const j of list) { const k = Sim.KINDS[j.kind].name; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claims.length ? 'taken' : 'open']++; }
     return Object.entries(n).map(([k, v]) => `${k}${v.open + v.taken > 1 ? ` ×${v.open + v.taken}` : ''}${v.taken ? (v.open ? `, ${v.taken} under way` : ', under way') : ''}`).join('; ');
   }
   function fieldSummary(f) {

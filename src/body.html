@@ -1221,7 +1221,7 @@
   function jobsLine(list) {
     if (!list.length) return 'none open';
     const n = {};
-    for (const j of list) { const k = Sim.KINDS[j.kind].name; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claim === null ? 'open' : 'taken']++; }
+    for (const j of list) { const k = Sim.KINDS[j.kind].name; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claims.length ? 'taken' : 'open']++; }
     return Object.entries(n).map(([k, v]) => `${k}${v.open + v.taken > 1 ? ` ×${v.open + v.taken}` : ''}${v.taken ? (v.open ? `, ${v.taken} under way` : ', under way') : ''}`).join('; ');
   }
   function fieldSummary(f) {

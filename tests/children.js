@@ -10,7 +10,7 @@ const st = Sim.seed(world(7), 7, 'founders');
 st.t += 100 * Sim.DAY; // some summer day
 const hh = st.households[0], p = st.pawns[hh.members[0]], a = st.agents[p.id], c = Sim.cal(st.t);
 p.role = 'child';
-const job = (kind) => ({ id: 9999, kind, claim: null, owner: { type: 'household', id: hh.id }, site: st.farmsteads[hh.farmstead].house, posted: st.t - 5, farm: null });
+const job = (kind) => ({ id: 9999, kind, claims: [], done: 0, owner: { type: 'household', id: hh.id }, site: st.farmsteads[hh.farmstead].house, posted: st.t - 5, farm: null });
 const at = (years, kind) => { p.born = st.t - years * Sim.YEAR - 1; return bid(st, a, job(kind), c); };
 check(at(9, 'water') > 0, 'a child of 9 does not bid for water');
 check(at(9, 'weed') > 0, 'a child of 9 does not bid for weeding');
