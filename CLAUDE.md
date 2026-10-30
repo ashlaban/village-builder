@@ -24,6 +24,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 
 ## Architecture
 - `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the painterly chunk bake.
+  Rivers (`w.river`, `w.riverTo`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it.
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
@@ -35,7 +36,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
-- Tunables: `ECON`, `ROLES`, `KINDS`, `MARRIAGE`, `SHARES` and `MATCH` in `src/sim/rules.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
+- Tunables: `ECON`, `ROLES`, `KINDS`, `MARRIAGE`, `SHARES`, `MATCH` and `RIVER` in `src/sim/rules.js`; `RIVERS` in `src/gen/rivers.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
 - A new job kind touches `KINDS`, the `prio` of each role in `ROLES`, and the animation named by its `anim` in the page script.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
 
