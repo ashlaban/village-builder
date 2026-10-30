@@ -2,6 +2,259 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (merging main: conflicts between decisions)
+
+Main (PRs #17 and #18) and the discussion on this branch decided some points differently; Kim settled them while merging.
+
+1. Night and workday: main's work 6:00–18:00 every day with a dark part of 4–8 hours by season (22:00–4:00 at the equinoxes), or this branch's fixed night 21:00–05:00 with work from sunrise to sunset? **P:** none.
+   **A (Kim, 30 Oct):** main's: work 6:00–18:00, the dark varies by season. This replaces the jobs review's answers 4 and 5 and the answers under "VB-105: daylight by season" below; VB-105 is rewritten to it.
+2. Worn paths: main's speeds (5%, 15%, 30% faster, routes merge onto paths), or VB-094's "drawn only"? **P:** none.
+   **A (Kim, 30 Oct):** paths are drawn first (VB-094); the speed-up, with main's numbers, comes in a follow-up task (VB-110).
+3. Snow: by temperature (main, Proposed) or on fixed dates (VB-083)? **P:** none.
+   **A (Kim, 30 Oct):** fixed dates now (VB-083); snow follows temperature once a temperature model exists.
+4. VB-105 under main's design: the dark lasts 6 − 2 × cos(2π (doy − 15) / 48) hours, centred on 1:00 (23:00–3:00 at midsummer, 21:00–5:00 at midwinter), with main's twilight of 2 hours of dusk and dawn? **P:** yes.
+   **A (Kim, 30 Oct):** yes, with 2 hours of twilight.
+
+### VB-096: walking costs by terrain (was "Design points without a task", question 2; asked again when merging main)
+Walking ignores terrain: crossing mountains costs the same as meadow.
+1. **P:** cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed; the same costs slow walking. Built in the current route search first (VB-096); routes over regions (HPA\*, VB-097) only if measuring shows routes cost too much.
+   **A (Kim, 30 Oct):** as proposed (P): costs in the current route search now; HPA* only if measuring shows routes cost too much. This replaces the answer to "Design points without a task", question 2, below.
+
+# Archived 30 October 2026 (discussion of all open questions)
+
+## Priority 1
+
+### VB-080: a food balance before animals (review)
+A household of 6 eats 192 rations a year with four young children and 288 when all are over 14. A meadow field gives about 78 in an ordinary year, less 20 of seed: three fields about 170, four about 230. In the populous scenario a quarter of household-days in year 2 are hungry, and 9 people die of hunger in 4 years.
+1. Should a family be fed from its own fields in an ordinary year before animals exist? **P:** yes: `fieldYield` 100 and seed 25 (4:1 kept), so a field gives about 72 after seed; three fields then give about 218 and four about 290.
+   **A (Kim, 30 Oct):** as proposed (P). Also (new): the health drain falls from 9 to 4 × h² a day, so a starving adult dies in about 25 days, not 12; with both, populous seed 7 loses 7 to starvation in year 2 instead of 427.
+2. Should the populous generator give households of 7 or more a fourth field? **P:** yes, where a farmable tile is free within 2 steps of the house.
+   **A (Kim, 30 Oct):** yes, but the generator places a farm's fields as one contiguous shape within 4 tiles of the house; they need not be next to it. This holds for all generators and all farms; a field made in play prefers a tile touching the block within 4 steps, and only if none is free starts a new block (new task VB-109).
+3. When milk and meat arrive (VB-048), is the yield tuned down again so animals fill part of the need? **P:** yes; 100 is a starting value for the years before animals.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-076: commands (review)
+The command system is Decided but not built: `planRound` matches and `start` acts in one step. Herds and a player role depend on it.
+1. What is a command? **P:** a record of actor, verb, target and arguments, issued by a source (the planner, the player, a debug tool, the meeting); the simulation carries out commands and nothing else. First verbs: `work(job)`, `walkTo(tile)`, `goHome`, `idle(until)`.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. The first step? **P:** the job matcher issues `work` commands instead of calling `start`, with no change in behaviour (golden file unchanged); the other sources follow in their own tasks.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Direct control? **P:** "Take control" on the pawn panel; the player then chooses the next command from a list (open jobs the pawn may take, walk to a clicked tile, go home), and the planner leaves that pawn alone until released.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. Meetings, the moving round and debug actions as commands? **P:** yes, after the first step: the meeting issues `decide(custom, option)`; kill, retire and argue become debug commands.
+   **A (Kim, 30 Oct):** as proposed (P).
+5. Herds as command takers wait for the animals arch. **P:** yes.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+## Priority 2
+
+### VB-079: the player's role (review)
+The largest open question. The options are not exclusive:
+- (a) Watch and nudge: the player uses the advocacy slot to argue for customs, as the debug tools do today.
+- (b) Follow a family line: the player acts through the head of one line, as that pawn's source of commands (choose work, court, claim, argue at the meeting), and carries on as the heir when the head dies, as in Crusader Kings III.
+- (c) Steward: the player marks where to clear, which tiles to claim and what comes first, and pawns follow if their customs allow.
+1. Which role? **P:** (b). The player's pawn sways customs as in (a), by arguing at the meeting with the weight of its prestige, and the player plans the land of its own household as in (c).
+   **A (Kim, 30 Oct):** as proposed (P).
+2. When the line dies out? **P:** the player picks a living relative, or anyone in the line's village; a run ends only when no one is left.
+   **A (Kim, 30 Oct):** relatives only (by blood or marriage); with none left, the run ends.
+3. A goal or a score? **P:** none needed: a chronicle of the line, plus optional ambitions (hold three farms, change a custom, found a village).
+   **A (Kim, 30 Oct):** a prestige score: the line's prestige over time is the score, shown in the chronicle, with the optional ambitions as well.
+4. When is it built? **P:** after commands (VB-076) and saving (VB-077); its plan writes the tasks then.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-077: saving and loading in the page (review)
+1. Where are saves kept? **P:** an autosave in the browser (IndexedDB) at each moving round and when the page is hidden, keeping the last 3; "Save to file" and "Load file" buttons for a JSON file, which is also how a bug report carries a run.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. A save from another build? **P:** a save names its format version; one from another version is refused with a message, not converted, until the game has players.
+   **A (Kim, 30 Oct):** refused with a message, as proposed, but the page makes it easy to delete the save and start a new game.
+3. Is the world saved or regenerated? **P:** regenerated from seed and size, with the tiles the simulation changed (trees, stones, biome, development) saved as arrays.
+   **A (Kim, 30 Oct):** save everything: the whole world is saved, so a save does not depend on the generator staying the same.
+
+### VB-089: the heir-to-their-own-farm rule as a custom (backlog review)
+The design makes the rule a custom (Decided) with two options; the default and malleability are Proposed. The code hard-codes "steps behind".
+1. Default and malleability? **P:** as the design proposes: "Steps behind" for Old Nordic and both heirs-scenario villages, malleability 0.6.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. "Keeps their place, so farms may be combined": no household can hold two farms, and someone who already holds a farm is passed over (Agreed). **P:** under "keeps" the heir keeps their place in the other line; if they take that farm, they drop out of their own parents' line, which passes to the next in it. Farms are never actually combined until a household can hold two farms, which needs its own design.
+   **A (Kim, 30 Oct):** the heir with places in two lines takes the farm with more fields and drops the other claim, which passes to the next in that line.
+3. Self-interest? **P:** the first heir of their home leans "keeps" (it widens their chances); a landless adult leans "behind" (it keeps a farm open for them).
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-090: service where labour is short (backlog review)
+Today only founders' and populous servants, and the members of a farm that dies out, live as servants. A landless adult stays at home for life.
+1. What is "labour is short"? **P:** hands per field, counting members aged 14–59 who are not retired: short below 1 hand per field, hands to spare above 1.5. Meadows and herds join the count with the animals arch.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Who moves, and where? **P:** at the moving round, unmarried landless adults (in `st.demand`) from households with hands to spare, oldest first, as long as their household keeps at least 1 hand per field. They go to the shortest household of their own village, else of the nearest village within 15 steps, else they stay. Each household takes at most one new servant a year.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Pay? **P:** board and lodging only; wages wait for money.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. Does hunger also send people into service (a hungry household sending out a mouth)? **P:** not in this task; reconsider in the food or courting wrap-up.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-036: courting, the numbers (follow-up to the answers in `QUESTION_ARCHIVE.md`)
+Courting builds on relationships (VB-060) and talk (VB-061). These numbers let the courting tasks be written.
+1. When does courting start? **P:** for two unmarried pawns of 16 or more, of opposite sex, not barred by the marriage limit, with a tie of at least 1.5 and an opinion of at least 0.4: a chance of 2% a day. Each pawn courts one person at a time.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. When does it end? **P:** when either's opinion of the other falls below 0, when either marries someone else, or by a chance of 1% a day once they have courted a year without being able to marry.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. When do they marry? **P:** on any day once both are of age (18 and 20), have courted at least 12 days, have a place to live and hunger below 0.5: a chance of 5% a day. The yearly matchmaking in the moving round then goes.
+   **A (Kim, 30 Oct):** as proposed for couples who court, but the yearly matchmaking at the moving round stays for pawns who are not courting (arranged marriages).
+4. Births while courting? **P:** a courting woman conceives at 0.1 times a married woman's chance, tuned in the wrap-up (VB-040) so that about 5% of births are outside marriage; after such a birth the couple marries at 3% a day under the same gates, about 3 in 4 within the year.
+   **A (Kim, 30 Oct):** as proposed (P).
+5. Children born outside marriage inherit how? The design proposes a custom with three options: inherit like other children; inherit after children born in marriage; do not inherit. **P:** as the design proposes: default "after children born in marriage", malleability 0.5. Self-interest: a pawn born outside marriage leans "like other children"; a married heir with half-siblings born outside marriage leans "after". The custom is its own task, written with the courting tasks.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-081: populous households with adult children (review)
+Populous children are spaced 2 years from age 0–2, so the eldest is at most 14: 818 people and no marriage in years 1–3.
+1. Should some households start with adult children? **P:** yes: children 2–3 years apart, the eldest up to 26 as the mother's age allows (at least 19 at the eldest's birth, at most 44 at the youngest's), so about a third of households have a child of 18 or more. Still two generations, no grandparents.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-082: customs made legible (review)
+1. The meeting log? **P:** each change shows the support for the old and the new option and the margin needed ("Any child 46% against Sons first 31%; needed 25% more"); a custom within 5% of changing is noted as "nearly changed".
+   **A (Kim, 30 Oct):** as proposed (P).
+2. The pawn panel? **P:** a "Leans" line with the customs where the pawn differs most from its village's practice, and the cause it argues for, if any.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Announcements? **P:** a pawn taking up a cause and a change of practice are shown as a toast and kept in the record of events (VB-075).
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-102: several hands on one field job (jobs review)
+A job takes one pawn; in spring 69% of adults' idle time is spent with no open job they may take, while plowing waits up to 27 hours (90th percentile).
+1. How many hands per job? **P:** plow, clear and break 2; reap 3 (one cuts, others bind and stook); weed 2; thresh 2 (flails in pairs); sow, haul, wood, water, cook and mend 1.
+   **A (Kim, 30 Oct):** basically the whole household can take part, with priorities by role: plow, sow, weed, reap, haul, thresh, clear and break take any number of workers; cook, water, wood and mend stay one pawn per job.
+2. Does each extra hand work at full rate? **P:** yes, for now; crowding losses wait for the wrap-up (VB-108) to show whether they are needed.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. How strongly is a free job preferred to joining one? **P:** a bid for a job with k workers is multiplied by 0.8^k.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-103: any allowed work beats idling (jobs review)
+110 of 119 open wood jobs on a summer evening could get no farmer's bid: urgency is about 0.1 with a full pile, and the walk costs more.
+1. A floor for the bid? **P:** 0.1 plus the noise, for role priority 3 or more; poor fits (2 or less) keep the 2-hour wait and get no floor.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Firewood for the winter? **P:** from summer day 0 to the end of autumn the target is 40 (winter use about 19, autumn's 6, and a margin), 30 the rest of the year.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-104: children's work (jobs review)
+Kim decided: from 7, at reduced efficiency. The numbers:
+1. Which jobs? **P:** water 6, weed 5, haul 4, reap 3; adults' priorities stay higher.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Rate by age? **P:** 0.3 at 7, plus 0.1 a year, 0.9 at 13; full rate with the adult role at 14.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Do girls and boys differ before 14? **P:** no; the roles split at 14 as today.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-105: daylight by season (jobs review)
+Kim decided: daylight changes with the season; night is a fixed, short (compressed) block of game hours.
+1. The night? **P:** 21:00 to 05:00, home and indoors.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. The day length? **P:** 12.25 + 6.25 × cos(2π (doy − 15) / 48) hours, at most the 16 hours outside the night, centred on 13:00: about 10–16 at midwinter, 5–21 at midsummer, 8–18 at the start of spring.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Work from sunrise to sunset, with no midday rest? **P:** yes; the midday meal is not modelled. Average work hours rise from 10 a day to about 12.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+## Priority 3
+
+### VB-091: forest spread (backlog review)
+Forest spread is Decided, but open land never closes today. Grazing pressure is planned in the animals arch (VB-047).
+1. Does spread wait for grazing? **P:** yes: it is built after the grazing-pressure task, so the land the founders need is not overgrown before anything can keep it open. Until then VB-067 covers empty fields.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. How fast? **P:** open tiles next to forest, or to scrub at half cover or more, reach scrub (a quarter of full cover) in 8 years and full forest in 30, the same 30 years as regrowth. The front then advances about one tile in 15 years.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. What keeps land open? **P:** a field in use, a house, a green, a hay meadow mown that year, work on the tile in the last year, or grazing pressure at or above a "keeps open" threshold; pressure at or above a higher "thins" threshold removes scrub slowly. The thresholds are set in the grazing task.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. Does heath close too? **P:** yes, like meadow; heath was kept open by grazing and burning.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-092: store views (backlog review)
+Store views for every level of entity are Decided; the scope model (VB-043) is Agreed.
+1. First version? **P:** households and villages, as for the overlay filters; families, cultures and pawns later.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Where is it shown? **P:** a "Stores" panel opened from the village and household panels: one row per household, a total row and the village store, food in days of the household's need, updated once a game day.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. History? **P:** not in the first version; the household ledger stays in the household panel.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-093: a village windmill (backlog review)
+Milling at a mill is Decided (much faster, often village-owned, built as a commons job); rivers do not exist, so the first mill is a windmill. It comes after the quern (VB-009) and building (VB-032).
+1. When does a village build one? **P:** at the moving round, a village of 3 or more farms with no mill and a free open tile within 6 steps of the green, hills preferred.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Hours and materials? **P:** foundation 20 h with 10 loads of stone, frame 80 h with 20 loads of timber, sails and millstones 40 h: 140 h, a little more than a cottage, as "likely dearer to build" suggests.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. How fast? **P:** 1 work hour per 20 grain, 5 times the quern; a household walks there with its grain and carries flour home, and uses the quern when the walk costs more than it saves.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. Other villages? **P:** a household of another village within 10 steps may mill for a toll of 1 in 16 of its grain, paid into the owning village's store.
+   **A (Kim, 30 Oct):** as proposed (P).
+5. Wind? **P:** ignored in the first version: the mill turns every day.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-094: worn paths (backlog review)
+Proposed in the Systems overview; no task yet.
+1. Thresholds and fade? **P:** one count per crossing, halving each game year; trodden at 50, path at 200, lane at 800 (about 1, 4 and 16 crossings a day, kept up).
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Do lanes speed walking? **P:** not now: they are only drawn. Revisit with terrain costs for routes (see "Design points without a task", question 2).
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Lanes under snow (VB-083)? **P:** lanes stay visible as trodden snow; paths and trodden ground are covered.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-067: empty fields and scrub (review)
+1. Empty farms' fields turn to scrub after 8 years everywhere; the design says near woodland. **P:** until forest spread exists (with grazing, in the animals arch), only fields within 2 steps of a forest tile go to scrub; others stay grass.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-083: seasons on the map (review)
+1. Should the map show the seasons? **P:** yes: a tint per season over the painted land (fresh green in spring, full in summer, ochre and russet on broadleaf and meadow in autumn, bare broadleaf in winter; pine stays green), and snow on land from winter day 2 to spring day 3 with lakes iced over. After the Chromium test (VB-025).
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-084: speed (review)
+1. At 10× a 150-year run takes about 10 hours, much of it uneventful. **P:** add 30× and "until something happens": the highest speed the frame rate allows until a notable event (a death, birth or marriage in the selected pawn's family, a change of practice, a farm emptied), then 1×. The simulation costs about 13% of a core at 30× on populous medium.
+   **A (Kim, 30 Oct):** 30× and an uncapped speed (as fast as the frame budget allows), ready now; no run-until-event mode.
+
+### VB-088: a performance budget (review)
+1. **P:** steady state under 10% of real time at the fastest speed on populous medium at seed 7 (0.5 s of simulation per game day at 10×), and no single 6-minute step, meeting or moving round over 50 ms. `tests/perf.js` reports both in `npm run verify` and fails above twice the budget.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-047: animals and husbandry (follow-up to question 2)
+Answered so far (see `QUESTION_ARCHIVE.md`): roe deer first; not every founders farm keeps animals; at least one bull and one ram; farms with sheep keep 4 ewes; milk, meat, byre and task order accepted.
+1. How many of the four founders farms keep cattle, and how many sheep? **P:** three keep cattle (2 cows each, and the first of them also a bull); two keep sheep (4 ewes each, and the first of them also a ram). One farm keeps neither and has to trade or marry into a herd.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Do cattle farms keep a pair of oxen at the start? **P:** one pair in the whole founders group, at the farm with the bull; the other farms hoe until they raise oxen from bull calves (castrated at 1 year, working from 3). This keeps the "ard is 2–3× faster than a hoe" advantage visible from year 1.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-106: help between households (jobs review)
+Kim decided: help between households is allowed, and it builds relationships.
+1. Which jobs? **P:** plow, sow, weed, reap, haul, thresh, clear, break and mend; not cook, water or wood, which are the household's own.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. When may a neighbour help? **P:** the job has waited 2 hours, the helper is an adult (14 or more) of the same village and has no bid on its own household's or village's jobs in that round.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. Whom do they help first? **P:** bid × 0.5, plus 1 for near kin of the holder, plus the helper's opinion of the holder.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. What does help build? **P:** per finished job, tie +0.2 and opinion +0.05 × (1 − opinion) between the helper and each adult of the household; nothing is owed.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### VB-107: interrupts (jobs review)
+1. When does a pawn leave its job? **P:** when the best other bid is more than 1.5 × the current job's bid plus 1, checked at every full hour, at most one switch an hour.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. May a pawn walking to a job switch? **P:** no; only pawns at work, not walking or carrying.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+### Design points without a task (review)
+1. Firewood: the design says winter use is about four times summer; the code uses 5.3 (1.6 against 0.3). **P:** keep the code and write "about five times" in the design, since VB-024 measures woodland use with it.
+   **A (Kim, 30 Oct):** as proposed (P).
+2. Walking ignores terrain: crossing mountains costs the same as meadow. **P:** when pathfinding moves to regions (HPA\*), cost by terrain: meadow and heath 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed; the same costs slow walking.
+   **A (Kim, 30 Oct):** as proposed (P).
+
+# Archived 30 October 2026 (jobs review)
+
+## Work and jobs (become the work arch, VB-101 to VB-108)
+
+1. What is the job system for: something to watch, or something the player steers (per-pawn priorities, forced jobs)? **P:** decided by the player's role (VB-079).
+   **A (Kim, 30 Oct):** player-steerable, but that comes later; the player should be able to influence the world a lot, through all the systems.
+2. May children work before animals exist, beyond "children herd"? If so, from what age? **P:** from about 7, at reduced speed.
+   **A (Kim, 30 Oct):** yes, from 7, at reduced efficiency.
+3. May neighbours help with each other's work? As a gift that builds ties, or as a debt that is paid back? **P:** a gift that raises the tie.
+   **A (Kim, 30 Oct):** allowed; it builds relationships.
+4. Should daylight change with the season, or are clock hours abstract under the compression? **P:** daylight by season.
+   **A (Kim, 30 Oct):** daylight changes with the season, but the part of the day that is night stays fixed (and compressed).
+5. Is that night a fixed short block of game hours, or a night played faster on screen? **P:** none.
+   **A (Kim, 30 Oct):** a fixed short block of game hours; sunrise and sunset move by season in the rest of the day, and work follows daylight.
+
 # Archived 30 October 2026
 
 ## Priority 1: expansion and the food floor
