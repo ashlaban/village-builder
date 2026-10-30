@@ -82,36 +82,41 @@ VB['sim/scenarios'] = (() => {
     const P = (o) => person(R, o), dead = (sex, age, yearsAgo, o = {}) => P({ sex, age, diedYearsAgo: yearsAgo, ...o });
     // --- village B's old line at B3: three children, who went three ways ---
     const g1m = dead('m', 74, 10), g1f = dead('f', 70, 8); marry(R, g1m, g1f, 62, 10);
-    const kerstin = P({ sex: 'f', age: 58, father: g1m, mother: g1f });
-    const erik = P({ sex: 'm', age: 52, father: g1m, mother: g1f });
-    const olof = P({ sex: 'm', age: 47, father: g1m, mother: g1f }); // the bachelor who held on to B3
+    const kerstin = P({ given: 'Kerstin', sex: 'f', age: 58, father: g1m, mother: g1f });
+    const erik = P({ given: 'Erik', sex: 'm', age: 52, father: g1m, mother: g1f });
+    const olof = P({ given: 'Olof', sex: 'm', age: 47, father: g1m, mother: g1f }); // the bachelor who held on to B3
     // --- B1: the heiress Ingrid married Erik, who moved in with her ---
     const g2m = dead('m', 66, 12), g2f = dead('f', 72, 5); marry(R, g2m, g2f, 55, 12);
     dead('m', 2, 46, { father: g2m, mother: g2f });
-    const ingrid = P({ sex: 'f', age: 49, father: g2m, mother: g2f });
+    const ingrid = P({ given: 'Ingrid', sex: 'f', age: 49, father: g2m, mother: g2f });
     marry(R, erik, ingrid, 29);
-    const sigrid = P({ sex: 'f', age: 27, father: erik, mother: ingrid }), nils = P({ sex: 'm', age: 24, father: erik, mother: ingrid });
-    const per = P({ sex: 'm', age: 20, father: erik, mother: ingrid }), elin = P({ sex: 'f', age: 16, father: erik, mother: ingrid });
+    const sigrid = P({ given: 'Sigrid', sex: 'f', age: 27, father: erik, mother: ingrid }),
+      nils = P({ given: 'Nils', sex: 'm', age: 24, father: erik, mother: ingrid });
+    const per = P({ given: 'Per', sex: 'm', age: 20, father: erik, mother: ingrid }),
+      elin = P({ given: 'Elin', sex: 'f', age: 16, father: erik, mother: ingrid });
     // --- B2: a family that died out fifteen years ago ---
     const b2m = dead('m', 58, 15), b2f = dead('f', 55, 16); marry(R, b2m, b2f, 40, 16); dead('m', 20, 18, { father: b2m, mother: b2f });
     // --- village A: A1 old couple; Kerstin came from B3 ---
     const g3m = dead('m', 65, 20), g3f = dead('f', 70, 14); marry(R, g3m, g3f, 45, 20);
-    const lars = P({ sex: 'm', age: 61, father: g3m, mother: g3f });
+    const lars = P({ given: 'Lars', sex: 'm', age: 61, father: g3m, mother: g3f });
     marry(R, lars, kerstin, 31);
-    const jon = P({ sex: 'm', age: 29, father: lars, mother: kerstin }), brita = P({ sex: 'f', age: 25, father: lars, mother: kerstin }),
-      gunnar = P({ sex: 'm', age: 20, father: lars, mother: kerstin });
+    const jon = P({ given: 'Jon', sex: 'm', age: 29, father: lars, mother: kerstin }),
+      brita = P({ given: 'Brita', sex: 'f', age: 25, father: lars, mother: kerstin }),
+      gunnar = P({ given: 'Gunnar', sex: 'm', age: 20, father: lars, mother: kerstin });
     // --- A2 and A4 share a line: two brothers; the elder married into A4, the younger kept A2 ---
     const g4m = dead('m', 60, 25), g4f = dead('f', 66, 18); marry(R, g4m, g4f, 64, 25);
-    const anders = dead('m', 60, 4, { father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { father: g4m, mother: g4f });
-    const marta = P({ sex: 'f', age: 54 }); marry(R, nils2, marta, 24, 3);
-    const karin = P({ sex: 'f', age: 22, father: nils2, mother: marta });
+    const anders = dead('m', 60, 4, { given: 'Anders', father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { given: 'Nils', father: g4m, mother: g4f });
+    const marta = P({ given: 'Marta', sex: 'f', age: 54 }); marry(R, nils2, marta, 24, 3);
+    const karin = P({ given: 'Karin', sex: 'f', age: 22, father: nils2, mother: marta });
     const g5m = dead('m', 62, 30), g5f = dead('f', 64, 26); marry(R, g5m, g5f, 50, 30);
-    const ragnhild = dead('f', 58, 2, { father: g5m, mother: g5f }); marry(R, anders, ragnhild, 36, 4);
-    const hakan = P({ sex: 'm', age: 33, father: anders, mother: ragnhild }), signe = P({ sex: 'f', age: 30 }); marry(R, hakan, signe, 10);
-    const margit = P({ sex: 'f', age: 8, father: hakan, mother: signe }), smaOlof = P({ sex: 'm', age: 5, father: hakan, mother: signe });
+    const ragnhild = dead('f', 58, 2, { given: 'Ragnhild', father: g5m, mother: g5f }); marry(R, anders, ragnhild, 36, 4);
+    const hakan = P({ given: 'Håkan', sex: 'm', age: 33, father: anders, mother: ragnhild }),
+      signe = P({ given: 'Signe', sex: 'f', age: 30 }); marry(R, hakan, signe, 10);
+    const margit = P({ given: 'Margit', sex: 'f', age: 8, father: hakan, mother: signe }),
+      smaOlof = P({ given: 'Olof', sex: 'm', age: 5, father: hakan, mother: signe });
     // --- A3: died out six years ago, a couple and their baby ---
     const g6m = dead('m', 65, 30), g6f = dead('f', 63, 22); marry(R, g6m, g6f, 48, 30);
-    const ivar = dead('m', 36, 6, { father: g6m, mother: g6f }), gertrud = dead('f', 34, 6); marry(R, ivar, gertrud, 9, 6);
+    const ivar = dead('m', 36, 6, { given: 'Ivar', father: g6m, mother: g6f }), gertrud = dead('f', 34, 6, { given: 'Gertrud' }); marry(R, ivar, gertrud, 9, 6);
     dead('m', 1, 6, { father: ivar, mother: gertrud });
 
     const households = [];

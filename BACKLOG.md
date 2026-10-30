@@ -125,7 +125,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-082 | Customs made legible: votes, leanings and causes | - | - | ready | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
 | VB-083 | Seasons on the map | - | - | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
 | VB-084 | A 30× speed and an uncapped speed | - | - | ready | 3 | S | Speeds of 30× and "Max", as fast as a 12 ms frame budget allows. | [backlog/VB-084.md](backlog/VB-084.md) |
-| VB-085 | The heirs scenario uses the names in its code | - | - | ready | 3 | S | Olof, Erik, Ingrid and the rest get the names their variables have. | [backlog/VB-085.md](backlog/VB-085.md) |
+| VB-085 | The heirs scenario uses the names in its code | - | - | done | 3 | S | Olof, Erik, Ingrid and the rest get the names their variables have. | [backlog/VB-085.md](backlog/VB-085.md) |
 | VB-086 | Inheritance and job numbers as tunables | tooling | implement | ready | 3 | S | Share value, reserve, urgencies and matching weights move into `SHARES` and `MATCH` tables. | [backlog/VB-086.md](backlog/VB-086.md) |
 | VB-087 | Refactor: wrap the long lines of culture.js | tooling | implement | done | 3 | S | Wrap the 16 long lines of `src/culture.js`; lint baseline to 0. | [backlog/VB-087.md](backlog/VB-087.md) |
 | VB-088 | A performance budget in the verify run | tooling | implement | ready | 3 | S | `tests/perf.js` in verify, failing above twice the budget per game day and per step. | [backlog/VB-088.md](backlog/VB-088.md) |
