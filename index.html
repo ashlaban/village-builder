@@ -1665,7 +1665,13 @@ VB['sim/rules'] = (() => {
     kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
   };
 
-  const SPEED = 3; // tiles per game hour on foot
+  const SPEED = 3; // tiles per game hour on foot, on meadow
+  // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
+  // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed.
+  const TERRAIN = { [B.BEACH]: 1, [B.MEADOW]: 1, [B.HEATH]: 1, [B.FOREST]: 1.5, [B.PINE]: 1.5, [B.HILLS]: 2, [B.MARSH]: 2, [B.MOUNTAIN]: 3,
+    [B.SNOW]: Infinity };
+  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is.
+  const ROUTE = { reach: 200, minStep: 1 };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
@@ -1684,7 +1690,7 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO, KINDS,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, TERRAIN, ROUTE, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -1726,6 +1732,125 @@ VB['sim/hex'] = (() => {
     return { id, size };
   }
   return { bfs, pathTo, land, hexSteps, landComponents };
+})();
+</script>
+<script>
+// @sys sim/routes: walking costs by terrain, the route search (A*) and the route cache with its daily refresh
+VB['sim/routes'] = (() => {
+  const { TERRAIN, ROUTE } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  // ---- walking costs: a step costs the mean of the two tiles' costs, so a route costs the same both ways ----
+  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields). Houses and fields cost 1.
+  function tileCost(w, i) {
+    if (w.water[i]) return Infinity;
+    if (w.dev && w.dev[i]) return 1;
+    return TERRAIN[w.biome[i]] ?? 1;
+  }
+  const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // Cost of the step between neighbouring tiles a and b; a closed end (where a route starts or ends) counts as meadow.
+  const stepCost = (w, a, b) => {
+    const ca = tileCost(w, a), cb = tileCost(w, b);
+    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2;
+  };
+
+  // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
+  // Scratch arrays per world, reused by every search: g (cost so far), prev, and the search that last touched each tile (mark).
+  const scratch = new WeakMap();
+  function buffers(w) {
+    let s = scratch.get(w);
+    if (!s) { s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), run: 0 }; scratch.set(w, s); }
+    return s;
+  }
+  // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
+  function heap() {
+    const k = [], n = [];
+    const less = (a, b) => k[a] < k[b] || (k[a] === k[b] && n[a] < n[b]);
+    const swap = (a, b) => { [k[a], k[b]] = [k[b], k[a]]; [n[a], n[b]] = [n[b], n[a]]; };
+    return {
+      get size() { return n.length; },
+      push(key, tile) {
+        let c = k.push(key) - 1; n.push(tile);
+        while (c > 0) { const p = (c - 1) >> 1; if (!less(c, p)) break; swap(c, p); c = p; }
+      },
+      pop() {
+        const top = n[0], lk = k.pop(), ln = n.pop();
+        if (n.length) {
+          k[0] = lk; n[0] = ln;
+          for (let c = 0; ;) {
+            const l = 2 * c + 1, r = l + 1;
+            let m = c;
+            if (l < n.length && less(l, m)) m = l;
+            if (r < n.length && less(r, m)) m = r;
+            if (m === c) break;
+            swap(c, m); c = m;
+          }
+        }
+        return top;
+      },
+    };
+  }
+  // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
+  // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
+  function findRoute(w, from, to, maxCost = ROUTE.reach) {
+    if (from === to) return [from];
+    const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
+    const h = (i) => hexSteps(w, i, to) * lo;
+    g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
+    while (open.size) {
+      const i = open.pop();
+      if (shut[i] === run) continue;
+      shut[i] = run;
+      if (i === to) {
+        const p = [to]; for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
+        return p.reverse();
+      }
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d];
+        if (j < 0 || shut[j] === run || (j !== to && !passable(w, j))) continue;
+        const gj = g[i] + stepCost(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        g[j] = gj; prev[j] = i; mark[j] = run;
+        open.push(gj + h(j), j);
+      }
+    }
+    return null;
+  }
+  // Cost of a route (a list of neighbouring tiles), by the costs in force now.
+  function routeCost(w, p) {
+    let c = 0;
+    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s]);
+    return c;
+  }
+
+  // ---- the cache: one route per pair of tiles; the way back is the way there, reversed ----
+  function route(st, from, to) {
+    const N = st.w.N, k = from * N + to;
+    let p = st.pathCache.get(k);
+    if (p) return p;
+    const back = st.pathCache.get(to * N + from);
+    if (back && back[0] === to) p = back.slice().reverse();
+    else {
+      p = findRoute(st.w, from, to);
+      if (!p) { p = [to]; st.routeFallbacks++; }
+    }
+    st.pathCache.set(k, p);
+    return p;
+  }
+  // A tile whose walking cost changed (a felled wood turned meadow): routes it could change are dropped at the end of the day.
+  const costChanged = (st, tile) => { st.routeDirty.add(tile); };
+  // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
+  // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
+  // so a route that costs less than that cannot change because of t.
+  function refreshRoutes(st) {
+    if (!st.routeDirty.size) return;
+    const w = st.w, N = w.N, dirty = [...st.routeDirty];
+    for (const [k, p] of st.pathCache) {
+      const to = k % N, from = (k - to) / N, reach = routeCost(w, p) / ROUTE.minStep;
+      if ((p.length === 1 && from !== to) || dirty.some((t) => hexSteps(w, from, t) + hexSteps(w, t, to) <= reach)) st.pathCache.delete(k);
+    }
+    st.routeDirty.clear();
+  }
+  return { tileCost, passable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
 })();
 </script>
 <script>
@@ -1973,6 +2098,7 @@ VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['gen'];
   const { YEAR_DAYS } = VB['sim/rules'];
   const { nearestWood } = VB['sim/layout'];
+  const { costChanged } = VB['sim/routes'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
 
   function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
@@ -1982,7 +2108,7 @@ VB['sim/forest'] = (() => {
     const w = st.w;
     w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
     setBiome(w, tile, B.MEADOW);
-    st.treeDirty.add(tile); st.biomeDirty.add(tile);
+    st.treeDirty.add(tile); st.biomeDirty.add(tile); costChanged(st, tile);
     for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;
@@ -2421,7 +2547,7 @@ VB['sim/expansion'] = (() => {
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
-  const { bfs, pathTo, land } = VB['sim/hex'];
+  const { route, stepCost, tileCost } = VB['sim/routes'];
   const { log, age } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
@@ -2444,17 +2570,13 @@ VB['sim/agents'] = (() => {
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
-  function route(st, from, to) {
-    const k = from * st.w.N + to;
-    if (st.pathCache.has(k)) return st.pathCache.get(k);
-    let p = pathTo(bfs(st.w, from, 60, land(st.w)).prev, from, to);
-    if (!p) { p = pathTo(bfs(st.w, from, 200, land(st.w)).prev, from, to); if (!p) { p = [to]; st.routeFallbacks++; } }
-    st.pathCache.set(k, p);
-    return p;
-  }
+  // The way to (x, y) in `tile`: each point carries the cost of the step that ends there, so a pawn walks slower over rough ground.
   function walkTo(st, a, tile, x, y) {
-    const from = tileAt(st, a.x, a.y), tiles = from >= 0 && from !== tile ? route(st, from, tile).slice(1, -1) : [];
-    a.path = [[a.x, a.y], ...tiles.map((i) => [st.w.hx[i] + a.ox * 0.4, st.w.hy[i] + a.oy * 0.4]), [x, y]];
+    const w = st.w, from = tileAt(st, a.x, a.y), p = from >= 0 && from !== tile ? route(st, from, tile) : null;
+    const ok = p && p[0] === from, tiles = ok ? p.slice(1, -1) : [], cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
+    a.path = [[a.x, a.y]];
+    for (let s = 0; s < tiles.length; s++) a.path.push([w.hx[tiles[s]] + a.ox * 0.4, w.hy[tiles[s]] + a.oy * 0.4, stepCost(w, p[s], tiles[s])]);
+    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile)]);
     a.seg = 0; a.inside = false; a.anim = 'walk';
   }
   // Where on the site a pawn stands to do the job.
@@ -2573,14 +2695,14 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let dist = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1);
-    while (dist > 0 && a.seg < a.path.length - 1) {
-      const [tx, ty] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    while (left > 0 && a.seg < a.path.length - 1) {
+      const [tx, ty, c = 1] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
-      const m = Math.min(d, dist);
+      const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= dist) { a.x = tx; a.y = ty; a.seg++; } else { a.x += (dx / d) * dist; a.y += (dy / d) * dist; }
-      dist -= m;
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }
   }
@@ -3557,7 +3679,9 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
-    // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
+    // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
+    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
@@ -3568,7 +3692,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
@@ -3599,6 +3724,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
+  const { refreshRoutes } = VB['sim/routes'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
@@ -3633,6 +3759,7 @@ VB['sim/clock'] = (() => {
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
+    refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
     for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
