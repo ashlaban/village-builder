@@ -112,15 +112,21 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 5. Adopt the proposed scope model (a level, the chosen entities and a dimension, over one membership graph) as the plan? **P:** yes.
    **A (Kim, 30 Oct):** yes.
 6. Follow-up: the "Disputed claims" custom. **P:** options: the first claim stands (`first`); the strongest claim stands, the one most recently worked or renewed (`strongest`); kin of the tile's last owner first (`kin`); the meeting decides by voice-weighted support (`meeting`). Default `first`, malleability 0.7.
+   **A (Kim, 30 Oct):** accepted. VB-041 is done; VB-042 to VB-045 are `ready`.
 
 ## Priority 3
 
 ### VB-047: animals and husbandry
 1. The first wild grazer: roe deer, with elk later? **P:** roe deer.
+   **A (Kim, 30 Oct):** roe deer.
 2. The founders' livestock: **P:** per household 2 cows, a pair of oxen and 6 ewes, with hay for the first winter, as the design proposes.
+   **A (Kim, 30 Oct):** some farms have animals, not all. At least one farm has a breeding male for cattle (recorded as a bull, since oxen are castrated) and at least one has a ram. Farms with sheep have 4 ewes. Open: how many farms keep each, and whether cattle farms keep a pair of oxen.
 3. Food from animals, in rations: **P:** a cow in milk gives 0.5 rations a day in summer, part of it kept as butter for winter; a slaughtered cow 40 rations, a sheep 8.
+   **A (Kim, 30 Oct):** accepted, but slaughter yields meat, which a household job processes into rations that can be stored; rations spoil after a year.
 4. The byre: **P:** room for 6 cattle at first, enlarged later by a building job.
+   **A (Kim, 30 Oct):** accepted.
 5. The order of the implement tasks, listed in VB-047. **P:** as listed.
+   **A (Kim, 30 Oct):** accepted. VB-047 next writes the animals implement tasks.
 
 ### VB-055: type checking
 1. May the project add `typescript` (about 25 MB, dev only) to check the plain JavaScript with JSDoc types? **P:** yes, in `npm test`.
