@@ -5,7 +5,7 @@ const { spawn } = require('child_process'), os = require('os'), path = require('
 const root = path.join(__dirname, '..');
 const TEST = [
   ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/backlog.js'], ['node', 'tests/regress.js'],
-  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/weeding.js'], ['node', 'tests/heirs.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/routes.js'],
+  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/weeding.js'], ['node', 'tests/heirs.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/routes.js'], ['node', 'tests/tools.js'],
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'],

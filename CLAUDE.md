@@ -13,6 +13,8 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
+- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms`).
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
