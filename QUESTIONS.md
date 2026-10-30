@@ -37,12 +37,26 @@ The largest open question. The options are not exclusive:
 2. A save from another build? **P:** a save names its format version; one from another version is refused with a message, not converted, until the game has players.
 3. Is the world saved or regenerated? **P:** regenerated from seed and size, with the tiles the simulation changed (trees, stones, biome, development) saved as arrays.
 
+### VB-089: the heir-to-their-own-farm rule as a custom (backlog review)
+The design makes the rule a custom (Decided) with two options; the default and malleability are Proposed. The code hard-codes "steps behind".
+1. Default and malleability? **P:** as the design proposes: "Steps behind" for Old Nordic and both heirs-scenario villages, malleability 0.6.
+2. "Keeps their place, so farms may be combined": no household can hold two farms, and someone who already holds a farm is passed over (Agreed). **P:** under "keeps" the heir keeps their place in the other line; if they take that farm, they drop out of their own parents' line, which passes to the next in it. Farms are never actually combined until a household can hold two farms, which needs its own design.
+3. Self-interest? **P:** the first heir of their home leans "keeps" (it widens their chances); a landless adult leans "behind" (it keeps a farm open for them).
+
+### VB-090: service where labour is short (backlog review)
+Today only founders' and populous servants, and the members of a farm that dies out, live as servants. A landless adult stays at home for life.
+1. What is "labour is short"? **P:** hands per field, counting members aged 14–59 who are not retired: short below 1 hand per field, hands to spare above 1.5. Meadows and herds join the count with the animals arch.
+2. Who moves, and where? **P:** at the moving round, unmarried landless adults (in `st.demand`) from households with hands to spare, oldest first, as long as their household keeps at least 1 hand per field. They go to the shortest household of their own village, else of the nearest village within 15 steps, else they stay. Each household takes at most one new servant a year.
+3. Pay? **P:** board and lodging only; wages wait for money.
+4. Does hunger also send people into service (a hungry household sending out a mouth)? **P:** not in this task; reconsider in the food or courting wrap-up.
+
 ### VB-036: courting, the numbers (follow-up to the answers in `QUESTION_ARCHIVE.md`)
 Courting builds on relationships (VB-060) and talk (VB-061). These numbers let the courting tasks be written.
 1. When does courting start? **P:** for two unmarried pawns of 16 or more, of opposite sex, not barred by the marriage limit, with a tie of at least 1.5 and an opinion of at least 0.4: a chance of 2% a day. Each pawn courts one person at a time.
 2. When does it end? **P:** when either's opinion of the other falls below 0, when either marries someone else, or by a chance of 1% a day once they have courted a year without being able to marry.
 3. When do they marry? **P:** on any day once both are of age (18 and 20), have courted at least 12 days, have a place to live and hunger below 0.5: a chance of 5% a day. The yearly matchmaking in the moving round then goes.
 4. Births while courting? **P:** a courting woman conceives at 0.1 times a married woman's chance, tuned in the wrap-up (VB-040) so that about 5% of births are outside marriage; after such a birth the couple marries at 3% a day under the same gates, about 3 in 4 within the year.
+5. Children born outside marriage inherit how? The design proposes a custom with three options: inherit like other children; inherit after children born in marriage; do not inherit. **P:** as the design proposes: default "after children born in marriage", malleability 0.5. Self-interest: a pawn born outside marriage leans "like other children"; a married heir with half-siblings born outside marriage leans "after". The custom is its own task, written with the courting tasks.
 
 ### VB-081: populous households with adult children (review)
 Populous children are spaced 2 years from age 0–2, so the eldest is at most 14: 818 people and no marriage in years 1–3.
@@ -54,6 +68,33 @@ Populous children are spaced 2 years from age 0–2, so the eldest is at most 14
 3. Announcements? **P:** a pawn taking up a cause and a change of practice are shown as a toast and kept in the record of events (VB-075).
 
 ## Priority 3
+
+### VB-091: forest spread (backlog review)
+Forest spread is Decided, but open land never closes today. Grazing pressure is planned in the animals arch (VB-047).
+1. Does spread wait for grazing? **P:** yes: it is built after the grazing-pressure task, so the land the founders need is not overgrown before anything can keep it open. Until then VB-067 covers empty fields.
+2. How fast? **P:** open tiles next to forest, or to scrub at half cover or more, reach scrub (a quarter of full cover) in 8 years and full forest in 30, the same 30 years as regrowth. The front then advances about one tile in 15 years.
+3. What keeps land open? **P:** a field in use, a house, a green, a hay meadow mown that year, work on the tile in the last year, or grazing pressure at or above a "keeps open" threshold; pressure at or above a higher "thins" threshold removes scrub slowly. The thresholds are set in the grazing task.
+4. Does heath close too? **P:** yes, like meadow; heath was kept open by grazing and burning.
+
+### VB-092: store views (backlog review)
+Store views for every level of entity are Decided; the scope model (VB-043) is Agreed.
+1. First version? **P:** households and villages, as for the overlay filters; families, cultures and pawns later.
+2. Where is it shown? **P:** a "Stores" panel opened from the village and household panels: one row per household, a total row and the village store, food in days of the household's need, updated once a game day.
+3. History? **P:** not in the first version; the household ledger stays in the household panel.
+
+### VB-093: a village windmill (backlog review)
+Milling at a mill is Decided (much faster, often village-owned, built as a commons job); rivers do not exist, so the first mill is a windmill. It comes after the quern (VB-009) and building (VB-032).
+1. When does a village build one? **P:** at the moving round, a village of 3 or more farms with no mill and a free open tile within 6 steps of the green, hills preferred.
+2. Hours and materials? **P:** foundation 20 h with 10 loads of stone, frame 80 h with 20 loads of timber, sails and millstones 40 h: 140 h, a little more than a cottage, as "likely dearer to build" suggests.
+3. How fast? **P:** 1 work hour per 20 grain, 5 times the quern; a household walks there with its grain and carries flour home, and uses the quern when the walk costs more than it saves.
+4. Other villages? **P:** a household of another village within 10 steps may mill for a toll of 1 in 16 of its grain, paid into the owning village's store.
+5. Wind? **P:** ignored in the first version: the mill turns every day.
+
+### VB-094: worn paths (backlog review)
+Proposed in the Systems overview; no task yet.
+1. Thresholds and fade? **P:** one count per crossing, halving each game year; trodden at 50, path at 200, lane at 800 (about 1, 4 and 16 crossings a day, kept up).
+2. Do lanes speed walking? **P:** not now: they are only drawn. Revisit with terrain costs for routes (see "Design points without a task", question 2).
+3. Lanes under snow (VB-083)? **P:** lanes stay visible as trodden snow; paths and trodden ground are covered.
 
 ### VB-067: empty fields and scrub (review)
 1. Empty farms' fields turn to scrub after 8 years everywhere; the design says near woodland. **P:** until forest spread exists (with grazing, in the animals arch), only fields within 2 steps of a forest tile go to scrub; others stay grass.
