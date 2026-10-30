@@ -1622,7 +1622,7 @@ VB['sim/records'] = (() => {
     return { rand, pickGiven: (sex) => take(sex === 'm' ? MALE : FEMALE, sex === 'm' ? usedM : usedF), pickFather: () => take(MALE, usedFather) };
   }
   function makeHousehold(R, id, f, members, holder) {
-    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood, stone: 0,
+    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
       ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
@@ -1731,13 +1731,18 @@ VB['sim/hunger'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     return (f.fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length + (f.project ? 1 : 0)) * st.ECON.seedPerField;
   }
+  // What the household's living members eat in a day, in rations.
+  function dailyNeed(st, hh) {
+    const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
+    return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
+  }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-    const avail = Math.max(0, hh.grain - seedReserve(st, hh));
-    if (avail >= total) hh.grain -= total;
+    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
+    if (avail >= total) { const cooked = Math.min(hh.rations, total); hh.rations -= cooked; hh.grain -= total - cooked; }
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
@@ -1748,7 +1753,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.grain -= avail; hh.hungryDays++;
+      hh.rations = 0; hh.grain -= spare; hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -1765,7 +1770,7 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  return { feedHousehold, seedReserve, updateHealth };
+  return { feedHousehold, dailyNeed, seedReserve, updateHealth };
 })();
 </script>
 <script>
@@ -1858,6 +1863,7 @@ VB['sim/agents'] = (() => {
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
+  const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -1927,7 +1933,10 @@ VB['sim/agents'] = (() => {
           * (1 - Math.min(E.weedCutMax, E.weedCut * j.field.weedMiss)));
         j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0; break;
       case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
-      case 'cook': hh.cookDay = c.day; break;
+      case 'cook': { // grain above the seed reserve becomes the rations still missing for the coming meal
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
+        hh.grain -= make; hh.rations += make; hh.cookDay = c.day; break;
+      }
       case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
     st.jobs.delete(j.key);
@@ -2028,9 +2037,10 @@ VB['sim/agents'] = (() => {
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
   const { WORK, ROLES } = VB['sim/rules'];
+  const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
-  const { start } = VB['sim/agents'];
+  const { start, release } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
@@ -2039,6 +2049,23 @@ VB['sim/jobs'] = (() => {
     if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j); }
     j.live = true;
     return j;
+  }
+  // The household has less cooked food than the coming meal needs, and grain to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
+  // The job it leaves is kept as it stands, with its progress.
+  function callCooks(st, c) {
+    for (const f of st.farmsteads) {
+      const hh = f.household === null ? null : st.households[f.household];
+      const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
+      if (!j || j.claim !== null || !cookWanted(st, hh, c)) continue;
+      let best = null, top = 0;
+      for (const id of hh.members) {
+        const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
+        if (p.died === null && pr > top) { best = st.agents[id]; top = pr; }
+      }
+      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
+    }
   }
   function refreshJobs(st, c) {
     const E = st.ECON;
@@ -2065,7 +2092,7 @@ VB['sim/jobs'] = (() => {
       if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
         st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
-      if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
+      if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
       if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
     }
     for (const v of st.villages) for (const s of v.fence) if (s.cond < E.fenceMendBelow) {
@@ -2109,7 +2136,7 @@ VB['sim/jobs'] = (() => {
     for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
     return busy;
   }
-  return { post, refreshJobs, mayTake, urgency, bid, planRound };
+  return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound };
 })();
 </script>
 <script>
@@ -2706,6 +2733,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
+  const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
@@ -2833,7 +2861,8 @@ VB['sim/scenarios'] = (() => {
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop),
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
+    //   unthreshed[] (rations still in sheaf, one per field's crop),
     //   wood (loads), stone (loads),
     //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -2868,6 +2897,7 @@ VB['sim/scenarios'] = (() => {
     };
     seedOwners(st);
     refreshRoles(st);
+    for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
     return st;
@@ -2887,7 +2917,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
-  const { refreshJobs, planRound } = VB['sim/jobs'];
+  const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
@@ -2897,6 +2927,7 @@ VB['sim/clock'] = (() => {
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h === WORK[1]) for (const a of st.agents) {
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first

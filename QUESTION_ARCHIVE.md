@@ -2,6 +2,24 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (merging main: conflicts between decisions)
+
+Main (PRs #17 and #18) and the discussion on this branch decided some points differently; Kim settled them while merging.
+
+1. Night and workday: main's work 6:00–18:00 every day with a dark part of 4–8 hours by season (22:00–4:00 at the equinoxes), or this branch's fixed night 21:00–05:00 with work from sunrise to sunset? **P:** none.
+   **A (Kim, 30 Oct):** main's: work 6:00–18:00, the dark varies by season. This replaces the jobs review's answers 4 and 5 and the answers under "VB-105: daylight by season" below; VB-105 is rewritten to it.
+2. Worn paths: main's speeds (5%, 15%, 30% faster, routes merge onto paths), or VB-094's "drawn only"? **P:** none.
+   **A (Kim, 30 Oct):** paths are drawn first (VB-094); the speed-up, with main's numbers, comes in a follow-up task (VB-110).
+3. Snow: by temperature (main, Proposed) or on fixed dates (VB-083)? **P:** none.
+   **A (Kim, 30 Oct):** fixed dates now (VB-083); snow follows temperature once a temperature model exists.
+4. VB-105 under main's design: the dark lasts 6 − 2 × cos(2π (doy − 15) / 48) hours, centred on 1:00 (23:00–3:00 at midsummer, 21:00–5:00 at midwinter), with main's twilight of 2 hours of dusk and dawn? **P:** yes.
+   **A (Kim, 30 Oct):** yes, with 2 hours of twilight.
+
+### VB-096: walking costs by terrain (was "Design points without a task", question 2; asked again when merging main)
+Walking ignores terrain: crossing mountains costs the same as meadow.
+1. **P:** cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed; the same costs slow walking. Built in the current route search first (VB-096); routes over regions (HPA\*, VB-097) only if measuring shows routes cost too much.
+   **A (Kim, 30 Oct):** as proposed (P): costs in the current route search now; HPA* only if measuring shows routes cost too much. This replaces the answer to "Design points without a task", question 2, below.
+
 # Archived 30 October 2026 (discussion of all open questions)
 
 ## Priority 1

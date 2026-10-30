@@ -51,7 +51,7 @@ Status: **done** means it is built as designed, **partly** means some of it is b
 | Births outside marriage, courting | task | Social and courting archs |
 | Hunger: kills, slows work, postpones marriage and births | done | VB-028; health is VB-050 |
 | Jobs owned by household or village; matching best fit first; poor fit waits 2 h | done | One pawn per job; many posted jobs never get a bid (see Work and jobs) |
-| Daily rhythm: work 7:00–17:00, indoors at night | done | Kim, 30 Oct: daylight by season around a fixed short night; VB-105 |
+| Daily rhythm: work 7:00–17:00, indoors at night | done | Kim, 30 Oct: work 6:00–18:00 and a dark of 4–8 hours by season (main's design, kept when merging); VB-105 |
 | Long work: tilling, threshing, weeding | done | VB-007, VB-008 |
 | Cooking makes food | task | The cook job only marks the day; VB-022 |
 | Milling | task | VB-009, after VB-022 |
@@ -148,7 +148,7 @@ Share of work hours (7–17) with no job, by role and season:
 | Workers per job | RimWorld splits a large build into many frames; Banished and Manor Lords staff a workplace with several workers | One pawn per job: a 20-hour field has one hoer | VB-102 |
 | Idle against low-value work | RimWorld and Oxygen Not Included: any allowed job beats idling; priority orders the jobs | A bid can fall below 0, so a posted job is never taken | VB-103 |
 | Children | Period settings put children to work from about 7 | Idle until 14 | VB-104 (Kim: from 7, at reduced efficiency) |
-| Working day | RimWorld schedules; daylight in historical builders | 7:00–17:00 all year | VB-105 (Kim: daylight by season, a fixed short night) |
+| Working day | RimWorld schedules; daylight in historical builders | 7:00–17:00 all year | VB-105 (Kim: work 6:00–18:00, a short dark that follows the season) |
 | Help between households | Village-scale builders let anyone work anywhere | A household's jobs are for its members only | VB-106 (Kim: allowed; builds relationships) |
 | Interrupts | RimWorld's think tree lets urgent work and needs preempt a job | A job is kept until done or 17:00; VB-022 adds it for the cook only | VB-107 |
 | Legibility | Oxygen Not Included lists each worker's errands with reasons; RimWorld explains on hover | "Resting" or "Strolling", no reason | VB-101 |

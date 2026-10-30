@@ -1,9 +1,10 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
   const { WORK, ROLES } = VB['sim/rules'];
+  const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
-  const { start } = VB['sim/agents'];
+  const { start, release } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
@@ -12,6 +13,23 @@ VB['sim/jobs'] = (() => {
     if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j); }
     j.live = true;
     return j;
+  }
+  // The household has less cooked food than the coming meal needs, and grain to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
+  // The job it leaves is kept as it stands, with its progress.
+  function callCooks(st, c) {
+    for (const f of st.farmsteads) {
+      const hh = f.household === null ? null : st.households[f.household];
+      const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
+      if (!j || j.claim !== null || !cookWanted(st, hh, c)) continue;
+      let best = null, top = 0;
+      for (const id of hh.members) {
+        const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
+        if (p.died === null && pr > top) { best = st.agents[id]; top = pr; }
+      }
+      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
+    }
   }
   function refreshJobs(st, c) {
     const E = st.ECON;
@@ -38,7 +56,7 @@ VB['sim/jobs'] = (() => {
       if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
         st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
-      if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
+      if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
       if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
     }
     for (const v of st.villages) for (const s of v.fence) if (s.cond < E.fenceMendBelow) {
@@ -82,5 +100,5 @@ VB['sim/jobs'] = (() => {
     for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
     return busy;
   }
-  return { post, refreshJobs, mayTake, urgency, bid, planRound };
+  return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound };
 })();

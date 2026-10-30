@@ -42,12 +42,14 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Tiles | Pointy-top hexes | Decided |
 | Terrain | Deep sea, sea, shallows, lakes, sandy shore, meadow, heath, broadleaf forest, pine forest, marsh, hills, mountains, snowfields | Agreed |
 | Mountains | Multi-tile rock relief; no peak glyphs | Decided |
+| Rivers | The world has rivers | Decided, 30 Oct |
+| River courses | Rivers rise in hills, mountains and marshes and run downhill to a lake or the sea, a few on each large island; brooks are narrow, larger rivers a tile wide; they carry fresh water and fish, drive water mills, and wet the ground along their banks, where hay grows well. Crossing is at fords and, later, bridges | Proposed |
 | Tile scale | About 10–12 m per hex, a building plot; one house holds a family | Agreed |
 | Mixed scale | By compression: distance about 10×, farmland a few hundred times, time compressed (see Time) | Agreed |
 | Map size | Four sizes: Tiny 120 × 85, Small 180 × 130, Medium 280 × 200 (56,000 tiles, about 20,000 of them land; the earlier single size), Large 380 × 270 | Decided |
 | Generation screen | The game opens on a screen to set map size, seed and starting scenario, then generates the map; the same seed, size and scenario always give the same world | Decided |
 | Regions | Hexagonal patches of radius 7 (169 tiles, centres 13 tiles apart) | Agreed |
-| Walking and terrain | When pathfinding moves to regions (HPA\*), routes and walking cost by terrain: meadow and heath 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed. Until then walking ignores terrain | Agreed, 30 Oct |
+| Walking and terrain | Routes and walking cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed, in the current route search (backlog VB-096); routes over regions (HPA\*) only if routes then cost too much (VB-097) | Agreed, 30 Oct |
 | Uses of regions | Overview, territory, simplified simulation off screen, hierarchical pathfinding for 1,000 pawns (HPA\*, Botea, Müller and Schaeffer 2004) | Agreed |
 
 ### Compression
@@ -75,8 +77,13 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | --- | --- | --- |
 | Calendar | 4 seasons × 12 days = 48 days a year | Agreed |
 | Day length | 48 s at 1×, slow enough that walking reads as walking | Agreed |
-| Speeds | Pause, 1×, 3×, 10×, 30×, and Max: as fast as a frame budget allows (backlog VB-084) | Agreed; Decided (30× and Max), 30 Oct |
-| Daily rhythm | Daylight changes with the season; night is a fixed, short (compressed) block of game hours, spent indoors; work runs from sunrise to sunset. Starting values: night 21:00–05:00; day length 12.25 + 6.25 × cos(2π (doy − 15) / 48) hours, at most the 16 hours outside the night, centred on 13:00, so about 10:00–16:00 at midwinter, 05:00–21:00 at midsummer and 08:00–18:00 at the start of spring (backlog VB-105). Until then, work from 7:00 to 17:00 | Decided (daylight by season, fixed night), Agreed (hours), 30 Oct |
+| Speeds | Pause, 1×, 3×, 10×, 30×, uncapped (backlog VB-084) | Agreed (to 10×), Decided (30× and uncapped, 30 Oct) |
+| Uncapped speed | "Uncapped" runs the simulation as fast as the computer allows | Decided, 30 Oct |
+| Running in the background | An option lets the simulation keep running while the game's tab or window is not in focus (backlog VB-084) | Decided, 30 Oct |
+| Short nights | The dark part of the day is shorter than a real night, and pawns need less sleep, so more of each day is active; nights are not interesting to watch, and this speeds up play | Decided, 30 Oct |
+| Daily rhythm | Work from 6:00 to 18:00, home by evening, indoors at night; lengthened from 7:00–17:00 because nights are short (backlog VB-105). Kim kept this over a fixed night with work from sunrise to sunset, when merging the two lines of design (30 Oct) | Decided, 30 Oct |
+| Night and sleep | Dark for about 6 hours at the equinoxes (22:00 to 4:00), from about 4 hours at midsummer to 8 at midwinter; pawns sleep in the dark (backlog VB-105) | Decided, 30 Oct |
+| Twilight | Dusk and dawn of 2 hours each; pawns sleep about 6 hours. The dark lasts 6 − 2 × cos(2π (doy − 15) / 48) hours, centred on 1:00 (backlog VB-105) | Agreed, 30 Oct |
 | Yearly round | Sowing in spring; haymaking in summer; harvest in early autumn; village meetings on autumn day 10; moving round on autumn day 11 | Agreed |
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
@@ -84,6 +91,40 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 **Growth and time conflict.** Frontier populations with open land grew close to 3% a year from births. From 10 to 1,000 takes about 150 years, 5–6 generations, or roughly 10 hours at 10×. The game is meant to be slow: 40 hours or more to reach full population is fine, with growth from births and, in a later stage, very limited immigration by boat (Decided).
 
 **Run length.** A single run should last 40–80 hours (Decided). At about 38 minutes a year, 150 years is about 95 hours at 1×, so a run would mostly play between 1× and 3×.
+
+## Weather, seasons and daylight
+
+The map has a day and night cycle, seasons with a temperature, and simple weather with wind and rain patterns. (Decided, 30 Oct.) How they show on the map and act on the simulation is Proposed.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Day and night | Light changes over the day: dawn, full day, dusk and night are visible on the map | Decided, 30 Oct |
+| Weather | Simple weather with wind and rain patterns | Decided, 30 Oct |
+| Seasons | Seasons with temperature | Decided, 30 Oct |
+| Seasons on the map | Seasons show on the map: spring green, autumn colour, snow and ice in winter; on fixed dates first, then following temperature (see Settlements and look; backlog VB-083) | Agreed, 30 Oct |
+| Determinism | Weather comes from the world's seed, so the same seed gives the same weather | Proposed |
+
+### Daylight (Decided, 30 Oct; the look at night Proposed)
+
+- **Night is short:** dark from 22:00 to 4:00 at the equinoxes, with 2 hours of dusk and dawn (see Time and calendar).
+- **The seasons move it a little:** the dark part runs from about 4 hours at midsummer to 8 at midwinter, a mild echo of Sweden's light summer nights and long winter dark that keeps winter nights short.
+- **At night** the land darkens and cools in tone but stays readable; hearths glow through doorways and smoke holes, and the few pawns still out carry their own light.
+
+### Temperature (Proposed)
+
+- **One curve for the year,** cold in winter and warm in summer, plus spells of a few days warmer or colder than usual; high ground is colder.
+- **Below freezing,** snow lies on land and lakes ice over; the snow and the season's colours on the map follow temperature, not fixed dates.
+- **Firewood use** follows the temperature instead of a fixed winter-to-summer ratio.
+- **Spring work** waits for thawed ground, and growth starts with the warmth; a late frost or an early one in autumn is the frost risk of the farming year (see Goods and the farming year).
+
+### Wind and rain (Proposed)
+
+- **Wind** has a direction and a strength for the whole archipelago that change slowly, mostly from the south-west and west, as in Scandinavia.
+- **Rain** comes in fronts: large soft areas, a few regions wide, that drift across the map with the wind, so it can rain on one island and be dry on the next.
+- **Rain stops** haymaking and the carrying in of sheaves, which need dry weather, and slows field work; hay rained on while drying loses value.
+- **Wind** turns the windmill only above a set strength, carries smoke and moves the trees.
+- **The year's weather factor** (see Goods and the farming year) comes from the season's actual weather instead of a separate draw: a wet harvest or a dry early summer makes a poor year.
+- **A game day stands for about a week,** so a day's weather reads as a week's weather.
 
 ## People, households and family records
 
@@ -164,7 +205,7 @@ Farm work and building are slow and span several days; a game is about increment
 | Haymaking | Several days per meadow: mow, dry, carry to the hay barn | Agreed |
 | Milling at home | Grain is ground into flour in the house with a hand quern (*handkvarn*); slow, about 1 work hour per 4 units of grain. Flour goes further than grain: a daily household job makes rations from flour at 1:1, or from grain at 1.25 grain per ration | Decided, Agreed (numbers) |
 | Milling at a mill | Much faster; a water mill by a river, or a windmill, likely dearer to build; often owned by the village and built as a commons job | Decided |
-| Windmill | The first mill is a windmill, since there are no rivers: a village of 3 or more farms builds one at the moving round on a free open tile within 6 steps of the green, hills preferred; 140 work hours with 10 loads of stone and 20 of timber; it grinds 5 times as fast as the quern; households of other villages within 10 steps pay a toll of 1 in 16; wind is ignored at first (backlog VB-093) | Agreed, 30 Oct |
+| Windmill | The first mill is a windmill, until rivers for water mills are generated: a village of 3 or more farms builds one at the moving round on a free open tile within 6 steps of the green, hills preferred; 140 work hours with 10 loads of stone and 20 of timber; it grinds 5 times as fast as the quern; households of other villages within 10 steps pay a toll of 1 in 16; wind is ignored at first (backlog VB-093) | Agreed, 30 Oct |
 | Miller and baker | In towns, milling becomes the miller's role, which supplies the baker | Decided |
 | Building | Slow: clear the site and prepare the foundation; fancier, more prestigious houses also need lumber prepared and stone hewn and carted | Decided |
 | Building jobs | Each key step is a job; a person or the village may prepare materials over a long time | Decided |
@@ -193,6 +234,7 @@ Tiles carry their own state (trees, stones, grazing), and work, grazing or negle
 | Abandoned fields | An untended field becomes a stone-free meadow | Decided |
 | Forest spread | Forest turns nearby meadow, and fields by way of meadow, into scrub and then woodland, unless grazing or farming keeps the land open. Built after grazing pressure: open land next to forest reaches scrub in 8 years and forest in 30; a field in use, a house, a green, a meadow mown that year, work in the last year or enough grazing keep it open; heath closes like meadow (backlog VB-091) | Decided; Agreed (rates), 30 Oct |
 | Grazing | Herds of wild and domestic animals graze, and grazing pressure shapes the land (see Animals) | Decided |
+| Worn paths | Where pawns walk often, trodden paths show in the world; a path speeds up walking, so routes prefer existing paths and pawns come to share them | Decided, 30 Oct |
 
 ### Making a hay meadow
 
@@ -205,6 +247,19 @@ A hay meadow is built land: it has to be found, claimed and prepared before it y
 5. **Each spring, rake it clean** of twigs, leaves and fallen branches before the summer mowing (*fagning*).
 
 After mowing, herds may graze the regrowth (*efterbete*). A meadow left unmown and ungrazed falls under the forest-spread rule.
+
+### Worn paths
+
+Paths are not built; they are worn into the land by people and animals walking. (Decided, 30 Oct; the speeds Decided; the counts, stages, fading and snow Agreed, 30 Oct; the rest Proposed.) Built in two steps: drawn first (backlog VB-094), then the faster walking and routes that prefer paths (VB-110), after terrain costs (VB-096).
+
+1. **Each crossing counts:** every tile keeps a count of the pawns and animals that cross it, halving each game year so unused paths fade.
+2. **Three stages:** trodden ground at a count of 50, a path at 200, a lane at 800, about 1, 4 and 16 crossings a day kept up.
+3. **Faster walking:** walking is 5% faster on trodden ground, 15% on a path and 30% on a lane than on the bare terrain, so paths draw routes without lanes ruling all travel.
+4. **Sharing paths:** route-finding counts the faster walking, so a pawn takes a path when it is quicker even if it is longer; routes merge, and the merged path wears deeper. Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
+5. **Land kept open:** grass does not grow back on a path, and forest does not spread onto one while it is used.
+6. **Under snow,** lanes stay visible as trodden snow; paths and trodden ground are covered.
+
+Villages had a village street (*bygata*) and fenced cattle lanes (*fägator*) that led the herds through the infield to the outland pastures; in the game such lanes are worn by use, not laid out.
 
 ### Grazing at low cost (Agreed, see Animals)
 
@@ -284,14 +339,22 @@ Villages are clusters of farmsteads around a green with a well sweep, fenced tog
 | Farmstead | Unpainted log cottage (*stuga*) with a turf roof on birch bark and a smoke hole (*ljore*) instead of a chimney; storehouse on posts (*härbre*); gapped barn (*lada*); yard; woodpile | Decided (look), Agreed (buildings) |
 | For animals | A byre (*fähus*) on the farm; small hay barns out in the meadows | Agreed |
 | Signs of life | The woodpile grows and shrinks with the stock; smoke thickens when cooking, in the evening and in winter; sheaf stooks (*skylar*) stand on reaped fields; herds graze near the farms | Agreed |
-| Seasons on the map | A tint per season over the painted land (fresh green in spring, full in summer, ochre and russet on broadleaf and meadow in autumn, bare broadleaf in winter; pine stays green), and snow from winter day 2 to spring day 3 with lakes iced over (backlog VB-083) | Agreed, 30 Oct |
-| Worn paths | Walking wears the ground: trodden, path and lane by crossings, fading over a year; drawn only, they do not speed walking; lanes show as trodden snow (backlog VB-094) | Agreed, 30 Oct |
+| Seasons on the map | A tint per season over the painted land (fresh green in spring, full in summer, ochre and russet on broadleaf and meadow in autumn, bare broadleaf in winter; pine stays green), and snow from winter day 2 to spring day 3 with lakes iced over, until snow can follow temperature (backlog VB-083) | Agreed, 30 Oct |
+| Worn paths | Walking wears the ground: trodden, path and lane by crossings, fading over a year; lanes show as trodden snow. Drawn first (backlog VB-094); the faster walking decided under Land and ecology, Worn paths, follows (VB-110) | Agreed, 30 Oct |
 | Farm names | Village farms by compass direction from the green (Norrgården, Södergården); lone farms (one-farm villages) by surroundings (Strand, Lunden, Backa, Myra, Ängen) | Agreed |
 | Name generators | Names come from generators, several per kind of entity, and in the long run cultures prefer different generators. For farms, landmarks and owners' names combine with compass directions, so big villages need no numbers | Decided, 30 Oct |
 | Pawns | Wool kirtles in undyed or plant-dyed colours, hose and turnshoes; hoods for men, and for all men in winter; a linen headcloth for married women, braids and a band for unmarried ones | Decided (good-looking), Agreed (dress) |
 | Pawn size | Drawn about twice true size against buildings, so individuals read at play zoom; children smaller | Agreed |
 | Animation | Walking, hoeing, broadcast sowing along the rows, reaping with a sickle, chopping, drawing water, mending fences, carrying sheaves, firewood and water | Decided |
 | Empty farms | Buildings grey and decay into ruins; fields go to meadow and, near woodland (within 2 steps of forest, until forest spread exists), to scrub; full decay art comes with claims | Agreed |
+| Generated villages | The village generator makes more varied and realistic villages, which look like villages that have grown in play; once worn paths exist, generated villages have them | Decided, 30 Oct |
+
+### Generated villages (Proposed)
+
+- **Grown, not stamped:** the generator grows each village farm by farm by the rules of play: a household builds where a household in play would, takes fields near its house, and the village lays out a green and digs a well once it has two farms. A generated village and one grown over a run then look alike.
+- **Worn in:** after the farms stand, the generator walks a few simulated years of daily trips (fields, well, wood, the neighbours) so the village starts with its paths and lanes.
+- **Varied forms:** irregular cluster villages (*klungbyar*), the most common form in medieval Sweden; row villages (*radbyar*) along a lane or a shore, as in the regulated villages of the plains (*solskifte*, in the provincial laws from the 13th century); and lone farms (*ensamgårdar*). Farms differ in age, size and number of buildings.
+- **Fitted to the land:** villages follow shores, slopes, rivers and the edge of the forest, and avoid stony and wet ground for houses.
 
 ## Customs and culture
 
@@ -556,14 +619,14 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 | Painterly terrain, level-of-detail chunks | The look | The main visual appeal | Naturalistic | Chunk bakes spread over frames | Built |
 | Farmsteads, decay, signs of life | Reading a farm's state without a panel | Woodpile, smoke and stooks already tell stories | Medieval Swedish buildings | Small | Built |
 | Pawns: jointed rigs and work animations | The village feels alive | Watching the work is the minute-to-minute pleasure | Dress after the period | About 1,000 batched sprites | Built |
-| Seasons on the map | The yearly round made visible | Snow and autumn colour mark time passing; without them a year looks the same throughout | Strong in Sweden | A tint and a snow layer per chunk | Missing (Open) |
+| Seasons on the map | The yearly round made visible | Snow and autumn colour mark time passing; without them a year looks the same throughout | Strong in Sweden | A tint and a snow layer per chunk | Missing (Proposed; seasons with temperature Decided 30 Oct, see Weather, seasons and daylight) |
 | Panels: settlers, pawn, tile, household | Inspection | Necessary; text-heavy | — | Small | Built |
 | Customs drawer and meeting log | Seeing society change | Bars and one line per change; the argument itself is not shown | — | Small | Built |
 | Family tree | The saga | Strong once there are generations | — | Lays out every record on each open | Built; needs the "fast" proposals at scale |
 | Ownership and claims overlay | Territory | Shows who holds what at a glance | — | Cached per chunk (VB-045) | Planned |
 | Speech bubbles, mood | Feedback on social life | Makes ties visible | — | Near the camera only | Planned (VB-061, VB-062) |
 | Notifications | Drawing the eye to an event | A death, a marriage or a custom change otherwise passes unseen | — | Small | Missing |
-| Worn paths | Showing where people walk | Lanes appear between farms, well and woods over years | Desire paths are real | One counter per tile, repainted with the chunk | Missing (new) |
+| Worn paths | Showing where people walk | Lanes appear between farms, well and woods over years | Desire paths are real | One counter per tile, repainted with the chunk | Missing (Decided, 30 Oct; see Land and ecology) |
 
 ### Across systems
 
@@ -597,11 +660,14 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] Stats and traits, and whether children inherit them.
 - [ ] A historical division of labour by sex, or free job assignment by role only.
 - [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
-- [x] Faster speeds or skipping nights, given that a generation takes hours of play. Decided: 30× and Max, and a short fixed night (30 Oct). A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this.
+- [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped (backlog VB-084, VB-105).
 - [ ] Cities: how they arise and how much faster they change customs.
 - [ ] Trade and money.
-- [x] Seasons on the map, such as snow in winter. Agreed: seasonal tints and snow (30 Oct).
-- [ ] Rivers, which water mills need; the world does not generate them yet.
+- [x] Seasons on the map, such as snow in winter. Seasons with temperature, a day and night cycle, and wind and rain are Decided (30 Oct). Agreed (30 Oct): seasonal tints and snow on fixed dates first (backlog VB-083), following temperature once a temperature model exists (see Weather, seasons and daylight).
+- [x] Rivers, which water mills need; the world does not generate them yet. Decided (30 Oct): the world has rivers; their courses are Proposed.
+- [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
+- [ ] Whether rivers can be waded anywhere or only at fords, and when bridges come.
+- [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
 - [ ] What a more prestigious house brings its owner.
 - [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
 - [ ] How to keep the family tree fast at full scale.
@@ -626,8 +692,10 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 0.3 (questions settled) | 30 October 2026 | Brought in Kim's answers to every open question (`QUESTION_ARCHIVE.md`): the player's role (a family line, relatives only, the line's prestige as score); commands; saving the whole world, with old saves easy to delete; field yield 100 and seed 25 and a health drain of 4; a farm's fields as one block within 4 steps; the own-heir custom and the better farm under "keeps"; service; courting numbers, with the yearly matchmaking kept for those not courting; populous adult children; legible customs; the whole household in field work; the bid floor, children's rates, daylight hours, help and interrupts; forest spread, empty fields, store views, the windmill, worn paths, seasons, 30× and Max, the performance budget, the founders' herds, firewood about five times, terrain costs with HPA\* |
-| 0.3 (jobs review) | 30 October 2026 | Brought in Kim's answers from the review of work and jobs (`QUESTION_ARCHIVE.md`, `REVIEW.md` addendum): daylight by season around a fixed, short night; children work from 7 at reduced efficiency; help between households, which builds relationships; the player steers the job system later and should influence the world through all systems. Proposed: hours of daylight, children's jobs and rates, rules for help, several hands per job, work beating idleness, interrupts |
+| 0.3 (merge) | 30 October 2026 | Merged the design notes line (main) with the jobs review and the settled questions. Kim's choices where they differed: main's workday of 6:00–18:00 and dark of 4–8 hours by season, not a fixed night; worn paths drawn first (VB-094), with the speed-up as a follow-up (VB-110); snow on fixed dates until temperature exists (VB-083); terrain costs in the current route search now (VB-096), HPA\* only if needed (VB-097) |
+| 0.3 (questions settled) | 30 October 2026 | Brought in Kim's answers to every open question (`QUESTION_ARCHIVE.md`): the player's role (a family line, relatives only, the line's prestige as score); commands; saving the whole world, with old saves easy to delete; field yield 100 and seed 25 and a health drain of 4; a farm's fields as one block within 4 steps; the own-heir custom and the better farm under "keeps"; service; courting numbers, with the yearly matchmaking kept for those not courting; populous adult children; legible customs; the whole household in field work; the bid floor, children's rates, help and interrupts; forest spread, empty fields, store views, the windmill, worn paths, seasons, 30× and uncapped, the performance budget, the founders' herds, firewood about five times, terrain costs with HPA\* |
+| 0.3 (jobs review) | 30 October 2026 | Brought in Kim's answers from the review of work and jobs (`QUESTION_ARCHIVE.md`, `REVIEW.md` addendum): daylight by season (settled in the merge below: main's fixed 6:00–18:00 workday stands); children work from 7 at reduced efficiency; help between households, which builds relationships; the player steers the job system later and should influence the world through all systems. Proposed: hours of daylight, children's jobs and rates, rules for help, several hands per job, work beating idleness, interrupts |
+| 0.3 (design notes) | 30 October 2026 | Kim's design notes: an uncapped speed; an option to run while the tab is not in focus; short nights in which pawns sleep less; a day and night cycle; weather with wind and rain, and seasons with temperature, acting on work and yields; rivers; worn paths that speed walking, so routes merge onto them; more varied, realistic generated villages that look grown and have paths. Added the section Weather, seasons and daylight; numbers and mechanisms Proposed. In a round of questions Kim then decided: speeds Pause, 1×, 3×, 10×, 30× and uncapped; work from 6:00 to 18:00; about 6 hours of dark, 4 at midsummer to 8 at midwinter; paths 5%, 15% and 30% faster |
 | 0.3 (backlog sync) | 30 October 2026 | Brought in Kim's answers of 30 October (`QUESTION_ARCHIVE.md`): health; courting from 16 and pawn interactions with mood; meals, help in hunger and sowing first; roe deer, the founders' herds, food from animals and the byre; green and well built by the village, lone farms' village names, name generators; the Disputed claims custom; shares owed, splitting land, restoration hours; plots of a house and 1 field, two projects per village, 6 steps, revised hours and priorities; who may claim, claim expiry and disputes, first filters; the scope model Agreed; the founders' looser marriage limit |
 | 0.3 (review) | 30 October 2026 | Added Systems overview (Proposed): the player's experience, simulation and presentation systems, and food balance, growth, pace and cost across them, with findings; no Decided or Agreed point changed |
 | 0.3 (discussion) | 30 October 2026 | Yields rise slightly over the course of a game |
