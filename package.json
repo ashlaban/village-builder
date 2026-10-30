@@ -2,8 +2,8 @@
   "name": "village-builder",
   "private": true,
   "scripts": {
-    "build": "python3 build.py",
-    "test": "python3 build.py --check && node tests/regress.js && node tests/lint.js && node tests/backlog.js && node tests/golden.js && node tests/trees.js && node tests/stones.js && node tests/weeding.js && node tests/populous.js && node tests/births.js && node tests/hunger.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
+    "test": "node tests/run.js test",
+    "verify": "node tests/run.js verify",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },
   "devDependencies": {
