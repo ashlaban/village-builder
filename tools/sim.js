@@ -27,7 +27,7 @@ function plain(v, seen = new Map(), where = '$') {
 const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1] });
 let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
-const causeOf = (p) => { const e = p.events.find((x) => x.kind === 'died'); const m = e && e.text.match(/\((.*)\)/); return e ? (m ? m[1] : 'old age') : null; };
+const causeOf = (p) => { const e = p.events.find((x) => x.kind === 'died'); return e ? e.cause : null; };
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
 say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${years} years`);
 say('year  pop  births  deaths(by cause)  marriages  hungry-days  mean-grain  demand  ms/day');

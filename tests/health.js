@@ -2,7 +2,7 @@
 // Then a report of deaths by cause per decade in 50-year founders runs (reported, not asserted).
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
-const { feedHousehold, deathRoll, updateHealth } = VB['sim/hunger'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
+const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = () => Sim.seed(w7, 7, 'founders');
 const starve = (p, age, days) => { // hunger 1 every day; the day on which the pawn would die, or 0
@@ -52,7 +52,7 @@ for (const seed of [7, 42]) {
   for (let dec = 1; dec <= 5; dec++) {
     Sim.advance(st, 10 * YEAR);
     const by = {}; for (const p of st.pawns) if (p.died !== null && p.died > st.t - 10 * YEAR) {
-      const e = p.events.find((x) => x.kind === 'died'), m = e && e.text.match(/\((.*)\)/), c = m ? m[1] : 'old age'; by[c] = (by[c] || 0) + 1;
+      const e = p.events.find((x) => x.kind === 'died'), c = e ? e.cause : 'unknown'; by[c] = (by[c] || 0) + 1;
     }
     rows.push(`years ${dec * 10 - 9}-${dec * 10}: ${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ') || 'no deaths'}; ${st.pawns.filter((p) => p.alive).length} alive`);
   }

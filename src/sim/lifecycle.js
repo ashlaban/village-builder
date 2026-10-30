@@ -2,21 +2,22 @@
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
   const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
-  const { deathRoll } = VB['sim/hunger'];
+  const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
-  function killPawn(st, id, cause = 'died') {
+  function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
-    personEvent(st, id, 'died', cause === 'old age' ? 'Died' : `Died (${cause})`);
+    p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
     for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
-    log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} has died, aged ${p.age}.`);
+    log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
+      + `${CAUSES[cause].log}, aged ${p.age}.`);
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { hh.members = hh.members.filter((m) => m !== id); if (hh.holder === id) succession(st, hh, 'death'); }
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;

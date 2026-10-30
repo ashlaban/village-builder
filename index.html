@@ -1707,9 +1707,9 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and the death roll it feeds into
+// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+  const { HUNGER, HEALTH } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -1749,15 +1749,35 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  // One pawn's death roll for the day: null, 'old age' or 'hunger' (a roll that falls in the share added by hunger). One random draw.
+  return { feedHousehold, seedReserve, updateHealth };
+})();
+</script>
+<script>
+// @sys sim/deaths: causes of death, with their texts, and the daily death roll
+VB['sim/deaths'] = (() => {
+  const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+  // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
+  // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
+  const CAUSES = {
+    infancy: { event: 'Died in infancy', log: 'died in infancy' },
+    childhood: { event: 'Died of a childhood illness', log: 'died of a childhood illness' },
+    illness: { event: 'Died of illness', log: 'died of illness' },
+    oldAge: { event: 'Died of old age', log: 'died of old age' },
+    hunger: { event: 'Died of hunger', log: 'died of hunger' },
+    starvation: { event: 'Died of starvation', log: 'starved to death' },
+    childbirth: { event: 'Died in childbirth', log: 'died in childbirth' },
+    killed: { event: 'Killed', log: 'was killed' },
+  };
+  const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
+  // One pawn's death roll for the day: null or a cause key; a roll that falls in the share added by hunger is 'hunger'. One random draw.
   function deathRoll(st, p) {
     const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = st.rand();
     if (p.health <= 0) return 'starvation';
     const frail = p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1;
     if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger) * frail) return null;
-    return u >= base ? 'hunger' : 'old age';
+    return u >= base ? 'hunger' : baseCause(a);
   }
-  return { feedHousehold, deathRoll, seedReserve, updateHealth };
+  return { CAUSES, deathRoll };
 })();
 </script>
 <script>
@@ -2341,21 +2361,22 @@ VB['sim/society'] = (() => {
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
   const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
-  const { deathRoll } = VB['sim/hunger'];
+  const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
-  function killPawn(st, id, cause = 'died') {
+  function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
-    personEvent(st, id, 'died', cause === 'old age' ? 'Died' : `Died (${cause})`);
+    p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
     for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
-    log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} has died, aged ${p.age}.`);
+    log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
+      + `${CAUSES[cause].log}, aged ${p.age}.`);
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { hh.members = hh.members.filter((m) => m !== id); if (hh.holder === id) succession(st, hh, 'death'); }
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
@@ -4281,7 +4302,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
-      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'by the debug panel'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'killed'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
       case 'retire': { const hh = p ? Sim.holdingOf(st, id) : null; if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`); else dmsg('Select someone who holds a farm and has an heir.'); break; }
       case 'advP': case 'advV': {
         if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }

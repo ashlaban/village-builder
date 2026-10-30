@@ -1502,7 +1502,7 @@
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
-      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'by the debug panel'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'killed'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
       case 'retire': { const hh = p ? Sim.holdingOf(st, id) : null; if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`); else dmsg('Select someone who holds a farm and has an heir.'); break; }
       case 'advP': case 'advV': {
         if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }

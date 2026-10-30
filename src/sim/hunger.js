@@ -1,6 +1,6 @@
-// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and the death roll it feeds into
+// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+  const { HUNGER, HEALTH } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -40,13 +40,5 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  // One pawn's death roll for the day: null, 'old age' or 'hunger' (a roll that falls in the share added by hunger). One random draw.
-  function deathRoll(st, p) {
-    const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = st.rand();
-    if (p.health <= 0) return 'starvation';
-    const frail = p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1;
-    if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger) * frail) return null;
-    return u >= base ? 'hunger' : 'old age';
-  }
-  return { feedHousehold, deathRoll, seedReserve, updateHealth };
+  return { feedHousehold, seedReserve, updateHealth };
 })();
