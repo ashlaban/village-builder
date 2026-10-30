@@ -4,6 +4,7 @@ VB['sim/agents'] = (() => {
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
+  const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -73,7 +74,10 @@ VB['sim/agents'] = (() => {
           * (1 - Math.min(E.weedCutMax, E.weedCut * j.field.weedMiss)));
         j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0; break;
       case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
-      case 'cook': hh.cookDay = c.day; break;
+      case 'cook': { // grain above the seed reserve becomes the rations still missing for the coming meal
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
+        hh.grain -= make; hh.rations += make; hh.cookDay = c.day; break;
+      }
       case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
     st.jobs.delete(j.key);
