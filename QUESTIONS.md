@@ -67,6 +67,29 @@ Populous children are spaced 2 years from age 0–2, so the eldest is at most 14
 2. The pawn panel? **P:** a "Leans" line with the customs where the pawn differs most from its village's practice, and the cause it argues for, if any.
 3. Announcements? **P:** a pawn taking up a cause and a change of practice are shown as a toast and kept in the record of events (VB-075).
 
+### VB-096: several hands on one field job (jobs review)
+A job takes one pawn; in spring 69% of adults' idle time is spent with no open job they may take, while plowing waits up to 27 hours (90th percentile).
+1. How many hands per job? **P:** plow, clear and break 2; reap 3 (one cuts, others bind and stook); weed 2; thresh 2 (flails in pairs); sow, haul, wood, water, cook and mend 1.
+2. Does each extra hand work at full rate? **P:** yes, for now; crowding losses wait for the wrap-up (VB-102) to show whether they are needed.
+3. How strongly is a free job preferred to joining one? **P:** a bid for a job with k workers is multiplied by 0.8^k.
+
+### VB-097: any allowed work beats idling (jobs review)
+110 of 119 open wood jobs on a summer evening could get no farmer's bid: urgency is about 0.1 with a full pile, and the walk costs more.
+1. A floor for the bid? **P:** 0.1 plus the noise, for role priority 3 or more; poor fits (2 or less) keep the 2-hour wait and get no floor.
+2. Firewood for the winter? **P:** from summer day 0 to the end of autumn the target is 40 (winter use about 19, autumn's 6, and a margin), 30 the rest of the year.
+
+### VB-098: children's work (jobs review)
+Kim decided: from 7, at reduced efficiency. The numbers:
+1. Which jobs? **P:** water 6, weed 5, haul 4, reap 3; adults' priorities stay higher.
+2. Rate by age? **P:** 0.3 at 7, plus 0.1 a year, 0.9 at 13; full rate with the adult role at 14.
+3. Do girls and boys differ before 14? **P:** no; the roles split at 14 as today.
+
+### VB-099: daylight by season (jobs review)
+Kim decided: daylight changes with the season; night is a fixed, short (compressed) block of game hours.
+1. The night? **P:** 21:00 to 05:00, home and indoors.
+2. The day length? **P:** 12.25 + 6.25 × cos(2π (doy − 15) / 48) hours, at most the 16 hours outside the night, centred on 13:00: about 10–16 at midwinter, 5–21 at midsummer, 8–18 at the start of spring.
+3. Work from sunrise to sunset, with no midday rest? **P:** yes; the midday meal is not modelled. Average work hours rise from 10 a day to about 12.
+
 ## Priority 3
 
 ### VB-091: forest spread (backlog review)
@@ -112,6 +135,17 @@ Proposed in the Systems overview; no task yet.
 Answered so far (see `QUESTION_ARCHIVE.md`): roe deer first; not every founders farm keeps animals; at least one bull and one ram; farms with sheep keep 4 ewes; milk, meat, byre and task order accepted.
 1. How many of the four founders farms keep cattle, and how many sheep? **P:** three keep cattle (2 cows each, and the first of them also a bull); two keep sheep (4 ewes each, and the first of them also a ram). One farm keeps neither and has to trade or marry into a herd.
 2. Do cattle farms keep a pair of oxen at the start? **P:** one pair in the whole founders group, at the farm with the bull; the other farms hoe until they raise oxen from bull calves (castrated at 1 year, working from 3). This keeps the "ard is 2–3× faster than a hoe" advantage visible from year 1.
+
+### VB-100: help between households (jobs review)
+Kim decided: help between households is allowed, and it builds relationships.
+1. Which jobs? **P:** plow, sow, weed, reap, haul, thresh, clear, break and mend; not cook, water or wood, which are the household's own.
+2. When may a neighbour help? **P:** the job has waited 2 hours, the helper is an adult (14 or more) of the same village and has no bid on its own household's or village's jobs in that round.
+3. Whom do they help first? **P:** bid × 0.5, plus 1 for near kin of the holder, plus the helper's opinion of the holder.
+4. What does help build? **P:** per finished job, tie +0.2 and opinion +0.05 × (1 − opinion) between the helper and each adult of the household; nothing is owed.
+
+### VB-101: interrupts (jobs review)
+1. When does a pawn leave its job? **P:** when the best other bid is more than 1.5 × the current job's bid plus 1, checked at every full hour, at most one switch an hour.
+2. May a pawn walking to a job switch? **P:** no; only pawns at work, not walking or carrying.
 
 ### Design points without a task (review)
 1. Firewood: the design says winter use is about four times summer; the code uses 5.3 (1.6 against 0.3). **P:** keep the code and write "about five times" in the design, since VB-024 measures woodland use with it.

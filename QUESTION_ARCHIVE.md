@@ -2,6 +2,21 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (jobs review)
+
+## Work and jobs (become the work arch, VB-095 to VB-102)
+
+1. What is the job system for: something to watch, or something the player steers (per-pawn priorities, forced jobs)? **P:** decided by the player's role (VB-079).
+   **A (Kim, 30 Oct):** player-steerable, but that comes later; the player should be able to influence the world a lot, through all the systems.
+2. May children work before animals exist, beyond "children herd"? If so, from what age? **P:** from about 7, at reduced speed.
+   **A (Kim, 30 Oct):** yes, from 7, at reduced efficiency.
+3. May neighbours help with each other's work? As a gift that builds ties, or as a debt that is paid back? **P:** a gift that raises the tie.
+   **A (Kim, 30 Oct):** allowed; it builds relationships.
+4. Should daylight change with the season, or are clock hours abstract under the compression? **P:** daylight by season.
+   **A (Kim, 30 Oct):** daylight changes with the season, but the part of the day that is night stays fixed (and compressed).
+5. Is that night a fixed short block of game hours, or a night played faster on screen? **P:** none.
+   **A (Kim, 30 Oct):** a fixed short block of game hours; sunrise and sunset move by season in the rest of the day, and work follows daylight.
+
 # Archived 30 October 2026
 
 ## Priority 1: expansion and the food floor

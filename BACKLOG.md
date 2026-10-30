@@ -35,6 +35,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | tooling | Code and verification | Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
 | core | Commands, saves and the record of events | Pawns and other entities act through commands; a run can be saved and loaded exactly; every notable event is kept as a typed record. | Commands, time steps and views; Systems overview |
 | player | The player's role | Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
+| work | Work and jobs | Pawns work when there is work: several hands per job, children's work, help between households, interrupts and daylight by season; steered by the player later. | Economy and jobs; Time and calendar (Daily rhythm) |
 
 ## Tasks
 
@@ -134,3 +135,11 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-092 | Store views for households and villages | claims | implement | needs-review | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. | [backlog/VB-092.md](backlog/VB-092.md) |
 | VB-093 | A village windmill | food | implement | needs-review | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. | [backlog/VB-093.md](backlog/VB-093.md) |
 | VB-094 | Worn paths | - | - | needs-review | 3 | M | Walking wears the ground; lanes appear over years where people go and fade where they stop. | [backlog/VB-094.md](backlog/VB-094.md) |
+| VB-095 | Why a pawn is idle: bid reasons in the pawn panel and `tools/sim.js` | work | implement | ready | 2 | S | `explainIdle` per pawn, a reason line in the pawn panel and `--report idle` for idleness by role, season and reason. | [backlog/VB-095.md](backlog/VB-095.md) |
+| VB-096 | Several hands on one field job | work | implement | needs-review | 2 | M | Field and land jobs take 2–3 workers (`KINDS[kind].hands`), so idle hands shorten tilling and harvest. | [backlog/VB-096.md](backlog/VB-096.md) |
+| VB-097 | Any allowed work beats idling, so posted jobs get done | work | implement | needs-review | 2 | S | A bid floor for good-fit jobs, and firewood laid in for winter from summer on. | [backlog/VB-097.md](backlog/VB-097.md) |
+| VB-098 | Children work from age 7, at reduced efficiency | work | implement | needs-review | 2 | S | Children of 7–13 fetch water, weed and help at the harvest at 0.3–0.9 of an adult's rate. | [backlog/VB-098.md](backlog/VB-098.md) |
+| VB-099 | Daylight by season, with a fixed short night | work | implement | needs-review | 2 | M | Sunrise and sunset follow the season around a fixed night of 21:00–05:00; work and the page's light follow daylight. | [backlog/VB-099.md](backlog/VB-099.md) |
+| VB-100 | Neighbours help with each other's work, and it builds ties | work | implement | needs-review | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. | [backlog/VB-100.md](backlog/VB-100.md) |
+| VB-101 | More urgent work interrupts a job | work | implement | needs-review | 3 | M | Working pawns re-bid each hour and switch, keeping progress, when another job is much more urgent. | [backlog/VB-101.md](backlog/VB-101.md) |
+| VB-102 | Wrap-up: work and jobs | work | wrap-up | blocked | 3 | S | Long runs check idleness, sowing and harvest in time, help and cost against VB-095's numbers; report and tune. | [backlog/VB-102.md](backlog/VB-102.md) |
