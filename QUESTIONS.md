@@ -56,6 +56,7 @@ Courting builds on relationships (VB-060) and talk (VB-061). These numbers let t
 2. When does it end? **P:** when either's opinion of the other falls below 0, when either marries someone else, or by a chance of 1% a day once they have courted a year without being able to marry.
 3. When do they marry? **P:** on any day once both are of age (18 and 20), have courted at least 12 days, have a place to live and hunger below 0.5: a chance of 5% a day. The yearly matchmaking in the moving round then goes.
 4. Births while courting? **P:** a courting woman conceives at 0.1 times a married woman's chance, tuned in the wrap-up (VB-040) so that about 5% of births are outside marriage; after such a birth the couple marries at 3% a day under the same gates, about 3 in 4 within the year.
+5. Children born outside marriage inherit how? The design proposes a custom with three options: inherit like other children; inherit after children born in marriage; do not inherit. **P:** as the design proposes: default "after children born in marriage", malleability 0.5. Self-interest: a pawn born outside marriage leans "like other children"; a married heir with half-siblings born outside marriage leans "after". The custom is its own task, written with the courting tasks.
 
 ### VB-081: populous households with adult children (review)
 Populous children are spaced 2 years from age 0–2, so the eldest is at most 14: 818 people and no marriage in years 1–3.
@@ -67,6 +68,19 @@ Populous children are spaced 2 years from age 0–2, so the eldest is at most 14
 3. Announcements? **P:** a pawn taking up a cause and a change of practice are shown as a toast and kept in the record of events (VB-075).
 
 ## Priority 3
+
+### VB-091: forest spread (backlog review)
+Forest spread is Decided, but open land never closes today. Grazing pressure is planned in the animals arch (VB-047).
+1. Does spread wait for grazing? **P:** yes: it is built after the grazing-pressure task, so the land the founders need is not overgrown before anything can keep it open. Until then VB-067 covers empty fields.
+2. How fast? **P:** open tiles next to forest, or to scrub at half cover or more, reach scrub (a quarter of full cover) in 8 years and full forest in 30, the same 30 years as regrowth. The front then advances about one tile in 15 years.
+3. What keeps land open? **P:** a field in use, a house, a green, a hay meadow mown that year, work on the tile in the last year, or grazing pressure at or above a "keeps open" threshold; pressure at or above a higher "thins" threshold removes scrub slowly. The thresholds are set in the grazing task.
+4. Does heath close too? **P:** yes, like meadow; heath was kept open by grazing and burning.
+
+### VB-092: store views (backlog review)
+Store views for every level of entity are Decided; the scope model (VB-043) is Agreed.
+1. First version? **P:** households and villages, as for the overlay filters; families, cultures and pawns later.
+2. Where is it shown? **P:** a "Stores" panel opened from the village and household panels: one row per household, a total row and the village store, food in days of the household's need, updated once a game day.
+3. History? **P:** not in the first version; the household ledger stays in the household panel.
 
 ### VB-067: empty fields and scrub (review)
 1. Empty farms' fields turn to scrub after 8 years everywhere; the design says near woodland. **P:** until forest spread exists (with grazing, in the animals arch), only fields within 2 steps of a forest tile go to scrub; others stay grass.
