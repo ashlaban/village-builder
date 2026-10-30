@@ -20,7 +20,7 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
-    initCulture(st, null); st.countDemand();
+    initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }

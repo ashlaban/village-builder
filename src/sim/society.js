@@ -5,7 +5,7 @@ VB['sim/society'] = (() => {
   const { bfs, land, hexSteps } = VB['sim/hex'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking } = VB['sim/heirs'];
-  function initCulture(st, leanBySettlement) {
+  function initCulture(st, leanBySettlement, overrides = {}) {
     const env = st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 };
     env.byId = (id) => st.pawns[id];
     env.settlementOf = (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; };
@@ -22,6 +22,7 @@ VB['sim/society'] = (() => {
     env.onSplit = (nc, from, cause) => log(st,
       `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`);
     const customs = Culture.fromArchetype('oldNordic');
+    for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0);
     for (const v of st.villages) {
       const s = {
