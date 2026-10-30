@@ -43,8 +43,8 @@ for (const seed of [7, 42]) {
   RIVER.site.fill(0); const without = siteScore(w, site); keep.forEach((x, k) => { RIVER.site[k] = x; });
   check(site >= 0 && RIVER.site[steps] > 0 && Math.abs(withRiver - without - RIVER.site[steps]) < 1e-9,
     `seed ${seed}: site ${site}, ${steps} steps from a river, gains ${withRiver - without}`);
-  // decorations: an item where the river bends goes, one well away from any river stays
-  const t = sources[0], [b] = Rv.pieces(w, t)[0].slice(1), far = w.river.findIndex((x, i) => !x && !w.water[i] && !byRiver(w, i));
+  // decorations: an item in the middle of a river line goes, one well away from any river stays
+  const t = sources[0], b = Rv.lines(w, t)[0][5], far = w.river.findIndex((x, i) => !x && !w.water[i] && !byRiver(w, i));
   const items = [{ t: 'stone', x: b[0], y: b[1] }, { t: 'stone', x: w.hx[far], y: w.hy[far] }];
   check(Rv.thin(w, items, G.hexLocator(w)).length === 1 && items[0].x === w.hx[far], `seed ${seed}: thin keeps ${items.length} items`);
   // nothing built on a river; fields carry their watered fertility, also after a year of making new fields

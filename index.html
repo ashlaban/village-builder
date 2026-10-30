@@ -407,7 +407,7 @@ VB['gen/rivers'] = (() => {
     return { river, riverTo };
   }
 
-  // ---- drawing: a curve per river tile, from the edge it enters by, bending near the centre, to the edge it leaves by ----
+  // ---- drawing: each river tile holds a line from the joint upstream, past a bend near its centre, to the joint downstream ----
   // Width of the river through tile i, in map units: a brook at its source, at most three quarters of a hex wide.
   const width = (w, i) => Math.min(0.75 * w.HW, 2.5 + 0.9 * Math.sqrt(w.river[i]));
   // What the tile card calls the water through tile i, or null.
@@ -418,40 +418,112 @@ VB['gen/rivers'] = (() => {
     const h = Math.imul(i ^ 0x5bd1e995, 2654435761) >>> 0, a = ((h & 1023) / 1024) * 2 * Math.PI, d = (((h >>> 10) & 1023) / 1024) * 0.2 * w.R;
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
-  // The pieces of river in land tile i, each [from, bend, to]: one per course coming in (from the joint with the tile upstream),
-  // or one from the bend itself at a source. Joints sit halfway between two bends, so neighbouring pieces meet with one tangent.
-  function pieces(w, i) {
+  // Smooth value noise in [-1, 1] on a unit lattice, seeded by the world and s; it bends the courses and roughens the banks.
+  function noise(w, x, y, s) {
+    const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    const h = (a, b) => {
+      let k = Math.imul(a, 374761393) ^ Math.imul(b, 668265263) ^ Math.imul(s + w.seed, 2246822519);
+      k = Math.imul(k ^ (k >>> 13), 1274126177);
+      return ((k ^ (k >>> 16)) >>> 0) / 2147483648 - 1;
+    };
+    const a = h(ix, iy), b = h(ix + 1, iy), c = h(ix, iy + 1), d = h(ix + 1, iy + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  // The tiles that flow into tile i, and the one that carries most water (a lake always does): the river's own course; the rest join it.
+  function inflows(w, i) {
+    const r = [];
+    for (let k = 0; k < 6; k++) { const j = w.nb[i * 6 + k]; if (j >= 0 && w.riverTo[j] === i) r.push(j); }
+    return r;
+  }
+  const carries = (w, k) => (w.water[k] ? Infinity : w.river[k]);
+  const mainInflow = (w, i) => inflows(w, i).reduce((m, k) => (m < 0 || carries(w, k) > carries(w, m) ? k : m), -1);
+  // The joint where water passes from tile a to tile b, halfway between their bends (so on their shared edge), and the river's width
+  // there: a mouth or lake outlet opens to 1.6 times the river; the main course takes the mean of the two tiles, a tributary its own.
+  const joint = (w, a, b) => { const p = bend(w, a), q = bend(w, b); return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; };
+  function jointWidth(w, a, b) {
+    if (w.water[a]) return 1.6 * width(w, b);
+    if (w.water[b]) return 1.6 * width(w, a);
+    return mainInflow(w, b) === a ? (width(w, a) + width(w, b)) / 2 : width(w, a);
+  }
+  // Meanders: a smooth warp of the plane at two scales, weaker for wide rivers. Lines that meet at a point of one width move alike there.
+  function meander(w, x, y, wd) {
+    const a = 0.4 * w.R * Math.max(0.3, 1 - wd / (0.75 * w.HW));
+    return [x + a * (noise(w, x / 70, y / 70, 1) + 0.45 * noise(w, x / 24, y / 24, 3)),
+      y + a * (noise(w, x / 70, y / 70, 2) + 0.45 * noise(w, x / 24, y / 24, 4))];
+  }
+  // The river through land tile i as lines of points [x, y, width, dry]: one per inflow, from its joint (or one from the spring at a
+  // source), past the bend to the joint downstream. A line runs on into a lake or the sea and widens there, dry falling from 1 to 0,
+  // so the banks stop at the shore and the channel fades out.
+  function lines(w, i) {
     if (!w.river[i] || w.water[i]) return [];
-    const b = bend(w, i), joint = (j) => { const c = bend(w, j); return [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2]; };
-    const out = joint(w.riverTo[i]), res = [];
-    for (let k = 0; k < 6; k++) { const j = w.nb[i * 6 + k]; if (j >= 0 && w.riverTo[j] === i) res.push([joint(j), b, out]); }
-    if (!res.length) res.push([b, b, out]);
+    const b = bend(w, i), wi = width(w, i), to = w.riverTo[i], c = joint(w, i, to), wc = jointWidth(w, i, to), main = mainInflow(w, i);
+    const q = (u, v, z, t) => (1 - t) * (1 - t) * u + 2 * t * (1 - t) * v + t * t * z;
+    const into = (pts, p, wd, before) => { // three points on from p, away from the bend, into the water
+      const l = Math.hypot(p[0] - b[0], p[1] - b[1]) || 1, dx = (p[0] - b[0]) / l, dy = (p[1] - b[1]) / l;
+      for (let s = 1; s <= 3; s++) {
+        const e = (s / 3) * 0.45 * w.R, wd2 = wd * (1 + s / 6), pt = [...meander(w, p[0] + dx * e, p[1] + dy * e, wd2), wd2, 1 - s / 3];
+        if (before) pts.unshift(pt); else pts.push(pt);
+      }
+    };
+    const from = inflows(w, i), res = [];
+    for (const k of from.length ? from : [-1]) {
+      const a = k < 0 ? b : joint(w, k, i), wa = k < 0 ? 0.8 : jointWidth(w, k, i), wm = k < 0 || k === main ? wi : wa, pts = [];
+      for (let s = 0; s <= 10; s++) {
+        const t = s / 10, wd = q(wa, wm, wc, t);
+        pts.push([...meander(w, q(a[0], b[0], c[0], t), q(a[1], b[1], c[1], t), wd), wd, 1]);
+      }
+      if (k >= 0 && w.water[k]) into(pts, a, wa, true);
+      if (w.water[to]) into(pts, c, wc, false);
+      res.push(pts);
+    }
     return res;
   }
+  // Adds to the current path the outline of a line at half-width h(point), with round ends. Every outline winds the same way, so one
+  // fill of many outlines paints their union, and where lines overlap the colour does not build up.
+  function outline(ctx, pts, h) {
+    const n = pts.length, left = [], right = [], tan = [];
+    for (let k = 0; k < n; k++) {
+      const p = pts[Math.max(0, k - 1)], q = pts[Math.min(n - 1, k + 1)], l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+      const tx = (q[0] - p[0]) / l, ty = (q[1] - p[1]) / l, r = Math.max(0, h(pts[k]));
+      tan.push([tx, ty, r]); left.push([pts[k][0] - ty * r, pts[k][1] + tx * r]); right.push([pts[k][0] + ty * r, pts[k][1] - tx * r]);
+    }
+    const cap = (p, [tx, ty, r], sgn) => { // half a circle from one side round the end to the other
+      const a0 = Math.atan2(sgn * tx, -sgn * ty), out = [];
+      for (let j = 1; j < 6; j++) out.push([p[0] + Math.cos(a0 - (Math.PI * j) / 6) * r, p[1] + Math.sin(a0 - (Math.PI * j) / 6) * r]);
+      return out;
+    };
+    const ring = [...left, ...cap(pts[n - 1], tan[n - 1], 1), ...right.reverse(), ...cap(pts[0], tan[0], -1)];
+    ctx.moveTo(ring[0][0], ring[0][1]);
+    for (let k = 1; k < ring.length; k++) ctx.lineTo(ring[k][0], ring[k][1]);
+    ctx.closePath();
+  }
   // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
+  // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
   function drawChunk(w, ctx, lv, cx, cy, full) {
     const { R, HW, AP, COLS, ROWS } = w, sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = 2 * R;
     const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R))), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
-    const ps = [];
-    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
-      const i = row * COLS + col;
-      for (const p of pieces(w, i)) ps.push([p, width(w, i)]);
-    }
-    if (!ps.length) return;
+    const all = [];
+    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) all.push(...lines(w, row * COLS + col));
+    if (!all.length) return;
+    const minH = (full ? 0.35 : 0.45) / sc; // a half-width of at least this many texels, so brooks still show on the overview
+    const dry = all.map((pts) => pts.filter((p) => p[3] === 1));
+    // [colour, half-width at a point, land only]: damp ground, then mud and gravel at the edge, shallows, the channel and its deepest part
+    const layers = [
+      ['rgba(64,84,44,0.2)', (p) => p[2] / 2 + 5 + 2.2 * noise(w, p[0] / 6, p[1] / 6, 7), true],
+      ['rgba(126,114,78,0.45)', (p) => Math.max(minH * 1.5, p[2] / 2 + 1.8 + noise(w, p[0] / 4, p[1] / 4, 8)), true],
+      ['rgb(108,172,168)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)), false],
+      ['rgb(70,136,154)', (p) => (p[2] / 2) * 0.58 * p[3] - 0.3, false],
+      ['rgb(54,114,138)', (p) => ((p[2] / 2) * 0.3 - 1.5) * p[3], false],
+    ];
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    const minW = (full ? 0.6 : 0.9) / sc; // at least this many texels wide, so brooks still show on the overview
-    const pass = (style, wf, add, minWidth) => {
-      ctx.strokeStyle = style;
-      for (const [[a, b, c], wd] of ps) {
-        ctx.lineWidth = Math.max(minWidth, wd * wf + add);
-        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(b[0], b[1], c[0], c[1]); ctx.stroke();
-      }
-    };
-    pass('rgba(74,86,54,0.5)', 1, 3, minW * 1.6); // wet, darker banks
-    pass('rgb(80,142,156)', 1, 0, minW);
-    if (sc >= 1 / 3) pass('rgba(186,222,226,0.3)', 0.3, 0, 0); // a light streak down the middle
+    ctx.globalCompositeOperation = 'source-atop';
+    for (const [colour, h, landOnly] of layers) {
+      ctx.beginPath();
+      for (const pts of landOnly ? dry : all) if (pts.length > 1) outline(ctx, pts, h);
+      ctx.fillStyle = colour; ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
@@ -461,16 +533,19 @@ VB['gen/rivers'] = (() => {
     const t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0, px = a[0] + t * dx - x, py = a[1] + t * dy - y;
     return px * px + py * py;
   }
-  // Drops the decoration items ({x, y, ...}) that stand in a river, in place, and returns the array. loc: ArchGen.hexLocator(w).
+  // Drops the decoration items ({x, y, ...}) that stand in a river or on its bank, in place, and returns the array. loc: ArchGen.hexLocator(w).
   function thin(w, items, loc) {
-    const o = [0, 0], near = (x, y) => {
+    const o = [0, 0], cache = new Map(), near = (x, y) => {
       const t = loc(x, y, o);
       if (t < 0) return false;
       for (let k = -1; k < 6; k++) {
         const i = k < 0 ? t : w.nb[t * 6 + k];
         if (i < 0 || !w.river[i]) continue;
-        const r = width(w, i) / 2 + 4;
-        for (const [a, b, c] of pieces(w, i)) if (dist2(x, y, a, b) < r * r || dist2(x, y, b, c) < r * r) return true;
+        if (!cache.has(i)) cache.set(i, lines(w, i));
+        for (const pts of cache.get(i)) for (let s = 1; s < pts.length; s++) {
+          const r = Math.max(pts[s - 1][2], pts[s][2]) / 2 + 5;
+          if (dist2(x, y, pts[s - 1], pts[s]) < r * r) return true;
+        }
       }
       return false;
     };
@@ -480,7 +555,7 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, trace, width, kind, pieces, drawChunk, thin };
+  return { RIVERS, trace, width, kind, lines, drawChunk, thin };
 })();
 </script>
 <script>
