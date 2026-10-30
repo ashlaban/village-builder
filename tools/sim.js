@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
@@ -8,7 +8,7 @@ const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -55,6 +55,18 @@ const tables = {
   events: () => st.events,
   idle: () => idle.result(),
   farms: () => st.farmsteads.map((f) => ({ id: f.id, name: f.name, village: f.village, household: f.household, state: f.state, fields: f.fields.map((fd) => fd.stage).join(',') })),
+  // worn paths per village (tiles within 8 steps of the green, by stage), and the walking network: fords and the route cache
+  paths: () => {
+    const w = st.w, { hexSteps } = VB['sim/hex'], P = VB['sim/paths'];
+    const villages = st.villages.map((v) => {
+      const n = [0, 0, 0];
+      for (let i = 0; i < w.N; i++) if (w.worn[i] && hexSteps(w, v.center, i) <= 8) n[w.worn[i] - 1]++;
+      return { village: v.id, name: v.name, farms: v.farmsteads.length, trodden: n[0], path: n[1], lane: n[2] };
+    });
+    const [, trodden, path, lane] = P.stageCounts(w);
+    return [{ village: 'all', trodden, path, lane, fords: w.crossing.reduce((a, c) => a + (c === 1), 0), routes: st.pathCache.size,
+      fallbacks: st.routeFallbacks }, ...villages];
+  },
 };
 let out = null;
 if (pawnId !== null) { const p = st.pawns[+pawnId]; if (!p) { console.error('no such pawn'); process.exit(1); } out = { ...plain(p), name: Sim.fullName(p) }; }

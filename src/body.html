@@ -249,28 +249,13 @@
     }
     st.treeDirty.clear(); st.biomeDirty.clear();
   }
-  // Repaint worn paths whose stage changed (sim/paths): the close levels are dropped and painted again on demand; the overview, which
-  // shows lanes only, is repainted in place when a tile gains or loses its lane.
-  let laneShown = null;
+  // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
+  // the frame budget; the overview shows no paths.
   function refreshPaths() {
-    const reach = 2 * w.R, over = new Set();
-    for (const tile of st.pathDirty) {
-      const [x0, y0, x1, y1] = [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach];
-      for (const l of [0, 1]) {
-        const [a, b, c, d] = rangeIn(l, [x0, y0, x1, y1]);
-        for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
-      }
-      const lane = w.worn[tile] === 3 ? 1 : 0;
-      if (lane === laneShown[tile]) continue;
-      laneShown[tile] = lane;
-      const [a, b, c, d] = rangeIn(2, [x0, y0, x1, y1]);
-      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) over.add(ckey(2, cx, cy));
-    }
-    for (const k of over) {
-      const ch = chunks.get(k);
-      if (!ch) continue;
-      for (const _ of chunkJob(w, 2, ch.cx, ch.cy, ch.canvas));
-      ch.spr.texture.source.update();
+    const reach = 2 * w.R;
+    for (const tile of st.pathDirty) for (const l of [0, 1]) {
+      const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
     }
     st.pathDirty.clear();
   }
@@ -443,7 +428,6 @@
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
     w = wd; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
-    laneShown = Uint8Array.from(wd.worn, (s) => (s === 3 ? 1 : 0)); // the lanes the overview was painted with
     const water = new PIXI.Sprite(texFrom(wc));
     water.scale.set(wd.STEP); water.position.set(-wd.STEP / 2, -wd.STEP / 2);
     L.water.addChild(water);

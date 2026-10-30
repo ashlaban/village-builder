@@ -51,16 +51,16 @@ for (let i = 0; i < pw.N; i++) {
   if (!pw.worn[i] || pw.dev[i] || pw.river[i]) continue;
   const g = Look.segments(pw, i);
   segs += g.length;
-  check(g.length > 0 && g.every((s) => Math.hypot(s[2] - pw.hx[i], s[3] - pw.hy[i]) < 1.2 * pw.HW), `tile ${i}: trail segments ${g.length}`);
+  check(g.length > 0 && g.every((s) => Math.hypot(s[4] - pw.hx[i], s[5] - pw.hy[i]) < 1.2 * pw.HW), `tile ${i}: trail segments ${g.length}`);
 }
 // decorations: an item on the middle of a lane goes; one well clear of its trail stays
 const lane = pw.worn.findIndex((s, i) => s === 3 && !pw.dev[i] && !pw.river[i]);
 if (lane >= 0) {
   const [bx, by] = Look.bend(pw, lane), segs3 = Look.segments(pw, lane);
-  const clear = (x, y) => segs3.every((g) => {
-    const dx = g[2] - g[0], dy = g[3] - g[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - g[0]) * dx + (y - g[1]) * dy) / l2)) : 0;
-    return Math.hypot(g[0] + t * dx - x, g[1] + t * dy - y) > g[4] / 2 + 6;
-  });
+  const clear = (x, y) => segs3.every((g) => [0, 0.25, 0.5, 0.75, 1].every((t) => { // points along the quadratic curve
+    const u = 1 - t, px = u * u * g[0] + 2 * u * t * g[2] + t * t * g[4], py = u * u * g[1] + 2 * u * t * g[3] + t * t * g[5];
+    return Math.hypot(px - x, py - y) > g[6] / 2 + 10;
+  }));
   const spots = [0, 1, 2, 3, 4, 5].map((k) => [pw.hx[lane] + 0.75 * pw.R * Math.cos(k + 0.5), pw.hy[lane] + 0.75 * pw.R * Math.sin(k + 0.5)]);
   const free = spots.find(([x, y]) => clear(x, y)), items = [{ t: 'stone', x: bx, y: by }, ...(free ? [{ t: 'stone', x: free[0], y: free[1] }] : [])];
   Look.thin(pw, items, G.hexLocator(pw));

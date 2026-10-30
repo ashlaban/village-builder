@@ -15,5 +15,7 @@ for (const [role, bs] of Object.entries(idle.hoursShare)) for (const [season, v]
   check(Math.abs(sum - 100) < 0.5, `idle shares of ${role} in ${season} sum to ${sum}`);
 }
 check(Object.keys(idle.hoursShare).length > 0, 'idle report has no roles');
+const paths = JSON.parse(cp.execFileSync('node', [tool, '--scenario', 'populous', '--seed', '7', '--map', 'tiny', '--years', '0', '--report', 'paths', '--json'], { encoding: 'utf8' }));
+check(paths[0].village === 'all' && paths[0].trodden + paths[0].path > 0 && paths.length > 1, 'paths report: no worn-in paths on a populous map');
 if (failed) process.exit(1);
 console.log(`tools ok: ${rows.length} households`);
