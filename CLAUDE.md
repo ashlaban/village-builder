@@ -7,7 +7,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
-- Test: `npm install && npm test` runs the cheap checks in parallel, about 10 s (build check, lint, backlog, regress, trees, stones, weeding, heirs).
+- Test: `npm install && npm test` runs the cheap checks in parallel, about 10 s (build check, lint, backlog, regress, trees, stones, weeding, heirs, owners, kinlimit).
 - Verify: `npm run verify` runs those and the long runs, about 40 s (golden, populous, births, hunger, page smoke test in jsdom).
   `node tests/run.js verify --verbose` also prints the reported numbers.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
