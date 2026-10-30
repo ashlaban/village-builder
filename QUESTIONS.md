@@ -12,13 +12,21 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 
 ### VB-030: inheritance and expansion (unblocks VB-031 to VB-034)
 1. Clearing a plot: the design's trigger (someone waiting, nothing claimable, a free site, one project per village) and site rule (within 4 steps of the green, own or neighbouring region, not the last commons wood). Keep both? **P:** yes.
+   **A (Kim, 30 Oct):** up to two projects per village at once, sites up to 6 steps from the green. Houses may stand next to each other, and a field need not touch its house, though tiles next to the house are preferred when possible.
 2. How big is a new plot at first? **P:** a house and 2 fields; the household makes more fields later itself (VB-010's rule, up to 4).
+   **A (Kim, 30 Oct):** a house and 1 field.
 3. Job hours. The design's numbers (break 6–8 h, fell 10 h, grub 6 h, cottage 40 h) predate the long-work notes, which made tilling 20 h and breaking ground 30 h. **P:** fields as VB-010 (clear 10 h + up to 20 h for stones, break 30 h); fell 10 h and grub 6 h per forest tile; the cottage 120 h in three steps (foundation 30, walls 60, roof 30), so a plot takes most of a year for two or three people.
+   **A (Kim, 30 Oct):** accepted.
 4. Who works on a plot, by role priority (0–10)? **P:** those waiting for it 9; farmhand and maid 7; son and daughter 5; farmer 3; others 0.
+   **A (Kim, 30 Oct):** accepted.
 5. Under "the village allots it", who gets the plot? **P:** as the design says: married couples first, then by age. Can a single adult get one? **P:** yes, after every couple.
+   **A (Kim, 30 Oct):** accepted.
 6. Inheritance shares (`stake`, today unused) become the new household's starting grain. Who pays the shares still `owed`, and when? **P:** the farm they came from, at each moving round, from grain above its reserve.
+   **A (Kim, 30 Oct):** accepted.
 7. Claims on empty farms: restoration hours by condition. **P:** roof repair 20 h above 40%, 60 h from 15% to 40%, a full rebuild (as a new cottage, 120 h) below 15%; fields gone to grass are cleared like a meadow (10 h), scrub 20 h.
+   **A (Kim, 30 Oct):** accepted, but the repair time scales linearly with condition: about 3 h at 90%, and 20 + (60 − 20) / (40 − 15) × 10 = 36 h at 30%. Written as straight lines through 0 h at 100%, 20 h at 40%, 60 h at 15% and 120 h (a full rebuild) at 0%.
 8. Under `claims: assembly` ("the meeting assigns"), how does the meeting choose? **P:** the claimant with the most voice-weighted support among those with a voice, using the existing ties; by age until that is built.
+   **A (Kim, 30 Oct):** accepted.
 9. Splitting land (VB-034): does a sibling who gets fields also need a new house before they can farm them? **P:** yes, a building site next to the fields (VB-032); until it is built, the old household works the fields and gives the sibling half the harvest.
 
 ### VB-050: health (numbers to confirm)
