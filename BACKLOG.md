@@ -39,8 +39,8 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 |----|------|------|-------|--------|----------|------|---------|------|
 | VB-001 | Make the test suite fail on regressions | - | - | done | 1 | S | Add assertions so `npm test` fails when the sim or page breaks. | [backlog/VB-001.md](backlog/VB-001.md) |
 | VB-002 | Clock shows game time in 5-minute steps, apart from the simulation step | - | - | done | 1 | S | UI clock follows game time in 5-minute steps, redrawn every frame. | [backlog/VB-002.md](backlog/VB-002.md) |
-| VB-003 | Every farm in a village, and an owner for every tile | claims | implement | blocked | 1 | M | Lone farms become one-farm villages; a per-tile owner map. | [backlog/VB-003.md](backlog/VB-003.md) |
-| VB-004 | Ownership map overlay | claims | implement | blocked | 3 | S | Toggle overlay that tints each owned tile by its owner. | [backlog/VB-004.md](backlog/VB-004.md) |
+| VB-003 | Every farm in a village, and an owner for every tile | claims | implement | ready | 1 | M | Lone farms become one-farm villages; a per-tile owner map. | [backlog/VB-003.md](backlog/VB-003.md) |
+| VB-004 | Ownership map overlay | claims | implement | ready | 3 | S | Toggle overlay that tints each owned tile by its owner. | [backlog/VB-004.md](backlog/VB-004.md) |
 | VB-005 | Trees per wooded tile | - | - | done | 2 | M | Forest tiles hold trees; firewood fells them, they regrow, 0 becomes meadow. | [backlog/VB-005.md](backlog/VB-005.md) |
 | VB-006 | Stones on meadow tiles | - | - | done | 2 | S | Meadow tiles track stone content for field-making and building stone. | [backlog/VB-006.md](backlog/VB-006.md) |
 | VB-007 | Tilling and threshing as multi-day work | - | - | done | 2 | M | Tilling takes several days per field; harvest gains a threshing step. | [backlog/VB-007.md](backlog/VB-007.md) |
@@ -86,7 +86,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-047 | Plan: animals and husbandry | animals | plan | needs-review | 3 | M | Confirm the first version of herds, hay and the winter limit, then write the implement tasks. | [backlog/VB-047.md](backlog/VB-047.md) |
 | VB-048 | Wrap-up: tune yields and the food balance of a farm | animals | wrap-up | blocked | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. | [backlog/VB-048.md](backlog/VB-048.md) |
 | VB-049 | Seed corn kept back for every field | food | implement | ready | 1 | S | Households set aside seed for all their fields before they eat, so a hungry farm can still sow. | [backlog/VB-049.md](backlog/VB-049.md) |
-| VB-050 | Health: hunger drains it, and a starving pawn dies within a season | food | implement | needs-review | 1 | M | Each pawn has health 0–100; hunger drains it, fast at hunger 1, and health 0 is death. | [backlog/VB-050.md](backlog/VB-050.md) |
+| VB-050 | Health: hunger drains it, and a starving pawn dies within a season | food | implement | ready | 1 | M | Each pawn has health 0–100; hunger drains it, fast at hunger 1, and health 0 is death. | [backlog/VB-050.md](backlog/VB-050.md) |
 | VB-051 | Death causes by age, in their own module | food | implement | ready | 2 | S | Infants no longer die of "old age"; death causes and the death roll leave `sim/hunger`. | [backlog/VB-051.md](backlog/VB-051.md) |
 | VB-052 | Indexes for children, spouses and holders | tooling | implement | ready | 1 | M | Keep indexes so family queries stop scanning every pawn ever born; the moving round drops from 2.6 s to under 0.3 s. | [backlog/VB-052.md](backlog/VB-052.md) |
 | VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 2 | L | Split the 1,600-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
@@ -94,3 +94,4 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-055 | Type checking of the JavaScript with checkJs | tooling | implement | needs-review | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. | [backlog/VB-055.md](backlog/VB-055.md) |
 | VB-056 | Lint: the page only reads the simulation state | tooling | implement | ready | 2 | S | A lint rule fails when the page script writes to `st` other than through the allowed flags. | [backlog/VB-056.md](backlog/VB-056.md) |
 | VB-057 | Golden text of the page's panels | tooling | implement | ready | 3 | S | Record the text of every panel for a fixed seed and day, so unintended UI changes fail the verify run. | [backlog/VB-057.md](backlog/VB-057.md) |
+| VB-058 | The village green and well, built by the village | expansion | implement | needs-review | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
