@@ -3,13 +3,17 @@ VB['sim/routes'] = (() => {
   const { TERRAIN, ROUTE } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs, so a route costs the same both ways ----
-  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields). Houses and fields cost 1.
+  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
+  // bridges, VB-112). Houses and fields cost 1.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
+    if (w.river && w.river[i]) return w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity;
     if (w.dev && w.dev[i]) return 1;
     return TERRAIN[w.biome[i]] ?? 1;
   }
   const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
+  const walkable = (w) => (j) => passable(w, j);
   // Cost of the step between neighbouring tiles a and b; a closed end (where a route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
     const ca = tileCost(w, a), cb = tileCost(w, b);
@@ -113,5 +117,5 @@ VB['sim/routes'] = (() => {
     }
     st.routeDirty.clear();
   }
-  return { tileCost, passable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
+  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
 })();

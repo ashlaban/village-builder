@@ -2,7 +2,8 @@
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable } = VB['sim/rules'];
-  const { bfs, land } = VB['sim/hex'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { clearTile } = VB['sim/forest'];
@@ -26,7 +27,7 @@ VB['sim/expansion'] = (() => {
       for (let k = 0; k < 6; k++) { const n = w.nb[t * 6 + k]; if (n >= 0 && w.region[n] === vreg) return true; }
       return false;
     };
-    for (const [t, d] of bfs(w, v.center, REACH, land(w)).dist) {
+    for (const [t, d] of bfs(w, v.center, REACH, walkable(w)).dist) {
       if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);

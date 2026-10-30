@@ -2,7 +2,8 @@
 VB['sim/scenarios'] = (() => {
   const { B, mulberry32 } = VB['gen'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
-  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
+  const { bfs, hexSteps, landComponents } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
@@ -29,7 +30,8 @@ VB['sim/scenarios'] = (() => {
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
-  // Populous Villages: only villages, of three size bands, until the map holds the target population.
+  // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
+  // the first two villages are a large and a medium one, which take the best sites.
   const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
   const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
@@ -41,6 +43,7 @@ VB['sim/scenarios'] = (() => {
     while (pop < lo) {
       let u = rand(), band = BANDS[BANDS.length - 1];
       for (const b of BANDS) { if (u < b[0]) { band = b; break; } u -= b[0]; }
+      if (lo >= POPULATION.big[0] && centres.length < 2) band = BANDS[2 - centres.length]; // a big map has a large and a medium village
       const farms = Math.min(band[1] + ((rand() * (band[2] - band[1] + 1)) | 0), Math.floor((hi - pop) / 9));
       const free = (i) => comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
@@ -69,7 +72,7 @@ VB['sim/scenarios'] = (() => {
     const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
-    const { dist: far } = bfs(w, a, 200, land(w));
+    const { dist: far } = bfs(w, a, 200, walkable(w));
     let b = findSite(w, rand, comp, (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30);
     if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
     if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);

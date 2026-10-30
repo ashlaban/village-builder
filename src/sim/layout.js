@@ -1,8 +1,9 @@
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, farmable, fertility, DIRNAME } = VB['sim/rules'];
-  const { bfs, land, hexSteps } = VB['sim/hex'];
+  const { RIVER, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   // ---- placing the founders ----
   function placeFields(w, used, house, n, avoid) {
     const cand = [];
@@ -16,12 +17,13 @@ VB['sim/layout'] = (() => {
   }
   function siteScore(w, c) {
     if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
-    const { dist } = bfs(w, c, 3, land(w));
+    const { dist } = bfs(w, c, 3, walkable(w));
     let farm = 0;
     for (const [j] of dist) if (farmable(w, j)) farm += fertility(w, j);
-    const { dist: d6 } = bfs(w, c, 6, land(w));
+    const { dist: d6 } = bfs(w, c, 6, walkable(w));
     let wood = 0, shore = 0, river = Infinity;
-    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (w.river[j] && d < river) river = d; }
+    // steps to the nearest river: one more than to the nearest bank on this side (a river tile is not walked on but at a ford)
+    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (byRiver(w, j) && d + 1 < river) river = d + 1; }
     for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
     return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) + (RIVER.site[river] || 0) - w.hp[c] * 6;
   }
@@ -77,7 +79,7 @@ VB['sim/layout'] = (() => {
     while (villages.some((v) => v.name === name)) name = villageName(rand);
     const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
     used.add(center);
-    const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
+    const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, walkable(w)); // bigger villages spread wider
     for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
     const greenAvoid = new Set([center]);
     for (let n = 0; n < nFarms; n++) {
@@ -120,9 +122,9 @@ VB['sim/layout'] = (() => {
       }
     }
   }
-  // The nearest forest tile within 16 steps that is not a house or field, or -1.
+  // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
   function nearestWood(w, used, from) {
-    const { dist: dd } = bfs(w, from, 16, land(w));
+    const { dist: dd } = bfs(w, from, 24, walkable(w));
     let wl = -1, wd = Infinity;
     for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
     return wl;
@@ -143,7 +145,7 @@ VB['sim/layout'] = (() => {
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
   function findLoneFarm(w, used, rand, center, farmsteads, villages = []) {
-    const { dist: reach } = bfs(w, center, 40, land(w));
+    const { dist: reach } = bfs(w, center, 40, walkable(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
       if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;

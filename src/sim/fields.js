@@ -2,7 +2,8 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { ECON, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
-  const { bfs, land } = VB['sim/hex'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const MAX_FIELDS = 4, REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
@@ -20,7 +21,7 @@ VB['sim/fields'] = (() => {
   function chooseTile(st, f) {
     const w = st.w, centres = new Set(st.villages.map((v) => v.center));
     let best = -1, bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, REACH, land(w)).dist) {
+    for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || centres.has(t) || st.used.has(t)) continue;
       const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d;
       if (s > bs) { bs = s; best = t; }
