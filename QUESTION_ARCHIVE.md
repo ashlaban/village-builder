@@ -11,7 +11,7 @@ A household of 6 eats 192 rations a year with four young children and 288 when a
 1. Should a family be fed from its own fields in an ordinary year before animals exist? **P:** yes: `fieldYield` 100 and seed 25 (4:1 kept), so a field gives about 72 after seed; three fields then give about 218 and four about 290.
    **A (Kim, 30 Oct):** as proposed (P). Also (new): the health drain falls from 9 to 4 × h² a day, so a starving adult dies in about 25 days, not 12; with both, populous seed 7 loses 7 to starvation in year 2 instead of 427.
 2. Should the populous generator give households of 7 or more a fourth field? **P:** yes, where a farmable tile is free within 2 steps of the house.
-   **A (Kim, 30 Oct):** yes, but the generator places a farm's fields as one contiguous shape within 4 tiles of the house; they need not be next to it. This holds for all generators and all farms; a field made in play prefers a tile touching the block within 4 steps, and only if none is free starts a new block (new task VB-103).
+   **A (Kim, 30 Oct):** yes, but the generator places a farm's fields as one contiguous shape within 4 tiles of the house; they need not be next to it. This holds for all generators and all farms; a field made in play prefers a tile touching the block within 4 steps, and only if none is free starts a new block (new task VB-109).
 3. When milk and meat arrive (VB-048), is the yield tuned down again so animals fill part of the need? **P:** yes; 100 is a starting value for the years before animals.
    **A (Kim, 30 Oct):** as proposed (P).
 
@@ -98,23 +98,23 @@ Populous children are spaced 2 years from age 0–2, so the eldest is at most 14
 3. Announcements? **P:** a pawn taking up a cause and a change of practice are shown as a toast and kept in the record of events (VB-075).
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-096: several hands on one field job (jobs review)
+### VB-102: several hands on one field job (jobs review)
 A job takes one pawn; in spring 69% of adults' idle time is spent with no open job they may take, while plowing waits up to 27 hours (90th percentile).
 1. How many hands per job? **P:** plow, clear and break 2; reap 3 (one cuts, others bind and stook); weed 2; thresh 2 (flails in pairs); sow, haul, wood, water, cook and mend 1.
    **A (Kim, 30 Oct):** basically the whole household can take part, with priorities by role: plow, sow, weed, reap, haul, thresh, clear and break take any number of workers; cook, water, wood and mend stay one pawn per job.
-2. Does each extra hand work at full rate? **P:** yes, for now; crowding losses wait for the wrap-up (VB-102) to show whether they are needed.
+2. Does each extra hand work at full rate? **P:** yes, for now; crowding losses wait for the wrap-up (VB-108) to show whether they are needed.
    **A (Kim, 30 Oct):** as proposed (P).
 3. How strongly is a free job preferred to joining one? **P:** a bid for a job with k workers is multiplied by 0.8^k.
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-097: any allowed work beats idling (jobs review)
+### VB-103: any allowed work beats idling (jobs review)
 110 of 119 open wood jobs on a summer evening could get no farmer's bid: urgency is about 0.1 with a full pile, and the walk costs more.
 1. A floor for the bid? **P:** 0.1 plus the noise, for role priority 3 or more; poor fits (2 or less) keep the 2-hour wait and get no floor.
    **A (Kim, 30 Oct):** as proposed (P).
 2. Firewood for the winter? **P:** from summer day 0 to the end of autumn the target is 40 (winter use about 19, autumn's 6, and a margin), 30 the rest of the year.
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-098: children's work (jobs review)
+### VB-104: children's work (jobs review)
 Kim decided: from 7, at reduced efficiency. The numbers:
 1. Which jobs? **P:** water 6, weed 5, haul 4, reap 3; adults' priorities stay higher.
    **A (Kim, 30 Oct):** as proposed (P).
@@ -123,7 +123,7 @@ Kim decided: from 7, at reduced efficiency. The numbers:
 3. Do girls and boys differ before 14? **P:** no; the roles split at 14 as today.
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-099: daylight by season (jobs review)
+### VB-105: daylight by season (jobs review)
 Kim decided: daylight changes with the season; night is a fixed, short (compressed) block of game hours.
 1. The night? **P:** 21:00 to 05:00, home and indoors.
    **A (Kim, 30 Oct):** as proposed (P).
@@ -199,7 +199,7 @@ Answered so far (see `QUESTION_ARCHIVE.md`): roe deer first; not every founders 
 2. Do cattle farms keep a pair of oxen at the start? **P:** one pair in the whole founders group, at the farm with the bull; the other farms hoe until they raise oxen from bull calves (castrated at 1 year, working from 3). This keeps the "ard is 2–3× faster than a hoe" advantage visible from year 1.
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-100: help between households (jobs review)
+### VB-106: help between households (jobs review)
 Kim decided: help between households is allowed, and it builds relationships.
 1. Which jobs? **P:** plow, sow, weed, reap, haul, thresh, clear, break and mend; not cook, water or wood, which are the household's own.
    **A (Kim, 30 Oct):** as proposed (P).
@@ -210,7 +210,7 @@ Kim decided: help between households is allowed, and it builds relationships.
 4. What does help build? **P:** per finished job, tie +0.2 and opinion +0.05 × (1 − opinion) between the helper and each adult of the household; nothing is owed.
    **A (Kim, 30 Oct):** as proposed (P).
 
-### VB-101: interrupts (jobs review)
+### VB-107: interrupts (jobs review)
 1. When does a pawn leave its job? **P:** when the best other bid is more than 1.5 × the current job's bid plus 1, checked at every full hour, at most one switch an hour.
    **A (Kim, 30 Oct):** as proposed (P).
 2. May a pawn walking to a job switch? **P:** no; only pawns at work, not walking or carrying.
@@ -224,7 +224,7 @@ Kim decided: help between households is allowed, and it builds relationships.
 
 # Archived 30 October 2026 (jobs review)
 
-## Work and jobs (become the work arch, VB-095 to VB-102)
+## Work and jobs (become the work arch, VB-101 to VB-108)
 
 1. What is the job system for: something to watch, or something the player steers (per-pawn priorities, forced jobs)? **P:** decided by the player's role (VB-079).
    **A (Kim, 30 Oct):** player-steerable, but that comes later; the player should be able to influence the world a lot, through all the systems.

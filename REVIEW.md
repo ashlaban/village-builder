@@ -13,7 +13,7 @@ Numbers below come from `npm run verify --verbose` and from short scripts run on
 3. **Two Decided foundations are missing: commands and save games.** Pawns start jobs directly (`start` in `src/sim/agents.js`), not through commands. Nothing can save a run, although a run is meant to last 40–80 hours. The state holds closures, so it cannot be written out as it stands.
 4. **The simulation is fast enough in steady state but stalls once a year.** About 200 ms of simulation per game day at 818 pawns, so even 10× uses about 4% of a core. The meetings and the moving round freeze the page for 1.6 s and 2.6 s, which VB-052 addresses.
 5. **Debugging leans on hashes and print-outs.** The golden test says which top-level key changed, not what changed. One random stream feeds every system, so a change to job matching also changes who dies. There is no way to run, query or dump a state from the command line. These are cheap to fix and make each later task cheaper.
-6. **Pawns stand idle while work waits (addendum).** Farmers have no job for 35% of spring work hours and 83% of summer ones; children for all of them. One pawn per job, household-only jobs and a bid that can fall below zero leave work undone while hands are free. The new `work` arch (VB-095 to VB-102) addresses it.
+6. **Pawns stand idle while work waits (addendum).** Farmers have no job for 35% of spring work hours and 83% of summer ones; children for all of them. One pawn per job, household-only jobs and a bid that can fall below zero leave work undone while hands are free. The new `work` arch (VB-101 to VB-108) addresses it.
 7. **Starvation kills half the populous scenario in year 2 (addendum).** Since health (VB-050), the lean summer of year 2 is lethal: 427 of 820 people starve at seed 7, 321 of 851 at seed 42, and 8 of 11 founders at seed 7. The food balance (VB-080) is now urgent.
 
 ## Measurements
@@ -51,7 +51,7 @@ Status: **done** means it is built as designed, **partly** means some of it is b
 | Births outside marriage, courting | task | Social and courting archs |
 | Hunger: kills, slows work, postpones marriage and births | done | VB-028; health is VB-050 |
 | Jobs owned by household or village; matching best fit first; poor fit waits 2 h | done | One pawn per job; many posted jobs never get a bid (see Work and jobs) |
-| Daily rhythm: work 7:00–17:00, indoors at night | done | Kim, 30 Oct: daylight by season around a fixed short night; VB-099 |
+| Daily rhythm: work 7:00–17:00, indoors at night | done | Kim, 30 Oct: daylight by season around a fixed short night; VB-105 |
 | Long work: tilling, threshing, weeding | done | VB-007, VB-008 |
 | Cooking makes food | task | The cook job only marks the day; VB-022 |
 | Milling | task | VB-009, after VB-022 |
@@ -114,7 +114,7 @@ What exists is good: a golden file, a lint for structure and state tags, a backl
 
 ## Work and jobs (addendum, 30 October 2026, at `6e5e39b`)
 
-A review of the job system (`src/sim/jobs.js`, `src/sim/agents.js`, `ROLES` and `KINDS` in `src/sim/rules.js`) against the design and against the colony-sim genre. Numbers are from populous medium at seed 7, year 1 (year 2 is distorted by the starvation above), from scratch scripts on the Node loader; VB-095 makes them a standard report (`tools/sim.js --report idle`).
+A review of the job system (`src/sim/jobs.js`, `src/sim/agents.js`, `ROLES` and `KINDS` in `src/sim/rules.js`) against the design and against the colony-sim genre. Numbers are from populous medium at seed 7, year 1 (year 2 is distorted by the starvation above), from scratch scripts on the Node loader; VB-101 makes them a standard report (`tools/sim.js --report idle`).
 
 **How it works.** Every work hour `refreshJobs` re-posts the jobs of fields, households and fences, keyed so progress survives the night. Each idle pawn bids on each job it may take: role priority × urgency − 0.15 × steps + noise up to 0.3, with poor fits (priority 2 or less) waiting 2 hours. The best bids are assigned first; a job holds one pawn (`j.claim`). Walking, working and carrying home are phases of one job; everyone is released at 17:00.
 
@@ -145,13 +145,13 @@ Share of work hours (7–17) with no job, by role and season:
 
 | Area | In the genre | Here | Task |
 | --- | --- | --- | --- |
-| Workers per job | RimWorld splits a large build into many frames; Banished and Manor Lords staff a workplace with several workers | One pawn per job: a 20-hour field has one hoer | VB-096 |
-| Idle against low-value work | RimWorld and Oxygen Not Included: any allowed job beats idling; priority orders the jobs | A bid can fall below 0, so a posted job is never taken | VB-097 |
-| Children | Period settings put children to work from about 7 | Idle until 14 | VB-098 (Kim: from 7, at reduced efficiency) |
-| Working day | RimWorld schedules; daylight in historical builders | 7:00–17:00 all year | VB-099 (Kim: daylight by season, a fixed short night) |
-| Help between households | Village-scale builders let anyone work anywhere | A household's jobs are for its members only | VB-100 (Kim: allowed; builds relationships) |
-| Interrupts | RimWorld's think tree lets urgent work and needs preempt a job | A job is kept until done or 17:00; VB-022 adds it for the cook only | VB-101 |
-| Legibility | Oxygen Not Included lists each worker's errands with reasons; RimWorld explains on hover | "Resting" or "Strolling", no reason | VB-095 |
+| Workers per job | RimWorld splits a large build into many frames; Banished and Manor Lords staff a workplace with several workers | One pawn per job: a 20-hour field has one hoer | VB-102 |
+| Idle against low-value work | RimWorld and Oxygen Not Included: any allowed job beats idling; priority orders the jobs | A bid can fall below 0, so a posted job is never taken | VB-103 |
+| Children | Period settings put children to work from about 7 | Idle until 14 | VB-104 (Kim: from 7, at reduced efficiency) |
+| Working day | RimWorld schedules; daylight in historical builders | 7:00–17:00 all year | VB-105 (Kim: daylight by season, a fixed short night) |
+| Help between households | Village-scale builders let anyone work anywhere | A household's jobs are for its members only | VB-106 (Kim: allowed; builds relationships) |
+| Interrupts | RimWorld's think tree lets urgent work and needs preempt a job | A job is kept until done or 17:00; VB-022 adds it for the cook only | VB-107 |
+| Legibility | Oxygen Not Included lists each worker's errands with reasons; RimWorld explains on hover | "Resting" or "Strolling", no reason | VB-101 |
 | Per-pawn differences | Skills, passions and a per-pawn priority grid (RimWorld, Oxygen Not Included, Dwarf Fortress) | Fixed per role; hunger and health slow work | None: "stats and traits" is Open in the design |
 | Player control | Player-set priorities and forced jobs | None; commands are VB-076 | Later (Kim: the player steers jobs, after the player's role, VB-079) |
 | Planning ahead | Mostly reactive in the genre too | Reactive; VB-023 patches one sowing case | None yet: a household plan, made by the head each morning as commands, would suit the setting and the player role |
@@ -160,7 +160,7 @@ Share of work hours (7–17) with no job, by role and season:
 
 - Cooking and water are posted once per game day, although a day stands for a week, and they take 35% of all hours worked. Worth a look when the food arch is tuned.
 - 10 cook jobs a day are still unclaimed at 17:00 (VB-022).
-- Help between households changes VB-071's index: a pawn must also see the other households' jobs of its village (VB-100 says so).
+- Help between households changes VB-071's index: a pawn must also see the other households' jobs of its village (VB-106 says so).
 
 ## Backlog changes from this review
 
@@ -170,4 +170,4 @@ Share of work hours (7–17) with no job, by role and season:
 - New arch `core`: VB-072 (random streams), VB-073 (state without closures), VB-074 (save and restore), VB-075 (record of events), VB-076 (plan: commands), VB-077 (plan: saving in the page), VB-078 (wrap-up).
 - New arch `player`: VB-079 (plan: the player's role).
 - Design gaps: VB-080 (food balance), VB-081 (populous adult children), VB-082 (legible customs), VB-083 (seasons), VB-084 (speed), VB-085 (heirs names).
-- Addendum, work and jobs: new arch `work`, VB-095 (why idle; ready), VB-096 (several hands), VB-097 (bid floor, winter wood), VB-098 (children's work), VB-099 (daylight), VB-100 (help between households), VB-101 (interrupts), VB-102 (wrap-up); questions in `QUESTIONS.md`. VB-079 notes that the player steers jobs later.
+- Addendum, work and jobs: new arch `work`, VB-101 (why idle; ready), VB-102 (several hands), VB-103 (bid floor, winter wood), VB-104 (children's work), VB-105 (daylight), VB-106 (help between households), VB-107 (interrupts), VB-108 (wrap-up); questions in `QUESTIONS.md`. VB-079 notes that the player steers jobs later.
