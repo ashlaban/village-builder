@@ -1218,11 +1218,10 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const farmOf = (p) => (p.household !== null && st.households[p.household] ? st.farmsteads[st.households[p.household].farmstead] : null);
   const heirTo = (id) => st.households.filter((h) => !h.dissolved && Sim.heirRanking(st, h)[0] === id).map((h) => st.farmsteads[h.farmstead]);
-  const JOBNAME = { plow: 'Hoe a field', sow: 'Sow a field', reap: 'Reap a field', haul: 'Bring in sheaves', wood: 'Cut firewood', water: 'Fetch water', cook: 'Cook', weed: 'Weed a field', clear: 'Clear a new field', break: 'Break new ground', thresh: 'Thresh the grain', mend: 'Mend the fence' };
   function jobsLine(list) {
     if (!list.length) return 'none open';
     const n = {};
-    for (const j of list) { const k = JOBNAME[j.kind]; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claim === null ? 'open' : 'taken']++; }
+    for (const j of list) { const k = Sim.KINDS[j.kind].name; n[k] = n[k] || { open: 0, taken: 0 }; n[k][j.claim === null ? 'open' : 'taken']++; }
     return Object.entries(n).map(([k, v]) => `${k}${v.open + v.taken > 1 ? ` ×${v.open + v.taken}` : ''}${v.taken ? (v.open ? `, ${v.taken} under way` : ', under way') : ''}`).join('; ');
   }
   function fieldSummary(f) {

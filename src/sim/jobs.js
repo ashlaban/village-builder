@@ -5,6 +5,7 @@ VB['sim/jobs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob } = VB['sim/agents'];
+  const { KINDS, woodGoal } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
@@ -34,8 +35,6 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
     }
   }
-  // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
-  const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   function refreshJobs(st, c) {
     const E = st.ECON;
     for (const j of st.jobs.values()) j.live = false;
@@ -75,19 +74,8 @@ VB['sim/jobs'] = (() => {
     if (j.owner.type === 'village') return villageOf(st, p) === j.owner.id;
     return true;
   }
-  function urgency(st, j, c) {
-    const E = st.ECON, U = MATCH.urgency, hh = j.farm ? st.households[j.farm.household] : null;
-    switch (j.kind) {
-      case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
-      case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
-      case 'haul': return U.haul;
-      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (woodGoal(E, c) - hh.wood) / woodGoal(E, c) + (c.season === 2 ? U.woodSummer : 0);
-      case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
-      case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
-      case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
-    }
-    return U.other;
-  }
+  // A job's weight in a bid, as its kind says (sim/kinds).
+  const urgency = (st, j, c) => (KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other);
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
@@ -125,10 +113,6 @@ VB['sim/jobs'] = (() => {
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
-  const LABEL = {
-    plow: 'Hoeing', sow: 'Sowing', reap: 'Reaping', haul: 'Hauling sheaves', wood: 'Firewood', water: 'Water',
-    thresh: 'Threshing', mend: 'Mending',
-  };
   function idleLine(st, id) {
     const a = st.agents[id], p = st.pawns[id], c = cal(st.t);
     if (!p.alive || a.job || a.phase === 'home' || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from) return null;
@@ -136,7 +120,7 @@ VB['sim/jobs'] = (() => {
     if (!rows.length) return `No work for ${ROLES[p.role].title.toLowerCase()} at ${st.farmsteads[st.households[p.household].farmstead].name}`;
     const r = rows.find((x) => x.reason);
     if (!r) return null;
-    return `${LABEL[r.kind] || r.kind.replace(/^./, (ch) => ch.toUpperCase())}: ${r.reason}`;
+    return `${KINDS[r.kind].label}: ${r.reason}`;
   }
   // Two sets of jobs, each in increasing id, as one list in increasing id: the order st.jobs iterates in.
   function mergeById(x, y) {
