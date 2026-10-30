@@ -13,7 +13,7 @@ VB['sim/rules'] = (() => {
   // ---- economy (rations = one adult's food for one game day) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
-    fieldYield: 80, seedPerField: 20, // a 4:1 yield ratio
+    fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
     sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
     woodPerTrip: 3, woodTarget: 30, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
@@ -74,7 +74,7 @@ VB['sim/rules'] = (() => {
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = { drain: 4, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
   const MARRIAGE = {

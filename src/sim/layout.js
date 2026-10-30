@@ -161,6 +161,21 @@ VB['sim/layout'] = (() => {
     village.farmsteads.push(f.id); villages.push(village);
     return f;
   }
+  // One more field for a farm: the best free farmable tile touching one of its fields, within 4 steps of the house. False when there is none.
+  function addField(w, used, f) {
+    const { dist } = bfs(w, f.house, 4, (j) => farmable(w, j));
+    let best = -1, bs = -Infinity;
+    for (const [t, d] of dist) {
+      if (used.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
+      const s = FERTILITY[w.biome[t]] - 0.15 * d;
+      if (s > bs) { bs = s; best = t; }
+    }
+    if (best < 0) return false;
+    used.add(best);
+    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[best]],
+      weedOpen: false, weedPosted: null, weedMiss: 0 });
+    return true;
+  }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
@@ -173,6 +188,7 @@ VB['sim/layout'] = (() => {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
         villages.push(v); return v;
       },
+      addField(fid) { return addField(w, used, farmsteads[fid]); },
       addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
