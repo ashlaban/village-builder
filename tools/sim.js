@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
@@ -8,7 +8,7 @@ const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -31,9 +31,10 @@ const causeOf = (p) => { const e = p.events.find((x) => x.kind === 'died'); retu
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
 say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${years} years`);
 say('year  pop  births  deaths(by cause)  marriages  hungry-days  mean-grain  demand  ms/day');
+const idle = report === 'idle' ? require('./idle.js')(Sim, st) : null;
 for (let y = 1; y <= years; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
-  Sim.advance(st, Sim.YEAR);
+  if (idle) idle.advanceYear(); else Sim.advance(st, Sim.YEAR);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
@@ -52,6 +53,7 @@ const tables = {
   jobs: () => [...st.jobs.values()].map((j) => ({ id: j.id, key: j.key, kind: j.kind, owner: j.owner, site: j.site, claim: j.claim, done: j.done })),
   customs: () => st.cenv.cultures.map((c, i) => ({ culture: i, ...plain(c) })),
   events: () => st.events,
+  idle: () => idle.result(),
   farms: () => st.farmsteads.map((f) => ({ id: f.id, name: f.name, village: f.village, household: f.household, state: f.state, fields: f.fields.map((fd) => fd.stage).join(',') })),
 };
 let out = null;
@@ -60,7 +62,15 @@ else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
   out = { ...plain(h), farm: plain(st.farmsteads[h.farmstead]), people: h.members.map((m) => ({ ...pawnRow(st.pawns[m]), events: st.pawns[m].events })) };
 } else if (report) out = plain(tables[report]());
-if (out !== null) {
+if (out !== null && report === 'idle' && !json) {
+  console.log('share of work hours (%): working / walking / carrying / idle');
+  for (const [role, bs] of Object.entries(out.hoursShare)) for (const [season, v] of Object.entries(bs)) {
+    console.log(`  ${role.padEnd(10)} ${season.padEnd(7)} ${v.working} / ${v.walking} / ${v.carrying} / ${v.idle}`);
+  }
+  console.log('idle hours by reason (%):'); console.table(out.idleReasons);
+  console.log('wait from posting to claim (hours):'); console.table(out.waitHours);
+  console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
+} else if (out !== null) {
   if (json) console.log(JSON.stringify(out, null, 1));
   else if (Array.isArray(out) && out.length && typeof out[0] === 'object') console.table(out.map((o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : v]))));
   else console.log(JSON.stringify(out, null, 1));

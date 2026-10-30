@@ -9,5 +9,11 @@ const rows = JSON.parse(run('--years', '1', '--json', '--report', 'households'))
 const it = VB.gen.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 check(Array.isArray(rows) && rows.length === VB.sim.seed(r.value, 7, 'founders').households.length, `households report has ${rows.length} entries`);
 check(rows.every((h) => typeof h.grain === 'number'), 'household entries lack grain');
+const idle = JSON.parse(cp.execFileSync('node', [tool, '--scenario', 'founders', '--seed', '7', '--map', 'tiny', '--years', '1', '--report', 'idle', '--json'], { encoding: 'utf8' }));
+for (const [role, bs] of Object.entries(idle.hoursShare)) for (const [season, v] of Object.entries(bs)) {
+  const sum = v.working + v.walking + v.carrying + v.idle;
+  check(Math.abs(sum - 100) < 0.5, `idle shares of ${role} in ${season} sum to ${sum}`);
+}
+check(Object.keys(idle.hoursShare).length > 0, 'idle report has no roles');
 if (failed) process.exit(1);
 console.log(`tools ok: ${rows.length} households`);
