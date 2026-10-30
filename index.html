@@ -1265,9 +1265,18 @@ VB['sim/rules'] = (() => {
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
+  // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
+  const MARRIAGE = {
+    menFrom: 20, womenFrom: 18, // youngest age to marry
+    ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
+    sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
+    minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
+    kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
+  };
+
   const SPEED = 3; // tiles per game hour on foot
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    HUNGER, HEALTH, SPEED };
+    HUNGER, HEALTH, MARRIAGE, SPEED };
 })();
 </script>
 <script>
@@ -2111,6 +2120,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
+  const { hexSteps } = VB['sim/hex'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -2211,6 +2221,22 @@ VB['sim/heirs'] = (() => {
       `${reason === 'death' ? ` after ${fullName(op)}` : reason === 'marriage' ? ' on marrying' : ' as the old holder retires'}.`);
     st.visualDirty = true;
   }
+  // The smallest undissolved household of the village, or of the nearest village (by hexSteps between centres) when it has none.
+  function serviceHome(st, hh) {
+    const village = st.farmsteads[hh.farmstead].village, vOf = (h) => st.farmsteads[h.farmstead].village;
+    const open = st.households.filter((h) => !h.dissolved && h.id !== hh.id);
+    const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
+    const here = smallest(open.filter((h) => vOf(h) === village));
+    if (here) return here.id;
+    const c = st.villages[village].center;
+    let best = null, bd = Infinity;
+    for (const h of open) {
+      const d = hexSteps(st.w, c, st.villages[vOf(h)].center);
+      if (d < bd) { bd = d; best = vOf(h); }
+    }
+    const near = smallest(open.filter((h) => vOf(h) === best));
+    return near ? near.id : null;
+  }
   function extinct(st, hh) {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
@@ -2222,9 +2248,15 @@ VB['sim/heirs'] = (() => {
       const p = st.pawns[id]; if (!p.alive) continue;
       const kinHome = kinNear(st, id).map((q) => st.pawns[q])
         .find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
-      const target = kinHome ? kinHome.household
-        : st.households.filter((h) => !h.dissolved && h.id !== hh.id).sort((x, y) => x.members.length - y.members.length)[0];
-      if (target !== undefined) { moveTo(st, id, typeof target === 'number' ? target : target.id); if (!kinHome) st.pawns[id].servant = true; }
+      const target = kinHome ? kinHome.household : serviceHome(st, hh);
+      if (target !== null) {
+        moveTo(st, id, target);
+        if (!kinHome) {
+          st.pawns[id].servant = true;
+          personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`);
+          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`);
+        }
+      }
     }
     hh.members = [];
     log(st, `${f.name} stands empty: no heir would take it.`);
@@ -2428,7 +2460,7 @@ VB['sim/society'] = (() => {
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
-  const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
+  const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
@@ -2483,7 +2515,7 @@ VB['sim/lifecycle'] = (() => {
     st.lastMeeting = st.t;
   }
   const kinOk = (st, a, b, cu) => {
-    const phi = kinship(st, a, b), lim = { second: 1 / 64, first: 1 / 16, close: 1 / 8 }[cu.kinLimit];
+    const phi = kinship(st, a, b), lim = MARRIAGE.kinPhi[cu.kinLimit];
     return phi < lim;
   };
   function movingRound(st) {
@@ -2493,8 +2525,8 @@ VB['sim/lifecycle'] = (() => {
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
     const fed = (p) => p.hunger < HUNGER.marryBelow;
-    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired && fed(p)),
-      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired && fed(p));
+    const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
+      women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     const own = ownFirstOf(st);
     men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
     const taken = new Set();
@@ -2510,10 +2542,11 @@ VB['sim/lifecycle'] = (() => {
         else if (cu.residence === 'husband') home = m.household; else home = f.household;
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
-        const s = -Math.abs(m.age - f.age - 3) * 0.3 + (sameV ? 2 : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * 1.5;
+        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
+          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }
-      if (!best || bs < -1.5 || st.rand() > 0.75) continue;
+      if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
       taken.add(best.f.id);
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {

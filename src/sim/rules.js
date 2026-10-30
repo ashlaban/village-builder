@@ -76,7 +76,16 @@ VB['sim/rules'] = (() => {
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
+  // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
+  const MARRIAGE = {
+    menFrom: 20, womenFrom: 18, // youngest age to marry
+    ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
+    sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
+    minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
+    kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
+  };
+
   const SPEED = 3; // tiles per game hour on foot
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    HUNGER, HEALTH, SPEED };
+    HUNGER, HEALTH, MARRIAGE, SPEED };
 })();
