@@ -15,6 +15,12 @@ The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 
 
 ## Priority 3
 
+### VB-115: building bridges (raised with VB-112)
+Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oct).
+1. Where and when does a village build a bridge? **P:** at the yearly meeting, a village whose members walked more than 200 extra steps in the past year because of a river (route cost with a bridge at the best site less the cost over the nearest ford, summed over trips) builds one bridge at that site, at most one at a time.
+2. What does it cost? **P:** 6 loads of timber felled from the commons wood (one felling trip each, as for firewood) and 40 hours of village work, at the priority of the green and well (VB-058); a bridge over a river (not a brook or stream) costs twice that.
+3. Does a bridge decay? **P:** yes, like fences: its condition falls about 5% a year and a mend job restores it; below 20% it is impassable.
+
 ### VB-095: family tree by scope (planning)
 1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
 
