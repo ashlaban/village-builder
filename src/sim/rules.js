@@ -70,7 +70,10 @@ VB['sim/rules'] = (() => {
   // ---- hunger: a member's hunger h (0..1) multiplies the death hazard by 1 + k(age) * h, and slows work by HUNGER.slow * h ----
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
+  // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
+  const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+
   const SPEED = 3; // tiles per game hour on foot
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    HUNGER, SPEED };
+    HUNGER, HEALTH, SPEED };
 })();

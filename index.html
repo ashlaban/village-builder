@@ -1259,9 +1259,12 @@ VB['sim/rules'] = (() => {
   // ---- hunger: a member's hunger h (0..1) multiplies the death hazard by 1 + k(age) * h, and slows work by HUNGER.slow * h ----
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
+  // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
+  const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+
   const SPEED = 3; // tiles per game hour on foot
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    HUNGER, SPEED };
+    HUNGER, HEALTH, SPEED };
 })();
 </script>
 <script>
@@ -1587,7 +1590,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
-      hunger: 0, hungerLog: [],
+      hunger: 0, hungerLog: [], health: 100,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -1706,7 +1709,7 @@ VB['sim/records'] = (() => {
 <script>
 // @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and the death roll it feeds into
 VB['sim/hunger'] = (() => {
-  const { YEAR, YEAR_DAYS, hazard, HUNGER } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -1735,22 +1738,32 @@ VB['sim/hunger'] = (() => {
     for (const p of mem) {
       p.hungerLog.push(1 - eaten.get(p) / need.get(p)); if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
       p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days; sum += p.hunger;
+      updateHealth(st, p, eaten.get(p) >= need.get(p));
     }
     hh.hunger = mem.length ? sum / mem.length : 0;
+  }
+  // Health after the meal: hunger drains it (faster for the very young and the old), a full meal restores some.
+  function updateHealth(st, p, fed) {
+    const a = age(st, p);
+    if (p.hunger > 0) p.health -= HEALTH.drain * p.hunger * p.hunger * (a < 5 || a >= 60 ? HEALTH.frail : 1);
+    if (fed) p.health += HEALTH.recover;
+    p.health = Math.max(0, Math.min(100, p.health));
   }
   // One pawn's death roll for the day: null, 'old age' or 'hunger' (a roll that falls in the share added by hunger). One random draw.
   function deathRoll(st, p) {
     const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = st.rand();
-    if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger)) return null;
+    if (p.health <= 0) return 'starvation';
+    const frail = p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1;
+    if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger) * frail) return null;
     return u >= base ? 'hunger' : 'old age';
   }
-  return { feedHousehold, deathRoll, seedReserve };
+  return { feedHousehold, deathRoll, seedReserve, updateHealth };
 })();
 </script>
 <script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, KINDS, SPEED, HUNGER } = VB['sim/rules'];
+  const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -1860,7 +1873,7 @@ VB['sim/agents'] = (() => {
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger);
+    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
     if (a.work) {
       // walk the field row by row while working
       const wk = a.work, speed = j.kind === 'sow' ? 9 : 3.2;
@@ -2690,7 +2703,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
-    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger), ...}
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
+    //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
@@ -3989,7 +4003,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
@@ -4017,7 +4031,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) => x.name).join(' and ')}` : p.retired ? `Retired at ${f.name}` : p.age >= 18 && st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
-    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
+    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
   }
   function card(title, lines) {
     $('tileName').textContent = title;

@@ -13,7 +13,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
-      hunger: 0, hungerLog: [],
+      hunger: 0, hungerLog: [], health: 100,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
