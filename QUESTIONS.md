@@ -6,7 +6,9 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 
 ### VB-003: every farm in a village (unblocks VB-003, VB-004, VB-010, VB-031, VB-033)
 1. What is a lone farm's village called, in the customs panel, the settlers list and its meeting log? **P:** the farm's own name ("Strand"), so one place has one name.
+   **A (Kim, 30 Oct):** a generated village name.
 2. What does the map label show for a one-farm village? **P:** the farm name only, as today; the green, well and village label appear once the village has a second farm.
+   **A (Kim, 30 Oct):** the farm name only. When a second farmstead appears, the green and well become buildable by the village, not created automatically (new task VB-058). VB-003 and VB-004 are now `ready`.
 
 ### VB-030: inheritance and expansion (unblocks VB-031 to VB-034)
 1. Clearing a plot: the design's trigger (someone waiting, nothing claimable, a free site, one project per village) and site rule (within 4 steps of the green, own or neighbouring region, not the last commons wood). Keep both? **P:** yes.
@@ -21,8 +23,17 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 
 ### VB-050: health (numbers to confirm)
 1. Health 0–100, drained daily by 9 × h² (h = hunger 0–1), ×1.5 for under 5 and 60 and over; a fully fed day restores 3. At h = 1 a healthy adult dies on day 12, a small child on day 8. **P:** yes.
+   **A (Kim, 30 Oct):** accepted.
 2. Below 50, health raises the death risk (×3 at 0), and the agreed hunger multiplier stays. **P:** yes.
+   **A (Kim, 30 Oct):** accepted.
 3. Should low health also slow work or make illness likelier? **P:** not yet; hunger already slows work by up to 40%.
+   **A (Kim, 30 Oct):** low health slows work too, by up to 30% at health 0, on top of hunger. VB-050 is now `ready`.
+
+### VB-058: the village green and well, built by the village (new)
+1. When may a village start its green and well? **P:** once it has two or more occupied farms and no well.
+2. Where does the green go? **P:** a free, passable tile as close as possible to the farms' mean position; it becomes the village centre.
+3. Jobs and hours? **P:** clear the green 10 h, dig and line the well 40 h, raise the well sweep 10 h.
+4. Who works on it (role priority 0–10)? **P:** farmer 5, farmhand and son 6, wife, maid and daughter 3: a village duty below the farm's own work.
 
 ## Priority 2
 
