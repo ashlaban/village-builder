@@ -1,15 +1,15 @@
 // @sys sim/routes: walking costs by terrain, the route search (A*) and the route cache with its daily refresh
 VB['sim/routes'] = (() => {
-  const { TERRAIN, ROUTE } = VB['sim/rules'];
+  const { TERRAIN, ROUTE, PATHS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
-  // bridges, VB-112). Houses and fields cost 1.
+  // bridges, VB-112). Houses and fields cost 1. A worn tile is walked faster by its stage (VB-110).
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    if (w.river && w.river[i]) return w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity;
     if (w.dev && w.dev[i]) return 1;
-    return TERRAIN[w.biome[i]] ?? 1;
+    const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
+    return w.worn ? c / PATHS.speed[w.worn[i]] : c;
   }
   const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
@@ -103,7 +103,8 @@ VB['sim/routes'] = (() => {
     st.pathCache.set(k, p);
     return p;
   }
-  // A tile whose walking cost changed (a felled wood turned meadow): routes it could change are dropped at the end of the day.
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
+  // are dropped at the end of the day.
   const costChanged = (st, tile) => { st.routeDirty.add(tile); };
   // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
   // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,

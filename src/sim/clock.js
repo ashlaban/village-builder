@@ -5,7 +5,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
-  const { refreshRoutes } = VB['sim/routes'];
+  const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
@@ -41,7 +41,7 @@ VB['sim/clock'] = (() => {
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
-    fadeWear(st);
+    fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
     for (const f of st.farmsteads) for (const fd of f.fields) {
