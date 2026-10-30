@@ -1,10 +1,10 @@
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { RIVER, PATHS, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { initWear } = VB['sim/paths'];
+  const { initWear, wearIn } = VB['sim/paths'];
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
@@ -258,6 +258,7 @@ VB['sim/layout'] = (() => {
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
+        if (!bare) wearIn(w, villages, farmsteads, PATHS.wornYears); // villages that have stood a while have their paths (VB-114)
         for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
         return this;
       },

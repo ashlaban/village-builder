@@ -105,7 +105,10 @@ VB['sim/rules'] = (() => {
     [B.SNOW]: Infinity, ford: 2, bridge: 1 };
   // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
   // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
-  const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3] };
+  // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set from grown runs.
+  const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
+    wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow.
   const ROUTE = { reach: 200, minStep: 1 / PATHS.speed[3] };

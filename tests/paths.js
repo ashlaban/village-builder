@@ -1,5 +1,6 @@
 // Worn paths (VB-094): crossings count on open land only, the count halves in a game year, stages with a margin, the page is told,
-// and in a run the wear sits where pawns walk; the map's trails reach their neighbours and keep trees off paths and lanes.
+// and in a run the wear sits where pawns walk; generated villages start worn in (VB-114); the map's trails reach their neighbours and keep
+// trees off paths and lanes.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, P = VB['sim/paths'], Look = VB['gen/paths'];
 const { PATHS, YEAR_DAYS } = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PATHS FAIL:', m); } };
@@ -27,8 +28,12 @@ check(w.wear[open] < PATHS.at[1] * PATHS.keep && w.worn[open] === 0, `an unused 
 for (let d = 0; d < 6 * YEAR_DAYS; d++) P.fadeWear(st);
 check(w.wear[open] === 0, 'a count under half a crossing is dropped');
 
+// generated villages start worn in (VB-114), but the founders, who arrive on unmade land
+const pop = Sim.seed(world(7), 7, 'populous'), pw = pop.w, start = P.stageCounts(pw), heirs = P.stageCounts(Sim.seed(world(7), 7, 'heirs').w);
+check(start[1] > 60 && start[2] > 10, `populous starts with trodden/path/lane ${start.slice(1).join('/')}`);
+check(heirs[1] + heirs[2] > 0, `heirs start with trodden/path/lane ${heirs.slice(1).join('/')}`);
+check(P.stageCounts(Sim.seed(world(7), 7, 'founders').w).slice(1).every((n) => n === 0), 'the founders start with worn paths');
 // a populous run: wear where pawns walk, never on houses, fields, greens or water; stages agree with the counts
-const pop = Sim.seed(world(7), 7, 'populous'), pw = pop.w;
 Sim.advance(pop, Sim.YEAR);
 let worn = 0, onBuilt = 0, bad = 0;
 for (let i = 0; i < pw.N; i++) {
@@ -62,4 +67,4 @@ if (lane >= 0) {
   check(!items.some((it) => it.x === bx) && items.length === (free ? 1 : 0), `thin keeps ${items.length} items on and beside a lane`);
 }
 if (failed) process.exit(1);
-console.log(`paths ok: populous year 1, trodden/path/lane ${counts.slice(1).join('/')}, ${segs} trail segments`);
+console.log(`paths ok: populous seed 7 trodden/path/lane worn in ${start.slice(1).join('/')}, after a year ${counts.slice(1).join('/')}; ${segs} trail segments`);
