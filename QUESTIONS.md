@@ -37,6 +37,19 @@ The largest open question. The options are not exclusive:
 2. A save from another build? **P:** a save names its format version; one from another version is refused with a message, not converted, until the game has players.
 3. Is the world saved or regenerated? **P:** regenerated from seed and size, with the tiles the simulation changed (trees, stones, biome, development) saved as arrays.
 
+### VB-089: the heir-to-their-own-farm rule as a custom (backlog review)
+The design makes the rule a custom (Decided) with two options; the default and malleability are Proposed. The code hard-codes "steps behind".
+1. Default and malleability? **P:** as the design proposes: "Steps behind" for Old Nordic and both heirs-scenario villages, malleability 0.6.
+2. "Keeps their place, so farms may be combined": no household can hold two farms, and someone who already holds a farm is passed over (Agreed). **P:** under "keeps" the heir keeps their place in the other line; if they take that farm, they drop out of their own parents' line, which passes to the next in it. Farms are never actually combined until a household can hold two farms, which needs its own design.
+3. Self-interest? **P:** the first heir of their home leans "keeps" (it widens their chances); a landless adult leans "behind" (it keeps a farm open for them).
+
+### VB-090: service where labour is short (backlog review)
+Today only founders' and populous servants, and the members of a farm that dies out, live as servants. A landless adult stays at home for life.
+1. What is "labour is short"? **P:** hands per field, counting members aged 14–59 who are not retired: short below 1 hand per field, hands to spare above 1.5. Meadows and herds join the count with the animals arch.
+2. Who moves, and where? **P:** at the moving round, unmarried landless adults (in `st.demand`) from households with hands to spare, oldest first, as long as their household keeps at least 1 hand per field. They go to the shortest household of their own village, else of the nearest village within 15 steps, else they stay. Each household takes at most one new servant a year.
+3. Pay? **P:** board and lodging only; wages wait for money.
+4. Does hunger also send people into service (a hungry household sending out a mouth)? **P:** not in this task; reconsider in the food or courting wrap-up.
+
 ### VB-036: courting, the numbers (follow-up to the answers in `QUESTION_ARCHIVE.md`)
 Courting builds on relationships (VB-060) and talk (VB-061). These numbers let the courting tasks be written.
 1. When does courting start? **P:** for two unmarried pawns of 16 or more, of opposite sex, not barred by the marriage limit, with a tie of at least 1.5 and an opinion of at least 0.4: a chance of 2% a day. Each pawn courts one person at a time.
