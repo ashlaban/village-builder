@@ -1267,7 +1267,7 @@ VB['sim/rules'] = (() => {
     ration: { adult: 1, child: 0.5 },
     fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
     sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
-    woodPerTrip: 3, woodTarget: 30, woodUse: [0.35, 0.3, 0.5, 1.6],
+    woodPerTrip: 3, woodTarget: 30, woodWinter: 40, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
     weedEvery: 6, weedCut: 0.08, weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
@@ -1351,7 +1351,8 @@ VB['sim/rules'] = (() => {
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
   const MATCH = {
-    poorFit: 2, poorFitWaitHours: 2, distanceWeight: 0.15, noise: 0.3,
+    poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
+    distanceWeight: 0.15, noise: 0.3,
     urgency: {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5
@@ -2282,7 +2283,7 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
@@ -2316,6 +2317,8 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
     }
   }
+  // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
+  const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   function refreshJobs(st, c) {
     const E = st.ECON;
     for (const j of st.jobs.values()) j.live = false;
@@ -2334,7 +2337,7 @@ VB['sim/jobs'] = (() => {
       }
       if (st.makeFields) startProject(st, f, hh);
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
-      if (f.woodlot >= 0 && hh.wood < E.woodTarget) {
+      if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
       }
@@ -2361,7 +2364,7 @@ VB['sim/jobs'] = (() => {
       case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
       case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
       case 'haul': return U.haul;
-      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? U.woodSummer : 0);
+      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (woodGoal(E, c) - hh.wood) / woodGoal(E, c) + (c.season === 2 ? U.woodSummer : 0);
       case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
       case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
       case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
@@ -2371,13 +2374,52 @@ VB['sim/jobs'] = (() => {
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
+  const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight + st.rand() * MATCH.noise;
+    return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight) + st.rand() * MATCH.noise;
+  }
+  // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
+  // numbers and writes nothing to st.
+  const clockText = (t) => {
+    const m = Math.ceil((((t % 24) + 24) % 24) * 60);
+    return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  };
+  function explainIdle(st, id) {
+    const p = st.pawns[id], c = cal(st.t), out = [];
+    const here = st.farmsteads[st.households[p.household].farmstead].house;
+    for (const j of st.jobs.values()) {
+      if (!mayTake(st, p, j)) continue;
+      const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0, row = { job: j.key, kind: j.kind, bid: null, reason: null };
+      if (j.claim !== null) row.reason = 'taken';
+      else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+      else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
+        row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
+      } else {
+        row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+        if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; }
+      }
+      out.push(row);
+    }
+    return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
+  }
+  // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
+  const LABEL = {
+    plow: 'Hoeing', sow: 'Sowing', reap: 'Reaping', haul: 'Hauling sheaves', wood: 'Firewood', water: 'Water',
+    thresh: 'Threshing', mend: 'Mending',
+  };
+  function idleLine(st, id) {
+    const a = st.agents[id], p = st.pawns[id], c = cal(st.t);
+    if (!p.alive || a.job || a.phase === 'home' || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from) return null;
+    const rows = explainIdle(st, id).filter((r) => r.reason !== 'taken' && r.reason !== 'not their work');
+    if (!rows.length) return `No work for ${ROLES[p.role].title.toLowerCase()} at ${st.farmsteads[st.households[p.household].farmstead].name}`;
+    const r = rows.find((x) => x.reason);
+    if (!r) return null;
+    return `${LABEL[r.kind] || r.kind.replace(/^./, (ch) => ch.toUpperCase())}: ${r.reason}`;
   }
   // Two sets of jobs, each in increasing id, as one list in increasing id: the order st.jobs iterates in.
   function mergeById(x, y) {
@@ -2398,7 +2440,7 @@ VB['sim/jobs'] = (() => {
     for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
     return busy;
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound };
+  return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound, explainIdle, idleLine };
 })();
 </script>
 <script>
@@ -3339,6 +3381,7 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
   } = VB['sim/records'];
   const { describe } = VB['sim/agents'];
+  const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
   const { fieldsWanted } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
@@ -3353,7 +3396,7 @@ const Sim = (() => {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
-    plotProgress,
+    plotProgress, explainIdle, idleLine,
   };
 })();
 VB['sim'] = Sim;
@@ -4533,7 +4576,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) => x.name).join(' and ')}` : p.retired ? `Retired at ${f.name}` : p.age >= 18 && st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
-    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
+    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id), Sim.idleLine(st, id)].filter(Boolean));
   }
   function card(title, lines) {
     $('tileName').textContent = title;

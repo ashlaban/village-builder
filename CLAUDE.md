@@ -45,3 +45,4 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
   and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
 - Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
+- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
