@@ -2,7 +2,7 @@
 
 Questions that block backlog tasks or shape the design, gathered in one place, in priority order. Each has a proposed answer (**P:**). Answer inline (for example "yes", "P", or your own answer); the task files are then updated and set to `ready`. Answered questions move, unchanged, to `QUESTION_ARCHIVE.md`.
 
-The questions marked "review" come from the review of 30 October 2026; the reasons and numbers behind them are in `REVIEW.md` and in `design.md`, "Systems overview".
+The questions marked "review" come from the review of 30 October 2026; the reasons and numbers behind them are in `REVIEW.md` and in `design.md`, "Systems overview". Those marked "planning" come from a pass over `design.md` for points with no task (30 October 2026); each names its task, whose file holds the draft criteria.
 
 ## Priority 1
 
@@ -44,6 +44,12 @@ The largest open question. The options are not exclusive:
 2. A save from another build? **P:** a save names its format version; one from another version is refused with a message, not converted, until the game has players.
 3. Is the world saved or regenerated? **P:** regenerated from seed and size, with the tiles the simulation changed (trees, stones, biome, development) saved as arrays.
 
+### VB-089: service where labour is short (planning)
+The design has landless adults take service where labour is short (Agreed), but gives no rule. Today grown children wait at home however full the house is.
+1. When is a household short of labour? **P:** at the moving round, when its working adults (16 to 59, not retired) are fewer than its fields, or fewer than 2, and its grain above the seed reserve feeds a servant until harvest; at most 2 servants.
+2. Who goes into service, and where? **P:** unmarried adults of 18 or more in `st.demand`, from households whose working adults outnumber their fields, oldest first; to a short household of their own village first, then of the nearest village.
+3. What does service change? **P:** role farmhand or maid, a member of the new household with no wages until money exists; they keep their place in every heir ranking and in `st.demand`, and leave service when they marry into a place or get a farm or plot.
+
 ### VB-036: courting, the numbers (follow-up to the answers in `QUESTION_ARCHIVE.md`)
 Courting builds on relationships (VB-060) and talk (VB-061). These numbers let the courting tasks be written.
 1. When does courting start? **P:** for two unmarried pawns of 16 or more, of opposite sex, not barred by the marriage limit, with a tie of at least 1.5 and an opinion of at least 0.4: a chance of 2% a day. Each pawn courts one person at a time.
@@ -74,6 +80,48 @@ Populous children are spaced 2 years from age 0–2, so the eldest is at most 14
 ### VB-088: a performance budget (review)
 1. **P:** steady state under 10% of real time at the fastest speed on populous medium at seed 7 (0.5 s of simulation per game day at 10×), and no single 6-minute step, meeting or moving round over 50 ms. `tests/perf.js` reports both in `npm run verify` and fails above twice the budget.
 
+### VB-090: heir to their own parents' farm (planning)
+The design makes the "steps behind" rule a custom (Decided) with two options; its default and malleability are Proposed.
+1. Default and malleability? **P:** "Steps behind other relatives" (today's rule) as the Old Nordic default, malleability 0.6.
+2. Under "keeps their place", a relative may inherit this farm while first in line for their parents'. Once they hold one farm, the succession rules pass them over for the other, so farms never actually combine. Should they? **P:** yes: under "keeps their place" a holder may inherit a second farm; their household works both farms' fields, and the second house stands empty, owned by their household, until a child or sibling of theirs marries and takes it (then a handover). Under "steps behind" nothing changes.
+
+### VB-091: children born outside marriage (planning)
+1. Default and malleability? **P:** "Inherit after children born in marriage" as the Old Nordic default, malleability 0.5, as the design proposes.
+2. If the parents marry later, does their child count as born in marriage? **P:** yes, as medieval canon law held (*per subsequens matrimonium*).
+3. From whom does such a child inherit? **P:** from both parents, since the true father is known to all.
+
+### VB-092: store views (planning)
+1. Which levels in the first version? **P:** pawn (inheritance share held and owed), household, village (its own store and its households' sum) and culture (the sum); dimension "owns" only. Family and the other dimensions later.
+2. Where is it shown? **P:** a "Stores" block in the household and village panels, a culture line in the customs drawer, and the shares in the pawn panel.
+
+### VB-093: family tree by scope (planning)
+1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
+
+### VB-094: forest spread (planning)
+Forest spread is Decided; its pace is not. It waits for grazing pressure (animals arch).
+1. How fast? **P:** a meadow, heath or fallow tile next to forest that is neither worked, mown nor grazed for 8 years becomes scrub, and after 8 more becomes woodland of the neighbouring type with 10% of its trees, then grows as trees do (about 30 years to full). Spread moves ring by ring.
+2. What holds land open? **P:** work on the tile, mowing, or grazing pressure above about a third of a full herd's in that year; any of them resets the count.
+3. Should spread start before animals, held back only by work and mowing? **P:** no: wait for grazing, or every unclaimed meadow near forest turns to scrub within a generation.
+
+### VB-095: walking costs by terrain (was "Design points without a task", question 2)
+Walking ignores terrain: crossing mountains costs the same as meadow.
+1. **P:** cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed; the same costs slow walking. Built in the current route search first (VB-095); routes over regions (HPA\*, VB-096) only if measuring shows routes cost too much.
+
+### VB-097: notifications (planning)
+1. Which events notify? **P:** a death, birth or marriage in the selected pawn's household or line; the death of a landholder; a farm emptied, claimed or newly built; a change of practice or of the culture's custom; a death from hunger. Each kind can be turned off.
+2. How are they shown? **P:** toasts at the bottom left for 6 s, at most 3 at once, merged by kind at high speed ("3 births in Ulsäter"); a click selects and moves the camera.
+
+### VB-098: a chronicle (planning)
+1. **P:** a "History" tab in the pawn, household and village panels, read from the record of events (VB-075), newest first, filtered by kind; a farm's history follows the farm across households; the village log becomes a view of the same record.
+
+### VB-099: worn paths (planning)
+1. **P:** a footfall count per tile, halving every 2 years; a faint track above about 200 passes a year and a clear path above 1,000, painted with the chunk; no effect on walking speed for now.
+
+### VB-100: common fields (planning)
+Fields can be private or common (Decided); nothing makes a common field yet.
+1. When does a village make a common field? **P:** at the moving round, a village of 3 or more occupied farms whose store holds less than 10 days of food for its members, with a free meadow tile within 3 steps of the green; at most one common field per 3 farms.
+2. Who works it, and where does the harvest go? **P:** the village's adults, at the village-duty priorities of the green and well (VB-058); seed from the village store and the harvest into it (VB-039).
+
 ### VB-047: animals and husbandry (follow-up to question 2)
 Answered so far (see `QUESTION_ARCHIVE.md`): roe deer first; not every founders farm keeps animals; at least one bull and one ram; farms with sheep keep 4 ewes; milk, meat, byre and task order accepted.
 1. How many of the four founders farms keep cattle, and how many sheep? **P:** three keep cattle (2 cows each, and the first of them also a bull); two keep sheep (4 ewes each, and the first of them also a ram). One farm keeps neither and has to trade or marry into a herd.
@@ -81,4 +129,4 @@ Answered so far (see `QUESTION_ARCHIVE.md`): roe deer first; not every founders 
 
 ### Design points without a task (review)
 1. Firewood: the design says winter use is about four times summer; the code uses 5.3 (1.6 against 0.3). **P:** keep the code and write "about five times" in the design, since VB-024 measures woodland use with it.
-2. Walking ignores terrain: crossing mountains costs the same as meadow. **P:** when pathfinding moves to regions (HPA\*), cost by terrain: meadow and heath 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed; the same costs slow walking.
+2. Walking ignores terrain: now a task, VB-095 (see above).
