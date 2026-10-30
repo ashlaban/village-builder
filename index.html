@@ -1286,8 +1286,11 @@ VB['sim/rules'] = (() => {
     daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1,
       thresh: 2, weed: 4 } },
     retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2, thresh: 2, weed: 2 } },
-    child: { title: 'Child', sv: 'barn', prio: {} },
+    child: { title: 'Child', sv: 'barn', prio: { water: 6, weed: 5, haul: 4, reap: 3 } },
   };
+  // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
+  const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
+  const workRate = (role, age) => (role === 'child' ? Math.min(1, CHILD.base + CHILD.perYear * (age - CHILD.from)) : 1);
   for (const r of Object.values(ROLES)) r.prio.clear = r.prio.break = r.prio.plow; // new fields are heavy field work, like hoeing
   // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
   const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
@@ -1356,7 +1359,8 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, CHILD, workRate, PLOT_PRIO, KINDS,
+    MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();
 </script>
@@ -2092,9 +2096,9 @@ VB['sim/expansion'] = (() => {
 <script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH } = VB['sim/rules'];
+  const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
-  const { log } = VB['sim/records'];
+  const { log, age } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
@@ -2215,7 +2219,8 @@ VB['sim/agents'] = (() => {
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
+    const pw = st.pawns[a.id];
+    j.done += dt * workRate(pw.role, age(st, pw)) * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -2277,10 +2282,10 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, PLOT_PRIO, MATCH } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
-  const { villageOf } = VB['sim/records'];
+  const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
@@ -2368,7 +2373,7 @@ VB['sim/jobs'] = (() => {
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (j.claim !== null || !mayTake(st, p, j)) return -1;
+    if (j.claim !== null || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;

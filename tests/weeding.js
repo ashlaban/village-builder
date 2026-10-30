@@ -4,7 +4,7 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('W
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const E = Sim.ECON, K = Sim.KINDS.weed;
 check(K && K.hours === 2 && E.weedEvery === 6 && Math.abs(E.weedCut - 0.08) < 1e-9 && Math.abs(E.weedCutMax - 0.4) < 1e-9, 'weed job is not 2 hours every 6 days with an 8% cut, at most 40%');
-for (const role of Object.keys(Sim.ROLES)) check((Sim.ROLES[role].prio.weed || 0) === (Sim.ROLES[role].prio.sow || 0), `role ${role}: weed priority differs from sow`);
+for (const role of Object.keys(Sim.ROLES).filter((r) => r !== 'child')) check((Sim.ROLES[role].prio.weed || 0) === (Sim.ROLES[role].prio.sow || 0), `role ${role}: weed priority differs from sow`);
 
 // the harvest of the first year with and without weeding (an untended run never finishes a weeding job)
 const harvest = (tended) => {
