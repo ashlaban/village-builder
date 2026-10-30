@@ -33,6 +33,8 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | food | Food, hunger and health | Daily food, seed, milling, hunger, health and causes of death. | Economy and jobs; People (Mortality) |
 | social | Pawn interactions | Who meets whom, what happens between two pawns, and the relationships it builds; the base for courting, help between kin and persuasion. | People, households and family records; Customs and culture (How attitudes move) |
 | tooling | Code and verification | Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
+| core | Commands, saves and the record of events | Pawns and other entities act through commands; a run can be saved and loaded exactly; every notable event is kept as a typed record. | Commands, time steps and views; Systems overview |
+| player | The player's role | Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
 
 ## Tasks
 
@@ -104,9 +106,25 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-064 | Routes: a safe cache key on Large maps, and no walks across water | - | - | ready | 1 | S | The route cache key collides above 100,000 tiles (Large maps); unfound routes search wider before a straight walk. | [backlog/VB-064.md](backlog/VB-064.md) |
 | VB-065 | People of a farm that dies out stay in their village | - | - | ready | 2 | S | Members without kin go into service in their own village, not the smallest household on the map. | [backlog/VB-065.md](backlog/VB-065.md) |
 | VB-066 | The guardian of a minor heir, until the heir is 18 | - | - | ready | 3 | S | The guardian is the surviving parent or nearest adult kin, shown in the panel and cleared at 18. | [backlog/VB-066.md](backlog/VB-066.md) |
+| VB-067 | Empty fields go to scrub only near woodland | - | - | needs-review | 3 | S | Fields of an empty farm go to scrub only within 2 steps of forest, as the design says. | [backlog/VB-067.md](backlog/VB-067.md) |
 | VB-068 | A command-line view of a run: `tools/sim.js` | tooling | implement | ready | 1 | M | Seed, run, report and dump any scenario from the command line, as text or JSON. | [backlog/VB-068.md](backlog/VB-068.md) |
 | VB-069 | Golden mismatches show what changed | tooling | implement | ready | 1 | S | Dump the canonical text behind each golden hash and print the first differing lines on a mismatch. | [backlog/VB-069.md](backlog/VB-069.md) |
 | VB-070 | Lint: no `Math.random` or `Date` in the modules | tooling | implement | ready | 2 | S | The structure lint enforces the determinism convention. | [backlog/VB-070.md](backlog/VB-070.md) |
 | VB-071 | Jobs indexed by owner, so matching looks only at jobs a pawn may take | tooling | implement | ready | 2 | S | Matching bids against own household and village jobs only, in the same order; behaviour unchanged. | [backlog/VB-071.md](backlog/VB-071.md) |
+| VB-072 | Random streams per system, with saveable state | core | implement | ready | 2 | M | One seeded stream per system as plain data, so systems do not reshuffle each other and saves can hold them. | [backlog/VB-072.md](backlog/VB-072.md) |
+| VB-073 | Simulation state as plain data, without closures | core | implement | ready | 2 | M | No functions in `st`: `countDemand` and the culture lookups become plain functions and hooks. | [backlog/VB-073.md](backlog/VB-073.md) |
+| VB-074 | Save and restore the simulation state | core | implement | ready | 2 | M | `Sim.save` and `Sim.load` in Node; a saved and loaded run continues exactly like an unbroken one. | [backlog/VB-074.md](backlog/VB-074.md) |
+| VB-075 | A typed record of events | core | implement | ready | 2 | M | An append-only `st.record` of typed events, queryable by pawn, household, farm, village and kind. | [backlog/VB-075.md](backlog/VB-075.md) |
+| VB-076 | Plan: commands | core | plan | needs-review | 1 | S | Design the command layer (Decided, not built) so its implement tasks can be written. | [backlog/VB-076.md](backlog/VB-076.md) |
+| VB-077 | Plan: saving and loading in the page | core | plan | needs-review | 2 | S | Where saves live, autosave, and saves from older builds. | [backlog/VB-077.md](backlog/VB-077.md) |
+| VB-078 | Wrap-up: commands, saves and the record of events | core | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
+| VB-079 | Plan: the player's role | player | plan | needs-review | 2 | S | Settle the player's role (Open) so the player arch can be planned. | [backlog/VB-079.md](backlog/VB-079.md) |
+| VB-080 | A food balance that feeds a family before animals | food | implement | needs-review | 1 | S | Field yield 100 and seed 25, a fourth field for big populous households, so an ordinary year feeds a family. | [backlog/VB-080.md](backlog/VB-080.md) |
+| VB-081 | Populous households with adult children | - | - | needs-review | 2 | S | Some populous households start with children of 18 or more, so marriage and inheritance begin in year 1. | [backlog/VB-081.md](backlog/VB-081.md) |
+| VB-082 | Customs made legible: votes, leanings and causes | - | - | needs-review | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
+| VB-083 | Seasons on the map | - | - | needs-review | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
+| VB-084 | A faster speed and running until something happens | - | - | needs-review | 3 | S | A 30× speed and a run-until-notable-event mode. | [backlog/VB-084.md](backlog/VB-084.md) |
+| VB-085 | The heirs scenario uses the names in its code | - | - | ready | 3 | S | Olof, Erik, Ingrid and the rest get the names their variables have. | [backlog/VB-085.md](backlog/VB-085.md) |
 | VB-086 | Inheritance and job numbers as tunables | tooling | implement | ready | 3 | S | Share value, reserve, urgencies and matching weights move into `SHARES` and `MATCH` tables. | [backlog/VB-086.md](backlog/VB-086.md) |
 | VB-087 | Refactor: wrap the long lines of culture.js | tooling | implement | ready | 3 | S | Wrap the 16 long lines of `src/culture.js`; lint baseline to 0. | [backlog/VB-087.md](backlog/VB-087.md) |
+| VB-088 | A performance budget in the verify run | tooling | implement | needs-review | 3 | S | `tests/perf.js` in verify, failing above twice the budget per game day and per step. | [backlog/VB-088.md](backlog/VB-088.md) |
