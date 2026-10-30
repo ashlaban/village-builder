@@ -1671,23 +1671,28 @@ VB['sim/records'] = (() => {
 VB['sim/hunger'] = (() => {
   const { YEAR, YEAR_DAYS, hazard, HUNGER } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
+  // Seed kept back for the fields not yet sown this year; never eaten.
+  function seedReserve(st, hh) {
+    return st.farmsteads[hh.farmstead].fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length * st.ECON.seedPerField;
+  }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-    if (hh.grain >= total) hh.grain -= total;
+    const avail = Math.max(0, hh.grain - seedReserve(st, hh));
+    if (avail >= total) hh.grain -= total;
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
       const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
-      let left = hh.grain;
+      let left = avail;
       for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.grain = 0; hh.hungryDays++;
+      hh.grain -= avail; hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -1702,7 +1707,7 @@ VB['sim/hunger'] = (() => {
     if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger)) return null;
     return u >= base ? 'hunger' : 'old age';
   }
-  return { feedHousehold, deathRoll };
+  return { feedHousehold, deathRoll, seedReserve };
 })();
 </script>
 <script>
@@ -1901,7 +1906,7 @@ VB['sim/jobs'] = (() => {
         const fk = `f${f.id}.${fd.id}`;
         const sowing = c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
         if (sowing && fd.stage === 'stubble') post(st, 'plow:' + fk, 'plow', own, fd.tile, { field: fd, farm: f });
-        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField + 10) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
+        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
@@ -2782,6 +2787,7 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
   } = VB['sim/records'];
   const { describe } = VB['sim/agents'];
+  const { seedReserve } = VB['sim/hunger'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles } = VB['sim/heirs'];
   const { updateTies, refreshInterests } = VB['sim/society'];
@@ -2792,7 +2798,7 @@ const Sim = (() => {
   return {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
-    isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner,
+    isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve,
   };
 })();
 VB['sim'] = Sim;
@@ -3930,7 +3936,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];

@@ -16,10 +16,25 @@ for (const [order, check] of [
   child.born = st.t - 5 * YEAR; // a five-year-old joins the household
   hh.members = [man.id, child.id]; for (const q of [man, child]) q.hunger = 0, q.hungerLog = [];
   const s = st.cenv.settlements[Sim.settlementIdOf(st, man)]; s.practice[Culture.IDX.feedOrder] = Culture.optIndex('feedOrder', order);
+  for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; // no seed to keep back
   hh.grain = 1.2; // a man needs 1 and a child 0.5
   feedHousehold(st, hh);
   check({ man: man.hungerLog[0], kid: child.hungerLog[0] });
   assert.strictEqual(hh.grain, 0); assert.strictEqual(hh.hungryDays, 1);
+}
+
+// seed corn is never eaten: 3 unsown fields keep 60 back
+{
+  const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
+  hh.members = [man.id]; man.hunger = 0; man.hungerLog = [];
+  f.fields.forEach((fd, k) => { fd.stage = k < 3 ? 'plowed' : 'growing'; });
+  assert.strictEqual(f.fields.filter((fd) => fd.stage === 'plowed').length, 3);
+  hh.grain = 50; feedHousehold(st, hh);
+  assert.strictEqual(hh.grain, 50, 'grain below the seed reserve is not eaten'); assert(man.hungerLog[0] > 0 && hh.hungryDays === 1);
+  hh.grain = 100; feedHousehold(st, hh);
+  assert(Math.abs(hh.grain - 99) < 1e-9, 'grain above the reserve is eaten (one ration)');
+  hh.grain = 61; hh.members = [man.id]; feedHousehold(st, hh);
+  assert(Math.abs(hh.grain - 60) < 1e-9);
 }
 
 // hunger level: mean shortfall over 12 days, and back to 0 after 12 fed days

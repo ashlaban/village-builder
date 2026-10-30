@@ -2,23 +2,28 @@
 VB['sim/hunger'] = (() => {
   const { YEAR, YEAR_DAYS, hazard, HUNGER } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
+  // Seed kept back for the fields not yet sown this year; never eaten.
+  function seedReserve(st, hh) {
+    return st.farmsteads[hh.farmstead].fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length * st.ECON.seedPerField;
+  }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-    if (hh.grain >= total) hh.grain -= total;
+    const avail = Math.max(0, hh.grain - seedReserve(st, hh));
+    if (avail >= total) hh.grain -= total;
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
       const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
-      let left = hh.grain;
+      let left = avail;
       for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.grain = 0; hh.hungryDays++;
+      hh.grain -= avail; hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -33,5 +38,5 @@ VB['sim/hunger'] = (() => {
     if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger)) return null;
     return u >= base ? 'hunger' : 'old age';
   }
-  return { feedHousehold, deathRoll };
+  return { feedHousehold, deathRoll, seedReserve };
 })();
