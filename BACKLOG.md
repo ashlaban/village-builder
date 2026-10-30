@@ -4,7 +4,7 @@ Tasks for the village builder proof of concept. The nightly run takes only `Stat
 
 Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth. The table below is the overview: when a task's name, arch, phase, status, priority or size changes, update its row too. A new task takes the next free ID, gets a file and a row.
 
-A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated. `needs-review` tasks list the questions Kim must answer first; `QUESTIONS.md` gathers the open questions of all tasks in one place, with proposed answers.
+A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated. `needs-review` tasks list the questions Kim must answer first; `QUESTIONS.md` gathers the open questions of all tasks in one place, with proposed answers, and answered ones move to `QUESTION_ARCHIVE.md`.
 
 Refactor rules (every task titled "Refactor:"):
 - Behaviour is unchanged: `npm run verify` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.

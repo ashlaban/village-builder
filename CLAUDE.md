@@ -3,7 +3,7 @@
 A village builder proof of concept on a generated hex archipelago: one self-contained `index.html` (PixiJS 8), built from `src/`.
 Design reference (read-only): `design.md`, "Village builder: game design snapshot v0.3".
 Work is planned in `BACKLOG.md` (overview table; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
-the refactor and golden-file rules). Open design questions for Kim are gathered in `QUESTIONS.md`.
+the refactor and golden-file rules). Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`.
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
