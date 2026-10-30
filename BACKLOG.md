@@ -40,7 +40,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 |----|------|------|-------|--------|----------|------|---------|------|
 | VB-001 | Make the test suite fail on regressions | - | - | done | 1 | S | Add assertions so `npm test` fails when the sim or page breaks. | [backlog/VB-001.md](backlog/VB-001.md) |
 | VB-002 | Clock shows game time in 5-minute steps, apart from the simulation step | - | - | done | 1 | S | UI clock follows game time in 5-minute steps, redrawn every frame. | [backlog/VB-002.md](backlog/VB-002.md) |
-| VB-003 | Every farm in a village, and an owner for every tile | claims | implement | ready | 1 | M | Lone farms become one-farm villages; a per-tile owner map. | [backlog/VB-003.md](backlog/VB-003.md) |
+| VB-003 | Every farm in a village, and an owner for every tile | claims | implement | done | 1 | M | Lone farms become one-farm villages; a per-tile owner map. | [backlog/VB-003.md](backlog/VB-003.md) |
 | VB-004 | Ownership map overlay | claims | implement | ready | 3 | S | Toggle overlay that tints each owned tile by its owner. | [backlog/VB-004.md](backlog/VB-004.md) |
 | VB-005 | Trees per wooded tile | - | - | done | 2 | M | Forest tiles hold trees; firewood fells them, they regrow, 0 becomes meadow. | [backlog/VB-005.md](backlog/VB-005.md) |
 | VB-006 | Stones on meadow tiles | - | - | done | 2 | S | Meadow tiles track stone content for field-making and building stone. | [backlog/VB-006.md](backlog/VB-006.md) |
