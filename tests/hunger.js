@@ -27,7 +27,7 @@ for (const [order, check] of [
   assert.strictEqual(hh.grain, 0); assert.strictEqual(hh.hungryDays, 1);
 }
 
-// seed corn is never eaten: 3 unsown fields keep 60 back
+// seed corn is never eaten: 3 unsown fields keep 75 back
 {
   const st = fresh('heirs'), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
   while (f.fields.length < 4) f.fields.push({ ...f.fields[0], id: f.fields.length });
@@ -38,8 +38,8 @@ for (const [order, check] of [
   assert.strictEqual(hh.grain, 50, 'grain below the seed reserve is not eaten'); assert(man.hungerLog[0] > 0 && hh.hungryDays === 1);
   hh.grain = 100; feedHousehold(st, hh);
   assert(Math.abs(hh.grain - 99) < 1e-9, 'grain above the reserve is eaten (one ration)');
-  hh.grain = 61; hh.members = [man.id]; feedHousehold(st, hh);
-  assert(Math.abs(hh.grain - 60) < 1e-9);
+  hh.grain = 76; hh.members = [man.id]; feedHousehold(st, hh);
+  assert(Math.abs(hh.grain - 75) < 1e-9);
 }
 
 // hunger level: mean shortfall over 12 days, and back to 0 after 12 fed days

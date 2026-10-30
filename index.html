@@ -1202,7 +1202,7 @@ VB['sim/rules'] = (() => {
   // ---- economy (rations = one adult's food for one game day) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
-    fieldYield: 80, seedPerField: 20, // a 4:1 yield ratio
+    fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
     sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
     woodPerTrip: 3, woodTarget: 30, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
@@ -1263,7 +1263,7 @@ VB['sim/rules'] = (() => {
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 9, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = { drain: 4, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
   const MARRIAGE = {
@@ -1484,6 +1484,21 @@ VB['sim/layout'] = (() => {
     village.farmsteads.push(f.id); villages.push(village);
     return f;
   }
+  // One more field for a farm: the best free farmable tile touching one of its fields, within 4 steps of the house. False when there is none.
+  function addField(w, used, f) {
+    const { dist } = bfs(w, f.house, 4, (j) => farmable(w, j));
+    let best = -1, bs = -Infinity;
+    for (const [t, d] of dist) {
+      if (used.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
+      const s = FERTILITY[w.biome[t]] - 0.15 * d;
+      if (s > bs) { bs = s; best = t; }
+    }
+    if (best < 0) return false;
+    used.add(best);
+    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[best]],
+      weedOpen: false, weedPosted: null, weedMiss: 0 });
+    return true;
+  }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
@@ -1496,6 +1511,7 @@ VB['sim/layout'] = (() => {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
         villages.push(v); return v;
       },
+      addField(fid) { return addField(w, used, farmsteads[fid]); },
       addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
@@ -2772,7 +2788,10 @@ VB['sim/scenarios'] = (() => {
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
       centres.push(c);
-      for (const fid of gen.addVillage(c, farms).farmsteads) { sizes[fid] = drawSize(rand); pop += sizes[fid]; }
+      for (const fid of gen.addVillage(c, farms).farmsteads) {
+        sizes[fid] = drawSize(rand); pop += sizes[fid];
+        if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
+      }
     }
     if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
     const { used, farmsteads, villages } = gen.finish();
@@ -2780,6 +2799,8 @@ VB['sim/scenarios'] = (() => {
     const households = populousHouseholds(R, farmsteads, sizes);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); st.countDemand();
+    // grain for a full year of rations and seed for every field the farm has, as for the founders
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
     log(st, `${R.pawns.length} people in ${villages.length} villages.`);
     return st;
   }

@@ -13,11 +13,11 @@ const starve = (p, age, days) => { // hunger 1 every day; the day on which the p
 {
   const st = fresh(), p = st.pawns[0];
   assert.strictEqual(p.health, 100, 'health starts at 100');
-  assert.strictEqual(starve(p, 30, 30), 12, 'an adult at h = 1 dies on day 12');
-  assert.strictEqual(starve(p, 3, 30), 8, 'a child under 5 at h = 1 dies on day 8');
-  assert.strictEqual(starve(p, 70, 30), 8, 'a pawn of 60 or more at h = 1 dies on day 8');
+  assert.strictEqual(starve(p, 30, 30), 25, 'an adult at h = 1 dies on day 25');
+  assert.strictEqual(starve(p, 3, 40), 17, 'a child under 5 at h = 1 dies on day 17');
+  assert.strictEqual(starve(p, 70, 40), 17, 'a pawn of 60 or more at h = 1 dies on day 17');
   p.born = st.t - 30 * YEAR; p.health = 100; p.hunger = 0.25; updateHealth(st, p, false);
-  assert(Math.abs(100 - p.health - 0.5625) < 1e-9, `h = 0.25 loses 0.56 a day, lost ${100 - p.health}`);
+  assert(Math.abs(100 - p.health - 0.25) < 1e-9, `h = 0.25 loses 0.25 a day, lost ${100 - p.health}`);
   p.health = 50; p.hunger = 0; updateHealth(st, p, true); assert.strictEqual(p.health, 53, 'a full meal restores 3');
   p.health = 99; updateHealth(st, p, true); assert.strictEqual(p.health, 100, 'health stops at 100');
   // meals feed it: a fed household restores health

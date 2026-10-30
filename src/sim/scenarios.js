@@ -46,7 +46,10 @@ VB['sim/scenarios'] = (() => {
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
       centres.push(c);
-      for (const fid of gen.addVillage(c, farms).farmsteads) { sizes[fid] = drawSize(rand); pop += sizes[fid]; }
+      for (const fid of gen.addVillage(c, farms).farmsteads) {
+        sizes[fid] = drawSize(rand); pop += sizes[fid];
+        if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
+      }
     }
     if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
     const { used, farmsteads, villages } = gen.finish();
@@ -54,6 +57,8 @@ VB['sim/scenarios'] = (() => {
     const households = populousHouseholds(R, farmsteads, sizes);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); st.countDemand();
+    // grain for a full year of rations and seed for every field the farm has, as for the founders
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
     log(st, `${R.pawns.length} people in ${villages.length} villages.`);
     return st;
   }
