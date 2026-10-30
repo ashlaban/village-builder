@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "python3 build.py",
-    "test": "python3 build.py --check && node tests/regress.js && node tests/lint.js && node tests/backlog.js && node tests/golden.js && node tests/trees.js && node tests/stones.js && node tests/weeding.js && node tests/populous.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
+    "test": "python3 build.py --check && node tests/regress.js && node tests/lint.js && node tests/backlog.js && node tests/golden.js && node tests/trees.js && node tests/stones.js && node tests/weeding.js && node tests/populous.js && node tests/births.js && node tests/heirs.js > /dev/null && node tests/smoke.js",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },
   "devDependencies": {

@@ -7,6 +7,7 @@ VB['sim/clock'] = (() => {
   const { refreshJobs, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { dailyBirths } = VB['sim/births'];
   function onHour(st, h, c) {
     if (st.cenv) noteContacts(st);
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
@@ -19,7 +20,7 @@ VB['sim/clock'] = (() => {
       release(st, a);
       if (!a.inside) { goHome(st, a); a.phase = 'home'; }
     }
-    if (h === 0) { endOfDay(st, c); if (st.cenv) dailyLife(st, c); if (c.doy === 0) newYear(st, c); }
+    if (h === 0) { endOfDay(st, c); if (st.cenv) { dailyLife(st, c); dailyBirths(st); } if (c.doy === 0) newYear(st, c); }
   }
   function endOfDay(st, c) {
     const E = st.ECON;

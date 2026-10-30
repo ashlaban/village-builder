@@ -121,7 +121,7 @@ VB['sim/lifecycle'] = (() => {
     for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
-    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard(p.age) / YEAR_DAYS) killPawn(st, p.id, 'old age');
+    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard((st.t - p.born) / YEAR) / YEAR_DAYS) killPawn(st, p.id, 'old age');
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
 })();

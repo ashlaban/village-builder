@@ -1243,10 +1243,19 @@ VB['sim/rules'] = (() => {
   const patronym = (father, sex) => father + (father.endsWith('s') ? '' : 's') + (sex === 'm' ? 'son' : 'dotter');
   const DIRNAME = ['Öster', 'Norr', 'Norr', 'Väster', 'Söder', 'Söder'];
 
-  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + (a < 10 ? 0.01 : 0); // per year, roughly pre-industrial adults
+  // Annual death hazard at age a (years, may be fractional): Gompertz-Makeham for adults plus a juvenile term that falls with age (Siler 1979),
+  // so that about 20% die before age 1 and a third before 15.
+  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + 0.381 * Math.exp(-1.265 * a);
+
+  // ---- births: natural fertility of married women (Coale and Trussell 1974), relative to ages 20-24; times in game days ----
+  const BIRTH = {
+    peak: 0.015, ageFactor: [0.89, 1, 0.94, 0.86, 0.7, 0.36, 0.05], from: 15, to: 50, // chance per day to conceive; factor per 5 years of age from 15
+    pregnancyDays: 36, nursingDays: 48, boys: 105 / 205, childbedDeath: 0.01,
+  };
 
   const SPEED = 3; // tiles per game hour on foot
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, SPEED };
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
+    SPEED };
 })();
 </script>
 <script>
@@ -1538,7 +1547,7 @@ VB['sim/records'] = (() => {
       died: o.diedYearsAgo !== undefined ? -o.diedYearsAgo * YEAR - ((R.rand() * YEAR_DAYS) | 0) * DAY : null,
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
-      look: (R.rand() * 1e9) >>> 0, events: [],
+      look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -2304,9 +2313,64 @@ VB['sim/lifecycle'] = (() => {
     for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
-    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard(p.age) / YEAR_DAYS) killPawn(st, p.id, 'old age');
+    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard((st.t - p.born) / YEAR) / YEAR_DAYS) killPawn(st, p.id, 'old age');
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
+})();
+</script>
+<script>
+// @sys sim/births: conception, pregnancy, childbirth and nursing of married women
+VB['sim/births'] = (() => {
+  const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
+  const { person, personEvent, log, fullName, spouseOf } = VB['sim/records'];
+  const { placeAtHome } = VB['sim/agents'];
+  const { refreshRoles } = VB['sim/heirs'];
+  const { killPawn } = VB['sim/lifecycle'];
+  // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing
+  const conceiveChance = (a) => (a < BIRTH.from || a >= BIRTH.to ? 0 : BIRTH.peak * BIRTH.ageFactor[Math.floor((a - BIRTH.from) / 5)]);
+  // births to one woman who is married from age `from` to age `to`, for calibration: no deaths, no hunger
+  function expectedBirths(rand, from, to) {
+    let births = 0, freeAt = 0, bornAt = -1;
+    for (let d = Math.round(from * YEAR_DAYS); d < to * YEAR_DAYS; d++) {
+      if (bornAt >= 0 && d >= bornAt) { births++; bornAt = -1; freeAt = d + BIRTH.nursingDays; }
+      if (bornAt < 0 && d >= freeAt && rand() < conceiveChance(Math.floor(d / YEAR_DAYS))) bornAt = d + BIRTH.pregnancyDays;
+    }
+    return births + (bornAt >= 0 ? 1 : 0);
+  }
+  function giveBirth(st, m) {
+    const hh = m.household !== null ? st.households[m.household] : null, fatherId = m.pregnantBy, father = st.pawns[fatherId];
+    m.pregnantUntil = null; m.pregnantBy = null;
+    if (!hh || hh.dissolved) return;
+    const sex = st.rand() < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
+    const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(st.rand() * pool.length) | 0];
+    const id = person({ pawns: st.pawns, rand: st.rand }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
+    p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
+    p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
+    p.ties = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+    for (const j of hh.members) if (j !== id && st.pawns[j].alive) { p.ties.set(j, 1); st.pawns[j].ties.set(id, 1); }
+    p.events.push({ t: st.t, kind: 'born' });
+    personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
+    st.agents.push({
+      id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: st.rand() * 6,
+      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0,
+    });
+    placeAtHome(st, st.agents[id]);
+    m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
+    log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`);
+    refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
+    if (st.rand() < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
+  }
+  function dailyBirths(st) {
+    for (const m of st.pawns) {
+      if (!m.alive || m.sex !== 'f') continue;
+      if (m.pregnantUntil !== null) { if (st.t >= m.pregnantUntil) giveBirth(st, m); continue; }
+      if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;
+      const sp = spouseOf(st, m.id);
+      if (sp === null || m.household === null || st.pawns[sp].household !== m.household) continue;
+      if (st.rand() < conceiveChance(m.age)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
+    }
+  }
+  return { conceiveChance, expectedBirths, dailyBirths };
 })();
 </script>
 <script>
@@ -2486,7 +2550,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
     // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
-    // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age, ...}
+    // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
@@ -2538,6 +2603,7 @@ VB['sim/clock'] = (() => {
   const { refreshJobs, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { dailyBirths } = VB['sim/births'];
   function onHour(st, h, c) {
     if (st.cenv) noteContacts(st);
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
@@ -2550,7 +2616,7 @@ VB['sim/clock'] = (() => {
       release(st, a);
       if (!a.inside) { goHome(st, a); a.phase = 'home'; }
     }
-    if (h === 0) { endOfDay(st, c); if (st.cenv) dailyLife(st, c); if (c.doy === 0) newYear(st, c); }
+    if (h === 0) { endOfDay(st, c); if (st.cenv) { dailyLife(st, c); dailyBirths(st); } if (c.doy === 0) newYear(st, c); }
   }
   function endOfDay(st, c) {
     const E = st.ECON;
@@ -3802,7 +3868,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
     const holds = Sim.holdingOf(st, id), heirs = heirTo(id);
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) => x.name).join(' and ')}` : p.retired ? `Retired at ${f.name}` : p.age >= 18 && st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
-    const rel = sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried';
+    const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
+      + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
     card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
   }
   function card(title, lines) {

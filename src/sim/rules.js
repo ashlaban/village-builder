@@ -57,8 +57,17 @@ VB['sim/rules'] = (() => {
   const patronym = (father, sex) => father + (father.endsWith('s') ? '' : 's') + (sex === 'm' ? 'son' : 'dotter');
   const DIRNAME = ['Öster', 'Norr', 'Norr', 'Väster', 'Söder', 'Söder'];
 
-  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + (a < 10 ? 0.01 : 0); // per year, roughly pre-industrial adults
+  // Annual death hazard at age a (years, may be fractional): Gompertz-Makeham for adults plus a juvenile term that falls with age (Siler 1979),
+  // so that about 20% die before age 1 and a third before 15.
+  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + 0.381 * Math.exp(-1.265 * a);
+
+  // ---- births: natural fertility of married women (Coale and Trussell 1974), relative to ages 20-24; times in game days ----
+  const BIRTH = {
+    peak: 0.015, ageFactor: [0.89, 1, 0.94, 0.86, 0.7, 0.36, 0.05], from: 15, to: 50, // chance per day to conceive; factor per 5 years of age from 15
+    pregnancyDays: 36, nursingDays: 48, boys: 105 / 205, childbedDeath: 0.01,
+  };
 
   const SPEED = 3; // tiles per game hour on foot
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, SPEED };
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
+    SPEED };
 })();
