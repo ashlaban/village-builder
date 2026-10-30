@@ -2220,7 +2220,7 @@ VB['sim/jobs'] = (() => {
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder,
+    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -2366,6 +2366,26 @@ VB['sim/heirs'] = (() => {
     log(st, `${f.name} stands empty: no heir would take it.`);
     st.visualDirty = true;
   }
+  // The guardian of a minor: the surviving parent in the house, else the nearest adult relative there (the oldest on a tie), else the oldest adult.
+  function guardianOf(st, hh, ward) {
+    const w = st.pawns[ward], adults = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18 && q.id !== ward);
+    const parent = adults.filter((q) => q.id === w.father || q.id === w.mother).sort((x, y) => x.born - y.born)[0];
+    if (parent) return parent.id;
+    const memo = new Map(), kin = (q) => kinship(st, ward, q.id, memo);
+    const best = adults.filter((q) => kin(q) > 0).sort((x, y) => kin(y) - kin(x) || x.born - y.born)[0] || adults.sort((x, y) => x.born - y.born)[0];
+    return best ? best.id : null;
+  }
+  function setGuardian(st, hh, ward) { hh.guardian = guardianOf(st, hh, ward); hh.ward = ward; }
+  // Daily: a ward who has turned 18 needs no guardian; a ward who holds the farm takes charge of it.
+  function comeOfAge(st) {
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.guardian === undefined || hh.guardian === null) continue;
+      const ward = st.pawns[hh.ward];
+      if (ward.alive && ward.age < 18) continue;
+      hh.guardian = null;
+      if (ward.alive && hh.holder === ward.id) personEvent(st, ward.id, 'inherited', `Came of age and took charge of ${st.farmsteads[hh.farmstead].name}`);
+    }
+  }
   function succession(st, hh, reason) {
     const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), dead = st.pawns[hh.holder];
     const sp = spouseOf(st, dead.id, dead.died - 0.01);
@@ -2373,6 +2393,7 @@ VB['sim/heirs'] = (() => {
     const ranking = heirRanking(st, hh, cu), heir = ranking.length ? ranking[0] : null;
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
+      if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       personEvent(st, spouse, 'inherited',
         `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
       log(st,
@@ -2383,9 +2404,8 @@ VB['sim/heirs'] = (() => {
     }
     if (heir === null) { extinct(st, hh); return; }
     if (st.pawns[heir].age < 18) {
-      // a minor heir holds in name; the nearest adult kin in the house acts as guardian
-      const g = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18).sort((x, y) => x.born - y.born)[0];
-      hh.guardian = g ? g.id : null;
+      // a minor heir holds in name, with a guardian until 18
+      setGuardian(st, hh, heir);
     }
     transfer(st, hh, heir, 'death');
   }
@@ -2424,7 +2444,7 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
+  return { heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
 })();
 </script>
 <script>
@@ -2570,7 +2590,7 @@ VB['sim/lifecycle'] = (() => {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -2678,6 +2698,7 @@ VB['sim/lifecycle'] = (() => {
   function dailyLife(st, c) {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
+    comeOfAge(st);
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor
     const decay = Math.pow(0.5, 1 / YEAR_DAYS);
     for (const p of st.pawns) { if (!p.alive) continue; for (const [j, w0] of p.ties) p.ties.set(j, w0 * decay); }
@@ -2952,7 +2973,8 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
-    //   unthreshed[] (rations still in sheaf, one per field's crop),
+    //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
+    //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -4261,7 +4283,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
-      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined && hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {

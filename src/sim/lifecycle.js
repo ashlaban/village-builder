@@ -7,7 +7,7 @@ VB['sim/lifecycle'] = (() => {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -115,6 +115,7 @@ VB['sim/lifecycle'] = (() => {
   function dailyLife(st, c) {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
+    comeOfAge(st);
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor
     const decay = Math.pow(0.5, 1 / YEAR_DAYS);
     for (const p of st.pawns) { if (!p.alive) continue; for (const [j, w0] of p.ties) p.ties.set(j, w0 * decay); }
