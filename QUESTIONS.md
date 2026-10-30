@@ -43,6 +43,7 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 2. Where does the green go? **P:** a free, passable tile as close as possible to the farms' mean position; it becomes the village centre.
 3. Jobs and hours? **P:** clear the green 10 h, dig and line the well 40 h, raise the well sweep 10 h.
 4. Who works on it (role priority 0–10)? **P:** farmer 5, farmhand and son 6, wife, maid and daughter 3: a village duty below the farm's own work.
+   **A (Kim, 30 Oct):** all four accepted; VB-058 is `ready`.
 
 ## Priority 2
 
@@ -61,9 +62,11 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 
 ### VB-025: browser smoke test (also unblocks VB-053)
 1. May the project add `playwright` and `pixi.js` (served locally instead of the CDN) as dev dependencies? Chromium is already installed in the cloud sessions. **P:** yes; run it in `npm run verify` only.
+   **A (Kim, 30 Oct):** accepted; VB-025 is `ready`.
 
 ### VB-026: farm names in big villages (new farmsteads need names too)
 1. Farms beyond the direction names: numbers (today), names of owners or families, or landmarks. **P:** landmarks from the surroundings, as lone farms already get (Backa, Strand, Lunden, Myra, Ängen), then Nygården for a newly built farm, and numbers only as a last resort.
+   **A (Kim, 30 Oct):** a name generation system with many generators for the different entities; in the long run cultures prefer different kinds of generators. For now, landmarks and owner names are two generators that combine with the compass-direction one. VB-026 is rewritten and `ready`.
 
 ### VB-036: relationships and courting
 1. When do pawns court? **P:** unmarried adults (men 20+, women 18+) with a strong tie (time together at work, the well and the green) may start courting at any time of year; courting lasts a season or more and can end.
@@ -95,3 +98,4 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 
 ### VB-055: type checking
 1. May the project add `typescript` (about 25 MB, dev only) to check the plain JavaScript with JSDoc types? **P:** yes, in `npm test`.
+   **A (Kim, 30 Oct):** accepted; VB-055 is `ready`.
