@@ -2779,18 +2779,21 @@ VB['sim/people'] = (() => {
     return 6;
   }
 
-  // Populous: a couple, their children (two years apart) and sometimes a servant. Two generations only: the parents have no
-  // recorded parents, so there are no grandparents, living or on record.
+  // Populous: a couple, their children (two or three years apart) and sometimes a servant. Two generations only: the parents have no
+  // recorded parents, so there are no grandparents, living or on record. In a third of the households the eldest child is 18 to 26.
   function populousHouseholds(R, farmsteads, sizes) {
     const rand = R.rand, households = [];
     for (const f of farmsteads) {
       const size = sizes[f.id], servant = size >= 6 && rand() < 0.25 ? 1 : 0, kids = size - 2 - servant;
-      const youngest = (rand() * 3) | 0, eldest = youngest + 2 * (kids - 1);
+      const ages = [0];
+      for (let k = 1; k < kids; k++) ages.push(ages[k - 1] + 2 + ((rand() * 2) | 0));
+      const span = ages[kids - 1], grown = rand() < 1 / 3;
+      const youngest = grown ? Math.max(0, 18 + ((rand() * 9) | 0) - span) : (rand() * 3) | 0, eldest = youngest + span;
       const wAge = Math.max(25 + ((rand() * 14) | 0), eldest + 19), hAge = wAge + ((rand() * 6) | 0) - 1;
       const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
       const members = [man, wife];
       marry(R, man, wife, eldest + 1 + ((rand() * 3) | 0));
-      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + 2 * k, father: man, mother: wife }));
+      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + ages[k], father: man, mother: wife }));
       const hh = makeHousehold(R, households.length, f, members, man);
       if (servant) joinHousehold(R, hh, person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: 15 + ((rand() * 6) | 0), servant: true }));
       households.push(hh);

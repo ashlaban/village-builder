@@ -121,7 +121,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-078 | Wrap-up: commands, saves and the record of events | core | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
 | VB-079 | Plan: the player's role | player | plan | ready | 2 | S | Settle the player's role (Open) so the player arch can be planned. | [backlog/VB-079.md](backlog/VB-079.md) |
 | VB-080 | A food balance that feeds a family before animals | food | implement | done | 1 | S | Field yield 100 and seed 25, a slower health drain (4 a day), a fourth field for big populous households, so an ordinary year feeds a family. | [backlog/VB-080.md](backlog/VB-080.md) |
-| VB-081 | Populous households with adult children | - | - | ready | 2 | S | Some populous households start with children of 18 or more, so marriage and inheritance begin in year 1. | [backlog/VB-081.md](backlog/VB-081.md) |
+| VB-081 | Populous households with adult children | - | - | done | 2 | S | Some populous households start with children of 18 or more, so marriage and inheritance begin in year 1. | [backlog/VB-081.md](backlog/VB-081.md) |
 | VB-082 | Customs made legible: votes, leanings and causes | - | - | ready | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
 | VB-083 | Seasons on the map | - | - | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
 | VB-084 | A 30× speed and an uncapped speed | - | - | ready | 3 | S | Speeds of 30× and "Max", as fast as a 12 ms frame budget allows. | [backlog/VB-084.md](backlog/VB-084.md) |
