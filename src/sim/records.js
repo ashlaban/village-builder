@@ -30,7 +30,7 @@ VB['sim/records'] = (() => {
     return { rand, pickGiven: (sex) => take(sex === 'm' ? MALE : FEMALE, sex === 'm' ? usedM : usedF), pickFather: () => take(MALE, usedFather) };
   }
   function makeHousehold(R, id, f, members, holder) {
-    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood, stone: 0,
+    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
       ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
