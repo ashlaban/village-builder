@@ -1470,7 +1470,13 @@ VB['sim/rules'] = (() => {
     weedEvery: 6, weedCut: 0.08, weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
   };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && FERTILITY[w.biome[i]] !== undefined;
+  // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
+  // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
+  const RIVER = { irrigation: 0.2, site: [0, 10, 10, 5] };
+  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && FERTILITY[w.biome[i]] !== undefined;
+  const byRiver = (w, i) => { for (let k = 0; k < 6; k++) { const j = w.nb[i * 6 + k]; if (j >= 0 && w.river[j]) return true; } return false; };
+  // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
+  const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
   // ---- roles and jobs: who prefers what; jobs carry an owner that decides who may take them ----
   const ROLES = {
@@ -1557,7 +1563,8 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, CHILD, workRate, PLOT_PRIO, KINDS,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    PLOT_PRIO, KINDS,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();
@@ -1607,7 +1614,7 @@ VB['sim/hex'] = (() => {
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { FERTILITY, farmable, DIRNAME } = VB['sim/rules'];
+  const { RIVER, farmable, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, land, hexSteps } = VB['sim/hex'];
   // ---- placing the founders ----
   function placeFields(w, used, house, n, avoid) {
@@ -1617,19 +1624,19 @@ VB['sim/layout'] = (() => {
       const { dist } = bfs(w, house, 2, (j) => farmable(w, j));
       for (const [j, d] of dist) if (d === 2 && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j);
     }
-    cand.sort((a, b) => FERTILITY[w.biome[b]] - FERTILITY[w.biome[a]]);
+    cand.sort((a, b) => fertility(w, b) - fertility(w, a));
     return cand.length >= n ? cand.slice(0, n) : null;
   }
   function siteScore(w, c) {
     if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
     const { dist } = bfs(w, c, 3, land(w));
     let farm = 0;
-    for (const [j] of dist) if (farmable(w, j)) farm += FERTILITY[w.biome[j]];
+    for (const [j] of dist) if (farmable(w, j)) farm += fertility(w, j);
     const { dist: d6 } = bfs(w, c, 6, land(w));
-    let wood = 0, shore = 0;
-    for (const [j] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; }
+    let wood = 0, shore = 0, river = Infinity;
+    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (w.river[j] && d < river) river = d; }
     for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
-    return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) - w.hp[c] * 6;
+    return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) + (RIVER.site[river] || 0) - w.hp[c] * 6;
   }
   function villageName(rand) {
     const A = ['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'],
@@ -1661,7 +1668,7 @@ VB['sim/layout'] = (() => {
     used.add(house); for (const j of fields) used.add(j);
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
-      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[t]],
+      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null,
     };
@@ -1692,7 +1699,7 @@ VB['sim/layout'] = (() => {
         if (used.has(h) || farmsteads.some((f) => hexSteps(w, f.house, h) < 2)) continue;
         const fields = placeFields(w, used, h, 3, greenAvoid);
         if (!fields) continue;
-        const s = fields.reduce((a, j) => a + FERTILITY[w.biome[j]], 0) - hexSteps(w, h, center) * 0.3;
+        const s = fields.reduce((a, j) => a + fertility(w, j), 0) - hexSteps(w, h, center) * 0.3;
         if (s > ps) { ps = s; pick = { house: h, fields }; }
       }
       if (!pick) break;
@@ -1755,7 +1762,7 @@ VB['sim/layout'] = (() => {
       if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
       const fields = placeFields(w, used, j, 3);
       if (!fields) continue;
-      const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
+      const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
       if (s > ls) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
@@ -1773,12 +1780,12 @@ VB['sim/layout'] = (() => {
     let best = -1, bs = -Infinity;
     for (const [t, d] of dist) {
       if (used.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
-      const s = FERTILITY[w.biome[t]] - 0.15 * d;
+      const s = fertility(w, t) - 0.15 * d;
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
     used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[best]],
+    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
       weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }
@@ -2104,7 +2111,7 @@ VB['sim/deaths'] = (() => {
 // @sys sim/fields: making new fields: how many a household wants, choosing a meadow tile, clearing it and breaking the ground
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, FERTILITY, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { ECON, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { bfs, land } = VB['sim/hex'];
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
@@ -2119,13 +2126,13 @@ VB['sim/fields'] = (() => {
   const fieldsWanted = (st, hh) => Math.min(MAX_FIELDS, Math.ceil((1.1 * yearlyRations(st, hh)) / (0.75 * ECON.fieldYield)));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
-  // The best unowned meadow tile within reach of the house: fertile, few stones, near. -1 when there is none.
+  // The best unowned meadow tile within reach of the house, not on a river: fertile (watered by one), few stones, near. -1 when there is none.
   function chooseTile(st, f) {
     const w = st.w, centres = new Set(st.villages.map((v) => v.center));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, land(w)).dist) {
-      if (d < 1 || w.biome[t] !== B.MEADOW || st.owner[t] !== 0 || centres.has(t) || st.used.has(t)) continue;
-      const s = FERTILITY[B.MEADOW] - 0.5 * w.stones[t] / 255 - 0.15 * d;
+      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || centres.has(t) || st.used.has(t)) continue;
+      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d;
       if (s > bs) { bs = s; best = t; }
     }
     return best;
@@ -2148,7 +2155,7 @@ VB['sim/fields'] = (() => {
   // Breaking done: the tile is a field in stubble.
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
-    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[tile]],
+    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
@@ -2161,7 +2168,7 @@ VB['sim/fields'] = (() => {
 // @sys sim/expansion: clearing a new plot for those who want to move out: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
-  const { FERTILITY, farmable } = VB['sim/rules'];
+  const { fertility, farmable } = VB['sim/rules'];
   const { bfs, land } = VB['sim/hex'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
@@ -2177,7 +2184,7 @@ VB['sim/expansion'] = (() => {
     const s = tr.steps[tr.i];
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
-  // A house tile and one field tile within REACH steps of the green: unowned, passable, in the village's region or one touching it.
+  // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
   // A farmable tile next to the house is preferred; the house may stand next to other houses. Null when there is no room.
   function findSite(st, v) {
     const w = st.w, vreg = w.region[v.center], cand = [];
@@ -2187,10 +2194,11 @@ VB['sim/expansion'] = (() => {
       return false;
     };
     for (const [t, d] of bfs(w, v.center, REACH, land(w)).dist) {
-      if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
+      if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
+      if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
-    const dist = new Map(cand), fieldScore = (t) => FERTILITY[w.biome[t]] - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
+    const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const farmableAt = (t) => dist.has(t) && farmable(w, t) && !wooded(w, t);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
@@ -3573,7 +3581,7 @@ VB['sim/clock'] = (() => {
 // @sys sim: the public Sim object, assembled from the sim/* modules
 const Sim = (() => {
   const Culture = VB['culture'];
-  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK } = VB['sim/rules'];
+  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, KINDS, WORK, RIVER, byRiver } = VB['sim/rules'];
   const {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
   } = VB['sim/records'];
@@ -3593,7 +3601,7 @@ const Sim = (() => {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
-    plotProgress, explainIdle, idleLine,
+    plotProgress, explainIdle, idleLine, RIVER, byRiver,
   };
 })();
 VB['sim'] = Sim;
@@ -4029,8 +4037,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
+    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : !w.water[i] && Sim.byRiver(w, i)
+      ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...(w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : []), ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...river, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -4803,7 +4813,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {
         const word = { stubble: 'Stubble, waiting for spring', plowed: 'Hoed, ready for sowing', sown: 'Freshly sown', young: 'Sprouting', growing: 'Growing', ripe: 'Ripe for reaping', stooks: 'Sheaves drying in stooks', fallow: 'Untended, gone to grass', scrub: 'Untended, gone to scrub' }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
-        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+        const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
+        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
     }
     for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];

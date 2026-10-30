@@ -1,7 +1,7 @@
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { FERTILITY, farmable, DIRNAME } = VB['sim/rules'];
+  const { RIVER, farmable, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, land, hexSteps } = VB['sim/hex'];
   // ---- placing the founders ----
   function placeFields(w, used, house, n, avoid) {
@@ -11,19 +11,19 @@ VB['sim/layout'] = (() => {
       const { dist } = bfs(w, house, 2, (j) => farmable(w, j));
       for (const [j, d] of dist) if (d === 2 && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j);
     }
-    cand.sort((a, b) => FERTILITY[w.biome[b]] - FERTILITY[w.biome[a]]);
+    cand.sort((a, b) => fertility(w, b) - fertility(w, a));
     return cand.length >= n ? cand.slice(0, n) : null;
   }
   function siteScore(w, c) {
     if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
     const { dist } = bfs(w, c, 3, land(w));
     let farm = 0;
-    for (const [j] of dist) if (farmable(w, j)) farm += FERTILITY[w.biome[j]];
+    for (const [j] of dist) if (farmable(w, j)) farm += fertility(w, j);
     const { dist: d6 } = bfs(w, c, 6, land(w));
-    let wood = 0, shore = 0;
-    for (const [j] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; }
+    let wood = 0, shore = 0, river = Infinity;
+    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (w.river[j] && d < river) river = d; }
     for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
-    return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) - w.hp[c] * 6;
+    return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) + (RIVER.site[river] || 0) - w.hp[c] * 6;
   }
   function villageName(rand) {
     const A = ['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'],
@@ -55,7 +55,7 @@ VB['sim/layout'] = (() => {
     used.add(house); for (const j of fields) used.add(j);
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
-      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[t]],
+      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null,
     };
@@ -86,7 +86,7 @@ VB['sim/layout'] = (() => {
         if (used.has(h) || farmsteads.some((f) => hexSteps(w, f.house, h) < 2)) continue;
         const fields = placeFields(w, used, h, 3, greenAvoid);
         if (!fields) continue;
-        const s = fields.reduce((a, j) => a + FERTILITY[w.biome[j]], 0) - hexSteps(w, h, center) * 0.3;
+        const s = fields.reduce((a, j) => a + fertility(w, j), 0) - hexSteps(w, h, center) * 0.3;
         if (s > ps) { ps = s; pick = { house: h, fields }; }
       }
       if (!pick) break;
@@ -149,7 +149,7 @@ VB['sim/layout'] = (() => {
       if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
       const fields = placeFields(w, used, j, 3);
       if (!fields) continue;
-      const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
+      const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
       if (s > ls) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
@@ -167,12 +167,12 @@ VB['sim/layout'] = (() => {
     let best = -1, bs = -Infinity;
     for (const [t, d] of dist) {
       if (used.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
-      const s = FERTILITY[w.biome[t]] - 0.15 * d;
+      const s = fertility(w, t) - 0.15 * d;
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
     used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[best]],
+    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
       weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }

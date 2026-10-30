@@ -17,5 +17,8 @@ for (const [scenario, sd, years] of RUNS) {
 const st = seed('founders', 7), hh = st.households.find((h) => h.members.length > 1);
 hh.members.pop();
 if (!checkState(st).some((m) => m.includes('in no household'))) { failed++; console.error('INVARIANTS FAIL: a pawn removed from its household is not reported'); }
+const st2 = seed('founders', 7), wet = st2.w.river.findIndex((x) => x > 0);
+st2.farmsteads[0].house = wet;
+if (!checkState(st2).some((m) => m.includes('house on river tile'))) { failed++; console.error('INVARIANTS FAIL: a house moved onto a river is not reported'); }
 if (failed) process.exit(1);
 console.log(`invariants ok: ${RUNS.length} runs`);
