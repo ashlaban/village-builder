@@ -140,7 +140,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
-    // @state st.pathCache: Map of route key to path. st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
+    // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
+    // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
@@ -150,7 +151,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(),
+      jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,

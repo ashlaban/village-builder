@@ -21,10 +21,10 @@ VB['sim/agents'] = (() => {
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
   function route(st, from, to) {
-    const k = from * 100000 + to;
+    const k = from * st.w.N + to;
     if (st.pathCache.has(k)) return st.pathCache.get(k);
-    const { prev } = bfs(st.w, from, 60, land(st.w));
-    const p = pathTo(prev, from, to) || [to];
+    let p = pathTo(bfs(st.w, from, 60, land(st.w)).prev, from, to);
+    if (!p) { p = pathTo(bfs(st.w, from, 200, land(st.w)).prev, from, to); if (!p) { p = [to]; st.routeFallbacks++; } }
     st.pathCache.set(k, p);
     return p;
   }
@@ -127,7 +127,7 @@ VB['sim/agents'] = (() => {
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage
         const hx = st.w.hx[f.house], hy = st.w.hy[f.house];
-        const [x, y] = j.kind === 'water' ? homeSpot(st, a) : j.kind === 'logs' || K.carry === 'logs' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
+        const [x, y] = j.kind === 'water' ? homeSpot(st, a) : K.carry === 'logs' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
         walkTo(st, a, f.house, x, y);
       } else {
         complete(st, a);
