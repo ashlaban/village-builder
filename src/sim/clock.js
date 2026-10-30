@@ -3,12 +3,19 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { B } = VB['gen'];
+  const { bfs } = VB['sim/hex'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
+  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
+  function nearForest(w, tile) {
+    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
+    return false;
+  }
   function onHour(st, h, c) {
     if (st.cenv) noteContacts(st);
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
@@ -59,7 +66,8 @@ VB['sim/clock'] = (() => {
       const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
       for (const fd of f.fields) {
-        const want = yrs > 8 ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage; if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
+        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
+        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
       }
     }
     for (const s of all) {
