@@ -2,7 +2,6 @@
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
-  const { hexSteps } = VB['sim/hex'];
   const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
@@ -42,11 +41,7 @@ VB['sim/records'] = (() => {
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
     if (!hh) return null;
-    const f = st.farmsteads[hh.farmstead];
-    if (f.village !== null) return f.village;
-    // a lone farm takes part in the nearest village's meeting
-    let best = 0, bd = Infinity; for (const v of st.villages) { const d = hexSteps(st.w, f.house, v.center); if (d < bd) { bd = d; best = v.id; } }
-    return best;
+    return st.farmsteads[hh.farmstead].village;
   }
   const kinNear = (st, id) => {
     const p = st.pawns[id], out = new Set(); if (p.father !== null) out.add(p.father); if (p.mother !== null) out.add(p.mother);
@@ -60,7 +55,7 @@ VB['sim/records'] = (() => {
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
     return out;
   };
-  const farmPractice = (st, f) => practice(st, f.village !== null ? f.village : settlementIdOf(st, st.pawns[st.households[f.household].holder]));
+  const farmPractice = (st, f) => practice(st, f.village);
   function personEvent(st, id, kind, text) { st.pawns[id].events.push({ t: st.t, kind, text }); }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;

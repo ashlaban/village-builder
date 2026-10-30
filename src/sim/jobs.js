@@ -34,7 +34,7 @@ VB['sim/jobs'] = (() => {
       }
       if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
-        f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
+        st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
       if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
       if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
     }

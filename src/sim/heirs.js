@@ -4,9 +4,10 @@ VB['sim/heirs'] = (() => {
     personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
+  const { farmToVillage } = VB['sim/ownership'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false) {
-    const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village !== null ? f.village : 0);
+    const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
     const order = (ids) => [...ids].sort((a, b) => {
@@ -102,7 +103,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
-    hh.dissolved = true;
+    hh.dissolved = true; farmToVillage(st, f);
     for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {

@@ -75,7 +75,7 @@ VB['sim/layout'] = (() => {
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = []) {
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1 };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
     used.add(center);
     const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
     for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
@@ -93,11 +93,12 @@ VB['sim/layout'] = (() => {
       const f = makeFarmstead(w, farmsteads.length, pick.house, pick.fields, village, used);
       farmsteads.push(f); village.farmsteads.push(f.id);
     }
+    village.green = village.well = village.farmsteads.length >= 2;
     return village;
   }
   function nameFarms(w, villages, farmsteads, rand) {
     for (const f of farmsteads) {
-      if (f.village !== null) {
+      if (villages[f.village].farmsteads.length >= 2) {
         const v = villages[f.village], dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
         const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
         let nm = DIRNAME[k] + 'gården';
@@ -107,7 +108,7 @@ VB['sim/layout'] = (() => {
         // a big village runs out of names: number the rest
         for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
-      } else {
+      } else { // a one-farm village: the farm is named for its surroundings
         let coast = false, woods = 0, hills = 0, marsh = 0;
         const { dist: near } = bfs(w, f.house, 2, () => true);
         for (const [j] of near) {
@@ -133,18 +134,13 @@ VB['sim/layout'] = (() => {
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
       v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
     }
-    for (const f of farmsteads) {
-      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearWood(f.house);
-      if (f.village === null) {
-        const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand);
-      }
-    }
+    for (const f of farmsteads) f.woodlot = villages[f.village].commonsWood;
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  // The lone farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
-  function findLoneFarm(w, used, rand, center, farmsteads) {
+  // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
+  function findLoneFarm(w, used, rand, center, farmsteads, villages = []) {
     const { dist: reach } = bfs(w, center, 40, land(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
@@ -154,7 +150,14 @@ VB['sim/layout'] = (() => {
       const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
       if (s > ls) { ls = s; lone = { house: j, fields }; }
     }
-    return lone ? makeFarmstead(w, farmsteads.length, lone.house, lone.fields, null, used) : null;
+    if (!lone) return null;
+    // the farm is a village of its own: its centre is the house, and it has neither green nor well
+    let name = villageName(rand);
+    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, green: false, well: false };
+    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
+    village.farmsteads.push(f.id); villages.push(village);
+    return f;
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
@@ -168,7 +171,7 @@ VB['sim/layout'] = (() => {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
         villages.push(v); return v;
       },
-      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads); if (f) farmsteads.push(f); return f; },
+      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand);

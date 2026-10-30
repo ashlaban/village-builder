@@ -41,7 +41,7 @@ VB['sim/agents'] = (() => {
       return [w.hx[j.site] - Math.cos(th) * 13 + Math.sin(th) * -12, w.hy[j.site] - Math.sin(th) * 13 - Math.cos(th) * -12];
     }
     if (j.kind === 'haul') return [w.hx[j.site] + a.ox * 0.6, w.hy[j.site] + a.oy * 0.6];
-    if (j.kind === 'water') return j.farm.village !== null ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
+    if (j.kind === 'water') return st.villages[j.farm.village].well ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
     if (j.kind === 'mend') return [j.stretch.mx + (w.hx[j.site] - j.stretch.mx) * 0.25, j.stretch.my + (w.hy[j.site] - j.stretch.my) * 0.25 + 3];
     if (j.kind === 'wood') return [w.hx[j.site] - 8 + a.ox * 0.4, w.hy[j.site] + 6];
     return [w.hx[j.site], w.hy[j.site]];
@@ -91,7 +91,7 @@ VB['sim/agents'] = (() => {
   function idleAbout(st, a) {
     // nothing suitable: drift to the green or the yard, and look again in a while
     const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-    const v = f.village !== null ? st.villages[f.village] : null, spot = v && st.rand() < 0.5 ? v.center : f.house;
+    const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
     walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
     a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
   }
