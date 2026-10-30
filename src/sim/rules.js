@@ -15,7 +15,7 @@ VB['sim/rules'] = (() => {
     ration: { adult: 1, child: 0.5 },
     fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
     sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
-    woodPerTrip: 3, woodTarget: 30, woodUse: [0.35, 0.3, 0.5, 1.6],
+    woodPerTrip: 3, woodTarget: 30, woodWinter: 40, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
     weedEvery: 6, weedCut: 0.08, weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
@@ -99,7 +99,8 @@ VB['sim/rules'] = (() => {
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
   const MATCH = {
-    poorFit: 2, poorFitWaitHours: 2, distanceWeight: 0.15, noise: 0.3,
+    poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
+    distanceWeight: 0.15, noise: 0.3,
     urgency: {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5

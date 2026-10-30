@@ -34,6 +34,8 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
     }
   }
+  // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
+  const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   function refreshJobs(st, c) {
     const E = st.ECON;
     for (const j of st.jobs.values()) j.live = false;
@@ -52,7 +54,7 @@ VB['sim/jobs'] = (() => {
       }
       if (st.makeFields) startProject(st, f, hh);
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
-      if (f.woodlot >= 0 && hh.wood < E.woodTarget) {
+      if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
       }
@@ -79,7 +81,7 @@ VB['sim/jobs'] = (() => {
       case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
       case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
       case 'haul': return U.haul;
-      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? U.woodSummer : 0);
+      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (woodGoal(E, c) - hh.wood) / woodGoal(E, c) + (c.season === 2 ? U.woodSummer : 0);
       case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
       case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
       case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
@@ -89,13 +91,14 @@ VB['sim/jobs'] = (() => {
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
+  const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight + st.rand() * MATCH.noise;
+    return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight) + st.rand() * MATCH.noise;
   }
   // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
@@ -114,7 +117,7 @@ VB['sim/jobs'] = (() => {
       else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
         row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
       } else {
-        row.bid = pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight;
+        row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
         if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; }
       }
       out.push(row);
