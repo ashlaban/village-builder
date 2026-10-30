@@ -90,6 +90,20 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 3; // tiles per game hour on foot
+  // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
+  // the reserve (reserveBase plus reservePerMember per member) is never paid out.
+  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
+  // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
+  const MATCH = {
+    poorFit: 2, poorFitWaitHours: 2, distanceWeight: 0.15, noise: 0.3,
+    urgency: {
+      field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
+      reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5
+      woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the target, + 0.5 in summer
+      waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+    },
+  };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();

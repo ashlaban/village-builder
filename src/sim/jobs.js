@@ -1,6 +1,6 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, PLOT_PRIO } = VB['sim/rules'];
+  const { WORK, ROLES, PLOT_PRIO, MATCH } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
@@ -74,17 +74,17 @@ VB['sim/jobs'] = (() => {
     return true;
   }
   function urgency(st, j, c) {
-    const E = st.ECON, hh = j.farm ? st.households[j.farm.household] : null;
+    const E = st.ECON, U = MATCH.urgency, hh = j.farm ? st.households[j.farm.household] : null;
     switch (j.kind) {
-      case 'plow': case 'sow': return 1 + c.sday / 8;
-      case 'reap': return 1.3 + (c.season === 2 ? c.sday / 5 : 0);
-      case 'haul': return 1.1;
-      case 'wood': return hh.wood < 8 ? 2.2 : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? 0.5 : 0);
-      case 'water': return c.hour < 10 ? 1.4 : 1;
-      case 'cook': return c.hour >= 15 ? 2.2 : 0.6;
-      case 'mend': return (1 - j.stretch.cond) * 2;
+      case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
+      case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
+      case 'haul': return U.haul;
+      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? U.woodSummer : 0);
+      case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
+      case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
+      case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
     }
-    return 1;
+    return U.other;
   }
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
@@ -93,9 +93,9 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
-    if (pr <= 0 || (pr <= 2 && st.t - j.posted < 2)) return -1;
+    if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * 0.15 + st.rand() * 0.3;
+    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight + st.rand() * MATCH.noise;
   }
   // Two sets of jobs, each in increasing id, as one list in increasing id: the order st.jobs iterates in.
   function mergeById(x, y) {

@@ -6,6 +6,7 @@ VB['sim/heirs'] = (() => {
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
+  const { SHARES } = VB['sim/rules'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -98,9 +99,9 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * 120 + hh.grain * 0.5, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
-        const reserve = 60 + hh.members.length * 30; // shares never eat the seed corn or the winter's food
+        const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
         hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
         if (due) {

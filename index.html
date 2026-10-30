@@ -1342,8 +1342,22 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 3; // tiles per game hour on foot
+  // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
+  // the reserve (reserveBase plus reservePerMember per member) is never paid out.
+  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
+  // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
+  const MATCH = {
+    poorFit: 2, poorFitWaitHours: 2, distanceWeight: 0.15, noise: 0.3,
+    urgency: {
+      field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
+      reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5
+      woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the target, + 0.5 in summer
+      waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+    },
+  };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -2263,7 +2277,7 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, PLOT_PRIO } = VB['sim/rules'];
+  const { WORK, ROLES, PLOT_PRIO, MATCH } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
@@ -2337,17 +2351,17 @@ VB['sim/jobs'] = (() => {
     return true;
   }
   function urgency(st, j, c) {
-    const E = st.ECON, hh = j.farm ? st.households[j.farm.household] : null;
+    const E = st.ECON, U = MATCH.urgency, hh = j.farm ? st.households[j.farm.household] : null;
     switch (j.kind) {
-      case 'plow': case 'sow': return 1 + c.sday / 8;
-      case 'reap': return 1.3 + (c.season === 2 ? c.sday / 5 : 0);
-      case 'haul': return 1.1;
-      case 'wood': return hh.wood < 8 ? 2.2 : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? 0.5 : 0);
-      case 'water': return c.hour < 10 ? 1.4 : 1;
-      case 'cook': return c.hour >= 15 ? 2.2 : 0.6;
-      case 'mend': return (1 - j.stretch.cond) * 2;
+      case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
+      case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
+      case 'haul': return U.haul;
+      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? U.woodSummer : 0);
+      case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
+      case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
+      case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
     }
-    return 1;
+    return U.other;
   }
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
@@ -2356,9 +2370,9 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
-    if (pr <= 0 || (pr <= 2 && st.t - j.posted < 2)) return -1;
+    if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * 0.15 + st.rand() * 0.3;
+    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight + st.rand() * MATCH.noise;
   }
   // Two sets of jobs, each in increasing id, as one list in increasing id: the order st.jobs iterates in.
   function mergeById(x, y) {
@@ -2391,6 +2405,7 @@ VB['sim/heirs'] = (() => {
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
+  const { SHARES } = VB['sim/rules'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -2483,9 +2498,9 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * 120 + hh.grain * 0.5, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
-        const reserve = 60 + hh.members.length * 30; // shares never eat the seed corn or the winter's food
+        const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
         hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
         if (due) {
