@@ -1,1 +1,1 @@
-["vb.js", "gen.js", "culture.js", "sim/rules.js", "sim/hex.js", "sim/layout.js", "sim/forest.js", "sim/records.js", "sim/agents.js", "sim/jobs.js", "sim/heirs.js", "sim/society.js", "sim/lifecycle.js", "sim/people.js", "sim/scenarios.js", "sim/clock.js", "sim.js"]
+["vb.js", "gen.js", "culture.js", "sim/rules.js", "sim/hex.js", "sim/layout.js", "sim/forest.js", "sim/records.js", "sim/hunger.js", "sim/agents.js", "sim/jobs.js", "sim/heirs.js", "sim/society.js", "sim/lifecycle.js", "sim/births.js", "sim/people.js", "sim/scenarios.js", "sim/clock.js", "sim.js"]

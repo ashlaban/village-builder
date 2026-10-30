@@ -63,7 +63,8 @@ const iv = setInterval(async () => {
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
   doc.getElementById('customsBtn').click(); tick(20);
   if (qa('#settlers .farm h2').length === 0) fail('settlers list is empty');
-  if (qa('.cust tbody tr').length !== 11) fail('customs table has ' + qa('.cust tbody tr').length + ' rows, expected 11');
+  const nDims = require('../src/load.js').culture.DIMS.length;
+  if (qa('.cust tbody tr').length !== nDims) fail('customs table has ' + qa('.cust tbody tr').length + ' rows, expected ' + nDims);
   console.log('customs rows:', qa('.cust tbody tr').length, '| first row:', q('.cust tbody tr').textContent.replace(/\s+/g, ' '), '| bars', qa('.sbar').length);
   console.log('customs text:', qa('#drawerBody .dm').slice(0, 4).map((p) => p.textContent).join(' || '));
   doc.getElementById('debugBtn').click(); tick(5);

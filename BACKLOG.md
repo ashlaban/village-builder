@@ -45,6 +45,6 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 | VB-024 | Wood supply: how fast the forest runs out | needs-review | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
 | VB-025 | Browser smoke test in real Chromium | needs-review | 3 | M | Playwright smoke test of `index.html` in real Chromium. | [backlog/VB-025.md](backlog/VB-025.md) |
 | VB-026 | Farm names in big villages | needs-review | 3 | S | Choose a naming rule for farms beyond the direction names. | [backlog/VB-026.md](backlog/VB-026.md) |
-| VB-027 | Births within marriage | ready | 2 | M | Married women conceive, give birth and nurse; infant and child mortality. | [backlog/VB-027.md](backlog/VB-027.md) |
-| VB-028 | Hunger has consequences | ready | 2 | M | Hunger raises death risk, slows work, postpones marriage and births; `feedOrder` custom. | [backlog/VB-028.md](backlog/VB-028.md) |
+| VB-027 | Births within marriage | done | 2 | M | Married women conceive, give birth and nurse; infant and child mortality. | [backlog/VB-027.md](backlog/VB-027.md) |
+| VB-028 | Hunger has consequences | done | 2 | M | Hunger raises death risk, slows work, postpones marriage and births; `feedOrder` custom. | [backlog/VB-028.md](backlog/VB-028.md) |
 | VB-029 | Marriage limit by degree, opening up when spouses are scarce | ready | 2 | M | `kinOk` judges by civil degree; scarcity of spouses loosens the custom. | [backlog/VB-029.md](backlog/VB-029.md) |
