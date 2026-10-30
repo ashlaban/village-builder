@@ -122,6 +122,7 @@ Jobs come from things that need doing (a field, a meadow, a herd, a household, a
 | Seed | Sowing costs a quarter of the expected harvest, a 4:1 yield ratio as Slicher van Bath (1963) reports for medieval Europe | Agreed |
 | Soil | Each harvest wears a field down; manure from the byre restores it | Agreed |
 | Risk | Frost destroys whatever is left in the field; each year has a weather factor | Agreed |
+| Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); what drives the rise and by how much is open, and is tuned with the animals (backlog VB-048) | Decided (rise), Open (rate) |
 | Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe | Agreed |
 
 ### Jobs, owners and roles
@@ -515,6 +516,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (discussion) | 30 October 2026 | Yields rise slightly over the course of a game |
 | 0.3 (discussion) | 29 October 2026 | Growth from natural births, with very limited immigration by boat in a later stage and 40 hours or more to full population; hunger can kill, mostly infants and the old; the heir-to-own-farm rule becomes a custom; the marriage limit is judged by degree, opens to closer kin when marriages are scarce, and never allows siblings; hunger also slows work and postpones marriages and births; children are spaced by explicit pregnancy and nursing; who eats first in a hungry household is a custom; degree is counted the civil way, with a fourth, loosest option allowing uncle–niece; starting values for births, hunger and the who-eats-first custom agreed, to be tuned for gameplay later; some births outside marriage; parents of young children favour feeding children first; plentiful spouses slowly tighten the marriage limit again; births outside marriage come from courting between pawns, and whether such children inherit is a custom; courting replaces the yearly matchmaking; the true father is recorded while pawns may believe otherwise |
 | 0.3 (backlog sync) | 29 October 2026 | Brought in decisions recorded in BACKLOG.md: four map sizes and a generation screen, the Populous Villages scenario and shared generators, every farm in a village, standing houses for the founders, a 6-minute simulation step with its own 5-minute UI clock, and starting numbers for trees, stones, making fields, tilling, threshing, weeding and milling. Open questions marked where the backlog covers them |
 | 0.3 | 29 October 2026 | Added Animals (cattle, sheep and one wild grazer; herds; the hard winter hay limit; ties to other systems), fields and meadows as built land that can be private or common, making hay meadows, and Starting scenarios (founders as the base and default, starting with as little land made as possible; the debug scenario moved here) |

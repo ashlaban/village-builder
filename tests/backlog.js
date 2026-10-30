@@ -1,8 +1,12 @@
-// Backlog check: every backlog/VB-NNN.md has one row in the BACKLOG.md table and vice versa,
-// and each row's name, status (its first word), priority, size and link match the task file.
+// Backlog check: every backlog/VB-NNN.md has one row in the BACKLOG.md table and vice versa, and each row's name, arch, phase,
+// status (its first word), priority, size and link match the task file. A task's arch must be listed under "## Archs".
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), dir = path.join(root, 'backlog');
-const errors = [];
+const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
+const backlog = fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8');
+const archSection = (backlog.split('## Archs')[1] || '').split('\n## ')[0];
+const archs = new Set(archSection.split('\n').map((l) => (l.match(/^\| ([a-z][a-z-]*) \|/) || [])[1]).filter(Boolean));
+if (!archs.size) errors.push('BACKLOG.md: no arch rows under "## Archs"');
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
 const tasks = {};
 for (const f of files) {
@@ -11,24 +15,29 @@ for (const f of files) {
   if (!head || !text.startsWith(head[0])) { errors.push(`backlog/${f}:1 line 1 must be "# VB-NNN: <name>"`); continue; }
   if (f !== head[1] + '.md') errors.push(`backlog/${f}:1 file name must be ${head[1]}.md`);
   for (const k of ['Status', 'Priority', 'Size']) if (!field(k)) errors.push(`backlog/${f}: no "${k}:" line`);
-  tasks[head[1]] = { name: head[2], status: field('Status').split(' ')[0], priority: field('Priority'), size: field('Size'),
+  const arch = field('Arch') || '-', phase = field('Phase') || '-';
+  if (arch !== '-' && !archs.has(arch)) errors.push(`backlog/${f}: arch "${arch}" is not listed under "## Archs" in BACKLOG.md`);
+  if (arch !== '-' && !PHASES.includes(phase)) errors.push(`backlog/${f}: phase "${phase}" must be one of ${PHASES.join(', ')}`);
+  if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
+  tasks[head[1]] = { name: head[2], arch, phase, status: field('Status').split(' ')[0], priority: field('Priority'), size: field('Size'),
     file: `[backlog/${f}](backlog/${f})` };
 }
 const rows = {};
-for (const line of fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8').split('\n').filter((l) => /^\| VB-\d{3} \|/.test(l))) {
+for (const line of backlog.split('\n').filter((l) => /^\| VB-\d{3} \|/.test(l))) {
   const cells = line.replace(/^\| | \|\s*$/g, '').split(' | '), file = cells.pop(); // file is last: a summary may hold " | "
-  const [id, name, status, priority, size] = cells;
+  const [id, name, arch, phase, status, priority, size] = cells;
   if (rows[id]) errors.push(`BACKLOG.md: ${id} has more than one row`);
-  rows[id] = { name, status, priority, size, file };
+  rows[id] = { name, arch, phase, status, priority, size, file };
 }
 for (const id of Object.keys(tasks)) if (!rows[id]) errors.push(`BACKLOG.md: no row for ${id} (backlog/${id}.md)`);
 for (const [id, row] of Object.entries(rows)) {
   const t = tasks[id];
   if (!t) { errors.push(`BACKLOG.md: row ${id} has no file backlog/${id}.md`); continue; }
-  for (const k of ['name', 'status', 'priority', 'size', 'file']) {
+  for (const k of ['name', 'arch', 'phase', 'status', 'priority', 'size', 'file']) {
     const want = k === 'name' ? t.name.replace(/\|/g, '/') : t[k];
     if (row[k] !== want) errors.push(`BACKLOG.md: ${id} ${k} is "${row[k]}", backlog/${id}.md says "${want}"`);
   }
 }
 if (errors.length) { console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log(`backlog: ${files.length} task files match the BACKLOG.md table`);
+const inArch = Object.values(tasks).filter((t) => t.arch !== '-').length;
+console.log(`backlog: ${files.length} task files match the BACKLOG.md table; ${inArch} in ${archs.size} archs`);
