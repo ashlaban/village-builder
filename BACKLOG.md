@@ -31,6 +31,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | claims | Claims, ownership and territory | Owners and claims on every tile, the ownership overlay with filters, one scope model for overlays, stores and family trees. | Claims, ownership and territory |
 | animals | Animals and husbandry | Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |
 | food | Food, hunger and health | Daily food, seed, milling, hunger, health and causes of death. | Economy and jobs; People (Mortality) |
+| social | Pawn interactions | Who meets whom, what happens between two pawns, and the relationships it builds; the base for courting, help between kin and persuasion. | People, households and family records; Customs and culture (How attitudes move) |
 | tooling | Code and verification | Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
 
 ## Tasks
@@ -72,7 +73,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-033 | Claiming an empty farm | expansion | implement | ready | 1 | M | Landless adults claim empty farms under the `claims` custom and restore them before moving in. | [backlog/VB-033.md](backlog/VB-033.md) |
 | VB-034 | Splitting land between heirs | expansion | implement | ready | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
 | VB-035 | Wrap-up: inheritance and expansion | expansion | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
-| VB-036 | Plan: relationships and courting | courting | plan | needs-review | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |
+| VB-036 | Plan: relationships and courting | courting | plan | blocked | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |
 | VB-037 | Founders start with a looser marriage limit | courting | implement | ready | 1 | S | The founders scenario starts with "First cousins or further" as custom and practice. | [backlog/VB-037.md](backlog/VB-037.md) |
 | VB-038 | Marriage numbers as tunables | courting | implement | ready | 2 | S | Move the magic numbers of the marriage match into a `MARRIAGE` table in `src/sim/rules.js`. | [backlog/VB-038.md](backlog/VB-038.md) |
 | VB-039 | Food help from kin and the village commons | courting | implement | needs-review | 2 | M | A hungry household asks kin and the village for food; givers keep a personal buffer before they give. | [backlog/VB-039.md](backlog/VB-039.md) |
@@ -95,3 +96,4 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-056 | Lint: the page only reads the simulation state | tooling | implement | ready | 2 | S | A lint rule fails when the page script writes to `st` other than through the allowed flags. | [backlog/VB-056.md](backlog/VB-056.md) |
 | VB-057 | Golden text of the page's panels | tooling | implement | ready | 3 | S | Record the text of every panel for a fixed seed and day, so unintended UI changes fail the verify run. | [backlog/VB-057.md](backlog/VB-057.md) |
 | VB-058 | The village green and well, built by the village | expansion | implement | ready | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
+| VB-059 | Plan: pawn interactions | social | plan | needs-review | 2 | S | Design who meets whom, kinds of interactions and the relationships they build; courting waits on it. | [backlog/VB-059.md](backlog/VB-059.md) |

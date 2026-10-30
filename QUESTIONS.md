@@ -70,10 +70,22 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 
 ### VB-036: relationships and courting
 1. When do pawns court? **P:** unmarried adults (men 20+, women 18+) with a strong tie (time together at work, the well and the green) may start courting at any time of year; courting lasts a season or more and can end.
+   **A (Kim, 30 Oct):** courting may start from 16; marriage stays at 18/20. A system for pawn interactions comes first, in its own arch (VB-059).
 2. Is a courting couple's marriage still gated by a place to live and the marriage limit? **P:** yes, both; courting couples wait for a place (claims, new plots, inheritance).
+   **A (Kim, 30 Oct):** accepted.
 3. Births outside marriage: how often? **P:** a small chance per day while courting, about 5% of births at the start; the couple marries within the year in most cases (about 3 in 4) if they can.
+   **A (Kim, 30 Oct):** accepted.
 4. Who believes who is the father? **P:** the true father is recorded; when the mother is courting more than one man, or married to another, the believed father is her husband, or the man she is seen with most.
+   **A (Kim, 30 Oct):** always the true father, for now.
 5. Does hunger stop courting, or only marriage? **P:** only marriage, as today (hunger ≥ 0.5).
+   **A (Kim, 30 Oct):** accepted. VB-036 now waits on VB-059.
+
+### VB-059: pawn interactions (new; courting waits on it)
+1. What kinds of interaction come first? **P:** talk (builds a tie), help (a gift of food or work, VB-039), quarrel (lowers a tie), court (VB-036); later trade and persuasion.
+2. What does a relationship between two pawns hold? **P:** the existing tie weight (familiarity), plus an opinion from −1 to 1 (liking), and a courting flag; kin links stay in the family records.
+3. When do interactions happen? **P:** when two pawns meet (as `noteContacts` finds them: working near each other, at the well, on the green, at home), each pair at most once a game hour, with the kind drawn from their roles, ties and opinion.
+4. Are interactions visible? **P:** a short speech-bubble icon over the pair near the camera, and a line in each pawn's events for courting, help and quarrels; talk is not logged.
+5. Cost at 1,000 pawns: keep relationships only above a minimum tie (as ties today), check pairs by map bucket instead of all pairs. **P:** yes; a target of under 5 ms per game hour on a populous medium map.
 
 ### VB-039: food help from kin and the village
 1. Each adult wants a buffer of 20–60 days of food before giving. **P:** yes, drawn per pawn; the holder's counts for the household.
