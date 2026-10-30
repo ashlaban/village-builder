@@ -158,3 +158,14 @@ if (require.main === module && process.argv[2] === 'births') {
   s15 = Math.exp(-cum);
   console.log(`dying before age 1: ${((1 - s1) * 100).toFixed(1)}% (aim about 20%); before age 15: ${((1 - s15) * 100).toFixed(1)}% (aim about a third)`);
 }
+if (require.main === module && process.argv[2] === 'hunger') {
+  // deaths in a household at hunger 1 for a whole year, relative to a fed one, in a stationary population (weights: survival to each age)
+  const VB = require('../src/load.js'), { hazard, HUNGER } = VB['sim/rules'];
+  const groups = [['under 5', 0, 5], ['5-14', 5, 15], ['15-59', 15, 60], ['60 and over', 60, 100], ['all ages', 0, 100]];
+  let S = 1; const w = [];
+  for (let a = 0; a < 100; a++) { w.push({ a, d: S * hazard(a + 0.5) }); S *= Math.exp(-hazard(a + 0.5)); }
+  for (const [name, lo, hi] of groups) {
+    const rows = w.filter((x) => x.a >= lo && x.a < hi);
+    console.log(`  ${name.padEnd(12)} deaths at h = 1: ${(rows.reduce((s, x) => s + x.d * (1 + HUNGER.k(x.a)), 0) / rows.reduce((s, x) => s + x.d, 0)).toFixed(2)} times a fed household`);
+  }
+}

@@ -18,8 +18,8 @@ for (const seed of [7, 42]) {
   console.log(`founders, seed ${seed}:\n  ${rows.join('\n  ')}`);
   for (const p of st.pawns) {
     if (p.born < 0) continue; // on record before the start
-    const m = st.pawns[p.mother], age = Math.floor((p.born - m.born) / Sim.YEAR);
-    assert(age >= 15 && age < 50, `birth to a mother aged ${age}`);
+    const m = st.pawns[p.mother], age = Math.floor((p.born - 36 * Sim.DAY - m.born) / Sim.YEAR); // at conception
+    assert(age >= 15 && age < 50, `conception at age ${age}`);
     assert(st.unions.some((u) => u.a === p.father && u.b === p.mother && u.start <= p.born), `birth to an unmarried woman: ${Sim.fullName(m)}`);
     assert(p.father !== null && p.household !== null, 'a newborn has both parents and a household');
   }

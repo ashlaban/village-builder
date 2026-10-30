@@ -980,6 +980,8 @@ const Culture = (() => {
     { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [['eldest', 'The eldest'], ['youngest', 'The youngest'], ['chosen', 'Chosen by the parent']] },
     { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [['land', 'With whoever holds land'], ['husband', 'At the husband’s home'], ['wife', 'At the wife’s home']] },
     { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [['second', 'Third cousins or further'], ['first', 'Second cousins or further'], ['close', 'First cousins or further']] },
+    { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
+      opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
   ];
   const OFF = [], NOPT = [], IDX = {};
   let TOTAL = 0;
@@ -987,7 +989,8 @@ const Culture = (() => {
   const optIndex = (dim, key) => DIMS[IDX[dim]].opts.findIndex((o) => o[0] === key);
 
   const ARCHETYPES = {
-    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first' },
+    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
+      feedOrder: 'equal' },
   };
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
@@ -1253,9 +1256,12 @@ VB['sim/rules'] = (() => {
     pregnancyDays: 36, nursingDays: 48, boys: 105 / 205, childbedDeath: 0.01,
   };
 
+  // ---- hunger: a member's hunger h (0..1) multiplies the death hazard by 1 + k(age) * h, and slows work by HUNGER.slow * h ----
+  const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
+
   const SPEED = 3; // tiles per game hour on foot
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    SPEED };
+    HUNGER, SPEED };
 })();
 </script>
 <script>
@@ -1548,6 +1554,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
+      hunger: 0, hungerLog: [],
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -1565,7 +1572,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood,
-      ledger: [], unthreshed: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
+      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -1631,9 +1638,48 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and the death roll it feeds into
+VB['sim/hunger'] = (() => {
+  const { YEAR, YEAR_DAYS, hazard, HUNGER } = VB['sim/rules'];
+  const { age, farmPractice } = VB['sim/records'];
+  // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
+  function feedHousehold(st, hh) {
+    const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
+    const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
+    const eaten = new Map(mem.map((p) => [p, need.get(p)]));
+    if (hh.grain >= total) hh.grain -= total;
+    else {
+      const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
+      const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
+      const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
+      let left = hh.grain;
+      for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
+        const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
+        for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
+        left -= give;
+      }
+      hh.grain = 0; hh.hungryDays++;
+    }
+    let sum = 0;
+    for (const p of mem) {
+      p.hungerLog.push(1 - eaten.get(p) / need.get(p)); if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
+      p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days; sum += p.hunger;
+    }
+    hh.hunger = mem.length ? sum / mem.length : 0;
+  }
+  // One pawn's death roll for the day: null, 'old age' or 'hunger' (a roll that falls in the share added by hunger). One random draw.
+  function deathRoll(st, p) {
+    const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = st.rand();
+    if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger)) return null;
+    return u >= base ? 'hunger' : 'old age';
+  }
+  return { feedHousehold, deathRoll };
+})();
+</script>
+<script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, KINDS, SPEED } = VB['sim/rules'];
+  const { cal, WORK, KINDS, SPEED, HUNGER } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -1743,7 +1789,7 @@ VB['sim/agents'] = (() => {
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt;
+    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger);
     if (a.work) {
       // walk the field row by row while working
       const wk = a.work, speed = j.kind === 'sow' ? 9 : 3.2;
@@ -2171,6 +2217,8 @@ VB['sim/society'] = (() => {
         if (older === 0) set('birthOrder', { eldest: 1 }); else if (older === sibs.length) set('birthOrder', { youngest: 1 });
       }
       if (holder && childrenOf(st, p.id).length >= 2) set('birthOrder', { chosen: 1 });
+      const young = childrenOf(st, p.id).filter((c) => st.pawns[c].alive && st.pawns[c].age < 14 && st.pawns[c].household === p.household);
+      if (young.length) set('feedOrder', { children: 1 });
       p.interest = it;
     }
   }
@@ -2193,7 +2241,8 @@ VB['sim/society'] = (() => {
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
-  const { YEAR_DAYS, YEAR, cal, hazard } = VB['sim/rules'];
+  const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
+  const { deathRoll } = VB['sim/hunger'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice,
   } = VB['sim/records'];
@@ -2255,8 +2304,9 @@ VB['sim/lifecycle'] = (() => {
     for (const p of alive) p.age = age(st, p);
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
-    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired),
-      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired);
+    const fed = (p) => p.hunger < HUNGER.marryBelow;
+    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired && fed(p)),
+      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired && fed(p));
     men.sort((x, y) => (placeIfMarried(st, y.id) !== null) - (placeIfMarried(st, x.id) !== null) || x.born - y.born);
     const taken = new Set();
     for (const m of men) {
@@ -2313,7 +2363,7 @@ VB['sim/lifecycle'] = (() => {
     for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
-    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard((st.t - p.born) / YEAR) / YEAR_DAYS) killPawn(st, p.id, 'old age');
+    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
 })();
@@ -2367,7 +2417,7 @@ VB['sim/births'] = (() => {
       if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;
       const sp = spouseOf(st, m.id);
       if (sp === null || m.household === null || st.pawns[sp].household !== m.household) continue;
-      if (st.rand() < conceiveChance(m.age)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
+      if (st.rand() < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
     }
   }
   return { conceiveChance, expectedBirths, dailyBirths };
@@ -2551,11 +2601,11 @@ VB['sim/scenarios'] = (() => {
     // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
-    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), ...}
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
-    //   ledger[], hungryDays, waterDay, cookDay, dissolved}
+    //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
@@ -2599,6 +2649,7 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
@@ -2622,9 +2673,7 @@ VB['sim/clock'] = (() => {
     const E = st.ECON;
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      let need = 0;
-      for (const id of hh.members) { const p = st.pawns[id]; if (!p.died) need += age(st, p) >= 14 ? E.ration.adult : E.ration.child; }
-      if (hh.grain >= need) hh.grain -= need; else { hh.grain = 0; hh.hungryDays++; }
+      feedHousehold(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
@@ -3842,7 +3891,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>${v ? 'in ' + esc(v.name) : 'on its own'}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];

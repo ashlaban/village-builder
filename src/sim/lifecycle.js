@@ -1,7 +1,8 @@
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
-  const { YEAR_DAYS, YEAR, cal, hazard } = VB['sim/rules'];
+  const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
+  const { deathRoll } = VB['sim/hunger'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice,
   } = VB['sim/records'];
@@ -63,8 +64,9 @@ VB['sim/lifecycle'] = (() => {
     for (const p of alive) p.age = age(st, p);
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
-    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired),
-      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired);
+    const fed = (p) => p.hunger < HUNGER.marryBelow;
+    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired && fed(p)),
+      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired && fed(p));
     men.sort((x, y) => (placeIfMarried(st, y.id) !== null) - (placeIfMarried(st, x.id) !== null) || x.born - y.born);
     const taken = new Set();
     for (const m of men) {
@@ -121,7 +123,7 @@ VB['sim/lifecycle'] = (() => {
     for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
-    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive && st.rand() < hazard((st.t - p.born) / YEAR) / YEAR_DAYS) killPawn(st, p.id, 'old age');
+    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
 })();

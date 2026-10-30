@@ -14,6 +14,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
+      hunger: 0, hungerLog: [],
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -31,7 +32,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, wood: ECON.startWood,
-      ledger: [], unthreshed: [], hungryDays: 0, waterDay: -1, cookDay: -1, dissolved: false };
+      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;

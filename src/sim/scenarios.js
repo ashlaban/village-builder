@@ -125,11 +125,11 @@ VB['sim/scenarios'] = (() => {
     // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
-    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), ...}
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
-    //   ledger[], hungryDays, waterDay, cookDay, dissolved}
+    //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1

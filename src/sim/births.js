@@ -46,7 +46,7 @@ VB['sim/births'] = (() => {
       if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;
       const sp = spouseOf(st, m.id);
       if (sp === null || m.household === null || st.pawns[sp].household !== m.household) continue;
-      if (st.rand() < conceiveChance(m.age)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
+      if (st.rand() < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
     }
   }
   return { conceiveChance, expectedBirths, dailyBirths };

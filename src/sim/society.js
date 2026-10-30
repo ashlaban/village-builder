@@ -102,6 +102,8 @@ VB['sim/society'] = (() => {
         if (older === 0) set('birthOrder', { eldest: 1 }); else if (older === sibs.length) set('birthOrder', { youngest: 1 });
       }
       if (holder && childrenOf(st, p.id).length >= 2) set('birthOrder', { chosen: 1 });
+      const young = childrenOf(st, p.id).filter((c) => st.pawns[c].alive && st.pawns[c].age < 14 && st.pawns[c].household === p.household);
+      if (young.length) set('feedOrder', { children: 1 });
       p.interest = it;
     }
   }

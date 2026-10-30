@@ -17,6 +17,8 @@ const Culture = (() => {
     { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [['eldest', 'The eldest'], ['youngest', 'The youngest'], ['chosen', 'Chosen by the parent']] },
     { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [['land', 'With whoever holds land'], ['husband', 'At the husband’s home'], ['wife', 'At the wife’s home']] },
     { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [['second', 'Third cousins or further'], ['first', 'Second cousins or further'], ['close', 'First cousins or further']] },
+    { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
+      opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
   ];
   const OFF = [], NOPT = [], IDX = {};
   let TOTAL = 0;
@@ -24,7 +26,8 @@ const Culture = (() => {
   const optIndex = (dim, key) => DIMS[IDX[dim]].opts.findIndex((o) => o[0] === key);
 
   const ARCHETYPES = {
-    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first' },
+    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
+      feedOrder: 'equal' },
   };
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).

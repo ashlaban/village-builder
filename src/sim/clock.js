@@ -3,6 +3,7 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
@@ -26,9 +27,7 @@ VB['sim/clock'] = (() => {
     const E = st.ECON;
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      let need = 0;
-      for (const id of hh.members) { const p = st.pawns[id]; if (!p.died) need += age(st, p) >= 14 ? E.ration.adult : E.ration.child; }
-      if (hh.grain >= need) hh.grain -= need; else { hh.grain = 0; hh.hungryDays++; }
+      feedHousehold(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
