@@ -1,9 +1,9 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, PLOT_PRIO, MATCH } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
-  const { villageOf } = VB['sim/records'];
+  const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
@@ -91,7 +91,7 @@ VB['sim/jobs'] = (() => {
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (j.claim !== null || !mayTake(st, p, j)) return -1;
+    if (j.claim !== null || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;

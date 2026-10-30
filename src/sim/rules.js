@@ -34,8 +34,11 @@ VB['sim/rules'] = (() => {
     daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1,
       thresh: 2, weed: 4 } },
     retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2, thresh: 2, weed: 2 } },
-    child: { title: 'Child', sv: 'barn', prio: {} },
+    child: { title: 'Child', sv: 'barn', prio: { water: 6, weed: 5, haul: 4, reap: 3 } },
   };
+  // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
+  const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
+  const workRate = (role, age) => (role === 'child' ? Math.min(1, CHILD.base + CHILD.perYear * (age - CHILD.from)) : 1);
   for (const r of Object.values(ROLES)) r.prio.clear = r.prio.break = r.prio.plow; // new fields are heavy field work, like hoeing
   // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
   const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
@@ -104,6 +107,7 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, CHILD, workRate, PLOT_PRIO, KINDS,
+    MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();
