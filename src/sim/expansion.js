@@ -2,12 +2,13 @@
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { clearTile } = VB['sim/forest'];
-  const { BREAK_HOURS, clearHours } = VB['sim/fields'];
+  const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
+  const { FIELD_REACH, nextTo } = VB['sim/layout'];
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // Whether the pawn may claim an empty farm instead of waiting for a plot. Null until claiming empty farms is built (VB-033).
@@ -19,9 +20,12 @@ VB['sim/expansion'] = (() => {
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
   // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
-  // A farmable tile next to the house is preferred; the house may stand next to other houses. Null when there is no room.
+  // The house grows on the village (it may touch other houses, never a field); the field lies 2 to FIELD_REACH steps from it, next to
+  // no house or green (VB-113). Null when there is no room.
   function findSite(st, v) {
-    const w = st.w, vreg = w.region[v.center], cand = [];
+    const w = st.w, vreg = w.region[v.center], cand = [], built = builtTiles(st), fields = new Set();
+    for (const f of st.farmsteads) { for (const fd of f.fields) fields.add(fd.tile); if (f.project) fields.add(f.project.tile); }
+    for (const u of st.villages) for (const p of u.plots || []) for (const tr of p.tiles) if (tr.kind === 'field') fields.add(tr.tile);
     const near = (t) => {
       if (w.region[t] === vreg) return true;
       for (let k = 0; k < 6; k++) { const n = w.nb[t * 6 + k]; if (n >= 0 && w.region[n] === vreg) return true; }
@@ -33,20 +37,22 @@ VB['sim/expansion'] = (() => {
       cand.push([t, d]);
     }
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
-    const farmableAt = (t) => dist.has(t) && farmable(w, t) && !wooded(w, t);
+    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
+      if (nextTo(w, h, fields)) continue;
       let f = -1, fs = -Infinity;
-      for (let k = 0; k < 6; k++) { const n = w.nb[h * 6 + k]; if (n >= 0 && farmableAt(n) && fieldScore(n) > fs) { fs = fieldScore(n); f = n; } }
-      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0);
+      for (const [t] of cand) {
+        const steps = hexSteps(w, h, t);
+        if (steps < 2 || steps > FIELD_REACH || !fieldOk(t)) continue;
+        const sc = fieldScore(t) - 0.15 * steps;
+        if (sc > fs) { fs = sc; f = t; }
+      }
+      let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
+      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
       if (s > bs) { bs = s; best = { house: h, field: f }; }
     }
-    if (!best) return null;
-    if (best.field < 0) {
-      let fs = -Infinity;
-      for (const [t] of cand) if (t !== best.house && farmableAt(t) && fieldScore(t) > fs) { fs = fieldScore(t); best.field = t; }
-    }
-    return best.field < 0 ? null : best;
+    return !best || best.field < 0 ? null : best;
   }
   function startPlot(st, v, intended) {
     const site = findSite(st, v); if (!site) return false;
