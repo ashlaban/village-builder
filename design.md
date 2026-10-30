@@ -30,7 +30,7 @@ A village builder on a generated hex archipelago, played at the level of individ
 | Society | Families, inheritance and customs that shift over generations | Decided |
 | Pace | A game about incremental progress; one run lasts 40–80 hours | Decided |
 | Start | Several starting scenarios; by default the founders arrive to almost unprepared land and spend the first year making fields and meadows | Decided |
-| Player role | Not settled, including whether the player can influence customs | Open |
+| Player role | Not settled, including whether the player can influence customs; the player should be able to influence the world a lot, through all the systems, the job system among them | Open (role), Decided (influence), 30 Oct |
 
 ## World and scale
 
@@ -75,7 +75,7 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | Calendar | 4 seasons × 12 days = 48 days a year | Agreed |
 | Day length | 48 s at 1×, slow enough that walking reads as walking | Agreed |
 | Speeds | Pause, 1×, 3×, 10× | Agreed |
-| Daily rhythm | Work from 7:00 to 17:00, home by evening, indoors at night | Agreed |
+| Daily rhythm | Daylight changes with the season; night is a fixed, short (compressed) block of game hours, spent indoors; work runs from sunrise to sunset. Starting values: night 21:00–05:00; day length 12.25 + 6.25 × cos(2π (doy − 15) / 48) hours, at most the 16 hours outside the night, centred on 13:00, so about 10:00–16:00 at midwinter, 05:00–21:00 at midsummer and 08:00–18:00 at the start of spring (backlog VB-099). Until then, work from 7:00 to 17:00 | Decided (daylight by season, fixed night), 30 Oct; Proposed (hours) |
 | Yearly round | Sowing in spring; haymaking in summer; harvest in early autumn; village meetings on autumn day 10; moving round on autumn day 11 | Agreed |
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
@@ -99,7 +99,7 @@ Every pawn is a person on record with parents, marriages and life events; househ
 | Kinship | Malécot's kinship coefficient, shown for spouses. The marriage limit is judged by civil degree: generations up from one person to the nearest common ancestor and down to the other (uncle–niece 3, first cousins 4, second cousins 6); siblings and half-siblings (2) never marry | Decided (limit by degree), Agreed (coefficient shown) |
 | Roles | Farmer (*bonde*), mistress of the house (*husfru*), farmhand (*dräng*), maid (*piga*), son and daughter of the house, retired (*undantag*), child | Agreed |
 | How roles are assigned | By position in the household; seeding follows medieval custom, but roles are data and not tied to sex | Agreed |
-| Children's work | From about 8, children can herd animals, as herding was children's work (see Animals) | Agreed |
+| Children's work | From 7, children work at reduced efficiency: fetching water, weeding and helping at the harvest; from about 8 they can herd animals, as herding was children's work (see Animals). Starting values: a rate of 0.3 of an adult's at 7, rising by 0.1 a year to 0.9 at 13 (backlog VB-098) | Decided (from 7, reduced), 30 Oct; Agreed (herding); Proposed (jobs, rates) |
 | Mortality | Age-based pre-industrial risk of death, shaped like a Gompertz–Makeham curve and roughly matched to Coale and Demeny's (1966) model life tables; can be switched off | Agreed |
 | Health | Each pawn has health from 0 to 100. Hunger h (0–1) drains 9 × h² a day, 1.5 times as fast under 5 and from 60; a fully fed day restores 3; health 0 is death, so a starving adult dies in about 12 days and a small child in 8. Below 50, health raises the death risk, up to 3 times at 0, and it slows work by up to 30% at 0, on top of hunger | Decided (slows work), Agreed (rest), 30 Oct |
 | Births | Natural births drive growth; very limited immigration by boat comes in a later stage. Children are spaced by explicit pregnancy and nursing; some are born outside marriage, from courting and relationships between pawns, with the man she was with as father; an unmarried mother and the father often marry quickly. Starting targets: about 7 births for a woman married at 20 and 5.5 at 25; about 20% of children die before age 1 and a third before 15; 1% of mothers die in childbirth | Decided (growth from births, spacing), Agreed (starting targets) |
@@ -137,9 +137,14 @@ Jobs come from things that need doing (a field, a meadow, a herd, a household, a
 | Sources | Each field and meadow posts its stage's job; herds post herding, milking and feeding; households post firewood when low, water daily and cooking each afternoon; fences wear, faster in winter, and each stretch posts a mend job | Decided |
 | Owners | Each job is owned by a household (its fields, meadows, herds, cooking, cooking) or a village (common fields and meadows, the village fence, also a one-farm village's fence); city commons later | Decided |
 | Who may take a job | Members of the owning household, servants included, or adults of the owning village | Decided |
+| Help between households | Adults of another household in the same village may help with a household's work, and the help builds the relationship between them; it is a gift, nothing is owed. Starting values: field, threshing and fence work that has waited 2 hours, by helpers with no work of their own; near kin and friends first (backlog VB-100) | Decided (help, relationships), 30 Oct; Proposed (rules) |
 | Commons | Village well, green, commons wood (*allmänning*), common fields and meadows, and the infield's roundpole fence (*gärdesgård*), kept by the village as medieval provincial laws such as Upplandslagen (1296) required | Decided (common land), Agreed (the rest) |
-| Role priorities | Each role ranks job kinds; farmers favour fields, firewood and fences; the mistress of the house and maids favour water, cooking and milking; children herd | Decided (by role), Agreed (rankings) |
+| Role priorities | Each role ranks job kinds; farmers favour fields, firewood and fences; the mistress of the house and maids favour water, cooking and milking; children fetch water, weed, help at the harvest and herd | Decided (by role, children's work), Agreed (rankings) |
 | Matching | Idle pawns and open jobs are matched best fit first; a poor fit only takes a job that has waited two hours | Agreed |
+| Work beats idling | A pawn takes any allowed job that suits its role rather than stand idle, however far or low in urgency, so every posted job gets done; firewood for the winter is laid in from summer (backlog VB-097) | Proposed (jobs review) |
+| Several hands | Heavy field and land work takes several pawns at once: tilling, clearing and breaking 2, reaping 3, weeding 2, threshing 2 (backlog VB-096) | Proposed (jobs review) |
+| More urgent work | A pawn leaves its job, which keeps its progress, when another is much more urgent (backlog VB-101; see Multi-day jobs) | Proposed (jobs review) |
+| Player steering | The player can steer the job system, as part of influencing the world through all the systems; it comes after the player's role is settled | Decided (later), 30 Oct |
 | Sowing first | A hoed field is sown before the next field is hoed, so a small household brings in some crop | Decided, 30 Oct |
 | Multi-step jobs | Walk to the site, work, carry the load home (sheaves to the barn, hay to the hay barn, wood to the woodpile, water indoors) | Agreed |
 
@@ -517,7 +522,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 | --- | --- | --- | --- | --- | --- |
 | World and terrain | Everything | Each seed is a new archipelago to read: shores, woods, stony hills | Compressed on purpose; terrain types fit Sweden | 2–6 s once, at generation | Built |
 | Calendar and the yearly round | Pacing, farming, meetings | The harvest and the meeting give each year a shape | 48 days a year, a day standing for a week; consistent | Negligible | Built |
-| Work: jobs, matching, walking | The visible life of the village | Reading a village at a glance; watching a family get through the harvest | Role-based work fits medieval practice; walking ignores terrain (mountains cost the same as meadow) | The hot loop: every idle pawn bids for every job; index jobs by owner | Built |
+| Work: jobs, matching, walking | The visible life of the village | Reading a village at a glance; watching a family get through the harvest | Role-based work fits medieval practice; walking ignores terrain (mountains cost the same as meadow); adults stand idle for a third to four fifths of work hours while work waits, and children never work | The hot loop: every idle pawn bids for every job; index jobs by owner | Built; gaps planned (work arch, VB-095 to VB-102) |
 | Fields, grain and food | The material base and its scarcity | The harvest as the year's climax; a lean spring as drama | Seed at 4:1 fits Slicher van Bath; a farm feeds about 3.5 adult-equivalents, against 5–6 historically | Negligible | Built, short of food (see below) |
 | Forest, wood and stones | Fuel, building, land-making | The commons wood visibly shrinking is a readable tragedy of the commons | Good; regrowth over 30 years | Negligible | Built |
 | Making land: fields, meadows, plots | Incremental progress, growth | The game's "build" verb: land won by work, tile by tile | Good; hours scaled from history | Small | Planned (VB-010, VB-031) |
@@ -612,6 +617,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (jobs review) | 30 October 2026 | Brought in Kim's answers from the review of work and jobs (`QUESTION_ARCHIVE.md`, `REVIEW.md` addendum): daylight by season around a fixed, short night; children work from 7 at reduced efficiency; help between households, which builds relationships; the player steers the job system later and should influence the world through all systems. Proposed: hours of daylight, children's jobs and rates, rules for help, several hands per job, work beating idleness, interrupts |
 | 0.3 (backlog sync) | 30 October 2026 | Brought in Kim's answers of 30 October (`QUESTION_ARCHIVE.md`): health; courting from 16 and pawn interactions with mood; meals, help in hunger and sowing first; roe deer, the founders' herds, food from animals and the byre; green and well built by the village, lone farms' village names, name generators; the Disputed claims custom; shares owed, splitting land, restoration hours; plots of a house and 1 field, two projects per village, 6 steps, revised hours and priorities; who may claim, claim expiry and disputes, first filters; the scope model Agreed; the founders' looser marriage limit |
 | 0.3 (review) | 30 October 2026 | Added Systems overview (Proposed): the player's experience, simulation and presentation systems, and food balance, growth, pace and cost across them, with findings; no Decided or Agreed point changed |
 | 0.3 (discussion) | 30 October 2026 | Yields rise slightly over the course of a game |
