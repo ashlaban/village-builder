@@ -5,7 +5,7 @@ const html = fs.readFileSync(require('path').join(__dirname, '../index.html'), '
 const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/' });
 const win = dom.window, doc = win.document;
 let failed = 0; const fail = (m) => { failed++; console.error('SMOKE FAIL:', m); };
-win.console.error = (...a) => fail('page console.error: ' + a.map(String).join(' '));
+win.console.error = (...a) => fail('page console.error: ' + a.map((x) => (x && x.stack) || String(x)).join(' '));
 win.matchMedia = () => ({ matches: false });
 Object.defineProperty(doc, 'fonts', { value: { load: () => Promise.resolve() } });
 const origCreate = doc.createElement.bind(doc);
@@ -14,7 +14,7 @@ win.HTMLCanvasElement.prototype.getContext = function () { if (!this._c) this._c
 Object.defineProperty(doc.getElementById('minimap'), 'clientWidth', { value: 200 });
 const calls = {}; let destroyed = 0;
 const P = () => ({ x: 1, y: 1, set(a, b) { this.x = a; this.y = b ?? a; }, copyFrom(p) { this.x = p.x; this.y = p.y; } });
-class Obj { constructor(o) { this.children = []; this.scale = P(); this.position = P(); this.anchor = P(); this.tilePosition = { x: 0, y: 0 }; this.tileScale = P(); this.alpha = 1; this.visible = true; this.x = 0; this.y = 0; this.opts = o; }
+class Obj { constructor(o) { this.children = []; this.scale = P(); this.position = P(); this.anchor = P(); this.tilePosition = { x: 0, y: 0 }; this.tileScale = P(); this.alpha = 1; this.visible = true; this.x = 0; this.y = 0; this.opts = o; this.texture = o && o.source ? o : { source: { update() {} } }; }
   get width() { return 400 * this.scale.x; }
   addChild(c) { this.children.push(c); c.parent = this; return c; } removeChildren() { const c = this.children; this.children = []; return c; }
   destroy() { destroyed++; this._dead = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }

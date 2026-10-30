@@ -6,6 +6,8 @@ VB['sim/agents'] = (() => {
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
+  const { finishStep } = VB['sim/expansion'];
+  const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -39,7 +41,7 @@ VB['sim/agents'] = (() => {
   function workSpot(st, a, j) {
     const w = st.w;
     if (KINDS[j.kind].field) {
-      const th = j.farm.rowAngle;
+      const th = rowAngle(j);
       return [w.hx[j.site] - Math.cos(th) * 13 + Math.sin(th) * -12, w.hy[j.site] - Math.sin(th) * 13 - Math.cos(th) * -12];
     }
     if (j.kind === 'haul') return [w.hx[j.site] + a.ox * 0.6, w.hy[j.site] + a.oy * 0.6];
@@ -58,6 +60,7 @@ VB['sim/agents'] = (() => {
   function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
   function complete(st, a) {
     const j = a.job, E = st.ECON, hh = st.households[st.pawns[a.id].household], c = cal(st.t);
+    if (j.plot) { finishStep(st, j); st.jobs.delete(j.key); return; }
     switch (j.kind) {
       case 'plow': j.field.stage = 'plowed'; break;
       case 'sow':
@@ -107,7 +110,7 @@ VB['sim/agents'] = (() => {
     if (a.phase === 'go') {
       const K = KINDS[a.job.kind];
       a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
-      if (K.field) { const th = a.job.farm.rowAngle; a.work = { s: -13, dir: 1, row: -12, th, cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] }; }
+      if (K.field) { const th = rowAngle(a.job); a.work = { s: -13, dir: 1, row: -12, th, cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] }; }
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') { a.inside = true; a.phase = null; }
   }
@@ -118,6 +121,7 @@ VB['sim/agents'] = (() => {
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
     j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
+    if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
       const wk = a.work, speed = j.kind === 'sow' ? 9 : 3.2;

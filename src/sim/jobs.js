@@ -1,11 +1,12 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES } = VB['sim/rules'];
+  const { WORK, ROLES, PLOT_PRIO } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
   const { start, release } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
+  const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -62,6 +63,7 @@ VB['sim/jobs'] = (() => {
     for (const v of st.villages) for (const s of v.fence) if (s.cond < E.fenceMendBelow) {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
+    for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
     for (const [k, j] of st.jobs) if (!j.live && j.claim === null) st.jobs.delete(k);
   }
   function mayTake(st, p, j) {
@@ -84,10 +86,11 @@ VB['sim/jobs'] = (() => {
   }
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
+  const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j)) return -1;
-    const pr = ROLES[p.role].prio[j.kind] || 0;
+    const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
     if (pr <= 0 || (pr <= 2 && st.t - j.posted < 2)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
     return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * 0.15 + st.rand() * 0.3;

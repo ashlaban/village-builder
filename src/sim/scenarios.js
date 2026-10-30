@@ -156,6 +156,8 @@ VB['sim/scenarios'] = (() => {
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
     //   green, well: booleans; a one-farm village has neither
+    //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done, holder (pawn id or null), started,
+    //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
     // @state st.used: Set of tile indexes taken by houses and fields
@@ -180,6 +182,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
     };
+    for (const v of villages) v.plots = [];
     seedOwners(st);
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
