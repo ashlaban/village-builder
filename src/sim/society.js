@@ -95,6 +95,8 @@ VB['sim/society'] = (() => {
         set('claims', { anyone: 0.6, villagers: 0.4 }); set('newLand', { intended: 0.5, labour: 0.5 });
         set('heirCount', { buyout: 0.6, split: 0.4 }); set('voice', { adults: 1 });
       }
+      if (landless) set('ownHeir', { behind: 1 });
+      if (heirOfHome) set('ownHeir', { keeps: 1 });
       if (holder) { set('claims', { kin: 0.5, assembly: 0.5 }); set('newLand', { village: 1 }); set('voice', { landholders: 1 }); }
       if (holder || heirOfHome) set('heirCount', { one: 1 });
       if (heirOfHome && p.age >= 18) set('handover', { marriage: 1 });

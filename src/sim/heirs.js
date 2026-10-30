@@ -51,7 +51,17 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = ownFirstSet ? new Set(ownFirstSet.filter((e) => e[1] !== hh.id).map((e) => e[0])) : new Set(ownFirstOf(st, hh).map((e) => e[0]));
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    if (cu.ownHeir === 'keeps') {
+      // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
+      // parents') and drops the other claim, which passes to the next in that line
+      const wins = (id, o) => {
+        const n = st.farmsteads[st.households[o].farmstead].fields.length, p = st.pawns[id];
+        return n > f.fields.length || (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)));
+      };
+      return ok.filter((id) => !claims.some((e) => e[0] === id && wins(id, e[1])));
+    }
+    const ownFirst = new Set(claims.map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }

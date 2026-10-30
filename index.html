@@ -1024,6 +1024,8 @@ const Culture = (() => {
     ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
+    { key: 'ownHeir', label: 'Heir to their own parents’ farm', m: 0.6,
+      opts: [['behind', 'Steps behind other relatives'], ['keeps', 'Keeps their place']] },
   ];
   const OFF = [], NOPT = [], IDX = {};
   let TOTAL = 0;
@@ -1034,7 +1036,7 @@ const Culture = (() => {
     oldNordic: {
       claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst',
       voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
-      feedOrder: 'equal' },
+      feedOrder: 'equal', ownHeir: 'behind' },
   };
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
@@ -2434,7 +2436,17 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = ownFirstSet ? new Set(ownFirstSet.filter((e) => e[1] !== hh.id).map((e) => e[0])) : new Set(ownFirstOf(st, hh).map((e) => e[0]));
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    if (cu.ownHeir === 'keeps') {
+      // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
+      // parents') and drops the other claim, which passes to the next in that line
+      const wins = (id, o) => {
+        const n = st.farmsteads[st.households[o].farmstead].fields.length, p = st.pawns[id];
+        return n > f.fields.length || (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)));
+      };
+      return ok.filter((id) => !claims.some((e) => e[0] === id && wins(id, e[1])));
+    }
+    const ownFirst = new Set(claims.map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
@@ -2709,6 +2721,8 @@ VB['sim/society'] = (() => {
         set('claims', { anyone: 0.6, villagers: 0.4 }); set('newLand', { intended: 0.5, labour: 0.5 });
         set('heirCount', { buyout: 0.6, split: 0.4 }); set('voice', { adults: 1 });
       }
+      if (landless) set('ownHeir', { behind: 1 });
+      if (heirOfHome) set('ownHeir', { keeps: 1 });
       if (holder) { set('claims', { kin: 0.5, assembly: 0.5 }); set('newLand', { village: 1 }); set('voice', { landholders: 1 }); }
       if (holder || heirOfHome) set('heirCount', { one: 1 });
       if (heirOfHome && p.age >= 18) set('handover', { marriage: 1 });
