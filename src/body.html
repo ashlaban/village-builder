@@ -1224,7 +1224,7 @@
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
@@ -1252,7 +1252,7 @@
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) => x.name).join(' and ')}` : p.retired ? `Retired at ${f.name}` : p.age >= 18 && st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
-    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
+    card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id)].filter(Boolean));
   }
   function card(title, lines) {
     $('tileName').textContent = title;
@@ -1502,7 +1502,7 @@
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
-      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'by the debug panel'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'kill': if (p && p.died === null) { Sim.killPawn(st, id, 'killed'); dmsg(`${Sim.fullName(p)} has died.`); if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
       case 'retire': { const hh = p ? Sim.holdingOf(st, id) : null; if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`); else dmsg('Select someone who holds a farm and has an heir.'); break; }
       case 'advP': case 'advV': {
         if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }

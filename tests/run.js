@@ -4,11 +4,11 @@
 const { spawn } = require('child_process'), os = require('os'), path = require('path');
 const root = path.join(__dirname, '..');
 const TEST = [
-  ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/backlog.js'], ['node', 'tests/regress.js'],
-  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/weeding.js'], ['node', 'tests/heirs.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/routes.js'],
+  ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/backlog.js'], ['node', 'tests/regress.js'],
+  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/weeding.js'], ['node', 'tests/heirs.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/routes.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'],
 ];
 const VERIFY = [
-  ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'],
+  ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'],
   ['node', 'tests/smoke.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose');

@@ -1,7 +1,7 @@
 // Hunger: each rule on constructed households, then a report of hungry days, deaths by cause and marriages (reported, not asserted).
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
-const { feedHousehold, deathRoll } = VB['sim/hunger'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
+const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = (scenario = 'founders') => Sim.seed(w7, 7, scenario);
 

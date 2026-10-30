@@ -13,6 +13,8 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
+- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms`).
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
@@ -26,11 +28,11 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script in `src/body.html` draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
-  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `visualDirty` and `rigDirty` after redrawing).
+  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty` and `biomeDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions
-- Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random` or `Date` in the modules (the page script may use them).
+- Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
 - Tunables: `ECON`, `ROLES` and `KINDS` in `src/sim/rules.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.

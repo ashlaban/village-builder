@@ -4,7 +4,7 @@ VB['sim/society'] = (() => {
   const { YEAR } = VB['sim/rules'];
   const { bfs, land, hexSteps } = VB['sim/hex'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   function initCulture(st, leanBySettlement, overrides = {}) {
     const env = st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 };
     env.byId = (id) => st.pawns[id];
@@ -28,7 +28,13 @@ VB['sim/society'] = (() => {
       const s = {
         id: v.id, name: v.name, culture: c.id, kind: 'village', tie: v.id === 0 ? 1 : 0.5, practice: Int8Array.from(customs), fissionYears: 0, divergence: 0,
       };
-      s.members = () => st.pawns.filter((p) => p.alive && settlementIdOf(st, p) === s.id);
+      s.members = () => {
+        const out = [];
+        for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
+          const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+        }
+        return out.sort((a, b) => a.id - b.id);
+      };
       env.settlements.push(s);
     }
     for (const p of st.pawns) {
@@ -71,7 +77,7 @@ VB['sim/society'] = (() => {
   }
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
-    const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF;
+    const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF, own = ownFirstOf(st);
     for (const p of st.pawns) {
       if (!p.alive || p.age < 12) { p.interest = null; continue; }
       const it = Float32Array.from(p.att);
@@ -80,7 +86,8 @@ VB['sim/society'] = (() => {
         for (const [opt, v] of Object.entries(prefs)) it[o + Culture.optIndex(dim, opt)] = v;
       };
       const holder = isHolder(st, p.id), sp = spouseOf(st, p.id), spHolder = sp !== null && isHolder(st, sp);
-      const heirOfHome = p.household !== null && !st.households[p.household].dissolved && heirRanking(st, st.households[p.household])[0] === p.id;
+      const heirOfHome = p.household !== null && !st.households[p.household].dissolved
+        && heirRanking(st, st.households[p.household], null, false, own)[0] === p.id;
       const landless = !holder && !spHolder && !heirOfHome && p.age >= 16;
       const sibs = siblingsOf(st, p.id).filter((q) => st.pawns[q].alive),
         sisters = sibs.filter((q) => st.pawns[q].sex === 'f').length, brothers = sibs.length - sisters;

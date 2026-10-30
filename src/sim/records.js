@@ -13,7 +13,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
-      hunger: 0, hungerLog: [],
+      hunger: 0, hungerLog: [], health: 100,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -48,8 +48,43 @@ VB['sim/records'] = (() => {
     for (const c of childrenOf(st, id)) out.add(c); for (const s of siblingsOf(st, id)) out.add(s);
     const sp = spouseOf(st, id); if (sp !== null) out.add(sp); return [...out];
   };
-  const isHolder = (st, id) => st.households.some((h) => !h.dissolved && h.holder === id);
-  const holdingOf = (st, id) => st.households.find((h) => !h.dissolved && h.holder === id) || null;
+  // Indexes over the records, built on first use and caught up with new pawns, unions and households on each read (records are only
+  // appended); the places that end a union or change a holder call noteUnionEnd and noteHolder. Not enumerable: they are derived data.
+  // @state st.idx: {children: Map of pawn id to child ids, spouse: Map of pawn id to current spouse id, holds: Map of pawn id to the ids of
+  //   households it holds, seen: counts of pawns, unions and households already indexed}; derived from the records, see sim/records
+  function index(st) {
+    if (!st.idx) Object.defineProperty(st, 'idx', { value: { children: new Map(), spouse: new Map(), holds: new Map(), np: 0, nu: 0, nh: 0 }, writable: true });
+    const x = st.idx;
+    for (; x.np < st.pawns.length; x.np++) {
+      const p = st.pawns[x.np];
+      for (const parent of p.father === p.mother ? [p.father] : [p.father, p.mother]) {
+        if (parent === null) continue;
+        const l = x.children.get(parent); if (l) l.push(p.id); else x.children.set(parent, [p.id]);
+      }
+    }
+    for (; x.nu < st.unions.length; x.nu++) {
+      const u = st.unions[x.nu];
+      if (u.end === null && u.start <= st.t) { if (!x.spouse.has(u.a)) x.spouse.set(u.a, u.b); if (!x.spouse.has(u.b)) x.spouse.set(u.b, u.a); }
+    }
+    while (x.nh < st.households.length) addHolder(x, st.households[x.nh++]);
+    return x;
+  }
+  function noteHolder(st, hh) { if (st.idx && hh.id < st.idx.nh) addHolder(st.idx, hh); } // households not yet indexed are added by index()
+  function addHolder(x, hh) {
+    if (hh.holder === null || hh.holder === undefined) return;
+    const l = x.holds.get(hh.holder);
+    if (!l) x.holds.set(hh.holder, [hh.id]); else if (!l.includes(hh.id)) { l.push(hh.id); l.sort((a, b) => a - b); }
+  }
+  function noteUnionEnd(st, u) {
+    const x = st.idx; if (!x) return;
+    if (x.spouse.get(u.a) === u.b) x.spouse.delete(u.a);
+    if (x.spouse.get(u.b) === u.a) x.spouse.delete(u.b);
+  }
+  const holdingOf = (st, id) => {
+    for (const k of index(st).holds.get(id) || []) { const h = st.households[k]; if (!h.dissolved && h.holder === id) return h; }
+    return null;
+  };
+  const isHolder = (st, id) => holdingOf(st, id) !== null;
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -61,14 +96,16 @@ VB['sim/records'] = (() => {
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
   const fullName = (p) => `${p.given} ${p.patronym}`;
   function spouseOf(st, id, t = st.t) {
+    if (t === st.t) { const sp = index(st).spouse.get(id); return sp === undefined ? null : sp; }
     const u = st.unions.find((u) => (u.a === id || u.b === id) && u.start <= t && (u.end === null || u.end > t));
     return u ? (u.a === id ? u.b : u.a) : null;
   }
-  const childrenOf = (st, id) => st.pawns.filter((p) => p.father === id || p.mother === id).map((p) => p.id);
+  const childrenOf = (st, id) => [...(index(st).children.get(id) || [])];
   const siblingsOf = (st, id) => {
     const p = st.pawns[id]; if (p.father === null && p.mother === null) return [];
-    return st.pawns.filter((q) => q.id !== id && ((p.father !== null && q.father === p.father) || (p.mother !== null && q.mother === p.mother)))
-      .map((q) => q.id);
+    const ids = new Set([...(p.father !== null ? childrenOf(st, p.father) : []), ...(p.mother !== null ? childrenOf(st, p.mother) : [])]);
+    ids.delete(id);
+    return [...ids].sort((a, b) => a - b);
   };
   // Malécot's kinship coefficient: probability that genes drawn at random from a and b are identical by descent.
   function kinship(st, a, b, memo = new Map()) {
@@ -88,6 +125,6 @@ VB['sim/records'] = (() => {
   const villageOf = (st, p) => st.farmsteads[st.households[p.household].farmstead].village;
   return {
     person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship,
-    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, practice, farmPractice,
+    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();

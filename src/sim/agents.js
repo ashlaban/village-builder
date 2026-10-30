@@ -1,6 +1,6 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, KINDS, SPEED, HUNGER } = VB['sim/rules'];
+  const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH } = VB['sim/rules'];
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -110,7 +110,7 @@ VB['sim/agents'] = (() => {
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger);
+    j.done += dt * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
     if (a.work) {
       // walk the field row by row while working
       const wk = a.work, speed = j.kind === 'sow' ? 9 : 3.2;
