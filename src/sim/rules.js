@@ -36,6 +36,7 @@ VB['sim/rules'] = (() => {
     retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2, thresh: 2, weed: 2 } },
     child: { title: 'Child', sv: 'barn', prio: {} },
   };
+  for (const r of Object.values(ROLES)) r.prio.clear = r.prio.break = r.prio.plow; // new fields are heavy field work, like hoeing
   const KINDS = {
     plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 20, field: true },
     sow: { verb: 'Sowing', go: 'Going to sow', anim: 'sow', hours: 2, field: true },
@@ -46,6 +47,8 @@ VB['sim/rules'] = (() => {
     cook: { verb: 'Cooking at the hearth', go: 'Going home to cook', anim: null, hours: 2, inside: true },
     weed: { verb: 'Weeding a field', go: 'Going to weed a field', anim: 'gather', hours: 2, field: true },
     thresh: { verb: 'Threshing in the barn', go: 'Going to the barn to thresh', anim: null, hours: 6, inside: true },
+    clear: { verb: 'Clearing scrub and stones', go: 'Going to clear land', anim: 'hoe', hours: 10, field: true },
+    break: { verb: 'Breaking new ground', go: 'Going to break new ground', anim: 'hoe', hours: 30, field: true },
     mend: { verb: 'Mending the fence', go: 'Going to mend the fence', anim: 'mallet', hours: 2.5 },
   };
 

@@ -49,7 +49,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-007 | Tilling and threshing as multi-day work | - | - | done | 2 | M | Tilling takes several days per field; harvest gains a threshing step. | [backlog/VB-007.md](backlog/VB-007.md) |
 | VB-008 | Summer upkeep of growing fields | - | - | done | 3 | S | Growing fields need weeding; neglect lowers the yield. | [backlog/VB-008.md](backlog/VB-008.md) |
 | VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
-| VB-010 | Founders start on unmade land and make their fields | claims | implement | ready | 1 | L | Founders start without fields and claim, clear and break meadow. | [backlog/VB-010.md](backlog/VB-010.md) |
+| VB-010 | Founders start on unmade land and make their fields | claims | implement | done | 1 | L | Founders start without fields and claim, clear and break meadow. | [backlog/VB-010.md](backlog/VB-010.md) |
 | VB-011 | Golden-state test for world, simulation and calibration | - | - | done | 1 | S | Fingerprint world and sim output so refactors provably change nothing. | [backlog/VB-011.md](backlog/VB-011.md) |
 | VB-012 | One module list, a module namespace and a Node loader | - | - | done | 1 | M | One module list, a `VB` namespace and a Node loader for tests. | [backlog/VB-012.md](backlog/VB-012.md) |
 | VB-013 | Structure lint: module headers, file and line length | - | - | done | 1 | S | Lint module headers, file length and line length. | [backlog/VB-013.md](backlog/VB-013.md) |

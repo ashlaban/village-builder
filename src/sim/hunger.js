@@ -4,7 +4,8 @@ VB['sim/hunger'] = (() => {
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
-    return st.farmsteads[hh.farmstead].fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length * st.ECON.seedPerField;
+    const f = st.farmsteads[hh.farmstead];
+    return (f.fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length + (f.project ? 1 : 0)) * st.ECON.seedPerField;
   }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
