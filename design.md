@@ -76,12 +76,13 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | --- | --- | --- |
 | Calendar | 4 seasons × 12 days = 48 days a year | Agreed |
 | Day length | 48 s at 1×, slow enough that walking reads as walking | Agreed |
-| Speeds | Pause, 1×, 3×, 10× | Agreed |
-| Uncapped speed | A further speed, "uncapped": the simulation runs as fast as the computer allows | Decided, 30 Oct |
+| Speeds | Pause, 1×, 3×, 10×, 30×, uncapped | Agreed (to 10×), Decided (30× and uncapped, 30 Oct) |
+| Uncapped speed | "Uncapped" runs the simulation as fast as the computer allows | Decided, 30 Oct |
 | Running in the background | An option lets the simulation keep running while the game's tab or window is not in focus | Decided, 30 Oct |
 | Short nights | The dark part of the day is shorter than a real night, and pawns need less sleep, so more of each day is active; nights are not interesting to watch, and this speeds up play | Decided, 30 Oct |
-| Daily rhythm | Work from 7:00 to 17:00, home by evening, indoors at night | Agreed |
-| Night and sleep | Dark from 22:00 to 4:00, with dusk and dawn of 2 hours each; pawns sleep about 6 hours, in the dark; the workday lengthens to 6:00–18:00, which would change the Agreed daily rhythm | Proposed |
+| Daily rhythm | Work from 6:00 to 18:00, home by evening, indoors at night; lengthened from 7:00–17:00 because nights are short | Decided, 30 Oct |
+| Night and sleep | Dark for about 6 hours at the equinoxes (22:00 to 4:00), from about 4 hours at midsummer to 8 at midwinter; pawns sleep in the dark | Decided, 30 Oct |
+| Twilight | Dusk and dawn of 2 hours each; pawns sleep about 6 hours | Proposed |
 | Yearly round | Sowing in spring; haymaking in summer; harvest in early autumn; village meetings on autumn day 10; moving round on autumn day 11 | Agreed |
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
@@ -102,9 +103,9 @@ The map has a day and night cycle, seasons with a temperature, and simple weathe
 | Seasons on the map | Seasons show on the map: spring green, autumn colour, snow and ice in winter | Proposed |
 | Determinism | Weather comes from the world's seed, so the same seed gives the same weather | Proposed |
 
-### Daylight (Proposed)
+### Daylight (Decided, 30 Oct; the look at night Proposed)
 
-- **Night is short:** dark from 22:00 to 4:00, with 2 hours of dusk and dawn (see Time and calendar).
+- **Night is short:** dark from 22:00 to 4:00 at the equinoxes, with 2 hours of dusk and dawn (see Time and calendar).
 - **The seasons move it a little:** the dark part runs from about 4 hours at midsummer to 8 at midwinter, a mild echo of Sweden's light summer nights and long winter dark that keeps winter nights short.
 - **At night** the land darkens and cools in tone but stays readable; hearths glow through doorways and smoke holes, and the few pawns still out carry their own light.
 
@@ -241,11 +242,11 @@ After mowing, herds may graze the regrowth (*efterbete*). A meadow left unmown a
 
 ### Worn paths
 
-Paths are not built; they are worn into the land by people and animals walking. (Decided, 30 Oct; the steps and numbers are Proposed)
+Paths are not built; they are worn into the land by people and animals walking. (Decided, 30 Oct; the speeds Decided, the other steps and numbers Proposed)
 
 1. **Each crossing counts:** every tile keeps a count of the pawns and animals that cross it, halving each game year so unused paths fade.
 2. **Three stages:** trodden ground at a count of 50, a path at 200, a lane at 800, about 1, 4 and 16 crossings a day kept up.
-3. **Faster walking:** walking is about 10% faster on trodden ground, 25% on a path and 50% on a lane than on the bare terrain.
+3. **Faster walking:** walking is 5% faster on trodden ground, 15% on a path and 30% on a lane than on the bare terrain, so paths draw routes without lanes ruling all travel.
 4. **Sharing paths:** route-finding counts the faster walking, so a pawn takes a path when it is quicker even if it is longer; routes merge, and the merged path wears deeper. Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
 5. **Land kept open:** grass does not grow back on a path, and forest does not spread onto one while it is used.
 6. **Under snow,** lanes stay visible as trodden snow; paths and trodden ground are covered.
@@ -645,15 +646,14 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] Stats and traits, and whether children inherit them.
 - [ ] A historical division of labour by sex, or free job assignment by role only.
 - [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
-- [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): an uncapped speed, running in the background, and short nights with less sleep; nights are not skipped.
+- [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped.
 - [ ] Cities: how they arise and how much faster they change customs.
 - [ ] Trade and money.
 - [ ] Seasons on the map, such as snow in winter. Seasons with temperature, a day and night cycle, and wind and rain are Decided (30 Oct); how the seasons show on the map is Proposed (see Weather, seasons and daylight).
 - [x] Rivers, which water mills need; the world does not generate them yet. Decided (30 Oct): the world has rivers; their courses are Proposed.
-- [ ] How long nights are, and whether their length changes with the season.
 - [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
 - [ ] Whether rivers can be waded anywhere or only at fords, and when bridges come.
-- [ ] How much faster each stage of worn path is, and whether animals wear paths as people do.
+- [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
 - [ ] What a more prestigious house brings its owner.
 - [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
 - [ ] How to keep the family tree fast at full scale.
@@ -678,7 +678,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 0.3 (design notes) | 30 October 2026 | Kim's design notes: an uncapped speed; an option to run while the tab is not in focus; short nights in which pawns sleep less; a day and night cycle; weather with wind and rain, and seasons with temperature, acting on work and yields; rivers; worn paths that speed walking, so routes merge onto them; more varied, realistic generated villages that look grown and have paths. Added the section Weather, seasons and daylight; numbers and mechanisms Proposed |
+| 0.3 (design notes) | 30 October 2026 | Kim's design notes: an uncapped speed; an option to run while the tab is not in focus; short nights in which pawns sleep less; a day and night cycle; weather with wind and rain, and seasons with temperature, acting on work and yields; rivers; worn paths that speed walking, so routes merge onto them; more varied, realistic generated villages that look grown and have paths. Added the section Weather, seasons and daylight; numbers and mechanisms Proposed. In a round of questions Kim then decided: speeds Pause, 1×, 3×, 10×, 30× and uncapped; work from 6:00 to 18:00; about 6 hours of dark, 4 at midsummer to 8 at midwinter; paths 5%, 15% and 30% faster |
 | 0.3 (backlog sync) | 30 October 2026 | Brought in Kim's answers of 30 October (`QUESTION_ARCHIVE.md`): health; courting from 16 and pawn interactions with mood; meals, help in hunger and sowing first; roe deer, the founders' herds, food from animals and the byre; green and well built by the village, lone farms' village names, name generators; the Disputed claims custom; shares owed, splitting land, restoration hours; plots of a house and 1 field, two projects per village, 6 steps, revised hours and priorities; who may claim, claim expiry and disputes, first filters; the scope model Agreed; the founders' looser marriage limit |
 | 0.3 (review) | 30 October 2026 | Added Systems overview (Proposed): the player's experience, simulation and presentation systems, and food balance, growth, pace and cost across them, with findings; no Decided or Agreed point changed |
 | 0.3 (discussion) | 30 October 2026 | Yields rise slightly over the course of a game |
