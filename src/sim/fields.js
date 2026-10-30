@@ -14,6 +14,8 @@ VB['sim/fields'] = (() => {
   }
   // Fields a household wants: enough for 110% of its rations at three quarters of the full yield, at most four.
   const fieldsWanted = (st, hh) => Math.min(MAX_FIELDS, Math.ceil((1.1 * yearlyRations(st, hh)) / (0.75 * ECON.fieldYield)));
+  // Hours of clearing a tile: scrub, plus the stones in proportion.
+  const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
   // The best unowned meadow tile within reach of the house: fertile, few stones, near. -1 when there is none.
   function chooseTile(st, f) {
     const w = st.w, centres = new Set(st.villages.map((v) => v.center));
@@ -31,7 +33,7 @@ VB['sim/fields'] = (() => {
     const tile = chooseTile(st, f);
     if (tile < 0) return;
     setOwner(st, tile, { type: 'household', id: hh.id });
-    f.project = { tile, stage: 'clear', hours: SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255 };
+    f.project = { tile, stage: 'clear', hours: clearHours(st, tile) };
   }
   // Clearing done: the stones go to the household's store, the tile is bare ground.
   function finishClear(st, f, hh) {
@@ -49,5 +51,5 @@ VB['sim/fields'] = (() => {
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`);
   }
-  return { yearlyRations, fieldsWanted, chooseTile, startProject, finishClear, finishBreak };
+  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, chooseTile, startProject, finishClear, finishBreak };
 })();

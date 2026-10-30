@@ -37,6 +37,8 @@ VB['sim/rules'] = (() => {
     child: { title: 'Child', sv: 'barn', prio: {} },
   };
   for (const r of Object.values(ROLES)) r.prio.clear = r.prio.break = r.prio.plow; // new fields are heavy field work, like hoeing
+  // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
+  const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
   const KINDS = {
     plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 20, field: true },
     sow: { verb: 'Sowing', go: 'Going to sow', anim: 'sow', hours: 2, field: true },
@@ -49,6 +51,8 @@ VB['sim/rules'] = (() => {
     thresh: { verb: 'Threshing in the barn', go: 'Going to the barn to thresh', anim: null, hours: 6, inside: true },
     clear: { verb: 'Clearing scrub and stones', go: 'Going to clear land', anim: 'hoe', hours: 10, field: true },
     break: { verb: 'Breaking new ground', go: 'Going to break new ground', anim: 'hoe', hours: 30, field: true },
+    fell: { verb: 'Felling trees', go: 'Going to fell trees', anim: 'chop', hours: 10 },
+    grub: { verb: 'Grubbing out stumps', go: 'Going to grub out stumps', anim: 'hoe', hours: 6, field: true },
     mend: { verb: 'Mending the fence', go: 'Going to mend the fence', anim: 'mallet', hours: 2.5 },
   };
 
@@ -86,6 +90,6 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 3; // tiles per game hour on foot
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard, BIRTH,
-    HUNGER, HEALTH, MARRIAGE, SPEED };
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED };
 })();

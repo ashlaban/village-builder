@@ -8,6 +8,7 @@ VB['sim/lifecycle'] = (() => {
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const { startPlots } = VB['sim/expansion'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -109,6 +110,7 @@ VB['sim/lifecycle'] = (() => {
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
     st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
+    startPlots(st);
     refreshPrestige(st);
     st.visualDirty = true;
   }
