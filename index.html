@@ -969,17 +969,59 @@ if (typeof module !== 'undefined') module.exports = ArchGen;
 const Culture = (() => {
   // malleability m: 1 changes most easily; the order follows the agreed ranking
   const DIMS = [
-    { key: 'claims', label: 'Claims on empty farms', m: 1.0, opts: [['kin', 'Kin of the old family first'], ['villagers', 'Villagers first'], ['anyone', 'Anyone may claim'], ['assembly', 'The meeting assigns']] },
-    { key: 'newLand', label: 'Cleared land belongs to', m: 0.9, opts: [['village', 'The village allots it'], ['labour', 'Whoever worked most'], ['intended', 'Whoever it was cleared for']] },
-    { key: 'handover', label: 'When the heir takes over', m: 0.8, opts: [['death', 'At the holder’s death'], ['marriage', 'When the heir marries'], ['age60', 'When the holder turns 60']] },
+    { key: 'claims', label: 'Claims on empty farms', m: 1.0, opts: [
+        ['kin', 'Kin of the old family first'],
+        ['villagers', 'Villagers first'],
+        ['anyone', 'Anyone may claim'],
+        ['assembly', 'The meeting assigns'],
+    ] },
+    { key: 'newLand', label: 'Cleared land belongs to', m: 0.9, opts: [
+        ['village', 'The village allots it'],
+        ['labour', 'Whoever worked most'],
+        ['intended', 'Whoever it was cleared for'],
+    ] },
+    { key: 'handover', label: 'When the heir takes over', m: 0.8, opts: [
+        ['death', 'At the holder’s death'],
+        ['marriage', 'When the heir marries'],
+        ['age60', 'When the holder turns 60'],
+    ] },
     { key: 'daughterShare', label: 'A daughter’s share', m: 0.65, opts: [['equal', 'Equal to a son’s'], ['half', 'Half a son’s']] },
-    { key: 'heirCount', label: 'How many heirs', m: 0.55, opts: [['one', 'One heir takes all'], ['buyout', 'One heir buys out the rest'], ['split', 'Land split between heirs']] },
-    { key: 'widow', label: 'The widow', m: 0.45, opts: [['life', 'Keeps the farm for life'], ['keep', 'Keeps a right to her keep'], ['outright', 'Inherits outright']] },
-    { key: 'heirSex', label: 'Who can inherit', m: 0.35, opts: [['sons', 'Sons only'], ['sonsFirst', 'Sons first'], ['any', 'Any child'], ['daughtersFirst', 'Daughters first']] },
-    { key: 'voice', label: 'Who speaks at the meeting', m: 0.3, opts: [['landholders', 'Landholders'], ['heads', 'All household heads'], ['adults', 'All adults']] },
-    { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [['eldest', 'The eldest'], ['youngest', 'The youngest'], ['chosen', 'Chosen by the parent']] },
-    { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [['land', 'With whoever holds land'], ['husband', 'At the husband’s home'], ['wife', 'At the wife’s home']] },
-    { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [['second', 'Third cousins or further'], ['first', 'Second cousins or further'], ['close', 'First cousins or further']] },
+    { key: 'heirCount', label: 'How many heirs', m: 0.55, opts: [
+        ['one', 'One heir takes all'],
+        ['buyout', 'One heir buys out the rest'],
+        ['split', 'Land split between heirs'],
+    ] },
+    { key: 'widow', label: 'The widow', m: 0.45, opts: [
+        ['life', 'Keeps the farm for life'],
+        ['keep', 'Keeps a right to her keep'],
+        ['outright', 'Inherits outright'],
+    ] },
+    { key: 'heirSex', label: 'Who can inherit', m: 0.35, opts: [
+        ['sons', 'Sons only'],
+        ['sonsFirst', 'Sons first'],
+        ['any', 'Any child'],
+        ['daughtersFirst', 'Daughters first'],
+    ] },
+    { key: 'voice', label: 'Who speaks at the meeting', m: 0.3, opts: [
+        ['landholders', 'Landholders'],
+        ['heads', 'All household heads'],
+        ['adults', 'All adults'],
+    ] },
+    { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [
+        ['eldest', 'The eldest'],
+        ['youngest', 'The youngest'],
+        ['chosen', 'Chosen by the parent'],
+    ] },
+    { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [
+        ['land', 'With whoever holds land'],
+        ['husband', 'At the husband’s home'],
+        ['wife', 'At the wife’s home'],
+    ] },
+    { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [
+        ['second', 'Third cousins or further'],
+        ['first', 'Second cousins or further'],
+        ['close', 'First cousins or further'],
+    ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
   ];
@@ -989,7 +1031,9 @@ const Culture = (() => {
   const optIndex = (dim, key) => DIMS[IDX[dim]].opts.findIndex((o) => o[0] === key);
 
   const ARCHETYPES = {
-    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
+    oldNordic: {
+      claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst',
+      voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
       feedOrder: 'equal' },
   };
 
@@ -1011,10 +1055,18 @@ const Culture = (() => {
   };
 
   function gauss(rand) { let u = 0, v = 0; while (u === 0) u = rand(); v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
-  function normBlock(a, o, n) { let s = 0; for (let k = 0; k < n; k++) { if (a[o + k] < 0) a[o + k] = 0; s += a[o + k]; } if (s <= 0) { for (let k = 0; k < n; k++) a[o + k] = 1 / n; return; } for (let k = 0; k < n; k++) a[o + k] /= s; }
+  function normBlock(a, o, n) {
+    let s = 0;
+    for (let k = 0; k < n; k++) { if (a[o + k] < 0) a[o + k] = 0; s += a[o + k]; }
+    if (s <= 0) { for (let k = 0; k < n; k++) a[o + k] = 1 / n; return; }
+    for (let k = 0; k < n; k++) a[o + k] /= s;
+  }
 
   function makeCulture(env, name, customs, centre, parent = null) {
-    const c = { id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre], parent, founded: env.t, history: [] };
+    const c = {
+      id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
+      parent, founded: env.t, history: [],
+    };
     env.cultures.push(c);
     return c;
   }
@@ -1096,7 +1148,10 @@ const Culture = (() => {
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
         const o = OFF[d], n = NOPT[d], s = env.settlementOf(p), cur = s ? s.practice[d] : -1, sup = s && s.lastSupport;
         let tot = 0; const wts = [];
-        for (let j = 0; j < n; j++) { const v = j === cur ? 0 : 0.15 + (p.interest ? p.interest[o + j] : 0) + (sup ? sup[o + j] : p.att[o + j]); wts.push(v); tot += v; }
+        for (let j = 0; j < n; j++) {
+          const v = j === cur ? 0 : 0.15 + (p.interest ? p.interest[o + j] : 0) + (sup ? sup[o + j] : p.att[o + j]);
+          wts.push(v); tot += v;
+        }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
         const [a, b] = P.entrepreneurYears;
@@ -1111,7 +1166,10 @@ const Culture = (() => {
   // ---- yearly meeting of one settlement: local practice may move away from (or back to) the culture's custom ----
   function support(env, members, voiceOf) {
     const S = new Float32Array(TOTAL); let W = 0;
-    for (const p of members) { const v = voiceOf(p); if (v <= 0 || !p.alive) continue; const w = v * p.prestige; for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k]; W += w; }
+    for (const p of members) {
+      const v = voiceOf(p); if (v <= 0 || !p.alive) continue;
+      const w = v * p.prestige; for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k]; W += w;
+    }
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
@@ -1180,7 +1238,10 @@ const Culture = (() => {
     return nc;
   }
 
-  return { DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, entrepreneurs, meeting, cultureYear, split, support, normBlock };
+  return {
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    entrepreneurs, meeting, cultureYear, split, support, normBlock,
+  };
 })();
 VB['culture'] = Culture;
 if (typeof module !== 'undefined') module.exports = Culture;
@@ -2159,7 +2220,7 @@ VB['sim/jobs'] = (() => {
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder,
+    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -2305,6 +2366,26 @@ VB['sim/heirs'] = (() => {
     log(st, `${f.name} stands empty: no heir would take it.`);
     st.visualDirty = true;
   }
+  // The guardian of a minor: the surviving parent in the house, else the nearest adult relative there (the oldest on a tie), else the oldest adult.
+  function guardianOf(st, hh, ward) {
+    const w = st.pawns[ward], adults = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18 && q.id !== ward);
+    const parent = adults.filter((q) => q.id === w.father || q.id === w.mother).sort((x, y) => x.born - y.born)[0];
+    if (parent) return parent.id;
+    const memo = new Map(), kin = (q) => kinship(st, ward, q.id, memo);
+    const best = adults.filter((q) => kin(q) > 0).sort((x, y) => kin(y) - kin(x) || x.born - y.born)[0] || adults.sort((x, y) => x.born - y.born)[0];
+    return best ? best.id : null;
+  }
+  function setGuardian(st, hh, ward) { hh.guardian = guardianOf(st, hh, ward); hh.ward = ward; }
+  // Daily: a ward who has turned 18 needs no guardian; a ward who holds the farm takes charge of it.
+  function comeOfAge(st) {
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.guardian === undefined || hh.guardian === null) continue;
+      const ward = st.pawns[hh.ward];
+      if (ward.alive && ward.age < 18) continue;
+      hh.guardian = null;
+      if (ward.alive && hh.holder === ward.id) personEvent(st, ward.id, 'inherited', `Came of age and took charge of ${st.farmsteads[hh.farmstead].name}`);
+    }
+  }
   function succession(st, hh, reason) {
     const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), dead = st.pawns[hh.holder];
     const sp = spouseOf(st, dead.id, dead.died - 0.01);
@@ -2312,6 +2393,7 @@ VB['sim/heirs'] = (() => {
     const ranking = heirRanking(st, hh, cu), heir = ranking.length ? ranking[0] : null;
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
+      if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       personEvent(st, spouse, 'inherited',
         `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
       log(st,
@@ -2322,9 +2404,8 @@ VB['sim/heirs'] = (() => {
     }
     if (heir === null) { extinct(st, hh); return; }
     if (st.pawns[heir].age < 18) {
-      // a minor heir holds in name; the nearest adult kin in the house acts as guardian
-      const g = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18).sort((x, y) => x.born - y.born)[0];
-      hh.guardian = g ? g.id : null;
+      // a minor heir holds in name, with a guardian until 18
+      setGuardian(st, hh, heir);
     }
     transfer(st, hh, heir, 'death');
   }
@@ -2363,7 +2444,7 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
+  return { heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
 })();
 </script>
 <script>
@@ -2509,7 +2590,7 @@ VB['sim/lifecycle'] = (() => {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -2617,6 +2698,7 @@ VB['sim/lifecycle'] = (() => {
   function dailyLife(st, c) {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
+    comeOfAge(st);
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor
     const decay = Math.pow(0.5, 1 / YEAR_DAYS);
     for (const p of st.pawns) { if (!p.alive) continue; for (const [j, w0] of p.ties) p.ties.set(j, w0 * decay); }
@@ -2718,18 +2800,21 @@ VB['sim/people'] = (() => {
     return 6;
   }
 
-  // Populous: a couple, their children (two years apart) and sometimes a servant. Two generations only: the parents have no
-  // recorded parents, so there are no grandparents, living or on record.
+  // Populous: a couple, their children (two or three years apart) and sometimes a servant. Two generations only: the parents have no
+  // recorded parents, so there are no grandparents, living or on record. In a third of the households the eldest child is 18 to 26.
   function populousHouseholds(R, farmsteads, sizes) {
     const rand = R.rand, households = [];
     for (const f of farmsteads) {
       const size = sizes[f.id], servant = size >= 6 && rand() < 0.25 ? 1 : 0, kids = size - 2 - servant;
-      const youngest = (rand() * 3) | 0, eldest = youngest + 2 * (kids - 1);
+      const ages = [0];
+      for (let k = 1; k < kids; k++) ages.push(ages[k - 1] + 2 + ((rand() * 2) | 0));
+      const span = ages[kids - 1], grown = rand() < 1 / 3;
+      const youngest = grown ? Math.max(0, 18 + ((rand() * 9) | 0) - span) : (rand() * 3) | 0, eldest = youngest + span;
       const wAge = Math.max(25 + ((rand() * 14) | 0), eldest + 19), hAge = wAge + ((rand() * 6) | 0) - 1;
       const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
       const members = [man, wife];
       marry(R, man, wife, eldest + 1 + ((rand() * 3) | 0));
-      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + 2 * k, father: man, mother: wife }));
+      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + ages[k], father: man, mother: wife }));
       const hh = makeHousehold(R, households.length, f, members, man);
       if (servant) joinHousehold(R, hh, person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: 15 + ((rand() * 6) | 0), servant: true }));
       households.push(hh);
@@ -2824,36 +2909,41 @@ VB['sim/scenarios'] = (() => {
     const P = (o) => person(R, o), dead = (sex, age, yearsAgo, o = {}) => P({ sex, age, diedYearsAgo: yearsAgo, ...o });
     // --- village B's old line at B3: three children, who went three ways ---
     const g1m = dead('m', 74, 10), g1f = dead('f', 70, 8); marry(R, g1m, g1f, 62, 10);
-    const kerstin = P({ sex: 'f', age: 58, father: g1m, mother: g1f });
-    const erik = P({ sex: 'm', age: 52, father: g1m, mother: g1f });
-    const olof = P({ sex: 'm', age: 47, father: g1m, mother: g1f }); // the bachelor who held on to B3
+    const kerstin = P({ given: 'Kerstin', sex: 'f', age: 58, father: g1m, mother: g1f });
+    const erik = P({ given: 'Erik', sex: 'm', age: 52, father: g1m, mother: g1f });
+    const olof = P({ given: 'Olof', sex: 'm', age: 47, father: g1m, mother: g1f }); // the bachelor who held on to B3
     // --- B1: the heiress Ingrid married Erik, who moved in with her ---
     const g2m = dead('m', 66, 12), g2f = dead('f', 72, 5); marry(R, g2m, g2f, 55, 12);
     dead('m', 2, 46, { father: g2m, mother: g2f });
-    const ingrid = P({ sex: 'f', age: 49, father: g2m, mother: g2f });
+    const ingrid = P({ given: 'Ingrid', sex: 'f', age: 49, father: g2m, mother: g2f });
     marry(R, erik, ingrid, 29);
-    const sigrid = P({ sex: 'f', age: 27, father: erik, mother: ingrid }), nils = P({ sex: 'm', age: 24, father: erik, mother: ingrid });
-    const per = P({ sex: 'm', age: 20, father: erik, mother: ingrid }), elin = P({ sex: 'f', age: 16, father: erik, mother: ingrid });
+    const sigrid = P({ given: 'Sigrid', sex: 'f', age: 27, father: erik, mother: ingrid }),
+      nils = P({ given: 'Nils', sex: 'm', age: 24, father: erik, mother: ingrid });
+    const per = P({ given: 'Per', sex: 'm', age: 20, father: erik, mother: ingrid }),
+      elin = P({ given: 'Elin', sex: 'f', age: 16, father: erik, mother: ingrid });
     // --- B2: a family that died out fifteen years ago ---
     const b2m = dead('m', 58, 15), b2f = dead('f', 55, 16); marry(R, b2m, b2f, 40, 16); dead('m', 20, 18, { father: b2m, mother: b2f });
     // --- village A: A1 old couple; Kerstin came from B3 ---
     const g3m = dead('m', 65, 20), g3f = dead('f', 70, 14); marry(R, g3m, g3f, 45, 20);
-    const lars = P({ sex: 'm', age: 61, father: g3m, mother: g3f });
+    const lars = P({ given: 'Lars', sex: 'm', age: 61, father: g3m, mother: g3f });
     marry(R, lars, kerstin, 31);
-    const jon = P({ sex: 'm', age: 29, father: lars, mother: kerstin }), brita = P({ sex: 'f', age: 25, father: lars, mother: kerstin }),
-      gunnar = P({ sex: 'm', age: 20, father: lars, mother: kerstin });
+    const jon = P({ given: 'Jon', sex: 'm', age: 29, father: lars, mother: kerstin }),
+      brita = P({ given: 'Brita', sex: 'f', age: 25, father: lars, mother: kerstin }),
+      gunnar = P({ given: 'Gunnar', sex: 'm', age: 20, father: lars, mother: kerstin });
     // --- A2 and A4 share a line: two brothers; the elder married into A4, the younger kept A2 ---
     const g4m = dead('m', 60, 25), g4f = dead('f', 66, 18); marry(R, g4m, g4f, 64, 25);
-    const anders = dead('m', 60, 4, { father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { father: g4m, mother: g4f });
-    const marta = P({ sex: 'f', age: 54 }); marry(R, nils2, marta, 24, 3);
-    const karin = P({ sex: 'f', age: 22, father: nils2, mother: marta });
+    const anders = dead('m', 60, 4, { given: 'Anders', father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { given: 'Nils', father: g4m, mother: g4f });
+    const marta = P({ given: 'Marta', sex: 'f', age: 54 }); marry(R, nils2, marta, 24, 3);
+    const karin = P({ given: 'Karin', sex: 'f', age: 22, father: nils2, mother: marta });
     const g5m = dead('m', 62, 30), g5f = dead('f', 64, 26); marry(R, g5m, g5f, 50, 30);
-    const ragnhild = dead('f', 58, 2, { father: g5m, mother: g5f }); marry(R, anders, ragnhild, 36, 4);
-    const hakan = P({ sex: 'm', age: 33, father: anders, mother: ragnhild }), signe = P({ sex: 'f', age: 30 }); marry(R, hakan, signe, 10);
-    const margit = P({ sex: 'f', age: 8, father: hakan, mother: signe }), smaOlof = P({ sex: 'm', age: 5, father: hakan, mother: signe });
+    const ragnhild = dead('f', 58, 2, { given: 'Ragnhild', father: g5m, mother: g5f }); marry(R, anders, ragnhild, 36, 4);
+    const hakan = P({ given: 'Håkan', sex: 'm', age: 33, father: anders, mother: ragnhild }),
+      signe = P({ given: 'Signe', sex: 'f', age: 30 }); marry(R, hakan, signe, 10);
+    const margit = P({ given: 'Margit', sex: 'f', age: 8, father: hakan, mother: signe }),
+      smaOlof = P({ given: 'Olof', sex: 'm', age: 5, father: hakan, mother: signe });
     // --- A3: died out six years ago, a couple and their baby ---
     const g6m = dead('m', 65, 30), g6f = dead('f', 63, 22); marry(R, g6m, g6f, 48, 30);
-    const ivar = dead('m', 36, 6, { father: g6m, mother: g6f }), gertrud = dead('f', 34, 6); marry(R, ivar, gertrud, 9, 6);
+    const ivar = dead('m', 36, 6, { given: 'Ivar', father: g6m, mother: g6f }), gertrud = dead('f', 34, 6, { given: 'Gertrud' }); marry(R, ivar, gertrud, 9, 6);
     dead('m', 1, 6, { father: ivar, mother: gertrud });
 
     const households = [];
@@ -2883,7 +2973,8 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
-    //   unthreshed[] (rations still in sheaf, one per field's crop),
+    //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
+    //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -2936,12 +3027,19 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { B } = VB['gen'];
+  const { bfs } = VB['sim/hex'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
+  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
+  function nearForest(w, tile) {
+    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
+    return false;
+  }
   function onHour(st, h, c) {
     if (st.cenv) noteContacts(st);
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
@@ -2992,7 +3090,8 @@ VB['sim/clock'] = (() => {
       const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
       for (const fd of f.fields) {
-        const want = yrs > 8 ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage; if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
+        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
+        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
       }
     }
     for (const s of all) {
@@ -4184,7 +4283,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
-      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined && hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {

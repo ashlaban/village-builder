@@ -1,7 +1,7 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder,
+    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -147,6 +147,26 @@ VB['sim/heirs'] = (() => {
     log(st, `${f.name} stands empty: no heir would take it.`);
     st.visualDirty = true;
   }
+  // The guardian of a minor: the surviving parent in the house, else the nearest adult relative there (the oldest on a tie), else the oldest adult.
+  function guardianOf(st, hh, ward) {
+    const w = st.pawns[ward], adults = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18 && q.id !== ward);
+    const parent = adults.filter((q) => q.id === w.father || q.id === w.mother).sort((x, y) => x.born - y.born)[0];
+    if (parent) return parent.id;
+    const memo = new Map(), kin = (q) => kinship(st, ward, q.id, memo);
+    const best = adults.filter((q) => kin(q) > 0).sort((x, y) => kin(y) - kin(x) || x.born - y.born)[0] || adults.sort((x, y) => x.born - y.born)[0];
+    return best ? best.id : null;
+  }
+  function setGuardian(st, hh, ward) { hh.guardian = guardianOf(st, hh, ward); hh.ward = ward; }
+  // Daily: a ward who has turned 18 needs no guardian; a ward who holds the farm takes charge of it.
+  function comeOfAge(st) {
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.guardian === undefined || hh.guardian === null) continue;
+      const ward = st.pawns[hh.ward];
+      if (ward.alive && ward.age < 18) continue;
+      hh.guardian = null;
+      if (ward.alive && hh.holder === ward.id) personEvent(st, ward.id, 'inherited', `Came of age and took charge of ${st.farmsteads[hh.farmstead].name}`);
+    }
+  }
   function succession(st, hh, reason) {
     const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), dead = st.pawns[hh.holder];
     const sp = spouseOf(st, dead.id, dead.died - 0.01);
@@ -154,6 +174,7 @@ VB['sim/heirs'] = (() => {
     const ranking = heirRanking(st, hh, cu), heir = ranking.length ? ranking[0] : null;
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
+      if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       personEvent(st, spouse, 'inherited',
         `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
       log(st,
@@ -164,9 +185,8 @@ VB['sim/heirs'] = (() => {
     }
     if (heir === null) { extinct(st, hh); return; }
     if (st.pawns[heir].age < 18) {
-      // a minor heir holds in name; the nearest adult kin in the house acts as guardian
-      const g = hh.members.map((q) => st.pawns[q]).filter((q) => q.alive && q.age >= 18).sort((x, y) => x.born - y.born)[0];
-      hh.guardian = g ? g.id : null;
+      // a minor heir holds in name, with a guardian until 18
+      setGuardian(st, hh, heir);
     }
     transfer(st, hh, heir, 'death');
   }
@@ -205,5 +225,5 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
+  return { heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
 })();

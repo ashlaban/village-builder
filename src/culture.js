@@ -6,17 +6,59 @@
 const Culture = (() => {
   // malleability m: 1 changes most easily; the order follows the agreed ranking
   const DIMS = [
-    { key: 'claims', label: 'Claims on empty farms', m: 1.0, opts: [['kin', 'Kin of the old family first'], ['villagers', 'Villagers first'], ['anyone', 'Anyone may claim'], ['assembly', 'The meeting assigns']] },
-    { key: 'newLand', label: 'Cleared land belongs to', m: 0.9, opts: [['village', 'The village allots it'], ['labour', 'Whoever worked most'], ['intended', 'Whoever it was cleared for']] },
-    { key: 'handover', label: 'When the heir takes over', m: 0.8, opts: [['death', 'At the holder’s death'], ['marriage', 'When the heir marries'], ['age60', 'When the holder turns 60']] },
+    { key: 'claims', label: 'Claims on empty farms', m: 1.0, opts: [
+        ['kin', 'Kin of the old family first'],
+        ['villagers', 'Villagers first'],
+        ['anyone', 'Anyone may claim'],
+        ['assembly', 'The meeting assigns'],
+    ] },
+    { key: 'newLand', label: 'Cleared land belongs to', m: 0.9, opts: [
+        ['village', 'The village allots it'],
+        ['labour', 'Whoever worked most'],
+        ['intended', 'Whoever it was cleared for'],
+    ] },
+    { key: 'handover', label: 'When the heir takes over', m: 0.8, opts: [
+        ['death', 'At the holder’s death'],
+        ['marriage', 'When the heir marries'],
+        ['age60', 'When the holder turns 60'],
+    ] },
     { key: 'daughterShare', label: 'A daughter’s share', m: 0.65, opts: [['equal', 'Equal to a son’s'], ['half', 'Half a son’s']] },
-    { key: 'heirCount', label: 'How many heirs', m: 0.55, opts: [['one', 'One heir takes all'], ['buyout', 'One heir buys out the rest'], ['split', 'Land split between heirs']] },
-    { key: 'widow', label: 'The widow', m: 0.45, opts: [['life', 'Keeps the farm for life'], ['keep', 'Keeps a right to her keep'], ['outright', 'Inherits outright']] },
-    { key: 'heirSex', label: 'Who can inherit', m: 0.35, opts: [['sons', 'Sons only'], ['sonsFirst', 'Sons first'], ['any', 'Any child'], ['daughtersFirst', 'Daughters first']] },
-    { key: 'voice', label: 'Who speaks at the meeting', m: 0.3, opts: [['landholders', 'Landholders'], ['heads', 'All household heads'], ['adults', 'All adults']] },
-    { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [['eldest', 'The eldest'], ['youngest', 'The youngest'], ['chosen', 'Chosen by the parent']] },
-    { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [['land', 'With whoever holds land'], ['husband', 'At the husband’s home'], ['wife', 'At the wife’s home']] },
-    { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [['second', 'Third cousins or further'], ['first', 'Second cousins or further'], ['close', 'First cousins or further']] },
+    { key: 'heirCount', label: 'How many heirs', m: 0.55, opts: [
+        ['one', 'One heir takes all'],
+        ['buyout', 'One heir buys out the rest'],
+        ['split', 'Land split between heirs'],
+    ] },
+    { key: 'widow', label: 'The widow', m: 0.45, opts: [
+        ['life', 'Keeps the farm for life'],
+        ['keep', 'Keeps a right to her keep'],
+        ['outright', 'Inherits outright'],
+    ] },
+    { key: 'heirSex', label: 'Who can inherit', m: 0.35, opts: [
+        ['sons', 'Sons only'],
+        ['sonsFirst', 'Sons first'],
+        ['any', 'Any child'],
+        ['daughtersFirst', 'Daughters first'],
+    ] },
+    { key: 'voice', label: 'Who speaks at the meeting', m: 0.3, opts: [
+        ['landholders', 'Landholders'],
+        ['heads', 'All household heads'],
+        ['adults', 'All adults'],
+    ] },
+    { key: 'birthOrder', label: 'Which child inherits', m: 0.25, opts: [
+        ['eldest', 'The eldest'],
+        ['youngest', 'The youngest'],
+        ['chosen', 'Chosen by the parent'],
+    ] },
+    { key: 'residence', label: 'Where a married couple lives', m: 0.2, opts: [
+        ['land', 'With whoever holds land'],
+        ['husband', 'At the husband’s home'],
+        ['wife', 'At the wife’s home'],
+    ] },
+    { key: 'kinLimit', label: 'Closest kin who may marry', m: 0.12, opts: [
+        ['second', 'Third cousins or further'],
+        ['first', 'Second cousins or further'],
+        ['close', 'First cousins or further'],
+    ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
   ];
@@ -26,7 +68,9 @@ const Culture = (() => {
   const optIndex = (dim, key) => DIMS[IDX[dim]].opts.findIndex((o) => o[0] === key);
 
   const ARCHETYPES = {
-    oldNordic: { claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst', voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
+    oldNordic: {
+      claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst',
+      voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
       feedOrder: 'equal' },
   };
 
@@ -48,10 +92,18 @@ const Culture = (() => {
   };
 
   function gauss(rand) { let u = 0, v = 0; while (u === 0) u = rand(); v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
-  function normBlock(a, o, n) { let s = 0; for (let k = 0; k < n; k++) { if (a[o + k] < 0) a[o + k] = 0; s += a[o + k]; } if (s <= 0) { for (let k = 0; k < n; k++) a[o + k] = 1 / n; return; } for (let k = 0; k < n; k++) a[o + k] /= s; }
+  function normBlock(a, o, n) {
+    let s = 0;
+    for (let k = 0; k < n; k++) { if (a[o + k] < 0) a[o + k] = 0; s += a[o + k]; }
+    if (s <= 0) { for (let k = 0; k < n; k++) a[o + k] = 1 / n; return; }
+    for (let k = 0; k < n; k++) a[o + k] /= s;
+  }
 
   function makeCulture(env, name, customs, centre, parent = null) {
-    const c = { id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre], parent, founded: env.t, history: [] };
+    const c = {
+      id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
+      parent, founded: env.t, history: [],
+    };
     env.cultures.push(c);
     return c;
   }
@@ -133,7 +185,10 @@ const Culture = (() => {
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
         const o = OFF[d], n = NOPT[d], s = env.settlementOf(p), cur = s ? s.practice[d] : -1, sup = s && s.lastSupport;
         let tot = 0; const wts = [];
-        for (let j = 0; j < n; j++) { const v = j === cur ? 0 : 0.15 + (p.interest ? p.interest[o + j] : 0) + (sup ? sup[o + j] : p.att[o + j]); wts.push(v); tot += v; }
+        for (let j = 0; j < n; j++) {
+          const v = j === cur ? 0 : 0.15 + (p.interest ? p.interest[o + j] : 0) + (sup ? sup[o + j] : p.att[o + j]);
+          wts.push(v); tot += v;
+        }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
         const [a, b] = P.entrepreneurYears;
@@ -148,7 +203,10 @@ const Culture = (() => {
   // ---- yearly meeting of one settlement: local practice may move away from (or back to) the culture's custom ----
   function support(env, members, voiceOf) {
     const S = new Float32Array(TOTAL); let W = 0;
-    for (const p of members) { const v = voiceOf(p); if (v <= 0 || !p.alive) continue; const w = v * p.prestige; for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k]; W += w; }
+    for (const p of members) {
+      const v = voiceOf(p); if (v <= 0 || !p.alive) continue;
+      const w = v * p.prestige; for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k]; W += w;
+    }
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
@@ -217,7 +275,10 @@ const Culture = (() => {
     return nc;
   }
 
-  return { DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, entrepreneurs, meeting, cultureYear, split, support, normBlock };
+  return {
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    entrepreneurs, meeting, cultureYear, split, support, normBlock,
+  };
 })();
 VB['culture'] = Culture;
 if (typeof module !== 'undefined') module.exports = Culture;
