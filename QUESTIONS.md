@@ -28,6 +28,7 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 8. Under `claims: assembly` ("the meeting assigns"), how does the meeting choose? **P:** the claimant with the most voice-weighted support among those with a voice, using the existing ties; by age until that is built.
    **A (Kim, 30 Oct):** accepted.
 9. Splitting land (VB-034): does a sibling who gets fields also need a new house before they can farm them? **P:** yes, a building site next to the fields (VB-032); until it is built, the old household works the fields and gives the sibling half the harvest.
+   **A (Kim, 30 Oct):** accepted.
 
 ### VB-050: health (numbers to confirm)
 1. Health 0–100, drained daily by 9 × h² (h = hunger 0–1), ×1.5 for under 5 and 60 and over; a fully fed day restores 3. At h = 1 a healthy adult dies on day 12, a small child on day 8. **P:** yes.
@@ -48,12 +49,15 @@ Questions that block backlog tasks, gathered in one place, in priority order. Ea
 ### VB-022: daily meals (unblocks VB-009, milling)
 There is no milling job today: VB-009 was built, failed its test (hungry days rose because the daily cook job is missed on busy days) and was reverted. The `cook` job exists, but it only marks the day as cooked; nothing depends on it.
 1. Which fix makes meals reliable? (a) households start with a few days of rations; (b) cooking gets a higher priority, or may interrupt other work after 14:00; (c) the cook makes the next day's food. **P:** (a) and (c): start with 2 days of rations, and cook for the next day, so one missed cook uses the buffer rather than causing a hungry day.
+   **A (Kim, 30 Oct):** all three. VB-022 is `ready`; it adds the rations store, cooked from grain, and VB-009 (milling) is `ready` after it.
 
 ### VB-023: the one-person household in the heirs scenario
 1. Olof, alone at B3, cannot till 3 fields in the sowing window, so he brings in no crop. With health (VB-050) he would now starve. Options: widen the sowing window, give one-person farms fewer fields, give B3 a farmhand, or accept it. **P:** give B3 a farmhand in the scenario: a bachelor farmer of 47 would have kept a servant.
+   **A (Kim, 30 Oct):** a farmer prioritises sowing over tilling: a tilled field is sown before the next field is tilled. VB-023 is rewritten as that rule, for every farm, and is `ready`.
 
 ### VB-024: wood supply
 1. A commons wood tile is felled to meadow in about 1.5 years. The task only reports numbers first. **P:** set it `ready` as a report-only task.
+   **A (Kim, 30 Oct):** accepted; `ready`.
 
 ### VB-025: browser smoke test (also unblocks VB-053)
 1. May the project add `playwright` and `pixi.js` (served locally instead of the CDN) as dev dependencies? Chromium is already installed in the cloud sessions. **P:** yes; run it in `npm run verify` only.
