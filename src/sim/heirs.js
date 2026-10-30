@@ -5,6 +5,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
+  const { hexSteps } = VB['sim/hex'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -105,6 +106,22 @@ VB['sim/heirs'] = (() => {
       `${reason === 'death' ? ` after ${fullName(op)}` : reason === 'marriage' ? ' on marrying' : ' as the old holder retires'}.`);
     st.visualDirty = true;
   }
+  // The smallest undissolved household of the village, or of the nearest village (by hexSteps between centres) when it has none.
+  function serviceHome(st, hh) {
+    const village = st.farmsteads[hh.farmstead].village, vOf = (h) => st.farmsteads[h.farmstead].village;
+    const open = st.households.filter((h) => !h.dissolved && h.id !== hh.id);
+    const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
+    const here = smallest(open.filter((h) => vOf(h) === village));
+    if (here) return here.id;
+    const c = st.villages[village].center;
+    let best = null, bd = Infinity;
+    for (const h of open) {
+      const d = hexSteps(st.w, c, st.villages[vOf(h)].center);
+      if (d < bd) { bd = d; best = vOf(h); }
+    }
+    const near = smallest(open.filter((h) => vOf(h) === best));
+    return near ? near.id : null;
+  }
   function extinct(st, hh) {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
@@ -116,9 +133,15 @@ VB['sim/heirs'] = (() => {
       const p = st.pawns[id]; if (!p.alive) continue;
       const kinHome = kinNear(st, id).map((q) => st.pawns[q])
         .find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
-      const target = kinHome ? kinHome.household
-        : st.households.filter((h) => !h.dissolved && h.id !== hh.id).sort((x, y) => x.members.length - y.members.length)[0];
-      if (target !== undefined) { moveTo(st, id, typeof target === 'number' ? target : target.id); if (!kinHome) st.pawns[id].servant = true; }
+      const target = kinHome ? kinHome.household : serviceHome(st, hh);
+      if (target !== null) {
+        moveTo(st, id, target);
+        if (!kinHome) {
+          st.pawns[id].servant = true;
+          personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`);
+          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`);
+        }
+      }
     }
     hh.members = [];
     log(st, `${f.name} stands empty: no heir would take it.`);
