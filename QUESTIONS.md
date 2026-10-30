@@ -104,9 +104,14 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 1. Who may hold a claim: households and villages only, or pawns too (a pawn who wants to turn a commons tile into a field)? **P:** all three, as the design says.
    **A (Kim, 30 Oct):** accepted.
 2. Do unrealised claims expire? **P:** yes, after 3 years without work on the tile.
+   **A (Kim, 30 Oct):** after 3 idle years, decaying linearly; a claim can be renewed.
 3. Two claims on one tile: who decides? **P:** the village meeting, by voice-weighted support; until then, the first claim wins.
+   **A (Kim, 30 Oct):** a custom decides (a new custom dimension, drifting like the others); its options and default are a follow-up question below.
 4. First version of the filters: which levels? **P:** household and village, with the selected entity highlighted; culture later.
+   **A (Kim, 30 Oct):** accepted.
 5. Adopt the proposed scope model (a level, the chosen entities and a dimension, over one membership graph) as the plan? **P:** yes.
+   **A (Kim, 30 Oct):** yes.
+6. Follow-up: the "Disputed claims" custom. **P:** options: the first claim stands (`first`); the strongest claim stands, the one most recently worked or renewed (`strongest`); kin of the tile's last owner first (`kin`); the meeting decides by voice-weighted support (`meeting`). Default `first`, malleability 0.7.
 
 ## Priority 3
 
