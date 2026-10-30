@@ -9,6 +9,7 @@ VB['sim/scenarios'] = (() => {
   const { placeAtHome } = VB['sim/agents'];
   const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
+  const { seedOwners } = VB['sim/ownership'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
@@ -19,7 +20,7 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
-    initCulture(st, null); st.countDemand();
+    initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
@@ -133,7 +134,9 @@ VB['sim/scenarios'] = (() => {
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood}; center is a tile index, farmsteads are ids
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
+    //   green, well: booleans; a one-farm village has neither
+    // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
@@ -155,6 +158,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
     };
+    seedOwners(st);
     refreshRoles(st);
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };

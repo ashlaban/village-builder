@@ -23,7 +23,7 @@ VB['sim/jobs'] = (() => {
         const fk = `f${f.id}.${fd.id}`;
         const sowing = c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
         if (sowing && fd.stage === 'stubble') post(st, 'plow:' + fk, 'plow', own, fd.tile, { field: fd, farm: f });
-        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField + 10) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
+        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
@@ -34,7 +34,7 @@ VB['sim/jobs'] = (() => {
       }
       if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
-        f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
+        st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
       if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
       if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
     }

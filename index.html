@@ -1383,7 +1383,7 @@ VB['sim/layout'] = (() => {
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = []) {
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1 };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
     used.add(center);
     const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
     for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
@@ -1401,11 +1401,12 @@ VB['sim/layout'] = (() => {
       const f = makeFarmstead(w, farmsteads.length, pick.house, pick.fields, village, used);
       farmsteads.push(f); village.farmsteads.push(f.id);
     }
+    village.green = village.well = village.farmsteads.length >= 2;
     return village;
   }
   function nameFarms(w, villages, farmsteads, rand) {
     for (const f of farmsteads) {
-      if (f.village !== null) {
+      if (villages[f.village].farmsteads.length >= 2) {
         const v = villages[f.village], dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
         const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
         let nm = DIRNAME[k] + 'gården';
@@ -1415,7 +1416,7 @@ VB['sim/layout'] = (() => {
         // a big village runs out of names: number the rest
         for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
-      } else {
+      } else { // a one-farm village: the farm is named for its surroundings
         let coast = false, woods = 0, hills = 0, marsh = 0;
         const { dist: near } = bfs(w, f.house, 2, () => true);
         for (const [j] of near) {
@@ -1441,18 +1442,13 @@ VB['sim/layout'] = (() => {
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
       v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
     }
-    for (const f of farmsteads) {
-      f.woodlot = f.village !== null ? villages[f.village].commonsWood : nearWood(f.house);
-      if (f.village === null) {
-        const inf = new Set([f.house, ...f.fields.map((fd) => fd.tile)]); f.fence = makeFence(w, inf, f.house, { type: 'household', id: null }, 4, rand);
-      }
-    }
+    for (const f of farmsteads) f.woodlot = villages[f.village].commonsWood;
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
   }
-  // The lone farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
-  function findLoneFarm(w, used, rand, center, farmsteads) {
+  // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
+  function findLoneFarm(w, used, rand, center, farmsteads, villages = []) {
     const { dist: reach } = bfs(w, center, 40, land(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
@@ -1462,7 +1458,14 @@ VB['sim/layout'] = (() => {
       const s = siteScore(w, j) + fields.reduce((a, k) => a + FERTILITY[w.biome[k]], 0) + rand();
       if (s > ls) { ls = s; lone = { house: j, fields }; }
     }
-    return lone ? makeFarmstead(w, farmsteads.length, lone.house, lone.fields, null, used) : null;
+    if (!lone) return null;
+    // the farm is a village of its own: its centre is the house, and it has neither green nor well
+    let name = villageName(rand);
+    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, green: false, well: false };
+    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
+    village.farmsteads.push(f.id); villages.push(village);
+    return f;
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
@@ -1476,7 +1479,7 @@ VB['sim/layout'] = (() => {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
         villages.push(v); return v;
       },
-      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads); if (f) farmsteads.push(f); return f; },
+      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand);
@@ -1489,6 +1492,37 @@ VB['sim/layout'] = (() => {
     settlementGenerator, farmHooks, placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand,
     nearestWood, findLoneFarm,
   };
+})();
+</script>
+<script>
+// @sys sim/ownership: who owns each tile: a household, a village, or nobody
+VB['sim/ownership'] = (() => {
+  // @state st.owner: Int32Array, one per tile; 0 = nobody, n > 0 = household n - 1, n < 0 = village -n - 1
+  const ownerOf = (st, tile) => {
+    const n = st.owner[tile];
+    return n === 0 ? null : n > 0 ? { type: 'household', id: n - 1 } : { type: 'village', id: -n - 1 };
+  };
+  // owner is {type: 'household'|'village', id} or null
+  const setOwner = (st, tile, owner) => { st.owner[tile] = !owner ? 0 : owner.type === 'household' ? owner.id + 1 : -owner.id - 1; };
+  // Seeding: house and fields belong to the household, or to the village when the farm stands empty; the commons wood and the centre
+  // (unless it is a house) belong to the village.
+  function seedOwners(st) {
+    st.owner = new Int32Array(st.w.N);
+    for (const v of st.villages) {
+      if (v.commonsWood >= 0) setOwner(st, v.commonsWood, { type: 'village', id: v.id });
+      setOwner(st, v.center, { type: 'village', id: v.id });
+    }
+    for (const f of st.farmsteads) {
+      const o = f.household === null ? { type: 'village', id: f.village } : { type: 'household', id: f.household };
+      setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
+    }
+  }
+  // A farm that stands empty passes to its village.
+  function farmToVillage(st, f) {
+    const o = { type: 'village', id: f.village };
+    setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
+  }
+  return { ownerOf, setOwner, seedOwners, farmToVillage };
 })();
 </script>
 <script>
@@ -1510,7 +1544,7 @@ VB['sim/forest'] = (() => {
     for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;
-      f.woodlot = f.village !== null ? st.villages[f.village].commonsWood : nearestWood(w, st.used, f.house);
+      f.woodlot = st.villages[f.village].commonsWood;
     }
   }
 
@@ -1542,7 +1576,6 @@ VB['sim/forest'] = (() => {
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
-  const { hexSteps } = VB['sim/hex'];
   const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
@@ -1582,11 +1615,7 @@ VB['sim/records'] = (() => {
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
     if (!hh) return null;
-    const f = st.farmsteads[hh.farmstead];
-    if (f.village !== null) return f.village;
-    // a lone farm takes part in the nearest village's meeting
-    let best = 0, bd = Infinity; for (const v of st.villages) { const d = hexSteps(st.w, f.house, v.center); if (d < bd) { bd = d; best = v.id; } }
-    return best;
+    return st.farmsteads[hh.farmstead].village;
   }
   const kinNear = (st, id) => {
     const p = st.pawns[id], out = new Set(); if (p.father !== null) out.add(p.father); if (p.mother !== null) out.add(p.mother);
@@ -1600,7 +1629,7 @@ VB['sim/records'] = (() => {
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
     return out;
   };
-  const farmPractice = (st, f) => practice(st, f.village !== null ? f.village : settlementIdOf(st, st.pawns[st.households[f.household].holder]));
+  const farmPractice = (st, f) => practice(st, f.village);
   function personEvent(st, id, kind, text) { st.pawns[id].events.push({ t: st.t, kind, text }); }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
@@ -1642,23 +1671,28 @@ VB['sim/records'] = (() => {
 VB['sim/hunger'] = (() => {
   const { YEAR, YEAR_DAYS, hazard, HUNGER } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
+  // Seed kept back for the fields not yet sown this year; never eaten.
+  function seedReserve(st, hh) {
+    return st.farmsteads[hh.farmstead].fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length * st.ECON.seedPerField;
+  }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-    if (hh.grain >= total) hh.grain -= total;
+    const avail = Math.max(0, hh.grain - seedReserve(st, hh));
+    if (avail >= total) hh.grain -= total;
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
       const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
-      let left = hh.grain;
+      let left = avail;
       for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.grain = 0; hh.hungryDays++;
+      hh.grain -= avail; hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -1673,7 +1707,7 @@ VB['sim/hunger'] = (() => {
     if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger)) return null;
     return u >= base ? 'hunger' : 'old age';
   }
-  return { feedHousehold, deathRoll };
+  return { feedHousehold, deathRoll, seedReserve };
 })();
 </script>
 <script>
@@ -1720,7 +1754,7 @@ VB['sim/agents'] = (() => {
       return [w.hx[j.site] - Math.cos(th) * 13 + Math.sin(th) * -12, w.hy[j.site] - Math.sin(th) * 13 - Math.cos(th) * -12];
     }
     if (j.kind === 'haul') return [w.hx[j.site] + a.ox * 0.6, w.hy[j.site] + a.oy * 0.6];
-    if (j.kind === 'water') return j.farm.village !== null ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
+    if (j.kind === 'water') return st.villages[j.farm.village].well ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
     if (j.kind === 'mend') return [j.stretch.mx + (w.hx[j.site] - j.stretch.mx) * 0.25, j.stretch.my + (w.hy[j.site] - j.stretch.my) * 0.25 + 3];
     if (j.kind === 'wood') return [w.hx[j.site] - 8 + a.ox * 0.4, w.hy[j.site] + 6];
     return [w.hx[j.site], w.hy[j.site]];
@@ -1770,7 +1804,7 @@ VB['sim/agents'] = (() => {
   function idleAbout(st, a) {
     // nothing suitable: drift to the green or the yard, and look again in a while
     const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-    const v = f.village !== null ? st.villages[f.village] : null, spot = v && st.rand() < 0.5 ? v.center : f.house;
+    const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
     walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
     a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
   }
@@ -1872,7 +1906,7 @@ VB['sim/jobs'] = (() => {
         const fk = `f${f.id}.${fd.id}`;
         const sowing = c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
         if (sowing && fd.stage === 'stubble') post(st, 'plow:' + fk, 'plow', own, fd.tile, { field: fd, farm: f });
-        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField + 10) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
+        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
@@ -1883,7 +1917,7 @@ VB['sim/jobs'] = (() => {
       }
       if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
       if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
-        f.village !== null ? st.villages[f.village].center : f.house, { farm: f });
+        st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
       if (c.hour >= 14 && c.hour < WORK[1] && hh.cookDay !== c.day) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
       if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
     }
@@ -1938,9 +1972,10 @@ VB['sim/heirs'] = (() => {
     personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
+  const { farmToVillage } = VB['sim/ownership'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false) {
-    const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village !== null ? f.village : 0);
+    const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
     const order = (ids) => [...ids].sort((a, b) => {
@@ -2036,7 +2071,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
-    hh.dissolved = true;
+    hh.dissolved = true; farmToVillage(st, f);
     for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
@@ -2120,7 +2155,7 @@ VB['sim/society'] = (() => {
   const { bfs, land, hexSteps } = VB['sim/hex'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking } = VB['sim/heirs'];
-  function initCulture(st, leanBySettlement) {
+  function initCulture(st, leanBySettlement, overrides = {}) {
     const env = st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 };
     env.byId = (id) => st.pawns[id];
     env.settlementOf = (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; };
@@ -2137,6 +2172,7 @@ VB['sim/society'] = (() => {
     env.onSplit = (nc, from, cause) => log(st,
       `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`);
     const customs = Culture.fromArchetype('oldNordic');
+    for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0);
     for (const v of st.villages) {
       const s = {
@@ -2485,6 +2521,7 @@ VB['sim/scenarios'] = (() => {
   const { placeAtHome } = VB['sim/agents'];
   const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
+  const { seedOwners } = VB['sim/ownership'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
@@ -2495,7 +2532,7 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
-    initCulture(st, null); st.countDemand();
+    initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
@@ -2609,7 +2646,9 @@ VB['sim/scenarios'] = (() => {
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood}; center is a tile index, farmsteads are ids
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
+    //   green, well: booleans; a one-farm village has neither
+    // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
@@ -2631,6 +2670,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
     };
+    seedOwners(st);
     refreshRoles(st);
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
@@ -2747,6 +2787,8 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
   } = VB['sim/records'];
   const { describe } = VB['sim/agents'];
+  const { seedReserve } = VB['sim/hunger'];
+  const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles } = VB['sim/heirs'];
   const { updateTies, refreshInterests } = VB['sim/society'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
@@ -2756,7 +2798,7 @@ const Sim = (() => {
   return {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
-    isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture,
+    isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve,
   };
 })();
 VB['sim'] = Sim;
@@ -3189,9 +3231,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     const rg = w.regions[w.region[i]];
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
-    const farm = settlementTileInfo(i);
-    if (farm) card(farm[0], [...farm[1], where]);
-    else card(b.name, [line, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
+    const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
+    if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
+    else card(b.name, [line, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -3722,8 +3765,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const t = new PIXI.Text({ text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: { color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
       t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
     };
-    for (const v of st.villages) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, 30);
-    for (const f of st.farmsteads) if (f.village === null) mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24);
+    for (const v of st.villages) {
+      if (v.green) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, 30);
+      else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24); }
+    }
   }
   // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
   function buildFarms(wd) {
@@ -3752,7 +3797,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
       if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
       const wood = place(art.wood[0], hx + 13, hy + 16, 0.5, 0.9); wood.visible = !empty;
-      if (f.village === null) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
+      if (!st.villages[f.village].well) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
@@ -3761,7 +3806,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
     for (const v of st.villages) {
-      place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
+      if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
       for (const s2 of v.fence) addFence(s2);
     }
     for (const p of st.pawns) {
@@ -3880,18 +3925,18 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const worst = Math.min(...v.fence.map((s) => s.cond));
       const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
       const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
-      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair. Shared well and woods.</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
+      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair. ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
       h += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}</p>`;
       for (const f of empties) h += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
       h += '</div>';
     }
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      const f = st.farmsteads[hh.farmstead], v = f.village !== null ? st.villages[f.village] : null;
+      const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
-      h += `<div class="farm"><h2>${esc(f.name)} <span>${v ? 'in ' + esc(v.name) : 'on its own'}</span></h2>`;
+      h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
+      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}</p>`;
       h += `<p>Fields: ${fieldSummary(f)}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
@@ -3939,7 +3984,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function settlementTileInfo(i) {
     if (!st) return null;
     for (const f of st.farmsteads) {
-      const v = f.village !== null ? st.villages[f.village].name : null, where = v ? `${f.name}, ${v}` : f.name;
+      const v = st.villages[f.village].name, where = `${f.name}, ${v}`;
       if (f.house === i) {
         if (f.household === null) return [`${f.name}${v ? `, ${v}` : ''}`, [`Empty for ${emptyYears(f)} years: ${f.state === 'ruin' ? 'a ruin' : 'buildings at ' + Math.round(f.condition * 100) + '%'}`, 'No heir took it; claims come in the next batch']];
         const hh = st.households[f.household], heirs = Sim.heirRanking(st, hh).slice(0, 3).map((q) => Sim.fullName(st.pawns[q]));
@@ -3951,7 +3996,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
     }
-    for (const v of st.villages) if (v.center === i) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
+    for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
     return null;
   }
 
@@ -4032,7 +4077,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function renderTreeInfo() {
     const box = $('treeInfo');
     if (treeSel < 0) { box.innerHTML = '<p class="hint">Choose a person to see their family. Heirs are marked with a dot; the dead are greyed.</p>'; return; }
-    const p = st.pawns[treeSel], f = farmOf(p), v = f && f.village !== null ? st.villages[f.village].name : null, dead = p.died !== null;
+    const p = st.pawns[treeSel], f = farmOf(p), v = f ? st.villages[f.village].name : null, dead = p.died !== null;
     const sp = Sim.spouseOf(st, p.id), kids = Sim.childrenOf(st, p.id), sibs = Sim.siblingsOf(st, p.id);
     const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
     const kin = sp !== null ? Sim.kinship(st, p.id, sp) : null;

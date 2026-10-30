@@ -16,7 +16,7 @@ VB['sim/forest'] = (() => {
     for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;
-      f.woodlot = f.village !== null ? st.villages[f.village].commonsWood : nearestWood(w, st.used, f.house);
+      f.woodlot = st.villages[f.village].commonsWood;
     }
   }
 
