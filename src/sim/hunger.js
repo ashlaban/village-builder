@@ -7,13 +7,18 @@ VB['sim/hunger'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     return (f.fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length + (f.project ? 1 : 0)) * st.ECON.seedPerField;
   }
+  // What the household's living members eat in a day, in rations.
+  function dailyNeed(st, hh) {
+    const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
+    return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
+  }
   // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-    const avail = Math.max(0, hh.grain - seedReserve(st, hh));
-    if (avail >= total) hh.grain -= total;
+    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
+    if (avail >= total) { const cooked = Math.min(hh.rations, total); hh.rations -= cooked; hh.grain -= total - cooked; }
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
@@ -24,7 +29,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.grain -= avail; hh.hungryDays++;
+      hh.rations = 0; hh.grain -= spare; hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -41,5 +46,5 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  return { feedHousehold, seedReserve, updateHealth };
+  return { feedHousehold, dailyNeed, seedReserve, updateHealth };
 })();

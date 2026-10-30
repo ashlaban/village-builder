@@ -35,7 +35,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
-- Tunables: `ECON`, `ROLES` and `KINDS` in `src/sim/rules.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
+- Tunables: `ECON`, `ROLES`, `KINDS` and `MARRIAGE` in `src/sim/rules.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
 - A new job kind touches `KINDS`, the `prio` of each role in `ROLES`, and the animation named by its `anim` in the page script.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
 

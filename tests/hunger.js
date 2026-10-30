@@ -3,7 +3,11 @@ const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
 const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
-const w7 = world(7), fresh = (scenario = 'founders') => Sim.seed(w7, 7, scenario);
+const w7 = world(7), fresh = (scenario = 'founders') => {
+  const st = Sim.seed(w7, 7, scenario);
+  for (const hh of st.households) hh.rations = 0; // these checks run on grain alone (tests/meals.js covers rations)
+  return st;
+};
 
 // each feedOrder shares out a short supply as described
 for (const [order, check] of [

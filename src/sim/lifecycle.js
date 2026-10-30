@@ -1,7 +1,7 @@
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
-  const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
+  const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
@@ -56,7 +56,7 @@ VB['sim/lifecycle'] = (() => {
     st.lastMeeting = st.t;
   }
   const kinOk = (st, a, b, cu) => {
-    const phi = kinship(st, a, b), lim = { second: 1 / 64, first: 1 / 16, close: 1 / 8 }[cu.kinLimit];
+    const phi = kinship(st, a, b), lim = MARRIAGE.kinPhi[cu.kinLimit];
     return phi < lim;
   };
   function movingRound(st) {
@@ -66,8 +66,8 @@ VB['sim/lifecycle'] = (() => {
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
     const fed = (p) => p.hunger < HUNGER.marryBelow;
-    const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired && fed(p)),
-      women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired && fed(p));
+    const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
+      women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     const own = ownFirstOf(st);
     men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
     const taken = new Set();
@@ -83,10 +83,11 @@ VB['sim/lifecycle'] = (() => {
         else if (cu.residence === 'husband') home = m.household; else home = f.household;
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
-        const s = -Math.abs(m.age - f.age - 3) * 0.3 + (sameV ? 2 : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * 1.5;
+        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
+          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }
-      if (!best || bs < -1.5 || st.rand() > 0.75) continue;
+      if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
       taken.add(best.f.id);
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {

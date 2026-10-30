@@ -7,6 +7,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
+  const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
@@ -134,7 +135,8 @@ VB['sim/scenarios'] = (() => {
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop),
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
+    //   unthreshed[] (rations still in sheaf, one per field's crop),
     //   wood (loads), stone (loads),
     //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -169,6 +171,7 @@ VB['sim/scenarios'] = (() => {
     };
     seedOwners(st);
     refreshRoles(st);
+    for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
     return st;

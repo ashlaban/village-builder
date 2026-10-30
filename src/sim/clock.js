@@ -5,7 +5,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
-  const { refreshJobs, planRound } = VB['sim/jobs'];
+  const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
@@ -15,6 +15,7 @@ VB['sim/clock'] = (() => {
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h === WORK[1]) for (const a of st.agents) {
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
