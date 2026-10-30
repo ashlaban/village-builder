@@ -3,7 +3,7 @@ VB['sim/heirs'] = (() => {
   const {
     personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
-  const { placeAtHome, release } = VB['sim/agents'];
+  const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
   // Who would inherit this farm now, in order, under the practice of its village.
@@ -127,7 +127,7 @@ VB['sim/heirs'] = (() => {
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
     hh.dissolved = true; farmToVillage(st, f);
-    for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
+    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id]; if (!p.alive) continue;
