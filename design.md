@@ -8,7 +8,7 @@ Version 0.3 records the game design as discussed up to 29 October 2026; it adds 
 
 Each version is its own document and is left unchanged once a newer one exists: Village builder: game design snapshot v0.2, Village builder: game design snapshot v0.1.
 
-Implementation details (rendering, code structure, performance) are left out. Numbers are design targets or starting values to tune, not fixed values.
+Implementation details (rendering, code structure, performance) are left out, apart from the cost column of the Systems overview, which a review of 30 October 2026 added as a Proposed section. Numbers are design targets or starting values to tune, not fixed values.
 
 | Label | Meaning |
 | --- | --- |
@@ -476,6 +476,84 @@ The debug panel's actions (kill, retire, argue for a custom) would become comman
 - **Filter first:** a village's tree starts from its living members and reaches a set number of generations up and down.
 - **Cache kinship:** coefficients are kept per pair and recomputed only along new lines of descent.
 
+## Systems overview (Proposed, review of 30 October 2026)
+
+The game's systems at four levels: the player's experience, the simulation, the presentation, and what cuts across them. For each it asks whether the game needs the system, whether it is fun, whether it is realistic, and what it costs at 1,000 pawns. Everything in this section is Proposed; it changes no Decided or Agreed point, and the questions it raises are in `QUESTIONS.md`. The state of each system in the game is from `REVIEW.md`.
+
+State: **built** (as designed), **partly** (some of it built), **planned** (a backlog task or arch covers it), **missing** (no task yet).
+
+### The player's experience
+
+| Scale | What the player gets today | What the design promises | Gap |
+| --- | --- | --- | --- |
+| A minute | Pawns hoe, sow, reap, chop and carry; smoke, stooks and the woodpile show the state of each farm; any pawn, farm or tile can be inspected | The same, with herds, haymaking and the seasons visible | Small: animals and seasons |
+| A session (1–2 hours, 2–3 game years at 1×) | A harvest or two, a village meeting, a handful of births, marriages and deaths | The same, plus land made, farms claimed, courting | Founders see about one birth per hour of play, and no new farm |
+| A run (40–80 hours) | Customs drift; nothing else accumulates, since the population stays flat | 5–6 generations, growth to about 1,000 people, villages that split into cultures | Large: growth needs expansion |
+| Agency | Debug tools only | Open | The largest gap: without a role, inheritance and customs have no stakes for the player |
+
+**Fun.** The design's draw is the family saga in a changing society: the eldest son who inherits, the younger daughter who marries a widower in the next village, the custom her generation overturns. That is the pleasure of Crusader Kings III and of reading a parish register, set at village scale. It needs three things the game lacks: a stake for the player (a role), a growing cast (expansion), and a memory (a chronicle of what happened to whom).
+
+### Simulation systems
+
+| System | Needed for | Fun | Realism | Cost at 1,000 pawns | State |
+| --- | --- | --- | --- | --- | --- |
+| World and terrain | Everything | Each seed is a new archipelago to read: shores, woods, stony hills | Compressed on purpose; terrain types fit Sweden | 2–6 s once, at generation | Built |
+| Calendar and the yearly round | Pacing, farming, meetings | The harvest and the meeting give each year a shape | 48 days a year, a day standing for a week; consistent | Negligible | Built |
+| Work: jobs, matching, walking | The visible life of the village | Reading a village at a glance; watching a family get through the harvest | Role-based work fits medieval practice; walking ignores terrain (mountains cost the same as meadow) | The hot loop: every idle pawn bids for every job; index jobs by owner | Built |
+| Fields, grain and food | The material base and its scarcity | The harvest as the year's climax; a lean spring as drama | Seed at 4:1 fits Slicher van Bath; a farm feeds about 3.5 adult-equivalents, against 5–6 historically | Negligible | Built, short of food (see below) |
+| Forest, wood and stones | Fuel, building, land-making | The commons wood visibly shrinking is a readable tragedy of the commons | Good; regrowth over 30 years | Negligible | Built |
+| Making land: fields, meadows, plots | Incremental progress, growth | The game's "build" verb: land won by work, tile by tile | Good; hours scaled from history | Small | Planned (VB-010, VB-031) |
+| Animals and hay | The second economy, the winter limit | The autumn decision of how many animals to keep is a real choice under risk | *Äng är åkers moder*; good | About 22,000 tile updates a day; small | Planned (VB-047) |
+| Households and family records | The cast and its stories | The core of the fantasy | GEDCOM-like; good | Queries scan all records today (VB-052) | Built |
+| Births, deaths, health | The cast changes | Death and birth are the main events | Matched to model life tables | Small | Built; health planned (VB-050) |
+| Pawn interactions and courting | Ties, marriages, persuasion | Romance and friendship are what players retell | Courting at any time of year; good | Pairs by map bucket (VB-061) | Planned |
+| Inheritance and succession | Who gets the farm, who must leave | The strongest system today: every death reshuffles a family | Close to Northwestern European practice | Ranks heirs across all farms (VB-052) | Built |
+| Expansion: claims, plots, splitting | The release valve; growth | Seeing a younger son found a farm is the payoff of a generation | Hajnal's pattern needs land to marry | Small | Planned; without it the population stays flat |
+| Ownership and claims | Territory, expansion, disputes | Disputes over a tile are stories | Good | One value per tile | Partly (owners built, claims planned) |
+| Customs, meetings, culture | Society that drifts over generations | The signature system, but slow and hard to see: a change every few decades, announced in one log line | Grounded in social-influence models; calibrated | 19 ms a day | Built |
+| Village commons (green, well, fence, wood) | Shared duties, the village as a unit | Free riders on the commons are a source of conflict | Upplandslagen; good | Small | Partly |
+| Commands | Direct control, herds, the meeting, a player role | Lets the player act as one pawn without new systems | — | Small | Missing (Decided in the design) |
+| Save and load | 40–80 hour runs | A run that cannot be saved is not playable at this length | — | A JSON state of a few MB | Missing |
+| Chronicle (a typed record of events) | Stories, panels, notifications, tests | "What happened to my grandmother's farm" | Parish registers and court rolls were exactly this | Small, append-only | Missing; the event log keeps 40 lines |
+| Towns, markets, money | Grain outlets, specialists | Later | — | — | Later |
+
+### Presentation systems
+
+| System | Needed for | Fun | Realism | Cost | State |
+| --- | --- | --- | --- | --- | --- |
+| Painterly terrain, level-of-detail chunks | The look | The main visual appeal | Naturalistic | Chunk bakes spread over frames | Built |
+| Farmsteads, decay, signs of life | Reading a farm's state without a panel | Woodpile, smoke and stooks already tell stories | Medieval Swedish buildings | Small | Built |
+| Pawns: jointed rigs and work animations | The village feels alive | Watching the work is the minute-to-minute pleasure | Dress after the period | About 1,000 batched sprites | Built |
+| Seasons on the map | The yearly round made visible | Snow and autumn colour mark time passing; without them a year looks the same throughout | Strong in Sweden | A tint and a snow layer per chunk | Missing (Open) |
+| Panels: settlers, pawn, tile, household | Inspection | Necessary; text-heavy | — | Small | Built |
+| Customs drawer and meeting log | Seeing society change | Bars and one line per change; the argument itself is not shown | — | Small | Built |
+| Family tree | The saga | Strong once there are generations | — | Lays out every record on each open | Built; needs the "fast" proposals at scale |
+| Ownership and claims overlay | Territory | Shows who holds what at a glance | — | Cached per chunk (VB-045) | Planned |
+| Speech bubbles, mood | Feedback on social life | Makes ties visible | — | Near the camera only | Planned (VB-061, VB-062) |
+| Notifications | Drawing the eye to an event | A death, a marriage or a custom change otherwise passes unseen | — | Small | Missing |
+| Worn paths | Showing where people walk | Lanes appear between farms, well and woods over years | Desire paths are real | One counter per tile, repainted with the chunk | Missing (new) |
+
+### Across systems
+
+**Food balance.** A ration is one adult's food for a day; a child under 14 eats half. A household of 6 eats 192 rations a year with four young children and 288 when they are all over 14. A meadow field gives about 80 × 0.97 ≈ 78 in an ordinary year, less 20 of seed. Three fields then give about 170 and four about 230, so a grown family goes hungry every year, and a household of 6 with three fields eats about 90% of its need while the children are small. In the populous scenario a quarter of household-days in year 2 are hungry. Animals are meant to fill the gap (VB-048), but they are the last arch to start. A balance that works before animals keeps every task in between from being judged on a hungry baseline.
+
+**Growth.** Births are close to the targets, but marriages need a place and no new places appear, so the founders stay at 13–21 people for 50 years. Expansion matters more to the run than anything else on the backlog.
+
+**Pace.** At 1× a year takes 38 minutes. A run of 40–80 hours plays mostly at 3× and 10×, so what the player sees at those speeds matters most: the harvest, the meeting, a birth, a death. Rare, legible events (a notification, a line in the chronicle, a meeting with its vote shown) carry the game between them.
+
+**Cost.** At 10× a game day passes in 4.8 s. The simulation takes about 0.2 s a day at 818 pawns, about 4% of a core. The yearly rounds take 1.6–2.6 s in one frame and are seen as a freeze. A budget per system makes this testable: steady state under 10% of real time at the fastest speed, and no single step over 50 ms.
+
+### Findings
+
+1. **Expansion first.** Make land, claim farms, clear plots and build farmsteads before more social depth: growth is the spine of a run. (Backlog: VB-010, VB-033, VB-031, VB-032 at priority 1.)
+2. **A food balance before animals.** Feed a household of 6 from 3–4 fields in an ordinary year, with a small surplus to carry a poor one; retune when animals arrive. (QUESTIONS.md.)
+3. **A player role.** Proposal: the player follows one family line. They act through the head of the line as that pawn's source of commands (choose work, court, claim, argue at the meeting) and continue as the heir when the head dies. It uses the Decided command system and direct control, it gives inheritance and customs stakes, and it fits a run of several generations. (QUESTIONS.md.)
+4. **Commands and save games before animals.** Herds act through commands (Agreed), and a run cannot last 40 hours without saves. Both are cheaper to build before more state exists.
+5. **Make customs legible.** Show who argues for what, the vote at each meeting, and a pawn's attitudes in its panel; announce a change of practice as a notable event.
+6. **A chronicle.** One typed, permanent record of events per pawn, household, farm and village, from which the log, the panels, notifications and the tests all read.
+7. **Seasons on the map,** after the browser smoke test (VB-025) can catch drawing errors.
+8. **A populous start with adult children,** so marriage and inheritance begin in year 1, not year 6.
+
 ## Open questions and proposals
 
 The player's role is the largest open question; most proposals concern growth, the economy and keeping views fast.
@@ -516,6 +594,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (review) | 30 October 2026 | Added Systems overview (Proposed): the player's experience, simulation and presentation systems, and food balance, growth, pace and cost across them, with findings; no Decided or Agreed point changed |
 | 0.3 (discussion) | 30 October 2026 | Yields rise slightly over the course of a game |
 | 0.3 (discussion) | 29 October 2026 | Growth from natural births, with very limited immigration by boat in a later stage and 40 hours or more to full population; hunger can kill, mostly infants and the old; the heir-to-own-farm rule becomes a custom; the marriage limit is judged by degree, opens to closer kin when marriages are scarce, and never allows siblings; hunger also slows work and postpones marriages and births; children are spaced by explicit pregnancy and nursing; who eats first in a hungry household is a custom; degree is counted the civil way, with a fourth, loosest option allowing uncle–niece; starting values for births, hunger and the who-eats-first custom agreed, to be tuned for gameplay later; some births outside marriage; parents of young children favour feeding children first; plentiful spouses slowly tighten the marriage limit again; births outside marriage come from courting between pawns, and whether such children inherit is a custom; courting replaces the yearly matchmaking; the true father is recorded while pawns may believe otherwise |
 | 0.3 (backlog sync) | 29 October 2026 | Brought in decisions recorded in BACKLOG.md: four map sizes and a generation screen, the Populous Villages scenario and shared generators, every farm in a village, standing houses for the founders, a 6-minute simulation step with its own 5-minute UI clock, and starting numbers for trees, stones, making fields, tilling, threshing, weeding and milling. Open questions marked where the backlog covers them |

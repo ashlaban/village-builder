@@ -1,7 +1,7 @@
 # Village builder: guide for agents
 
 A village builder proof of concept on a generated hex archipelago: one self-contained `index.html` (PixiJS 8), built from `src/`.
-Design reference (read-only): `design.md`, "Village builder: game design snapshot v0.3".
+Design reference: `design.md`, "Village builder: game design snapshot v0.3"; read-only for implementing tasks (only design and review tasks change it).
 Work is planned in `BACKLOG.md` (overview table; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
 the refactor and golden-file rules). Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 
