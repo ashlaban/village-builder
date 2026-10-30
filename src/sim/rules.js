@@ -21,7 +21,13 @@ VB['sim/rules'] = (() => {
     weedEvery: 6, weedCut: 0.08, weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
   };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && FERTILITY[w.biome[i]] !== undefined;
+  // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
+  // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
+  const RIVER = { irrigation: 0.2, site: [0, 10, 10, 5] };
+  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && FERTILITY[w.biome[i]] !== undefined;
+  const byRiver = (w, i) => { for (let k = 0; k < 6; k++) { const j = w.nb[i * 6 + k]; if (j >= 0 && w.river[j]) return true; } return false; };
+  // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
+  const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
   // ---- roles and jobs: who prefers what; jobs carry an owner that decides who may take them ----
   const ROLES = {
@@ -108,7 +114,8 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, CHILD, workRate, PLOT_PRIO, KINDS,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    PLOT_PRIO, KINDS,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();

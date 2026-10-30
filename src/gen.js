@@ -280,6 +280,7 @@ const ArchGen = (() => {
       const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
       stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
     }
+    const { river, riverTo } = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
@@ -359,7 +360,7 @@ const ArchGen = (() => {
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang, trees, treesMax, stones,
+      region, regions, tr, tg, tb, ang, trees, treesMax, stones, river, riverTo,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -580,10 +581,9 @@ const ArchGen = (() => {
     if (l >= 2) return;
     const { R, HW, AP, COLS, ROWS, hx, hy, biome, seed } = w;
     const lv = LV[l], sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size;
-    const full = l === 0, M = 36;
+    const full = l === 0, M = 36, items = [];
     const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R)) - 1), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)) + 1);
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW) - 1), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW) + 1);
-    const items = [];
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
       const i = row * COLS + col, b = biome[i];
       if (w.dev && w.dev[i]) continue; // farmland and yards are drawn by the settlement layer
@@ -619,12 +619,12 @@ const ArchGen = (() => {
         if (full && rnd() < 0.15) { const [x, y] = spot(0.5); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
       }
     }
+    VB['gen/rivers'].thin(w, items, hexLocator(w)).sort((a, b) => a.y - b.y); // nothing stands in a river; the rest is drawn back to front
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.fillStyle = 'rgba(28,36,24,0.26)';
     for (const it of items) {
       if (it.t === 'broad' || it.t === 'pine') { ctx.beginPath(); ctx.ellipse(it.x + 3, it.y + 1, 6 * it.sc, 2.8 * it.sc, -0.3, 0, 7); ctx.fill(); }
     }
-    items.sort((a, b) => a.y - b.y);
     for (const it of items) {
       if (it.t === 'broad') { const c = S.broad[it.v], k = it.sc * 0.74; ctx.drawImage(c, it.x - 14 * k, it.y - 26 * k, 28 * k, 30 * k); }
       else if (it.t === 'pine') { const c = S.pine[it.v % 8], k = it.sc * 0.72; ctx.drawImage(c, it.x - 10 * k, it.y - 32 * k, 20 * k, 34 * k); }

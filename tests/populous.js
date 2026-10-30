@@ -4,6 +4,10 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('P
 const SIZES = { tiny: [120, 85, 130, 170], small: [180, 130, 320, 380], medium: [280, 200, 800, 950], large: [380, 270, 800, 950] };
 const world = (seed, cols, rows) => { const it = G.generate(seed, { cols, rows }); let r; while (!(r = it.next()).done); return r.value; };
 const band = (n) => (n >= 2 && n <= 5 ? 'small' : n >= 6 && n <= 10 ? 'medium' : n >= 12 && n <= 16 ? 'large' : 'other');
+// mean and spread of drawSize, from 20,000 seeded draws: a map's mean household size lies within 3 standard errors of that mean
+// (on a Tiny map of about 20 households, about 6.2 +- 1.0; on Medium, of about 130, +- 0.4)
+const draws = Array.from({ length: 20000 }, ((r) => () => VB['sim/people'].drawSize(r))(G.mulberry32(1)));
+const MU = draws.reduce((a, b) => a + b, 0) / draws.length, SD = Math.sqrt(draws.reduce((a, b) => a + (b - MU) ** 2, 0) / draws.length);
 
 for (const [name, [cols, rows, lo, hi]] of Object.entries(SIZES)) for (const seed of [7, 42]) {
   const w = world(seed, cols, rows), st = Sim.seed(w, seed, 'populous'), tag = `${name} seed ${seed}`;
@@ -13,7 +17,7 @@ for (const [name, [cols, rows, lo, hi]] of Object.entries(SIZES)) for (const see
   const sizes = st.households.map((h) => h.members.length);
   check(Math.min(...sizes) >= 4 && Math.max(...sizes) <= 9, `${tag}: household sizes ${Math.min(...sizes)}-${Math.max(...sizes)}`);
   const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-  check(mean > 5.5 && mean < 6.6, `${tag}: mean household size ${mean.toFixed(2)}`);
+  check(Math.abs(mean - MU) < (3 * SD) / Math.sqrt(sizes.length), `${tag}: mean household size ${mean.toFixed(2)} of ${sizes.length}, drawn about ${MU.toFixed(2)}`);
   for (const p of st.pawns) {
     const parents = [p.father, p.mother].filter((x) => x !== null);
     check(parents.every((x) => st.pawns[x].father === null && st.pawns[x].mother === null), `${tag}: ${p.given} has grandparents on record`);

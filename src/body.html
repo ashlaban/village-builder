@@ -94,7 +94,7 @@
 <!--__MODULES__-->
 <script>
 (async () => {
-  const G = ArchGen, LV = G.LV, TEX = G.TEX;
+  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'];
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -210,6 +210,8 @@
     const ctx = canvas.getContext('2d'), img = ctx.createImageData(TEX, TEX);
     yield* G.bakeChunk(wd, l, cx, cy, img);
     ctx.putImageData(img, 0, 0);
+    yield 1;
+    Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
     yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
@@ -521,8 +523,10 @@
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
+    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : !w.water[i] && Sim.byRiver(w, i)
+      ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...river, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -1295,7 +1299,8 @@
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {
         const word = { stubble: 'Stubble, waiting for spring', plowed: 'Hoed, ready for sowing', sown: 'Freshly sown', young: 'Sprouting', growing: 'Growing', ripe: 'Ripe for reaping', stooks: 'Sheaves drying in stooks', fallow: 'Untended, gone to grass', scrub: 'Untended, gone to scrub' }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
-        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+        const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
+        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
     }
     for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];

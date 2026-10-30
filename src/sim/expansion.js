@@ -1,7 +1,7 @@
 // @sys sim/expansion: clearing a new plot for those who want to move out: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
-  const { FERTILITY, farmable } = VB['sim/rules'];
+  const { fertility, farmable } = VB['sim/rules'];
   const { bfs, land } = VB['sim/hex'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
@@ -17,7 +17,7 @@ VB['sim/expansion'] = (() => {
     const s = tr.steps[tr.i];
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
-  // A house tile and one field tile within REACH steps of the green: unowned, passable, in the village's region or one touching it.
+  // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
   // A farmable tile next to the house is preferred; the house may stand next to other houses. Null when there is no room.
   function findSite(st, v) {
     const w = st.w, vreg = w.region[v.center], cand = [];
@@ -27,10 +27,11 @@ VB['sim/expansion'] = (() => {
       return false;
     };
     for (const [t, d] of bfs(w, v.center, REACH, land(w)).dist) {
-      if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
+      if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
+      if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
-    const dist = new Map(cand), fieldScore = (t) => FERTILITY[w.biome[t]] - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
+    const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const farmableAt = (t) => dist.has(t) && farmable(w, t) && !wooded(w, t);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
