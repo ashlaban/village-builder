@@ -57,7 +57,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: FERTILITY[w.biome[t]],
         weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, name: '', rowAngle: a, fence: null,
+      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null,
     };
   }
 
@@ -127,7 +127,9 @@ VB['sim/layout'] = (() => {
     for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
     return wl;
   }
-  function finishLand(w, villages, farmsteads, used, rand) {
+  // bare: the farms keep their houses only; the fields they would have had stay unmade meadow, with their stones.
+  function finishLand(w, villages, farmsteads, used, rand, bare = false) {
+    if (bare) for (const f of farmsteads) { for (const fd of f.fields) used.delete(fd.tile); f.fields = []; }
     const nearWood = (from) => nearestWood(w, used, from);
     for (const v of villages) {
       v.commonsWood = nearWood(v.center);
@@ -163,7 +165,7 @@ VB['sim/layout'] = (() => {
   const farmHooks = [];
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
   // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
-  function settlementGenerator(w, rand) {
+  function settlementGenerator(w, rand, bare = false) {
     const used = new Set(), farmsteads = [], villages = [];
     return {
       used, farmsteads, villages,
@@ -174,7 +176,7 @@ VB['sim/layout'] = (() => {
       addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
-        finishLand(w, villages, farmsteads, used, rand);
+        finishLand(w, villages, farmsteads, used, rand, bare);
         for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
         return this;
       },

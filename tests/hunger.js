@@ -25,7 +25,8 @@ for (const [order, check] of [
 
 // seed corn is never eaten: 3 unsown fields keep 60 back
 {
-  const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
+  const st = fresh('heirs'), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
+  while (f.fields.length < 4) f.fields.push({ ...f.fields[0], id: f.fields.length });
   hh.members = [man.id]; man.hunger = 0; man.hungerLog = [];
   f.fields.forEach((fd, k) => { fd.stage = k < 3 ? 'plowed' : 'growing'; });
   assert.strictEqual(f.fields.filter((fd) => fd.stage === 'plowed').length, 3);

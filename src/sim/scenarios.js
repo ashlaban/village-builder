@@ -10,17 +10,21 @@ VB['sim/scenarios'] = (() => {
   const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
+  const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
     const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
-    const gen = settlementGenerator(w, rand), village = gen.addVillage(center, 3), lone = gen.addLoneFarm(center);
+    const gen = settlementGenerator(w, rand, true), village = gen.addVillage(center, 3), lone = gen.addLoneFarm(center);
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
     initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
+    st.makeFields = true;
+    // grain for a full year of rations, and seed for the fields the household wants
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
@@ -130,14 +134,17 @@ VB['sim/scenarios'] = (() => {
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop), wood (loads),
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), unthreshed[] (rations still in sheaf, one per field's crop),
+    //   wood (loads), stone (loads),
     //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
-    //   house is a tile index; fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
+    //   house is a tile index; project {tile, stage 'clear'|'break', hours} or null (the field in the making; sim/fields);
+    //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
     //   green, well: booleans; a one-farm village has neither
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
+    // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
@@ -152,7 +159,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,

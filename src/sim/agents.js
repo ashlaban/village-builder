@@ -4,6 +4,7 @@ VB['sim/agents'] = (() => {
   const { bfs, pathTo, land } = VB['sim/hex'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
+  const { finishClear, finishBreak } = VB['sim/fields'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -63,6 +64,8 @@ VB['sim/agents'] = (() => {
           hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day;
           j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0;
         } break;
+      case 'clear': finishClear(st, j.farm, hh); break;
+      case 'break': finishBreak(st, j.farm); break;
       case 'weed': j.field.weedOpen = false; break;
       case 'reap':
         j.field.stage = 'stooks'; j.field.reaped = c.day;
@@ -121,7 +124,7 @@ VB['sim/agents'] = (() => {
       a.stride += Math.hypot(nx - a.x, ny - a.y) / 3.4;
       a.x = nx; a.y = ny;
     }
-    if (j.done >= K.hours) {
+    if (j.done >= (j.hours ?? K.hours)) {
       if (K.carry) {
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];

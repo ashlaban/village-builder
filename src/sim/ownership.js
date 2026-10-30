@@ -24,6 +24,7 @@ VB['sim/ownership'] = (() => {
   function farmToVillage(st, f) {
     const o = { type: 'village', id: f.village };
     setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
+    if (f.project) setOwner(st, f.project.tile, o);
   }
   return { ownerOf, setOwner, seedOwners, farmToVillage };
 })();
