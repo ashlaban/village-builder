@@ -82,10 +82,15 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 
 ### VB-059: pawn interactions (new; courting waits on it)
 1. What kinds of interaction come first? **P:** talk (builds a tie), help (a gift of food or work, VB-039), quarrel (lowers a tie), court (VB-036); later trade and persuasion.
+   **A (Kim, 30 Oct):** talk only, for the first version.
 2. What does a relationship between two pawns hold? **P:** the existing tie weight (familiarity), plus an opinion from −1 to 1 (liking), and a courting flag; kin links stay in the family records.
+   **A (Kim, 30 Oct):** accepted.
 3. When do interactions happen? **P:** when two pawns meet (as `noteContacts` finds them: working near each other, at the well, on the green, at home), each pair at most once a game hour, with the kind drawn from their roles, ties and opinion.
+   **A (Kim, 30 Oct):** accepted.
 4. Are interactions visible? **P:** a short speech-bubble icon over the pair near the camera, and a line in each pawn's events for courting, help and quarrels; talk is not logged.
+   **A (Kim, 30 Oct):** accepted; also, the pawn info screen shows active modifiers (e.g. mood +5, recently talked to a friend): new task VB-062.
 5. Cost at 1,000 pawns: keep relationships only above a minimum tie (as ties today), check pairs by map bucket instead of all pairs. **P:** yes; a target of under 5 ms per game hour on a populous medium map.
+   **A:** not asked; the proposal is used. VB-059 is done; VB-060 to VB-063 written.
 
 ### VB-039: food help from kin and the village
 1. Each adult wants a buffer of 20–60 days of food before giving. **P:** yes, drawn per pawn; the holder's counts for the household.
