@@ -45,7 +45,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-006 | Stones on meadow tiles | - | - | done | 2 | S | Meadow tiles track stone content for field-making and building stone. | [backlog/VB-006.md](backlog/VB-006.md) |
 | VB-007 | Tilling and threshing as multi-day work | - | - | done | 2 | M | Tilling takes several days per field; harvest gains a threshing step. | [backlog/VB-007.md](backlog/VB-007.md) |
 | VB-008 | Summer upkeep of growing fields | - | - | done | 3 | S | Growing fields need weeding; neglect lowers the yield. | [backlog/VB-008.md](backlog/VB-008.md) |
-| VB-009 | Hand-quern milling and making rations | food | implement | blocked | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
+| VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
 | VB-010 | Founders start on unmade land and make their fields | claims | implement | ready | 3 | L | Founders start without fields and claim, clear and break meadow. | [backlog/VB-010.md](backlog/VB-010.md) |
 | VB-011 | Golden-state test for world, simulation and calibration | - | - | done | 1 | S | Fingerprint world and sim output so refactors provably change nothing. | [backlog/VB-011.md](backlog/VB-011.md) |
 | VB-012 | One module list, a module namespace and a Node loader | - | - | done | 1 | M | One module list, a `VB` namespace and a Node loader for tests. | [backlog/VB-012.md](backlog/VB-012.md) |
@@ -58,9 +58,9 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-019 | Refactor: culture wiring and the yearly round into modules | - | - | done | 1 | S | Move culture wiring and the yearly round out of `src/sim.js`. | [backlog/VB-019.md](backlog/VB-019.md) |
 | VB-020 | Refactor: scenarios and the clock into modules; `Sim` as a facade | - | - | done | 1 | S | Move scenarios and the clock out; `Sim` becomes a facade. | [backlog/VB-020.md](backlog/VB-020.md) |
 | VB-021 | Map generation screen with size, seed and starting scenario | - | - | done | 3 | L | Start screen for map size, seed and scenario; Populous Villages; shared generators. | [backlog/VB-021.md](backlog/VB-021.md) |
-| VB-022 | Daily meals that always happen (unblocks VB-009) | food | implement | needs-review | 2 | S | Make the daily cook job reliable so rations cause no hungry days. | [backlog/VB-022.md](backlog/VB-022.md) |
-| VB-023 | Heirs scenario: the one-person household and the longer tilling | food | implement | needs-review | 2 | S | Decide whether a one-person heirs household should fail to till its fields. | [backlog/VB-023.md](backlog/VB-023.md) |
-| VB-024 | Wood supply: how fast the forest runs out | - | - | needs-review | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
+| VB-022 | Daily meals that always happen (unblocks VB-009) | food | implement | ready | 2 | M | A rations store, starting rations, cooking for the next day; the cook may leave other work after 14:00. | [backlog/VB-022.md](backlog/VB-022.md) |
+| VB-023 | Sow a hoed field before hoeing the next | food | implement | ready | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
+| VB-024 | Wood supply: how fast the forest runs out | - | - | ready | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
 | VB-025 | Browser smoke test in real Chromium | tooling | implement | needs-review | 3 | M | Playwright smoke test of `index.html` in real Chromium. | [backlog/VB-025.md](backlog/VB-025.md) |
 | VB-026 | Farm names in big villages | expansion | implement | needs-review | 3 | S | Choose a naming rule for farms beyond the direction names. | [backlog/VB-026.md](backlog/VB-026.md) |
 | VB-027 | Births within marriage | - | - | done | 2 | M | Married women conceive, give birth and nurse; infant and child mortality. | [backlog/VB-027.md](backlog/VB-027.md) |
