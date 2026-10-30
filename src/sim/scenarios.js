@@ -162,6 +162,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
+    // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
+    //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
     // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
     // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
@@ -174,7 +176,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,

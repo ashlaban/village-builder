@@ -53,12 +53,14 @@ const hashKeys = (o, skip = [], entry = '') => {
 
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const out = {};
+// state fields that only index other fields (VB-071) stay out of the fingerprint
+const DERIVED = ['w', 'jobsBy'];
 for (const seed of [7, 42]) {
   out[`world/${seed}`] = hashKeys(world(seed), [], `world/${seed}`);
   for (const scenario of ['founders', 'heirs']) {
     const w = world(seed), st = Sim.seed(w, seed, scenario);
-    out[`${scenario}/${seed}/seed`] = hashKeys(st, ['w'], `${scenario}/${seed}/seed`);
-    for (let y = 1; y <= 3; y++) { Sim.advance(st, Sim.YEAR); out[`${scenario}/${seed}/year${y}`] = hashKeys(st, ['w'], `${scenario}/${seed}/year${y}`); }
+    out[`${scenario}/${seed}/seed`] = hashKeys(st, DERIVED, `${scenario}/${seed}/seed`);
+    for (let y = 1; y <= 3; y++) { Sim.advance(st, Sim.YEAR); out[`${scenario}/${seed}/year${y}`] = hashKeys(st, DERIVED, `${scenario}/${seed}/year${y}`); }
   }
 }
 if (DUMP) { console.log('dumped to ' + DUMP); process.exit(0); }

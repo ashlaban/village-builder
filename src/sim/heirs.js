@@ -3,9 +3,10 @@ VB['sim/heirs'] = (() => {
   const {
     personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
-  const { placeAtHome, release } = VB['sim/agents'];
+  const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
+  const { SHARES } = VB['sim/rules'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -51,7 +52,17 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = ownFirstSet ? new Set(ownFirstSet.filter((e) => e[1] !== hh.id).map((e) => e[0])) : new Set(ownFirstOf(st, hh).map((e) => e[0]));
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    if (cu.ownHeir === 'keeps') {
+      // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
+      // parents') and drops the other claim, which passes to the next in that line
+      const wins = (id, o) => {
+        const n = st.farmsteads[st.households[o].farmstead].fields.length, p = st.pawns[id];
+        return n > f.fields.length || (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)));
+      };
+      return ok.filter((id) => !claims.some((e) => e[0] === id && wins(id, e[1])));
+    }
+    const ownFirst = new Set(claims.map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
@@ -88,9 +99,9 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * 120 + hh.grain * 0.5, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
-        const reserve = 60 + hh.members.length * 30; // shares never eat the seed corn or the winter's food
+        const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
         hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
         if (due) {
@@ -127,7 +138,7 @@ VB['sim/heirs'] = (() => {
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
     hh.dissolved = true; farmToVillage(st, f);
-    for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
+    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id]; if (!p.alive) continue;

@@ -1024,6 +1024,8 @@ const Culture = (() => {
     ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
+    { key: 'ownHeir', label: 'Heir to their own parents’ farm', m: 0.6,
+      opts: [['behind', 'Steps behind other relatives'], ['keeps', 'Keeps their place']] },
   ];
   const OFF = [], NOPT = [], IDX = {};
   let TOTAL = 0;
@@ -1034,7 +1036,7 @@ const Culture = (() => {
     oldNordic: {
       claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst',
       voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
-      feedOrder: 'equal' },
+      feedOrder: 'equal', ownHeir: 'behind' },
   };
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
@@ -1340,8 +1342,22 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 3; // tiles per game hour on foot
+  // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
+  // the reserve (reserveBase plus reservePerMember per member) is never paid out.
+  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
+  // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
+  const MATCH = {
+    poorFit: 2, poorFitWaitHours: 2, distanceWeight: 0.15, noise: 0.3,
+    urgency: {
+      field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
+      reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5
+      woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the target, + 0.5 in summer
+      waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+    },
+  };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, farmable, ROLES, PLOT_PRIO, KINDS, MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -2133,10 +2149,13 @@ VB['sim/agents'] = (() => {
     const [x, y] = workSpot(st, a, j);
     a.phase = 'go'; walkTo(st, a, j.site, x, y);
   }
+  // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
+  const ownerKey = (o) => `${o.type}:${o.id}`;
+  function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
   function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
   function complete(st, a) {
     const j = a.job, E = st.ECON, hh = st.households[st.pawns[a.id].household], c = cal(st.t);
-    if (j.plot) { finishStep(st, j); st.jobs.delete(j.key); return; }
+    if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     switch (j.kind) {
       case 'plow': j.field.stage = 'plowed'; break;
       case 'sow':
@@ -2159,7 +2178,7 @@ VB['sim/agents'] = (() => {
       }
       case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
-    st.jobs.delete(j.key);
+    dropJob(st, j);
   }
   function deposit(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], f = st.farmsteads[hh.farmstead];
@@ -2170,7 +2189,7 @@ VB['sim/agents'] = (() => {
     }
     if (j.kind === 'wood') { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); }
     if (j.kind === 'water') hh.waterDay = cal(st.t).day;
-    st.jobs.delete(j.key);
+    dropJob(st, j);
     a.carry = null; a.job = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
@@ -2249,6 +2268,7 @@ VB['sim/agents'] = (() => {
     return a.path ? 'Strolling' : 'Resting';
   }
   return {
+    ownerKey, dropJob,
     homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
     moveAgent, describe,
   };
@@ -2257,18 +2277,20 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
 VB['sim/jobs'] = (() => {
-  const { WORK, ROLES, PLOT_PRIO } = VB['sim/rules'];
+  const { WORK, ROLES, PLOT_PRIO, MATCH } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf } = VB['sim/records'];
-  const { start, release } = VB['sim/agents'];
+  const { start, release, ownerKey, dropJob } = VB['sim/agents'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
     let j = st.jobs.get(key);
-    if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j); }
+    if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claim: null, posted: st.t, ...extra }; st.jobs.set(key, j);
+      const ok = ownerKey(owner); if (!st.jobsBy.has(ok)) st.jobsBy.set(ok, new Set());
+      st.jobsBy.get(ok).add(j); }
     j.live = true;
     return j;
   }
@@ -2321,7 +2343,7 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
-    for (const [k, j] of st.jobs) if (!j.live && j.claim === null) st.jobs.delete(k);
+    for (const j of st.jobs.values()) if (!j.live && j.claim === null) dropJob(st, j);
   }
   function mayTake(st, p, j) {
     if (j.owner.type === 'household') return j.owner.id === p.household;
@@ -2329,17 +2351,17 @@ VB['sim/jobs'] = (() => {
     return true;
   }
   function urgency(st, j, c) {
-    const E = st.ECON, hh = j.farm ? st.households[j.farm.household] : null;
+    const E = st.ECON, U = MATCH.urgency, hh = j.farm ? st.households[j.farm.household] : null;
     switch (j.kind) {
-      case 'plow': case 'sow': return 1 + c.sday / 8;
-      case 'reap': return 1.3 + (c.season === 2 ? c.sday / 5 : 0);
-      case 'haul': return 1.1;
-      case 'wood': return hh.wood < 8 ? 2.2 : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? 0.5 : 0);
-      case 'water': return c.hour < 10 ? 1.4 : 1;
-      case 'cook': return c.hour >= 15 ? 2.2 : 0.6;
-      case 'mend': return (1 - j.stretch.cond) * 2;
+      case 'plow': case 'sow': return U.field + c.sday / U.fieldPerDay;
+      case 'reap': return U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0);
+      case 'haul': return U.haul;
+      case 'wood': return hh.wood < U.woodLow ? U.woodLowUrgency : (E.woodTarget - hh.wood) / E.woodTarget + (c.season === 2 ? U.woodSummer : 0);
+      case 'water': return c.hour < U.waterMorningHour ? U.waterMorning : U.water;
+      case 'cook': return c.hour >= U.cookEveningHour ? U.cookEvening : U.cook;
+      case 'mend': return (1 - j.stretch.cond) * U.mendPerCond;
     }
-    return 1;
+    return U.other;
   }
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours.
@@ -2348,13 +2370,24 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (j.claim !== null || !mayTake(st, p, j)) return -1;
     const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
-    if (pr <= 0 || (pr <= 2 && st.t - j.posted < 2)) return -1;
+    if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * 0.15 + st.rand() * 0.3;
+    return pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight + st.rand() * MATCH.noise;
+  }
+  // Two sets of jobs, each in increasing id, as one list in increasing id: the order st.jobs iterates in.
+  function mergeById(x, y) {
+    const a = [...x], b = [...y], out = [];
+    let i = 0, k = 0;
+    while (i < a.length || k < b.length) out.push(k >= b.length || (i < a.length && a[i].id < b[k].id) ? a[i++] : b[k++]);
+    return out;
   }
   function planRound(st, idle, c) {
     const bids = [];
-    for (const a of idle) for (const j of st.jobs.values()) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j]); }
+    const none = new Set();
+    for (const a of idle) {
+      const p = st.pawns[a.id], hj = st.jobsBy.get(`household:${p.household}`) || none, vj = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
+      for (const j of mergeById(hj, vj)) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j]); }
+    }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
     for (const [, a, j] of bids) { if (busy.has(a) || j.claim !== null) continue; start(st, a, j); busy.add(a); }
@@ -2369,9 +2402,10 @@ VB['sim/heirs'] = (() => {
   const {
     personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
   } = VB['sim/records'];
-  const { placeAtHome, release } = VB['sim/agents'];
+  const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
+  const { SHARES } = VB['sim/rules'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -2417,7 +2451,17 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = ownFirstSet ? new Set(ownFirstSet.filter((e) => e[1] !== hh.id).map((e) => e[0])) : new Set(ownFirstOf(st, hh).map((e) => e[0]));
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    if (cu.ownHeir === 'keeps') {
+      // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
+      // parents') and drops the other claim, which passes to the next in that line
+      const wins = (id, o) => {
+        const n = st.farmsteads[st.households[o].farmstead].fields.length, p = st.pawns[id];
+        return n > f.fields.length || (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)));
+      };
+      return ok.filter((id) => !claims.some((e) => e[0] === id && wins(id, e[1])));
+    }
+    const ownFirst = new Set(claims.map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
@@ -2454,9 +2498,9 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * 120 + hh.grain * 0.5, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
-        const reserve = 60 + hh.members.length * 30; // shares never eat the seed corn or the winter's food
+        const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
         hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
         if (due) {
@@ -2493,7 +2537,7 @@ VB['sim/heirs'] = (() => {
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
     hh.dissolved = true; farmToVillage(st, f);
-    for (const j of [...st.jobs.values()]) if (j.farm === f) st.jobs.delete(j.key);
+    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id]; if (!p.alive) continue;
@@ -2692,6 +2736,8 @@ VB['sim/society'] = (() => {
         set('claims', { anyone: 0.6, villagers: 0.4 }); set('newLand', { intended: 0.5, labour: 0.5 });
         set('heirCount', { buyout: 0.6, split: 0.4 }); set('voice', { adults: 1 });
       }
+      if (landless) set('ownHeir', { behind: 1 });
+      if (heirOfHome) set('ownHeir', { keeps: 1 });
       if (holder) { set('claims', { kin: 0.5, assembly: 0.5 }); set('newLand', { village: 1 }); set('voice', { landholders: 1 }); }
       if (holder || heirOfHome) set('heirCount', { one: 1 });
       if (heirOfHome && p.age >= 18) set('handover', { marriage: 1 });
@@ -3138,6 +3184,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids
+    // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
+    //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
     // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
     // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
@@ -3150,7 +3198,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,

@@ -57,10 +57,13 @@ VB['sim/agents'] = (() => {
     const [x, y] = workSpot(st, a, j);
     a.phase = 'go'; walkTo(st, a, j.site, x, y);
   }
+  // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
+  const ownerKey = (o) => `${o.type}:${o.id}`;
+  function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
   function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
   function complete(st, a) {
     const j = a.job, E = st.ECON, hh = st.households[st.pawns[a.id].household], c = cal(st.t);
-    if (j.plot) { finishStep(st, j); st.jobs.delete(j.key); return; }
+    if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     switch (j.kind) {
       case 'plow': j.field.stage = 'plowed'; break;
       case 'sow':
@@ -83,7 +86,7 @@ VB['sim/agents'] = (() => {
       }
       case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
     }
-    st.jobs.delete(j.key);
+    dropJob(st, j);
   }
   function deposit(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], f = st.farmsteads[hh.farmstead];
@@ -94,7 +97,7 @@ VB['sim/agents'] = (() => {
     }
     if (j.kind === 'wood') { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); }
     if (j.kind === 'water') hh.waterDay = cal(st.t).day;
-    st.jobs.delete(j.key);
+    dropJob(st, j);
     a.carry = null; a.job = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
@@ -173,6 +176,7 @@ VB['sim/agents'] = (() => {
     return a.path ? 'Strolling' : 'Resting';
   }
   return {
+    ownerKey, dropJob,
     homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
     moveAgent, describe,
   };
