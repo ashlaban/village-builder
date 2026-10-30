@@ -109,4 +109,8 @@ What exists is good: a golden file, a lint for structure and state tags, a backl
 ## Backlog changes from this review
 
 - Fixed: VB-034 and VB-058 were `ready` but depend on blocked VB-032; VB-010 was priority 3 while priority-1 tasks wait on it; VB-025 was priority 3 while VB-053 (priority 2) depends on it; VB-031 did not name VB-010 and VB-033.
-- New tasks for the defects, the inspection tools, save games, commands and the design gaps above; see `BACKLOG.md`.
+- Defects: VB-064 (routes), VB-065 (extinct farm's people), VB-066 (guardian), VB-067 (scrub; needs review); the loop-invariant marriage call joins VB-052.
+- Inspection and development: VB-068 (`tools/sim.js`), VB-069 (golden diffs), VB-070 (determinism lint), VB-071 (jobs by owner), VB-086 (tunables), VB-087 (culture.js long lines), VB-088 (performance budget; needs review).
+- New arch `core`: VB-072 (random streams), VB-073 (state without closures), VB-074 (save and restore), VB-075 (record of events), VB-076 (plan: commands), VB-077 (plan: saving in the page), VB-078 (wrap-up).
+- New arch `player`: VB-079 (plan: the player's role).
+- Design gaps: VB-080 (food balance), VB-081 (populous adult children), VB-082 (legible customs), VB-083 (seasons), VB-084 (speed), VB-085 (heirs names).
