@@ -94,11 +94,15 @@ There is no milling job today: VB-009 was built, failed its test (hungry days ro
 
 ### VB-039: food help from kin and the village
 1. Each adult wants a buffer of 20–60 days of food before giving. **P:** yes, drawn per pawn; the holder's counts for the household.
+   **A (Kim, 30 Oct):** accepted.
 2. How is the village store filled? (a) a share of each harvest given to the village, (b) gifts from households above their buffer at the moving round, (c) only common fields, once they exist. **P:** (b) for now.
+   **A (Kim, 30 Oct):** (b); a share of 25% of the surplus at each moving round. VB-039 is `ready`.
 3. Is help a gift or a loan? **P:** a gift that raises the tie between the households (and so their influence on each other's customs); loans come with money and markets.
+   **A (Kim, 30 Oct):** accepted.
 
 ### VB-041: claims, ownership and territory
 1. Who may hold a claim: households and villages only, or pawns too (a pawn who wants to turn a commons tile into a field)? **P:** all three, as the design says.
+   **A (Kim, 30 Oct):** accepted.
 2. Do unrealised claims expire? **P:** yes, after 3 years without work on the tile.
 3. Two claims on one tile: who decides? **P:** the village meeting, by voice-weighted support; until then, the first claim wins.
 4. First version of the filters: which levels? **P:** household and village, with the selected entity highlighted; culture later.
