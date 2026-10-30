@@ -1,7 +1,7 @@
 # Village builder: guide for agents
 
 A village builder proof of concept on a generated hex archipelago: one self-contained `index.html` (PixiJS 8), built from `src/`.
-Design reference (read-only): "Village builder: game design snapshot v0.3", https://claude.ai/artifact/H76cgchMVnZ56sdGA215es.
+Design reference (read-only): `design.md`, "Village builder: game design snapshot v0.3".
 Work is planned in `BACKLOG.md` (overview table; one file per task in `backlog/`); read its header for the task rules (status values, the refactor and golden-file rules).
 
 ## Commands

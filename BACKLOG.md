@@ -1,6 +1,6 @@
 # Backlog
 
-Tasks for the village builder proof of concept. The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order. Design refs point to the Claude doc "Village builder: game design snapshot v0.3".
+Tasks for the village builder proof of concept. The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order. Design refs point to sections of `design.md` ("Village builder: game design snapshot v0.3").
 
 Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth. The table below is the overview: when a task's name, status, priority or size changes, update its row too. A new task takes the next free ID, gets a file and a row.
 
