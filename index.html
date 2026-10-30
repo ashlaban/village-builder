@@ -1622,8 +1622,43 @@ VB['sim/records'] = (() => {
     for (const c of childrenOf(st, id)) out.add(c); for (const s of siblingsOf(st, id)) out.add(s);
     const sp = spouseOf(st, id); if (sp !== null) out.add(sp); return [...out];
   };
-  const isHolder = (st, id) => st.households.some((h) => !h.dissolved && h.holder === id);
-  const holdingOf = (st, id) => st.households.find((h) => !h.dissolved && h.holder === id) || null;
+  // Indexes over the records, built on first use and caught up with new pawns, unions and households on each read (records are only
+  // appended); the places that end a union or change a holder call noteUnionEnd and noteHolder. Not enumerable: they are derived data.
+  // @state st.idx: {children: Map of pawn id to child ids, spouse: Map of pawn id to current spouse id, holds: Map of pawn id to the ids of
+  //   households it holds, seen: counts of pawns, unions and households already indexed}; derived from the records, see sim/records
+  function index(st) {
+    if (!st.idx) Object.defineProperty(st, 'idx', { value: { children: new Map(), spouse: new Map(), holds: new Map(), np: 0, nu: 0, nh: 0 }, writable: true });
+    const x = st.idx;
+    for (; x.np < st.pawns.length; x.np++) {
+      const p = st.pawns[x.np];
+      for (const parent of p.father === p.mother ? [p.father] : [p.father, p.mother]) {
+        if (parent === null) continue;
+        const l = x.children.get(parent); if (l) l.push(p.id); else x.children.set(parent, [p.id]);
+      }
+    }
+    for (; x.nu < st.unions.length; x.nu++) {
+      const u = st.unions[x.nu];
+      if (u.end === null && u.start <= st.t) { if (!x.spouse.has(u.a)) x.spouse.set(u.a, u.b); if (!x.spouse.has(u.b)) x.spouse.set(u.b, u.a); }
+    }
+    while (x.nh < st.households.length) addHolder(x, st.households[x.nh++]);
+    return x;
+  }
+  function noteHolder(st, hh) { if (st.idx && hh.id < st.idx.nh) addHolder(st.idx, hh); } // households not yet indexed are added by index()
+  function addHolder(x, hh) {
+    if (hh.holder === null || hh.holder === undefined) return;
+    const l = x.holds.get(hh.holder);
+    if (!l) x.holds.set(hh.holder, [hh.id]); else if (!l.includes(hh.id)) { l.push(hh.id); l.sort((a, b) => a - b); }
+  }
+  function noteUnionEnd(st, u) {
+    const x = st.idx; if (!x) return;
+    if (x.spouse.get(u.a) === u.b) x.spouse.delete(u.a);
+    if (x.spouse.get(u.b) === u.a) x.spouse.delete(u.b);
+  }
+  const holdingOf = (st, id) => {
+    for (const k of index(st).holds.get(id) || []) { const h = st.households[k]; if (!h.dissolved && h.holder === id) return h; }
+    return null;
+  };
+  const isHolder = (st, id) => holdingOf(st, id) !== null;
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -1635,14 +1670,16 @@ VB['sim/records'] = (() => {
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
   const fullName = (p) => `${p.given} ${p.patronym}`;
   function spouseOf(st, id, t = st.t) {
+    if (t === st.t) { const sp = index(st).spouse.get(id); return sp === undefined ? null : sp; }
     const u = st.unions.find((u) => (u.a === id || u.b === id) && u.start <= t && (u.end === null || u.end > t));
     return u ? (u.a === id ? u.b : u.a) : null;
   }
-  const childrenOf = (st, id) => st.pawns.filter((p) => p.father === id || p.mother === id).map((p) => p.id);
+  const childrenOf = (st, id) => [...(index(st).children.get(id) || [])];
   const siblingsOf = (st, id) => {
     const p = st.pawns[id]; if (p.father === null && p.mother === null) return [];
-    return st.pawns.filter((q) => q.id !== id && ((p.father !== null && q.father === p.father) || (p.mother !== null && q.mother === p.mother)))
-      .map((q) => q.id);
+    const ids = new Set([...(p.father !== null ? childrenOf(st, p.father) : []), ...(p.mother !== null ? childrenOf(st, p.mother) : [])]);
+    ids.delete(id);
+    return [...ids].sort((a, b) => a - b);
   };
   // Malécot's kinship coefficient: probability that genes drawn at random from a and b are identical by descent.
   function kinship(st, a, b, memo = new Map()) {
@@ -1662,7 +1699,7 @@ VB['sim/records'] = (() => {
   const villageOf = (st, p) => st.farmsteads[st.households[p.household].farmstead].village;
   return {
     person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship,
-    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, practice, farmPractice,
+    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();
 </script>
@@ -1969,12 +2006,12 @@ VB['sim/jobs'] = (() => {
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice,
+    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder,
   } = VB['sim/records'];
   const { placeAtHome, release } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
@@ -2018,10 +2055,16 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const ownFirst = new Set();
-    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) ownFirst.add(r[0]); }
+    const ownFirst = ownFirstSet ? new Set(ownFirstSet.filter((e) => e[1] !== hh.id).map((e) => e[0])) : new Set(ownFirstOf(st, hh).map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
+  }
+  // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
+  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet.
+  function ownFirstOf(st, hh = null) {
+    const out = [];
+    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
+    return out;
   }
   function moveTo(st, id, hhId) {
     const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
@@ -2041,7 +2084,7 @@ VB['sim/heirs'] = (() => {
       if (sp !== null && st.pawns[sp].alive && from && st.pawns[sp].household === from.id) moveTo(st, sp, hh.id);
       for (const c of kids) moveTo(st, c, hh.id);
     }
-    hh.holder = heir; f.line = heir;
+    hh.holder = heir; f.line = heir; noteHolder(st, hh);
     if (op && op.alive && op.household === hh.id) {
       op.retired = true; const s = spouseOf(st, old); if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
     }
@@ -2092,7 +2135,7 @@ VB['sim/heirs'] = (() => {
     const spouse = sp !== null && st.pawns[sp].alive && st.pawns[sp].household === hh.id ? sp : null;
     const ranking = heirRanking(st, hh, cu), heir = ranking.length ? ranking[0] : null;
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
-      hh.holder = spouse; if (cu.widow === 'outright') f.line = spouse;
+      hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
       personEvent(st, spouse, 'inherited',
         `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
       log(st,
@@ -2123,16 +2166,16 @@ VB['sim/heirs'] = (() => {
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
   }
-  function placeIfMarried(st, id) {
+  function placeIfMarried(st, id, own = null) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
     if (!hh || hh.dissolved) return null;
     if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh)[0] === id ? hh.id : null;
+    return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
   function firstHeirs(st) {
-    const out = new Set();
-    for (const hh of st.households) if (!hh.dissolved) { const first = heirRanking(st, hh)[0]; if (first !== undefined) out.add(first); }
+    const out = new Set(), own = ownFirstOf(st);
+    for (const hh of st.households) if (!hh.dissolved) { const first = heirRanking(st, hh, null, false, own)[0]; if (first !== undefined) out.add(first); }
     return out;
   }
   function wantsOut(st, p, heirs = null) {
@@ -2144,7 +2187,7 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs };
+  return { heirRanking, moveTo, transfer, extinct, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
 })();
 </script>
 <script>
@@ -2154,7 +2197,7 @@ VB['sim/society'] = (() => {
   const { YEAR } = VB['sim/rules'];
   const { bfs, land, hexSteps } = VB['sim/hex'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   function initCulture(st, leanBySettlement, overrides = {}) {
     const env = st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 };
     env.byId = (id) => st.pawns[id];
@@ -2178,7 +2221,13 @@ VB['sim/society'] = (() => {
       const s = {
         id: v.id, name: v.name, culture: c.id, kind: 'village', tie: v.id === 0 ? 1 : 0.5, practice: Int8Array.from(customs), fissionYears: 0, divergence: 0,
       };
-      s.members = () => st.pawns.filter((p) => p.alive && settlementIdOf(st, p) === s.id);
+      s.members = () => {
+        const out = [];
+        for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
+          const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+        }
+        return out.sort((a, b) => a.id - b.id);
+      };
       env.settlements.push(s);
     }
     for (const p of st.pawns) {
@@ -2221,7 +2270,7 @@ VB['sim/society'] = (() => {
   }
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
-    const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF;
+    const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF, own = ownFirstOf(st);
     for (const p of st.pawns) {
       if (!p.alive || p.age < 12) { p.interest = null; continue; }
       const it = Float32Array.from(p.att);
@@ -2230,7 +2279,8 @@ VB['sim/society'] = (() => {
         for (const [opt, v] of Object.entries(prefs)) it[o + Culture.optIndex(dim, opt)] = v;
       };
       const holder = isHolder(st, p.id), sp = spouseOf(st, p.id), spHolder = sp !== null && isHolder(st, sp);
-      const heirOfHome = p.household !== null && !st.households[p.household].dissolved && heirRanking(st, st.households[p.household])[0] === p.id;
+      const heirOfHome = p.household !== null && !st.households[p.household].dissolved
+        && heirRanking(st, st.households[p.household], null, false, own)[0] === p.id;
       const landless = !holder && !spHolder && !heirOfHome && p.age >= 16;
       const sibs = siblingsOf(st, p.id).filter((q) => st.pawns[q].alive),
         sisters = sibs.filter((q) => st.pawns[q].sex === 'f').length, brothers = sibs.length - sisters;
@@ -2280,17 +2330,17 @@ VB['sim/lifecycle'] = (() => {
   const { YEAR_DAYS, YEAR, cal, HUNGER } = VB['sim/rules'];
   const { deathRoll } = VB['sim/hunger'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice,
+    personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
   function killPawn(st, id, cause = 'died') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
     personEvent(st, id, 'died', cause === 'old age' ? 'Died' : `Died (${cause})`);
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
-    for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) u.end = st.t;
+    for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} has died, aged ${p.age}.`);
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -2343,14 +2393,16 @@ VB['sim/lifecycle'] = (() => {
     const fed = (p) => p.hunger < HUNGER.marryBelow;
     const men = alive.filter((p) => p.sex === 'm' && p.age >= 20 && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= 18 && single(p) && !p.retired && fed(p));
-    men.sort((x, y) => (placeIfMarried(st, y.id) !== null) - (placeIfMarried(st, x.id) !== null) || x.born - y.born);
+    const own = ownFirstOf(st);
+    men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
     const taken = new Set();
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
+      const pm = placeIfMarried(st, m.id);
       for (const f of women) {
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
-        const pm = placeIfMarried(st, m.id), pf = placeIfMarried(st, f.id);
+        const pf = placeIfMarried(st, f.id);
         let home = null;
         if (cu.residence === 'land') { if (pm !== null && pf !== null) continue; home = pm !== null ? pm : pf; }
         else if (cu.residence === 'husband') home = m.household; else home = f.household;
