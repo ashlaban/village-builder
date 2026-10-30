@@ -2,6 +2,19 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (VB-111: rivers)
+
+Asked when VB-111 was set, before the rivers were built; the design's "River courses" is Proposed and these settle the points it leaves open.
+
+1. How do rivers sit on the hex grid? **P:** through tile centres: a river tile stays land, drawn with a smooth river from a narrow brook to almost a tile wide; no house or field on it; walking unchanged for now.
+   **A (30 Oct):** as proposed (P).
+2. Besides drawing villages to rivers, do rivers change the simulation now? **P:** placement only; an irrigation or wet-bank bonus later.
+   **A (30 Oct):** placement and an irrigation bonus: fields next to a river yield more (about +20%).
+3. What happens where a river reaches a lake? **P:** the river ends at the lake, as the design proposes.
+   **A (30 Oct):** lakes drain onward: a river that enters a lake leaves it at its lowest shore and runs on to the sea.
+4. How many rivers? **P:** about one source per 700 land tiles of an island, none on islets.
+   **A (30 Oct):** as proposed (P).
+
 # Archived 30 October 2026 (merging main: conflicts between decisions)
 
 Main (PRs #17 and #18) and the discussion on this branch decided some points differently; Kim settled them while merging.
