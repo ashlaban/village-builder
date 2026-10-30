@@ -1,5 +1,5 @@
-// @sys gen/rivers: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea
-// ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea =====
+// @sys gen/rivers: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea, and drawn on the map
+// ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea; their curves on the map =====
 // Listed before gen.js, which calls trace; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
 VB['gen/rivers'] = (() => {
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
@@ -118,5 +118,78 @@ VB['gen/rivers'] = (() => {
     return { river, riverTo };
   }
 
-  return { RIVERS, trace };
+  // ---- drawing: a curve per river tile, from the edge it enters by, bending near the centre, to the edge it leaves by ----
+  // Width of the river through tile i, in map units: a brook at its source, at most three quarters of a hex wide.
+  const width = (w, i) => Math.min(0.75 * w.HW, 2.5 + 0.9 * Math.sqrt(w.river[i]));
+  // What the tile card calls the water through tile i, or null.
+  const kind = (w, i) => (!w.river[i] ? null : width(w, i) < 8 ? 'Brook' : width(w, i) < 16 ? 'Stream' : 'River');
+  // Where the river bends in tile i: near the centre on land (a fixed offset by tile, up to 0.2 R), the centre on water.
+  function bend(w, i) {
+    if (w.water[i]) return [w.hx[i], w.hy[i]];
+    const h = Math.imul(i ^ 0x5bd1e995, 2654435761) >>> 0, a = ((h & 1023) / 1024) * 2 * Math.PI, d = (((h >>> 10) & 1023) / 1024) * 0.2 * w.R;
+    return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
+  }
+  // The pieces of river in land tile i, each [from, bend, to]: one per course coming in (from the joint with the tile upstream),
+  // or one from the bend itself at a source. Joints sit halfway between two bends, so neighbouring pieces meet with one tangent.
+  function pieces(w, i) {
+    if (!w.river[i] || w.water[i]) return [];
+    const b = bend(w, i), joint = (j) => { const c = bend(w, j); return [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2]; };
+    const out = joint(w.riverTo[i]), res = [];
+    for (let k = 0; k < 6; k++) { const j = w.nb[i * 6 + k]; if (j >= 0 && w.riverTo[j] === i) res.push([joint(j), b, out]); }
+    if (!res.length) res.push([b, b, out]);
+    return res;
+  }
+  // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
+  function drawChunk(w, ctx, lv, cx, cy, full) {
+    const { R, HW, AP, COLS, ROWS } = w, sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = 2 * R;
+    const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R))), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
+    const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
+    const ps = [];
+    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
+      const i = row * COLS + col;
+      for (const p of pieces(w, i)) ps.push([p, width(w, i)]);
+    }
+    if (!ps.length) return;
+    ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const minW = (full ? 0.6 : 0.9) / sc; // at least this many texels wide, so brooks still show on the overview
+    const pass = (style, wf, add, minWidth) => {
+      ctx.strokeStyle = style;
+      for (const [[a, b, c], wd] of ps) {
+        ctx.lineWidth = Math.max(minWidth, wd * wf + add);
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(b[0], b[1], c[0], c[1]); ctx.stroke();
+      }
+    };
+    pass('rgba(74,86,54,0.5)', 1, 3, minW * 1.6); // wet, darker banks
+    pass('rgb(80,142,156)', 1, 0, minW);
+    if (sc >= 1 / 3) pass('rgba(186,222,226,0.3)', 0.3, 0, 0); // a light streak down the middle
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  // Squared distance from point (x, y) to the segment a-b.
+  function dist2(x, y, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0, px = a[0] + t * dx - x, py = a[1] + t * dy - y;
+    return px * px + py * py;
+  }
+  // Drops the decoration items ({x, y, ...}) that stand in a river, in place, and returns the array. loc: ArchGen.hexLocator(w).
+  function thin(w, items, loc) {
+    const o = [0, 0], near = (x, y) => {
+      const t = loc(x, y, o);
+      if (t < 0) return false;
+      for (let k = -1; k < 6; k++) {
+        const i = k < 0 ? t : w.nb[t * 6 + k];
+        if (i < 0 || !w.river[i]) continue;
+        const r = width(w, i) / 2 + 4;
+        for (const [a, b, c] of pieces(w, i)) if (dist2(x, y, a, b) < r * r || dist2(x, y, b, c) < r * r) return true;
+      }
+      return false;
+    };
+    let n = 0;
+    for (const it of items) if (!near(it.x, it.y)) items[n++] = it;
+    items.length = n;
+    return items;
+  }
+
+  return { RIVERS, trace, width, kind, pieces, drawChunk, thin };
 })();

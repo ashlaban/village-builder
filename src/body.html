@@ -94,7 +94,7 @@
 <!--__MODULES__-->
 <script>
 (async () => {
-  const G = ArchGen, LV = G.LV, TEX = G.TEX;
+  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'];
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -211,6 +211,7 @@
     yield* G.bakeChunk(wd, l, cx, cy, img);
     ctx.putImageData(img, 0, 0);
     yield 1;
+    Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
   function addChunk(l, cx, cy, canvas) {
@@ -522,7 +523,7 @@
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...(w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : []), ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {

@@ -619,12 +619,12 @@ const ArchGen = (() => {
         if (full && rnd() < 0.15) { const [x, y] = spot(0.5); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
       }
     }
+    VB['gen/rivers'].thin(w, items, hexLocator(w)).sort((a, b) => a.y - b.y); // nothing stands in a river; the rest is drawn back to front
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.fillStyle = 'rgba(28,36,24,0.26)';
     for (const it of items) {
       if (it.t === 'broad' || it.t === 'pine') { ctx.beginPath(); ctx.ellipse(it.x + 3, it.y + 1, 6 * it.sc, 2.8 * it.sc, -0.3, 0, 7); ctx.fill(); }
     }
-    items.sort((a, b) => a.y - b.y);
     for (const it of items) {
       if (it.t === 'broad') { const c = S.broad[it.v], k = it.sc * 0.74; ctx.drawImage(c, it.x - 14 * k, it.y - 26 * k, 28 * k, 30 * k); }
       else if (it.t === 'pine') { const c = S.pine[it.v % 8], k = it.sc * 0.72; ctx.drawImage(c, it.x - 10 * k, it.y - 32 * k, 20 * k, 34 * k); }
