@@ -140,6 +140,12 @@ VB['gen/rivers'] = (() => {
     const a = h(ix, iy), b = h(ix + 1, iy), c = h(ix, iy + 1), d = h(ix + 1, iy + 1);
     return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
   }
+  // A fixed random number in [0, 1) for a point of the map (to a quarter unit) and a purpose s: places springs, reeds and glints.
+  function dot(w, x, y, s) {
+    let k = Math.imul(Math.round(x * 4), 73856093) ^ Math.imul(Math.round(y * 4), 19349663) ^ Math.imul(s + w.seed, 83492791);
+    k = Math.imul(k ^ (k >>> 13), 1274126177);
+    return ((k ^ (k >>> 16)) >>> 0) / 4294967296;
+  }
   // The tiles that flow into tile i, and the one that carries most water (a lake always does): the river's own course; the rest join it.
   function inflows(w, i) {
     const r = [];
@@ -185,6 +191,7 @@ VB['gen/rivers'] = (() => {
       }
       if (k >= 0 && w.water[k]) into(pts, a, wa, true);
       if (w.water[to]) into(pts, c, wc, false);
+      pts.tile = i; pts.spring = k < 0; pts.trib = k >= 0 && k !== main; // a tributary line runs inside the main course near its end
       res.push(pts);
     }
     return res;
@@ -208,6 +215,37 @@ VB['gen/rivers'] = (() => {
     for (let k = 1; k < ring.length; k++) ctx.lineTo(ring[k][0], ring[k][1]);
     ctx.closePath();
   }
+  // Adds to the current path an uneven round pool of radius r at (x, y), wound like the outlines.
+  function pool(w, ctx, x, y, r) {
+    for (let j = 0; j < 14; j++) {
+      const a = (-2 * Math.PI * j) / 14, rr = r * (1 + 0.2 * noise(w, x / 3 + Math.cos(a), y / 3 + Math.sin(a), 21));
+      if (j) ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); else ctx.moveTo(x + rr, y);
+    }
+    ctx.closePath();
+  }
+  // Close-zoom life on the water: glints along the current of streams and rivers and, at full detail, reeds on lowland banks.
+  function details(w, ctx, all, full) {
+    ctx.lineCap = 'round';
+    for (const pts of all) for (let s = 1; s < pts.length - 1; s++) {
+      const p = pts[s], q = pts[s + 1], o = pts[s - 1], l = Math.hypot(q[0] - o[0], q[1] - o[1]) || 1, tx = (q[0] - o[0]) / l, ty = (q[1] - o[1]) / l;
+      const hw = p[2] / 2, inside = pts.trib && s > 5; // a tributary's end lies in the main course
+      if (hw > 3 && p[3] === 1 && !inside && dot(w, p[0], p[1], 31) < 0.45) { // a glint: a short light streak with the current
+        const off = (dot(w, p[0], p[1], 32) - 0.5) * hw, len = 2 + 3 * dot(w, p[0], p[1], 33), x = p[0] - ty * off, y = p[1] + tx * off;
+        ctx.strokeStyle = 'rgba(222,242,240,0.5)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(x - tx * len, y - ty * len); ctx.lineTo(x + tx * len, y + ty * len); ctx.stroke();
+      }
+      if (!full || inside || p[3] < 1 || s % 2 || w.hp[pts.tile] > 0.7) continue; // reeds grow on the lowland
+      for (const side of [-1, 1]) {
+        if (dot(w, p[0], p[1], 34 + side) > 0.55) continue;
+        const d = hw + 2 + 1.5 * dot(w, p[0], p[1], 36 + side), bx = p[0] - ty * d * side, by = p[1] + tx * d * side;
+        for (let k = 0; k < 4; k++) { // a tuft of blades, darker at the foot
+          const lean = (dot(w, bx, by, 40 + k) - 0.5) * 3, h = 3 + 2.5 * dot(w, bx, by, 44 + k), fx = bx + (k - 1.5) * 0.9;
+          ctx.strokeStyle = k % 2 ? 'rgba(96,104,50,0.9)' : 'rgba(138,140,70,0.9)'; ctx.lineWidth = 0.7;
+          ctx.beginPath(); ctx.moveTo(fx, by); ctx.lineTo(fx + lean, by - h); ctx.stroke();
+        }
+      }
+    }
+  }
   // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
   // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
   function drawChunk(w, ctx, lv, cx, cy, full) {
@@ -224,16 +262,20 @@ VB['gen/rivers'] = (() => {
       ['rgba(64,84,44,0.2)', (p) => p[2] / 2 + 5 + 2.2 * noise(w, p[0] / 6, p[1] / 6, 7), true],
       ['rgba(126,114,78,0.45)', (p) => Math.max(minH * 1.5, p[2] / 2 + 1.8 + noise(w, p[0] / 4, p[1] / 4, 8)), true],
       ['rgb(108,172,168)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)), false],
-      ['rgb(70,136,154)', (p) => (p[2] / 2) * 0.58 * p[3] - 0.3, false],
-      ['rgb(54,114,138)', (p) => ((p[2] / 2) * 0.3 - 1.5) * p[3], false],
+      ['rgb(70,136,154)', (p) => (p[2] / 2) * (0.58 + 0.12 * noise(w, p[0] / 9, p[1] / 9, 10)) * p[3] - 0.3, false],
+      ['rgb(54,114,138)', (p) => ((p[2] / 2) * (0.3 + 0.12 * noise(w, p[0] / 11, p[1] / 11, 11)) - 1.5) * p[3], false],
     ];
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.globalCompositeOperation = 'source-atop';
+    // a small pool where each river rises
+    const springs = all.filter((pts) => pts.spring).map((pts) => [pts[0][0], pts[0][1], 2 * (3.5 + 2.5 * dot(w, pts[0][0], pts[0][1], 30)), 1]);
     for (const [colour, h, landOnly] of layers) {
       ctx.beginPath();
       for (const pts of landOnly ? dry : all) if (pts.length > 1) outline(ctx, pts, h);
+      for (const sp of springs) if (h(sp) > 0) pool(w, ctx, sp[0], sp[1], h(sp));
       ctx.fillStyle = colour; ctx.fill();
     }
+    if (sc >= 1 / 3) details(w, ctx, all, full);
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -244,7 +286,8 @@ VB['gen/rivers'] = (() => {
     const t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0, px = a[0] + t * dx - x, py = a[1] + t * dy - y;
     return px * px + py * py;
   }
-  // Drops the decoration items ({x, y, ...}) that stand in a river or on its bank, in place, and returns the array. loc: ArchGen.hexLocator(w).
+  // Drops the decoration items ({t, x, y, ...}) that stand in a river or on its bank, or whose crown (a tree's, 10 units above its foot)
+  // would hide one, in place, and returns the array. loc: ArchGen.hexLocator(w).
   function thin(w, items, loc) {
     const o = [0, 0], cache = new Map(), near = (x, y) => {
       const t = loc(x, y, o);
@@ -261,7 +304,7 @@ VB['gen/rivers'] = (() => {
       return false;
     };
     let n = 0;
-    for (const it of items) if (!near(it.x, it.y)) items[n++] = it;
+    for (const it of items) if (!near(it.x, it.y) && !((it.t === 'broad' || it.t === 'pine') && near(it.x, it.y - 10))) items[n++] = it;
     items.length = n;
     return items;
   }

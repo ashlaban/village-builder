@@ -212,6 +212,7 @@
     ctx.putImageData(img, 0, 0);
     yield 1;
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
+    yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
   function addChunk(l, cx, cy, canvas) {
