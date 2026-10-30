@@ -94,7 +94,7 @@
 <!--__MODULES__-->
 <script>
 (async () => {
-  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'];
+  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'], Paths = VB['gen/paths'];
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -212,6 +212,7 @@
     ctx.putImageData(img, 0, 0);
     yield 1;
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
+    Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
     yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
@@ -247,6 +248,16 @@
       }
     }
     st.treeDirty.clear(); st.biomeDirty.clear();
+  }
+  // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
+  // the frame budget; the overview shows no paths.
+  function refreshPaths() {
+    const reach = 2 * w.R;
+    for (const tile of st.pathDirty) for (const l of [0, 1]) {
+      const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
+    }
+    st.pathDirty.clear();
   }
   function wantedList() {
     const out = [], seen = new Set();
@@ -523,10 +534,14 @@
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
-    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : !w.water[i] && Sim.byRiver(w, i)
+    const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
+    const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
+    const worn = w.worn && w.worn[i] ? [`${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${perDay >= 0.75
+      ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
+    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...river, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...river, ...worn, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -1142,6 +1157,7 @@
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
+    if (st.pathDirty.size) refreshPaths();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }

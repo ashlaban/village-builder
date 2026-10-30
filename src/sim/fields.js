@@ -2,9 +2,11 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { ECON, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
-  const { bfs, land } = VB['sim/hex'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
+  const { nextTo } = VB['sim/layout'];
   const MAX_FIELDS = 4, REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
@@ -16,13 +18,21 @@ VB['sim/fields'] = (() => {
   const fieldsWanted = (st, hh) => Math.min(MAX_FIELDS, Math.ceil((1.1 * yearlyRations(st, hh)) / (0.75 * ECON.fieldYield)));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
-  // The best unowned meadow tile within reach of the house, not on a river: fertile (watered by one), few stones, near. -1 when there is none.
+  // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
+  function builtTiles(st) {
+    const out = new Set(st.villages.map((v) => v.center));
+    for (const f of st.farmsteads) out.add(f.house);
+    for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+    return out;
+  }
+  // The best unowned meadow tile within reach of the house, not on a river and not next to a house or green: fertile (watered by one),
+  // few stones, near, and 1 better when it touches one of the farm's fields, so the fields grow as one block (VB-109). -1 when there is none.
   function chooseTile(st, f) {
-    const w = st.w, centres = new Set(st.villages.map((v) => v.center));
+    const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, REACH, land(w)).dist) {
-      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || centres.has(t) || st.used.has(t)) continue;
-      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d;
+    for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
+      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
@@ -51,5 +61,5 @@ VB['sim/fields'] = (() => {
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`);
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, chooseTile, startProject, finishClear, finishBreak };
+  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak };
 })();

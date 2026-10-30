@@ -14,7 +14,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
-  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms`).
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths`).
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
@@ -24,19 +24,24 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 
 ## Architecture
 - `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the painterly chunk bake.
-  Rivers (`w.river`, `w.riverTo`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
+  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
+- Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
+  search, the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
+  (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it.
-  Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
+  Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
+  houses round the green, each farm's fields one block beyond the yards. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script in `src/body.html` draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
-  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty` and `biomeDirty` after redrawing); the lint enforces this.
+  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty` and `pathDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions
 - Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
-- Tunables: `ECON`, `ROLES`, `KINDS`, `MARRIAGE`, `SHARES`, `MATCH` and `RIVER` in `src/sim/rules.js`; `RIVERS` in `src/gen/rivers.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
+- Tunables: `ECON`, `ROLES`, `KINDS`, `MARRIAGE`, `SHARES`, `MATCH`, `RIVER`, `TERRAIN`, `ROUTE` and `PATHS` in `src/sim/rules.js`;
+  `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK` (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
 - A new job kind touches `KINDS`, the `prio` of each role in `ROLES`, and the animation named by its `anim` in the page script.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
 

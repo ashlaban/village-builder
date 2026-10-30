@@ -2,6 +2,19 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (paths, fords and village layout)
+
+Asked when Kim set the work on paths, river crossings and village layout (VB-094, VB-096, VB-109, VB-110, VB-112 to VB-115). Kim's request: paths form where people walk and fade over about five years unused; paths are cheaper to walk and routes use them; rivers are passable only at fords or bridges, and bridges need construction; fields lie a short way from the homesteads and are contiguous; homesteads may touch; generated villages look grown.
+
+1. Where do fords come from? **P:** generated with the world along every course, brooks included, at flat and shallow spots, about one every 6 to 10 tiles; every other river tile is impassable.
+   **A (Kim, 30 Oct):** generate a few fords along every river, brook and so on. Village generation (homestead placement) respects pathfinding: no houses on the far bank if it cannot be reached.
+2. How much of bridges now? **P:** the rule now (route search, walking and drawing know bridge tiles); building them later, as a village job that needs timber and labour.
+   **A (Kim, 30 Oct):** as proposed (P).
+3. How do unused paths fade? **P:** halving each game year, as designed: a lane (800) is a path after 2 years, trodden after 4 and gone after 4 to 5.
+   **A (Kim, 30 Oct):** as proposed (P).
+4. Which village layout? **P:** houses cluster around the green and may touch; each farm's fields form one connected block 2 to 4 steps from its house and never next to any house, so a ring of yards separates houses and fields; neighbouring blocks may adjoin into one fenced infield.
+   **A (Kim, 30 Oct):** as proposed (P).
+
 # Archived 30 October 2026 (VB-111: rivers)
 
 Asked when VB-111 was set, before the rivers were built; the design's "River courses" is Proposed and these settle the points it leaves open.

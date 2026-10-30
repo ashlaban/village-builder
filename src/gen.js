@@ -280,7 +280,7 @@ const ArchGen = (() => {
       const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
       stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
     }
-    const { river, riverTo } = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
+    const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
@@ -360,7 +360,7 @@ const ArchGen = (() => {
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang, trees, treesMax, stones, river, riverTo,
+      region, regions, tr, tg, tb, ang, trees, treesMax, stones, ...rivers,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -619,7 +619,7 @@ const ArchGen = (() => {
         if (full && rnd() < 0.15) { const [x, y] = spot(0.5); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
       }
     }
-    VB['gen/rivers'].thin(w, items, hexLocator(w)).sort((a, b) => a.y - b.y); // nothing stands in a river; the rest is drawn back to front
+    VB['gen/paths'].thin(w, VB['gen/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.fillStyle = 'rgba(28,36,24,0.26)';
     for (const it of items) {

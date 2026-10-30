@@ -98,7 +98,20 @@ VB['sim/rules'] = (() => {
     kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
   };
 
-  const SPEED = 3; // tiles per game hour on foot
+  const SPEED = 3; // tiles per game hour on foot, on meadow
+  // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
+  // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
+  const TERRAIN = { [B.BEACH]: 1, [B.MEADOW]: 1, [B.HEATH]: 1, [B.FOREST]: 1.5, [B.PINE]: 1.5, [B.HILLS]: 2, [B.MARSH]: 2, [B.MOUNTAIN]: 3,
+    [B.SNOW]: Infinity, ford: 2, bridge: 1 };
+  // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
+  // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
+  // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set from grown runs.
+  const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
+    wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
+  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
+  // a lane over meadow.
+  const ROUTE = { reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
@@ -117,5 +130,5 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO, KINDS,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();

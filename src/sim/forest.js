@@ -3,6 +3,7 @@ VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['gen'];
   const { YEAR_DAYS } = VB['sim/rules'];
   const { nearestWood } = VB['sim/layout'];
+  const { costChanged } = VB['sim/routes'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
 
   function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
@@ -12,7 +13,7 @@ VB['sim/forest'] = (() => {
     const w = st.w;
     w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
     setBiome(w, tile, B.MEADOW);
-    st.treeDirty.add(tile); st.biomeDirty.add(tile);
+    st.treeDirty.add(tile); st.biomeDirty.add(tile); costChanged(st, tile);
     for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;

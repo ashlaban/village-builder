@@ -2,7 +2,8 @@
 VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
-  const { bfs, land, hexSteps } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   function initCulture(st, leanBySettlement, overrides = {}) {
@@ -57,7 +58,7 @@ VB['sim/society'] = (() => {
       const c = env.cultures[s.culture], centre = c.centres[0];
       if (s.id === centre) { s.tie = 1; continue; }
       const va = st.villages[s.id], vb = st.villages[centre];
-      const { dist } = bfs(st.w, va.center, 160, land(st.w));
+      const { dist } = bfs(st.w, va.center, 160, walkable(st.w));
       const d = dist.has(vb.center) ? dist.get(vb.center) : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
       let kin = 0;
       for (const p of st.pawns) if (p.alive && settlementIdOf(st, p) === s.id) for (const q of kinNear(st, p.id)) {

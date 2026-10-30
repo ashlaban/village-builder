@@ -287,6 +287,108 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 var VB = globalThis.VB = globalThis.VB || {};
 </script>
 <script>
+// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks
+// ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
+// Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
+VB['gen/paths'] = (() => {
+  // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, the colours of its flattened edge and bare core,
+  // and the coarsest level of detail (ArchGen.LV index) that still shows it: trodden ground only up close, paths and lanes at the middle
+  // level too. The overview shows none, so a path that changes stage never repaints it (a full overview chunk takes about 60 ms).
+  const LOOK = {
+    width: [0, 5, 7, 10],
+    edge: [null, 'rgba(124,128,70,0.22)', 'rgba(122,112,70,0.34)', 'rgba(114,98,62,0.46)'],
+    core: [null, 'rgba(176,164,110,0.34)', 'rgba(170,146,100,0.72)', 'rgba(166,138,94,0.88)'],
+    level: [-1, 0, 1, 1],
+  };
+  // Where the trail bends in tile i: a fixed offset by tile, up to 0.22 R from the centre, so trails wander a little.
+  function bend(w, i) {
+    const h = Math.imul(i ^ 0x2c1b3c6d, 2246822519) >>> 0, a = ((h & 1023) / 1024) * 2 * Math.PI, d = (((h >>> 10) & 1023) / 1024) * 0.22 * w.R;
+    return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
+  }
+  // A worn tile that draws its own trail: worn land that is not a house, field, green or river.
+  const trail = (w, i) => i >= 0 && w.worn[i] > 0 && !w.dev[i] && !w.water[i] && !w.river[i];
+  // What a trail runs on to: another trail, a worn ford, or a house, field or green (the end of the way, drawn by the settlement layer).
+  const leadsTo = (w, j) => j >= 0 && !w.water[j] && (trail(w, j) || (w.river[j] ? w.crossing[j] > 0 && w.worn[j] > 0 : w.dev[j] === 1));
+  // The trail of tile i as curves [x0, y0, cx, cy, x1, y1, width, stage] (quadratic, cx, cy the control point). Each way out of the tile
+  // ends at its joint with the neighbour it leads to, halfway to that neighbour's bend (its centre if it draws no trail). A tile with two
+  // ways out runs one smooth curve from joint to joint, bent towards its own bend, so a trail through many tiles flows; a lone end or a
+  // fork runs straight from the bend to each joint. Both sides of a joint have the same width, the mean of the two tiles' widths.
+  function segments(w, i) {
+    if (!trail(w, i)) return [];
+    const s = w.worn[i], [bx, by] = bend(w, i), ends = [];
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[i * 6 + k];
+      if (!leadsTo(w, j)) continue;
+      const t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]], wd = t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s];
+      ends.push([(bx + jx) / 2, (by + jy) / 2, wd, t ? Math.min(s, w.worn[j]) : s]);
+    }
+    if (!ends.length) return [[bx, by, bx, by, bx + 0.01, by, LOOK.width[s], s]];
+    if (ends.length !== 2) return ends.map(([x, y, wd, st]) => [bx, by, (bx + x) / 2, (by + y) / 2, x, y, wd, st]);
+    // the curve from joint a through the bend to joint b, split at its middle m so each half keeps the width of its own joint
+    const [a, b] = ends, mx = (a[0] + 2 * bx + b[0]) / 4, my = (a[1] + 2 * by + b[1]) / 4;
+    return [[a[0], a[1], (a[0] + bx) / 2, (a[1] + by) / 2, mx, my, a[2], a[3]], [mx, my, (bx + b[0]) / 2, (by + b[1]) / 2, b[0], b[1], b[2], b[3]]];
+  }
+  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
+  function drawChunk(w, ctx, lv, cx, cy, l) {
+    if (!w.worn) return;
+    const { R, HW, AP, COLS, ROWS } = w, sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = R;
+    const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R))), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
+    const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
+    const segs = [];
+    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
+      const i = row * COLS + col;
+      if (w.worn[i] && LOOK.level[w.worn[i]] >= l) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+    }
+    if (!segs.length) return;
+    ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
+    ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
+    for (const [layer, k] of [['edge', 1.6], ['core', 1]]) for (let s = 1; s <= 3; s++) {
+      ctx.strokeStyle = LOOK[layer][s];
+      for (const g of segs) {
+        if (g[7] !== s) continue;
+        ctx.lineWidth = Math.max(minW, g[6] * k);
+        ctx.beginPath(); ctx.moveTo(g[0], g[1]); ctx.quadraticCurveTo(g[2], g[3], g[4], g[5]); ctx.stroke();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
+  function dist2(x, y, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+    const px = ax + t * dx - x, py = ay + t * dy - y;
+    return px * px + py * py;
+  }
+  // Drops, in place, the decoration items ({t, x, y, ...}) that stand on a path or lane (a tree by its foot), and returns the array.
+  // Trodden ground keeps its grass, flowers and stones. loc: ArchGen.hexLocator(w).
+  function thin(w, items, loc) {
+    if (!w.worn) return items;
+    const o = [0, 0], cache = new Map(), on = (x, y) => {
+      const t = loc(x, y, o);
+      if (t < 0) return false;
+      for (let k = -1; k < 6; k++) {
+        const i = k < 0 ? t : w.nb[t * 6 + k];
+        if (i < 0 || w.worn[i] < 2) continue;
+        if (!cache.has(i)) cache.set(i, segments(w, i));
+        for (const g of cache.get(i)) {
+          if (g[7] < 2) continue;
+          const qx = (g[0] + 2 * g[2] + g[4]) / 4, qy = (g[1] + 2 * g[3] + g[5]) / 4, r2 = (g[6] / 2 + 3) ** 2; // the curve's middle point
+          if (dist2(x, y, g[0], g[1], qx, qy) < r2 || dist2(x, y, qx, qy, g[4], g[5]) < r2) return true;
+        }
+      }
+      return false;
+    };
+    let n = 0;
+    for (const it of items) if (!on(it.x, it.y)) items[n++] = it;
+    items.length = n;
+    return items;
+  }
+  return { LOOK, bend, segments, drawChunk, thin };
+})();
+</script>
+<script>
 // @sys gen/rivers: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea, and drawn on the map
 // ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea; their curves on the map =====
 // Listed before gen.js, which calls trace; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
@@ -295,6 +397,10 @@ VB['gen/rivers'] = (() => {
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
   // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
   const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3, longEnough: 15, noise: 10 };
+  // Fords: in stretches of `every` land tiles down each reach, the best site is a ford; a last stretch under `least` joins the one before.
+  // A site's score (lower is better) is its drop to the next tile per `drop` of elevation, plus the root of its catchment per `narrow`,
+  // plus up to `noise` at random: a ford is flat and narrow.
+  const FORDS = { every: 10, least: 3, drop: 0.03, narrow: 10, noise: 1 };
 
   // A binary min-heap of tile indexes by key[i], ties broken by the lower index, so the order is the same on every run.
   function minHeap(key) {
@@ -389,7 +495,7 @@ VB['gen/rivers'] = (() => {
       score[i] = Math.min(len[i], RIVERS.longEnough) + RIVERS.noise * rand(); cand.push(i);
     }
     cand.sort((a, b) => score[b] - score[a] || a - b);
-    const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N);
+    const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N), starts = [];
     for (const s of cand) {
       if (left[island[s]] <= 0 || blocked[s] || riverTo[s] >= 0) continue;
       let own = 0;
@@ -399,12 +505,53 @@ VB['gen/rivers'] = (() => {
         riverTo[i] = down[i];
         if (!water[i]) river[i] = Math.min(65535, Math.max(1, Math.round(acc[i])));
       }
-      left[island[s]]--;
+      left[island[s]]--; starts.push(s);
       around(nb, s, RIVERS.spacing - 1, (j) => { blocked[j] = 1; });
     }
+    const crossing = fords(t, rand, river, riverTo, starts);
     // @state w.river: Uint16Array per tile; catchment of a land tile a river runs through (tiles, weighted by moisture), 0 elsewhere
     // @state w.riverTo: Int32Array per tile; next tile down a river's course (river tile, lake on the course, or sea), -1 off every course
-    return { river, riverTo };
+    // @state w.crossing: Uint8Array per tile; how a river tile is crossed on foot: 0 not at all, 1 a ford, 2 a bridge (built in play)
+    return { river, riverTo, crossing };
+  }
+  // A river tile whose dry neighbours lie on two sides or more, none of them water: crossing it joins two banks.
+  function joinsBanks({ nb, water }, river, i) {
+    let arcs = 0;
+    for (let k = 0; k < 6; k++) {
+      const j = nb[i * 6 + k], p = nb[i * 6 + (k + 5) % 6];
+      if (j >= 0 && water[j]) return false;
+      const dry = (x) => x >= 0 && !water[x] && !river[x];
+      if (dry(j) && !dry(p)) arcs++;
+    }
+    return arcs >= 2;
+  }
+  // Fords along every course, in reaches that run from a source or a confluence down to the next confluence, a lake or the sea;
+  // returns w.crossing.
+  function fords(t, rand, river, riverTo, starts) {
+    const { N, he, water } = t, crossing = new Uint8Array(N), seen = new Uint8Array(N), into = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (riverTo[i] >= 0) into[riverTo[i]]++;
+    const score = (i) => Math.max(0, he[i] - he[riverTo[i]]) / FORDS.drop + Math.sqrt(river[i]) / FORDS.narrow + FORDS.noise * rand();
+    const place = (stretch) => {
+      const parts = [];
+      for (let k = 0; k < stretch.length; k += FORDS.every) parts.push(stretch.slice(k, k + FORDS.every));
+      if (parts.length > 1 && parts[parts.length - 1].length < FORDS.least) parts[parts.length - 2].push(...parts.pop());
+      for (const part of parts) {
+        if (part.length < FORDS.least) continue;
+        let best = -1, bs = Infinity;
+        for (const i of part) { if (!joinsBanks(t, river, i)) continue; const sc = score(i); if (sc < bs) { bs = sc; best = i; } }
+        if (best >= 0) crossing[best] = 1;
+      }
+    };
+    for (const s of starts) {
+      let stretch = [];
+      for (let i = s; i >= 0 && river[i] + water[i] && !seen[i]; i = riverTo[i]) {
+        seen[i] = 1;
+        if (water[i] || into[i] > 1) { place(stretch); stretch = []; }
+        if (!water[i]) stretch.push(i);
+      }
+      place(stretch);
+    }
+    return crossing;
   }
 
   // ---- drawing: each river tile holds a line from the joint upstream, past a bend near its centre, to the joint downstream ----
@@ -535,6 +682,23 @@ VB['gen/rivers'] = (() => {
       }
     }
   }
+  // Fords at the two closest zooms: a riffle of pale gravel across the main course at the middle of the tile, and stepping stones on it.
+  function crossings(w, ctx, all) {
+    for (const pts of all) {
+      if (pts.trib || w.crossing[pts.tile] !== 1) continue;
+      const p = pts[5], o = pts[4], q = pts[6], l = Math.hypot(q[0] - o[0], q[1] - o[1]) || 1, tx = (q[0] - o[0]) / l, ty = (q[1] - o[1]) / l;
+      const half = p[2] / 2 + 3, n = Math.max(3, Math.round(p[2] / 3)), ang = Math.atan2(tx, -ty);
+      ctx.fillStyle = 'rgba(184,198,170,0.75)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half, 6, ang, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = 'rgba(206,212,186,0.6)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half - 2, 3.5, ang, 0, 2 * Math.PI); ctx.fill();
+      for (let k = 0; k < n; k++) { // the stones, each with a shadow on its downstream side
+        const u = ((k + 0.5) / n) * 2 - 1, j = (dot(w, p[0] + k, p[1], 50) - 0.5) * 2.4, x = p[0] - ty * u * (half - 2) + tx * j;
+        const y = p[1] + tx * u * (half - 2) + ty * j, r = 1.9 + 0.9 * dot(w, x, y, 51);
+        ctx.fillStyle = 'rgba(40,60,60,0.45)'; ctx.beginPath(); ctx.ellipse(x + tx * 0.9 + 0.3, y + ty * 0.9 + 0.6, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgb(148,144,132)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgba(214,210,196,0.7)'; ctx.beginPath(); ctx.ellipse(x - r * 0.3, y - r * 0.3, r * 0.4, r * 0.3, 0, 0, 2 * Math.PI); ctx.fill();
+      }
+    }
+  }
   // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
   // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
   function drawChunk(w, ctx, lv, cx, cy, full) {
@@ -564,7 +728,7 @@ VB['gen/rivers'] = (() => {
       for (const sp of springs) if (h(sp) > 0) pool(w, ctx, sp[0], sp[1], h(sp));
       ctx.fillStyle = colour; ctx.fill();
     }
-    if (sc >= 1 / 3) details(w, ctx, all, full);
+    if (sc >= 1 / 3) { crossings(w, ctx, all); details(w, ctx, all, full); }
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -598,7 +762,7 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, trace, width, kind, lines, drawChunk, thin };
 })();
 </script>
 <script>
@@ -884,7 +1048,7 @@ const ArchGen = (() => {
       const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
       stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
     }
-    const { river, riverTo } = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
+    const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1, v1r = RR, v2q = -RR, v2r = 2 * RR + 1, det = v1q * v2r - v2q * v1r;
@@ -964,7 +1128,7 @@ const ArchGen = (() => {
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang, trees, treesMax, stones, river, riverTo,
+      region, regions, tr, tg, tb, ang, trees, treesMax, stones, ...rivers,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -1223,7 +1387,7 @@ const ArchGen = (() => {
         if (full && rnd() < 0.15) { const [x, y] = spot(0.5); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
       }
     }
-    VB['gen/rivers'].thin(w, items, hexLocator(w)).sort((a, b) => a.y - b.y); // nothing stands in a river; the rest is drawn back to front
+    VB['gen/paths'].thin(w, VB['gen/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.fillStyle = 'rgba(28,36,24,0.26)';
     for (const it of items) {
@@ -1665,7 +1829,20 @@ VB['sim/rules'] = (() => {
     kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
   };
 
-  const SPEED = 3; // tiles per game hour on foot
+  const SPEED = 3; // tiles per game hour on foot, on meadow
+  // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
+  // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
+  const TERRAIN = { [B.BEACH]: 1, [B.MEADOW]: 1, [B.HEATH]: 1, [B.FOREST]: 1.5, [B.PINE]: 1.5, [B.HILLS]: 2, [B.MARSH]: 2, [B.MOUNTAIN]: 3,
+    [B.SNOW]: Infinity, ford: 2, bridge: 1 };
+  // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
+  // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
+  // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set from grown runs.
+  const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
+    wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
+  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
+  // a lane over meadow.
+  const ROUTE = { reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
@@ -1684,7 +1861,7 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO, KINDS,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -1729,30 +1906,245 @@ VB['sim/hex'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/routes: walking costs by terrain, the route search (A*) and the route cache with its daily refresh
+VB['sim/routes'] = (() => {
+  const { TERRAIN, ROUTE, PATHS } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  // ---- walking costs: a step costs the mean of the two tiles' costs, so a route costs the same both ways ----
+  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
+  // bridges, VB-112). Houses and fields cost 1. A worn tile is walked faster by its stage (VB-110).
+  function tileCost(w, i) {
+    if (w.water[i]) return Infinity;
+    if (w.dev && w.dev[i]) return 1;
+    const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
+    return w.worn ? c / PATHS.speed[w.worn[i]] : c;
+  }
+  const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
+  const walkable = (w) => (j) => passable(w, j);
+  // Cost of the step between neighbouring tiles a and b; a closed end (where a route starts or ends) counts as meadow.
+  const stepCost = (w, a, b) => {
+    const ca = tileCost(w, a), cb = tileCost(w, b);
+    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2;
+  };
+
+  // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
+  // Scratch arrays per world, reused by every search: g (cost so far), prev, and the search that last touched each tile (mark).
+  const scratch = new WeakMap();
+  function buffers(w) {
+    let s = scratch.get(w);
+    if (!s) { s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), run: 0 }; scratch.set(w, s); }
+    return s;
+  }
+  // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
+  function heap() {
+    const k = [], n = [];
+    const less = (a, b) => k[a] < k[b] || (k[a] === k[b] && n[a] < n[b]);
+    const swap = (a, b) => { [k[a], k[b]] = [k[b], k[a]]; [n[a], n[b]] = [n[b], n[a]]; };
+    return {
+      get size() { return n.length; },
+      push(key, tile) {
+        let c = k.push(key) - 1; n.push(tile);
+        while (c > 0) { const p = (c - 1) >> 1; if (!less(c, p)) break; swap(c, p); c = p; }
+      },
+      pop() {
+        const top = n[0], lk = k.pop(), ln = n.pop();
+        if (n.length) {
+          k[0] = lk; n[0] = ln;
+          for (let c = 0; ;) {
+            const l = 2 * c + 1, r = l + 1;
+            let m = c;
+            if (l < n.length && less(l, m)) m = l;
+            if (r < n.length && less(r, m)) m = r;
+            if (m === c) break;
+            swap(c, m); c = m;
+          }
+        }
+        return top;
+      },
+    };
+  }
+  // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
+  // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
+  function findRoute(w, from, to, maxCost = ROUTE.reach) {
+    if (from === to) return [from];
+    const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
+    const h = (i) => hexSteps(w, i, to) * lo;
+    g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
+    while (open.size) {
+      const i = open.pop();
+      if (shut[i] === run) continue;
+      shut[i] = run;
+      if (i === to) {
+        const p = [to]; for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
+        return p.reverse();
+      }
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d];
+        if (j < 0 || shut[j] === run || (j !== to && !passable(w, j))) continue;
+        const gj = g[i] + stepCost(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        g[j] = gj; prev[j] = i; mark[j] = run;
+        open.push(gj + h(j), j);
+      }
+    }
+    return null;
+  }
+  // Cost of a route (a list of neighbouring tiles), by the costs in force now.
+  function routeCost(w, p) {
+    let c = 0;
+    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s]);
+    return c;
+  }
+
+  // ---- the cache: one route per pair of tiles; the way back is the way there, reversed ----
+  function route(st, from, to) {
+    const N = st.w.N, k = from * N + to;
+    let p = st.pathCache.get(k);
+    if (p) return p;
+    const back = st.pathCache.get(to * N + from);
+    if (back && back[0] === to) p = back.slice().reverse();
+    else {
+      p = findRoute(st.w, from, to);
+      if (!p) { p = [to]; st.routeFallbacks++; }
+    }
+    st.pathCache.set(k, p);
+    return p;
+  }
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
+  // are dropped at the end of the day.
+  const costChanged = (st, tile) => { st.routeDirty.add(tile); };
+  // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
+  // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
+  // so a route that costs less than that cannot change because of t.
+  function refreshRoutes(st) {
+    if (!st.routeDirty.size) return;
+    const w = st.w, N = w.N, dirty = [...st.routeDirty];
+    for (const [k, p] of st.pathCache) {
+      const to = k % N, from = (k - to) / N, reach = routeCost(w, p) / ROUTE.minStep;
+      if ((p.length === 1 && from !== to) || dirty.some((t) => hexSteps(w, from, t) + hexSteps(w, t, to) <= reach)) st.pathCache.delete(k);
+    }
+    st.routeDirty.clear();
+  }
+  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
+})();
+</script>
+<script>
+// @sys sim/paths: worn paths: each crossing of a tile counts, the count halves each game year, and its stage (trodden, path, lane) shows
+VB['sim/paths'] = (() => {
+  const { PATHS, SEASON_DAYS } = VB['sim/rules'];
+  const { findRoute } = VB['sim/routes'];
+  // The stage of a count n on a tile now at stage s: up to stage k once n reaches PATHS.at[k], down only below PATHS.keep of it,
+  // so a count that hovers about a threshold does not flicker between stages.
+  function stageOf(n, s) {
+    let k = s;
+    while (k < 3 && n >= PATHS.at[k + 1]) k++;
+    while (k > 0 && n < PATHS.at[k] * PATHS.keep) k--;
+    return k;
+  }
+  // Fresh wear for a world; the settlement generator calls it.
+  function initWear(w) {
+    // @state w.wear: Float32Array per tile; crossings by walking pawns, fading by half each game year (sim/paths)
+    // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
+    w.wear = new Float32Array(w.N); w.worn = new Uint8Array(w.N);
+  }
+  // A walking pawn enters tile i. Houses, fields and the green wear no path; water is not walked.
+  function tread(w, i) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += 1; }
+  // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile built on since (a field
+  // broken on a path). A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
+  function fadeWear(st, onStage) {
+    const w = st.w, { wear, worn } = w, f = 0.5 ** (1 / PATHS.halfLifeDays);
+    for (let i = 0; i < w.N; i++) {
+      if (wear[i] === 0) continue;
+      const n = w.dev[i] ? 0 : wear[i] * f;
+      wear[i] = n < 0.5 ? 0 : n;
+      const s = stageOf(wear[i], worn[i]);
+      if (s === worn[i]) continue;
+      worn[i] = s; st.pathDirty.add(i);
+      if (onStage) onStage(i);
+    }
+  }
+  // Wears in the paths of newly generated villages (VB-114): season by season for `years`, each farm's daily trips (PATHS.trips) go by
+  // the cheapest route over the wear so far, there and back, adding their crossings; between seasons the wear fades as in play and the
+  // stages are set again, so routes merge onto the paths as they form.
+  function wearIn(w, villages, farmsteads, years) {
+    const T = PATHS.trips, f = 0.5 ** (1 / PATHS.halfLifeDays), fD = f ** SEASON_DAYS, gain = (f * (1 - fD)) / (1 - f), touched = new Set();
+    for (let season = 0; season < years * 4; season++) {
+      const per = new Map(), add = (t, n) => { if (!w.dev[t] && !w.water[t]) per.set(t, (per.get(t) || 0) + n); };
+      for (const fm of farmsteads) {
+        const v = villages[fm.village], trips = fm.fields.map((fd) => [fd.tile, T.field]);
+        if (v.well) trips.push([v.center, T.water + T.stroll]);
+        if (fm.woodlot >= 0) trips.push([fm.woodlot, T.wood]);
+        for (const [to, n] of trips) {
+          const p = to >= 0 && to !== fm.house ? findRoute(w, fm.house, to) : null;
+          if (!p) continue;
+          for (let k = 1; k < p.length - 1; k++) add(p[k], 2 * n);
+          add(to, n);
+        }
+      }
+      for (const t of per.keys()) touched.add(t);
+      for (const t of touched) {
+        w.wear[t] = w.wear[t] * fD + (per.get(t) || 0) * gain;
+        w.worn[t] = stageOf(w.wear[t], w.worn[t]);
+      }
+    }
+  }
+  // Tiles per stage, [none worn, trodden, path, lane], over land that can wear.
+  function stageCounts(w) {
+    const n = [0, 0, 0, 0];
+    for (let i = 0; i < w.N; i++) if (!w.water[i] && !w.dev[i]) n[w.worn[i]]++;
+    return n;
+  }
+  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts };
+})();
+</script>
+<script>
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, farmable, fertility, DIRNAME } = VB['sim/rules'];
-  const { bfs, land, hexSteps } = VB['sim/hex'];
-  // ---- placing the founders ----
+  const { RIVER, PATHS, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
+  const { initWear, wearIn } = VB['sim/paths'];
+  // ---- placing farms: houses, fields, fences ----
+  // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
+  const FIELD_REACH = 4;
+  const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
+  // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
+  // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
+  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less 0.15 per step from the house.
+  // Null when no block of n exists.
   function placeFields(w, used, house, n, avoid) {
-    const cand = [];
-    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (farmable(w, j) && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j); }
-    if (cand.length < n) {
-      const { dist } = bfs(w, house, 2, (j) => farmable(w, j));
-      for (const [j, d] of dist) if (d === 2 && !used.has(j) && !(avoid && avoid.has(j))) cand.push(j);
+    const score = new Map(), own = new Set([house]);
+    for (const [t, d] of bfs(w, house, FIELD_REACH, walkable(w)).dist) {
+      if (d >= 2 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && !nextTo(w, t, own)) score.set(t, fertility(w, t) - 0.15 * d);
     }
-    cand.sort((a, b) => fertility(w, b) - fertility(w, a));
-    return cand.length >= n ? cand.slice(0, n) : null;
+    let best = null, bs = -Infinity;
+    for (const [seed, s0] of score) {
+      const block = [seed], inBlock = new Set(block);
+      let s = s0;
+      while (block.length < n) {
+        let pick = -1, ps = -Infinity;
+        for (const b of block) for (let k = 0; k < 6; k++) {
+          const j = w.nb[b * 6 + k];
+          if (j >= 0 && !inBlock.has(j) && score.has(j) && score.get(j) > ps) { ps = score.get(j); pick = j; }
+        }
+        if (pick < 0) break;
+        block.push(pick); inBlock.add(pick); s += ps;
+      }
+      if (block.length === n && s > bs) { bs = s; best = block; }
+    }
+    return best;
   }
   function siteScore(w, c) {
     if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
-    const { dist } = bfs(w, c, 3, land(w));
+    const { dist } = bfs(w, c, 3, walkable(w));
     let farm = 0;
     for (const [j] of dist) if (farmable(w, j)) farm += fertility(w, j);
-    const { dist: d6 } = bfs(w, c, 6, land(w));
+    const { dist: d6 } = bfs(w, c, 6, walkable(w));
     let wood = 0, shore = 0, river = Infinity;
-    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (w.river[j] && d < river) river = d; }
+    // steps to the nearest river: one more than to the nearest bank on this side (a river tile is not walked on but at a ford)
+    for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (byRiver(w, j) && d + 1 < river) river = d + 1; }
     for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
     return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) + (RIVER.site[river] || 0) - w.hp[c] * 6;
   }
@@ -1762,6 +2154,26 @@ VB['sim/layout'] = (() => {
     return A[(rand() * A.length) | 0] + C[(rand() * C.length) | 0];
   }
 
+  // The land a village fences: its green, houses and fields, and the yards and gaps they close in: every tile within their reach from the
+  // green that open land outside cannot reach without crossing them, and any tile with four or more of its six neighbours inside.
+  function enclose(w, inner, centre) {
+    const out = new Set(inner);
+    let r = 0;
+    for (const t of inner) r = Math.max(r, hexSteps(w, centre, t));
+    const { dist } = bfs(w, centre, r + 1, () => true), outside = new Set(), q = [];
+    for (const [t, d] of dist) if (d === r + 1 && !out.has(t)) { outside.add(t); q.push(t); }
+    for (let h = 0; h < q.length; h++) for (let k = 0; k < 6; k++) {
+      const j = w.nb[q[h] * 6 + k];
+      if (j >= 0 && dist.has(j) && !out.has(j) && !outside.has(j)) { outside.add(j); q.push(j); }
+    }
+    for (const [t] of dist) if (!outside.has(t) && !w.water[t]) out.add(t);
+    for (const [t] of dist) {
+      if (out.has(t) || w.water[t]) continue;
+      let n = 0; for (let k = 0; k < 6; k++) if (out.has(w.nb[t * 6 + k])) n++;
+      if (n >= 4) out.add(t);
+    }
+    return out;
+  }
   // Fence (gärdesgård) around an infield: hex edges between enclosed land and open land, split into stretches.
   function makeFence(w, infield, centre, owner, stretches, rand) {
     const NA = [0, -60, -120, 180, 120, 60], edges = [];
@@ -1803,26 +2215,37 @@ VB['sim/layout'] = (() => {
     }
     return best;
   }
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = []) {
+  // A cluster village (VB-113): houses grow round the green one by one, each touching the green, an earlier house or an earlier house's
+  // yard, preferring tiles that touch more houses, near the green, off stony and wet ground, never next to a field; then each house, the
+  // first first, takes its block of fields beyond the yards (placeFields). A house whose fields find no room is not built.
+  // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
+  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
     const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
     used.add(center);
-    const ring = [], { dist } = bfs(w, center, nFarms <= 5 ? 2 : nFarms <= 10 ? 3 : 4, land(w)); // bigger villages spread wider
-    for (const [j, d] of dist) if (d >= 1 && farmable(w, j)) ring.push(j);
-    const greenAvoid = new Set([center]);
+    const built = new Set([center]), near = new Set(), houses = [];
+    const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
+    build(center);
+    const reach = bfs(w, center, 6, walkable(w)).dist;
     for (let n = 0; n < nFarms; n++) {
-      let pick = null, ps = -1;
-      for (const h of ring) {
-        if (used.has(h) || farmsteads.some((f) => hexSteps(w, f.house, h) < 2)) continue;
-        const fields = placeFields(w, used, h, 3, greenAvoid);
-        if (!fields) continue;
-        const s = fields.reduce((a, j) => a + fertility(w, j), 0) - hexSteps(w, h, center) * 0.3;
-        if (s > ps) { ps = s; pick = { house: h, fields }; }
+      let pick = -1, ps = -Infinity;
+      for (const [t, d] of reach) {
+        if (d < 1 || used.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[t * 6 + k])) touch++;
+        const b = w.biome[t], s = 0.5 * Math.min(touch, 3) - 0.5 * d - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * 1.6;
+        if (s > ps) { ps = s; pick = t; }
       }
-      if (!pick) break;
-      const f = makeFarmstead(w, farmsteads.length, pick.house, pick.fields, village, used);
+      if (pick < 0) break;
+      houses.push(pick); used.add(pick); build(pick);
+    }
+    for (const t of near) yards.add(t);
+    for (const h of houses) {
+      const fields = placeFields(w, used, h, 3, yards);
+      if (!fields) { used.delete(h); continue; }
+      const f = makeFarmstead(w, farmsteads.length, h, fields, village, used);
       farmsteads.push(f); village.farmsteads.push(f.id);
+      for (const t of fields) fieldsAt.add(t);
     }
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
@@ -1851,9 +2274,9 @@ VB['sim/layout'] = (() => {
       }
     }
   }
-  // The nearest forest tile within 16 steps that is not a house or field, or -1.
+  // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
   function nearestWood(w, used, from) {
-    const { dist: dd } = bfs(w, from, 16, land(w));
+    const { dist: dd } = bfs(w, from, 24, walkable(w));
     let wl = -1, wd = Infinity;
     for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
     return wl;
@@ -1865,20 +2288,21 @@ VB['sim/layout'] = (() => {
     for (const v of villages) {
       v.commonsWood = nearWood(v.center);
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
-      v.fence = makeFence(w, vin, v.center, { type: 'village', id: v.id }, 8, rand);
+      v.fence = makeFence(w, enclose(w, vin, v.center), v.center, { type: 'village', id: v.id }, 8, rand);
     }
     for (const f of farmsteads) f.woodlot = villages[f.village].commonsWood;
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
+    initWear(w);
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
-  function findLoneFarm(w, used, rand, center, farmsteads, villages = []) {
-    const { dist: reach } = bfs(w, center, 40, land(w));
+  function findLoneFarm(w, used, rand, center, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
+    const { dist: reach } = bfs(w, center, 40, walkable(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
-      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3) continue;
-      const fields = placeFields(w, used, j, 3);
+      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j) || nextTo(w, j, fieldsAt)) continue;
+      const fields = placeFields(w, used, j, 3, yards);
       if (!fields) continue;
       const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
       if (s > ls) { ls = s; lone = { house: j, fields }; }
@@ -1890,14 +2314,17 @@ VB['sim/layout'] = (() => {
     const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
+    for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
+    for (const t of lone.fields) fieldsAt.add(t);
     return f;
   }
-  // One more field for a farm: the best free farmable tile touching one of its fields, within 4 steps of the house. False when there is none.
-  function addField(w, used, f) {
-    const { dist } = bfs(w, f.house, 4, (j) => farmable(w, j));
+  // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
+  // not in a yard (next to a house or green), so the block stays one. False when there is none.
+  function addField(w, used, f, yards = new Set()) {
+    const { dist } = bfs(w, f.house, FIELD_REACH, walkable(w));
     let best = -1, bs = -Infinity;
     for (const [t, d] of dist) {
-      if (used.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
+      if (used.has(t) || yards.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
       const s = fertility(w, t) - 0.15 * d;
       if (s > bs) { bs = s; best = t; }
     }
@@ -1912,26 +2339,35 @@ VB['sim/layout'] = (() => {
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
   // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
   function settlementGenerator(w, rand, bare = false) {
-    const used = new Set(), farmsteads = [], villages = [];
+    const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set();
     return {
       used, farmsteads, villages,
       addVillage(center, nFarms) {
-        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages);
+        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards);
         villages.push(v); return v;
       },
-      addField(fid) { return addField(w, used, farmsteads[fid]); },
-      addLoneFarm(nearCenter) { const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages); if (f) farmsteads.push(f); return f; },
+      addField(fid) {
+        const f = farmsteads[fid], ok = addField(w, used, f, yards);
+        if (ok) fieldsAt.add(f.fields[f.fields.length - 1].tile);
+        return ok;
+      },
+      addLoneFarm(nearCenter) {
+        const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages, fieldsAt, yards);
+        if (f) farmsteads.push(f);
+        return f;
+      },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
+        if (!bare) wearIn(w, villages, farmsteads, PATHS.wornYears); // villages that have stood a while have their paths (VB-114)
         for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
         return this;
       },
     };
   }
   return {
-    settlementGenerator, farmHooks, placeFields, siteScore, villageName, makeFence, makeFarmstead, findSite, buildVillage, nameFarms, finishLand,
-    nearestWood, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
+    buildVillage, nameFarms, finishLand, nearestWood, findLoneFarm,
   };
 })();
 </script>
@@ -1973,6 +2409,7 @@ VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['gen'];
   const { YEAR_DAYS } = VB['sim/rules'];
   const { nearestWood } = VB['sim/layout'];
+  const { costChanged } = VB['sim/routes'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
 
   function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
@@ -1982,7 +2419,7 @@ VB['sim/forest'] = (() => {
     const w = st.w;
     w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
     setBiome(w, tile, B.MEADOW);
-    st.treeDirty.add(tile); st.biomeDirty.add(tile);
+    st.treeDirty.add(tile); st.biomeDirty.add(tile); costChanged(st, tile);
     for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;
@@ -2230,9 +2667,11 @@ VB['sim/deaths'] = (() => {
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { ECON, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
-  const { bfs, land } = VB['sim/hex'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
+  const { nextTo } = VB['sim/layout'];
   const MAX_FIELDS = 4, REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
@@ -2244,13 +2683,21 @@ VB['sim/fields'] = (() => {
   const fieldsWanted = (st, hh) => Math.min(MAX_FIELDS, Math.ceil((1.1 * yearlyRations(st, hh)) / (0.75 * ECON.fieldYield)));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
-  // The best unowned meadow tile within reach of the house, not on a river: fertile (watered by one), few stones, near. -1 when there is none.
+  // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
+  function builtTiles(st) {
+    const out = new Set(st.villages.map((v) => v.center));
+    for (const f of st.farmsteads) out.add(f.house);
+    for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+    return out;
+  }
+  // The best unowned meadow tile within reach of the house, not on a river and not next to a house or green: fertile (watered by one),
+  // few stones, near, and 1 better when it touches one of the farm's fields, so the fields grow as one block (VB-109). -1 when there is none.
   function chooseTile(st, f) {
-    const w = st.w, centres = new Set(st.villages.map((v) => v.center));
+    const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, REACH, land(w)).dist) {
-      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || centres.has(t) || st.used.has(t)) continue;
-      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d;
+    for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
+      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
@@ -2279,7 +2726,7 @@ VB['sim/fields'] = (() => {
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`);
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, chooseTile, startProject, finishClear, finishBreak };
+  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak };
 })();
 </script>
 <script>
@@ -2287,11 +2734,13 @@ VB['sim/fields'] = (() => {
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable } = VB['sim/rules'];
-  const { bfs, land } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { clearTile } = VB['sim/forest'];
-  const { BREAK_HOURS, clearHours } = VB['sim/fields'];
+  const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
+  const { FIELD_REACH, nextTo } = VB['sim/layout'];
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // Whether the pawn may claim an empty farm instead of waiting for a plot. Null until claiming empty farms is built (VB-033).
@@ -2303,34 +2752,39 @@ VB['sim/expansion'] = (() => {
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
   // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
-  // A farmable tile next to the house is preferred; the house may stand next to other houses. Null when there is no room.
+  // The house grows on the village (it may touch other houses, never a field); the field lies 2 to FIELD_REACH steps from it, next to
+  // no house or green (VB-113). Null when there is no room.
   function findSite(st, v) {
-    const w = st.w, vreg = w.region[v.center], cand = [];
+    const w = st.w, vreg = w.region[v.center], cand = [], built = builtTiles(st), fields = new Set();
+    for (const f of st.farmsteads) { for (const fd of f.fields) fields.add(fd.tile); if (f.project) fields.add(f.project.tile); }
+    for (const u of st.villages) for (const p of u.plots || []) for (const tr of p.tiles) if (tr.kind === 'field') fields.add(tr.tile);
     const near = (t) => {
       if (w.region[t] === vreg) return true;
       for (let k = 0; k < 6; k++) { const n = w.nb[t * 6 + k]; if (n >= 0 && w.region[n] === vreg) return true; }
       return false;
     };
-    for (const [t, d] of bfs(w, v.center, REACH, land(w)).dist) {
+    for (const [t, d] of bfs(w, v.center, REACH, walkable(w)).dist) {
       if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
-    const farmableAt = (t) => dist.has(t) && farmable(w, t) && !wooded(w, t);
+    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
+      if (nextTo(w, h, fields)) continue;
       let f = -1, fs = -Infinity;
-      for (let k = 0; k < 6; k++) { const n = w.nb[h * 6 + k]; if (n >= 0 && farmableAt(n) && fieldScore(n) > fs) { fs = fieldScore(n); f = n; } }
-      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0);
+      for (const [t] of cand) {
+        const steps = hexSteps(w, h, t);
+        if (steps < 2 || steps > FIELD_REACH || !fieldOk(t)) continue;
+        const sc = fieldScore(t) - 0.15 * steps;
+        if (sc > fs) { fs = sc; f = t; }
+      }
+      let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
+      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
       if (s > bs) { bs = s; best = { house: h, field: f }; }
     }
-    if (!best) return null;
-    if (best.field < 0) {
-      let fs = -Infinity;
-      for (const [t] of cand) if (t !== best.house && farmableAt(t) && fieldScore(t) > fs) { fs = fieldScore(t); best.field = t; }
-    }
-    return best.field < 0 ? null : best;
+    return !best || best.field < 0 ? null : best;
   }
   function startPlot(st, v, intended) {
     const site = findSite(st, v); if (!site) return false;
@@ -2421,7 +2875,8 @@ VB['sim/expansion'] = (() => {
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
-  const { bfs, pathTo, land } = VB['sim/hex'];
+  const { route, stepCost, tileCost } = VB['sim/routes'];
+  const { tread } = VB['sim/paths'];
   const { log, age } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
@@ -2444,17 +2899,17 @@ VB['sim/agents'] = (() => {
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
-  function route(st, from, to) {
-    const k = from * st.w.N + to;
-    if (st.pathCache.has(k)) return st.pathCache.get(k);
-    let p = pathTo(bfs(st.w, from, 60, land(st.w)).prev, from, to);
-    if (!p) { p = pathTo(bfs(st.w, from, 200, land(st.w)).prev, from, to); if (!p) { p = [to]; st.routeFallbacks++; } }
-    st.pathCache.set(k, p);
-    return p;
-  }
+  // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
+  // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {
-    const from = tileAt(st, a.x, a.y), tiles = from >= 0 && from !== tile ? route(st, from, tile).slice(1, -1) : [];
-    a.path = [[a.x, a.y], ...tiles.map((i) => [st.w.hx[i] + a.ox * 0.4, st.w.hy[i] + a.oy * 0.4]), [x, y]];
+    const w = st.w, from = tileAt(st, a.x, a.y), p = from >= 0 && from !== tile ? route(st, from, tile) : null;
+    const ok = p && p[0] === from, tiles = ok ? p.slice(1, -1) : [], cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
+    a.path = [[a.x, a.y]];
+    for (let s = 0; s < tiles.length; s++) {
+      const t = tiles[s];
+      a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
+    }
+    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
     a.seg = 0; a.inside = false; a.anim = 'walk';
   }
   // Where on the site a pawn stands to do the job.
@@ -2573,14 +3028,14 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let dist = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1);
-    while (dist > 0 && a.seg < a.path.length - 1) {
-      const [tx, ty] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    while (left > 0 && a.seg < a.path.length - 1) {
+      const [tx, ty, c = 1] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
-      const m = Math.min(d, dist);
+      const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= dist) { a.x = tx; a.y = ty; a.seg++; } else { a.x += (dx / d) * dist; a.y += (dy / d) * dist; }
-      dist -= m;
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }
   }
@@ -3013,7 +3468,8 @@ VB['sim/heirs'] = (() => {
 VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
-  const { bfs, land, hexSteps } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   function initCulture(st, leanBySettlement, overrides = {}) {
@@ -3068,7 +3524,7 @@ VB['sim/society'] = (() => {
       const c = env.cultures[s.culture], centre = c.centres[0];
       if (s.id === centre) { s.tie = 1; continue; }
       const va = st.villages[s.id], vb = st.villages[centre];
-      const { dist } = bfs(st.w, va.center, 160, land(st.w));
+      const { dist } = bfs(st.w, va.center, 160, walkable(st.w));
       const d = dist.has(vb.center) ? dist.get(vb.center) : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
       let kin = 0;
       for (const p of st.pawns) if (p.alive && settlementIdOf(st, p) === s.id) for (const q of kinNear(st, p.id)) {
@@ -3394,7 +3850,8 @@ VB['sim/people'] = (() => {
 VB['sim/scenarios'] = (() => {
   const { B, mulberry32 } = VB['gen'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
-  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
+  const { bfs, hexSteps, landComponents } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
@@ -3421,7 +3878,8 @@ VB['sim/scenarios'] = (() => {
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
-  // Populous Villages: only villages, of three size bands, until the map holds the target population.
+  // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
+  // the first two villages are a large and a medium one, which take the best sites.
   const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
   const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
@@ -3433,6 +3891,7 @@ VB['sim/scenarios'] = (() => {
     while (pop < lo) {
       let u = rand(), band = BANDS[BANDS.length - 1];
       for (const b of BANDS) { if (u < b[0]) { band = b; break; } u -= b[0]; }
+      if (lo >= POPULATION.big[0] && centres.length < 2) band = BANDS[2 - centres.length]; // a big map has a large and a medium village
       const farms = Math.min(band[1] + ((rand() * (band[2] - band[1] + 1)) | 0), Math.floor((hi - pop) / 9));
       const free = (i) => comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
@@ -3461,7 +3920,7 @@ VB['sim/scenarios'] = (() => {
     const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
-    const { dist: far } = bfs(w, a, 200, land(w));
+    const { dist: far } = bfs(w, a, 200, walkable(w));
     let b = findSite(w, rand, comp, (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30);
     if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
     if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);
@@ -3557,24 +4016,28 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
-    // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
+    // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
+    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
+    // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
     // @state st.treeDirty,biomeDirty: Set of tile indexes whose tree density stage changed, or that turned to meadow; the page repaints them
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
       })),
-      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
+      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
     for (const v of villages) v.plots = [];
     seedOwners(st);
@@ -3599,6 +4062,8 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
+  const { refreshRoutes, costChanged } = VB['sim/routes'];
+  const { fadeWear } = VB['sim/paths'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
@@ -3633,6 +4098,8 @@ VB['sim/clock'] = (() => {
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
+    fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
+    refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
     for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
@@ -3727,7 +4194,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
 </script>
 <script>
 (async () => {
-  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'];
+  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'], Paths = VB['gen/paths'];
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3845,6 +4312,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     ctx.putImageData(img, 0, 0);
     yield 1;
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
+    Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
     yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
@@ -3880,6 +4348,16 @@ if (typeof module !== 'undefined') module.exports = Sim;
       }
     }
     st.treeDirty.clear(); st.biomeDirty.clear();
+  }
+  // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
+  // the frame budget; the overview shows no paths.
+  function refreshPaths() {
+    const reach = 2 * w.R;
+    for (const tile of st.pathDirty) for (const l of [0, 1]) {
+      const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
+    }
+    st.pathDirty.clear();
   }
   function wantedList() {
     const out = [], seen = new Set();
@@ -4156,10 +4634,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
-    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through`] : !w.water[i] && Sim.byRiver(w, i)
+    const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
+    const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
+    const worn = w.worn && w.worn[i] ? [`${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${perDay >= 0.75
+      ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
+    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...river, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...river, ...worn, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -4775,6 +5257,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
+    if (st.pathDirty.size) refreshPaths();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }

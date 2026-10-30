@@ -1,7 +1,8 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
-  const { bfs, pathTo, land } = VB['sim/hex'];
+  const { route, stepCost, tileCost } = VB['sim/routes'];
+  const { tread } = VB['sim/paths'];
   const { log, age } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
@@ -24,17 +25,17 @@ VB['sim/agents'] = (() => {
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
-  function route(st, from, to) {
-    const k = from * st.w.N + to;
-    if (st.pathCache.has(k)) return st.pathCache.get(k);
-    let p = pathTo(bfs(st.w, from, 60, land(st.w)).prev, from, to);
-    if (!p) { p = pathTo(bfs(st.w, from, 200, land(st.w)).prev, from, to); if (!p) { p = [to]; st.routeFallbacks++; } }
-    st.pathCache.set(k, p);
-    return p;
-  }
+  // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
+  // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {
-    const from = tileAt(st, a.x, a.y), tiles = from >= 0 && from !== tile ? route(st, from, tile).slice(1, -1) : [];
-    a.path = [[a.x, a.y], ...tiles.map((i) => [st.w.hx[i] + a.ox * 0.4, st.w.hy[i] + a.oy * 0.4]), [x, y]];
+    const w = st.w, from = tileAt(st, a.x, a.y), p = from >= 0 && from !== tile ? route(st, from, tile) : null;
+    const ok = p && p[0] === from, tiles = ok ? p.slice(1, -1) : [], cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
+    a.path = [[a.x, a.y]];
+    for (let s = 0; s < tiles.length; s++) {
+      const t = tiles[s];
+      a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
+    }
+    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
     a.seg = 0; a.inside = false; a.anim = 'walk';
   }
   // Where on the site a pawn stands to do the job.
@@ -153,14 +154,14 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let dist = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1);
-    while (dist > 0 && a.seg < a.path.length - 1) {
-      const [tx, ty] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    while (left > 0 && a.seg < a.path.length - 1) {
+      const [tx, ty, c = 1] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
-      const m = Math.min(d, dist);
+      const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= dist) { a.x = tx; a.y = ty; a.seg++; } else { a.x += (dx / d) * dist; a.y += (dy / d) * dist; }
-      dist -= m;
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }
   }

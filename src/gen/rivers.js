@@ -6,6 +6,10 @@ VB['gen/rivers'] = (() => {
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
   // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
   const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3, longEnough: 15, noise: 10 };
+  // Fords: in stretches of `every` land tiles down each reach, the best site is a ford; a last stretch under `least` joins the one before.
+  // A site's score (lower is better) is its drop to the next tile per `drop` of elevation, plus the root of its catchment per `narrow`,
+  // plus up to `noise` at random: a ford is flat and narrow.
+  const FORDS = { every: 10, least: 3, drop: 0.03, narrow: 10, noise: 1 };
 
   // A binary min-heap of tile indexes by key[i], ties broken by the lower index, so the order is the same on every run.
   function minHeap(key) {
@@ -100,7 +104,7 @@ VB['gen/rivers'] = (() => {
       score[i] = Math.min(len[i], RIVERS.longEnough) + RIVERS.noise * rand(); cand.push(i);
     }
     cand.sort((a, b) => score[b] - score[a] || a - b);
-    const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N);
+    const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N), starts = [];
     for (const s of cand) {
       if (left[island[s]] <= 0 || blocked[s] || riverTo[s] >= 0) continue;
       let own = 0;
@@ -110,12 +114,53 @@ VB['gen/rivers'] = (() => {
         riverTo[i] = down[i];
         if (!water[i]) river[i] = Math.min(65535, Math.max(1, Math.round(acc[i])));
       }
-      left[island[s]]--;
+      left[island[s]]--; starts.push(s);
       around(nb, s, RIVERS.spacing - 1, (j) => { blocked[j] = 1; });
     }
+    const crossing = fords(t, rand, river, riverTo, starts);
     // @state w.river: Uint16Array per tile; catchment of a land tile a river runs through (tiles, weighted by moisture), 0 elsewhere
     // @state w.riverTo: Int32Array per tile; next tile down a river's course (river tile, lake on the course, or sea), -1 off every course
-    return { river, riverTo };
+    // @state w.crossing: Uint8Array per tile; how a river tile is crossed on foot: 0 not at all, 1 a ford, 2 a bridge (built in play)
+    return { river, riverTo, crossing };
+  }
+  // A river tile whose dry neighbours lie on two sides or more, none of them water: crossing it joins two banks.
+  function joinsBanks({ nb, water }, river, i) {
+    let arcs = 0;
+    for (let k = 0; k < 6; k++) {
+      const j = nb[i * 6 + k], p = nb[i * 6 + (k + 5) % 6];
+      if (j >= 0 && water[j]) return false;
+      const dry = (x) => x >= 0 && !water[x] && !river[x];
+      if (dry(j) && !dry(p)) arcs++;
+    }
+    return arcs >= 2;
+  }
+  // Fords along every course, in reaches that run from a source or a confluence down to the next confluence, a lake or the sea;
+  // returns w.crossing.
+  function fords(t, rand, river, riverTo, starts) {
+    const { N, he, water } = t, crossing = new Uint8Array(N), seen = new Uint8Array(N), into = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (riverTo[i] >= 0) into[riverTo[i]]++;
+    const score = (i) => Math.max(0, he[i] - he[riverTo[i]]) / FORDS.drop + Math.sqrt(river[i]) / FORDS.narrow + FORDS.noise * rand();
+    const place = (stretch) => {
+      const parts = [];
+      for (let k = 0; k < stretch.length; k += FORDS.every) parts.push(stretch.slice(k, k + FORDS.every));
+      if (parts.length > 1 && parts[parts.length - 1].length < FORDS.least) parts[parts.length - 2].push(...parts.pop());
+      for (const part of parts) {
+        if (part.length < FORDS.least) continue;
+        let best = -1, bs = Infinity;
+        for (const i of part) { if (!joinsBanks(t, river, i)) continue; const sc = score(i); if (sc < bs) { bs = sc; best = i; } }
+        if (best >= 0) crossing[best] = 1;
+      }
+    };
+    for (const s of starts) {
+      let stretch = [];
+      for (let i = s; i >= 0 && river[i] + water[i] && !seen[i]; i = riverTo[i]) {
+        seen[i] = 1;
+        if (water[i] || into[i] > 1) { place(stretch); stretch = []; }
+        if (!water[i]) stretch.push(i);
+      }
+      place(stretch);
+    }
+    return crossing;
   }
 
   // ---- drawing: each river tile holds a line from the joint upstream, past a bend near its centre, to the joint downstream ----
@@ -246,6 +291,23 @@ VB['gen/rivers'] = (() => {
       }
     }
   }
+  // Fords at the two closest zooms: a riffle of pale gravel across the main course at the middle of the tile, and stepping stones on it.
+  function crossings(w, ctx, all) {
+    for (const pts of all) {
+      if (pts.trib || w.crossing[pts.tile] !== 1) continue;
+      const p = pts[5], o = pts[4], q = pts[6], l = Math.hypot(q[0] - o[0], q[1] - o[1]) || 1, tx = (q[0] - o[0]) / l, ty = (q[1] - o[1]) / l;
+      const half = p[2] / 2 + 3, n = Math.max(3, Math.round(p[2] / 3)), ang = Math.atan2(tx, -ty);
+      ctx.fillStyle = 'rgba(184,198,170,0.75)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half, 6, ang, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = 'rgba(206,212,186,0.6)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half - 2, 3.5, ang, 0, 2 * Math.PI); ctx.fill();
+      for (let k = 0; k < n; k++) { // the stones, each with a shadow on its downstream side
+        const u = ((k + 0.5) / n) * 2 - 1, j = (dot(w, p[0] + k, p[1], 50) - 0.5) * 2.4, x = p[0] - ty * u * (half - 2) + tx * j;
+        const y = p[1] + tx * u * (half - 2) + ty * j, r = 1.9 + 0.9 * dot(w, x, y, 51);
+        ctx.fillStyle = 'rgba(40,60,60,0.45)'; ctx.beginPath(); ctx.ellipse(x + tx * 0.9 + 0.3, y + ty * 0.9 + 0.6, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgb(148,144,132)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgba(214,210,196,0.7)'; ctx.beginPath(); ctx.ellipse(x - r * 0.3, y - r * 0.3, r * 0.4, r * 0.3, 0, 0, 2 * Math.PI); ctx.fill();
+      }
+    }
+  }
   // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
   // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
   function drawChunk(w, ctx, lv, cx, cy, full) {
@@ -275,7 +337,7 @@ VB['gen/rivers'] = (() => {
       for (const sp of springs) if (h(sp) > 0) pool(w, ctx, sp[0], sp[1], h(sp));
       ctx.fillStyle = colour; ctx.fill();
     }
-    if (sc >= 1 / 3) details(w, ctx, all, full);
+    if (sc >= 1 / 3) { crossings(w, ctx, all); details(w, ctx, all, full); }
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -309,5 +371,5 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, trace, width, kind, lines, drawChunk, thin };
 })();

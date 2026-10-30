@@ -2,7 +2,8 @@
 VB['sim/scenarios'] = (() => {
   const { B, mulberry32 } = VB['gen'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
-  const { bfs, land, hexSteps, landComponents } = VB['sim/hex'];
+  const { bfs, hexSteps, landComponents } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
@@ -29,7 +30,8 @@ VB['sim/scenarios'] = (() => {
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
-  // Populous Villages: only villages, of three size bands, until the map holds the target population.
+  // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
+  // the first two villages are a large and a medium one, which take the best sites.
   const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
   const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
@@ -41,6 +43,7 @@ VB['sim/scenarios'] = (() => {
     while (pop < lo) {
       let u = rand(), band = BANDS[BANDS.length - 1];
       for (const b of BANDS) { if (u < b[0]) { band = b; break; } u -= b[0]; }
+      if (lo >= POPULATION.big[0] && centres.length < 2) band = BANDS[2 - centres.length]; // a big map has a large and a medium village
       const farms = Math.min(band[1] + ((rand() * (band[2] - band[1] + 1)) | 0), Math.floor((hi - pop) / 9));
       const free = (i) => comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
@@ -69,7 +72,7 @@ VB['sim/scenarios'] = (() => {
     const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
-    const { dist: far } = bfs(w, a, 200, land(w));
+    const { dist: far } = bfs(w, a, 200, walkable(w));
     let b = findSite(w, rand, comp, (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30);
     if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
     if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);
@@ -165,24 +168,28 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
-    // @state st.pathCache: Map of route key (from * w.N + to) to path. st.routeFallbacks: number; routes not found within 200 steps, walked straight
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
+    // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
+    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
+    // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
     // @state st.treeDirty,biomeDirty: Set of tile indexes whose tree density stage changed, or that turned to meadow; the page repaints them
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], pathCache: new Map(), routeFallbacks: 0,
+      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
       })),
-      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(),
+      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
     for (const v of villages) v.plots = [];
     seedOwners(st);
