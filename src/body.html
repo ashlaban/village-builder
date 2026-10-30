@@ -94,7 +94,7 @@
 <!--__MODULES__-->
 <script>
 (async () => {
-  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'];
+  const G = ArchGen, LV = G.LV, TEX = G.TEX, Rivers = VB['gen/rivers'], Paths = VB['gen/paths'];
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -212,6 +212,7 @@
     ctx.putImageData(img, 0, 0);
     yield 1;
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
+    Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
     yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR);
   }
@@ -247,6 +248,31 @@
       }
     }
     st.treeDirty.clear(); st.biomeDirty.clear();
+  }
+  // Repaint worn paths whose stage changed (sim/paths): the close levels are dropped and painted again on demand; the overview, which
+  // shows lanes only, is repainted in place when a tile gains or loses its lane.
+  let laneShown = null;
+  function refreshPaths() {
+    const reach = 2 * w.R, over = new Set();
+    for (const tile of st.pathDirty) {
+      const [x0, y0, x1, y1] = [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach];
+      for (const l of [0, 1]) {
+        const [a, b, c, d] = rangeIn(l, [x0, y0, x1, y1]);
+        for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
+      }
+      const lane = w.worn[tile] === 3 ? 1 : 0;
+      if (lane === laneShown[tile]) continue;
+      laneShown[tile] = lane;
+      const [a, b, c, d] = rangeIn(2, [x0, y0, x1, y1]);
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) over.add(ckey(2, cx, cy));
+    }
+    for (const k of over) {
+      const ch = chunks.get(k);
+      if (!ch) continue;
+      for (const _ of chunkJob(w, 2, ch.cx, ch.cy, ch.canvas));
+      ch.spr.texture.source.update();
+    }
+    st.pathDirty.clear();
   }
   function wantedList() {
     const out = [], seen = new Set();
@@ -417,6 +443,7 @@
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
     w = wd; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
+    laneShown = Uint8Array.from(wd.worn, (s) => (s === 3 ? 1 : 0)); // the lanes the overview was painted with
     const water = new PIXI.Sprite(texFrom(wc));
     water.scale.set(wd.STEP); water.position.set(-wd.STEP / 2, -wd.STEP / 2);
     L.water.addChild(water);
@@ -524,10 +551,13 @@
     const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
     const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
     const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
+    const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
+    const worn = w.worn && w.worn[i] ? [`${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${perDay >= 0.75
+      ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...river, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    else card(b.name, [line, ...river, ...worn, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
   function pick(sx, sy) {
@@ -1143,6 +1173,7 @@
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
+    if (st.pathDirty.size) refreshPaths();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }

@@ -291,21 +291,20 @@ VB['gen/rivers'] = (() => {
       }
     }
   }
-  // Fords at the two closest zooms: pale shallows across the main course at the middle of the tile, and stepping stones over them.
+  // Fords at the two closest zooms: a riffle of pale gravel across the main course at the middle of the tile, and stepping stones on it.
   function crossings(w, ctx, all) {
     for (const pts of all) {
       if (pts.trib || w.crossing[pts.tile] !== 1) continue;
       const p = pts[5], o = pts[4], q = pts[6], l = Math.hypot(q[0] - o[0], q[1] - o[1]) || 1, tx = (q[0] - o[0]) / l, ty = (q[1] - o[1]) / l;
-      const half = p[2] / 2 + 2.5, n = Math.max(2, Math.round(p[2] / 3.5));
-      ctx.beginPath(); // the shallows: a band across the water, as wide as five units along it
-      ctx.moveTo(p[0] - ty * half - tx * 3, p[1] + tx * half - ty * 3); ctx.lineTo(p[0] + ty * half - tx * 3, p[1] - tx * half - ty * 3);
-      ctx.lineTo(p[0] + ty * half + tx * 3, p[1] - tx * half + ty * 3); ctx.lineTo(p[0] - ty * half + tx * 3, p[1] + tx * half + ty * 3);
-      ctx.closePath(); ctx.fillStyle = 'rgba(176,206,188,0.8)'; ctx.fill();
+      const half = p[2] / 2 + 3, n = Math.max(3, Math.round(p[2] / 3)), ang = Math.atan2(tx, -ty);
+      ctx.fillStyle = 'rgba(184,198,170,0.75)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half, 6, ang, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = 'rgba(206,212,186,0.6)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], half - 2, 3.5, ang, 0, 2 * Math.PI); ctx.fill();
       for (let k = 0; k < n; k++) { // the stones, each with a shadow on its downstream side
-        const u = (k + 0.5) / n * 2 - 1, j = (dot(w, p[0] + k, p[1], 50) - 0.5) * 1.6, x = p[0] - ty * u * (half - 1.5) + tx * j;
-        const y = p[1] + tx * u * (half - 1.5) + ty * j, r = 1.3 + 0.7 * dot(w, x, y, 51);
-        ctx.fillStyle = 'rgba(40,60,60,0.45)'; ctx.beginPath(); ctx.ellipse(x + 0.6, y + 0.7, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
-        ctx.fillStyle = 'rgb(150,146,134)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        const u = ((k + 0.5) / n) * 2 - 1, j = (dot(w, p[0] + k, p[1], 50) - 0.5) * 2.4, x = p[0] - ty * u * (half - 2) + tx * j;
+        const y = p[1] + tx * u * (half - 2) + ty * j, r = 1.9 + 0.9 * dot(w, x, y, 51);
+        ctx.fillStyle = 'rgba(40,60,60,0.45)'; ctx.beginPath(); ctx.ellipse(x + tx * 0.9 + 0.3, y + ty * 0.9 + 0.6, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgb(148,144,132)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.8, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgba(214,210,196,0.7)'; ctx.beginPath(); ctx.ellipse(x - r * 0.3, y - r * 0.3, r * 0.4, r * 0.3, 0, 0, 2 * Math.PI); ctx.fill();
       }
     }
   }

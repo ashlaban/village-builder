@@ -59,8 +59,10 @@ for (const seed of [7, 42]) {
   out[`world/${seed}`] = hashKeys(world(seed), [], `world/${seed}`);
   for (const scenario of ['founders', 'heirs']) {
     const w = world(seed), st = Sim.seed(w, seed, scenario);
-    out[`${scenario}/${seed}/seed`] = hashKeys(st, DERIVED, `${scenario}/${seed}/seed`);
-    for (let y = 1; y <= 3; y++) { Sim.advance(st, Sim.YEAR); out[`${scenario}/${seed}/year${y}`] = hashKeys(st, DERIVED, `${scenario}/${seed}/year${y}`); }
+    // the world is left out of the state's fingerprint, but its worn paths (VB-094) are kept
+    const withWear = () => ({ ...st, wear: st.w.wear });
+    out[`${scenario}/${seed}/seed`] = hashKeys(withWear(), DERIVED, `${scenario}/${seed}/seed`);
+    for (let y = 1; y <= 3; y++) { Sim.advance(st, Sim.YEAR); out[`${scenario}/${seed}/year${y}`] = hashKeys(withWear(), DERIVED, `${scenario}/${seed}/year${y}`); }
   }
 }
 if (DUMP) { console.log('dumped to ' + DUMP); process.exit(0); }

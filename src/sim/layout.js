@@ -4,6 +4,7 @@ VB['sim/layout'] = (() => {
   const { RIVER, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
+  const { initWear } = VB['sim/paths'];
   // ---- placing the founders ----
   function placeFields(w, used, house, n, avoid) {
     const cand = [];
@@ -142,6 +143,7 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
+    initWear(w);
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
   function findLoneFarm(w, used, rand, center, farmsteads, villages = []) {

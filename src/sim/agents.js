@@ -2,6 +2,7 @@
 VB['sim/agents'] = (() => {
   const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
+  const { tread } = VB['sim/paths'];
   const { log, age } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
@@ -24,13 +25,17 @@ VB['sim/agents'] = (() => {
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
-  // The way to (x, y) in `tile`: each point carries the cost of the step that ends there, so a pawn walks slower over rough ground.
+  // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
+  // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {
     const w = st.w, from = tileAt(st, a.x, a.y), p = from >= 0 && from !== tile ? route(st, from, tile) : null;
     const ok = p && p[0] === from, tiles = ok ? p.slice(1, -1) : [], cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
     a.path = [[a.x, a.y]];
-    for (let s = 0; s < tiles.length; s++) a.path.push([w.hx[tiles[s]] + a.ox * 0.4, w.hy[tiles[s]] + a.oy * 0.4, stepCost(w, p[s], tiles[s])]);
-    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile)]);
+    for (let s = 0; s < tiles.length; s++) {
+      const t = tiles[s];
+      a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
+    }
+    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
     a.seg = 0; a.inside = false; a.anim = 'walk';
   }
   // Where on the site a pawn stands to do the job.
@@ -155,7 +160,7 @@ VB['sim/agents'] = (() => {
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
       const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
       left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }

@@ -619,7 +619,7 @@ const ArchGen = (() => {
         if (full && rnd() < 0.15) { const [x, y] = spot(0.5); items.push({ t: 'stone', x, y, r: 1.8 + rnd() * 2 }); }
       }
     }
-    VB['gen/rivers'].thin(w, items, hexLocator(w)).sort((a, b) => a.y - b.y); // nothing stands in a river; the rest is drawn back to front
+    VB['gen/paths'].thin(w, VB['gen/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.fillStyle = 'rgba(28,36,24,0.26)';
     for (const it of items) {

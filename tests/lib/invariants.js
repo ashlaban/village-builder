@@ -60,6 +60,13 @@ function checkState(st) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
     for (const pl of v.plots || []) for (const tr of pl.tiles) if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id} on river tile ${tr.tile}`);
   }
+  // worn paths (VB-094): counts finite and not negative, none on water; a stage from 0 to 3 that its count supports
+  const { wear, worn } = st.w;
+  if (wear) {
+    let off = 0;
+    for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
+    if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
+  }
   for (const j of st.jobs.values()) if (j.claim !== null) {
     const a = st.agents[j.claim];
     if (!a || a.job !== j) bad.push(`jobs[${j.key}]: claimed by agent ${j.claim}, whose job is ${a && a.job ? a.job.key : 'none'}`);

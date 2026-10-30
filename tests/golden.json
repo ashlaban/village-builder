@@ -63,6 +63,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "80348f42200b5e90",
   "pathCache": "33459b07fd3d8db9",
+  "pathDirty": "394d240533a4978d",
   "pawns": "ab77fcd2b60afecb",
   "regrow": "394d240533a4978d",
   "rigDirty": "394d240533a4978d",
@@ -75,6 +76,7 @@
   "used": "2a97e1abb45195f6",
   "villages": "e1592f35bbd3eb82",
   "visualDirty": "7cb6efb98ba5972a",
+  "wear": "5f51d192a825b0e8",
   "weather": "ab604ca1aacd35c5"
  },
  "founders/7/year1": {
@@ -96,6 +98,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "773debbce6de9478",
   "pathCache": "73beaa17a264750a",
+  "pathDirty": "8c2704dbaeea64d2",
   "pawns": "b023f2df9e844df0",
   "regrow": "523be50fd9916152",
   "rigDirty": "dd6ab8c1ee8407ab",
@@ -108,6 +111,7 @@
   "used": "025ea1154c053388",
   "villages": "bf9c28598a4331dc",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "0a86218fef645b37",
   "weather": "a636d432c7449ff7"
  },
  "founders/7/year2": {
@@ -129,6 +133,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "ff1206ddd0f33bee",
   "pathCache": "c89de42dfc93c238",
+  "pathDirty": "8c2704dbaeea64d2",
   "pawns": "95cfcf62d74c2cda",
   "regrow": "a90cc1299559c3a9",
   "rigDirty": "dd6ab8c1ee8407ab",
@@ -141,6 +146,7 @@
   "used": "025ea1154c053388",
   "villages": "7fb23f76aeff5976",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "ada529cf8f94300c",
   "weather": "7375ca0367b8d864"
  },
  "founders/7/year3": {
@@ -162,6 +168,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "ff1206ddd0f33bee",
   "pathCache": "8f3419e023b566dc",
+  "pathDirty": "8c2704dbaeea64d2",
   "pawns": "c3ad95d57b6e9376",
   "regrow": "a90cc1299559c3a9",
   "rigDirty": "0f6341954d935db9",
@@ -174,6 +181,7 @@
   "used": "025ea1154c053388",
   "villages": "423cfad8ee08c2a0",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "5729bc3791202cc4",
   "weather": "e3d6e8184ef7c69d"
  },
  "heirs/7/seed": {
@@ -194,6 +202,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "101aa659828831ed",
   "pathCache": "33459b07fd3d8db9",
+  "pathDirty": "394d240533a4978d",
   "pawns": "7716b99ab5bbfbc4",
   "regrow": "394d240533a4978d",
   "rigDirty": "394d240533a4978d",
@@ -206,6 +215,7 @@
   "used": "cf46410366f96f32",
   "villages": "b23eb178179a88b0",
   "visualDirty": "7cb6efb98ba5972a",
+  "wear": "5f51d192a825b0e8",
   "weather": "d158785eca5bdb0c"
  },
  "heirs/7/year1": {
@@ -227,6 +237,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "34f453a95c03e400",
   "pathCache": "3fb7f25c24c1499d",
+  "pathDirty": "8c2704dbaeea64d2",
   "pawns": "3dfc150e68013e96",
   "regrow": "c0152a5095ffcb3a",
   "rigDirty": "9fec62d26343a72b",
@@ -239,6 +250,7 @@
   "used": "b27199ecd43ccbd8",
   "villages": "a827b76b3fd0eeaa",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "65ec6df4dd8661b7",
   "weather": "7a1f947d6ead4b92"
  },
  "heirs/7/year2": {
@@ -260,6 +272,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "34f453a95c03e400",
   "pathCache": "1dc2bbdd7545736a",
+  "pathDirty": "8c2704dbaeea64d2",
   "pawns": "b8f0d4e82d1a10ba",
   "regrow": "42c36406dfe341dd",
   "rigDirty": "28885c53a121b5fb",
@@ -272,6 +285,7 @@
   "used": "b27199ecd43ccbd8",
   "villages": "c072c4dcaef0f312",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "7dba2404ef51193b",
   "weather": "765563c437b44bae"
  },
  "heirs/7/year3": {
@@ -293,6 +307,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "34f453a95c03e400",
   "pathCache": "5e0631a70eb3c467",
+  "pathDirty": "1aefadcbaa354cc1",
   "pawns": "2a1b4cd8b35ea3e4",
   "regrow": "c412bffce8d036cb",
   "rigDirty": "28885c53a121b5fb",
@@ -305,6 +320,7 @@
   "used": "b27199ecd43ccbd8",
   "villages": "0fad45ffb4fb0105",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "25ecf7ee8b1443f6",
   "weather": "97e7bfa5f5502d8a"
  },
  "world/42": {
@@ -371,6 +387,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "c433dae633322c0d",
   "pathCache": "33459b07fd3d8db9",
+  "pathDirty": "394d240533a4978d",
   "pawns": "ca79b8cc491474b5",
   "regrow": "394d240533a4978d",
   "rigDirty": "394d240533a4978d",
@@ -383,6 +400,7 @@
   "used": "715e1e3f04519a4f",
   "villages": "db0de85d1494fec7",
   "visualDirty": "7cb6efb98ba5972a",
+  "wear": "5f51d192a825b0e8",
   "weather": "7829f7d643cec1ff"
  },
  "founders/42/year1": {
@@ -404,6 +422,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "1c0fd6b6326b688c",
   "pathCache": "6e323620a1ba1419",
+  "pathDirty": "747160e6a2821093",
   "pawns": "2ace5899abd058f5",
   "regrow": "a212409b7e95eda1",
   "rigDirty": "438636522d8f5bd9",
@@ -416,6 +435,7 @@
   "used": "44d1070708c1eeb9",
   "villages": "4479b3c2c7bdba4a",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "854c1c15e4274be6",
   "weather": "5a74db0e7916ccaf"
  },
  "founders/42/year2": {
@@ -437,6 +457,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "1c0fd6b6326b688c",
   "pathCache": "fc6b6921fc63f5bc",
+  "pathDirty": "d663f3f0b4e8d0e6",
   "pawns": "e1de7ad3a7ca7da8",
   "regrow": "a65b41b8e6e3dacc",
   "rigDirty": "76a617d8a9d962b3",
@@ -449,6 +470,7 @@
   "used": "44d1070708c1eeb9",
   "villages": "695ed136965ca20a",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "0bf5c8bea95c048a",
   "weather": "a3c90f9d624b67fd"
  },
  "founders/42/year3": {
@@ -470,6 +492,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "1c0fd6b6326b688c",
   "pathCache": "535d22eb9488c3c1",
+  "pathDirty": "372d182580ca32ce",
   "pawns": "57e3d3bd26a3791e",
   "regrow": "ca2140dd696cd4b5",
   "rigDirty": "577ceafb1a36e4db",
@@ -482,6 +505,7 @@
   "used": "44d1070708c1eeb9",
   "villages": "2f4dc8d3e3898d6f",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "417f8502df912a74",
   "weather": "e664cc62b1c0ab07"
  },
  "heirs/42/seed": {
@@ -502,6 +526,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "8128c6ac7582f02f",
   "pathCache": "33459b07fd3d8db9",
+  "pathDirty": "394d240533a4978d",
   "pawns": "1076041622c452da",
   "regrow": "394d240533a4978d",
   "rigDirty": "394d240533a4978d",
@@ -514,6 +539,7 @@
   "used": "c52e97eb6768ad60",
   "villages": "e390f767b9267e52",
   "visualDirty": "7cb6efb98ba5972a",
+  "wear": "5f51d192a825b0e8",
   "weather": "7e878ca3f5f13828"
  },
  "heirs/42/year1": {
@@ -535,6 +561,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "e61903571dfd9637",
   "pathCache": "eabddf30dc6383ec",
+  "pathDirty": "68a36ede4199c3f0",
   "pawns": "dc29e3f63c2cbe4a",
   "regrow": "a068c89ca724ad52",
   "rigDirty": "394d240533a4978d",
@@ -547,6 +574,7 @@
   "used": "41011f67beb3c534",
   "villages": "79671997bc22fd28",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "55725bd9af68eb89",
   "weather": "3c9f70b01197fb97"
  },
  "heirs/42/year2": {
@@ -568,6 +596,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "6559951f8809b465",
   "pathCache": "cdb02d2ed146b0e4",
+  "pathDirty": "b45c68808c647c8f",
   "pawns": "064ccb7ed0ef322a",
   "regrow": "57aaf4029cd21930",
   "rigDirty": "e0a61b6f0a18b55d",
@@ -580,6 +609,7 @@
   "used": "3d0f04b02163fc20",
   "villages": "a1cf79094db3fff6",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "ce08027bc9ce0d91",
   "weather": "48a20e22489e2212"
  },
  "heirs/42/year3": {
@@ -601,6 +631,7 @@
   "naturalDeaths": "5ffe533b830f08a0",
   "owner": "ec7b6d15f68d9c43",
   "pathCache": "013c331698353442",
+  "pathDirty": "e325b35265ba0e52",
   "pawns": "d6cd64fa3dfa2c3c",
   "regrow": "ae5f7bded389eb31",
   "rigDirty": "ff6ee01a70f979c2",
@@ -613,6 +644,7 @@
   "used": "b089bd8e99262086",
   "villages": "97259728146aa389",
   "visualDirty": "5ffe533b830f08a0",
+  "wear": "e30ad627fd214683",
   "weather": "5b6aeaa2cfaaba7b"
  },
  "calibrate": "cdd6ae12518c426c",

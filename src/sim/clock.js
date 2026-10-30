@@ -6,6 +6,7 @@ VB['sim/clock'] = (() => {
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { refreshRoutes } = VB['sim/routes'];
+  const { fadeWear } = VB['sim/paths'];
   const { feedHousehold } = VB['sim/hunger'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, planRound } = VB['sim/jobs'];
@@ -40,6 +41,7 @@ VB['sim/clock'] = (() => {
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     growTrees(st);
+    fadeWear(st);
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
     for (const f of st.farmsteads) for (const fd of f.fields) {
