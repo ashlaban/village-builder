@@ -7,7 +7,7 @@ Each task has its own file, `backlog/VB-NNN.md`, which holds the full descriptio
 A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated. `needs-review` tasks list the questions Kim must answer first.
 
 Refactor rules (every task titled "Refactor:"):
-- Behaviour is unchanged: `npm test` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.
+- Behaviour is unchanged: `npm run verify` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted.
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.

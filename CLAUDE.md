@@ -6,7 +6,9 @@ Work is planned in `BACKLOG.md` (overview table; one file per task in `backlog/`
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
-- Test: `npm install && npm test` (build check, regress, lint, golden, heirs, page smoke test in jsdom).
+- Test: `npm install && npm test` runs the cheap checks in parallel, about 10 s (build check, lint, backlog, regress, trees, stones, weeding, heirs).
+- Verify: `npm run verify` runs those and the long runs, about 40 s (golden, populous, births, hunger, page smoke test in jsdom).
+  `node tests/run.js verify --verbose` also prints the reported numbers.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
@@ -36,5 +38,7 @@ Work is planned in `BACKLOG.md` (overview table; one file per task in `backlog/`
 
 ## Working rules
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (see the golden rule in `BACKLOG.md`).
-- Rebuild `index.html` before committing; `npm test` checks it.
+- Use `npm test` while working, after each change. Use `npm run verify` sparingly: once at the end of a task, before its last commit,
+  and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
+- Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
