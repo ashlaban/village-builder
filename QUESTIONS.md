@@ -82,6 +82,20 @@ Store views for every level of entity are Decided; the scope model (VB-043) is A
 2. Where is it shown? **P:** a "Stores" panel opened from the village and household panels: one row per household, a total row and the village store, food in days of the household's need, updated once a game day.
 3. History? **P:** not in the first version; the household ledger stays in the household panel.
 
+### VB-093: a village windmill (backlog review)
+Milling at a mill is Decided (much faster, often village-owned, built as a commons job); rivers do not exist, so the first mill is a windmill. It comes after the quern (VB-009) and building (VB-032).
+1. When does a village build one? **P:** at the moving round, a village of 3 or more farms with no mill and a free open tile within 6 steps of the green, hills preferred.
+2. Hours and materials? **P:** foundation 20 h with 10 loads of stone, frame 80 h with 20 loads of timber, sails and millstones 40 h: 140 h, a little more than a cottage, as "likely dearer to build" suggests.
+3. How fast? **P:** 1 work hour per 20 grain, 5 times the quern; a household walks there with its grain and carries flour home, and uses the quern when the walk costs more than it saves.
+4. Other villages? **P:** a household of another village within 10 steps may mill for a toll of 1 in 16 of its grain, paid into the owning village's store.
+5. Wind? **P:** ignored in the first version: the mill turns every day.
+
+### VB-094: worn paths (backlog review)
+Proposed in the Systems overview; no task yet.
+1. Thresholds and fade? **P:** one count per crossing, halving each game year; trodden at 50, path at 200, lane at 800 (about 1, 4 and 16 crossings a day, kept up).
+2. Do lanes speed walking? **P:** not now: they are only drawn. Revisit with terrain costs for routes (see "Design points without a task", question 2).
+3. Lanes under snow (VB-083)? **P:** lanes stay visible as trodden snow; paths and trodden ground are covered.
+
 ### VB-067: empty fields and scrub (review)
 1. Empty farms' fields turn to scrub after 8 years everywhere; the design says near woodland. **P:** until forest spread exists (with grazing, in the animals arch), only fields within 2 steps of a forest tile go to scrub; others stay grass.
 
