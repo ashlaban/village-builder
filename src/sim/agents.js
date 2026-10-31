@@ -100,10 +100,11 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], [x, y] = homeSpot(st, a);
     walkTo(st, a, f.house, x, y);
   }
+  // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
+  const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    const pw = st.pawns[a.id];
-    j.done += dt * workRate(pw.role, age(st, pw)) * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
+    j.done += dt * rateOf(st, st.pawns[a.id]);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -158,7 +159,8 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
+    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, rateOf,
+    stepWork,
     moveAgent, describe,
   };
 })();

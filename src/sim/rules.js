@@ -105,10 +105,11 @@ VB['sim/rules'] = (() => {
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
+  // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
   // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
-    distanceWeight: 0.15, noise: 0.3, join: 0.8,
+    distanceWeight: 0.15, noise: 0.3, join: 0.8, switchRatio: 1.5, switchMargin: 1,
     urgency: {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)

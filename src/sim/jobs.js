@@ -1,10 +1,10 @@
-// @sys sim/jobs: job board: posting, ownership checks, urgency and bidding
+// @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { start, release, ownerKey, dropJob } = VB['sim/agents'];
+  const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { plotJobs } = VB['sim/expansion'];
@@ -81,14 +81,41 @@ VB['sim/jobs'] = (() => {
   // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
+  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
+  // or a poor fit for a job that has not waited long enough.
+  function score(st, p, j, c) {
+    if (p.role === 'child' && age(st, p) < CHILD.from) return null;
+    const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
+    if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
+    const here = st.farmsteads[st.households[p.household].farmstead].house;
+    return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+  }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !mayTake(st, p, j) || (p.role === 'child' && age(st, p) < CHILD.from)) return -1;
-    const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
-    if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return -1;
-    const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return (floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight) + st.rand() * MATCH.noise)
-      * MATCH.join ** j.claims.length;
+    if (!isOpen(j) || !mayTake(st, p, j)) return -1;
+    const s = score(st, p, j, c);
+    return s === null ? -1 : (s + st.rand() * MATCH.noise) * MATCH.join ** j.claims.length;
+  }
+  // The jobs a pawn may bid for: its household's and its village's, in increasing id.
+  const none = new Set();
+  const jobsFor = (st, p) => mergeById(st.jobsBy.get(`household:${p.household}`) || none, st.jobsBy.get(`village:${villageOf(st, p)}`) || none);
+  // VB-107: at each full hour of the working day, a pawn at work (not walking there, not carrying home) looks up from its job. When an open
+  // job it may take bids, without noise, above switchRatio × its own job's bid + switchMargin, it leaves its job, which keeps its progress,
+  // and starts the other. A job it would finish within the hour at its own rate is not left. Draws no random numbers.
+  function lookUp(st, c) {
+    for (const a of st.agents) {
+      const p = st.pawns[a.id], j = a.job;
+      if (a.phase !== 'work' || !j || p.died !== null) continue;
+      if (((j.hours ?? KINDS[j.kind].hours) - j.done) <= rateOf(st, p)) continue;
+      const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
+      let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
+      for (const k of jobsFor(st, p)) {
+        if (k === j || !isOpen(k)) continue;
+        const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
+        if (b > top) { top = b; best = k; }
+      }
+      if (best) { release(st, a); start(st, a, best); }
+    }
   }
   // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
@@ -139,11 +166,7 @@ VB['sim/jobs'] = (() => {
   }
   function planRound(st, idle, c) {
     const bids = [];
-    const none = new Set();
-    for (const a of idle) {
-      const p = st.pawns[a.id], hj = st.jobsBy.get(`household:${p.household}`) || none, vj = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
-      for (const j of mergeById(hj, vj)) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
-    }
+    for (const a of idle) for (const j of jobsFor(st, st.pawns[a.id])) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
     for (let i = 0; i < bids.length; i++) {
@@ -158,5 +181,5 @@ VB['sim/jobs'] = (() => {
     }
     return busy;
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, bid, planRound, explainIdle, idleLine };
+  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, explainIdle, idleLine };
 })();
