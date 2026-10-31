@@ -15,6 +15,8 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
   `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds`).
+- Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15` prints rations made by source (grain net of seed,
+  milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
