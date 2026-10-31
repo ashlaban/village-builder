@@ -122,8 +122,9 @@ VB['sim/society'] = (() => {
   const PAIR = 2 ** 21;
   const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
   const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
-  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y.
-  const NEAR = 30;
+  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
+  // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
+  const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
   function noteContacts(st) {
     const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     for (const hh of st.households) {
@@ -133,7 +134,7 @@ VB['sim/society'] = (() => {
     // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
     // so pairs are counted in the same order as by comparing every pair.
     const out = []; for (const a of st.agents) if (!a.inside && st.pawns[a.id].alive) out.push(a);
-    const cells = new Map(), cellOf = (cx, cy) => cx * 65536 + cy, cand = [];
+    const cells = new Map(), cand = [];
     out.forEach((a, n) => {
       const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
       if (l) l.push(n); else cells.set(k, [n]);
@@ -146,6 +147,7 @@ VB['sim/society'] = (() => {
       if (cand.length > 1) cand.sort((p, q) => p - q);
       for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
+    return { out, cells, cellOf, size: NEAR };
   }
   return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();

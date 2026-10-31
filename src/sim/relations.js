@@ -1,4 +1,4 @@
-// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, and the people a pawn knows
+// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, and the people a pawn knows
 VB['sim/relations'] = (() => {
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf } = VB['sim/records'];
@@ -58,15 +58,16 @@ VB['sim/relations'] = (() => {
     const rel = st.pawns[a].rel;
     let r = rel.get(b);
     if (!r) { r = { mem: {}, band: 0 }; r.band = bandOf(0, opinionOf(st, a, b)); rel.set(b, r); } // a band of standing alone is no news
-    const K = M[kind], m = r.mem[kind], v = (m ? memNow(st, kind, m) : 0) + K.v;
-    r.mem[kind] = { v: K.cap > 0 ? Math.min(K.cap, v) : Math.max(K.cap, v), t: st.t };
+    const K = M[kind], m = r.mem[kind], sum = (m ? memNow(st, kind, m) : 0) + K.v, v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
+    if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     const was = r.band;
     r.band = bandOf(was, opinionOf(st, a, b));
     if (r.band !== was && r.band !== 0) {
       personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`);
     }
   }
-  // Daily: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // (A faded memory counts 0 until then.)
   function fadeRelations(st) {
     for (const p of st.pawns) {
       if (!p.alive) continue;
@@ -83,6 +84,79 @@ VB['sim/relations'] = (() => {
     const p = st.pawns[id];
     for (const j of p.rel.keys()) { const q = st.pawns[j]; if (q.rel) q.rel.delete(id); }
     p.rel.clear();
+  }
+
+  // ---- talk: in each waking hour a pawn may start one talk, with a pawn in its house or near it outdoors (VB-061) ----
+  const T = SOCIAL.talk;
+  const young = (st, p) => p.age >= T.young[0] && p.age <= T.young[1] && spouseOf(st, p.id) === null;
+  const able = (st, a) => { const p = st.pawns[a.id]; return p.alive && p.age >= T.minAge && !a.carry; };
+  // Scratch for the hourly round (derived, not state): busy[id] === round marks a pawn talking this hour, seen[id] === look a pawn already
+  // drawn as a partner; found holds the partners of one pawn.
+  let busy = new Int32Array(1024), seen = new Int32Array(1024), round = 0, look = 0;
+  const found = [], lists = [];
+  // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
+  // it (`near`, from noteContacts), within near.size in x and y. Pawns talking already this hour are left out.
+  function partnersOf(st, a, near) {
+    found.length = 0;
+    if (a.inside) {
+      const hh = st.households[st.pawns[a.id].household];
+      if (hh) for (const m of hh.members) if (m !== a.id && st.agents[m].inside && busy[m] !== round) found.push(st.agents[m]);
+      return;
+    }
+    const S = near.size, cx = Math.floor(a.x / S), cy = Math.floor(a.y / S);
+    let n = 0; lists.length = 0; look++; seen[a.id] = look;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const l = near.cells.get(near.cellOf(cx + dx, cy + dy)); if (l) { lists.push(l); n += l.length; }
+    }
+    const draws = n <= T.sample + 1 ? n : T.sample;
+    for (let d = 0; d < draws; d++) {
+      let k = draws === n ? d : Math.floor(st.rand() * n), b = null;
+      for (const l of lists) { if (k < l.length) { b = near.out[l[k]]; break; } k -= l.length; }
+      if (seen[b.id] === look) continue;
+      seen[b.id] = look;
+      if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
+    }
+  }
+  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes
+  const talkWeight = (st, a, b, ya) => (1 + Math.min(st.pawns[a].ties.get(b) || 0, 1)) * (1 + opinionOf(st, a, b))
+    * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
+  // hour h: the pawns, from a random one on, each start a talk at chance T.chance, unless already talking this hour
+  const cand = [], wts = [];
+  function talkHour(st, h, near) {
+    if (h < T.from || h >= T.to) return;
+    const ag = st.agents, n = ag.length, start = Math.floor(st.rand() * n);
+    if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
+    round++;
+    for (let k = 0; k < n; k++) {
+      const a = ag[(start + k) % n];
+      if (busy[a.id] === round || !able(st, a) || st.rand() >= T.chance) continue;
+      const ya = young(st, st.pawns[a.id]);
+      let tot = 0; cand.length = 0; wts.length = 0;
+      partnersOf(st, a, near);
+      for (const b of found) {
+        if (!able(st, b)) continue;
+        const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+      }
+      if (!cand.length) continue;
+      let x = st.rand() * tot, i = 0;
+      while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+      busy[a.id] = round; busy[cand[i].id] = round;
+      talk(st, a, cand[i]);
+    }
+  }
+  // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
+  // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble
+  function talk(st, a, b) {
+    const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
+    const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
+    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = st.rand() * (1 + wg + wc);
+    const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
+    remember(st, i, j, kind); remember(st, j, i, kind);
+    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + st.rand() * T.bubbleHours, until = at + T.bubbleHours;
+    pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
+    const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
+    show(a, j); show(b, i);
+    st.talks++;
   }
 
   // ---- for the page and the tools ----
@@ -105,5 +179,8 @@ VB['sim/relations'] = (() => {
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
   }
-  return { compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, opinionWord, relationsOf, reasonsOf };
+  return {
+    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, opinionWord, relationsOf,
+    reasonsOf,
+  };
 })();

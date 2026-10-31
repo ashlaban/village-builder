@@ -11,6 +11,7 @@ VB['sim/clock'] = (() => {
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
+  const { talkHour } = VB['sim/relations'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
@@ -19,7 +20,7 @@ VB['sim/clock'] = (() => {
     return false;
   }
   function onHour(st, h, c) {
-    if (st.cenv) noteContacts(st);
+    if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }

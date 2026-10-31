@@ -2607,7 +2607,7 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, and the people a pawn knows
+// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, and the people a pawn knows
 VB['sim/relations'] = (() => {
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf } = VB['sim/records'];
@@ -2667,15 +2667,16 @@ VB['sim/relations'] = (() => {
     const rel = st.pawns[a].rel;
     let r = rel.get(b);
     if (!r) { r = { mem: {}, band: 0 }; r.band = bandOf(0, opinionOf(st, a, b)); rel.set(b, r); } // a band of standing alone is no news
-    const K = M[kind], m = r.mem[kind], v = (m ? memNow(st, kind, m) : 0) + K.v;
-    r.mem[kind] = { v: K.cap > 0 ? Math.min(K.cap, v) : Math.max(K.cap, v), t: st.t };
+    const K = M[kind], m = r.mem[kind], sum = (m ? memNow(st, kind, m) : 0) + K.v, v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
+    if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     const was = r.band;
     r.band = bandOf(was, opinionOf(st, a, b));
     if (r.band !== was && r.band !== 0) {
       personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`);
     }
   }
-  // Daily: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // (A faded memory counts 0 until then.)
   function fadeRelations(st) {
     for (const p of st.pawns) {
       if (!p.alive) continue;
@@ -2692,6 +2693,79 @@ VB['sim/relations'] = (() => {
     const p = st.pawns[id];
     for (const j of p.rel.keys()) { const q = st.pawns[j]; if (q.rel) q.rel.delete(id); }
     p.rel.clear();
+  }
+
+  // ---- talk: in each waking hour a pawn may start one talk, with a pawn in its house or near it outdoors (VB-061) ----
+  const T = SOCIAL.talk;
+  const young = (st, p) => p.age >= T.young[0] && p.age <= T.young[1] && spouseOf(st, p.id) === null;
+  const able = (st, a) => { const p = st.pawns[a.id]; return p.alive && p.age >= T.minAge && !a.carry; };
+  // Scratch for the hourly round (derived, not state): busy[id] === round marks a pawn talking this hour, seen[id] === look a pawn already
+  // drawn as a partner; found holds the partners of one pawn.
+  let busy = new Int32Array(1024), seen = new Int32Array(1024), round = 0, look = 0;
+  const found = [], lists = [];
+  // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
+  // it (`near`, from noteContacts), within near.size in x and y. Pawns talking already this hour are left out.
+  function partnersOf(st, a, near) {
+    found.length = 0;
+    if (a.inside) {
+      const hh = st.households[st.pawns[a.id].household];
+      if (hh) for (const m of hh.members) if (m !== a.id && st.agents[m].inside && busy[m] !== round) found.push(st.agents[m]);
+      return;
+    }
+    const S = near.size, cx = Math.floor(a.x / S), cy = Math.floor(a.y / S);
+    let n = 0; lists.length = 0; look++; seen[a.id] = look;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const l = near.cells.get(near.cellOf(cx + dx, cy + dy)); if (l) { lists.push(l); n += l.length; }
+    }
+    const draws = n <= T.sample + 1 ? n : T.sample;
+    for (let d = 0; d < draws; d++) {
+      let k = draws === n ? d : Math.floor(st.rand() * n), b = null;
+      for (const l of lists) { if (k < l.length) { b = near.out[l[k]]; break; } k -= l.length; }
+      if (seen[b.id] === look) continue;
+      seen[b.id] = look;
+      if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
+    }
+  }
+  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes
+  const talkWeight = (st, a, b, ya) => (1 + Math.min(st.pawns[a].ties.get(b) || 0, 1)) * (1 + opinionOf(st, a, b))
+    * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
+  // hour h: the pawns, from a random one on, each start a talk at chance T.chance, unless already talking this hour
+  const cand = [], wts = [];
+  function talkHour(st, h, near) {
+    if (h < T.from || h >= T.to) return;
+    const ag = st.agents, n = ag.length, start = Math.floor(st.rand() * n);
+    if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
+    round++;
+    for (let k = 0; k < n; k++) {
+      const a = ag[(start + k) % n];
+      if (busy[a.id] === round || !able(st, a) || st.rand() >= T.chance) continue;
+      const ya = young(st, st.pawns[a.id]);
+      let tot = 0; cand.length = 0; wts.length = 0;
+      partnersOf(st, a, near);
+      for (const b of found) {
+        if (!able(st, b)) continue;
+        const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+      }
+      if (!cand.length) continue;
+      let x = st.rand() * tot, i = 0;
+      while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+      busy[a.id] = round; busy[cand[i].id] = round;
+      talk(st, a, cand[i]);
+    }
+  }
+  // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
+  // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble
+  function talk(st, a, b) {
+    const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
+    const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
+    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = st.rand() * (1 + wg + wc);
+    const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
+    remember(st, i, j, kind); remember(st, j, i, kind);
+    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + st.rand() * T.bubbleHours, until = at + T.bubbleHours;
+    pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
+    const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
+    show(a, j); show(b, i);
+    st.talks++;
   }
 
   // ---- for the page and the tools ----
@@ -2714,7 +2788,10 @@ VB['sim/relations'] = (() => {
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
   }
-  return { compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, opinionWord, relationsOf, reasonsOf };
+  return {
+    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, opinionWord, relationsOf,
+    reasonsOf,
+  };
 })();
 </script>
 <script>
@@ -3863,8 +3940,9 @@ VB['sim/society'] = (() => {
   const PAIR = 2 ** 21;
   const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
   const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
-  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y.
-  const NEAR = 30;
+  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
+  // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
+  const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
   function noteContacts(st) {
     const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     for (const hh of st.households) {
@@ -3874,7 +3952,7 @@ VB['sim/society'] = (() => {
     // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
     // so pairs are counted in the same order as by comparing every pair.
     const out = []; for (const a of st.agents) if (!a.inside && st.pawns[a.id].alive) out.push(a);
-    const cells = new Map(), cellOf = (cx, cy) => cx * 65536 + cy, cand = [];
+    const cells = new Map(), cand = [];
     out.forEach((a, n) => {
       const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
       if (l) l.push(n); else cells.set(k, [n]);
@@ -3887,6 +3965,7 @@ VB['sim/society'] = (() => {
       if (cand.length > 1) cand.sort((p, q) => p - q);
       for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
+    return { out, cells, cellOf, size: NEAR };
   }
   return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();
@@ -4028,7 +4107,7 @@ VB['sim/lifecycle'] = (() => {
     st.contacts.clear();
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
-    fadeRelations(st);
+    if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
@@ -4070,7 +4149,7 @@ VB['sim/births'] = (() => {
     personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: st.rand() * 6,
-      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0,
+      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
@@ -4320,10 +4399,12 @@ VB['sim/scenarios'] = (() => {
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
+    // @state st.talks: number; talks since the start (sim/relations)
     // @state st.contacts: Map of pawn pair (pairKey in sim/society: i * 2^21 + j, i < j) to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
+    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
+    //   one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
     // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
@@ -4333,10 +4414,10 @@ VB['sim/scenarios'] = (() => {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
+      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
-        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
+        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
@@ -4369,6 +4450,7 @@ VB['sim/clock'] = (() => {
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
+  const { talkHour } = VB['sim/relations'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
@@ -4377,7 +4459,7 @@ VB['sim/clock'] = (() => {
     return false;
   }
   function onHour(st, h, c) {
-    if (st.cenv) noteContacts(st);
+    if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
@@ -5395,6 +5477,54 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let fieldTex = null, art = null;
   let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [];
   const ring = new PIXI.Graphics();
+  const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
+
+  // ---- talk on the map (VB-061): a bubble over each pawn talking on screen, a chat faint; the lens of the selected pawn ----
+  const lens = new PIXI.Graphics(), bubbles = new PIXI.Container(), bubblePool = [];
+  L.hover.addChild(lens); L.hover.addChild(bubbles);
+  let bubbleTex = null;
+  function bubbleCanvas(kind) {
+    const c = makeCanvas(40, 34), g = c.getContext('2d'), cross = kind === 'crossWords';
+    g.beginPath(); g.moveTo(12, 3); g.arcTo(37, 3, 37, 25, 9); g.arcTo(37, 25, 3, 25, 9); g.lineTo(19, 25); g.lineTo(9, 32); g.lineTo(11, 25);
+    g.arcTo(3, 25, 3, 3, 9); g.arcTo(3, 3, 37, 3, 9); g.closePath();
+    g.fillStyle = cross ? '#f6ddd4' : '#fbf8ef'; g.fill(); g.lineWidth = 2; g.strokeStyle = cross ? '#8a3324' : '#4b5a5e'; g.stroke();
+    g.fillStyle = kind === 'chat' ? '#5d6b6e' : cross ? '#a8432f' : '#2f7a4b';
+    if (kind === 'chat') for (const x of [12, 20, 28]) { g.beginPath(); g.arc(x, 14, 2.4, 0, Math.PI * 2); g.fill(); }
+    else { g.font = 'bold 19px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(cross ? '!' : '♪', 20, 15); }
+    return c;
+  }
+  // a talk shows from `at` to `until`, fading in and out over its first and last sixth
+  function drawTalk(show) {
+    if (!bubbleTex) bubbleTex = Object.fromEntries(['chat', 'goodTalk', 'crossWords'].map((k) => [k, texFrom(bubbleCanvas(k), { autoGenerateMipmaps: true })]));
+    const [x0, y0, x1, y1] = viewRect(20);
+    let n = 0;
+    if (show) for (const a of st.agents) {
+      const tk = a.talk;
+      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible || a.x < x0 || a.x > x1 || a.y < y0 || a.y > y1) continue;
+      let b = bubblePool[n];
+      if (!b) { b = new PIXI.Sprite(bubbleTex.chat); b.anchor.set(0.25, 1); bubbles.addChild(b); bubblePool.push(b); }
+      const f = clamp(Math.min(st.t - tk.at, tk.until - st.t) / ((tk.until - tk.at) / 6), 0, 1);
+      b.texture = bubbleTex[tk.kind]; b.alpha = (tk.kind === 'chat' ? 0.5 : 0.95) * f; b.visible = true;
+      b.position.set(a.x + 1.5, a.y - 19 * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
+      n++;
+    }
+    for (let i = n; i < bubblePool.length; i++) bubblePool[i].visible = false;
+  }
+  // The selected pawn's lens: a line to each of the 20 people it knows best, where they are (at home: their house); green for liked,
+  // red for disliked, stronger for a closer tie.
+  function drawLens() {
+    lens.clear();
+    if (selPawn < 0 || !rigs[selPawn] || !rigs[selPawn].root.visible) return;
+    const a = st.agents[selPawn], z = Math.max(cam.z, 0.6);
+    for (const x of Sim.relationsOf(st, selPawn).slice(0, 20)) {
+      const b = st.agents[x.id], f = farmOf(st.pawns[x.id]);
+      if (b.inside && !f) continue;
+      const bx = b.inside ? w.hx[f.house] : b.x, by = b.inside ? w.hy[f.house] : b.y - 6, s = Math.min(1, x.tie / 10);
+      const col = x.opinion >= 0.25 ? 0x3f9a5c : x.opinion <= -0.2 ? 0xc8553d : 0xf2ead8;
+      lens.moveTo(a.x, a.y - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
+      lens.ellipse(bx, by, 2.4 / z, 2.4 / z).fill({ color: col, alpha: 0.8 });
+    }
+  }
 
   function hexClip(g, cx, cy, r) {
     g.beginPath();
@@ -5575,7 +5705,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const pp = st.pawns[a.id];
       R.root.visible = show && !a.inside && pp.died === null;
       if (!R.root.visible) continue;
-      const k = pp.age < 6 ? 0.55 : pp.age < 10 ? 0.66 : pp.age < 14 ? 0.8 : pp.age < 17 ? 0.93 : 1; // children are smaller
+      const k = sizeAt(pp.age);
       R.root.position.set(a.x, a.y); R.root.scale.set((a.face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
@@ -5584,6 +5714,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const a = st.agents[selPawn];
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
+    drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
     const evening = c.hour >= 16 || c.hour < 8;
     for (const h of houseInfo) {
@@ -5700,7 +5831,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const x of all.slice(5)) if (cold(x.opinion) && list.length < 7) list.push(x);
     const rows = list.map((x) => {
       const word = Sim.opinionWord(x.opinion), kin = Sim.standingWord(st, id, x.id), why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
-      const detail = [kin, word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
+      const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
       return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(x.opinion)}</b></button>`;
     }).join('');

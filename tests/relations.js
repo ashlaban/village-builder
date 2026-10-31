@@ -1,5 +1,5 @@
 // Relationships (sim/relations): compatibility, timed memories within their caps, opinion, friend and dislike bands told once,
-// memories that fade and are forgotten, and death ending relationships.
+// memories that fade and are forgotten (once a season), and death ending relationships.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, DAY } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RELATIONS FAIL:', m); } };
@@ -53,9 +53,9 @@ check(R.opinionOf(st, h0, h1) > 0 && R.standing(st, h0, h1) !== null, `housemate
 const half = R.memNow(st, 'crossWords', { v: -0.6, t: st.t - K.crossWords.days * DAY / 2 });
 check(Math.abs(half + 0.3) < 1e-9, `half-way through, a memory is at half: ${half}`);
 R.remember(st, a.id, b.id, 'chat');
-Sim.advance(st, (K.chat.days + 1) * DAY);
+Sim.advance(st, (K.chat.days + 1) * DAY); R.fadeRelations(st);
 check(!('chat' in a.rel.get(b.id).mem), 'a chat is forgotten after its days');
-Sim.advance(st, (K.goodTalk.days - K.chat.days) * DAY);
+Sim.advance(st, (K.goodTalk.days - K.chat.days) * DAY); R.fadeRelations(st);
 check(!a.rel.has(b.id), 'a record with no memories left is dropped');
 check(checkState(st).length === 0, 'invariants: ' + checkState(st).slice(0, 3).join('; '));
 
@@ -64,4 +64,24 @@ R.remember(st, a.id, b.id, 'goodTalk'); R.remember(st, b.id, a.id, 'goodTalk');
 Sim.killPawn(st, b.id, 'killed');
 check(!a.rel.has(b.id) && b.rel.size === 0, 'death ends relationships');
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
-if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}`);
+// talk (VB-061): two pawns standing together outdoors in waking hours talk, both remember it, and their tie grows by SOCIAL.talk.tie
+const S = VB['sim/society'], T = SOCIAL.talk, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
+const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { g.inside = false; g.path = null; g.job = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
+const tie0 = pair[0].ties.get(pair[1].id) || 0, talks0 = st.talks;
+for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
+let hours = 0;
+while (st.talks === talks0 && hours < 20) { stand(); S.noteContacts(st); R.talkHour(st, 10, S.noteContacts(st)); hours++; }
+check(st.talks > talks0, `no talk in ${hours} hours together`);
+check(pair[0].rel.has(pair[1].id) && pair[1].rel.has(pair[0].id), 'both remember the talk');
+const grew = ((pair[0].ties.get(pair[1].id) || 0) - tie0) / T.tie; // housemates indoors talk too, so count the pair's talks by its tie
+check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
+check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
+const before = st.talks; stand(); R.talkHour(st, 23, S.noteContacts(st)); stand(); R.talkHour(st, 3, S.noteContacts(st));
+check(st.talks === before, 'no talk at night');
+// in a busy hour each pawn is in one talk at most
+for (const ag of st.agents) { ag.talk = null; if (st.pawns[ag.id].alive) { ag.inside = false; ag.path = null; ag.carry = null; ag.x = 6000 + (ag.id % 5) * 6; ag.y = 6000; } }
+const t1 = st.talks; R.talkHour(st, 10, S.noteContacts(st));
+const talking = st.agents.filter((ag) => ag.talk).length;
+check(st.talks > t1 && talking === 2 * (st.talks - t1), `${st.talks - t1} talks, ${talking} pawns talking`);
+check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).slice(0, 3).join('; '));
+if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}; ${st.talks - t1} talks in one crowded hour`);
