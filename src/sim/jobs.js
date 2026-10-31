@@ -6,7 +6,7 @@ VB['sim/jobs'] = (() => {
   const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
-  const { startProject } = VB['sim/fields'];
+  const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
@@ -54,6 +54,8 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
       }
       for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
+      const dung = manureWanted(f, hh, c); // VB-137
+      if (dung) post(st, `manure:f${f.id}.${dung[0].id}`, 'manure', own, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
       if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(st, key, kind, own, f.house, { farm: f, ...extra });
       if (st.makeFields) { startProject(st, f, hh); startMeadow(st, f, hh); } // a meadow once the fields are enough
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });

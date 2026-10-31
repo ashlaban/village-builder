@@ -1,6 +1,6 @@
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
-  const { HERD, WORK } = VB['sim/rules'];
+  const { HERD, SOIL, WORK } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -178,6 +178,13 @@ VB['sim/byre'] = (() => {
       emergency(st, hh, c);
     }
   }
+  // Fed and mucked out: the day's dung goes on the heap (VB-137).
+  function fodderDone(st, hh, c) {
+    hh.fodderDay = c.day;
+    for (const herd of herdsOf(st, hh)) {
+      hh.manure += herd.species === 'cattle' ? SOIL.cattle * herd.head.length : SOIL.sheep * (herd.ewes + herd.rams + herd.lambs);
+    }
+  }
   // Fodder: hours a day by the size of the herds.
   const fodderHours = (st, hh) => HERD.fodder[0] + herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'cattle'
     ? HERD.fodder[1] * hd.head.length : HERD.fodder[2] * (hd.ewes + hd.rams + hd.lambs)), 0);
@@ -197,5 +204,5 @@ VB['sim/byre'] = (() => {
     }
     return out;
   }
-  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, byreDay, fodderHours, byreJobs };
+  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
 })();

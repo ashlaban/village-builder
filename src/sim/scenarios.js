@@ -165,11 +165,13 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n}; kind 'harvest', 'gift' (n signed, from or to; sim/help), 'meat', 'milk' (drunk fresh), 'butter' (rations made;
     //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
-    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135)}
+    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
+    //   manure (loads on the heap by the byre; VB-137)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
+    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
+    //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither

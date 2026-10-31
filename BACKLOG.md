@@ -101,7 +101,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-129 | Spread the moving round over several steps | tooling | implement | needs-review | 2 | S | The yearly moving round ran in one 1 s step; VB-143 brought it to 20 ms; close or keep for saves. | [backlog/VB-129.md](backlog/VB-129.md) |
 | VB-130 | Grain outlets: what a hoard of grain does | food | implement | needs-review | 3 | S | Founders end up with 1,000+ grain and nothing to spend it on; add storage loss or another outlet. | [backlog/VB-130.md](backlog/VB-130.md) |
 | VB-136 | Herding and grazing pressure | animals | implement | ready | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. | [backlog/VB-136.md](backlog/VB-136.md) |
-| VB-137 | Manure and the soil | animals | implement | ready | 2 | S | Harvests wear a field's soil; manure from the byre restores it. | [backlog/VB-137.md](backlog/VB-137.md) |
 | VB-138 | Oxen at the plough | animals | implement | ready | 2 | S | A pair of oxen tills at 2.5 times a hoe. | [backlog/VB-138.md](backlog/VB-138.md) |
 | VB-139 | Roe deer | animals | implement | ready | 3 | M | Deer stock per region, crop damage by broken fences, hunting. | [backlog/VB-139.md](backlog/VB-139.md) |
 | VB-140 | Livestock in shares and a new household's start | animals | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |

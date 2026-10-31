@@ -1009,6 +1009,17 @@
     }
     return c;
   }
+  // The manure heap by the byre (VB-137): small, middling and large by the loads on it; dark dung under a few wisps of straw bedding.
+  function manureCanvas(level) {
+    const c = makeCanvas(36, 20), g = c.getContext('2d'), r = G.mulberry32(53 + level), wdt = [9, 12, 15][level], h = [5, 8, 11][level];
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(18, 17.5, wdt + 2, 2.5, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(74,54,36)'; g.beginPath(); g.moveTo(18 - wdt, 17.5); g.quadraticCurveTo(18 - wdt * 0.6, 17.5 - h * 1.1, 18, 17.5 - h);
+    g.quadraticCurveTo(18 + wdt * 0.7, 17.5 - h * 1.05, 18 + wdt, 17.5); g.fill();
+    g.fillStyle = 'rgba(40,28,18,0.6)'; for (let k = 0; k < 6; k++) { g.beginPath(); g.ellipse(18 + (r() - 0.5) * wdt * 1.3, 17 - r() * h * 0.7, 2, 1.2, 0, 0, 7); g.fill(); }
+    g.strokeStyle = 'rgba(196,176,110,0.85)'; g.lineWidth = 0.7;
+    for (let k = 0; k < 5 + level * 3; k++) { const x = 18 + (r() - 0.5) * wdt * 1.4, y = 17 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 1 + r() * 2); g.stroke(); }
+    return c;
+  }
   // Cattle and sheep, side on, facing right; `look` 0 grazes with the head down, 1 looks up. Coats after old Nordic landraces:
   // red, brown, black, dun, and white with dark patches.
   const COATS = [[150, 74, 48], [112, 76, 50], [52, 46, 42], [182, 152, 108], 'pied'];
@@ -1220,6 +1231,7 @@
       wood: [0, 1, 2, 3].map((l) => T(woodpileCanvas(l))), sweep: T(wellSweepCanvas()), curb: T(curbCanvas()),
       stook: [0, 1].map((v) => T(stookCanvas(v))), yard: T(yardCanvas()), puff: T(puffCanvas()), byre: T(byreCanvas()),
       haystack: [0, 1, 2, 3].map((l) => T(haystackCanvas(l))),
+      manure: [0, 1, 2].map((l) => T(manureCanvas(l))),
       cow: COATS.map((_, k) => [T(cowCanvas(k, 0)), T(cowCanvas(k, 1))]), sheep: [T(sheepCanvas(0)), T(sheepCanvas(1))],
     };
     atlas = buildAtlas();
@@ -1281,11 +1293,12 @@
       const herds = !empty && st.households[f.household].herds.length > 0;
       if (herds) place(art.byre, hx - 25, hy + 2, 0.5, 0.92);
       const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx - 36, hy + 12, 0.5, 0.93) : null;
+      const heap = herds ? place(art.manure[0], hx - 21, hy + 14, 0.5, 0.88) : null; // the dung heap by the byre door (VB-137)
       if (!st.villages[f.village].well) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
-        houseInfo.push({ f, puffs, wood, stack, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
+        houseInfo.push({ f, puffs, wood, stack, heap, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
       }
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
@@ -1425,6 +1438,10 @@
       if (h.stack) {
         const need = Sim.winterNeed(st, hh), k = hh.hay <= 0.5 ? 0 : !need || hh.hay >= 0.75 * need ? 3 : hh.hay >= 0.33 * need ? 2 : 1;
         if (h.stack.texture !== art.haystack[k]) h.stack.texture = art.haystack[k];
+      }
+      if (h.heap) {
+        const n = hh.manure || 0, k = n < 4 ? 0 : n < 10 ? 1 : 2;
+        h.heap.visible = n >= 0.5; if (h.heap.texture !== art.manure[k]) h.heap.texture = art.manure[k];
       }
     }
     for (const l of labels) {
@@ -1569,7 +1586,8 @@
       if (fd) {
         const word = { stubble: 'Stubble, waiting for spring', plowed: 'Hoed, ready for sowing', sown: 'Freshly sown', young: 'Sprouting', growing: 'Growing', ripe: 'Ripe for reaping', stooks: 'Sheaves drying in stooks', fallow: 'Untended, gone to grass', scrub: 'Untended, gone to scrub' }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
         const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
-        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+        const worn = fd.soil < 0.99 ? `, worn to ${Math.round(fd.soil * 100)}% by its crops` : fd.soil > 1.01 ? `, dunged to ${Math.round(fd.soil * 100)}%` : '';
+        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
     }
     for (const f of st.farmsteads) {

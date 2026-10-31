@@ -1879,6 +1879,9 @@ VB['sim/rules'] = (() => {
     // a day, less leanPer a lean day of the winter, at most leanMax; the share churned to butter, which keeps butterDays; fresh milk keeps a day
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
   };
+  // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
+  // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep ----
+  const SOIL = { start: 1, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5] };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
@@ -1917,12 +1920,13 @@ VB['sim/rules'] = (() => {
       rake: 0.8, mow: 1, mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
       fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
+      manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -2182,7 +2186,7 @@ VB['sim/paths'] = (() => {
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -2279,7 +2283,7 @@ VB['sim/layout'] = (() => {
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
-        weedOpen: false, weedPosted: null, weedMiss: 0 })),
+        soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [],
     };
   }
@@ -2411,7 +2415,7 @@ VB['sim/layout'] = (() => {
     if (best < 0) return false;
     used.add(best);
     f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
-      weedOpen: false, weedPosted: null, weedMiss: 0 });
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
@@ -2567,7 +2571,7 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
       ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [], fodderDay: -1,
-      milkDay: -1 };
+      milkDay: -1, manure: 0 };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -3374,7 +3378,7 @@ VB['sim/deaths'] = (() => {
 // @sys sim/fields: making new fields: how many a household wants, choosing a meadow tile, clearing it and breaking the ground
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { ECON, SOIL, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
@@ -3429,12 +3433,31 @@ VB['sim/fields'] = (() => {
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
     f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
-      weedOpen: false, weedPosted: null, weedMiss: 0 });
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`);
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak };
+  // ---- soil and manure (VB-137) ----
+  // A reaped crop wears the field's soil.
+  const wearSoil = (fd) => { fd.soil = Math.max(SOIL.floor, fd.soil - SOIL.wear); };
+  // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
+  function manureWanted(f, hh, c) {
+    if (c.season !== 0 || c.sday < SOIL.window[0] || c.sday > SOIL.window[1] || !(hh.manure >= 1)) return null;
+    let best = null;
+    for (const fd of f.fields) {
+      if ((fd.stage !== 'stubble' && fd.stage !== 'plowed') || fd.soil >= SOIL.cap - 1e-9) continue;
+      if (!best || fd.soil < best.soil) best = fd;
+    }
+    return best ? [best, Math.min(hh.manure, (SOIL.cap - best.soil) / SOIL.perLoad)] : null;
+  }
+  // The manure is spread: each load the job carried raises the soil, as far as the heap still holds it.
+  function manureDone(st, fd, hh, loads) {
+    const n = Math.max(0, Math.min(loads, hh.manure));
+    hh.manure -= n; fd.soil = Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad);
+  }
+  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil, manureWanted,
+    manureDone };
 })();
 </script>
 <script>
@@ -3554,7 +3577,7 @@ VB['sim/meadows'] = (() => {
 <script>
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
-  const { HERD, WORK } = VB['sim/rules'];
+  const { HERD, SOIL, WORK } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -3732,6 +3755,13 @@ VB['sim/byre'] = (() => {
       emergency(st, hh, c);
     }
   }
+  // Fed and mucked out: the day's dung goes on the heap (VB-137).
+  function fodderDone(st, hh, c) {
+    hh.fodderDay = c.day;
+    for (const herd of herdsOf(st, hh)) {
+      hh.manure += herd.species === 'cattle' ? SOIL.cattle * herd.head.length : SOIL.sheep * (herd.ewes + herd.rams + herd.lambs);
+    }
+  }
   // Fodder: hours a day by the size of the herds.
   const fodderHours = (st, hh) => HERD.fodder[0] + herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'cattle'
     ? HERD.fodder[1] * hd.head.length : HERD.fodder[2] * (hd.ewes + hd.rams + hd.lambs)), 0);
@@ -3751,7 +3781,7 @@ VB['sim/byre'] = (() => {
     }
     return out;
   }
-  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, byreDay, fodderHours, byreJobs };
+  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
 })();
 </script>
 <script>
@@ -3903,9 +3933,9 @@ VB['sim/kinds'] = (() => {
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
-  const { finishClear, finishBreak } = VB['sim/fields'];
+  const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
-  const { slaughterDone, saltDone, milkDone } = VB['sim/byre'];
+  const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -3951,7 +3981,9 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON, fd = j.field;
         fd.stage = 'stooks'; fd.reaped = c.day;
-        fd.held = Math.round(E.fieldYield * fd.fert * st.weather * (0.9 + st.rand() * 0.2) * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + st.rand() * 0.2)
+          * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+        wearSoil(fd); // the crop takes from the soil (VB-137)
         fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
       },
     },
@@ -4032,7 +4064,12 @@ VB['sim/kinds'] = (() => {
     },
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
-      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => { hh.fodderDay = c.day; },
+      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => fodderDone(st, hh, c),
+    },
+    manure: {
+      verb: 'Spreading manure on the field', go: 'Carting manure to the field', name: 'Cart manure', label: 'Manure', anim: 'gather', hours: 1,
+      hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure,
+      done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
     },
     milk: {
       verb: 'Milking the cows', go: 'Going to milk the cows', name: 'Milk the cows', label: 'Milking', anim: 'milk', hours: 0.5, hands: 1,
@@ -4253,7 +4290,7 @@ VB['sim/jobs'] = (() => {
   const { villageOf, age } = VB['sim/records'];
   const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
-  const { startProject } = VB['sim/fields'];
+  const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
@@ -4301,6 +4338,8 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
       }
       for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
+      const dung = manureWanted(f, hh, c); // VB-137
+      if (dung) post(st, `manure:f${f.id}.${dung[0].id}`, 'manure', own, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
       if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(st, key, kind, own, f.house, { farm: f, ...extra });
       if (st.makeFields) { startProject(st, f, hh); startMeadow(st, f, hh); } // a meadow once the fields are enough
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
@@ -5305,11 +5344,13 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n}; kind 'harvest', 'gift' (n signed, from or to; sim/help), 'meat', 'milk' (drunk fresh), 'butter' (rations made;
     //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
-    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135)}
+    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
+    //   manure (loads on the heap by the byre; VB-137)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
+    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
+    //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
@@ -5507,7 +5548,7 @@ const Sim = (() => {
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
-  const { HERD } = VB['sim/rules'];
+  const { HERD, SOIL } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport } = VB['sim/herds'];
   const { larderOf } = VB['sim/hunger'];
 
@@ -5516,7 +5557,7 @@ const Sim = (() => {
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
-    HERD, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf,
+    HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf,
   };
 })();
 VB['sim'] = Sim;
@@ -6438,6 +6479,17 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     return c;
   }
+  // The manure heap by the byre (VB-137): small, middling and large by the loads on it; dark dung under a few wisps of straw bedding.
+  function manureCanvas(level) {
+    const c = makeCanvas(36, 20), g = c.getContext('2d'), r = G.mulberry32(53 + level), wdt = [9, 12, 15][level], h = [5, 8, 11][level];
+    g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(18, 17.5, wdt + 2, 2.5, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(74,54,36)'; g.beginPath(); g.moveTo(18 - wdt, 17.5); g.quadraticCurveTo(18 - wdt * 0.6, 17.5 - h * 1.1, 18, 17.5 - h);
+    g.quadraticCurveTo(18 + wdt * 0.7, 17.5 - h * 1.05, 18 + wdt, 17.5); g.fill();
+    g.fillStyle = 'rgba(40,28,18,0.6)'; for (let k = 0; k < 6; k++) { g.beginPath(); g.ellipse(18 + (r() - 0.5) * wdt * 1.3, 17 - r() * h * 0.7, 2, 1.2, 0, 0, 7); g.fill(); }
+    g.strokeStyle = 'rgba(196,176,110,0.85)'; g.lineWidth = 0.7;
+    for (let k = 0; k < 5 + level * 3; k++) { const x = 18 + (r() - 0.5) * wdt * 1.4, y = 17 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 1 + r() * 2); g.stroke(); }
+    return c;
+  }
   // Cattle and sheep, side on, facing right; `look` 0 grazes with the head down, 1 looks up. Coats after old Nordic landraces:
   // red, brown, black, dun, and white with dark patches.
   const COATS = [[150, 74, 48], [112, 76, 50], [52, 46, 42], [182, 152, 108], 'pied'];
@@ -6649,6 +6701,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       wood: [0, 1, 2, 3].map((l) => T(woodpileCanvas(l))), sweep: T(wellSweepCanvas()), curb: T(curbCanvas()),
       stook: [0, 1].map((v) => T(stookCanvas(v))), yard: T(yardCanvas()), puff: T(puffCanvas()), byre: T(byreCanvas()),
       haystack: [0, 1, 2, 3].map((l) => T(haystackCanvas(l))),
+      manure: [0, 1, 2].map((l) => T(manureCanvas(l))),
       cow: COATS.map((_, k) => [T(cowCanvas(k, 0)), T(cowCanvas(k, 1))]), sheep: [T(sheepCanvas(0)), T(sheepCanvas(1))],
     };
     atlas = buildAtlas();
@@ -6710,11 +6763,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const herds = !empty && st.households[f.household].herds.length > 0;
       if (herds) place(art.byre, hx - 25, hy + 2, 0.5, 0.92);
       const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx - 36, hy + 12, 0.5, 0.93) : null;
+      const heap = herds ? place(art.manure[0], hx - 21, hy + 14, 0.5, 0.88) : null; // the dung heap by the byre door (VB-137)
       if (!st.villages[f.village].well) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
-        houseInfo.push({ f, puffs, wood, stack, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
+        houseInfo.push({ f, puffs, wood, stack, heap, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
       }
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
@@ -6854,6 +6908,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (h.stack) {
         const need = Sim.winterNeed(st, hh), k = hh.hay <= 0.5 ? 0 : !need || hh.hay >= 0.75 * need ? 3 : hh.hay >= 0.33 * need ? 2 : 1;
         if (h.stack.texture !== art.haystack[k]) h.stack.texture = art.haystack[k];
+      }
+      if (h.heap) {
+        const n = hh.manure || 0, k = n < 4 ? 0 : n < 10 ? 1 : 2;
+        h.heap.visible = n >= 0.5; if (h.heap.texture !== art.manure[k]) h.heap.texture = art.manure[k];
       }
     }
     for (const l of labels) {
@@ -6998,7 +7056,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (fd) {
         const word = { stubble: 'Stubble, waiting for spring', plowed: 'Hoed, ready for sowing', sown: 'Freshly sown', young: 'Sprouting', growing: 'Growing', ripe: 'Ripe for reaping', stooks: 'Sheaves drying in stooks', fallow: 'Untended, gone to grass', scrub: 'Untended, gone to scrub' }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
         const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
-        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+        const worn = fd.soil < 0.99 ? `, worn to ${Math.round(fd.soil * 100)}% by its crops` : fd.soil > 1.01 ? `, dunged to ${Math.round(fd.soil * 100)}%` : '';
+        return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
     }
     for (const f of st.farmsteads) {

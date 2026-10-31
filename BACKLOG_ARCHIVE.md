@@ -81,3 +81,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-134 | The byre, the autumn count, slaughter and salt meat | animals | implement | done | 2 | M | Daily hay in the byre, the autumn count and slaughter, salt meat in the larder, the hard limit. | [backlog/VB-134.md](backlog/VB-134.md) |
 | VB-143 | Heir rankings cached in the moving round, and the yearly ties without a whole-island search | tooling | implement | done | 2 | S | The moving round drops from 1.3 s to 20 ms and the meetings from 63 to 16 ms; behaviour unchanged. | [backlog/VB-143.md](backlog/VB-143.md) |
 | VB-135 | Milk and butter | animals | implement | done | 2 | S | Cows in milk give 0.5 rations a day in summer; 40% churned to butter for winter. | [backlog/VB-135.md](backlog/VB-135.md) |
+| VB-137 | Manure and the soil | animals | implement | done | 2 | S | Harvests wear a field's soil; manure from the byre restores it. | [backlog/VB-137.md](backlog/VB-137.md) |
