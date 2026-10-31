@@ -1,7 +1,7 @@
 // @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project, and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
-  const { byRiver } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log } = VB['sim/records'];
@@ -70,5 +70,43 @@ VB['sim/meadows'] = (() => {
       }
     }
   }
-  return { HAY, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow, finishMeadow, placeMeadows };
+  // ---- haymaking (VB-133): rake in spring, mow from summer day 1 to autumn day 3, dry a day, carry to the barn ----
+  // Raking (fagning) on spring days 1-10; a meadow not raked gives UNRAKED of its hay.
+  const RAKE_DAYS = 10, UNRAKED = 0.8, MOW_LAST = 2, DRY_DAYS = 1;
+  // Days into the haymaking window, or -1 outside it.
+  const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
+  // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household.
+  function meadowJobs(f, m, c) {
+    const k = `f${f.id}.m${m.id}`, out = [];
+    if (m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
+    if (m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
+    if (m.stage === 'mown' && c.day >= m.mown + DRY_DAYS) out.push(['hay:' + k, 'hay']);
+    return out;
+  }
+  // Mown: the meadow holds its year's hay, by site, weather and raking.
+  function mowDone(st, m, c) {
+    m.stage = 'mown'; m.mown = c.day;
+    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + st.rand() * 0.2));
+  }
+  // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
+  function hayIn(st, m, hh, f) {
+    hh.hay += m.held; m.held = 0; m.stage = 'aftermath';
+    if (f.meadows.some((q) => q.stage !== 'aftermath')) return;
+    const need = winterNeed(st, hh), short = need > hh.hay;
+    log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`);
+  }
+  // Once a game day, at its start: each spring the meadows are grass again; hay still lying at the autumn frost rots.
+  function meadowsDay(st, c) {
+    for (const f of st.farmsteads) for (const m of f.meadows) {
+      if (c.doy === 0) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
+      if (c.season === 2 && c.sday === SEASON_DAYS - 1 && m.stage === 'mown') {
+        m.stage = 'aftermath'; m.held = 0;
+        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`);
+      }
+    }
+  }
+  return {
+    HAY, UNRAKED, hayDay, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow, finishMeadow,
+    placeMeadows,
+  };
 })();

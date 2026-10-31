@@ -16,6 +16,7 @@ VB['sim/clock'] = (() => {
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
+  const { meadowsDay } = VB['sim/meadows'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
     for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
@@ -37,7 +38,7 @@ VB['sim/clock'] = (() => {
       release(st, a);
       if (!a.inside) { goHome(st, a); a.phase = 'home'; }
     }
-    if (h === 0) { endOfDay(st, c); herdsDay(st, c); if (st.cenv) { dailyLife(st, c); dailyBirths(st); } if (c.doy === 0) newYear(st, c); }
+    if (h === 0) { endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); if (st.cenv) { dailyLife(st, c); dailyBirths(st); } if (c.doy === 0) newYear(st, c); }
   }
   function endOfDay(st, c) {
     const E = st.ECON;

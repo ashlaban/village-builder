@@ -77,3 +77,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-047 | Plan: animals and husbandry | animals | plan | done | 3 | M | Confirm the first version of herds, hay and the winter limit, then write the implement tasks. | [backlog/VB-047.md](backlog/VB-047.md) |
 | VB-131 | Herds as household data, at the farm and in the panels | animals | implement | done | 2 | M | Named cattle and counted sheep per household; spring breeding; animals by the farms and in the panels. | [backlog/VB-131.md](backlog/VB-131.md) |
 | VB-132 | Hay meadows, made and placed | animals | implement | done | 2 | M | Meadows claimed and cleared by households with animals; generated villages start with theirs. | [backlog/VB-132.md](backlog/VB-132.md) |
+| VB-133 | Haymaking and the hay barn | animals | implement | done | 2 | M | Rake in spring, mow, dry and carry hay in summer; the haystack shows the stock. | [backlog/VB-133.md](backlog/VB-133.md) |

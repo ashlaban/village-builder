@@ -5,7 +5,7 @@ VB['sim/kinds'] = (() => {
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
-  const { finishMeadow } = VB['sim/meadows'];
+  const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -113,6 +113,20 @@ VB['sim/kinds'] = (() => {
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
       type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishMeadow(st, j.farm, hh),
+    },
+    rake: {
+      verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,
+      type: 'harvest', field: true, spot: onField, urgency: (st, j, c, U) => U.rake, done: (st, j) => { j.meadow.raked = true; },
+    },
+    mow: {
+      verb: 'Mowing hay', go: 'Going to mow a meadow', name: 'Mow a meadow', label: 'Mowing', anim: 'mow', hours: 16, hands: Infinity, type: 'harvest',
+      field: true, spot: onField, urgency: (st, j, c, U) => U.mow + Math.max(0, hayDay(c)) / U.mowPerDay, done: (st, j, hh, c) => mowDone(st, j.meadow, c),
+    },
+    hay: {
+      verb: 'Gathering the hay', go: 'Going for the hay', back: 'Carrying hay to the barn', name: 'Bring in hay', label: 'Hauling hay', anim: 'gather',
+      hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
+      spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
+      deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f),
     },
     fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
     grub: {
