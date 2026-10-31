@@ -9,7 +9,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
-  const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
+  const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
@@ -118,16 +118,20 @@ VB['sim/lifecycle'] = (() => {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
     comeOfAge(st);
-    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor
-    const decay = Math.pow(0.5, 1 / YEAR_DAYS);
-    for (const p of st.pawns) { if (!p.alive) continue; for (const [j, w0] of p.ties) p.ties.set(j, w0 * decay); }
+    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
+    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
+    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
+    for (const p of st.pawns) {
+      if (!p.alive) continue;
+      for (const [j, w0] of p.ties) { const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+    }
     for (const [k, hrs] of st.contacts) {
-      const [i, j] = k.split(':').map(Number), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
+      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
       const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
     }
     st.contacts.clear();
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
-    for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
+    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }

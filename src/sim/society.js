@@ -118,17 +118,34 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
+  // A pair of pawns as one number, the smaller id first, and back.
+  const PAIR = 2 ** 21;
+  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
+  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
+  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y.
+  const NEAR = 30;
   function noteContacts(st) {
-    const live = st.agents.filter((a) => st.pawns[a.id].alive);
-    const add = (i, j) => { const k = i < j ? i + ':' + j : j + ':' + i; st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
+    const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     for (const hh of st.households) {
       if (hh.dissolved) continue; const ins = hh.members.filter((m) => st.agents[m].inside);
       for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) add(ins[x], ins[y]);
     }
-    const out = live.filter((a) => !a.inside);
-    for (let x = 0; x < out.length; x++) for (let y = x + 1; y < out.length; y++) {
-      const a = out[x], b = out[y]; if (Math.abs(a.x - b.x) < 30 && Math.abs(a.y - b.y) < 30) add(a.id, b.id);
+    // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
+    // so pairs are counted in the same order as by comparing every pair.
+    const out = []; for (const a of st.agents) if (!a.inside && st.pawns[a.id].alive) out.push(a);
+    const cells = new Map(), cellOf = (cx, cy) => cx * 65536 + cy, cand = [];
+    out.forEach((a, n) => {
+      const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
+      if (l) l.push(n); else cells.set(k, [n]);
+    });
+    for (let x = 0; x < out.length; x++) {
+      const a = out[x], cx = Math.floor(a.x / NEAR), cy = Math.floor(a.y / NEAR); cand.length = 0;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
+      }
+      if (cand.length > 1) cand.sort((p, q) => p - q);
+      for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
   }
-  return { initCulture, updateTies, refreshPrestige, refreshInterests, noteContacts };
+  return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();
