@@ -81,7 +81,38 @@ function checkState(st) {
     }
   }
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
+  if (st.herds) checkHerds(st, bad);
   return bad;
+}
+// Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;
+// cattle heads unique, of a known kind, born in the past; a household's hay and larder not negative.
+function checkHerds(st, bad) {
+  const { HERD } = VB['sim/rules'], seen = new Set(), whole = (n) => Number.isInteger(n) && n >= 0;
+  for (const hd of st.herds) {
+    const where = `herds[${hd.id}]`;
+    if (hd.household === null) {
+      if ((hd.head && hd.head.length) || hd.ewes || hd.rams || hd.lambs) bad.push(`${where}: animals but no household`);
+      continue;
+    }
+    const hh = st.households[hd.household];
+    if (!hh || hh.dissolved) bad.push(`${where}: household ${hd.household} missing or dissolved`);
+    else if (hh.herds.filter((id) => id === hd.id).length !== 1) bad.push(`${where}: not listed once by household ${hd.household}`);
+    if (!Number.isInteger(hd.home) || hd.home < 0 || hd.home >= st.w.N) bad.push(`${where}: home tile ${hd.home}`);
+    if (hd.species === 'cattle') {
+      for (const h of hd.head) {
+        if (seen.has(h.id)) bad.push(`${where}: head ${h.id} twice`);
+        seen.add(h.id);
+        if (!(h.kind in HERD.hay) || h.kind === 'ewe' || h.kind === 'ram' || h.kind === 'lamb') bad.push(`${where}: head ${h.id} of kind ${h.kind}`);
+        if (!(h.born <= st.t) || !['f', 'm'].includes(h.sex)) bad.push(`${where}: head ${h.id} born ${h.born}, sex ${h.sex}`);
+      }
+    } else if (hd.species === 'sheep') { for (const k of ['ewes', 'rams', 'lambs']) if (!whole(hd[k])) bad.push(`${where}: ${k} is ${hd[k]}`); }
+    else bad.push(`${where}: species ${hd.species}`);
+  }
+  for (const hh of st.households) {
+    for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);
+    if (!(hh.hay >= 0)) bad.push(`households[${hh.id}]: hay is ${hh.hay}`);
+    for (const l of hh.larder || []) if (!(l.n > 0 && typeof l.kind === 'string' && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
+  }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.
 function checkRel(st, p, bad) {

@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
@@ -8,7 +8,7 @@ const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -57,6 +57,8 @@ const tables = {
   farms: () => st.farmsteads.map((f) => ({ id: f.id, name: f.name, village: f.village, household: f.household, state: f.state, fields: f.fields.map((fd) => fd.stage).join(',') })),
   // relationships per village (sim/relations): records held, their opinion words in %, and per adult (16+) the friends and the disliked
   // outside one's household; talks per pawn and day since the start, over everyone
+  // herds (sim/herds): per household with animals, its herds by kind, names and ages, its hay and its winter's need
+  herds: () => st.households.filter((h) => !h.dissolved && h.herds.length).map((h) => Sim.herdReport(st, h)),
   relations: () => {
     const R = VB['sim/relations'], rows = new Map(), WORD = { 'close friend': 'close', friend: 'friend', neutral: 'neutral', dislikes: 'dislikes', enemy: 'enemy' };
     const row = (k, name) => rows.get(k) || rows.set(k, { village: name, people: 0, adults: 0, records: 0, close: 0, friend: 0, neutral: 0, dislikes: 0,

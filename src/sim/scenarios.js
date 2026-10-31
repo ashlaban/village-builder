@@ -13,6 +13,7 @@ VB['sim/scenarios'] = (() => {
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
+  const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
@@ -27,6 +28,7 @@ VB['sim/scenarios'] = (() => {
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
+    foundersHerds(st);
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
     return st;
   }
@@ -62,6 +64,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null); st.countDemand();
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
+    populousHerds(st);
     log(st, `${R.pawns.length} people in ${villages.length} villages.`);
     return st;
   }
@@ -135,6 +138,8 @@ VB['sim/scenarios'] = (() => {
     const st = makeState(w, rand, R, households, farmsteads, villages, used, 'heirs');
     // village B grew up apart and leans its own way on some customs
     initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); st.countDemand();
+    // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
+    heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
     return st;
   }
@@ -155,7 +160,8 @@ VB['sim/scenarios'] = (() => {
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
-    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
+    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind, n, until}: stored food lots; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break', hours} or null (the field in the making; sim/fields);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
@@ -190,7 +196,7 @@ VB['sim/scenarios'] = (() => {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
+      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
