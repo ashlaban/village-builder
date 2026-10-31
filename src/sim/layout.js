@@ -121,7 +121,7 @@ VB['sim/layout'] = (() => {
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: true, well: true };
     used.add(center);
     const built = new Set([center]), near = new Set(), houses = [];
     const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
@@ -210,7 +210,7 @@ VB['sim/layout'] = (() => {
     // the farm is a village of its own: its centre is the house, and it has neither green nor well
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, green: false, well: false };
+    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }

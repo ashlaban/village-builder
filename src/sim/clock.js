@@ -8,6 +8,7 @@ VB['sim/clock'] = (() => {
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold } = VB['sim/hunger'];
+  const { shareFood } = VB['sim/help'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
@@ -39,6 +40,7 @@ VB['sim/clock'] = (() => {
   }
   function endOfDay(st, c) {
     const E = st.ECON;
+    shareFood(st);
     for (const hh of st.households) {
       if (hh.dissolved) continue;
       feedHousehold(st, hh);

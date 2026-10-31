@@ -1,7 +1,7 @@
 // @sys sim/records: person and household records, family-record queries, culture lookups per person
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
-  const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
@@ -14,6 +14,7 @@ VB['sim/records'] = (() => {
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
       hunger: 0, hungerLog: [], health: 100, kinPush: null,
+      buffer: HELP.bufferDays[0] + R.rand() * (HELP.bufferDays[1] - HELP.bufferDays[0]),
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);

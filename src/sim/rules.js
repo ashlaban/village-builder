@@ -115,6 +115,12 @@ VB['sim/rules'] = (() => {
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
   };
 
+  const HELP = {
+    bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
+    askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
+    storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
+  };
+
   const SPEED = 3; // tiles per game hour on foot, on meadow
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
@@ -149,5 +155,5 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();

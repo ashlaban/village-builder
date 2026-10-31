@@ -9,6 +9,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
@@ -92,7 +93,7 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
   function movingRound(st) {
-    const env = st.cenv; refreshRoles(st);
+    const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
     for (const p of alive) p.age = age(st, p);
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;

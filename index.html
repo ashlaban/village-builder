@@ -1860,6 +1860,12 @@ VB['sim/rules'] = (() => {
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
   };
 
+  const HELP = {
+    bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
+    askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
+    storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
+  };
+
   const SPEED = 3; // tiles per game hour on foot, on meadow
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
@@ -1894,7 +1900,7 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -2255,7 +2261,7 @@ VB['sim/layout'] = (() => {
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: true, well: true };
     used.add(center);
     const built = new Set([center]), near = new Set(), houses = [];
     const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
@@ -2344,7 +2350,7 @@ VB['sim/layout'] = (() => {
     // the farm is a village of its own: its centre is the house, and it has neither green nor well
     let name = villageName(rand);
     while (villages.some((v) => v.name === name)) name = villageName(rand);
-    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, green: false, well: false };
+    const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
@@ -2487,7 +2493,7 @@ VB['sim/forest'] = (() => {
 // @sys sim/records: person and household records, family-record queries, culture lookups per person
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
-  const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
@@ -2500,6 +2506,7 @@ VB['sim/records'] = (() => {
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
       hunger: 0, hungerLog: [], health: 100, kinPush: null,
+      buffer: HELP.bufferDays[0] + R.rand() * (HELP.bufferDays[1] - HELP.bufferDays[0]),
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -2916,6 +2923,71 @@ VB['sim/hunger'] = (() => {
     p.health = Math.max(0, Math.min(100, p.health));
   }
   return { feedHousehold, dailyNeed, seedReserve, updateHealth };
+})();
+</script>
+<script>
+// @sys sim/help: food help between households: gifts from kin and the village store, and the village store's filling
+VB['sim/help'] = (() => {
+  const { HELP } = VB['sim/rules'];
+  const { personEvent, childrenOf, siblingsOf } = VB['sim/records'];
+  const { seedReserve, dailyNeed } = VB['sim/hunger'];
+  // grain a household would give: what is above its holder's buffer and its seed reserve
+  const surplus = (st, hh) => {
+    const holder = hh.holder !== null ? st.pawns[hh.holder] : null, buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
+    return Math.max(0, hh.grain - seedReserve(st, hh) - buffer);
+  };
+  const spare = (st, hh) => Math.max(0, hh.grain - seedReserve(st, hh));
+  // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
+  function kinHouseholds(st, hh) {
+    const rank = new Map();
+    const note = (id, r) => {
+      const q = st.pawns[id]; if (!q.alive || q.household === null || q.household === hh.id || st.households[q.household].dissolved) return;
+      rank.set(q.household, Math.min(rank.get(q.household) ?? 9, r));
+    };
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      for (const par of [p.father, p.mother]) if (par !== null) note(par, 1);
+      for (const c of childrenOf(st, id)) note(c, 1);
+      for (const s of siblingsOf(st, id)) note(s, 2);
+    }
+    return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
+  }
+  function gift(st, from, to, n, fromName) {
+    to.grain += n; to.ledger.push({ t: st.t, kind: 'gift', n, from: fromName });
+    const ht = to.holder !== null ? st.pawns[to.holder] : null;
+    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`);
+    if (from) {
+      from.grain -= n; from.ledger.push({ t: st.t, kind: 'gift', n: -n, to: st.farmsteads[to.farmstead].name });
+      const hf = from.holder !== null ? st.pawns[from.holder] : null;
+      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`);
+      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) a.ties.set(b.id, (a.ties.get(b.id) || 0) + HELP.tieGain);
+    }
+  }
+  // Each day, a household whose spare grain covers fewer than HELP.askBelow days asks kin, then the village store, for HELP.askDays days of food.
+  function shareFood(st) {
+    for (const hh of st.households) {
+      if (hh.dissolved) continue;
+      const need = dailyNeed(st, hh); if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
+      let want = HELP.askDays * need - spare(st, hh);
+      for (const k of kinHouseholds(st, hh)) {
+        const give = Math.min(want, surplus(st, st.households[k])); if (give <= 1e-9) continue;
+        gift(st, st.households[k], hh, give, st.farmsteads[st.households[k].farmstead].name); want -= give;
+        if (want <= 1e-9) break;
+      }
+      const v = st.villages[st.farmsteads[hh.farmstead].village], give = Math.min(want, v.grain);
+      if (give > 1e-9) { v.grain -= give; gift(st, null, hh, give, v.name); }
+    }
+  }
+  // At the moving round every household gives a share of its surplus to its village's store.
+  function fillStores(st) {
+    for (const hh of st.households) {
+      if (hh.dissolved) continue;
+      const give = surplus(st, hh) * HELP.storeShare; if (give <= 1e-9) continue;
+      hh.grain -= give; hh.ledger.push({ t: st.t, kind: 'gift', n: -give, to: 'the village store' });
+      st.villages[st.farmsteads[hh.farmstead].village].grain += give;
+    }
+  }
+  return { surplus, kinHouseholds, shareFood, fillStores };
 })();
 </script>
 <script>
@@ -4060,6 +4132,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
@@ -4143,7 +4216,7 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
   function movingRound(st) {
-    const env = st.cenv; refreshRoles(st);
+    const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
     for (const p of alive) p.age = age(st, p);
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
@@ -4481,6 +4554,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
+    //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
@@ -4490,13 +4564,13 @@ VB['sim/scenarios'] = (() => {
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
-    //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
+    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break', hours} or null (the field in the making; sim/fields);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
-    //   green, well: booleans; a one-farm village has neither
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
+    //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done, holder (pawn id or null), started,
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
@@ -4558,6 +4632,7 @@ VB['sim/clock'] = (() => {
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold } = VB['sim/hunger'];
+  const { shareFood } = VB['sim/help'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
@@ -4589,6 +4664,7 @@ VB['sim/clock'] = (() => {
   }
   function endOfDay(st, c) {
     const E = st.ECON;
+    shareFood(st);
     for (const hh of st.households) {
       if (hh.dissolved) continue;
       feedHousehold(st, hh);

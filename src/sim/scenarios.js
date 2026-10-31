@@ -145,6 +145,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
+    //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
@@ -154,13 +155,13 @@ VB['sim/scenarios'] = (() => {
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
-    //   ledger[], hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
+    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break', hours} or null (the field in the making; sim/fields);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, green, well}; center is a tile index, farmsteads are ids;
-    //   green, well: booleans; a one-farm village has neither
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
+    //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done, holder (pawn id or null), started,
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
