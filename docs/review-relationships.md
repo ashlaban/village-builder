@@ -158,6 +158,18 @@ Taken in the discussion of this review:
 | This round of work | The speed refactor (A, VB-124); relationship records, compatibility, words, the Relations block and the report (C, E1, E5); talk with bubbles and the social lens (D1, E2, E3); idle pawns seeking company and stopping to talk (D2). Mood, occasions, the model-level speed-ups (B) and courting stay for later tasks. |
 | Familiarity (ties) | **Kept as it is** for now, so customs calibration barely moves; reworked later with a full recalibration (B, F1). |
 
+Follow-up answers: the starting values of section 3, replayed with one partner per pawn and accepted (chatted +0.03 up to +0.2 over a year; a good talk +0.1 up to +0.5 over 3 years; cross words −0.12 down to −0.6 over 3 years); becoming friends and falling out recorded as life events of the pawn; a bubble for every talk, a chat faint.
+
+Built: VB-124 (A), VB-060 (C, E1, E5), VB-061 (D1, E2, E3) and VB-125 (D2). Populous medium, seed 7, 2 years: 8.3 talks per pawn and day; per adult 4.8 friends and 2.6 disliked people outside the household; about 100 ms per game day, against 87 on main before this work. Left for later tasks: VB-062 (mood), VB-126 (occasions), VB-127 (familiarity from talk, B), the courting tasks of VB-036, and help as memories (VB-039, VB-106); their questions are in `QUESTIONS.md`.
+
+![After: the pawn card lists the people Nils knows best, with kin, the opinion in words and as a number](img/relations-after.jpg)
+
+*After, year 1, 10:30 on day 3 of spring: the card of Nils Arvidsson lists the people he knows best.*
+
+![Close-up: chat bubbles over the crowd on the green, and lines from Nils to the people he knows, green for those he likes](img/relations-after-close.jpg)
+
+*The same moment, closer: chat bubbles over the crowd on the green, and Nils's lens, a line to each of the 20 people he knows best, green for those he likes.*
+
 ## Sources
 
 The RimWorld and Dwarf Fortress wikis could not be fetched from this session (the network policy blocks them); their points come from search results and are marked where they come from memory.
