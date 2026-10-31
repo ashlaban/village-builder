@@ -42,7 +42,7 @@ VB['sim/society'] = (() => {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
       p.att = Culture.seedAttitude(customs, st.rand, 0.6, lean); p.anc = Float32Array.from(p.att);
-      p.ties = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+      p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     }
     // starting ties: household, kin, and a few neighbours
     for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) st.pawns[i].ties.set(j, 1);

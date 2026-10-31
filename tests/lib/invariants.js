@@ -30,6 +30,7 @@ function checkState(st) {
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
+    if (p.rel) checkRel(st, p, bad);
   }
   const open = new Map();
   for (const u of st.unions) {
@@ -78,5 +79,24 @@ function checkState(st) {
   }
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   return bad;
+}
+// Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.
+function checkRel(st, p, bad) {
+  const { SOCIAL } = VB['sim/rules'];
+  if (!p.alive) { if (p.rel.size) bad.push(`pawns[${p.id}]: dead with ${p.rel.size} relationship records`); return; }
+  for (const [j, r] of p.rel) {
+    const where = `pawns[${p.id}].rel<${j}>`;
+    if (j === p.id || !st.pawns[j]) bad.push(`${where}: no such other pawn`);
+    if (![-1, 0, 1].includes(r.band)) bad.push(`${where}: band is ${r.band}`);
+    const kinds = Object.keys(r.mem);
+    if (!kinds.length) bad.push(`${where}: no memories`);
+    for (const k of kinds) {
+      const K = SOCIAL.memories[k], m = r.mem[k];
+      if (!K) { bad.push(`${where}: unknown memory ${k}`); continue; }
+      const lo = Math.min(0, K.cap), hi = Math.max(0, K.cap);
+      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${K.cap}`);
+      if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
+    }
+  }
 }
 module.exports = { checkState };

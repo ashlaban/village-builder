@@ -146,7 +146,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
-    //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
+    //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
+    //   ties; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;

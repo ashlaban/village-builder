@@ -25,7 +25,7 @@ VB['sim/births'] = (() => {
     const id = person({ pawns: st.pawns, rand: st.rand }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
     p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
-    p.ties = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+    p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { p.ties.set(j, 1); st.pawns[j].ties.set(id, 1); }
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);

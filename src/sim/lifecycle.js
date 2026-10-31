@@ -10,6 +10,7 @@ VB['sim/lifecycle'] = (() => {
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
+  const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
@@ -17,6 +18,7 @@ VB['sim/lifecycle'] = (() => {
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
     for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+    if (p.rel) forget(st, id);
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
       + `${CAUSES[cause].log}, aged ${p.age}.`);
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -132,6 +134,7 @@ VB['sim/lifecycle'] = (() => {
     st.contacts.clear();
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
+    fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }

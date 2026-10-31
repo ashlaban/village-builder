@@ -43,6 +43,7 @@
     <span id="tileCoord"></span>
     <span id="tileExtra" hidden></span>
     <span id="tileMore" hidden></span>
+    <div class="rel" id="tileRel" hidden></div>
   </aside>
   <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump">
     <canvas id="mmBase"></canvas>
@@ -1286,11 +1287,29 @@
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
     card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id), Sim.idleLine(st, id)].filter(Boolean));
+    showRelations(id);
   }
+  // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
+  let relHTML = '';
+  const signed = (v) => `${v < 0 ? '−' : '+'}${Math.abs(Math.round(v * 100))}`;
+  function showRelations(id) {
+    const all = Sim.relationsOf(st, id), list = all.slice(0, 5), cold = (o) => ['dislikes', 'enemy'].includes(Sim.opinionWord(o));
+    for (const x of all.slice(5)) if (cold(x.opinion) && list.length < 7) list.push(x);
+    const rows = list.map((x) => {
+      const word = Sim.opinionWord(x.opinion), kin = Sim.standingWord(st, id, x.id), why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
+      const detail = [kin, word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
+      const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
+      return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(x.opinion)}</b></button>`;
+    }).join('');
+    const h = rows ? `<h3>Knows best</h3>${rows}` : '';
+    if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
+    $('tileRel').hidden = !h;
+  }
+  $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function card(title, lines) {
     $('tileName').textContent = title;
     ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => { const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k]; });
-    $('tile').hidden = false;
+    $('tileRel').hidden = true; $('tile').hidden = false;
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;
