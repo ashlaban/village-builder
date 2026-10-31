@@ -1,9 +1,9 @@
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
-  const { HERD } = VB['sim/rules'];
+  const { HERD, WORK } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
-  const { herdsOf, dailyHay, stalled, years, bullsNear } = VB['sim/herds'];
+  const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
   const { hexSteps } = VB['sim/hex'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
@@ -125,8 +125,19 @@ VB['sim/byre'] = (() => {
     const i = herd.cull.indexOf(entry);
     if (i < 0) return;
     herd.cull.splice(i, 1);
-    const kind = remove(herd, entry);
-    if (kind) addFood(st, hh, 'meat', HERD.meat[kind] * (entry.lean ? HERD.lean : 1), HERD.freshDays);
+    const kind = remove(herd, entry), n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
+    if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); hh.ledger.push({ t: st.t, kind: 'meat', n }); }
+  }
+  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter; part is churned to butter that keeps,
+  // the rest is drunk fresh within the day.
+  function milkDone(st, hh, c) {
+    hh.milkDay = c.day;
+    let cows = 0;
+    for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
+    const r = cows * HERD.milk, butter = r * HERD.butter;
+    if (r <= 0) return;
+    addFood(st, hh, 'milk', r - butter, 1); addFood(st, hh, 'butter', butter, HERD.butterDays);
+    hh.ledger.push({ t: st.t, kind: 'milk', n: r - butter }, { t: st.t, kind: 'butter', n: butter });
   }
   // Salted: the fresh meat keeps a year.
   function saltDone(st, hh) {
@@ -180,7 +191,11 @@ VB['sim/byre'] = (() => {
     }
     const meat = larderOf(hh, 'meat');
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
+    const cows = milkCows(st, hh, c); // milking from 6:00 while the herds are out (VB-135)
+    if (cows && hh.milkDay !== c.day && c.hour >= WORK[0]) {
+      out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
+    }
     return out;
   }
-  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, byreDay, fodderHours, byreJobs };
+  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, byreDay, fodderHours, byreJobs };
 })();

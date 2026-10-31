@@ -89,7 +89,7 @@ function checkState(st) {
 // Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;
 // cattle heads unique, of a known kind, born in the past; a household's hay and larder not negative.
 function checkHerds(st, bad) {
-  const { HERD } = VB['sim/rules'], seen = new Set(), whole = (n) => Number.isInteger(n) && n >= 0;
+  const { HERD, YEAR } = VB['sim/rules'], seen = new Set(), whole = (n) => Number.isInteger(n) && n >= 0;
   for (const hd of st.herds) {
     const where = `herds[${hd.id}]`;
     if (hd.household === null) {
@@ -106,6 +106,9 @@ function checkHerds(st, bad) {
         seen.add(h.id);
         if (!(h.kind in HERD.hay) || h.kind === 'ewe' || h.kind === 'ram' || h.kind === 'lamb') bad.push(`${where}: head ${h.id} of kind ${h.kind}`);
         if (!(h.born <= st.t) || !['f', 'm'].includes(h.sex)) bad.push(`${where}: head ${h.id} born ${h.born}, sex ${h.sex}`);
+        // a cow's last calving (VB-135): a game year since she was born, not in the future, and only a cow's (a heifer calves as she turns 3)
+        if (h.calved !== undefined && (!Number.isInteger(h.calved) || h.calved > Math.floor(st.t / YEAR) + 1 || h.calved * YEAR < h.born
+          || h.kind !== 'cow')) bad.push(`${where}: head ${h.id} (${h.kind}) calved in year ${h.calved}`);
       }
     } else if (hd.species === 'sheep') { for (const k of ['ewes', 'rams', 'lambs']) if (!whole(hd[k])) bad.push(`${where}: ${k} is ${hd[k]}`); }
     else bad.push(`${where}: species ${hd.species}`);
@@ -119,7 +122,9 @@ function checkHerds(st, bad) {
   for (const hh of st.households) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);
     if (!(hh.hay >= 0)) bad.push(`households[${hh.id}]: hay is ${hh.hay}`);
-    for (const l of hh.larder || []) if (!(l.n > 0 && typeof l.kind === 'string' && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
+    const KINDS = ['meat', 'salt meat', 'milk', 'butter'];
+    for (const l of hh.larder || []) if (!(l.n > 0 && KINDS.includes(l.kind) && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
+    if (hh.milkDay !== undefined && !(Number.isInteger(hh.milkDay) && hh.milkDay >= -1 && hh.milkDay <= st.t / 24)) bad.push(`households[${hh.id}]: milkDay ${hh.milkDay}`);
   }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.

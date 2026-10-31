@@ -1787,7 +1787,7 @@ VB['sim/rules'] = (() => {
     farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3 },
       except: { reap: 9, cook: 1, slaughter: 8 } },
     wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
-      husbandry: 9 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2 } },
+      husbandry: 9 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10 } },
     farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4 },
       except: { cook: 0, slaughter: 8 } },
     maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10 },
@@ -1875,6 +1875,9 @@ VB['sim/rules'] = (() => {
     countDay: 31, margin: 1.1, old: { cow: 12, ox: 12, bull: 10 }, oldEwe: 1 / 7,
     meat: { cow: 15, ox: 18, bull: 18, heifer: 10, steer: 10, calf: 5, ewe: 3, ram: 3, lamb: 1.5 },
     fodder: [0.5, 0.15, 0.03], slaughter: { cattle: 3, sheep: 1 }, freshDays: 3, saltDays: 48, saltPerHour: 8, lean: 0.5, eatSoonDays: 6, starveDays: 2,
+    // milk (VB-135): a cow that calved this spring is in milk while the herds are out; milking hours (base, a cow in milk); rations a cow
+    // a day, less leanPer a lean day of the winter, at most leanMax; the share churned to butter, which keeps butterDays; fresh milk keeps a day
+    milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
   };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
@@ -1913,6 +1916,7 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
       rake: 0.8, mow: 1, mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
       fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
+      milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
@@ -2562,7 +2566,8 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
-      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [], fodderDay: -1 };
+      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [], fodderDay: -1,
+      milkDay: -1 };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -2924,7 +2929,8 @@ VB['sim/herds'] = (() => {
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
   //   dissolved household is kept with household null (sim/herds)
-  //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox'}
+  //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
+  //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
   // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/hunger).
   const COWS = ['Stjärna', 'Rosa', 'Docka', 'Gullros', 'Blomma', 'Lilja', 'Svana', 'Stolta', 'Majros', 'Dagros', 'Fagerlin', 'Silverhorn',
@@ -3037,6 +3043,7 @@ VB['sim/herds'] = (() => {
         let calves = 0;
         for (const cow of herd.head.filter((h) => h.kind === 'cow')) {
           if (st.rand() >= HERD.calve) continue;
+          cow.calved = Math.floor(st.t / YEAR) + 1; // in milk this summer, whether or not the calf lives (VB-135)
           const sex = st.rand() < 0.5 ? 'f' : 'm';
           if (st.rand() < HERD.calfDeath) continue;
           addHead(st, herd, sex, st.t, 'calf'); calves++;
@@ -3151,6 +3158,10 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // Cows in milk now (VB-135): those that calved this spring, while the herds are out of the byre.
+  const inMilk = (st, herd, c) => (herd.species !== 'cattle' || stalled(c) ? []
+    : herd.head.filter((h) => h.kind === 'cow' && h.calved === Math.floor(st.t / YEAR) + 1));
+  const milkCows = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilk(st, hd, c).length, 0);
   // ---- words, for the panels and the reports ----
   const plural = (n, one, many) => (n === 1 ? `a ${one}` : `${n} ${many}`);
   function describeHerds(st, hh) {
@@ -3184,12 +3195,16 @@ VB['sim/herds'] = (() => {
         ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
-      larder: Object.fromEntries(['meat', 'salt meat'].map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
+      larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
+        .map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
+      // rations of fresh milk and of butter made since the start of this game year (VB-135)
+      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.ledger.filter((e) => e.kind === k && e.t >= Math.floor(st.t / YEAR) * YEAR)
+        .reduce((s, e) => s + e.n, 0).toFixed(1)])),
     };
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, inMilk, milkCows, describeHerds, herdReport,
   };
 })();
 </script>
@@ -3539,10 +3554,10 @@ VB['sim/meadows'] = (() => {
 <script>
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
-  const { HERD } = VB['sim/rules'];
+  const { HERD, WORK } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
-  const { herdsOf, dailyHay, stalled, years, bullsNear } = VB['sim/herds'];
+  const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
   const { hexSteps } = VB['sim/hex'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
@@ -3664,8 +3679,19 @@ VB['sim/byre'] = (() => {
     const i = herd.cull.indexOf(entry);
     if (i < 0) return;
     herd.cull.splice(i, 1);
-    const kind = remove(herd, entry);
-    if (kind) addFood(st, hh, 'meat', HERD.meat[kind] * (entry.lean ? HERD.lean : 1), HERD.freshDays);
+    const kind = remove(herd, entry), n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
+    if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); hh.ledger.push({ t: st.t, kind: 'meat', n }); }
+  }
+  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter; part is churned to butter that keeps,
+  // the rest is drunk fresh within the day.
+  function milkDone(st, hh, c) {
+    hh.milkDay = c.day;
+    let cows = 0;
+    for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
+    const r = cows * HERD.milk, butter = r * HERD.butter;
+    if (r <= 0) return;
+    addFood(st, hh, 'milk', r - butter, 1); addFood(st, hh, 'butter', butter, HERD.butterDays);
+    hh.ledger.push({ t: st.t, kind: 'milk', n: r - butter }, { t: st.t, kind: 'butter', n: butter });
   }
   // Salted: the fresh meat keeps a year.
   function saltDone(st, hh) {
@@ -3719,9 +3745,13 @@ VB['sim/byre'] = (() => {
     }
     const meat = larderOf(hh, 'meat');
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
+    const cows = milkCows(st, hh, c); // milking from 6:00 while the herds are out (VB-135)
+    if (cows && hh.milkDay !== c.day && c.hour >= WORK[0]) {
+      out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
+    }
     return out;
   }
-  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, byreDay, fodderHours, byreJobs };
+  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, byreDay, fodderHours, byreJobs };
 })();
 </script>
 <script>
@@ -3875,7 +3905,7 @@ VB['sim/kinds'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
-  const { slaughterDone, saltDone } = VB['sim/byre'];
+  const { slaughterDone, saltDone, milkDone } = VB['sim/byre'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -4003,6 +4033,11 @@ VB['sim/kinds'] = (() => {
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
       hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => { hh.fodderDay = c.day; },
+    },
+    milk: {
+      verb: 'Milking the cows', go: 'Going to milk the cows', name: 'Milk the cows', label: 'Milking', anim: 'milk', hours: 0.5, hands: 1,
+      type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
+      done: (st, j, hh, c) => milkDone(st, hh, c),
     },
     slaughter: {
       verb: 'Slaughtering', go: 'Going to slaughter', name: 'Slaughter an animal', label: 'Slaughter', anim: 'mallet', hours: 3, hands: 2,
@@ -5267,9 +5302,10 @@ VB['sim/scenarios'] = (() => {
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
-    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
-    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat', n, until}: stored food lots; sim/hunger),
-    //   fodderDay (the last day the animals were fed in the byre; sim/byre)}
+    //   ledger[] ({t, kind, n}; kind 'harvest', 'gift' (n signed, from or to; sim/help), 'meat', 'milk' (drunk fresh), 'butter' (rations made;
+    //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
+    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
@@ -6224,6 +6260,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       case 'mow': { const k = swing(cyc * 3.2, 0, 1); lean = 0.32; armF = -0.5 - k * 1.1; armB = armF + 0.35; tool = 'scythe'; toolR = -0.6 + k * 1.0; legF = -0.32; legB = 0.32; break; }
       case 'gather': { const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
       case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
+      // milking (VB-135): crouched on the stool, hands pulling by turns, the pail on the ground beside
+      case 'milk': { const k = Math.sin(cyc * 9); lean = 0.5; bob = 2; armF = -0.75 + k * 0.2; armB = -0.75 - k * 0.2; legF = -1.25; legB = -1.0; heldB = 'bucket'; break; }
     }
     if (anim === 'sow') { const k = swing(cyc * 5, -0.15, -1.7); armF = k; armB = -0.55; heldB = 'basket'; }
     if (a.carry === 'sheaf') { shoulder = 'sheaf'; armF = -2.45; }
@@ -6881,8 +6919,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined && hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       const herdText = Sim.describeHerds(st, hh);
-      const salt = Sim.larderOf(hh, 'salt meat'), meat = Sim.larderOf(hh, 'meat');
-      const larder = salt + meat >= 0.5 ? `; larder ${[salt >= 0.5 ? `${Math.round(salt)} salt meat` : '', meat >= 0.5 ? `${Math.round(meat)} fresh meat` : ''].filter(Boolean).join(', ')}` : '';
+      const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
+        .map(([k, word]) => [Sim.larderOf(hh, k), word]).filter(([n]) => n >= 0.5);
+      const larder = lots.length ? `; larder ${lots.map(([n, word]) => `${Math.round(n)} ${word}`).join(', ')}` : '';
       if (herdText || hh.hay > 0 || larder) h += `<p>${esc(herdText || 'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}${larder}</p>`;
       h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? (f.project.stage === 'meadow' ? '; clearing a new hay meadow' : `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}`) : ''}${f.meadows.length ? `; ${f.meadows.length === 1 ? 'a hay meadow' : `${f.meadows.length} hay meadows`}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {

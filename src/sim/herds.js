@@ -10,7 +10,8 @@ VB['sim/herds'] = (() => {
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
   //   dissolved household is kept with household null (sim/herds)
-  //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox'}
+  //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
+  //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
   // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/hunger).
   const COWS = ['Stjärna', 'Rosa', 'Docka', 'Gullros', 'Blomma', 'Lilja', 'Svana', 'Stolta', 'Majros', 'Dagros', 'Fagerlin', 'Silverhorn',
@@ -123,6 +124,7 @@ VB['sim/herds'] = (() => {
         let calves = 0;
         for (const cow of herd.head.filter((h) => h.kind === 'cow')) {
           if (st.rand() >= HERD.calve) continue;
+          cow.calved = Math.floor(st.t / YEAR) + 1; // in milk this summer, whether or not the calf lives (VB-135)
           const sex = st.rand() < 0.5 ? 'f' : 'm';
           if (st.rand() < HERD.calfDeath) continue;
           addHead(st, herd, sex, st.t, 'calf'); calves++;
@@ -237,6 +239,10 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // Cows in milk now (VB-135): those that calved this spring, while the herds are out of the byre.
+  const inMilk = (st, herd, c) => (herd.species !== 'cattle' || stalled(c) ? []
+    : herd.head.filter((h) => h.kind === 'cow' && h.calved === Math.floor(st.t / YEAR) + 1));
+  const milkCows = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilk(st, hd, c).length, 0);
   // ---- words, for the panels and the reports ----
   const plural = (n, one, many) => (n === 1 ? `a ${one}` : `${n} ${many}`);
   function describeHerds(st, hh) {
@@ -270,11 +276,15 @@ VB['sim/herds'] = (() => {
         ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
-      larder: Object.fromEntries(['meat', 'salt meat'].map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
+      larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
+        .map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
+      // rations of fresh milk and of butter made since the start of this game year (VB-135)
+      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.ledger.filter((e) => e.kind === k && e.t >= Math.floor(st.t / YEAR) * YEAR)
+        .reduce((s, e) => s + e.n, 0).toFixed(1)])),
     };
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, inMilk, milkCows, describeHerds, herdReport,
   };
 })();
