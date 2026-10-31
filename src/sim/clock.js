@@ -1,6 +1,6 @@
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
-  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
@@ -23,7 +23,9 @@ VB['sim/clock'] = (() => {
     if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
-    if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+    if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
+      for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+    }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)

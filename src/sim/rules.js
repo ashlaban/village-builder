@@ -8,7 +8,14 @@ VB['sim/rules'] = (() => {
     const day = Math.floor(t / DAY), y = Math.floor(day / YEAR_DAYS), doy = day - y * YEAR_DAYS;
     return { year: y + 1, doy, season: Math.floor(doy / SEASON_DAYS), sday: doy % SEASON_DAYS, hour: t - day * DAY, day };
   };
-  const WORK = [7, 17];
+  const WORK = [6, 18];
+  // The dark part of the day for a calendar date, [start, end] in hours (start > end when it runs past midnight): 4 hours at
+  // midsummer, 8 at midwinter and 6 at the equinoxes, centred on 1:00.
+  const DARK_CENTRE = 1;
+  const dark = (c) => {
+    const len = 6 - 2 * Math.cos((2 * Math.PI * (c.doy - 15)) / 48), h = (x) => ((x % 24) + 24) % 24;
+    return [h(DARK_CENTRE - len / 2), h(DARK_CENTRE + len / 2)];
+  };
 
   // ---- economy (rations = one adult's food for one game day) ----
   const ECON = {
@@ -139,7 +146,7 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };

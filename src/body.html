@@ -116,6 +116,16 @@
     await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2), preference: 'webgl' });
   } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
   stage.appendChild(app.canvas);
+  // Daylight: a dark wash over the map that follows Sim.dark: full day, 2 hours of dusk before the dark, night, 2 hours of dawn after it.
+  const dayLight = document.createElement('div'); dayLight.id = 'dayLight';
+  dayLight.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:#0a1830;opacity:0';
+  stage.appendChild(dayLight);
+  function lightAt(hour, c) {
+    const [a, b] = Sim.dark(c), len = (b - a + 24) % 24, since = (hour - a + 24) % 24; // hours since the dark began
+    if (since < len) return 1;
+    const dawn = since - len; if (dawn < 2) return 1 - dawn / 2;
+    const dusk = 24 - since; return dusk <= 2 ? 1 - dusk / 2 : 0;
+  }
   const texFrom = (canvas, opts = {}) => new PIXI.Texture({ source: new PIXI.CanvasSource({ resource: canvas, ...opts }) });
 
   // ---- layers, bottom to top ----
@@ -1197,6 +1207,7 @@
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
+    dayLight.style.opacity = (0.4 * lightAt(minutes / 60, c)).toFixed(3);
     $('clockDate').textContent = `${Sim.SEASONS[c.season][0].toUpperCase() + Sim.SEASONS[c.season].slice(1)}, day ${c.sday + 1}`;
     $('clockYear').textContent = `Year ${c.year}, ${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
   }
@@ -1234,7 +1245,7 @@
     }
     drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
-    const evening = c.hour >= 16 || c.hour < 8;
+    const evening = c.hour >= Sim.WORK[1] - 1 || c.hour < Sim.WORK[0] + 1;
     for (const h of houseInfo) {
       const hh = st.households[h.f.household];
       if (!hh) continue;

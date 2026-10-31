@@ -1753,7 +1753,14 @@ VB['sim/rules'] = (() => {
     const day = Math.floor(t / DAY), y = Math.floor(day / YEAR_DAYS), doy = day - y * YEAR_DAYS;
     return { year: y + 1, doy, season: Math.floor(doy / SEASON_DAYS), sday: doy % SEASON_DAYS, hour: t - day * DAY, day };
   };
-  const WORK = [7, 17];
+  const WORK = [6, 18];
+  // The dark part of the day for a calendar date, [start, end] in hours (start > end when it runs past midnight): 4 hours at
+  // midsummer, 8 at midwinter and 6 at the equinoxes, centred on 1:00.
+  const DARK_CENTRE = 1;
+  const dark = (c) => {
+    const len = 6 - 2 * Math.cos((2 * Math.PI * (c.doy - 15)) / 48), h = (x) => ((x % 24) + 24) % 24;
+    return [h(DARK_CENTRE - len / 2), h(DARK_CENTRE + len / 2)];
+  };
 
   // ---- economy (rations = one adult's food for one game day) ----
   const ECON = {
@@ -1884,7 +1891,7 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
@@ -4543,7 +4550,7 @@ VB['sim/scenarios'] = (() => {
 <script>
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
-  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
@@ -4566,7 +4573,9 @@ VB['sim/clock'] = (() => {
     if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
-    if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+    if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
+      for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+    }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
@@ -4654,7 +4663,7 @@ VB['sim/clock'] = (() => {
 // @sys sim: the public Sim object, assembled from the sim/* modules
 const Sim = (() => {
   const Culture = VB['culture'];
-  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, RIVER, byRiver } = VB['sim/rules'];
+  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
@@ -4674,7 +4683,7 @@ const Sim = (() => {
 
   return {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
-    SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
+    SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
   };
@@ -4705,6 +4714,16 @@ if (typeof module !== 'undefined') module.exports = Sim;
     await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2), preference: 'webgl' });
   } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
   stage.appendChild(app.canvas);
+  // Daylight: a dark wash over the map that follows Sim.dark: full day, 2 hours of dusk before the dark, night, 2 hours of dawn after it.
+  const dayLight = document.createElement('div'); dayLight.id = 'dayLight';
+  dayLight.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:#0a1830;opacity:0';
+  stage.appendChild(dayLight);
+  function lightAt(hour, c) {
+    const [a, b] = Sim.dark(c), len = (b - a + 24) % 24, since = (hour - a + 24) % 24; // hours since the dark began
+    if (since < len) return 1;
+    const dawn = since - len; if (dawn < 2) return 1 - dawn / 2;
+    const dusk = 24 - since; return dusk <= 2 ? 1 - dusk / 2 : 0;
+  }
   const texFrom = (canvas, opts = {}) => new PIXI.Texture({ source: new PIXI.CanvasSource({ resource: canvas, ...opts }) });
 
   // ---- layers, bottom to top ----
@@ -5786,6 +5805,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
+    dayLight.style.opacity = (0.4 * lightAt(minutes / 60, c)).toFixed(3);
     $('clockDate').textContent = `${Sim.SEASONS[c.season][0].toUpperCase() + Sim.SEASONS[c.season].slice(1)}, day ${c.sday + 1}`;
     $('clockYear').textContent = `Year ${c.year}, ${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
   }
@@ -5823,7 +5843,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
-    const evening = c.hour >= 16 || c.hour < 8;
+    const evening = c.hour >= Sim.WORK[1] - 1 || c.hour < Sim.WORK[0] + 1;
     for (const h of houseInfo) {
       const hh = st.households[h.f.household];
       if (!hh) continue;
