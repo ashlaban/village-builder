@@ -19,11 +19,13 @@ function checkState(st) {
     const f = st.farmsteads[h.farmstead];
     if (!f || f.household !== h.id) bad.push(`households[${h.id}]: farmstead ${h.farmstead} does not name it`);
   }
+  for (const v of st.villages) if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
   for (const p of st.pawns) {
     if (p.alive) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
+      if (!within(p.buffer, 20, 60)) bad.push(`pawns[${p.id}]: buffer is ${p.buffer}`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
