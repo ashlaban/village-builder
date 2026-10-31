@@ -13,7 +13,30 @@ The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 
 3. Who works on the restoration, and where do the claimants live meanwhile? **P:** they live and eat in their old household until they move in. The claimants take the restoration at priority 9, and the members of their old households may help at 5, as for a cleared plot (VB-031).
 4. Under "the meeting assigns", until support through ties is built: oldest claimant first, or youngest? **P:** oldest first, as elders carry more voice at the meeting.
 
+## Priority 2
+
+### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
+Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
+1. Fishing grounds and catch. **P:** a shore tile within 6 steps of the house; a 3-hour trip brings 4 rations × the water tile's stock; a trip lowers a river or small lake tile's stock by 0.1 and it recovers 0.02 a day; the sea and lakes of 20 tiles or more never run down; no fishing in winter.
+2. Gathering. **P:** forest and heath tiles within 5 steps, from summer day 6 to the end of autumn; a 3-hour trip brings 2.5 rations × the tile's stock and lowers it by 0.2; stocks refill each spring.
+3. Urgency. **P:** 0.2 while grain above the seed reserve covers 24 days or more of the household's need, rising linearly to 2.0 at none; one job of each per household, two when under 12 days.
+4. Who. **P:** a new type of work, foraging: farmer 3, wife 4, farmhand 6, maid 5, son 7, daughter 6, retired 3, child 5; fishing 2 for wife, maid and daughter, gathering 3 for son and farmhand.
+5. When does a source count in a meal? **P:** when it gives at least a fifth of what is eaten that day; grain and flour are one source.
+6. VB-009 was blocked because a missed cooking left people hungry although there was grain. **P:** the meal eats fresh food, then rations, then grain (as today), so milling makes food go further without new hungry days.
+
 ## Priority 3
+
+### VB-120: village work days (job review, second pass)
+1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.
+2. What does staying away cost? **P:** a household with no adult working 2 hours on the day loses 0.1 of its holder's prestige for the year; each adult who works gains 0.05.
+
+### VB-121: winter crafts (job review, second pass)
+1. Tools. **P:** each household's tools from 0 to 1; 0.01 lost per 10 hours of field work; field work at (0.7 + 0.3 × tools) of the rate; a 4-hour craft job restores 0.1, posted in winter below 1 and in autumn below 0.6.
+2. Fence poles. **P:** a 4-hour trip in winter brings 4 poles and fells a tree; mending a stretch uses one; posted while a household has under 8.
+3. Who. **P:** a new type of work, crafts: farmer 6, farmhand 7, son 7, retired 5, wife 2, maid 1, daughter 1, child 0.
+
+### VB-123: job steps (job review, second pass)
+1. When? **P:** with the first building task (VB-032), so the steps are shaped by a real use; today's three shapes become step lists with behaviour unchanged.
 
 ### VB-115: building bridges (raised with VB-112)
 Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oct).

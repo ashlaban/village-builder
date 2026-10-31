@@ -2,6 +2,29 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 30 October 2026 (job review, second pass)
+
+Asked with the second review of the job system (`REVIEW.md`, "Work and jobs, second pass"), which measured adults idle 55–79% of work hours, mostly with no job they may take, and proposed a registry of job kinds, several hands, interrupts and new concrete jobs.
+
+1. Which job-system changes go into this pull request? **P:** the job-kind registry with roles by type of work, several hands (VB-102) and interrupts (VB-107).
+   **A (30 Oct):** as proposed (P): the registry (VB-116), VB-102 and VB-107.
+2. Which new concrete jobs first? **P:** fishing.
+   **A (30 Oct):** fishing, gathering, village work days and winter crafts.
+3. When does a household fish or gather? **P:** only when its food is short (grain above the seed reserve under about 24 days of its need).
+   **A (30 Oct):** both, by urgency: always posted, with low urgency in good times and high urgency when food is short. Rations made from several food sources should be more nutritious, combined with the flour mechanism.
+4. How busy should the village be? **P:** busy at the peaks (75–90% of work hours at sowing and harvest), partly idle in the slack seasons (40–60%), spare time going to talk once VB-061 exists.
+   **A (30 Oct):** as proposed (P).
+5. What does a meal from several food sources do? **P:** it goes further: a day's meal from 2 sources needs 10% less food, from 3 or more 20% less.
+   **A (30 Oct):** as proposed (P).
+6. Is the flour mechanism VB-009 (hand-quern milling), and is it built with the food jobs? **P:** yes; milling becomes a daily indoor job and the food balance is checked once with fish, gathered food and flour together.
+   **A (30 Oct):** as proposed (P).
+7. How is the work split into pull requests? **P:** two: the registry, VB-102 and VB-107 now; the new concrete jobs after, with their numbers agreed first.
+   **A (30 Oct):** as proposed (P).
+8. Do fish and gathered food keep like grain? **P:** no: they are eaten first and spoil after 3 game days; drying and salting later.
+   **A (30 Oct):** as proposed (P).
+9. VB-107's test has a farmer leave hoeing for the woods when the woodpile drops under 8, but with today's priorities a farmer's firewood bid (at most about 15) never passes 1.5 × his hoeing bid + 1 (at least 16); sons and farmhands do switch, early in the sowing window. **P:** keep the rule and test a son: the farmer keeps hoeing and a son or farmhand goes for wood.
+   **A (30 Oct):** as proposed (P).
+
 # Archived 30 October 2026 (paths, fords and village layout)
 
 Asked when Kim set the work on paths, river crossings and village layout (VB-094, VB-096, VB-109, VB-110, VB-112 to VB-115). Kim's request: paths form where people walk and fade over about five years unused; paths are cheaper to walk and routes use them; rivers are passable only at fords or bridges, and bridges need construction; fields lie a short way from the homesteads and are contiguous; homesteads may touch; generated villages look grown.
