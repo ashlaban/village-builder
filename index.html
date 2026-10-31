@@ -1828,7 +1828,7 @@ VB['sim/rules'] = (() => {
   // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates). Two unmarried pawns
   // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds `tie` to the tie of both and shows a
   // bubble for `bubbleHours`. friend and dislike: an opinion entering them is a life event; leaving needs `back` past the line.
-  // seek: chance that an idle pawn walks to someone it likes who idles in its village, rather than to the green or its yard.
+  // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   const SOCIAL = {
     situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
     memories: {
@@ -1839,7 +1839,7 @@ VB['sim/rules'] = (() => {
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       tie: 0.1, bubbleHours: 0.5 },
     friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.6, enemy: -0.5,
-    seek: 0.5,
+    seek: 0.5, seekSample: 4,
   };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
@@ -2607,10 +2607,11 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, and the people a pawn knows
+// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
+// people a pawn knows
 VB['sim/relations'] = (() => {
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
   const M = SOCIAL.memories;
 
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
@@ -2765,7 +2766,48 @@ VB['sim/relations'] = (() => {
     pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
+    // an idle pawn outdoors stops where it is until the talk is over
+    const halt = (g) => { if (!g.inside && !g.job && g.phase === null) { g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until); } };
+    halt(a); halt(b);
     st.talks++;
+  }
+
+  // ---- company: an idle pawn may join someone it likes who idles outdoors in its village ----
+  // The idle pawns outdoors of each village as of this game hour (derived, not state; rebuilt each hour): companyFor checks that a
+  // pawn drawn from it still idles outdoors.
+  const idleCache = new WeakMap();
+  const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
+  function idlersBy(st) {
+    let c = idleCache.get(st);
+    const hour = Math.floor(st.t);
+    if (!c || c.hour !== hour) {
+      c = { hour, by: new Map() };
+      for (const b of st.agents) {
+        if (!idles(st, b)) continue;
+        const v = settlementIdOf(st, st.pawns[b.id]); if (v === null) continue;
+        const l = c.by.get(v); if (l) l.push(b); else c.by.set(v, [b]);
+      }
+      idleCache.set(st, c);
+    }
+    return c.by;
+  }
+  // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
+  // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
+  function companyFor(st, a) {
+    if (st.rand() >= SOCIAL.seek) return null;
+    const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
+    if (!list || !list.length) return null;
+    let tot = 0; cand.length = 0; wts.length = 0;
+    for (let k = 0; k < SOCIAL.seekSample; k++) {
+      const b = list[Math.floor(st.rand() * list.length)];
+      if (b === a || cand.includes(b) || !idles(st, b)) continue;
+      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
+      if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+    }
+    if (!cand.length) return null;
+    let x = st.rand() * tot, i = 0;
+    while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+    return cand[i];
   }
 
   // ---- for the page and the tools ----
@@ -2789,7 +2831,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
-    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, opinionWord, relationsOf,
+    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf,
   };
 })();
@@ -3225,6 +3267,7 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
+  const { companyFor } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -3302,10 +3345,14 @@ VB['sim/agents'] = (() => {
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function idleAbout(st, a) {
-    // nothing suitable: drift to the green or the yard, and look again in a while
-    const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-    const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
-    walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
+    const mate = st.cenv ? companyFor(st, a) : null;
+    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (st.rand() - 0.5) * 16, mate.y + (st.rand() - 0.5) * 8);
+    else {
+      const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
+      const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
+      walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    }
     a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
   }
   function arrived(st, a) {
@@ -5706,7 +5753,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       R.root.visible = show && !a.inside && pp.died === null;
       if (!R.root.visible) continue;
       const k = sizeAt(pp.age);
-      R.root.position.set(a.x, a.y); R.root.scale.set((a.face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
+      // an idle pawn that stands talking faces the other
+      const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
+      R.root.position.set(a.x, a.y); R.root.scale.set((face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
     ring.clear();

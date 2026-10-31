@@ -1221,7 +1221,10 @@
       R.root.visible = show && !a.inside && pp.died === null;
       if (!R.root.visible) continue;
       const k = sizeAt(pp.age);
-      R.root.position.set(a.x, a.y); R.root.scale.set((a.face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
+      // an idle pawn that stands talking faces the other
+      const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
+      R.root.position.set(a.x, a.y); R.root.scale.set((face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
     ring.clear();

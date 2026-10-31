@@ -70,8 +70,9 @@ const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { g.inside = fal
 const tie0 = pair[0].ties.get(pair[1].id) || 0, talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
-while (st.talks === talks0 && hours < 20) { stand(); S.noteContacts(st); R.talkHour(st, 10, S.noteContacts(st)); hours++; }
-check(st.talks > talks0, `no talk in ${hours} hours together`);
+ta.talk = null;
+while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.noteContacts(st)); hours++; }
+check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
 check(pair[0].rel.has(pair[1].id) && pair[1].rel.has(pair[0].id), 'both remember the talk');
 const grew = ((pair[0].ties.get(pair[1].id) || 0) - tie0) / T.tie; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
@@ -84,4 +85,29 @@ const t1 = st.talks; R.talkHour(st, 10, S.noteContacts(st));
 const talking = st.agents.filter((ag) => ag.talk).length;
 check(st.talks > t1 && talking === 2 * (st.talks - t1), `${st.talks - t1} talks, ${talking} pawns talking`);
 check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).slice(0, 3).join('; '));
+
+// company: an idle pawn joins someone it likes who idles in its village, never someone it dislikes
+const A = VB['sim/agents'], seek0 = SOCIAL.seek, vill = (p) => Sim.settlementIdOf(st, p);
+SOCIAL.seek = 1;
+const [x, fr, foe] = (() => {
+  for (const p of adults) {
+    if (!p.alive) continue;
+    const same = adults.filter((q) => q.alive && q !== p && vill(q) === vill(p) && R.standing(st, p.id, q.id) === null);
+    if (same.length >= 2) return [p, same[0], same[1]];
+  }
+  return [];
+})();
+check(x && fr && foe, 'three unrelated adults of one village');
+for (let k = 0; k < 10; k++) { R.remember(st, x.id, fr.id, 'goodTalk'); R.remember(st, x.id, foe.id, 'crossWords'); }
+const home = st.farmsteads[st.households[x.household].farmstead].house, hx = st.w.hx[home], hy = st.w.hy[home];
+for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
+const idleAt = (p, dx) => { const g = st.agents[p.id]; g.inside = false; g.job = null; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };
+idleAt(fr, 40); st.t += 0.01;
+const ax = st.agents[x.id];
+A.idleAbout(st, ax);
+const end = ax.path[ax.path.length - 1];
+check(Math.abs(end[0] - (hx + 40)) <= 8 && Math.abs(end[1] - hy) <= 4, `walks to the friend: ends at ${end.slice(0, 2).map(Math.round)}, friend at ${hx + 40},${hy}`);
+st.agents[fr.id].inside = true; idleAt(foe, 40); st.t += 0.01;
+check(R.companyFor(st, ax) === null, 'never joins someone it dislikes');
+SOCIAL.seek = seek0;
 if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}; ${st.talks - t1} talks in one crowded hour`);

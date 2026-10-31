@@ -1,7 +1,8 @@
-// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, and the people a pawn knows
+// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
+// people a pawn knows
 VB['sim/relations'] = (() => {
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
   const M = SOCIAL.memories;
 
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
@@ -156,7 +157,48 @@ VB['sim/relations'] = (() => {
     pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
+    // an idle pawn outdoors stops where it is until the talk is over
+    const halt = (g) => { if (!g.inside && !g.job && g.phase === null) { g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until); } };
+    halt(a); halt(b);
     st.talks++;
+  }
+
+  // ---- company: an idle pawn may join someone it likes who idles outdoors in its village ----
+  // The idle pawns outdoors of each village as of this game hour (derived, not state; rebuilt each hour): companyFor checks that a
+  // pawn drawn from it still idles outdoors.
+  const idleCache = new WeakMap();
+  const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
+  function idlersBy(st) {
+    let c = idleCache.get(st);
+    const hour = Math.floor(st.t);
+    if (!c || c.hour !== hour) {
+      c = { hour, by: new Map() };
+      for (const b of st.agents) {
+        if (!idles(st, b)) continue;
+        const v = settlementIdOf(st, st.pawns[b.id]); if (v === null) continue;
+        const l = c.by.get(v); if (l) l.push(b); else c.by.set(v, [b]);
+      }
+      idleCache.set(st, c);
+    }
+    return c.by;
+  }
+  // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
+  // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
+  function companyFor(st, a) {
+    if (st.rand() >= SOCIAL.seek) return null;
+    const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
+    if (!list || !list.length) return null;
+    let tot = 0; cand.length = 0; wts.length = 0;
+    for (let k = 0; k < SOCIAL.seekSample; k++) {
+      const b = list[Math.floor(st.rand() * list.length)];
+      if (b === a || cand.includes(b) || !idles(st, b)) continue;
+      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
+      if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+    }
+    if (!cand.length) return null;
+    let x = st.rand() * tot, i = 0;
+    while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+    return cand[i];
   }
 
   // ---- for the page and the tools ----
@@ -180,7 +222,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
-    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, opinionWord, relationsOf,
+    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf,
   };
 })();
