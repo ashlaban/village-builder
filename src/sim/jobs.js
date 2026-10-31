@@ -7,6 +7,7 @@ VB['sim/jobs'] = (() => {
   const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
+  const { startMeadow } = VB['sim/meadows'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
@@ -51,7 +52,7 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
       }
-      if (st.makeFields) startProject(st, f, hh);
+      if (st.makeFields) { startProject(st, f, hh); startMeadow(st, f, hh); } // a meadow once the fields are enough
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
       if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });

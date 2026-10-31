@@ -1053,7 +1053,7 @@
   let st = null, speed = 1, selPawn = -1;
   const HOUR_SECONDS = 2; // one game day lasts 48 seconds at 1x
   let fieldTex = null, art = null;
-  let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [];
+  let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [], meadowSprites = [];
   let herdSprites = new Map(); // herd id -> {sig, list of {s, ox, oy, ph, k}}; rebuilt only when the herd changes (see drawHerds)
   const ring = new PIXI.Graphics();
   const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
@@ -1144,6 +1144,40 @@
     hexClip(g, cx, cy, rr0); g.strokeStyle = 'rgba(70,58,34,0.45)'; g.lineWidth = 2; g.stroke();
     return c;
   }
+  // A hay meadow (VB-132): tall flowering grass; mown, with windrows of drying hay and haycocks; aftermath, short regrowth.
+  function meadowCanvas(stage, R) {
+    const S = 2, Wc = Math.ceil(Math.sqrt(3) * R * S) + 2, Hc = Math.ceil(2 * R * S) + 2, c = makeCanvas(Wc, Hc), g = c.getContext('2d');
+    const cx = Wc / 2, cy = Hc / 2, rr0 = R * S * 0.92, r = G.mulberry32(stage.length * 131 + 9);
+    const base = { grass: [104, 138, 58], mown: [150, 160, 84], aftermath: [122, 150, 70] }[stage];
+    g.save(); hexClip(g, cx, cy, rr0); g.clip();
+    g.fillStyle = `rgb(${base})`; g.fillRect(0, 0, Wc, Hc);
+    const blades = stage === 'grass' ? 1400 : stage === 'aftermath' ? 700 : 300, tall = stage === 'grass' ? 6 : 2.2;
+    for (let k = 0; k < blades; k++) {
+      const x = r() * Wc, y = r() * Hc, f = 0.8 + r() * 0.45;
+      g.strokeStyle = `rgb(${base.map((v) => Math.min(255, v * f) | 0)})`; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 2.5, y - tall * (0.6 + r() * 0.6)); g.stroke();
+    }
+    if (stage !== 'mown') {
+      const flowers = stage === 'grass' ? 160 : 30, cols = ['rgba(250,250,240,0.95)', 'rgba(244,214,80,0.95)', 'rgba(170,110,190,0.9)', 'rgba(120,140,220,0.9)', 'rgba(230,120,140,0.85)'];
+      for (let k = 0; k < flowers; k++) { g.fillStyle = cols[(r() * cols.length) | 0]; g.beginPath(); g.arc(r() * Wc, r() * Hc, 1.1 + r() * 0.8, 0, 7); g.fill(); }
+    } else {
+      for (let y = 10; y < Hc; y += 16) { // windrows
+        g.strokeStyle = 'rgb(196,182,108)'; g.lineWidth = 5; g.beginPath();
+        for (let x = 0; x <= Wc; x += 6) g[x ? 'lineTo' : 'moveTo'](x, y + Math.sin(x * 0.08 + y) * 2.5);
+        g.stroke(); g.strokeStyle = 'rgba(150,132,70,0.7)'; g.lineWidth = 1.2; g.stroke();
+      }
+      for (let k = 0; k < 7; k++) { // haycocks
+        const x = cx + (r() - 0.5) * Wc * 0.6, y = cy + (r() - 0.5) * Hc * 0.55;
+        g.fillStyle = 'rgba(30,40,20,0.3)'; g.beginPath(); g.ellipse(x + 1, y + 4, 7, 2.6, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgb(206,190,116)'; g.beginPath(); g.moveTo(x - 7, y + 4); g.quadraticCurveTo(x, y - 12, x + 7, y + 4); g.fill();
+        g.strokeStyle = 'rgba(140,120,60,0.8)'; g.lineWidth = 0.8; g.stroke();
+      }
+    }
+    for (let k = 0; k < 60; k++) { g.fillStyle = `rgba(0,0,0,${0.03 + r() * 0.04})`; g.fillRect(r() * Wc, r() * Hc, 1.5, 1.5); }
+    g.restore();
+    hexClip(g, cx, cy, rr0); g.strokeStyle = 'rgba(80,90,40,0.35)'; g.lineWidth = 1.5; g.stroke();
+    return c;
+  }
   function curbCanvas() {
     const c = makeCanvas(40, 30), g = c.getContext('2d'), r = G.mulberry32(9);
     g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(20, 26, 17, 3.5, 0, 0, 7); g.fill();
@@ -1160,6 +1194,7 @@
   function makeArt(R) {
     const T = (c) => texFrom(c, { autoGenerateMipmaps: true });
     fieldTex = {}; for (const k of ['stubble', 'plowed', 'sown', 'young', 'growing', 'ripe', 'fallow', 'scrub']) fieldTex[k] = T(fieldCanvas(k, R));
+    for (const k of ['grass', 'mown', 'aftermath']) fieldTex['meadow-' + k] = T(meadowCanvas(k, R));
     art = {
       stuga: [0, 1, 2].map((v) => T(stugaCanvas(v))), harbre: T(harbreCanvas()), lada: T(ladaCanvas()),
       wood: [0, 1, 2, 3].map((l) => T(woodpileCanvas(l))), sweep: T(wellSweepCanvas()), curb: T(curbCanvas()),
@@ -1173,7 +1208,7 @@
   function clearSettlement() {
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
     for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(), ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map();
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = [];
   }
   async function buildSettlement(wd, s) {
     clearSettlement();
@@ -1194,7 +1229,7 @@
   // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
   function buildFarms(wd) {
     for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()]) if (s2 !== ring) s2.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; herdSprites = new Map();
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; herdSprites = new Map(); meadowSprites = [];
     L.objects.sortableChildren = true;
     for (const f of st.farmsteads) {
       const hx = wd.hx[f.house], hy = wd.hy[f.house], empty = f.household === null, ruin = f.state === 'ruin';
@@ -1209,6 +1244,10 @@
           const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9); sk.visible = false; stooks.push(sk);
         }
         fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+      }
+      for (const m of f.meadows) {
+        const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]); sp.anchor.set(0.5); sp.scale.set(0.5); sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
+        L.fields.addChild(sp); meadowSprites.push({ sp, m, stage: m.stage });
       }
       const yard = place(art.yard, hx, hy + 2, 0.5, 0.5, L.fields); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
       const v = f.id % 3;
@@ -1321,6 +1360,7 @@
       const on = o.fd.stage === 'stooks';
       if (o.stooks[0].visible !== on) for (const sk of o.stooks) sk.visible = on;
     }
+    for (const o of meadowSprites) if (o.m.stage !== o.stage) { o.stage = o.m.stage; o.sp.texture = fieldTex['meadow-' + o.stage]; }
     for (const f of fences) if (f.s.dirty) { drawFence(f.g, f.s); f.s.dirty = false; }
     const c = Sim.cal(st.t), show = cam.z > 0.28, winter = c.season === 3;
     for (const a of st.agents) {
@@ -1422,7 +1462,7 @@
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       const herdText = Sim.describeHerds(st, hh);
       if (herdText || hh.hay > 0) h += `<p>${esc(herdText || 'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}</p>`;
-      h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
+      h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? (f.project.stage === 'meadow' ? '; clearing a new hay meadow' : `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}`) : ''}${f.meadows.length ? `; ${f.meadows.length === 1 ? 'a hay meadow' : `${f.meadows.length} hay meadows`}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
         h += `<li>${nm(id)} ${p.age}, ${esc(Sim.ROLES[p.role] ? (p.role === 'farmer' && p.sex === 'f' ? (isWidow(p) ? 'widow' : 'holder') : Sim.ROLES[p.role].title.toLowerCase()) : p.role)}<br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
@@ -1499,6 +1539,12 @@
         const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
         return [`Field of ${where}`, [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
       }
+    }
+    for (const f of st.farmsteads) {
+      const m = f.meadows.find((q) => q.tile === i);
+      if (!m) continue;
+      const word = { grass: m.raked ? 'Grass growing, raked clean in spring' : 'Grass growing', mown: 'Mown; the hay is drying', aftermath: 'Aftermath: the hay is in' }[m.stage];
+      return [`Hay meadow of ${f.name}, ${st.villages[f.village].name}`, [word, `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`]];
     }
     for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
     return null;

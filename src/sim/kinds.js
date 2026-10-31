@@ -5,6 +5,7 @@ VB['sim/kinds'] = (() => {
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
+  const { finishMeadow } = VB['sim/meadows'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -108,6 +109,10 @@ VB['sim/kinds'] = (() => {
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
       type: 'tilling', field: true, spot: onField, done: (st, j) => finishBreak(st, j.farm),
+    },
+    meadow: {
+      verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
+      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishMeadow(st, j.farm, hh),
     },
     fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
     grub: {

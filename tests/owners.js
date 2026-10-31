@@ -1,4 +1,4 @@
-// Villages and tile owners: every farm has a village, seeding gives the owners, an empty farm passes to its village.
+// Villages and tile owners: every farm has a village, seeding gives the owners (houses, fields, meadows), an empty farm passes to its village.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('OWNERS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
@@ -15,7 +15,7 @@ function checkSeeding(st, label) {
   for (const f of st.farmsteads) {
     check(f.village !== null && st.villages[f.village], `${label}: ${f.name} has no village`);
     const o = f.household === null ? { type: 'village', id: f.village } : { type: 'household', id: f.household };
-    for (const t of [f.house, ...f.fields.map((fd) => fd.tile)]) expected.set(t, o);
+    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) expected.set(t, o); // hay meadows (VB-132)
     check(f.fence === null || f.fence === undefined, `${label}: ${f.name} has its own fence`);
   }
   for (let t = 0; t < st.w.N; t++) check(same(own(t), expected.get(t) || null), `${label}: tile ${t} owner ${JSON.stringify(own(t))}`);
@@ -36,7 +36,9 @@ for (const [scenario, seed] of [['founders', 7], ['founders', 42], ['heirs', 7],
   VB['sim/heirs'].transfer(st, hh, hh.members.find((m) => m !== hh.holder) ?? hh.holder, 'death');
   check(same(Sim.ownerOf(st, f.house), before), `${scenario}: transfer changed the owner`);
   VB['sim/heirs'].extinct(st, hh);
-  for (const t of [f.house, ...f.fields.map((fd) => fd.tile)]) check(same(Sim.ownerOf(st, t), { type: 'village', id: f.village }), `${scenario}: tile ${t} not handed to the village`);
+  for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
+    check(same(Sim.ownerOf(st, t), { type: 'village', id: f.village }), `${scenario}: tile ${t} not handed to the village`);
+  }
 }
 if (failed) process.exit(1);
 console.log('owners ok');

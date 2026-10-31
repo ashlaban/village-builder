@@ -14,6 +14,7 @@ VB['sim/scenarios'] = (() => {
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
+  const { placeMeadows } = VB['sim/meadows'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
@@ -64,7 +65,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null); st.countDemand();
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
-    populousHerds(st);
+    populousHerds(st); placeMeadows(st);
     log(st, `${R.pawns.length} people in ${villages.length} villages.`);
     return st;
   }
@@ -140,6 +141,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); st.countDemand();
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
     heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
+    placeMeadows(st);
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
     return st;
   }
@@ -163,7 +165,8 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind, n, until}: stored food lots; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
-    //   house is a tile index; project {tile, stage 'clear'|'break', hours} or null (the field in the making; sim/fields);
+    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
+    //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
