@@ -2,7 +2,7 @@
 
 A review of the game as built at `6b9149b` (after VB-049) against `design.md` v0.3: whether the stated design is implemented, what is broken or costly, and what would make development cheaper and safer. The design-level reflection (which systems the game needs, and whether they are fun, realistic and affordable) is in `design.md`, "Systems overview". Questions for Kim are in `QUESTIONS.md` under "Review, 30 October 2026"; new and changed tasks are in `BACKLOG.md`.
 
-An addendum of the same day reviews the work and jobs system at `6e5e39b`, against the colony-sim genre: see "Work and jobs" below.
+An addendum of the same day reviews the work and jobs system at `6e5e39b`, against the colony-sim genre: see "Work and jobs" below. A second pass the same day, at `243d9dd`, measures the job system again, profiles it, compares its design with the genre's and proposes new concrete jobs: see "Work and jobs, second pass" at the end.
 
 Numbers below come from `npm run verify --verbose` and from short scripts run on the Node loader, populous medium at seed 7 unless stated.
 
@@ -171,3 +171,69 @@ Share of work hours (7–17) with no job, by role and season:
 - New arch `player`: VB-079 (plan: the player's role).
 - Design gaps: VB-080 (food balance), VB-081 (populous adult children), VB-082 (legible customs), VB-083 (seasons), VB-084 (speed), VB-085 (heirs names).
 - Addendum, work and jobs: new arch `work`, VB-101 (why idle; ready), VB-102 (several hands), VB-103 (bid floor, winter wood), VB-104 (children's work), VB-105 (daylight), VB-106 (help between households), VB-107 (interrupts), VB-108 (wrap-up); questions in `QUESTIONS.md`. VB-079 notes that the player steers jobs later.
+
+## Work and jobs, second pass (30 October 2026, at `243d9dd`)
+
+A second review of the job system, after VB-101 (why idle), VB-103 (work beats idling) and VB-104 (children's work): its design against Dwarf Fortress, RimWorld, Oxygen Not Included, Banished, Manor Lords, Going Medieval and Songs of Syx; what it costs; and which concrete jobs would make the village's year worth watching. Numbers are from populous medium at seed 7, year 1, unless stated, from scratch scripts on the Node loader; screenshots were taken in Chromium. An illustrated version with the screenshots and charts is published as a private page (https://claude.ai/artifact/6DSjSpb7WqMgDGJckzCaDH). The answers to its questions are in `QUESTION_ARCHIVE.md` ("job review, second pass"); it led to VB-116, VB-102 and VB-107 (built, below) and VB-117 to VB-123.
+
+### Findings
+
+1. **The matching works; the economy asks for too little work.** A household has about 400 adult work hours a season; its fields, hearth, well, woodpile and fences ask for 41 (winter) to 113 (spring) of them. Adults are idle 55% of work hours in spring and 79% in winter, and for 87% of that idle time there is no open job they may take.
+2. **One pawn per job wasted the two peaks.** On spring day 3 at 10:25 in Sandnes (13 farms, 62 people aged 7 or more) 28 were hoeing, one per field, and 25 idle; on autumn day 9, 3 reaped and 45 waited. On summer day 5, 60 of 62 were idle, and on winter day 6 all were.
+3. **A job kind lived in nine places across four files**, and every new kind added a number to all eight roles.
+4. **Every job has one shape:** walk there, work, maybe carry home. Building, milling and anything that fetches materials first cannot be expressed.
+5. **Performance is not the problem.** 97 ms per game day at 826 pawns; jobs, walking and routes about 16 ms of it, the social systems about two thirds.
+6. **The best new jobs fill the slack seasons with work that has a consequence:** fishing and gathering, village work days and winter crafts now; haymaking, herding and milking with the animals arch.
+
+### Where a household's hours go
+
+| Season | Adult hours | Field work | Hearth and well | Firewood | New land and fences | Walking and carrying | Idle |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Spring | 396 | 77 | 19 | 17 | 0.3 | 64 | 55% |
+| Summer | 400 | 14 | 23 | 15 | 1.5 | 58 | 72% |
+| Autumn | 401 | 41 | 22 | 6 | 5 | 56 | 67% |
+| Winter | 405 | 0 | 23 | 9 | 9 | 45 | 79% |
+
+Cooking is a quarter of all work done; walking and carrying take about as long as the work itself in summer and winter. Idle adults' reasons (VB-101, 2 years): no open job they may take 86.9%, a bid waiting for the next 6-minute round 8.2%, a poor fit waiting 2 hours 4.4%, not worth the walk 0.5%.
+
+### Against the genre
+
+| Area | Genre | Here | Lesson |
+| --- | --- | --- | --- |
+| Where jobs come from | Designations, workshops and work orders (Dwarf Fortress); work givers scanning the map per work type (RimWorld); errands with a priority 1–9 (Oxygen Not Included); workplaces (Banished, Manor Lords) | Sources post onto a board hourly | Keep: owners give jobs a social meaning the genre lacks |
+| Who may do it, and how a worker chooses | Labors on or off per dwarf; work types ranked 1–4 per pawn, then the nearest reachable thing over a region graph; personal priority, then errand priority, then proximity | One best-fit auction: role priority × urgency − distance + noise | Priority bands read more easily than sums; expose the sum as a few bands per type of work when the player steers (VB-079) |
+| Grouping | About 20 work types over many more work givers; labors grouped | Each role ranked each kind | Rank types of work (VB-116) |
+| Several workers | Workplaces with capacity; a big build split into frames | One pawn per job | Several hands (VB-102) |
+| Idle time | Rare: there is always low-value work (hauling, cleaning, digging, supply) | Nothing to sink time into | New concrete jobs, and talk once pawns talk |
+| Interrupts | Think trees and needs pre-empt work every tick | Only the cook after 14:00 | An hourly look up from the work (VB-107) |
+| Materials | Haulers move everything to stockpiles, the most criticised chore | Carrying is part of the job | Keep it inside the job; fetching as a job step (VB-123) |
+| Individuality | Skills by use, passions, interests | Role only | Open in the design (stats and traits) |
+
+Dwarf Fortress and RimWorld wiki pages could not be fetched from the review's environment; their entries rest on search summaries and familiarity with both games.
+
+### Performance
+
+Node's CPU profile of 24 game days of populous medium (826 pawns, 188 open jobs) after a 60-day warm-up: 97 ms per game day, 0.2% of a core at 1× and 2% at 10×. Shares of simulation time: daily social life and contacts 65%, moving round and meetings 9%, walking 4.5%, matching 4%, routes for new walks 3.5%, posting, working, arriving and delivering 5%. Job features stay cheap if they run hourly rather than every 6-minute step (VB-107 does), keep candidate lists bounded (VB-106 note: a household offers helpers its most urgent waiting job per kind) and, once sources multiply, post on change instead of polling every farm each hour. Scheduling each pawn at its next decision instead of visiting all pawns every step would remove most of the per-step loop (about 10%), but is not needed before the uncapped speed (VB-084).
+
+### Gaps
+
+| Gap | Task |
+| --- | --- |
+| Too little work in the economy | VB-117 to VB-121 (fishing, gathering, mixed meals, work days, crafts); animals arch |
+| One pawn per job | VB-102, done |
+| A job kind in nine places; roles ranking kinds | VB-116, done |
+| One fixed shape per job | VB-123 |
+| No interrupts | VB-107, done |
+| No individuality at work | Open in the design (stats and traits) |
+| Little village work | VB-120 |
+| Waits measured from the first posting, so a two-day field counts its night as waiting | VB-122 |
+| The weather comes from the matching's random stream, so runs that differ in jobs get different harvests from year 2 | VB-072; compare runs with the weather held fixed until then |
+
+### Built in this pass
+
+- **VB-116:** each job kind is one record in `src/sim/kinds.js`; roles rank seven types of work with exceptions; behaviour and golden file unchanged.
+- **VB-102:** several hands on field, land and threshing jobs. Founders no longer go hungry (seed 7: 22/57/0 hungry household-days in years 1–3 before, 0/0/0 after; seed 42: 25/77/0 before, 0/11/0 after, and the colony no longer dies out); populous loses fewer crops to frost; populous idleness hardly moves, since a big household already put one hand on each field.
+- **VB-107:** an hourly look up from the work. Switches are rare (about 0.3 per pawn per year); a farmer keeps hoeing when the woodpile runs out and a son goes for wood.
+
+The full before-and-after tables are in the task files. In these runs adults are still idle 55–81% of work hours outside the founders' first spring: the new jobs (VB-117 to VB-121) and the animals are what fill the year.
+

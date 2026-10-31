@@ -1,4 +1,4 @@
-// @sys sim/rules: calendar, economy, roles, job kinds, names and other simulation constants
+// @sys sim/rules: calendar, economy, roles and their work, names and other simulation constants
 VB['sim/rules'] = (() => {
   const { B } = VB['gen'];
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
@@ -29,41 +29,29 @@ VB['sim/rules'] = (() => {
   // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
   const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
-  // ---- roles and jobs: who prefers what; jobs carry an owner that decides who may take them ----
+  // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
+  // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
   const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', prio: { plow: 10, sow: 10, reap: 9, haul: 8, thresh: 8, wood: 7, mend: 6, water: 2, cook: 1, weed: 10 } },
-    wife: { title: 'Mistress of the house', sv: 'husfru', prio: { cook: 10, water: 9, reap: 7, haul: 6, sow: 5, wood: 2, mend: 2, plow: 2, thresh: 2,
-      weed: 5 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', prio: { plow: 9, wood: 9, haul: 8, reap: 8, thresh: 8, mend: 7, sow: 6, water: 3, cook: 0, weed: 6 } },
-    maid: { title: 'Maid', sv: 'piga', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1, thresh: 2, weed: 4 } },
-    son: { title: 'Son of the house', sv: 'son', prio: { plow: 9, wood: 9, haul: 8, reap: 8, thresh: 8, mend: 7, sow: 6, water: 3, cook: 0, weed: 6 } },
-    daughter: { title: 'Daughter of the house', sv: 'dotter', prio: { water: 10, cook: 8, reap: 7, haul: 6, sow: 4, wood: 2, mend: 1, plow: 1,
-      thresh: 2, weed: 4 } },
-    retired: { title: 'Retired', sv: 'undantag', prio: { cook: 4, water: 3, sow: 2, mend: 2, thresh: 2, weed: 2 } },
-    child: { title: 'Child', sv: 'barn', prio: { water: 6, weed: 5, haul: 4, reap: 3 } },
+    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2 },
+      except: { reap: 9, cook: 1 } },
+    wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9 },
+      except: { reap: 7, cook: 10 } },
+    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
+      except: { cook: 0 } },
+    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
+      except: { reap: 7, cook: 8 } },
+    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
+      except: { cook: 0 } },
+    daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
+      except: { reap: 7, cook: 8 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3 }, except: { cook: 4 } },
+    child: { title: 'Child', sv: 'barn', work: { harvest: 3 }, except: { water: 6, weed: 5, haul: 4 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
   const workRate = (role, age) => (role === 'child' ? Math.min(1, CHILD.base + CHILD.perYear * (age - CHILD.from)) : 1);
-  for (const r of Object.values(ROLES)) r.prio.clear = r.prio.break = r.prio.plow; // new fields are heavy field work, like hoeing
   // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
   const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
-  const KINDS = {
-    plow: { verb: 'Hoeing a field', go: 'Going to hoe a field', anim: 'hoe', hours: 20, field: true },
-    sow: { verb: 'Sowing', go: 'Going to sow', anim: 'sow', hours: 2, field: true },
-    reap: { verb: 'Reaping', go: 'Going to reap', anim: 'reap', hours: 5, field: true },
-    haul: { verb: 'Bringing in the sheaves', go: 'Going for the sheaves', anim: 'gather', hours: 0.7, carry: 'sheaf', back: 'Carrying sheaves to the barn' },
-    wood: { verb: 'Cutting firewood', go: 'Heading to the woods', anim: 'chop', hours: 3, carry: 'logs', back: 'Carrying firewood home' },
-    water: { verb: 'Drawing water', go: 'Going for water', anim: 'draw', hours: 0.5, carry: 'buckets', back: 'Carrying water home' },
-    cook: { verb: 'Cooking at the hearth', go: 'Going home to cook', anim: null, hours: 2, inside: true },
-    weed: { verb: 'Weeding a field', go: 'Going to weed a field', anim: 'gather', hours: 2, field: true },
-    thresh: { verb: 'Threshing in the barn', go: 'Going to the barn to thresh', anim: null, hours: 6, inside: true },
-    clear: { verb: 'Clearing scrub and stones', go: 'Going to clear land', anim: 'hoe', hours: 10, field: true },
-    break: { verb: 'Breaking new ground', go: 'Going to break new ground', anim: 'hoe', hours: 30, field: true },
-    fell: { verb: 'Felling trees', go: 'Going to fell trees', anim: 'chop', hours: 10 },
-    grub: { verb: 'Grubbing out stumps', go: 'Going to grub out stumps', anim: 'hoe', hours: 6, field: true },
-    mend: { verb: 'Mending the fence', go: 'Going to mend the fence', anim: 'mallet', hours: 2.5 },
-  };
 
   // ---- names ----
   const MALE = ['Erik', 'Olof', 'Anders', 'Nils', 'Per', 'Lars', 'Jon', 'Sven', 'Håkan', 'Gunnar', 'Ivar',
@@ -116,19 +104,21 @@ VB['sim/rules'] = (() => {
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
-  // distanceWeight; noise breaks ties. urgency: a job's weight in a bid, by kind (see `urgency`).
+  // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
+  // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
+  // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
-    distanceWeight: 0.15, noise: 0.3,
+    distanceWeight: 0.15, noise: 0.3, join: 0.8, switchRatio: 1.5, switchMargin: 1,
     urgency: {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
-      reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in summer + sday / 5
-      woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the target, + 0.5 in summer
+      reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
+      woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
-    PLOT_PRIO, KINDS,
+    PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();

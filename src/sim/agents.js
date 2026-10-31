@@ -1,14 +1,12 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, KINDS, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
+  const { cal, WORK, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
-  const { log, age } = VB['sim/records'];
-  const { fellTree } = VB['sim/forest'];
-  const { dailyNeed, seedReserve } = VB['sim/hunger'];
-  const { finishClear, finishBreak } = VB['sim/fields'];
+  const { age } = VB['sim/records'];
   const { finishStep } = VB['sim/expansion'];
-  const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
+  const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
+  const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -38,21 +36,11 @@ VB['sim/agents'] = (() => {
     a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
     a.seg = 0; a.inside = false; a.anim = 'walk';
   }
-  // Where on the site a pawn stands to do the job.
-  function workSpot(st, a, j) {
-    const w = st.w;
-    if (KINDS[j.kind].field) {
-      const th = rowAngle(j);
-      return [w.hx[j.site] - Math.cos(th) * 13 + Math.sin(th) * -12, w.hy[j.site] - Math.sin(th) * 13 - Math.cos(th) * -12];
-    }
-    if (j.kind === 'haul') return [w.hx[j.site] + a.ox * 0.6, w.hy[j.site] + a.oy * 0.6];
-    if (j.kind === 'water') return st.villages[j.farm.village].well ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
-    if (j.kind === 'mend') return [j.stretch.mx + (w.hx[j.site] - j.stretch.mx) * 0.25, j.stretch.my + (w.hy[j.site] - j.stretch.my) * 0.25 + 3];
-    if (j.kind === 'wood') return [w.hx[j.site] - 8 + a.ox * 0.4, w.hy[j.site] + 6];
-    return [w.hx[j.site], w.hy[j.site]];
-  }
+  // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
+  const workSpot = (st, a, j) => (KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
+  // The pawn joins the job's workers (j.claims) and sets out for it.
   function start(st, a, j) {
-    j.claim = a.id; a.job = j;
+    j.claims.push(a.id); a.job = j;
     const K = KINDS[j.kind];
     if (K.inside) { const [x, y] = homeSpot(st, a); a.phase = 'go'; walkTo(st, a, j.farm.house, x, y); return; }
     const [x, y] = workSpot(st, a, j);
@@ -61,43 +49,33 @@ VB['sim/agents'] = (() => {
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
   function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
-  function release(st, a) { if (a.job) { a.job.claim = null; a.job = null; } a.phase = null; a.work = null; }
-  function complete(st, a) {
-    const j = a.job, E = st.ECON, hh = st.households[st.pawns[a.id].household], c = cal(st.t);
-    if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
-    switch (j.kind) {
-      case 'plow': j.field.stage = 'plowed'; break;
-      case 'sow':
-        if (hh.grain >= E.seedPerField) {
-          hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day;
-          j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0;
-        } break;
-      case 'clear': finishClear(st, j.farm, hh); break;
-      case 'break': finishBreak(st, j.farm); break;
-      case 'weed': j.field.weedOpen = false; break;
-      case 'reap':
-        j.field.stage = 'stooks'; j.field.reaped = c.day;
-        j.field.held = Math.round(E.fieldYield * j.field.fert * st.weather * (0.9 + st.rand() * 0.2)
-          * (1 - Math.min(E.weedCutMax, E.weedCut * j.field.weedMiss)));
-        j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0; break;
-      case 'mend': j.stretch.cond = 1; j.stretch.dirty = true; break;
-      case 'cook': { // grain above the seed reserve becomes the rations still missing for the coming meal
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
-        hh.grain -= make; hh.rations += make; hh.cookDay = c.day; break;
-      }
-      case 'thresh': hh.grain += hh.unthreshed.shift() || 0; break;
+  // The pawn leaves its job, which keeps its progress for whoever takes it up.
+  function release(st, a) {
+    if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
+    a.phase = null; a.work = null;
+  }
+  // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
+  function freeHands(st, j, finisher) {
+    for (const id of j.claims) {
+      if (id === finisher) continue;
+      const b = st.agents[id];
+      if (b.phase === 'go') b.path = null;
+      b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
     }
+    j.claims = j.claims.filter((id) => id === finisher);
+  }
+  // The work is done: a plot's step is finished (sim/expansion), any other job does what its kind says (sim/kinds).
+  function complete(st, a) {
+    const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    freeHands(st, j, a.id);
+    if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
+    if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
   }
+  // Home with the load: the kind says what it brings.
   function deposit(st, a) {
-    const j = a.job, hh = st.households[st.pawns[a.id].household], f = st.farmsteads[hh.farmstead];
-    if (j.kind === 'haul') {
-      hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
-      if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
-      j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
-    }
-    if (j.kind === 'wood') { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); }
-    if (j.kind === 'water') hh.waterDay = cal(st.t).day;
+    const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
     dropJob(st, j);
     a.carry = null; a.job = null; a.phase = null;
   }
@@ -114,7 +92,7 @@ VB['sim/agents'] = (() => {
     if (a.phase === 'go') {
       const K = KINDS[a.job.kind];
       a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
-      if (K.field) { const th = rowAngle(a.job); a.work = { s: -13, dir: 1, row: -12, th, cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] }; }
+      if (K.field) a.work = { s: -13, dir: 1, row: firstRow(a.job, a), th: rowAngle(a.job), cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] };
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') { a.inside = true; a.phase = null; }
   }
@@ -122,14 +100,15 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], [x, y] = homeSpot(st, a);
     walkTo(st, a, f.house, x, y);
   }
+  // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
+  const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    const pw = st.pawns[a.id];
-    j.done += dt * workRate(pw.role, age(st, pw)) * (1 - HUNGER.slow * st.pawns[a.id].hunger) * (1 - HEALTH.slow * (100 - st.pawns[a.id].health) / 100);
+    j.done += dt * rateOf(st, st.pawns[a.id]);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
-      const wk = a.work, speed = j.kind === 'sow' ? 9 : 3.2;
+      const wk = a.work, speed = K.pace || ROW_PACE;
       wk.s += wk.dir * speed * dt;
       if (wk.s > 13 || wk.s < -13) { wk.s = Math.max(-13, Math.min(13, wk.s)); wk.dir = -wk.dir; wk.row += 6; if (wk.row > 12) wk.row = -12; }
       const nx = wk.cx + Math.cos(wk.th) * wk.s - Math.sin(wk.th) * wk.row, ny = wk.cy + Math.sin(wk.th) * wk.s + Math.cos(wk.th) * wk.row;
@@ -139,11 +118,12 @@ VB['sim/agents'] = (() => {
     }
     if (j.done >= (j.hours ?? K.hours)) {
       if (K.carry) {
+        freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage
         const hx = st.w.hx[f.house], hy = st.w.hy[f.house];
-        const [x, y] = j.kind === 'water' ? homeSpot(st, a) : K.carry === 'logs' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
+        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
         walkTo(st, a, f.house, x, y);
       } else {
         complete(st, a);
@@ -179,7 +159,8 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, complete, deposit, wantsWork, idleAbout, arrived, goHome, stepWork,
+    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, rateOf,
+    stepWork,
     moveAgent, describe,
   };
 })();

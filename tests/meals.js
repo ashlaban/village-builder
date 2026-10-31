@@ -27,7 +27,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead]; setup(st, hh);
   const need = dailyNeed(st, hh), cook = st.agents[hh.members.find((m) => st.pawns[m].role === 'wife')];
   hh.rations = need / 2; hh.grain = 100; hh.cookDay = -1;
-  const c = cal(st.t), j = { kind: 'cook', farm: f, key: 'k', done: 0, claim: cook.id };
+  const c = cal(st.t), j = { kind: 'cook', farm: f, key: 'k', done: 0, claims: [cook.id] };
   st.jobs.set('k', j); cook.job = j; complete(st, cook);
   assert(Math.abs(hh.rations - need) < 1e-9 && Math.abs(hh.grain - (100 - need / 2)) < 1e-9 && hh.cookDay === c.day, 'cooked up to the next meal');
   hh.rations = 0; hh.grain = 0.2; hh.cookDay = -1; st.jobs.set('k', j); complete(st, cook);
@@ -40,10 +40,10 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   st.t = Math.floor(st.t / DAY) * DAY + 14; st.jobs.clear();
   const c = cal(st.t), mate = hh.members.filter((m) => st.pawns[m].role === 'wife')[0], a = st.agents[mate];
   hh.rations = 0; hh.grain = 100; hh.cookDay = -1;
-  const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: f.woodlot, done: 1.5, claim: null, posted: st.t, farm: f, live: true };
+  const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: f.woodlot, done: 1.5, claims: [], posted: st.t, farm: f, live: true };
   st.jobs.set(wood.key, wood); start(st, a, wood); a.path = null; a.phase = 'work';
   refreshJobs(st, c); callCooks(st, c);
-  assert.strictEqual(a.job.kind, 'cook', 'the cook goes home to cook'); assert.strictEqual(wood.claim, null); assert.strictEqual(wood.done, 1.5);
+  assert.strictEqual(a.job.kind, 'cook', 'the cook goes home to cook'); assert.strictEqual(wood.claims.length, 0); assert.strictEqual(wood.done, 1.5);
   assert(st.jobs.has('wood:x'), 'the other job stays on the board');
 }
 console.log('meals ok');
