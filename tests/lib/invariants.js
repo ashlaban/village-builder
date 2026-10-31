@@ -31,6 +31,7 @@ function checkState(st) {
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
     if (p.rel) checkRel(st, p, bad);
+    if (p.kinPush !== null && !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
   }
   const open = new Map();
   for (const u of st.unions) {
