@@ -15,6 +15,10 @@ The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 
 
 ## Priority 2
 
+### VB-023: sowing a hoed field before the next (raised by the nightly run of 30 October; gathered in the review of 31 October)
+The rule is built (no `plow` job while another field is hoed and its seed is in the house), but it does not bring in a crop in year 2 at seeds 7 and 11: a lone bachelor sows his first field only on spring day 4–7, after water, wood and cooking, so the stooks are lost to frost on summer day 11, and crops in year 3 fall from 3 to 0–1.
+1. What should give? **P:** lower the assertion, since the lone bachelor of the founders scenario is a harsh case: at least 1 crop in years 1–3 taken together at each of seeds 3, 7, 11 and 42 (the run reports them per year); and sow before wood and water for any household with a hoed field and seed in the house (a one-line priority change in `ROLES`), as it is the one chore with a closing date.
+
 ### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
 Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
 1. Fishing grounds and catch. **P:** a shore tile within 6 steps of the house; a 3-hour trip brings 4 rations × the water tile's stock; a trip lowers a river or small lake tile's stock by 0.1 and it recovers 0.02 a day; the sea and lakes of 20 tiles or more never run down; no fishing in winter.
@@ -40,6 +44,10 @@ Kim kept the tie model unchanged in VB-061; this is the later rework.
 2. Cap ties at the 150 strongest per pawn, kin always kept? **P:** yes.
 
 ## Priority 3
+
+### VB-130: what grain does once a household is fed (raised in the review of 31 October)
+Founders at seed 7 hold 300 grain per household in year 2 and 1,700 in year 38, with 12–14 people: a surplus has no use and no loss.
+1. What is the first outlet? **P:** storage loss, which is the cheapest and historically true (damp, mice, weevils): each year 8% of the grain above a year's food for the household is lost at the autumn count (so a household keeps a buffer but a hoard shrinks), shown in the household panel as "spoilt"; a tithe and trade stay for later (Open, "Outlets for grain").
 
 ### VB-120: village work days (job review, second pass)
 1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.

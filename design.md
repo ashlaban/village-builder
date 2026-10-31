@@ -600,8 +600,8 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 | --- | --- | --- | --- | --- | --- |
 | World and terrain | Everything | Each seed is a new archipelago to read: shores, woods, stony hills | Compressed on purpose; terrain types fit Sweden | 2–6 s once, at generation | Built |
 | Calendar and the yearly round | Pacing, farming, meetings | The harvest and the meeting give each year a shape | 48 days a year, a day standing for a week; consistent | Negligible | Built |
-| Work: jobs, matching, walking | The visible life of the village | Reading a village at a glance; watching a family get through the harvest | Role-based work fits medieval practice; walking ignores terrain (mountains cost the same as meadow); adults stand idle for a third to four fifths of work hours while work waits, and children never work | The hot loop: every idle pawn bids for every job; index jobs by owner | Built; gaps planned (work arch, VB-101 to VB-108) |
-| Fields, grain and food | The material base and its scarcity | The harvest as the year's climax; a lean spring as drama | Seed at 4:1 fits Slicher van Bath; a farm feeds about 3.5 adult-equivalents, against 5–6 historically | Negligible | Built, short of food (see below) |
+| Work: jobs, matching, walking | The visible life of the village | Reading a village at a glance; watching a family get through the harvest | Role-based work fits medieval practice; walking follows terrain, fords and worn paths (A*); children work from 7; at `243d9dd`, before several hands, adults still left 20–25 jobs a day unclaimed (plow, cook, wood) | Jobs are indexed by owner; about 62 ms a game day at 830 pawns (at `243d9dd`) | Built, with several hands, the 6:00–18:00 day and interrupts (VB-102, VB-105, VB-107); help between households planned (VB-106) |
+| Fields, grain and food | The material base and its scarcity | The harvest as the year's climax; a lean spring as drama | Seed at 4:1 fits Slicher van Bath; a farm feeds about 3.5 adult-equivalents, against 5–6 historically | Negligible | Built; a fed household hoards (1,700 grain after 38 years, VB-130) while a quarter of populous households go hungry (VB-039, VB-128) |
 | Forest, wood and stones | Fuel, building, land-making | The commons wood visibly shrinking is a readable tragedy of the commons | Good; regrowth over 30 years | Negligible | Built |
 | Making land: fields, meadows, plots | Incremental progress, growth | The game's "build" verb: land won by work, tile by tile | Good; hours scaled from history | Small | Planned (VB-010, VB-031) |
 | Animals and hay | The second economy, the winter limit | The autumn decision of how many animals to keep is a real choice under risk | *Äng är åkers moder*; good | About 22,000 tile updates a day; small | Planned (VB-047) |
@@ -609,7 +609,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 | Births, deaths, health | The cast changes | Death and birth are the main events | Matched to model life tables | Small | Built; health planned (VB-050) |
 | Pawn interactions and courting | Ties, marriages, persuasion | Romance and friendship are what players retell | Courting at any time of year; good | One talk per pawn and hour, partners from map cells; about 20 ms a game day at 850 pawns (VB-061) | Partly (talk and opinion built; courting planned) |
 | Inheritance and succession | Who gets the farm, who must leave | The strongest system today: every death reshuffles a family | Close to Northwestern European practice | Ranks heirs across all farms (VB-052) | Built |
-| Expansion: claims, plots, splitting | The release valve; growth | Seeing a younger son found a farm is the payoff of a generation | Hajnal's pattern needs land to marry | Small | Planned; without it the population stays flat |
+| Expansion: claims, plots, splitting | The release valve; growth | Seeing a younger son found a farm is the payoff of a generation | Hajnal's pattern needs land to marry | Small | Plots are cleared (VB-031); the farmstead to build on them is next (VB-032); without it the population stays flat |
 | Ownership and claims | Territory, expansion, disputes | Disputes over a tile are stories | Good | One value per tile | Partly (owners built, claims planned) |
 | Customs, meetings, culture | Society that drifts over generations | The signature system, but slow and hard to see: a change every few decades, announced in one log line | Grounded in social-influence models; calibrated | 19 ms a day | Built |
 | Village commons (green, well, fence, wood) | Shared duties, the village as a unit | Free riders on the commons are a source of conflict | Upplandslagen; good | Small | Partly |
@@ -632,17 +632,17 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 | Ownership and claims overlay | Territory | Shows who holds what at a glance | — | Cached per chunk (VB-045) | Planned |
 | Speech bubbles, mood | Feedback on social life | Makes ties visible | — | Near the camera only | Partly (bubbles, the people a pawn knows and a lens of them built; mood planned, VB-062) |
 | Notifications | Drawing the eye to an event | A death, a marriage or a custom change otherwise passes unseen | — | Small | Missing |
-| Worn paths | Showing where people walk | Lanes appear between farms, well and woods over years | Desire paths are real | One counter per tile, repainted with the chunk | Missing (Decided, 30 Oct; see Land and ecology) |
+| Worn paths | Showing where people walk | Lanes appear between farms, well and woods over years | Desire paths are real | One counter per tile, repainted with the chunk | Built (VB-094, VB-110, VB-114) |
 
 ### Across systems
 
 **Food balance.** A ration is one adult's food for a day; a child under 14 eats half. A household of 6 eats 192 rations a year with four young children and 288 when they are all over 14. A meadow field gives about 80 × 0.97 ≈ 78 in an ordinary year, less 20 of seed. Three fields then give about 170 and four about 230, so a grown family goes hungry every year, and a household of 6 with three fields eats about 90% of its need while the children are small. In the populous scenario a quarter of household-days in year 2 are hungry. Animals are meant to fill the gap (VB-048), but they are the last arch to start. A balance that works before animals keeps every task in between from being judged on a hungry baseline.
 
-**Growth.** Births are close to the targets, but marriages need a place and no new places appear, so the founders stay at 13–21 people for 50 years. Expansion matters more to the run than anything else on the backlog.
+**Growth.** Births are close to the targets, but marriages need a place and no new places appear, so the founders stay at 9–21 people for 40–50 years (31 October: 9–14 at seed 7, with no marriage in 40 years). Expansion matters more to the run than anything else on the backlog.
 
 **Pace.** At 1× a year takes 38 minutes. A run of 40–80 hours plays mostly at 3× and 10×, so what the player sees at those speeds matters most: the harvest, the meeting, a birth, a death. Rare, legible events (a notification, a line in the chronicle, a meeting with its vote shown) carry the game between them.
 
-**Cost.** At 10× a game day passes in 4.8 s. The simulation takes about 0.2 s a day at 818 pawns, about 4% of a core. The yearly rounds take 1.6–2.6 s in one frame and are seen as a freeze. A budget per system makes this testable: steady state under 10% of real time at the fastest speed, and no single step over 50 ms.
+**Cost.** At 10× a game day passes in 4.8 s. The simulation takes about 0.06 s a day at 830 pawns (31 October, at `243d9dd`), about 1% of a core. The moving round takes about 1 s in one frame and is seen as a freeze once a year (VB-129). A budget per system makes this testable: steady state under 10% of real time at the fastest speed, and no single step over 50 ms.
 
 ### Findings
 
@@ -672,7 +672,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [x] Seasons on the map, such as snow in winter. Seasons with temperature, a day and night cycle, and wind and rain are Decided (30 Oct). Agreed (30 Oct): seasonal tints and snow on fixed dates first (backlog VB-083), following temperature once a temperature model exists (see Weather, seasons and daylight).
 - [x] Rivers, which water mills need; the world does not generate them yet. Decided (30 Oct): the world has rivers; their courses are Proposed.
 - [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
-- [ ] Whether rivers can be waded anywhere or only at fords, and when bridges come.
+- [x] Whether rivers can be waded anywhere or only at fords, and when bridges come. Decided (30 Oct): only at fords or bridges; the rule is built (VB-112), building bridges is VB-115.
 - [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
 - [ ] What a more prestigious house brings its owner.
 - [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
@@ -698,6 +698,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (review) | 31 October 2026 | Systems overview brought up to date after the paths, fords and layout work: walking, worn paths, food and cost rows; founders' hoarded grain and uneven hunger noted; the question of fords settled; no Decided or Agreed point changed. Rebased onto main the same day; its new tasks are VB-128 to VB-130. See `REVIEW.md`, review of 31 October |
 | 0.3 (relationships review) | 31 October 2026 | A review of relationships and pawn interactions against RimWorld, Dwarf Fortress, Crusader Kings III and The Sims (`docs/review-relationships.md`). Decided: opinion as the sum of timed memories; one talk partner per pawn and hour, chosen by familiarity and liking; talk outcomes by a pair's compatibility; idle pawns seek those they like; familiarity (the tie) unchanged for now. Built in backlog VB-060, VB-061, VB-124 and VB-125 |
 | 0.3 (job review, second pass) | 30 October 2026 | Brought in the answers to the second review of the job system (`QUESTION_ARCHIVE.md`, `REVIEW.md` Work and jobs, second pass): roles rank types of work; how busy the village should be; fishing and gathering, always posted, by urgency; mixed meals that go further, and fresh food that spoils; milling built with the food jobs; village work days and winter crafts; the interrupt rule's numbers kept, so a son rather than the farmer goes for wood |
 | 0.3 (merge) | 30 October 2026 | Merged the design notes line (main) with the jobs review and the settled questions. Kim's choices where they differed: main's workday of 6:00–18:00 and dark of 4–8 hours by season, not a fixed night; worn paths drawn first (VB-094), with the speed-up as a follow-up (VB-110); snow on fixed dates until temperature exists (VB-083); terrain costs in the current route search now (VB-096), HPA\* only if needed (VB-097) |

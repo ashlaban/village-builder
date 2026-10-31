@@ -1,4 +1,4 @@
-// Backlog check: every backlog/VB-NNN.md has one row in the BACKLOG.md table and vice versa, and each row's name, arch, phase,
+// Backlog check: every backlog/VB-NNN.md has one row, in the BACKLOG.md table (open tasks) or in BACKLOG_ARCHIVE.md (done tasks), and vice versa, and each row's name, arch, phase,
 // status (its first word), priority, size and link match the task file. A task's arch must be listed under "## Archs".
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), dir = path.join(root, 'backlog');
@@ -22,16 +22,20 @@ for (const f of files) {
   tasks[head[1]] = { name: head[2], arch, phase, status: field('Status').split(' ')[0], priority: field('Priority'), size: field('Size'),
     file: `[backlog/${f}](backlog/${f})` };
 }
-const rows = {};
-for (const line of backlog.split('\n').filter((l) => /^\| VB-\d{3} \|/.test(l))) {
+const rows = {}, archived = new Set();
+const archive = fs.readFileSync(path.join(root, 'BACKLOG_ARCHIVE.md'), 'utf8');
+const rowLines = [...backlog.split('\n').map((l) => [l, false]), ...archive.split('\n').map((l) => [l, true])];
+for (const [line, inArchive] of rowLines.filter(([l]) => /^\| VB-\d{3} \|/.test(l))) {
   const cells = line.replace(/^\| | \|\s*$/g, '').split(' | '), file = cells.pop(); // file is last: a summary may hold " | "
   const [id, name, arch, phase, status, priority, size] = cells;
   if (rows[id]) errors.push(`BACKLOG.md: ${id} has more than one row`);
+  if (inArchive) archived.add(id);
   rows[id] = { name, arch, phase, status, priority, size, file };
 }
-for (const id of Object.keys(tasks)) if (!rows[id]) errors.push(`BACKLOG.md: no row for ${id} (backlog/${id}.md)`);
+for (const id of Object.keys(tasks)) if (!rows[id]) errors.push(`BACKLOG.md: no row for ${id} (backlog/${id}.md) in BACKLOG.md or BACKLOG_ARCHIVE.md`);
 for (const [id, row] of Object.entries(rows)) {
   const t = tasks[id];
+  if (t && (t.status === 'done') !== archived.has(id)) errors.push(`${id} is ${t.status}: its row belongs in ${t.status === 'done' ? 'BACKLOG_ARCHIVE.md' : 'BACKLOG.md'}`);
   if (!t) { errors.push(`BACKLOG.md: row ${id} has no file backlog/${id}.md`); continue; }
   for (const k of ['name', 'arch', 'phase', 'status', 'priority', 'size', 'file']) {
     const want = k === 'name' ? t.name.replace(/\|/g, '/') : t[k];
@@ -40,4 +44,4 @@ for (const [id, row] of Object.entries(rows)) {
 }
 if (errors.length) { console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
 const inArch = Object.values(tasks).filter((t) => t.arch !== '-').length;
-console.log(`backlog: ${files.length} task files match the BACKLOG.md table; ${inArch} in ${archs.size} archs`);
+console.log(`backlog: ${files.length} task files match the BACKLOG.md table and BACKLOG_ARCHIVE.md; ${inArch} in ${archs.size} archs`);

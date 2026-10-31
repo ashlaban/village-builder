@@ -2,7 +2,7 @@
 
 A review of the game as built at `6b9149b` (after VB-049) against `design.md` v0.3: whether the stated design is implemented, what is broken or costly, and what would make development cheaper and safer. The design-level reflection (which systems the game needs, and whether they are fun, realistic and affordable) is in `design.md`, "Systems overview". Questions for Kim are in `QUESTIONS.md` under "Review, 30 October 2026"; new and changed tasks are in `BACKLOG.md`.
 
-An addendum of the same day reviews the work and jobs system at `6e5e39b`, against the colony-sim genre: see "Work and jobs" below. A second pass the same day, at `243d9dd`, measures the job system again, profiles it, compares its design with the genre's and proposes new concrete jobs: see "Work and jobs, second pass" at the end.
+An addendum of the same day reviews the work and jobs system at `6e5e39b`, against the colony-sim genre: see "Work and jobs" below. A second pass the same day, at `243d9dd`, measures the job system again, profiles it, compares its design with the genre's and proposes new concrete jobs: see "Work and jobs, second pass". A review of 31 October, also at `243d9dd`, follows the paths, fords and village layout work: see "Review, 31 October 2026" at the end.
 
 Numbers below come from `npm run verify --verbose` and from short scripts run on the Node loader, populous medium at seed 7 unless stated.
 
@@ -237,3 +237,44 @@ Node's CPU profile of 24 game days of populous medium (826 pawns, 188 open jobs)
 
 The full before-and-after tables are in the task files. In these runs adults are still idle 55–81% of work hours outside the founders' first spring: the new jobs (VB-117 to VB-121) and the animals are what fill the year.
 
+## Review, 31 October 2026 (at `243d9dd`, after the paths, fords and village layout work)
+
+Since the first review 59 tasks are done, among them the food balance (VB-080), health (VB-050), meals (VB-022), jobs by owner (VB-071), indexes (VB-052), the work arch's first half (VB-101, VB-103, VB-104), rivers and fords (VB-111, VB-112), A* routes (VB-096), worn paths (VB-094, VB-110, VB-114) and cluster villages (VB-109, VB-113). `npm test` passes (25 scripts, 19 s) and `npm run verify` passes (32 scripts, 37 s). Numbers are from `tools/sim.js`, seed 7, medium map.
+
+*Rebased onto main at `b3a6b0a` (31 October 2026). The findings and numbers below are as of `243d9dd`. Built on main since then, so out of date below: job kinds as one record each (VB-116), several hands (VB-102), interrupts (VB-107), the 6:00–18:00 day (VB-105), the browser smoke test (VB-025), the marriage limit by degree (VB-029), and relationships and talk (VB-060, VB-061, VB-124, VB-125). This review's new tasks were renumbered VB-128 to VB-130, as main had used VB-116 to VB-118.*
+
+### Summary
+
+1. **The critical path was blocked by a stale status.** VB-032 (a new farmstead) said it waited for VB-031, which is done, and so did the tasks behind it (VB-034, VB-058). It is `ready` now, for cleared plots; ruins wait for VB-033. Growth is still the largest gap: founders stay at 9–14 people for 40 years with no marriage and about one birth per four years, and populous holds at 815–837 people with births equal to deaths.
+2. **Food: enough in total, short in places.** Founders pile up grain (300 per household in year 2, 1,700 in year 38) with nothing to spend it on (VB-130). Populous has a median household grain of 324, yet in year 6 32 of 120 households (239 people) are hungry for over 30 days and 35 people starve; years 3, 5 and 6 each lose 11–35 people to starvation. The year-2 collapse of the first review is gone (no starvation deaths in year 2). The remaining problem is distribution, which food help from kin and the village (VB-039) is meant to solve; VB-128 adds the report to see it.
+3. **Cost fell a long way.** About 62 ms of simulation per game day at 830 pawns, against 190–220 ms. The one remaining spike is the yearly moving round (about 1 s in one step, VB-088's draft), now VB-129.
+4. **Idle work is better but not gone.** Populous at the end of the work day leaves on average 20 `plow`, 23 `cook`, 10 `wood` and 4 `sow` and `thresh` jobs unclaimed (`--report idle`). Several hands on one job (VB-102) and interrupts (VB-107) are still to do.
+5. **Walking is now a real system.** Terrain costs, fords, worn paths that speed walking and A* routes with a cache are built and tested; the first review's defects in routes (key collision, 60-step fallback) are gone. Remaining cost: `refreshRoutes` compares every cached route with every changed tile once a day, and the route cache has no bound (VB-097 is the answer if either shows up in a profile).
+
+### Design against code (changes since the first review)
+
+| Design point | Status | Notes |
+| --- | --- | --- |
+| Rivers, fords, bridges as a rule | done | VB-111, VB-112; building bridges is VB-115 |
+| Terrain costs, A* routes | done | VB-096; HPA\* only if needed (VB-097) |
+| Worn paths: wear, fade, speed, drawing, generated villages | done | VB-094, VB-110, VB-114; "animals wear paths" still open |
+| Generated villages: cluster, fields one block beyond the yards | done | VB-109, VB-113 |
+| Health, meals, food balance | done | VB-050, VB-022, VB-080 |
+| Children work from 7; any allowed work beats idling | done | VB-104, VB-103 |
+| Clearing a new plot | done | VB-031; the plot becomes a farm only with VB-032 |
+| Claims on empty farms | task | VB-033, needs Kim's four answers |
+| Weather, seasons on the map, day and night | missing | VB-083 waits for the Chromium smoke test (VB-025); VB-105 for daylight |
+
+### Code observations
+
+- `src/body.html` is the largest file (1,640 lines) and the only one outside the module convention and the line-length lint; every presentation task (seasons, notifications, overlays, chronicle) lands in it. VB-053 (page script into modules) is `ready` at priority 2 and should go before VB-083, VB-098 and VB-004/044.
+- `tests/lint-baseline.json` should keep falling; the baseline is lowered, never raised.
+- Founders is now the scenario that shows the growth gap most plainly and costs 1 ms a day; `tools/sim.js --scenario founders --years 40` is the quickest check for any expansion task (VB-032, VB-033, VB-034).
+- No gaps found between `design.md` and code for the walking, rivers and layout sections; the Systems overview tables are brought up to date below.
+
+### Backlog changes from this review
+
+- `BACKLOG_ARCHIVE.md` now holds the done rows (59 at `243d9dd`, 69 after the rebase); `tests/backlog.js` checks both files.
+- VB-032 set `ready` (was blocked on a task that is done).
+- New: VB-128 (hunger report, `ready`), VB-129 (spread the moving round, `ready`, unblocks VB-088), VB-130 (grain outlets, `needs-review`).
+- VB-023 set `needs-review`: its blocking question was in the task file only; it is now in `QUESTIONS.md`.
