@@ -1405,10 +1405,12 @@
     drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
     const evening = c.hour >= Sim.WORK[1] - 1 || c.hour < Sim.WORK[0] + 1;
+    const cooks = new Set(); // households with someone cooking inside: one pass over the agents, not one per house
+    for (const a of st.agents) if (a.job && a.job.kind === 'cook' && a.inside) cooks.add(st.pawns[a.id].household);
     for (const h of houseInfo) {
       const hh = st.households[h.f.household];
       if (!hh) continue;
-      const cooking = st.agents.some((a) => a.job && a.job.kind === 'cook' && a.inside && st.pawns[a.id].household === hh.id);
+      const cooking = cooks.has(hh.id);
       const amt = 0.18 + (evening ? 0.3 : 0) + (winter ? 0.25 : 0) + (cooking ? 0.35 : 0);
       h.puffs.forEach((p, k) => {
         const ph = (time * 0.16 + k / h.puffs.length + h.f.id * 0.37) % 1;

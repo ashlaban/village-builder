@@ -226,16 +226,17 @@ VB['sim/heirs'] = (() => {
     return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
-  function firstHeirs(st) {
-    const out = new Set(), own = ownFirstOf(st);
+  function firstHeirs(st, own = ownFirstOf(st)) {
+    const out = new Set();
     for (const hh of st.households) if (!hh.dissolved) { const first = heirRanking(st, hh, null, false, own)[0]; if (first !== undefined) out.add(first); }
     return out;
   }
-  function wantsOut(st, p, heirs = null) {
+  // own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
+  function wantsOut(st, p, heirs = null, own = null) {
     if (!p.alive || p.age < 18 || p.retired) return false;
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id) !== null) return false;
+    if (placeIfMarried(st, p.id, own) !== null) return false;
     if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;

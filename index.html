@@ -1938,6 +1938,25 @@ VB['sim/hex'] = (() => {
     }
     return { dist, prev };
   }
+  // Steps from `from` to `to` by the same search as bfs, or -1 beyond maxSteps; it stops once `to` is reached (VB-143: the yearly ties
+  // searched the whole island from each village).
+  let mark = new Int32Array(0), stamp = 0, depth = new Int32Array(0);
+  function stepsTo(w, from, to, maxSteps, pass) {
+    if (from === to) return 0;
+    if (mark.length < w.N) { mark = new Int32Array(w.N); depth = new Int32Array(w.N); stamp = 0; }
+    const q = [from]; stamp++; mark[from] = stamp; depth[from] = 0;
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], d = depth[i];
+      if (d >= maxSteps) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[i * 6 + k];
+        if (j < 0 || mark[j] === stamp || !pass(j)) continue;
+        if (j === to) return d + 1;
+        mark[j] = stamp; depth[j] = d + 1; q.push(j);
+      }
+    }
+    return -1;
+  }
   const pathTo = (prev, from, to) => {
     const p = [to]; while (p[0] !== from) { const q = prev.get(p[0]); if (q === undefined) return null; p.unshift(q); } return p;
   };
@@ -1959,7 +1978,7 @@ VB['sim/hex'] = (() => {
     }
     return { id, size };
   }
-  return { bfs, pathTo, land, hexSteps, landComponents };
+  return { bfs, stepsTo, pathTo, land, hexSteps, landComponents };
 })();
 </script>
 <script>
@@ -4610,16 +4629,17 @@ VB['sim/heirs'] = (() => {
     return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
-  function firstHeirs(st) {
-    const out = new Set(), own = ownFirstOf(st);
+  function firstHeirs(st, own = ownFirstOf(st)) {
+    const out = new Set();
     for (const hh of st.households) if (!hh.dissolved) { const first = heirRanking(st, hh, null, false, own)[0]; if (first !== undefined) out.add(first); }
     return out;
   }
-  function wantsOut(st, p, heirs = null) {
+  // own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
+  function wantsOut(st, p, heirs = null, own = null) {
     if (!p.alive || p.age < 18 || p.retired) return false;
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id) !== null) return false;
+    if (placeIfMarried(st, p.id, own) !== null) return false;
     if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
@@ -4632,7 +4652,7 @@ VB['sim/heirs'] = (() => {
 VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
-  const { bfs, hexSteps } = VB['sim/hex'];
+  const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
@@ -4683,16 +4703,20 @@ VB['sim/society'] = (() => {
   }
   // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
   function updateTies(st) {
-    const env = st.cenv;
+    const env = st.cenv, sid = new Map(), by = new Map(); // each living pawn's settlement, and the pawns of each, in id order
+    for (const p of st.pawns) if (p.alive) {
+      const v = settlementIdOf(st, p); sid.set(p.id, v);
+      const l = by.get(v); if (l) l.push(p); else by.set(v, [p]);
+    }
     for (const s of env.settlements) {
       const c = env.cultures[s.culture], centre = c.centres[0];
       if (s.id === centre) { s.tie = 1; continue; }
       const va = st.villages[s.id], vb = st.villages[centre];
-      const { dist } = bfs(st.w, va.center, 160, walkable(st.w));
-      const d = dist.has(vb.center) ? dist.get(vb.center) : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
+      const steps = stepsTo(st.w, va.center, vb.center, 160, walkable(st.w));
+      const d = steps >= 0 ? steps : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
       let kin = 0;
-      for (const p of st.pawns) if (p.alive && settlementIdOf(st, p) === s.id) for (const q of kinNear(st, p.id)) {
-        const o = st.pawns[q]; if (o.alive && settlementIdOf(st, o) === centre) kin++;
+      for (const p of by.get(s.id) || []) for (const q of kinNear(st, p.id)) {
+        const o = st.pawns[q]; if (o.alive && sid.get(q) === centre) kin++;
       }
       s.tie = Math.min(1, Math.exp(-d / 25) + Math.min(0.3, kin * 0.04));
       s.distance = d; s.kinLinks = kin;
@@ -4887,18 +4911,25 @@ VB['sim/lifecycle'] = (() => {
     const fed = (p) => p.hunger < HUNGER.marryBelow;
     const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
-    const own = ownFirstOf(st);
-    men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
+    // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
+    // heirs for every pair of candidates made the round cost about a second at populous medium.
+    let own = null, places = new Map();
+    const place = (id) => {
+      if (!own) own = ownFirstOf(st);
+      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own));
+      return places.get(id);
+    };
+    men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
     const taken = new Set();
     // where a couple would live, or null; one of them needs a place under 'land', and the spouse's home counts otherwise
-    const homeFor = (m, f, cu, pm = placeIfMarried(st, m.id), pf = placeIfMarried(st, f.id)) => {
+    const homeFor = (m, f, cu, pm = place(m.id), pf = place(f.id)) => {
       if (cu.residence === 'land') return pm !== null && pf !== null ? null : pm !== null ? pm : pf;
       return cu.residence === 'husband' ? m.household : f.household;
     };
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
-      const pm = placeIfMarried(st, m.id);
+      const pm = place(m.id);
       for (const f of women) {
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
         const home = homeFor(m, f, cu, pm);
@@ -4909,7 +4940,7 @@ VB['sim/lifecycle'] = (() => {
         if (s > bs) { bs = s; best = { f, home }; }
       }
       if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
-      taken.add(best.f.id);
+      taken.add(best.f.id); own = null; places = new Map(); // the families change
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {
         if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
@@ -4921,16 +4952,18 @@ VB['sim/lifecycle'] = (() => {
     }
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
+    own = null; // the first heirs of every farm, ranked again only after a handover
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu), heir = r[0];
+      if (!own) own = ownFirstOf(st);
+      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
-      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) transfer(st, hh, heir, 'marriage');
-      else if (cu.handover === 'age60' && holder.age >= 60) transfer(st, hh, heir, 'retirement');
+      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) { transfer(st, hh, heir, 'marriage'); own = null; }
+      else if (cu.handover === 'age60' && holder.age >= 60) { transfer(st, hh, heir, 'retirement'); own = null; }
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
-    st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
+    st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
     startPlots(st);
     refreshPrestige(st);
     st.visualDirty = true;
@@ -5081,7 +5114,7 @@ VB['sim/scenarios'] = (() => {
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { dailyNeed } = VB['sim/hunger'];
-  const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
+  const { refreshRoles, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
@@ -5284,7 +5317,9 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
-    st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
+    st.countDemand = () => {
+      const own = ownFirstOf(st), heirs = firstHeirs(st, own); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs, own)).map((p) => p.id);
+    };
     return st;
   }
 
@@ -6763,10 +6798,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
     drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
     const evening = c.hour >= Sim.WORK[1] - 1 || c.hour < Sim.WORK[0] + 1;
+    const cooks = new Set(); // households with someone cooking inside: one pass over the agents, not one per house
+    for (const a of st.agents) if (a.job && a.job.kind === 'cook' && a.inside) cooks.add(st.pawns[a.id].household);
     for (const h of houseInfo) {
       const hh = st.households[h.f.household];
       if (!hh) continue;
-      const cooking = st.agents.some((a) => a.job && a.job.kind === 'cook' && a.inside && st.pawns[a.id].household === hh.id);
+      const cooking = cooks.has(hh.id);
       const amt = 0.18 + (evening ? 0.3 : 0) + (winter ? 0.25 : 0) + (cooking ? 0.35 : 0);
       h.puffs.forEach((p, k) => {
         const ph = (time * 0.16 + k / h.puffs.length + h.f.id * 0.37) % 1;

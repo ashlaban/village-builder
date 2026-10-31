@@ -2,7 +2,7 @@
 VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
-  const { bfs, hexSteps } = VB['sim/hex'];
+  const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
@@ -53,16 +53,20 @@ VB['sim/society'] = (() => {
   }
   // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
   function updateTies(st) {
-    const env = st.cenv;
+    const env = st.cenv, sid = new Map(), by = new Map(); // each living pawn's settlement, and the pawns of each, in id order
+    for (const p of st.pawns) if (p.alive) {
+      const v = settlementIdOf(st, p); sid.set(p.id, v);
+      const l = by.get(v); if (l) l.push(p); else by.set(v, [p]);
+    }
     for (const s of env.settlements) {
       const c = env.cultures[s.culture], centre = c.centres[0];
       if (s.id === centre) { s.tie = 1; continue; }
       const va = st.villages[s.id], vb = st.villages[centre];
-      const { dist } = bfs(st.w, va.center, 160, walkable(st.w));
-      const d = dist.has(vb.center) ? dist.get(vb.center) : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
+      const steps = stepsTo(st.w, va.center, vb.center, 160, walkable(st.w));
+      const d = steps >= 0 ? steps : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
       let kin = 0;
-      for (const p of st.pawns) if (p.alive && settlementIdOf(st, p) === s.id) for (const q of kinNear(st, p.id)) {
-        const o = st.pawns[q]; if (o.alive && settlementIdOf(st, o) === centre) kin++;
+      for (const p of by.get(s.id) || []) for (const q of kinNear(st, p.id)) {
+        const o = st.pawns[q]; if (o.alive && sid.get(q) === centre) kin++;
       }
       s.tie = Math.min(1, Math.exp(-d / 25) + Math.min(0.3, kin * 0.04));
       s.distance = d; s.kinLinks = kin;

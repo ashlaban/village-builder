@@ -101,18 +101,25 @@ VB['sim/lifecycle'] = (() => {
     const fed = (p) => p.hunger < HUNGER.marryBelow;
     const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
-    const own = ownFirstOf(st);
-    men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
+    // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
+    // heirs for every pair of candidates made the round cost about a second at populous medium.
+    let own = null, places = new Map();
+    const place = (id) => {
+      if (!own) own = ownFirstOf(st);
+      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own));
+      return places.get(id);
+    };
+    men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
     const taken = new Set();
     // where a couple would live, or null; one of them needs a place under 'land', and the spouse's home counts otherwise
-    const homeFor = (m, f, cu, pm = placeIfMarried(st, m.id), pf = placeIfMarried(st, f.id)) => {
+    const homeFor = (m, f, cu, pm = place(m.id), pf = place(f.id)) => {
       if (cu.residence === 'land') return pm !== null && pf !== null ? null : pm !== null ? pm : pf;
       return cu.residence === 'husband' ? m.household : f.household;
     };
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
-      const pm = placeIfMarried(st, m.id);
+      const pm = place(m.id);
       for (const f of women) {
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
         const home = homeFor(m, f, cu, pm);
@@ -123,7 +130,7 @@ VB['sim/lifecycle'] = (() => {
         if (s > bs) { bs = s; best = { f, home }; }
       }
       if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
-      taken.add(best.f.id);
+      taken.add(best.f.id); own = null; places = new Map(); // the families change
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {
         if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
@@ -135,16 +142,18 @@ VB['sim/lifecycle'] = (() => {
     }
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
+    own = null; // the first heirs of every farm, ranked again only after a handover
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu), heir = r[0];
+      if (!own) own = ownFirstOf(st);
+      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
-      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) transfer(st, hh, heir, 'marriage');
-      else if (cu.handover === 'age60' && holder.age >= 60) transfer(st, hh, heir, 'retirement');
+      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) { transfer(st, hh, heir, 'marriage'); own = null; }
+      else if (cu.handover === 'age60' && holder.age >= 60) { transfer(st, hh, heir, 'retirement'); own = null; }
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
-    st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
+    st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
     startPlots(st);
     refreshPrestige(st);
     st.visualDirty = true;
