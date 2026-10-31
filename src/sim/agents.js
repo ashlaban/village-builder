@@ -1,10 +1,11 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
+  const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { companyFor } = VB['sim/relations'];
+  const { team } = VB['sim/herds'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -107,9 +108,18 @@ VB['sim/agents'] = (() => {
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
   const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
+  // The pawn drives the household's oxen (VB-138): it is the first hand on the household's earliest hoeing or breaking job that has hands,
+  // and the household has a team. Derived each time, so the team is never in two fields.
+  function withOxen(st, a) {
+    const j = a.job;
+    if (!j || a.phase !== 'work' || j.claims[0] !== a.id || j.owner.type !== 'household' || !HERD.team.kinds.includes(j.kind)) return false;
+    let first = null;
+    for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
+    return first === j && team(st, st.households[j.owner.id]) !== null;
+  }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * rateOf(st, st.pawns[a.id]);
+    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -156,7 +166,7 @@ VB['sim/agents'] = (() => {
       const K = KINDS[a.job.kind];
       if (a.phase === 'go') return K.go;
       if (a.phase === 'back') return K.back;
-      return K.verb;
+      return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }
     if (a.phase === 'home') return 'Walking home';
     if (a.inside) return 'At home';
@@ -165,7 +175,7 @@ VB['sim/agents'] = (() => {
   return {
     ownerKey, dropJob,
     homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, rateOf,
-    stepWork,
+    withOxen, stepWork,
     moveAgent, describe,
   };
 })();

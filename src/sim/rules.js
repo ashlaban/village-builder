@@ -133,6 +133,8 @@ VB['sim/rules'] = (() => {
     // milk (VB-135): a cow that calved this spring is in milk while the herds are out; milking hours (base, a cow in milk); rations a cow
     // a day, less leanPer a lean day of the winter, at most leanMax; the share churned to butter, which keeps butterDays; fresh milk keeps a day
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
+    // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
+    team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep ----

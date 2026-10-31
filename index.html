@@ -1878,6 +1878,8 @@ VB['sim/rules'] = (() => {
     // milk (VB-135): a cow that calved this spring is in milk while the herds are out; milking hours (base, a cow in milk); rations a cow
     // a day, less leanPer a lean day of the winter, at most leanMax; the share churned to butter, which keeps butterDays; fresh milk keeps a day
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
+    // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
+    team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep ----
@@ -3162,6 +3164,11 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // The household's team (VB-138): its two oldest oxen, or null without two.
+  function team(st, hh) {
+    const oxen = herdsOf(st, hh).flatMap((hd) => (hd.species === 'cattle' ? hd.head.filter((h) => h.kind === 'ox') : []));
+    return oxen.length >= HERD.team.oxen ? oxen.sort((a, b) => a.born - b.born || a.id - b.id).slice(0, HERD.team.oxen) : null;
+  }
   // Cows in milk now (VB-135): those that calved this spring, while the herds are out of the byre.
   const inMilk = (st, herd, c) => (herd.species !== 'cattle' || stalled(c) ? []
     : herd.head.filter((h) => h.kind === 'cow' && h.calved === Math.floor(st.t / YEAR) + 1));
@@ -3208,7 +3215,7 @@ VB['sim/herds'] = (() => {
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, inMilk, milkCows, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, team, inMilk, milkCows, describeHerds, herdReport,
   };
 })();
 </script>
@@ -4111,11 +4118,12 @@ VB['sim/kinds'] = (() => {
 <script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
-  const { cal, WORK, SPEED, HUNGER, HEALTH, workRate } = VB['sim/rules'];
+  const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { companyFor } = VB['sim/relations'];
+  const { team } = VB['sim/herds'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -4218,9 +4226,18 @@ VB['sim/agents'] = (() => {
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
   const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
+  // The pawn drives the household's oxen (VB-138): it is the first hand on the household's earliest hoeing or breaking job that has hands,
+  // and the household has a team. Derived each time, so the team is never in two fields.
+  function withOxen(st, a) {
+    const j = a.job;
+    if (!j || a.phase !== 'work' || j.claims[0] !== a.id || j.owner.type !== 'household' || !HERD.team.kinds.includes(j.kind)) return false;
+    let first = null;
+    for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
+    return first === j && team(st, st.households[j.owner.id]) !== null;
+  }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * rateOf(st, st.pawns[a.id]);
+    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -4267,7 +4284,7 @@ VB['sim/agents'] = (() => {
       const K = KINDS[a.job.kind];
       if (a.phase === 'go') return K.go;
       if (a.phase === 'back') return K.back;
-      return K.verb;
+      return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }
     if (a.phase === 'home') return 'Walking home';
     if (a.inside) return 'At home';
@@ -4276,7 +4293,7 @@ VB['sim/agents'] = (() => {
   return {
     ownerKey, dropJob,
     homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, rateOf,
-    stepWork,
+    withOxen, stepWork,
     moveAgent, describe,
   };
 })();
@@ -5549,7 +5566,8 @@ const Sim = (() => {
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL } = VB['sim/rules'];
-  const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport } = VB['sim/herds'];
+  const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
+  const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
 
   return {
@@ -5557,7 +5575,7 @@ const Sim = (() => {
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
-    HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf,
+    HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
   };
 })();
 VB['sim'] = Sim;
@@ -6281,10 +6299,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const swing = (t, a, b) => a + (b - a) * (0.5 - 0.5 * Math.cos(t));
   function strike(t) { const u = t % 1; return u < 0.7 ? u / 0.7 : 1 - (u - 0.7) / 0.3; } // slow lift, fast blow
   function pose(R, a, t, winter) {
-    const s = a.stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim;
+    const s = a.stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim === 'hoe' && Sim.withOxen(st, a) ? 'plough' : a.anim;
     let legF = 0, legB = 0, armF = 0.05, armB = 0.05, lean = 0, bob = 0, headR = 0;
     let tool = null, toolR = 0, back = null, shoulder = null, heldF = null, heldB = null;
-    if (walking || anim === 'sow') {
+    if (walking || anim === 'sow' || anim === 'plough') {
       const k = anim === 'sow' && !walking ? 0.35 : 0.5;
       legF = Math.sin(s) * k; legB = -Math.sin(s) * k;
       armF = -Math.sin(s) * 0.42; armB = Math.sin(s) * 0.42;
@@ -6301,6 +6319,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       case 'mow': { const k = swing(cyc * 3.2, 0, 1); lean = 0.32; armF = -0.5 - k * 1.1; armB = armF + 0.35; tool = 'scythe'; toolR = -0.6 + k * 1.0; legF = -0.32; legB = 0.32; break; }
       case 'gather': { const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
       case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
+      // behind the ard (VB-138): walking the furrow, both hands on the stilt, leaning into it
+      case 'plough': { lean = 0.32; armF = -0.95; armB = -0.8; break; }
       // milking (VB-135): crouched on the stool, hands pulling by turns, the pail on the ground beside
       case 'milk': { const k = Math.sin(cyc * 9); lean = 0.5; bob = 2; armF = -0.75 + k * 0.2; armB = -0.75 - k * 0.2; legF = -1.25; legB = -1.0; heldB = 'bucket'; break; }
     }
@@ -6556,6 +6576,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let fieldTex = null, art = null;
   let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [], meadowSprites = [];
   let herdSprites = new Map(); // herd id -> {sig, list of {s, ox, oy, ph, k}}; rebuilt only when the herd changes (see drawHerds)
+  let teamDraw = new Map(); const teamOut = new Set(); // oxen at the plough (drawTeams): driver's pawn id -> {oxen: [sprites], g}; oxen out
   const ring = new PIXI.Graphics();
   const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
 
@@ -6711,7 +6732,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function clearSettlement() {
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
     for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(), ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = [];
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
   }
   async function buildSettlement(wd, s) {
     clearSettlement();
@@ -6732,7 +6753,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
   function buildFarms(wd) {
     for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()]) if (s2 !== ring) s2.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; herdSprites = new Map(); meadowSprites = [];
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
     L.objects.sortableChildren = true;
     for (const f of st.farmsteads) {
       const hx = wd.hx[f.house], hy = wd.hy[f.house], empty = f.household === null, ruin = f.state === 'ruin';
@@ -6807,12 +6828,47 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const COW_SCALE = { cow: 0.25, bull: 0.29, ox: 0.29, heifer: 0.22, steer: 0.23, calf: 0.16 };
   function herdAnimals(hd) {
     const out = [];
-    if (hd.head) for (const h of hd.head) out.push({ key: h.id * 2 + 1, cow: hash(h.id * 7 + 3) * COATS.length | 0, sc: COW_SCALE[h.kind] });
+    if (hd.head) for (const h of hd.head) out.push({ id: h.id, key: h.id * 2 + 1, cow: hash(h.id * 7 + 3) * COATS.length | 0, sc: COW_SCALE[h.kind] });
     else {
       const all = hd.ewes + hd.rams + hd.lambs, n = Math.min(10, all), lambs = all ? Math.round((n * hd.lambs) / all) : 0;
       for (let k = 0; k < n; k++) out.push({ key: hd.id * 1000 + k * 2, tint: SHEEP_TINT[(hash(hd.id * 31 + k) * SHEEP_TINT.length) | 0], sc: k < n - lambs ? 0.25 : 0.17 });
     }
     return out;
+  }
+  // ---- oxen at the plough (VB-138): the team walks ahead of its driver along the furrow, the ard's beam between them; and the cow being
+  // milked (VB-135) stands by the milker at the byre ----
+  function drawTeams(show) {
+    const used = new Set(); teamOut.clear();
+    const c = Sim.cal(st.t);
+    for (const a of st.agents) {
+      if (!show || a.inside || !a.job || a.phase !== 'work') continue;
+      const hh = st.households[st.pawns[a.id].household], milking = a.job.kind === 'milk';
+      const oxen = milking ? Sim.herdsOf(st, hh).flatMap((hd) => Sim.inMilk(st, hd, c)).slice(0, 1) : Sim.withOxen(st, a) ? Sim.team(st, hh) : null;
+      if (!oxen || !oxen.length) continue;
+      used.add(a.id); for (const h of oxen) teamOut.add(h.id);
+      let e = teamDraw.get(a.id);
+      if (!e) {
+        e = { oxen: [0, 1].map(() => { const sp = new PIXI.Sprite(art.cow[0][1]); sp.anchor.set(0.5, 0.92); L.objects.addChild(sp); return sp; }), g: new PIXI.Graphics() };
+        L.objects.addChild(e.g); teamDraw.set(a.id, e);
+      }
+      if (milking) { // the cow stands side on just beyond the milker, chewing, head now down, now up
+        const sp = e.oxen[0], tex = art.cow[(hash(oxen[0].id * 7 + 3) * COATS.length) | 0][Math.sin(time * 0.5 + a.id) > 0.3 ? 1 : 0];
+        for (const q of e.oxen) q.visible = false;
+        if (sp.texture !== tex) sp.texture = tex;
+        sp.visible = true; sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow); sp.position.set(a.x + a.face * 8, a.y - 1.5); sp.zIndex = a.y - 1.5;
+        e.g.clear(); continue;
+      }
+      const dir = a.face, sway = Math.sin(time * 3 + a.id) * 0.6;
+      oxen.forEach((h, k) => {
+        const sp = e.oxen[k], tex = art.cow[(hash(h.id * 7 + 3) * COATS.length) | 0][1];
+        if (sp.texture !== tex) sp.texture = tex;
+        sp.visible = true; sp.scale.set(dir * COW_SCALE.ox, COW_SCALE.ox);
+        sp.position.set(a.x + dir * (21 + k * 2), a.y - 3 + k * 5 + sway); sp.zIndex = a.y - 3 + k * 5;
+      });
+      e.g.clear().moveTo(a.x + dir * 2, a.y - 8).lineTo(a.x + dir * 12, a.y - 6).stroke({ width: 1.1, color: 0x5a4128 });
+      e.g.zIndex = a.y + 0.1;
+    }
+    for (const [id, e] of teamDraw) if (!used.has(id)) { for (const sp of e.oxen) sp.visible = false; e.g.clear(); }
   }
   function drawHerds(c, show) {
     const out = Sim.stalled(c) || c.hour < 6 || c.hour >= 20, [x0, y0, x1, y1] = viewRect(60);
@@ -6826,14 +6882,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
           const s = new PIXI.Sprite(an.cow !== undefined ? art.cow[an.cow][0] : art.sheep[0]); s.anchor.set(0.5, 0.92); s.scale.set(an.sc);
           if (an.tint !== undefined) s.tint = an.tint;
           const r = 4 + hash(an.key) * 10, a = hash(an.key + 11) * 6.283;
-          e.list.push({ s, ox: Math.cos(a) * r, oy: Math.sin(a) * r * 0.6, ph: hash(an.key + 5) * 6.283, sc: an.sc, cow: an.cow });
+          e.list.push({ s, id: an.id, ox: Math.cos(a) * r, oy: Math.sin(a) * r * 0.6, ph: hash(an.key + 5) * 6.283, sc: an.sc, cow: an.cow });
           L.objects.addChild(s);
         }
         herdSprites.set(hd.id, e);
       }
       const cx = w.hx[hd.home], cy = w.hy[hd.home], on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
       for (const a of e.list) {
-        a.s.visible = on; if (!on) continue;
+        a.s.visible = on && !teamOut.has(a.id); if (!a.s.visible) continue; // oxen at the plough are drawn with their driver
         const u = time * 0.06 + a.ph, x = cx + a.ox + Math.sin(u) * 4, y = cy + a.oy + Math.cos(u * 0.7) * 1.6;
         const look = Math.sin(time * 0.25 + a.ph * 3) > 0.75 ? 1 : 0, tex = a.cow !== undefined ? art.cow[a.cow][look] : art.sheep[look];
         if (a.s.texture !== tex) a.s.texture = tex;
@@ -6881,7 +6937,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       R.root.position.set(a.x, a.y); R.root.scale.set((face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
-    drawHerds(c, show);
+    drawTeams(show); drawHerds(c, show);
     ring.clear();
     if (selPawn >= 0 && rigs[selPawn].root.visible) {
       const a = st.agents[selPawn];

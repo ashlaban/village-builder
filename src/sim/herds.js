@@ -239,6 +239,11 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // The household's team (VB-138): its two oldest oxen, or null without two.
+  function team(st, hh) {
+    const oxen = herdsOf(st, hh).flatMap((hd) => (hd.species === 'cattle' ? hd.head.filter((h) => h.kind === 'ox') : []));
+    return oxen.length >= HERD.team.oxen ? oxen.sort((a, b) => a.born - b.born || a.id - b.id).slice(0, HERD.team.oxen) : null;
+  }
   // Cows in milk now (VB-135): those that calved this spring, while the herds are out of the byre.
   const inMilk = (st, herd, c) => (herd.species !== 'cattle' || stalled(c) ? []
     : herd.head.filter((h) => h.kind === 'cow' && h.calved === Math.floor(st.t / YEAR) + 1));
@@ -285,6 +290,6 @@ VB['sim/herds'] = (() => {
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, inMilk, milkCows, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, team, inMilk, milkCows, describeHerds, herdReport,
   };
 })();
