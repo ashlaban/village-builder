@@ -3,7 +3,9 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { bid } = VB['si
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('CHILDREN FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const P = Sim.ROLES.child.prio;
-check(P.water === 6 && P.weed === 5 && P.haul === 4 && P.reap === 3 && Object.keys(P).filter((k) => P[k]).length === 4, 'child priorities are not water 6, weed 5, haul 4, reap 3');
+// VB-133: children also rake meadows and carry hay (4), and never mow
+check(P.water === 6 && P.weed === 5 && P.haul === 4 && P.reap === 3 && P.rake === 4 && P.hay === 4 && !P.mow && Object.keys(P).filter((k) => P[k]).length === 6,
+  'child priorities are not water 6, weed 5, haul 4, rake 4, hay 4, reap 3');
 for (const [a, r] of [[7, 0.3], [9, 0.5], [13, 0.9]]) check(Math.abs(workRate('child', a) - r) < 1e-9, `rate at ${a} is ${workRate('child', a)}, wanted ${r}`);
 check(workRate('son', 15) === 1 && CHILD.from === 7, 'adults do not work at full rate');
 const st = Sim.seed(world(7), 7, 'founders');

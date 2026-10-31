@@ -39,20 +39,20 @@ VB['sim/rules'] = (() => {
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
   const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2 },
-      except: { reap: 9, cook: 1 } },
-    wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9 },
-      except: { reap: 7, cook: 10 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
-      except: { cook: 0 } },
-    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
-      except: { reap: 7, cook: 8 } },
-    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
-      except: { cook: 0 } },
-    daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
-      except: { reap: 7, cook: 8 } },
-    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3 }, except: { cook: 4 } },
-    child: { title: 'Child', sv: 'barn', work: { harvest: 3 }, except: { water: 6, weed: 5, haul: 4 } },
+    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3 },
+      except: { reap: 9, cook: 1, slaughter: 8 } },
+    wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
+      husbandry: 9 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2 } },
+    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4 },
+      except: { cook: 0, slaughter: 8 } },
+    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
+    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3 },
+      except: { cook: 0, slaughter: 7 } },
+    daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
+      husbandry: 9 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3 }, except: { cook: 4, slaughter: 2 } },
+    child: { title: 'Child', sv: 'barn', work: { harvest: 3 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -98,6 +98,7 @@ VB['sim/rules'] = (() => {
       chat: { label: 'Chatted', v: 0.03, cap: 0.2, days: YEAR_DAYS },
       goodTalk: { label: 'A good talk', v: 0.1, cap: 0.5, days: 3 * YEAR_DAYS },
       crossWords: { label: 'Cross words', v: -0.12, cap: -0.6, days: 3 * YEAR_DAYS },
+      bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       tie: 0.1, bubbleHours: 0.5 },
@@ -115,6 +116,21 @@ VB['sim/rules'] = (() => {
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
   };
 
+  // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
+  // turn-out on spring day 6 (doy 5), 21 days; breeding on spring day 3 (doy 2) with a bull of bullAge or more, or a ram, within reach steps of
+  // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
+  const HERD = {
+    hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
+    stall: [32, 5], stallDays: 21, springDay: 2, reach: 12,
+    calve: 0.85, calfDeath: 0.15, lamb: 0.9, twins: 0.3, lambDeath: 0.2, death: { cattle: 0.03, sheep: 0.05 },
+    bullAge: 2, grown: 3, maxAge: 15, keepBullUnder: 8, byre: 6, startMargin: 1.1,
+    // the byre and the autumn count (sim/byre, VB-134): the count on autumn day 8 (doy 31) keeps what hay × margin feeds; old ages; meat a head
+    // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
+    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
+    countDay: 31, margin: 1.1, old: { cow: 12, ox: 12, bull: 10 }, oldEwe: 1 / 7,
+    meat: { cow: 15, ox: 18, bull: 18, heifer: 10, steer: 10, calf: 5, ewe: 3, ram: 3, lamb: 1.5 },
+    fodder: [0.5, 0.15, 0.03], slaughter: { cattle: 3, sheep: 1 }, freshDays: 3, saltDays: 48, saltPerHour: 8, lean: 0.5, eatSoonDays: 6, starveDays: 2,
+  };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
@@ -150,10 +166,12 @@ VB['sim/rules'] = (() => {
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
       woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+      rake: 0.8, mow: 1, mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
+      fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();

@@ -12,6 +12,7 @@ function hoe(hands) {
     for (const id of hh.members.slice(3)) { const p = st.pawns[id]; p.died = st.t; p.alive = false; }
     hh.members = hh.members.slice(0, 3);
     for (const q of f.fields.slice(1)) { q.stage = 'sown'; q.sown = 0; }
+    for (const m of f.meadows) m.raked = true; // no spring raking (VB-133) to take hands from the hoeing measured here
     const t0 = st.t; let most = 0, rows = 0;
     while (fd.stage === 'stubble' && st.t < t0 + 4 * Sim.DAY) {
       Sim.advance(st, 0.5);

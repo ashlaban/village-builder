@@ -7,6 +7,7 @@ VB['sim/heirs'] = (() => {
   const { farmToVillage } = VB['sim/ownership'];
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
+  const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
@@ -154,6 +155,9 @@ VB['sim/heirs'] = (() => {
         }
       }
     }
+    // the animals go with the first of its people to find a new home
+    const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
+    passHerds(st, hh, first ? first.household : null);
     hh.members = [];
     log(st, `${f.name} stands empty: no heir would take it.`);
     st.visualDirty = true;

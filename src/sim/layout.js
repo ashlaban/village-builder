@@ -99,7 +99,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null,
+      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [],
     };
   }
 
