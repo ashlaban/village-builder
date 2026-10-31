@@ -2988,13 +2988,14 @@ VB['sim/herds'] = (() => {
   }
   function spring(st) {
     const born = new Map(); // household id -> {calves, lambs, died[]}
+    const wintered = st.t >= YEAR; // in the game's first spring no animal has wintered here yet: none is lost over the winter
     const note = (hd) => { if (!born.has(hd.household)) born.set(hd.household, { calves: 0, lambs: 0, died: [] }); return born.get(hd.household); };
     for (const herd of st.herds) {
       if (herd.household === null) continue;
       if (herd.species === 'cattle') {
         ageCattle(st, herd);
         herd.head = herd.head.filter((h) => {
-          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (h.kind !== 'calf' && st.rand() < HERD.death.cattle);
+          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && st.rand() < HERD.death.cattle);
           if (gone) note(herd).died.push(h.name);
           return !gone;
         });
@@ -3002,7 +3003,10 @@ VB['sim/herds'] = (() => {
         // last year's lambs grow up: the ram lambs went at the autumn count (sim/byre), so they are ewes, but for one kept as the ram
         // when there is none within reach
         if (herd.lambs) { const ram = herd.rams || ramNear(st, houseOf(st, herd)) ? 0 : 1; herd.rams += ram; herd.ewes += herd.lambs - ram; herd.lambs = 0; }
-        herd.ewes -= binom(st, herd.ewes, HERD.death.sheep); herd.rams -= binom(st, herd.rams, HERD.death.sheep);
+        const ewes = wintered ? binom(st, herd.ewes, HERD.death.sheep) : 0, rams = wintered ? binom(st, herd.rams, HERD.death.sheep) : 0;
+        herd.ewes -= ewes; herd.rams -= rams;
+        if (ewes) note(herd).died.push(ewes === 1 ? 'a ewe' : `${ewes} ewes`);
+        if (rams) note(herd).died.push(rams === 1 ? 'a ram' : `${rams} rams`);
       }
     }
     for (const herd of st.herds) {
@@ -3041,7 +3045,8 @@ VB['sim/herds'] = (() => {
       if (b.calves) parts.push(`${b.calves} ${b.calves === 1 ? 'calf' : 'calves'}`);
       if (b.lambs) parts.push(`${b.lambs} ${b.lambs === 1 ? 'lamb' : 'lambs'}`);
       if (parts.length) log(st, `${f.name}: ${parts.join(' and ')} born this spring.`);
-      if (b.died.length) log(st, `${f.name} lost ${b.died.join(', ')} over the winter.`);
+      const d = b.died, lost = d.length > 1 ? `${d.slice(0, -1).join(', ')} and ${d[d.length - 1]}` : d[0];
+      if (d.length) log(st, `${f.name} lost ${lost} over the winter.`);
     }
   }
   // Once a game day, at its start (sim/clock): the spring round, and a new grazing spot for a herd whose old one was built on.
