@@ -45,6 +45,18 @@ Kim kept the tie model unchanged in VB-061; this is the later rework.
 
 ## Priority 3
 
+### VB-047: animals review (review of 31 October)
+The review of the animals design against history and the game is in `docs/review-animals.md`; its sections give the reasons and numbers. Answers let VB-047 write the implement tasks VB-131 to VB-141.
+1. The first pull request. **P:** the review, the task files VB-131 to VB-141, and VB-131 to VB-134 built (herds at the farm, hay meadows, haymaking, the byre and the autumn count with slaughter and salt meat), one commit each.
+2. Cattle as named head inside the herd: the herd stays the one unit that moves, grazes and posts jobs, but its cattle are a short list of named animals (sex, birth, kind: calf, heifer, cow, bull, steer, ox), so calving, gelding, oxen and culling work and the log can name them; sheep stay counts. **P:** yes.
+3. Meat. A cow at 40 rations and a sheep at 8 (Kim, 30 Oct) are about 4 and 6 times the history (about 9 and 1.5); at 40 a cow is worth more dead than alive. **P:** a cow 15, an ox 18, a sheep 3; lean meat from an emergency slaughter half that.
+4. Soil wear. **P:** as Agreed, each harvest lowers a field's soil by 0.08 to a floor of 0.75 and each load of manure raises it by 0.04 to at most 1.15, in one task (VB-137); VB-048 retunes the yield. The alternative: manure as a bonus only, soil 1.0 to 1.15 and never below today's yield.
+5. Calving. **P:** a cow of 3 or more calves on spring day 3 with chance 0.85 if a bull of 2 or more lives within 12 steps of her farm, else not; her holder remembers "Lent us the bull" (+0.05, cap +0.2, 3 years) about the bull's holder. A ewe lambs (0.3 chance of twins) if a ram is within reach.
+6. The founders' hay. **P:** hay for one winter of each farm's animals; no founders farm has a meadow at the start.
+7. A herd without a herder stays by the farm, gives half the milk that day, and may get into a crop through a broken fence stretch: the crop loses 10%, and its holder remembers "Cattle in our crop" (−0.1, cap −0.3, 2 years) about the household that keeps the stretch, as the Westgöta law makes the fence's keeper liable. **P:** yes, in VB-136.
+8. Who works with animals. **P:** two new types of work, husbandry (milking and the byre: mistress 9, maid 10, daughter 9, farmhand 4, farmer 3, son 3, retired 3) and herding (child from 8: 8, daughter 6, son 5, retired 4, farmhand 3, farmer 2); mowing is harvest work with exceptions for women (4) and children (0); slaughter is husbandry with exceptions for men (farmer 8, farmhand 8, son 7) and women (2).
+9. Numbers not asked above (hay per head, meadow yield and hours, milk, butter share, the autumn count's order, byre and fodder hours, manure) are starting values in the review, section 4. **P:** take them as starting values, tuned in VB-048.
+
 ### VB-130: what grain does once a household is fed (raised in the review of 31 October)
 Founders at seed 7 hold 300 grain per household in year 2 and 1,700 in year 38, with 12–14 people: a surplus has no use and no loss.
 1. What is the first outlet? **P:** storage loss, which is the cheapest and historically true (damp, mice, weevils): each year 8% of the grain above a year's food for the household is lost at the autumn count (so a household keeps a buffer but a hoard shrinks), shown in the household panel as "spoilt"; a tithe and trade stay for later (Open, "Outlets for grain").
