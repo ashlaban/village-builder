@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
@@ -8,7 +8,7 @@ const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -55,6 +55,32 @@ const tables = {
   events: () => st.events,
   idle: () => idle.result(),
   farms: () => st.farmsteads.map((f) => ({ id: f.id, name: f.name, village: f.village, household: f.household, state: f.state, fields: f.fields.map((fd) => fd.stage).join(',') })),
+  // relationships per village (sim/relations): records held, their opinion words in %, and per adult (16+) the friends and the disliked
+  // outside one's household; talks per pawn and day since the start, over everyone
+  relations: () => {
+    const R = VB['sim/relations'], rows = new Map(), WORD = { 'close friend': 'close', friend: 'friend', neutral: 'neutral', dislikes: 'dislikes', enemy: 'enemy' };
+    const row = (k, name) => rows.get(k) || rows.set(k, { village: name, people: 0, adults: 0, records: 0, close: 0, friend: 0, neutral: 0, dislikes: 0,
+      enemy: 0, friendsOut: 0, dislikedOut: 0 }).get(k);
+    for (const p of st.pawns) {
+      if (!p.alive) continue;
+      const v = Sim.settlementIdOf(st, p);
+      for (const x of [row('all', 'all'), row(v, st.villages[v].name)]) {
+        x.people++; if (p.age >= 16) x.adults++;
+        for (const j of p.rel.keys()) {
+          const o = R.opinionOf(st, p.id, j), out = st.pawns[j].household !== p.household;
+          x.records++; x[WORD[R.opinionWord(o)]]++;
+          if (p.age >= 16 && out && o >= VB['sim/rules'].SOCIAL.friend) x.friendsOut++;
+          if (p.age >= 16 && out && o <= VB['sim/rules'].SOCIAL.dislike) x.dislikedOut++;
+        }
+      }
+    }
+    return [...rows.values()].map((x) => {
+      const pc = (k) => +(100 * x[k] / Math.max(1, x.records)).toFixed(1), per = (k) => +(x[k] / Math.max(1, x.adults)).toFixed(2);
+      const talks = x.village === 'all' && st.talks !== undefined ? { talksPerPawnDay: +(st.talks * 2 / x.people / (st.t / 24)).toFixed(2) } : {};
+      return { village: x.village, people: x.people, records: x.records, close: pc('close'), friend: pc('friend'), neutral: pc('neutral'),
+        dislikes: pc('dislikes'), enemy: pc('enemy'), friendsOut: per('friendsOut'), dislikedOut: per('dislikedOut'), ...talks };
+    });
+  },
   // worn paths per village (tiles within 8 steps of the green, by stage), and the walking network: fords and the route cache
   paths: () => {
     const w = st.w, { hexSteps } = VB['sim/hex'], P = VB['sim/paths'];

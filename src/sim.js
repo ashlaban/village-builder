@@ -14,6 +14,7 @@ const Sim = (() => {
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles } = VB['sim/heirs'];
   const { updateTies, refreshInterests } = VB['sim/society'];
+  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf } = VB['sim/relations'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -22,7 +23,7 @@ const Sim = (() => {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
-    plotProgress, explainIdle, idleLine, RIVER, byRiver,
+    plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
   };
 })();
 VB['sim'] = Sim;

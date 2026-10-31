@@ -17,6 +17,8 @@
   --accent: #23685a;
   --on-accent: #f2f8f6;
   --node: #fbfdfc;
+  --good: #2f7a4b;
+  --bad: #a8432f;
   color-scheme: light;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
@@ -31,6 +33,8 @@
     --accent: #84c9b5;
     --on-accent: #0c1f25;
     --node: #17323b;
+    --good: #8fd0a2;
+    --bad: #f0a08c;
     color-scheme: dark;
   }
 }
@@ -153,6 +157,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile[hidden] { display: block; opacity: 0; pointer-events: none; }
 .tile strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 21px; line-height: 1.1; }
 .tile span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.tile .rel { margin-top: 7px; padding-top: 5px; border-top: 1px solid var(--edge); }
+.tile .rel h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tile .rel button { display: flex; gap: 8px; width: 100%; padding: 1px 0; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink);
+  text-align: left; cursor: pointer; }
+.tile .rel button i { flex: 1; font-style: normal; color: var(--muted); }
+.tile .rel button b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .rel .pos { color: var(--good); }
+.tile .rel .neg { color: var(--bad); }
 .minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
@@ -229,6 +241,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <span id="tileCoord"></span>
     <span id="tileExtra" hidden></span>
     <span id="tileMore" hidden></span>
+    <div class="rel" id="tileRel" hidden></div>
   </aside>
   <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump">
     <canvas id="mmBase"></canvas>
@@ -1808,6 +1821,27 @@ VB['sim/rules'] = (() => {
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 4, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
+  // ---- relationships (sim/relations; docs/review-relationships.md): one pawn's opinion of another (-1..1) is a situational part (kin,
+  // spouse, housemate) plus timed memories. A memory gains v at each event, up to cap, and fades to 0 over `days` from the last one.
+  // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
+  // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
+  // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates). Two unmarried pawns
+  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds `tie` to the tie of both and shows a
+  // bubble for `bubbleHours`. friend and dislike: an opinion entering them is a life event; leaving needs `back` past the line.
+  // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
+  const SOCIAL = {
+    situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
+    memories: {
+      chat: { label: 'Chatted', v: 0.03, cap: 0.2, days: YEAR_DAYS },
+      goodTalk: { label: 'A good talk', v: 0.1, cap: 0.5, days: 3 * YEAR_DAYS },
+      crossWords: { label: 'Cross words', v: -0.12, cap: -0.6, days: 3 * YEAR_DAYS },
+    },
+    talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
+      tie: 0.1, bubbleHours: 0.5 },
+    friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.6, enemy: -0.5,
+    seek: 0.5, seekSample: 4,
+  };
+
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
   const MARRIAGE = {
     menFrom: 20, womenFrom: 18, // youngest age to marry
@@ -1851,7 +1885,7 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
 })();
 </script>
 <script>
@@ -2573,6 +2607,236 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
+// people a pawn knows
+VB['sim/relations'] = (() => {
+  const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
+  const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
+  const M = SOCIAL.memories;
+
+  // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
+  const mix = (h) => {
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    return (h ^ (h >>> 16)) >>> 0;
+  };
+  const unit = (s, i, j) => mix(Math.imul(s, 0x9e3779b1) ^ Math.imul(i + 1, 73856093) ^ Math.imul(j + 1, 19349663)) / 4294967296;
+  // -1..1, shaped like a triangle around 0; less by 0.02 a year of age gap beyond 5 years, at most 0.4
+  function compat(st, a, b) {
+    const i = Math.min(a, b), j = Math.max(a, b), s = st.w.seed >>> 0;
+    const gap = Math.abs(st.pawns[i].born - st.pawns[j].born) / YEAR;
+    return Math.max(-1, unit(s, i, j) + unit(s ^ 0x5bd1e995, j, i) - 1 - Math.min(0.4, Math.max(0, gap - 5) * 0.02));
+  }
+
+  // ---- standing: what b is to a by the family records and the household: spouse, parent, child, sibling, housemate or null ----
+  function standing(st, a, b) {
+    const pa = st.pawns[a], pb = st.pawns[b];
+    if (spouseOf(st, a) === b) return 'spouse';
+    if (pa.father === b || pa.mother === b) return 'parent';
+    if (pb.father === a || pb.mother === a) return 'child';
+    if ((pa.father !== null && pa.father === pb.father) || (pa.mother !== null && pa.mother === pb.mother)) return 'sibling';
+    if (pa.household !== null && pa.household === pb.household) return 'housemate';
+    return null;
+  }
+  const WORDS = { spouse: ['husband', 'wife'], parent: ['father', 'mother'], child: ['son', 'daughter'], sibling: ['brother', 'sister'],
+    housemate: ['housemate', 'housemate'] };
+  // b as a's husband, mother, brother..., or null
+  const standingWord = (st, a, b) => { const k = standing(st, a, b); return k ? WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0] : null; };
+
+  // ---- memories and opinion ----
+  // @state pawn.rel: Map of other pawn id to a's relationship record {mem: {kind: {v, t}}, band}; a record exists while it holds a memory.
+  //   kind is a key of SOCIAL.memories; v the memory's value at its last event, at game hour t; band 1 (friend), 0 or -1 (dislike), as last
+  //   seen, so entering a band is told once (sim/relations). Empty for the dead.
+  const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
+  // a's opinion of b, -1..1: the standing's value plus the memories, as they are now
+  function opinionOf(st, a, b) {
+    const k = standing(st, a, b), r = st.pawns[a].rel.get(b);
+    let o = k ? SOCIAL.situational[k] : 0;
+    if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
+    return Math.max(-1, Math.min(1, o));
+  }
+  // friend (1), dislike (-1) or neither (0): entered at SOCIAL.friend and SOCIAL.dislike, left only SOCIAL.back past them
+  function bandOf(was, o) {
+    if (o >= SOCIAL.friend) return 1;
+    if (o <= SOCIAL.dislike) return -1;
+    if (was === 1 && o >= SOCIAL.friend - SOCIAL.back) return 1;
+    if (was === -1 && o <= SOCIAL.dislike + SOCIAL.back) return -1;
+    return 0;
+  }
+  // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now; becoming friends or falling out
+  // is a life event of a.
+  function remember(st, a, b, kind) {
+    const rel = st.pawns[a].rel;
+    let r = rel.get(b);
+    if (!r) { r = { mem: {}, band: 0 }; r.band = bandOf(0, opinionOf(st, a, b)); rel.set(b, r); } // a band of standing alone is no news
+    const K = M[kind], m = r.mem[kind], sum = (m ? memNow(st, kind, m) : 0) + K.v, v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
+    if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
+    const was = r.band;
+    r.band = bandOf(was, opinionOf(st, a, b));
+    if (r.band !== was && r.band !== 0) {
+      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`);
+    }
+  }
+  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // (A faded memory counts 0 until then.)
+  function fadeRelations(st) {
+    for (const p of st.pawns) {
+      if (!p.alive) continue;
+      for (const [j, r] of p.rel) {
+        if (!st.pawns[j].alive) { p.rel.delete(j); continue; }
+        let left = false;
+        for (const kind in r.mem) { if (memNow(st, kind, r.mem[kind]) === 0) delete r.mem[kind]; else left = true; }
+        if (!left) p.rel.delete(j);
+      }
+    }
+  }
+  // A pawn's death ends the relationships of others with it.
+  function forget(st, id) {
+    const p = st.pawns[id];
+    for (const j of p.rel.keys()) { const q = st.pawns[j]; if (q.rel) q.rel.delete(id); }
+    p.rel.clear();
+  }
+
+  // ---- talk: in each waking hour a pawn may start one talk, with a pawn in its house or near it outdoors (VB-061) ----
+  const T = SOCIAL.talk;
+  const young = (st, p) => p.age >= T.young[0] && p.age <= T.young[1] && spouseOf(st, p.id) === null;
+  const able = (st, a) => { const p = st.pawns[a.id]; return p.alive && p.age >= T.minAge && !a.carry; };
+  // Scratch for the hourly round (derived, not state): busy[id] === round marks a pawn talking this hour, seen[id] === look a pawn already
+  // drawn as a partner; found holds the partners of one pawn.
+  let busy = new Int32Array(1024), seen = new Int32Array(1024), round = 0, look = 0;
+  const found = [], lists = [];
+  // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
+  // it (`near`, from noteContacts), within near.size in x and y. Pawns talking already this hour are left out.
+  function partnersOf(st, a, near) {
+    found.length = 0;
+    if (a.inside) {
+      const hh = st.households[st.pawns[a.id].household];
+      if (hh) for (const m of hh.members) if (m !== a.id && st.agents[m].inside && busy[m] !== round) found.push(st.agents[m]);
+      return;
+    }
+    const S = near.size, cx = Math.floor(a.x / S), cy = Math.floor(a.y / S);
+    let n = 0; lists.length = 0; look++; seen[a.id] = look;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const l = near.cells.get(near.cellOf(cx + dx, cy + dy)); if (l) { lists.push(l); n += l.length; }
+    }
+    const draws = n <= T.sample + 1 ? n : T.sample;
+    for (let d = 0; d < draws; d++) {
+      let k = draws === n ? d : Math.floor(st.rand() * n), b = null;
+      for (const l of lists) { if (k < l.length) { b = near.out[l[k]]; break; } k -= l.length; }
+      if (seen[b.id] === look) continue;
+      seen[b.id] = look;
+      if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
+    }
+  }
+  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes
+  const talkWeight = (st, a, b, ya) => (1 + Math.min(st.pawns[a].ties.get(b) || 0, 1)) * (1 + opinionOf(st, a, b))
+    * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
+  // hour h: the pawns, from a random one on, each start a talk at chance T.chance, unless already talking this hour
+  const cand = [], wts = [];
+  function talkHour(st, h, near) {
+    if (h < T.from || h >= T.to) return;
+    const ag = st.agents, n = ag.length, start = Math.floor(st.rand() * n);
+    if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
+    round++;
+    for (let k = 0; k < n; k++) {
+      const a = ag[(start + k) % n];
+      if (busy[a.id] === round || !able(st, a) || st.rand() >= T.chance) continue;
+      const ya = young(st, st.pawns[a.id]);
+      let tot = 0; cand.length = 0; wts.length = 0;
+      partnersOf(st, a, near);
+      for (const b of found) {
+        if (!able(st, b)) continue;
+        const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+      }
+      if (!cand.length) continue;
+      let x = st.rand() * tot, i = 0;
+      while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+      busy[a.id] = round; busy[cand[i].id] = round;
+      talk(st, a, cand[i]);
+    }
+  }
+  // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
+  // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble
+  function talk(st, a, b) {
+    const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
+    const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
+    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = st.rand() * (1 + wg + wc);
+    const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
+    remember(st, i, j, kind); remember(st, j, i, kind);
+    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + st.rand() * T.bubbleHours, until = at + T.bubbleHours;
+    pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
+    const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
+    show(a, j); show(b, i);
+    // an idle pawn outdoors stops where it is until the talk is over
+    const halt = (g) => { if (!g.inside && !g.job && g.phase === null) { g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until); } };
+    halt(a); halt(b);
+    st.talks++;
+  }
+
+  // ---- company: an idle pawn may join someone it likes who idles outdoors in its village ----
+  // The idle pawns outdoors of each village as of this game hour (derived, not state; rebuilt each hour): companyFor checks that a
+  // pawn drawn from it still idles outdoors.
+  const idleCache = new WeakMap();
+  const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
+  function idlersBy(st) {
+    let c = idleCache.get(st);
+    const hour = Math.floor(st.t);
+    if (!c || c.hour !== hour) {
+      c = { hour, by: new Map() };
+      for (const b of st.agents) {
+        if (!idles(st, b)) continue;
+        const v = settlementIdOf(st, st.pawns[b.id]); if (v === null) continue;
+        const l = c.by.get(v); if (l) l.push(b); else c.by.set(v, [b]);
+      }
+      idleCache.set(st, c);
+    }
+    return c.by;
+  }
+  // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
+  // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
+  function companyFor(st, a) {
+    if (st.rand() >= SOCIAL.seek) return null;
+    const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
+    if (!list || !list.length) return null;
+    let tot = 0; cand.length = 0; wts.length = 0;
+    for (let k = 0; k < SOCIAL.seekSample; k++) {
+      const b = list[Math.floor(st.rand() * list.length)];
+      if (b === a || cand.includes(b) || !idles(st, b)) continue;
+      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
+      if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+    }
+    if (!cand.length) return null;
+    let x = st.rand() * tot, i = 0;
+    while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
+    return cand[i];
+  }
+
+  // ---- for the page and the tools ----
+  const opinionWord = (o) => (o >= SOCIAL.closeFriend ? 'close friend' : o >= SOCIAL.friend ? 'friend' : o <= SOCIAL.enemy ? 'enemy'
+    : o <= SOCIAL.dislike ? 'dislikes' : 'neutral');
+  // The living people a pawn knows, by tie (most familiar first): {id, tie, opinion, standing}
+  function relationsOf(st, id) {
+    const p = st.pawns[id], ids = new Set([...p.ties.keys(), ...p.rel.keys()]), out = [];
+    for (const j of ids) {
+      if (!st.pawns[j].alive) continue;
+      out.push({ id: j, tie: p.ties.get(j) || 0, opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
+    }
+    return out.sort((x, y) => y.tie - x.tie || x.id - y.id);
+  }
+  // What a's opinion of b is made of now, largest first: [{label, value}], the standing first if there is one
+  function reasonsOf(st, a, b) {
+    const out = [], k = standing(st, a, b), r = st.pawns[a].rel.get(b);
+    if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
+    out.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
+    if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
+    return out;
+  }
+  return {
+    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
+    reasonsOf,
+  };
+})();
+</script>
+<script>
 // @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH } = VB['sim/rules'];
@@ -3003,6 +3267,7 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
+  const { companyFor } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -3080,10 +3345,14 @@ VB['sim/agents'] = (() => {
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function idleAbout(st, a) {
-    // nothing suitable: drift to the green or the yard, and look again in a while
-    const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-    const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
-    walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
+    const mate = st.cenv ? companyFor(st, a) : null;
+    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (st.rand() - 0.5) * 16, mate.y + (st.rand() - 0.5) * 8);
+    else {
+      const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
+      const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
+      walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    }
     a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
   }
   function arrived(st, a) {
@@ -3638,7 +3907,7 @@ VB['sim/society'] = (() => {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
       p.att = Culture.seedAttitude(customs, st.rand, 0.6, lean); p.anc = Float32Array.from(p.att);
-      p.ties = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+      p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     }
     // starting ties: household, kin, and a few neighbours
     for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) st.pawns[i].ties.set(j, 1);
@@ -3714,19 +3983,38 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
+  // A pair of pawns as one number, the smaller id first, and back.
+  const PAIR = 2 ** 21;
+  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
+  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
+  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
+  // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
+  const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
   function noteContacts(st) {
-    const live = st.agents.filter((a) => st.pawns[a.id].alive);
-    const add = (i, j) => { const k = i < j ? i + ':' + j : j + ':' + i; st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
+    const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     for (const hh of st.households) {
       if (hh.dissolved) continue; const ins = hh.members.filter((m) => st.agents[m].inside);
       for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) add(ins[x], ins[y]);
     }
-    const out = live.filter((a) => !a.inside);
-    for (let x = 0; x < out.length; x++) for (let y = x + 1; y < out.length; y++) {
-      const a = out[x], b = out[y]; if (Math.abs(a.x - b.x) < 30 && Math.abs(a.y - b.y) < 30) add(a.id, b.id);
+    // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
+    // so pairs are counted in the same order as by comparing every pair.
+    const out = []; for (const a of st.agents) if (!a.inside && st.pawns[a.id].alive) out.push(a);
+    const cells = new Map(), cand = [];
+    out.forEach((a, n) => {
+      const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
+      if (l) l.push(n); else cells.set(k, [n]);
+    });
+    for (let x = 0; x < out.length; x++) {
+      const a = out[x], cx = Math.floor(a.x / NEAR), cy = Math.floor(a.y / NEAR); cand.length = 0;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
+      }
+      if (cand.length > 1) cand.sort((p, q) => p - q);
+      for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
+    return { out, cells, cellOf, size: NEAR };
   }
-  return { initCulture, updateTies, refreshPrestige, refreshInterests, noteContacts };
+  return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();
 </script>
 <script>
@@ -3741,7 +4029,8 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
-  const { updateTies, refreshPrestige, refreshInterests } = VB['sim/society'];
+  const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
+  const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false;
@@ -3749,6 +4038,7 @@ VB['sim/lifecycle'] = (() => {
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
     for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+    if (p.rel) forget(st, id);
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
       + `${CAUSES[cause].log}, aged ${p.age}.`);
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -3850,16 +4140,21 @@ VB['sim/lifecycle'] = (() => {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
     comeOfAge(st);
-    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor
-    const decay = Math.pow(0.5, 1 / YEAR_DAYS);
-    for (const p of st.pawns) { if (!p.alive) continue; for (const [j, w0] of p.ties) p.ties.set(j, w0 * decay); }
+    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
+    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
+    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
+    for (const p of st.pawns) {
+      if (!p.alive) continue;
+      for (const [j, w0] of p.ties) { const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+    }
     for (const [k, hrs] of st.contacts) {
-      const [i, j] = k.split(':').map(Number), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
+      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
       const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
     }
     st.contacts.clear();
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
-    for (const p of st.pawns) if (p.alive) for (const [j, w0] of p.ties) if (w0 < 0.02) p.ties.delete(j);
+    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
+    if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
@@ -3895,13 +4190,13 @@ VB['sim/births'] = (() => {
     const id = person({ pawns: st.pawns, rand: st.rand }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
     p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
-    p.ties = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+    p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { p.ties.set(j, 1); st.pawns[j].ties.set(id, 1); }
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: st.rand() * 6,
-      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0,
+      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
@@ -4124,7 +4419,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
-    //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc, ties
+    //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
+    //   ties; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
@@ -4150,10 +4446,12 @@ VB['sim/scenarios'] = (() => {
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
-    // @state st.contacts: Map of 'i:j' pawn pair to hours spent together since the last drift step
+    // @state st.talks: number; talks since the start (sim/relations)
+    // @state st.contacts: Map of pawn pair (pairKey in sim/society: i * 2^21 + j, i < j) to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil}; one per pawn, map units
+    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
+    //   one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
     // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
@@ -4163,10 +4461,10 @@ VB['sim/scenarios'] = (() => {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      contacts: new Map(), driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
+      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [],
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
-        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0,
+        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
@@ -4199,6 +4497,7 @@ VB['sim/clock'] = (() => {
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
   const { noteContacts } = VB['sim/society'];
+  const { talkHour } = VB['sim/relations'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
@@ -4207,7 +4506,7 @@ VB['sim/clock'] = (() => {
     return false;
   }
   function onHour(st, h, c) {
-    if (st.cenv) noteContacts(st);
+    if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === 6) for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
@@ -4311,6 +4610,7 @@ const Sim = (() => {
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles } = VB['sim/heirs'];
   const { updateTies, refreshInterests } = VB['sim/society'];
+  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf } = VB['sim/relations'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -4319,7 +4619,7 @@ const Sim = (() => {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
-    plotProgress, explainIdle, idleLine, RIVER, byRiver,
+    plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
   };
 })();
 VB['sim'] = Sim;
@@ -5224,6 +5524,54 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let fieldTex = null, art = null;
   let fieldSprites = [], rigs = [], houseInfo = [], fences = [], labels = [];
   const ring = new PIXI.Graphics();
+  const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
+
+  // ---- talk on the map (VB-061): a bubble over each pawn talking on screen, a chat faint; the lens of the selected pawn ----
+  const lens = new PIXI.Graphics(), bubbles = new PIXI.Container(), bubblePool = [];
+  L.hover.addChild(lens); L.hover.addChild(bubbles);
+  let bubbleTex = null;
+  function bubbleCanvas(kind) {
+    const c = makeCanvas(40, 34), g = c.getContext('2d'), cross = kind === 'crossWords';
+    g.beginPath(); g.moveTo(12, 3); g.arcTo(37, 3, 37, 25, 9); g.arcTo(37, 25, 3, 25, 9); g.lineTo(19, 25); g.lineTo(9, 32); g.lineTo(11, 25);
+    g.arcTo(3, 25, 3, 3, 9); g.arcTo(3, 3, 37, 3, 9); g.closePath();
+    g.fillStyle = cross ? '#f6ddd4' : '#fbf8ef'; g.fill(); g.lineWidth = 2; g.strokeStyle = cross ? '#8a3324' : '#4b5a5e'; g.stroke();
+    g.fillStyle = kind === 'chat' ? '#5d6b6e' : cross ? '#a8432f' : '#2f7a4b';
+    if (kind === 'chat') for (const x of [12, 20, 28]) { g.beginPath(); g.arc(x, 14, 2.4, 0, Math.PI * 2); g.fill(); }
+    else { g.font = 'bold 19px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(cross ? '!' : '♪', 20, 15); }
+    return c;
+  }
+  // a talk shows from `at` to `until`, fading in and out over its first and last sixth
+  function drawTalk(show) {
+    if (!bubbleTex) bubbleTex = Object.fromEntries(['chat', 'goodTalk', 'crossWords'].map((k) => [k, texFrom(bubbleCanvas(k), { autoGenerateMipmaps: true })]));
+    const [x0, y0, x1, y1] = viewRect(20);
+    let n = 0;
+    if (show) for (const a of st.agents) {
+      const tk = a.talk;
+      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible || a.x < x0 || a.x > x1 || a.y < y0 || a.y > y1) continue;
+      let b = bubblePool[n];
+      if (!b) { b = new PIXI.Sprite(bubbleTex.chat); b.anchor.set(0.25, 1); bubbles.addChild(b); bubblePool.push(b); }
+      const f = clamp(Math.min(st.t - tk.at, tk.until - st.t) / ((tk.until - tk.at) / 6), 0, 1);
+      b.texture = bubbleTex[tk.kind]; b.alpha = (tk.kind === 'chat' ? 0.5 : 0.95) * f; b.visible = true;
+      b.position.set(a.x + 1.5, a.y - 19 * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
+      n++;
+    }
+    for (let i = n; i < bubblePool.length; i++) bubblePool[i].visible = false;
+  }
+  // The selected pawn's lens: a line to each of the 20 people it knows best, where they are (at home: their house); green for liked,
+  // red for disliked, stronger for a closer tie.
+  function drawLens() {
+    lens.clear();
+    if (selPawn < 0 || !rigs[selPawn] || !rigs[selPawn].root.visible) return;
+    const a = st.agents[selPawn], z = Math.max(cam.z, 0.6);
+    for (const x of Sim.relationsOf(st, selPawn).slice(0, 20)) {
+      const b = st.agents[x.id], f = farmOf(st.pawns[x.id]);
+      if (b.inside && !f) continue;
+      const bx = b.inside ? w.hx[f.house] : b.x, by = b.inside ? w.hy[f.house] : b.y - 6, s = Math.min(1, x.tie / 10);
+      const col = x.opinion >= 0.25 ? 0x3f9a5c : x.opinion <= -0.2 ? 0xc8553d : 0xf2ead8;
+      lens.moveTo(a.x, a.y - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
+      lens.ellipse(bx, by, 2.4 / z, 2.4 / z).fill({ color: col, alpha: 0.8 });
+    }
+  }
 
   function hexClip(g, cx, cy, r) {
     g.beginPath();
@@ -5404,8 +5752,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const pp = st.pawns[a.id];
       R.root.visible = show && !a.inside && pp.died === null;
       if (!R.root.visible) continue;
-      const k = pp.age < 6 ? 0.55 : pp.age < 10 ? 0.66 : pp.age < 14 ? 0.8 : pp.age < 17 ? 0.93 : 1; // children are smaller
-      R.root.position.set(a.x, a.y); R.root.scale.set((a.face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
+      const k = sizeAt(pp.age);
+      // an idle pawn that stands talking faces the other
+      const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
+      R.root.position.set(a.x, a.y); R.root.scale.set((face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
     ring.clear();
@@ -5413,6 +5764,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const a = st.agents[selPawn];
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
+    drawTalk(show); drawLens();
     // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
     const evening = c.hour >= 16 || c.hour < 8;
     for (const h of houseInfo) {
@@ -5519,11 +5871,29 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
     card(Sim.fullName(p), [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`, `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`, p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` : (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id), Sim.idleLine(st, id)].filter(Boolean));
+    showRelations(id);
   }
+  // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
+  let relHTML = '';
+  const signed = (v) => `${v < 0 ? '−' : '+'}${Math.abs(Math.round(v * 100))}`;
+  function showRelations(id) {
+    const all = Sim.relationsOf(st, id), list = all.slice(0, 5), cold = (o) => ['dislikes', 'enemy'].includes(Sim.opinionWord(o));
+    for (const x of all.slice(5)) if (cold(x.opinion) && list.length < 7) list.push(x);
+    const rows = list.map((x) => {
+      const word = Sim.opinionWord(x.opinion), kin = Sim.standingWord(st, id, x.id), why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
+      const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
+      const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
+      return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(x.opinion)}</b></button>`;
+    }).join('');
+    const h = rows ? `<h3>Knows best</h3>${rows}` : '';
+    if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
+    $('tileRel').hidden = !h;
+  }
+  $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function card(title, lines) {
     $('tileName').textContent = title;
     ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => { const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k]; });
-    $('tile').hidden = false;
+    $('tileRel').hidden = true; $('tile').hidden = false;
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;

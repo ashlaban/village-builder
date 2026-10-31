@@ -14,7 +14,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
-  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths`).
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations`).
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
@@ -40,7 +40,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
-- Tunables: `ECON`, `ROLES`, `MARRIAGE`, `SHARES`, `MATCH`, `RIVER`, `TERRAIN`, `ROUTE` and `PATHS` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`;
+- Tunables: `ECON`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `RIVER`, `TERRAIN`, `ROUTE` and `PATHS` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`;
   `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK` (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
 - A new job kind is one record in `KINDS` (`src/sim/kinds.js`): numbers, type of work, labels, where to stand, urgency, and what finishing and delivering do.
   It is posted from `refreshJobs` (`src/sim/jobs.js`); roles rank types of work (`work` in `ROLES`, with `except` for single kinds), so a kind of an existing

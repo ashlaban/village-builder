@@ -4,6 +4,7 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
+  const { companyFor } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -81,10 +82,14 @@ VB['sim/agents'] = (() => {
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function idleAbout(st, a) {
-    // nothing suitable: drift to the green or the yard, and look again in a while
-    const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-    const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
-    walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
+    const mate = st.cenv ? companyFor(st, a) : null;
+    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (st.rand() - 0.5) * 16, mate.y + (st.rand() - 0.5) * 8);
+    else {
+      const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
+      const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
+      walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+    }
     a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
   }
   function arrived(st, a) {
