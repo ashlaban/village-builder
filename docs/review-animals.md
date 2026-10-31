@@ -241,6 +241,33 @@ Answered on 31 October: questions 1 to 4 as proposed (the first pull request bui
 
 - **A pawn can be allotted two cleared plots.** At founders seed 7, small map, year 2, both of Skogvik's plots go to Arvid Arvidsson (pawn 8), the second one cleared for Elin Ivarsdotter (pawn 9): `allot` (`src/sim/expansion.js`) excludes household holders but not holders of a cleared plot. It shows twice in the settlers panel ("Plot cleared, for Arvid Arvidsson"). Proposed as a small task of its own.
 
+## 10. Built in the first pull request (31 October)
+
+VB-131 to VB-134 are built, one commit each: herds of named cattle and counted sheep that breed each spring; hay meadows made by the founders and placed for generated villages; raking, mowing and carrying hay; and the byre with the autumn count, slaughter, salt meat and the hard winter limit.
+
+![Summer, day 2, year 1, populous tiny map, seed 7: flowering meadows, a mown meadow with windrows and haycocks, aftermath, two pawns mowing, cattle and sheep by the byres](img/animals-haymaking-after.jpg)
+
+*Haymaking on a populous tiny map at seed 7, summer day 2. Uncut meadows flower; a mown one shows windrows and haycocks while the hay dries; the pawn card reads "Mowing hay". Cattle and sheep graze by the byres beside the cottages.*
+
+![The household card of Östergården after the autumn count of year 1: its cattle and sheep by name and kind, hay 287 against a winter's need of 126, 16 salt meat in the larder, 5 hay meadows](img/animals-card-after.png)
+
+*Founders, tiny map, seed 7, autumn day 9 of year 1. The household card lists the herds, the hay against the winter's need and the larder. The log line beside it: "The autumn count at Östergården: an old ewe, Brante, Stolt and 2 ram lambs go to slaughter" (the bull calves, as the farm has its oxen and a young bull); their meat is the 16 salt meat.*
+
+| Measure | Before (`c613a9b`) | After |
+| --- | --- | --- |
+| Summer idle share, populous small, seed 7, 2 years: farmer / mistress / farmhand | 79% / 69% / 77% | 54% / 51% / 59% |
+| Summer idle share: son / daughter / maid | 83% / 82% / 79% | 71% / 72% / 65% |
+| Winter idle share: farmer / mistress / maid | 89% / 73% / 78% | 87% / 71% / 68% |
+| Hungry household-days, populous medium, seed 7, years 1–3 | 0 / 106 / 122 | 0 / 33 / 61 |
+| Hunger deaths, populous medium, years 1–3 | 0 / 1 / 0 | 0 / 0 / 0 |
+| Hungry household-days, founders small, seed 7, years 1–6 | 0 / 9 / 1 / 0 / 0 / 0 | 0 / 12 / 0 / 0 / 0 / 0 |
+| Simulation, populous medium, a game day (`tests/perf.js`) | 165.0 ms without animals | 159.2 ms with them (one run each; no measurable cost) |
+| Meadows raked by spring day 11, brought in by autumn day 4 (populous tiny) | — | 100%, 100% |
+| Hay against the winter's need at autumn day 4 of year 1 (populous tiny, 20 households) | — | 0.57 to 1.45, median 1.05 |
+| Founders seed 7 (tiny), 3 years | — | 7 counts with culls, no animal lost to hunger, no meat spoiled, 45 rations of salt meat in larders |
+
+Summer now has work for farmers and mistresses within the design's 40–60% idle range for the slack seasons; winter barely moves, since the fodder job is one hand for about an hour a day. Milking (VB-135) and herding (VB-136) are what fill more of the year. Populous households are hungry on fewer days, the larder's salt meat carrying them through lean springs. The founders' year 2 is a little hungrier (12 household-days against 9), which seems to be year 1's labour going into meadows; VB-048 tunes the food balance once milk and manure are in. Numbers are at `1aadf14`, after the fix for losses in the first spring.
+
 ## Appendix: probes
 
 - Baseline runs: `node tools/sim.js --scenario founders --seed 7 --map small --years 6` and `--scenario populous --seed 7 --map medium --years 3`.
