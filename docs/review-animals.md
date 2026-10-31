@@ -226,7 +226,7 @@ VB-091 (forest spread) unblocks after VB-136, and VB-048 (tune the food balance)
 
 ## 8. Questions
 
-Also in `QUESTIONS.md` under "VB-047: animals review". **P** is the proposal.
+Answered on 31 October: questions 1 to 4 as proposed (the first pull request builds VB-131 to VB-134; named cattle; meat a cow 15, an ox 18, a sheep 3; wear and manure); the others taken as proposed. The answers are in `QUESTION_ARCHIVE.md` and the tasks in `backlog/VB-131.md` to `VB-142.md`. **P** is the proposal.
 
 1. **The first pull request.** P: this review, the task files VB-131 to VB-141, and VB-131 to VB-134 implemented, one commit each.
 2. **Cattle as named head inside the herd.** The herd stays the unit that moves, grazes and posts jobs, but its cattle are a short list of named animals with sex, birth and kind, so calving, gelding, oxen and culling work and the log can name them; sheep stay counts. P: yes.

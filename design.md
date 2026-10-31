@@ -170,7 +170,7 @@ Jobs come from things that need doing (a field, a meadow, a herd, a household, a
 | Food from the wild | Fishing in rivers, lakes and the sea from spring to autumn, and gathering berries, mushrooms and nuts in the woods in late summer and autumn. Both are always posted, with an urgency that is low while the household has food and high when it runs short, so they fill slack hours and answer a lean summer; each water or wood tile holds a stock that use lowers and time restores (backlog VB-117, VB-118) | Decided (by urgency), Proposed (numbers), 30 Oct |
 | Mixed meals | A day's meal drawn from 2 food sources needs 10% less food, from 3 or more 20% less; grain or flour, fish and gathered food are sources now, milk and meat with the animals. Fresh fish and gathered food are eaten first and spoil after 3 game days; drying and salting come later. Built with hand-quern milling (backlog VB-119, VB-009) | Decided, Agreed (numbers), 30 Oct |
 | Help in hunger | A hungry household asks its kin, then the village store. Each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households; loans come with money | Decided (the store), Agreed (rest), 30 Oct |
-| Soil | Each harvest wears a field down; manure from the byre restores it | Agreed |
+| Soil | Each harvest wears a field down; manure from the byre restores it. Starting values: −0.08 a harvest to a floor of 0.75, +0.04 a load of manure to 1.15 (backlog VB-137) | Agreed; numbers Agreed, 31 Oct |
 | Risk | Frost destroys whatever is left in the field; each year has a weather factor | Agreed |
 | Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); what drives the rise and by how much is open, and is tuned with the animals (backlog VB-048) | Decided (rise), Open (rate) |
 | Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe | Agreed |
@@ -274,7 +274,8 @@ Villages had a village street (*bygata*) and fenced cattle lanes (*fägator*) th
 - **Pressure feeds forest spread:** it decides whether meadow near woodland stays open, and heavy grazing thins it.
 - **Near the camera:** each herd shows a handful of animal sprites wandering inside its range; the same few stand for the whole herd.
 - **Farther out:** grazing shows only in the painted ground as shorter, browner grass, repainted for an area only when its pressure has changed enough.
-- **Individuals where the story needs them:** a farm's pair of oxen; hunting and herding otherwise act on the herd.
+- **Individuals where the story needs them:** a herd's cattle, by name (Agreed, 31 Oct); hunting and herding act on the herd.
+- **Pressure where herds graze:** a herd adds pressure only on the tile it grazes with its herder, which fades by half each year as worn paths do; cheaper than updating every tile of a home range, and it shows where herds have been (Agreed, 31 Oct; backlog VB-136).
 
 ## Animals
 
@@ -290,9 +291,9 @@ The old Swedish saying *äng är åkers moder*, “the meadow is the mother of t
 | Sheep | Ewes, rams, lambs | Wool, lambs, meat, manure | About 0.2 hay units per head per stall day; graze heath and hills that cattle do poorly on | Decided (species), Agreed (rest) |
 | Wild grazers | One species to start: roe deer, with elk perhaps later | Meat and hides when hunted | Forest edges and meadows; can damage crops | Decided (wild grazers only; roe deer, 30 Oct) |
 
-- **Ownership:** each household owns its cattle herd and its sheep flock as two herds; only the oxen pair are individuals, since a job needs them.
+- **Ownership:** each household owns its cattle herd and its sheep flock as two herds. A herd is the one unit that moves, grazes and posts jobs; its cattle are a short list of named animals (sex, birth, kind: calf, heifer, cow, bull, steer, ox), so calving, gelding, oxen and culling work and the log can name them, while sheep are counts (Agreed, 31 Oct; backlog VB-131).
 - **The founders' herds:** not every farm keeps animals; at least one farm keeps a bull, since oxen are castrated, and at least one keeps a ram; a farm with sheep keeps 4 ewes (Decided, 30 Oct). Three of the four founders farms keep cattle (2 cows each, the first also a bull) and two keep sheep (4 ewes each, the first also a ram); one keeps neither. One pair of oxen in the group, at the bull's farm; the others hoe until they raise oxen from bull calves (Agreed, 30 Oct).
-- **Food from animals:** a cow in milk gives 0.5 rations a day in summer, part of it kept as butter for winter (Agreed). Slaughter gives meat, a cow 40 rations' worth and a sheep 8, which a household job processes into rations that keep; stored rations spoil after a year (Decided, 30 Oct).
+- **Food from animals:** a cow in milk gives 0.5 rations a day in summer, part of it kept as butter for winter (Agreed). Slaughter gives meat, a cow 15 rations' worth, an ox 18 and a sheep 3, which a household job salts into food that keeps; stored food spoils after a year (Decided, 30 Oct; meat values lowered from 40 and 8 after the review, so a living cow is worth more than her carcass, Agreed 31 Oct).
 - **The byre** holds 6 cattle at first and is enlarged later by a building job (Agreed, 30 Oct).
 - **Numbers** are starting values to tune.
 
@@ -326,9 +327,25 @@ The old Swedish saying *äng är åkers moder*, “the meadow is the mother of t
 
 Limiting grazing per farm (“stinting”) was a common rule for village commons; Ostrom's *Governing the Commons* (1990) is the standard account of such rules, against Hardin's “tragedy of the commons” (1968). Vera's *Grazing Ecology and Forest History* (2000) argues that large grazers keep landscapes a mix of open land and forest.
 
+### First version (Agreed, 31 October 2026)
+
+The review of 31 October (`docs/review-animals.md`) set starting values for the first version, to tune in backlog VB-048; its questions and answers are in `QUESTION_ARCHIVE.md`.
+
+| Point | Starting value | Task |
+| --- | --- | --- |
+| Hay a stall day | Cow, bull, ox 1; heifer, steer 0.6; calf 0.4; ewe, ram 0.2; lamb 0.1; 21 stall days, autumn day 9 to spring day 5 | VB-131, VB-134 |
+| Breeding | On spring day 3 a cow of 3 or more calves with chance 0.85 if a bull of 2 or more lives within 12 steps of her farm; a ewe lambs (0.3 chance of twins) with a ram within reach; 15% of calves and 20% of lambs die. Taking the cow to another farm's bull is remembered as a favour ("Lent us the bull") | VB-131 |
+| Meadows | 30 hay a tile × site (meadow 1, marsh 0.8, heath 0.6; × 1.3 by a river or water) × weather; claimed and cleared (4 h + stones), within 6 steps; households with animals want 1.2 times their winter need | VB-132 |
+| Haymaking | Rake 2 h in spring (unraked 80%); mow 16 h a tile from summer day 1 to autumn day 3 (men); dry a day; carry 4 h | VB-133 |
+| The byre | A daily fodder job (women's work); the autumn count on autumn day 8 keeps what the hay × 1.1 and the byre's 6 cattle allow, the least valuable going first, oxen last; meat is salted within 3 days or spoils | VB-134 |
+| Milk | 0.5 rations a cow in milk a day, half without a herder; 40% churned to butter | VB-135 |
+| Herding | One herder from 8 years for a household's herds, 9 hours a day to a pasture within 8 steps; an unherded herd may get into a crop through a broken fence, and the field's holder blames the fence's keeper, as the provincial laws did | VB-136 |
+| Soil | −0.08 a harvest to a floor of 0.75; a load of manure +0.04 to 1.15; 0.2 loads a head of cattle a stall day | VB-137 |
+| Oxen | A team works one tilling hand at 2.5 times | VB-138 |
+
 ### Cost
 
-About 440 domestic herds and up to 100 wild ones at full scale; daily grazing updates come to roughly 22,000 tile updates, and only a few dozen sprites are drawn near the camera.
+About 440 domestic herds and up to 100 wild ones at full scale; only a few dozen sprites are drawn near the camera. Counting grazing where herds graze makes it a few hundred updates a day (Agreed, 31 Oct). A profile of 31 October puts the work and economy systems at under a tenth of the simulation's time and the social layer at two thirds; the animals' budget is 10 ms a game day at populous medium (`docs/review-animals.md`, Performance).
 
 ### Later
 
@@ -698,6 +715,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (animals review) | 31 October 2026 | A review of the animals design against medieval Swedish husbandry and the game (`docs/review-animals.md`). Agreed: a herd's cattle as named animals, sheep as counts; meat a cow 15, an ox 18, a sheep 3 (from 40 and 8); soil wear and manure with numbers; grazing pressure counted where herds graze; starting values for hay, breeding, meadows, haymaking, the byre and the autumn count, milk, herding and oxen (Animals, First version). Implement tasks VB-131 to VB-141 |
 | 0.3 (review) | 31 October 2026 | Systems overview brought up to date after the paths, fords and layout work: walking, worn paths, food and cost rows; founders' hoarded grain and uneven hunger noted; the question of fords settled; no Decided or Agreed point changed. Rebased onto main the same day; its new tasks are VB-128 to VB-130. See `REVIEW.md`, review of 31 October |
 | 0.3 (relationships review) | 31 October 2026 | A review of relationships and pawn interactions against RimWorld, Dwarf Fortress, Crusader Kings III and The Sims (`docs/review-relationships.md`). Decided: opinion as the sum of timed memories; one talk partner per pawn and hour, chosen by familiarity and liking; talk outcomes by a pair's compatibility; idle pawns seek those they like; familiarity (the tie) unchanged for now. Built in backlog VB-060, VB-061, VB-124 and VB-125 |
 | 0.3 (job review, second pass) | 30 October 2026 | Brought in the answers to the second review of the job system (`QUESTION_ARCHIVE.md`, `REVIEW.md` Work and jobs, second pass): roles rank types of work; how busy the village should be; fishing and gathering, always posted, by urgency; mixed meals that go further, and fresh food that spoils; milling built with the food jobs; village work days and winter crafts; the interrupt rule's numbers kept, so a son rather than the farmer goes for wood |
