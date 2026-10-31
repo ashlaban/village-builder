@@ -6,6 +6,7 @@ VB['sim/kinds'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
+  const { slaughterDone, saltDone } = VB['sim/byre'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -24,6 +25,8 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
+  // By the byre door, left of the cottage (the page draws the byre there).
+  const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
@@ -127,6 +130,19 @@ VB['sim/kinds'] = (() => {
       hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f),
+    },
+    fodder: {
+      verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
+      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => { hh.fodderDay = c.day; },
+    },
+    slaughter: {
+      verb: 'Slaughtering', go: 'Going to slaughter', name: 'Slaughter an animal', label: 'Slaughter', anim: 'mallet', hours: 3, hands: 2,
+      type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (j.entry.lean ? U.slaughterNow : U.slaughter),
+      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh),
+    },
+    salt: {
+      verb: 'Salting meat', go: 'Going home to salt the meat', name: 'Salt the meat', label: 'Salting', anim: null, hours: 1, hands: 1, type: 'household',
+      inside: true, urgency: (st, j, c, U) => U.salt, done: (st, j, hh) => saltDone(st, hh),
     },
     fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
     grub: {

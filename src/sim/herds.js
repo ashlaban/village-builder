@@ -7,7 +7,9 @@ VB['sim/herds'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { remember } = VB['sim/relations'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
-  //   (sheep)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
+  //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
+  //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
+  //   dissolved household is kept with household null (sim/herds)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox'}
   // @state st.headSeq: number; counter for the ids of cattle heads
   // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/hunger).
@@ -42,15 +44,18 @@ VB['sim/herds'] = (() => {
     return best;
   }
   function makeHerd(st, hh, species) {
-    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]) };
+    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0 };
     if (species === 'cattle') herd.head = []; else { herd.ewes = 0; herd.rams = 0; herd.lambs = 0; }
     st.herds.push(herd); hh.herds.push(herd.id);
     return herd;
   }
   const herdFor = (st, hh, species) => herdOf(st, hh, species) || makeHerd(st, hh, species);
-  // A new head of cattle, named for its sex with a name no other head of the herd has.
+  // A new head of cattle, named for its sex with a name no other head of the village's herds has, while names last.
   function addHead(st, herd, sex, born, kind) {
-    const list = sex === 'f' ? COWS : BULLS, taken = new Set(herd.head.map((h) => h.name)), free = list.filter((n) => !taken.has(n));
+    const v = st.farmsteads[st.households[herd.household].farmstead].village, taken = new Set();
+    const villageOf = (hd) => st.farmsteads[st.households[hd.household].farmstead].village;
+    for (const hd of st.herds) if (hd.head && hd.household !== null && villageOf(hd) === v) for (const h of hd.head) taken.add(h.name);
+    const list = sex === 'f' ? COWS : BULLS, free = list.filter((n) => !taken.has(n));
     const pool = free.length ? free : list, name = pool[(st.rand() * pool.length) | 0];
     const h = { id: st.headSeq++, name, sex, born, kind };
     herd.head.push(h);
@@ -99,7 +104,9 @@ VB['sim/herds'] = (() => {
           return !gone;
         });
       } else {
-        const f = binom(st, herd.lambs, 0.5); herd.ewes += f; herd.rams += herd.lambs - f; herd.lambs = 0;
+        // last year's lambs grow up: the ram lambs went at the autumn count (sim/byre), so they are ewes, but for one kept as the ram
+        // when there is none within reach
+        if (herd.lambs) { const ram = herd.rams || ramNear(st, houseOf(st, herd)) ? 0 : 1; herd.rams += ram; herd.ewes += herd.lambs - ram; herd.lambs = 0; }
         herd.ewes -= binom(st, herd.ewes, HERD.death.sheep); herd.rams -= binom(st, herd.rams, HERD.death.sheep);
       }
     }
@@ -219,7 +226,7 @@ VB['sim/herds'] = (() => {
         else { dest.ewes += herd.ewes; dest.rams += herd.rams; dest.lambs += herd.lambs; }
       }
       if (herd.species === 'cattle') herd.head = []; else herd.ewes = herd.rams = herd.lambs = 0;
-      herd.household = null;
+      herd.household = null; herd.cull = [];
     }
     if (to !== null && from.hay > 0) st.households[to].hay += from.hay;
     from.herds = []; from.hay = 0;
@@ -257,7 +264,8 @@ VB['sim/herds'] = (() => {
       herds: herdsOf(st, hh).map((hd) => (hd.species === 'cattle'
         ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
-      text: describeHerds(st, hh),
+      text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
+      larder: Object.fromEntries(['meat', 'salt meat'].map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
     };
   }
   return {

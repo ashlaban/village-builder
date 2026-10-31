@@ -163,7 +163,8 @@ VB['sim/scenarios'] = (() => {
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
-    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind, n, until}: stored food lots; sim/hunger)}
+    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat', n, until}: stored food lots; sim/hunger),
+    //   fodderDay (the last day the animals were fed in the byre; sim/byre)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);

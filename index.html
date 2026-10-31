@@ -1784,19 +1784,19 @@ VB['sim/rules'] = (() => {
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
   const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2 },
-      except: { reap: 9, cook: 1 } },
-    wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9 },
-      except: { reap: 7, cook: 10, mow: 4 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
-      except: { cook: 0 } },
-    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
-      except: { reap: 7, cook: 8, mow: 4 } },
-    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3 },
-      except: { cook: 0 } },
-    daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10 },
-      except: { reap: 7, cook: 8, mow: 4 } },
-    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3 }, except: { cook: 4 } },
+    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3 },
+      except: { reap: 9, cook: 1, slaughter: 8 } },
+    wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
+      husbandry: 9 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2 } },
+    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4 },
+      except: { cook: 0, slaughter: 8 } },
+    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
+    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3 },
+      except: { cook: 0, slaughter: 7 } },
+    daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
+      husbandry: 9 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3 }, except: { cook: 4, slaughter: 2 } },
     child: { title: 'Child', sv: 'barn', work: { harvest: 3 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
@@ -1869,6 +1869,12 @@ VB['sim/rules'] = (() => {
     stall: [32, 5], stallDays: 21, springDay: 2, reach: 12,
     calve: 0.85, calfDeath: 0.15, lamb: 0.9, twins: 0.3, lambDeath: 0.2, death: { cattle: 0.03, sheep: 0.05 },
     bullAge: 2, grown: 3, maxAge: 15, keepBullUnder: 8, byre: 6, startMargin: 1.1,
+    // the byre and the autumn count (sim/byre, VB-134): the count on autumn day 8 (doy 31) keeps what hay × margin feeds; old ages; meat a head
+    // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
+    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
+    countDay: 31, margin: 1.1, old: { cow: 12, ox: 12, bull: 10 }, oldEwe: 1 / 7,
+    meat: { cow: 15, ox: 18, bull: 18, heifer: 10, steer: 10, calf: 5, ewe: 3, ram: 3, lamb: 1.5 },
+    fodder: [0.5, 0.15, 0.03], slaughter: { cattle: 3, sheep: 1 }, freshDays: 3, saltDays: 48, saltPerHour: 8, lean: 0.5, eatSoonDays: 6, starveDays: 2,
   };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
@@ -1906,6 +1912,7 @@ VB['sim/rules'] = (() => {
       woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
       rake: 0.8, mow: 1, mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
+      fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
@@ -2536,7 +2543,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
-      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [] };
+      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [], fodderDay: -1 };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -2895,7 +2902,9 @@ VB['sim/herds'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { remember } = VB['sim/relations'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
-  //   (sheep)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
+  //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
+  //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
+  //   dissolved household is kept with household null (sim/herds)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox'}
   // @state st.headSeq: number; counter for the ids of cattle heads
   // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/hunger).
@@ -2930,15 +2939,18 @@ VB['sim/herds'] = (() => {
     return best;
   }
   function makeHerd(st, hh, species) {
-    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]) };
+    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0 };
     if (species === 'cattle') herd.head = []; else { herd.ewes = 0; herd.rams = 0; herd.lambs = 0; }
     st.herds.push(herd); hh.herds.push(herd.id);
     return herd;
   }
   const herdFor = (st, hh, species) => herdOf(st, hh, species) || makeHerd(st, hh, species);
-  // A new head of cattle, named for its sex with a name no other head of the herd has.
+  // A new head of cattle, named for its sex with a name no other head of the village's herds has, while names last.
   function addHead(st, herd, sex, born, kind) {
-    const list = sex === 'f' ? COWS : BULLS, taken = new Set(herd.head.map((h) => h.name)), free = list.filter((n) => !taken.has(n));
+    const v = st.farmsteads[st.households[herd.household].farmstead].village, taken = new Set();
+    const villageOf = (hd) => st.farmsteads[st.households[hd.household].farmstead].village;
+    for (const hd of st.herds) if (hd.head && hd.household !== null && villageOf(hd) === v) for (const h of hd.head) taken.add(h.name);
+    const list = sex === 'f' ? COWS : BULLS, free = list.filter((n) => !taken.has(n));
     const pool = free.length ? free : list, name = pool[(st.rand() * pool.length) | 0];
     const h = { id: st.headSeq++, name, sex, born, kind };
     herd.head.push(h);
@@ -2987,7 +2999,9 @@ VB['sim/herds'] = (() => {
           return !gone;
         });
       } else {
-        const f = binom(st, herd.lambs, 0.5); herd.ewes += f; herd.rams += herd.lambs - f; herd.lambs = 0;
+        // last year's lambs grow up: the ram lambs went at the autumn count (sim/byre), so they are ewes, but for one kept as the ram
+        // when there is none within reach
+        if (herd.lambs) { const ram = herd.rams || ramNear(st, houseOf(st, herd)) ? 0 : 1; herd.rams += ram; herd.ewes += herd.lambs - ram; herd.lambs = 0; }
         herd.ewes -= binom(st, herd.ewes, HERD.death.sheep); herd.rams -= binom(st, herd.rams, HERD.death.sheep);
       }
     }
@@ -3107,7 +3121,7 @@ VB['sim/herds'] = (() => {
         else { dest.ewes += herd.ewes; dest.rams += herd.rams; dest.lambs += herd.lambs; }
       }
       if (herd.species === 'cattle') herd.head = []; else herd.ewes = herd.rams = herd.lambs = 0;
-      herd.household = null;
+      herd.household = null; herd.cull = [];
     }
     if (to !== null && from.hay > 0) st.households[to].hay += from.hay;
     from.herds = []; from.hay = 0;
@@ -3145,7 +3159,8 @@ VB['sim/herds'] = (() => {
       herds: herdsOf(st, hh).map((hd) => (hd.species === 'cattle'
         ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
-      text: describeHerds(st, hh),
+      text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
+      larder: Object.fromEntries(['meat', 'salt meat'].map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
     };
   }
   return {
@@ -3155,9 +3170,9 @@ VB['sim/herds'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/hunger: the daily meal shared out by custom, each pawn's hunger level and health
+// @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, DAY } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -3169,18 +3184,35 @@ VB['sim/hunger'] = (() => {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
     return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
   }
-  // Feeds a household for the day: what grain there is goes by the household's feedOrder, in groups served one after the other.
+  // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
+  function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
+  const larderOf = (hh, kind) => hh.larder.reduce((s, l) => s + (!kind || l.kind === kind ? l.n : 0), 0);
+  // Takes up to `want` rations from the larder, the lots that spoil first first; only those within `soon` hours of spoiling when soon is
+  // given. Returns what it took.
+  function takeFood(st, hh, want, soon = Infinity) {
+    let got = 0;
+    for (const l of [...hh.larder].sort((a, b) => a.until - b.until)) {
+      if (got >= want || l.until - st.t > soon) break;
+      const k = Math.min(l.n, want - got); l.n -= k; got += k;
+    }
+    hh.larder = hh.larder.filter((l) => l.n > 1e-9);
+    return got;
+  }
+  // Feeds a household for the day: larder food about to spoil first, then cooked rations and grain above the seed reserve, then the rest
+  // of the larder; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
+    const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
     const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
-    if (avail >= total) { const cooked = Math.min(hh.rations, total); hh.rations -= cooked; hh.grain -= total - cooked; }
+    const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
+    if (avail >= rest - late) { const cooked = Math.min(hh.rations, rest - late); hh.rations -= cooked; hh.grain -= rest - late - cooked; }
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
       const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
-      let left = avail;
+      let left = avail + early + late;
       for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
@@ -3203,7 +3235,7 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  return { feedHousehold, dailyNeed, seedReserve, updateHealth };
+  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood };
 })();
 </script>
 <script>
@@ -3481,6 +3513,194 @@ VB['sim/meadows'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
+VB['sim/byre'] = (() => {
+  const { HERD } = VB['sim/rules'];
+  const { log } = VB['sim/records'];
+  const { addFood, larderOf } = VB['sim/hunger'];
+  const { herdsOf, dailyHay, stalled, years, bullsNear } = VB['sim/herds'];
+  const { hexSteps } = VB['sim/hex'];
+  // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
+  // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
+
+  // Stall days still to come after the day c, while in the byre.
+  const stallLeft = (c) => (!stalled(c) ? 0 : c.doy >= HERD.stall[0] ? 47 - c.doy + HERD.stall[1] : HERD.stall[1] - 1 - c.doy);
+  const houseOf = (st, hh) => st.farmsteads[hh.farmstead].house;
+  const marked = (herd, head) => (herd.cull || []).some((e) => e.head === head.id);
+  // The breeding male a farm relies on: the youngest bull of a year or more within reach not already marked for slaughter (an older one
+  // goes once a young one can follow it), and whether another farm's ram, or a second ram of the herd, is within reach.
+  function keptBull(st, house) {
+    const live = bullsNear(st, house, 1).filter((b) => !marked(b.herd, b.head));
+    return live.sort((a, b) => b.head.born - a.head.born || a.head.id - b.head.id)[0] || null;
+  }
+  const otherRam = (st, herd, house) => st.herds.some((hd) => hd !== herd && hd.species === 'sheep' && hd.household !== null && hd.rams > 0
+    && hexSteps(st.w, house, houseOf(st, st.households[hd.household])) <= HERD.reach);
+  // The household's animals not yet marked for slaughter, least valuable first: {herd, head or sheep, hay (a stall day), room (in the byre),
+  // value}. Order (Agreed, 31 Oct): rams and bulls not needed, ewe lambs, ewes, heifer calves, bull calves, heifers, steers, cows (oldest
+  // first), the bull the farms rely on, the only ram in reach, oxen last.
+  function animals(st, hh, all = false) { // all: those marked for slaughter too
+    const out = [], house = houseOf(st, hh), H = HERD.hay, bull = keptBull(st, house);
+    for (const herd of herdsOf(st, hh)) {
+      if (herd.species === 'cattle') {
+        for (const h of herd.head) {
+          if (!all && marked(herd, h)) continue;
+          let v = { calf: h.sex === 'f' ? 3 : 3.5, heifer: 4, steer: 4.5, cow: 5 + Math.max(0, 12 - years(st, h)) / 20, ox: 7 }[h.kind];
+          if (h.kind === 'bull') v = bull && bull.head === h ? 6 : 0.5;
+          out.push({ herd, head: h, hay: H[h.kind], room: h.kind === 'calf' ? 0.5 : 1, value: v });
+        }
+      } else {
+        const n = { ewe: herd.ewes, ram: herd.rams, lamb: herd.lambs };
+        if (!all) for (const e of herd.cull || []) n[e.sheep]--;
+        const only = !otherRam(st, herd, house);
+        for (let k = 0; k < n.lamb; k++) out.push({ herd, sheep: 'lamb', hay: H.lamb, room: 0, value: 1 });
+        for (let k = 0; k < n.ewe; k++) out.push({ herd, sheep: 'ewe', hay: H.ewe, room: 0, value: 2 });
+        for (let k = 0; k < n.ram; k++) out.push({ herd, sheep: 'ram', hay: H.ram, room: 0, value: k === 0 && only ? 6 : 0.5 });
+      }
+    }
+    return out.sort((x, y) => x.value - y.value);
+  }
+  function cullOne(a, lean) {
+    const herd = a.herd;
+    herd.cull.push(a.head ? { id: herd.cullSeq++, head: a.head.id, lean } : { id: herd.cullSeq++, sheep: a.sheep, lean });
+  }
+  // Words for the log: "Rosa, an old ewe and 3 ram lambs".
+  const PLURAL = { 'a lamb': 'lambs', 'a ram lamb': 'ram lambs', 'an old ewe': 'old ewes', 'a ewe': 'ewes', 'a ram': 'rams' };
+  function listWords(names) {
+    const n = new Map(); for (const x of names) n.set(x, (n.get(x) || 0) + 1);
+    const parts = [...n].map(([x, k]) => (k === 1 ? x : `${k} ${PLURAL[x] || x}`));
+    return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  }
+  // The autumn count (autumn day 8): old animals go; bulls and rams not needed for breeding go; male young beyond the oxen's replacements
+  // and a future bull go; half the lambs, the ram lambs, go; then, while the hay (with what still lies mown on the meadows) cannot carry the
+  // winter's need × margin, or the byre is over full, the least valuable animal goes.
+  function autumnCount(st, hh) {
+    const f = st.farmsteads[hh.farmstead], house = houseOf(st, hh), names = [];
+    for (const herd of herdsOf(st, hh)) { herd.cull = []; herd.lean = 0; }
+    const go = (a, word) => { cullOne(a, false); names.push(a.head ? a.head.name : word || `a ${a.sheep}`); };
+    let list = animals(st, hh);
+    let replacements = Math.max(0, 2 - list.filter((a) => a.head && a.head.kind === 'ox').length);
+    let futureBull = bullsNear(st, house, 0).some((b) => years(st, b.head) < HERD.keepBullUnder);
+    for (const a of list) {
+      const h = a.head;
+      if (h) {
+        if (HERD.old[h.kind] && years(st, h) >= HERD.old[h.kind] && !(h.kind === 'bull' && a.value >= 6)) go(a); // the farms' only bull stays
+        else if (h.kind === 'bull' && a.value < 1) go(a);
+        else if (h.kind === 'steer' || (h.kind === 'calf' && h.sex === 'm')) {
+          if (h.kind === 'calf' && !futureBull) futureBull = true;
+          else if (replacements > 0) replacements--;
+          else go(a);
+        }
+      } else if (a.sheep === 'ram' && a.value < 1) go(a);
+      else if (a.sheep === 'ewe' && st.rand() < HERD.oldEwe) go(a, 'an old ewe');
+    }
+    for (const herd of herdsOf(st, hh)) {
+      if (herd.species !== 'sheep') continue;
+      let males = Math.round(herd.lambs / 2);
+      if (males && !herd.rams && !otherRam(st, herd, house)) males--; // a ram lamb is kept to serve the ewes
+      for (let k = 0; k < males; k++) go({ herd, sheep: 'lamb' }, 'a ram lamb');
+    }
+    const hay = hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0);
+    list = animals(st, hh);
+    let need = list.reduce((s, a) => s + a.hay, 0) * HERD.stallDays * HERD.margin, room = list.reduce((s, a) => s + a.room, 0);
+    while (list.length && (need > hay || room > HERD.byre)) {
+      const i = need <= hay ? list.findIndex((a) => a.room > 0) : 0, a = list.splice(i, 1)[0];
+      need -= a.hay * HERD.stallDays * HERD.margin; room -= a.room;
+      go(a);
+    }
+    if (names.length) log(st, `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`);
+  }
+  // When the hay left will not last the stall days to come, the household slaughters at once what it must; that meat is lean.
+  function emergency(st, hh, c) {
+    const left = stallLeft(c);
+    if (!left) return;
+    const list = animals(st, hh);
+    let need = list.reduce((s, a) => s + a.hay, 0) * left, n = 0;
+    while (list.length && need > hh.hay) { const a = list.shift(); need -= a.hay * left; cullOne(a, true); n++; }
+    if (n) log(st, `Hay runs short at ${st.farmsteads[hh.farmstead].name}: ${n === 1 ? 'an animal' : `${n} animals`} must be slaughtered now.`);
+  }
+  // The cull lists hold only animals that are still there.
+  function tidy(herd) {
+    if (herd.species === 'cattle') { const ids = new Set(herd.head.map((h) => h.id)); herd.cull = herd.cull.filter((e) => ids.has(e.head)); return; }
+    const n = { ewe: herd.ewes, ram: herd.rams, lamb: herd.lambs };
+    herd.cull = herd.cull.filter((e) => n[e.sheep]-- > 0);
+  }
+  // An animal of the herd dies or is slaughtered: it leaves the herd. Returns its kind, or null when it is no longer there.
+  function remove(herd, e) {
+    if (e.head !== undefined) {
+      const i = herd.head.findIndex((h) => h.id === e.head);
+      if (i < 0) return null;
+      return herd.head.splice(i, 1)[0].kind;
+    }
+    const k = e.sheep + 's';
+    if (!(herd[k] > 0)) return null;
+    herd[k]--; return e.sheep;
+  }
+  // The slaughter is done: the animal leaves the herd, its meat goes into the larder fresh.
+  function slaughterDone(st, herd, entry, hh) {
+    const i = herd.cull.indexOf(entry);
+    if (i < 0) return;
+    herd.cull.splice(i, 1);
+    const kind = remove(herd, entry);
+    if (kind) addFood(st, hh, 'meat', HERD.meat[kind] * (entry.lean ? HERD.lean : 1), HERD.freshDays);
+  }
+  // Salted: the fresh meat keeps a year.
+  function saltDone(st, hh) {
+    const n = larderOf(hh, 'meat');
+    hh.larder = hh.larder.filter((l) => l.kind !== 'meat');
+    addFood(st, hh, 'salt meat', n, HERD.saltDays);
+  }
+  // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
+  // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
+  function byreDay(st, c) {
+    for (const hh of st.households) {
+      if (hh.dissolved) continue;
+      const spoilt = hh.larder.filter((l) => l.until <= st.t);
+      if (spoilt.length) {
+        hh.larder = hh.larder.filter((l) => l.until > st.t);
+        const meat = spoilt.filter((l) => l.kind === 'meat').reduce((s, l) => s + l.n, 0);
+        if (meat >= 1) log(st, `${Math.round(meat)} rations of meat spoiled at ${st.farmsteads[hh.farmstead].name}: nobody salted it.`);
+      }
+      if (!hh.herds.length) continue;
+      const herds = herdsOf(st, hh);
+      for (const herd of herds) tidy(herd);
+      if (c.doy === HERD.countDay) autumnCount(st, hh);
+      if (!stalled(c)) continue;
+      const yesterday = { doy: (c.doy + 47) % 48 };
+      if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1) for (const herd of herds) herd.lean++;
+      const need = herds.reduce((s, hd) => s + dailyHay(hd), 0);
+      if (hh.hay >= need) { hh.hay -= need; for (const herd of herds) herd.unfed = 0; } else {
+        hh.hay = 0;
+        for (const herd of herds) {
+          herd.unfed++;
+          if (herd.unfed < HERD.starveDays) continue;
+          const a = animals(st, hh, true).find((x) => x.herd === herd) || null; // the weakest: young first, marked or not
+          if (!a) continue;
+          remove(herd, a.head ? { head: a.head.id } : { sheep: a.sheep }); tidy(herd);
+          log(st, `Hunger in the byre at ${st.farmsteads[hh.farmstead].name}: ${a.head ? a.head.name : `a ${a.sheep}`} died.`);
+        }
+      }
+      emergency(st, hh, c);
+    }
+  }
+  // Fodder: hours a day by the size of the herds.
+  const fodderHours = (st, hh) => HERD.fodder[0] + herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'cattle'
+    ? HERD.fodder[1] * hd.head.length : HERD.fodder[2] * (hd.ewes + hd.rams + hd.lambs)), 0);
+  const hasAnimals = (st, hh) => herdsOf(st, hh).some((hd) => (hd.species === 'cattle' ? hd.head.length : hd.ewes + hd.rams + hd.lambs) > 0);
+  // The byre's jobs for a household now: [key, kind, extra]; refreshJobs posts them.
+  function byreJobs(st, hh, c) {
+    const out = [];
+    if (stalled(c) && hh.fodderDay !== c.day && hasAnimals(st, hh)) out.push([`fodder:h${hh.id}:${c.day}`, 'fodder', { hours: fodderHours(st, hh) }]);
+    for (const herd of herdsOf(st, hh)) for (const e of herd.cull) {
+      out.push([`slaughter:h${hh.id}:${herd.id}.${e.id}`, 'slaughter', { herd, entry: e, hours: HERD.slaughter[herd.species] }]);
+    }
+    const meat = larderOf(hh, 'meat');
+    if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
+    return out;
+  }
+  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, byreDay, fodderHours, byreJobs };
+})();
+</script>
+<script>
 // @sys sim/expansion: clearing a new plot for those who want to move out: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
@@ -3631,6 +3851,7 @@ VB['sim/kinds'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
+  const { slaughterDone, saltDone } = VB['sim/byre'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -3649,6 +3870,8 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
+  // By the byre door, left of the cottage (the page draws the byre there).
+  const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
@@ -3752,6 +3975,19 @@ VB['sim/kinds'] = (() => {
       hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f),
+    },
+    fodder: {
+      verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
+      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => { hh.fodderDay = c.day; },
+    },
+    slaughter: {
+      verb: 'Slaughtering', go: 'Going to slaughter', name: 'Slaughter an animal', label: 'Slaughter', anim: 'mallet', hours: 3, hands: 2,
+      type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (j.entry.lean ? U.slaughterNow : U.slaughter),
+      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh),
+    },
+    salt: {
+      verb: 'Salting meat', go: 'Going home to salt the meat', name: 'Salt the meat', label: 'Salting', anim: null, hours: 1, hands: 1, type: 'household',
+      inside: true, urgency: (st, j, c, U) => U.salt, done: (st, j, hh) => saltDone(st, hh),
     },
     fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
     grub: {
@@ -3960,6 +4196,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { startMeadow, meadowJobs } = VB['sim/meadows'];
+  const { byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
@@ -4005,6 +4242,7 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
       }
       for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
+      if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(st, key, kind, own, f.house, { farm: f, ...extra });
       if (st.makeFields) { startProject(st, f, hh); startMeadow(st, f, hh); } // a meadow once the fields are enough
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
       if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
@@ -4992,7 +5230,8 @@ VB['sim/scenarios'] = (() => {
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
-    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind, n, until}: stored food lots; sim/hunger)}
+    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat', n, until}: stored food lots; sim/hunger),
+    //   fodderDay (the last day the animals were fed in the byre; sim/byre)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
@@ -5070,6 +5309,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
+  const { byreDay } = VB['sim/byre'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
     for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
@@ -5091,7 +5331,11 @@ VB['sim/clock'] = (() => {
       release(st, a);
       if (!a.inside) { goHome(st, a); a.phase = 'home'; }
     }
-    if (h === 0) { endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); if (st.cenv) { dailyLife(st, c); dailyBirths(st); } if (c.doy === 0) newYear(st, c); }
+    if (h === 0) {
+      endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
+      if (st.cenv) { dailyLife(st, c); dailyBirths(st); }
+      if (c.doy === 0) newYear(st, c);
+    }
   }
   function endOfDay(st, c) {
     const E = st.ECON;
@@ -5189,13 +5433,14 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   const { HERD } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport } = VB['sim/herds'];
+  const { larderOf } = VB['sim/hunger'];
 
   return {
     seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
-    HERD, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport,
+    HERD, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf,
   };
 })();
 VB['sim'] = Sim;
@@ -6594,7 +6839,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined && hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       const herdText = Sim.describeHerds(st, hh);
-      if (herdText || hh.hay > 0) h += `<p>${esc(herdText || 'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}</p>`;
+      const salt = Sim.larderOf(hh, 'salt meat'), meat = Sim.larderOf(hh, 'meat');
+      const larder = salt + meat >= 0.5 ? `; larder ${[salt >= 0.5 ? `${Math.round(salt)} salt meat` : '', meat >= 0.5 ? `${Math.round(meat)} fresh meat` : ''].filter(Boolean).join(', ')}` : '';
+      if (herdText || hh.hay > 0 || larder) h += `<p>${esc(herdText || 'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}${larder}</p>`;
       h += `<p>Fields: ${fieldSummary(f) || 'none'}${f.project ? (f.project.stage === 'meadow' ? '; clearing a new hay meadow' : `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}`) : ''}${f.meadows.length ? `; ${f.meadows.length === 1 ? 'a hay meadow' : `${f.meadows.length} hay meadows`}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
       for (const id of hh.members) {
         const p = st.pawns[id];
