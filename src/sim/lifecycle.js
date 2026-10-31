@@ -4,7 +4,7 @@ VB['sim/lifecycle'] = (() => {
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
@@ -58,10 +58,39 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
   }
-  const kinOk = (st, a, b, cu) => {
-    const phi = kinship(st, a, b), lim = MARRIAGE.kinPhi[cu.kinLimit];
-    return phi < lim;
+  // the closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry
+  const kinOk = (st, a, b, cu, opt = cu.kinLimit) => {
+    const d = kinDegree(st, a, b);
+    return d > 2 && d >= MARRIAGE.kinDegree[opt];
   };
+  const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
+  // Scarcity and plenty of spouses push the marriage limit: an adult who finds no allowed partner but would under the next looser
+  // option pulls towards it; one who married a partner also allowed under the next stricter option pulls back, at half the weight.
+  function kinPressure(st, men, women, taken, homeFor) {
+    const env = st.cenv, blocked = new Map(), at = (cu) => kinOpts.indexOf(cu.kinLimit);
+    for (const p of st.pawns) p.kinPush = null;
+    const wed = new Map(); for (const u of st.unions) if (u.start === st.t && u.end === null) { wed.set(u.a, u.b); wed.set(u.b, u.a); }
+    for (const [x, y] of wed) {
+      const cu = practice(st, settlementIdOf(st, st.pawns[x])), k = at(cu);
+      if (k > 0 && kinOk(st, x, y, cu, kinOpts[k - 1])) st.pawns[x].kinPush = { to: kinOpts[k - 1], w: MARRIAGE.plentyPush };
+    }
+    for (const [mine, others] of [[men, women], [women, men]]) {
+      for (const p of mine) {
+        if (taken.has(p.id) || wed.has(p.id)) continue;
+        const s = settlementIdOf(st, p); if (s === null) continue;
+        const cu = practice(st, s), k = at(cu); if (k >= kinOpts.length - 1) continue;
+        const can = (o, opt) => !taken.has(o.id) && (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null && kinOk(st, p.id, o.id, cu, opt);
+        if (others.some((o) => can(o, cu.kinLimit)) || !others.some((o) => can(o, kinOpts[k + 1]))) continue;
+        p.kinPush = { to: kinOpts[k + 1], w: MARRIAGE.scarcePush }; blocked.set(s, (blocked.get(s) || 0) + 1);
+      }
+    }
+    const c = cal(st.t), out = [];
+    for (const [s, n] of blocked) {
+      const txt = `At the ${env.settlements[s].name} moving round, ${n} adult${n > 1 ? 's' : ''} found no spouse only because of kin.`;
+      log(st, txt); out.push({ year: c.year, text: txt });
+    }
+    st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
+  }
   function movingRound(st) {
     const env = st.cenv; refreshRoles(st);
     const alive = st.pawns.filter((p) => p.alive);
@@ -74,16 +103,18 @@ VB['sim/lifecycle'] = (() => {
     const own = ownFirstOf(st);
     men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
     const taken = new Set();
+    // where a couple would live, or null; one of them needs a place under 'land', and the spouse's home counts otherwise
+    const homeFor = (m, f, cu, pm = placeIfMarried(st, m.id), pf = placeIfMarried(st, f.id)) => {
+      if (cu.residence === 'land') return pm !== null && pf !== null ? null : pm !== null ? pm : pf;
+      return cu.residence === 'husband' ? m.household : f.household;
+    };
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
       const pm = placeIfMarried(st, m.id);
       for (const f of women) {
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
-        const pf = placeIfMarried(st, f.id);
-        let home = null;
-        if (cu.residence === 'land') { if (pm !== null && pf !== null) continue; home = pm !== null ? pm : pf; }
-        else if (cu.residence === 'husband') home = m.household; else home = f.household;
+        const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
         const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
@@ -101,6 +132,7 @@ VB['sim/lifecycle'] = (() => {
       log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`);
       m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
     }
+    kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
     for (const hh of st.households) {
       if (hh.dissolved) continue;

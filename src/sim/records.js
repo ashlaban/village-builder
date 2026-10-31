@@ -13,7 +13,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
-      hunger: 0, hungerLog: [], health: 100,
+      hunger: 0, hungerLog: [], health: 100, kinPush: null,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -122,9 +122,30 @@ VB['sim/records'] = (() => {
     memo.set(k, v);
     return v;
   }
+  // Civil degree of kin: for each common ancestor add the generations up from each person; the smallest sum.
+  // 0 for a direct line, Infinity when no common ancestor is on record.
+  function kinDegree(st, a, b) {
+    if (a === b) return 0;
+    const up = (id) => { // ancestor id -> fewest generations up from id, id itself 0
+      const m = new Map([[id, 0]]); let front = [id];
+      for (let g = 1; front.length; g++) {
+        const next = [];
+        for (const x of front) for (const q of [st.pawns[x].father, st.pawns[x].mother]) if (q !== null && !m.has(q)) { m.set(q, g); next.push(q); }
+        front = next;
+      }
+      return m;
+    };
+    const ua = up(a), ub = up(b); let best = Infinity;
+    for (const [id, ga] of ua) {
+      const gb = ub.get(id); if (gb === undefined) continue;
+      if (ga === 0 || gb === 0) return 0;
+      best = Math.min(best, ga + gb);
+    }
+    return best;
+  }
   const villageOf = (st, p) => st.farmsteads[st.households[p.household].farmstead].village;
   return {
-    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship,
+    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();

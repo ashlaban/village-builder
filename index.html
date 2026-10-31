@@ -1513,6 +1513,7 @@ const Culture = (() => {
         ['second', 'Third cousins or further'],
         ['first', 'Second cousins or further'],
         ['close', 'First cousins or further'],
+        ['uncle', 'Uncle–niece or further'],
     ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
@@ -1848,7 +1849,8 @@ VB['sim/rules'] = (() => {
     ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
     sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
     minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
-    kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
+    kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
+    scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
   };
 
   const SPEED = 3; // tiles per game hour on foot, on meadow
@@ -2490,7 +2492,7 @@ VB['sim/records'] = (() => {
       father: father ? father.id : null, mother: o.mother !== undefined ? o.mother : null, fatherName, patronym: patronym(fatherName, o.sex),
       founder: !father && (o.mother === undefined || o.mother === null), household: null, role: 'child', servant: !!o.servant, retired: false,
       look: (R.rand() * 1e9) >>> 0, events: [], pregnantUntil: null, pregnantBy: null, nursingUntil: null,
-      hunger: 0, hungerLog: [], health: 100,
+      hunger: 0, hungerLog: [], health: 100, kinPush: null,
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
@@ -2599,9 +2601,30 @@ VB['sim/records'] = (() => {
     memo.set(k, v);
     return v;
   }
+  // Civil degree of kin: for each common ancestor add the generations up from each person; the smallest sum.
+  // 0 for a direct line, Infinity when no common ancestor is on record.
+  function kinDegree(st, a, b) {
+    if (a === b) return 0;
+    const up = (id) => { // ancestor id -> fewest generations up from id, id itself 0
+      const m = new Map([[id, 0]]); let front = [id];
+      for (let g = 1; front.length; g++) {
+        const next = [];
+        for (const x of front) for (const q of [st.pawns[x].father, st.pawns[x].mother]) if (q !== null && !m.has(q)) { m.set(q, g); next.push(q); }
+        front = next;
+      }
+      return m;
+    };
+    const ua = up(a), ub = up(b); let best = Infinity;
+    for (const [id, ga] of ua) {
+      const gb = ub.get(id); if (gb === undefined) continue;
+      if (ga === 0 || gb === 0) return 0;
+      best = Math.min(best, ga + gb);
+    }
+    return best;
+  }
   const villageOf = (st, p) => st.farmsteads[st.households[p.household].farmstead].village;
   return {
-    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship,
+    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();
@@ -3980,6 +4003,7 @@ VB['sim/society'] = (() => {
       if (holder && childrenOf(st, p.id).length >= 2) set('birthOrder', { chosen: 1 });
       const young = childrenOf(st, p.id).filter((c) => st.pawns[c].alive && st.pawns[c].age < 14 && st.pawns[c].household === p.household);
       if (young.length) set('feedOrder', { children: 1 });
+      if (p.kinPush) set('kinLimit', { [p.kinPush.to]: p.kinPush.w });
       p.interest = it;
     }
   }
@@ -4024,7 +4048,7 @@ VB['sim/lifecycle'] = (() => {
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinship, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
@@ -4078,10 +4102,39 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
   }
-  const kinOk = (st, a, b, cu) => {
-    const phi = kinship(st, a, b), lim = MARRIAGE.kinPhi[cu.kinLimit];
-    return phi < lim;
+  // the closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry
+  const kinOk = (st, a, b, cu, opt = cu.kinLimit) => {
+    const d = kinDegree(st, a, b);
+    return d > 2 && d >= MARRIAGE.kinDegree[opt];
   };
+  const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
+  // Scarcity and plenty of spouses push the marriage limit: an adult who finds no allowed partner but would under the next looser
+  // option pulls towards it; one who married a partner also allowed under the next stricter option pulls back, at half the weight.
+  function kinPressure(st, men, women, taken, homeFor) {
+    const env = st.cenv, blocked = new Map(), at = (cu) => kinOpts.indexOf(cu.kinLimit);
+    for (const p of st.pawns) p.kinPush = null;
+    const wed = new Map(); for (const u of st.unions) if (u.start === st.t && u.end === null) { wed.set(u.a, u.b); wed.set(u.b, u.a); }
+    for (const [x, y] of wed) {
+      const cu = practice(st, settlementIdOf(st, st.pawns[x])), k = at(cu);
+      if (k > 0 && kinOk(st, x, y, cu, kinOpts[k - 1])) st.pawns[x].kinPush = { to: kinOpts[k - 1], w: MARRIAGE.plentyPush };
+    }
+    for (const [mine, others] of [[men, women], [women, men]]) {
+      for (const p of mine) {
+        if (taken.has(p.id) || wed.has(p.id)) continue;
+        const s = settlementIdOf(st, p); if (s === null) continue;
+        const cu = practice(st, s), k = at(cu); if (k >= kinOpts.length - 1) continue;
+        const can = (o, opt) => !taken.has(o.id) && (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null && kinOk(st, p.id, o.id, cu, opt);
+        if (others.some((o) => can(o, cu.kinLimit)) || !others.some((o) => can(o, kinOpts[k + 1]))) continue;
+        p.kinPush = { to: kinOpts[k + 1], w: MARRIAGE.scarcePush }; blocked.set(s, (blocked.get(s) || 0) + 1);
+      }
+    }
+    const c = cal(st.t), out = [];
+    for (const [s, n] of blocked) {
+      const txt = `At the ${env.settlements[s].name} moving round, ${n} adult${n > 1 ? 's' : ''} found no spouse only because of kin.`;
+      log(st, txt); out.push({ year: c.year, text: txt });
+    }
+    st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
+  }
   function movingRound(st) {
     const env = st.cenv; refreshRoles(st);
     const alive = st.pawns.filter((p) => p.alive);
@@ -4094,16 +4147,18 @@ VB['sim/lifecycle'] = (() => {
     const own = ownFirstOf(st);
     men.sort((x, y) => (placeIfMarried(st, y.id, own) !== null) - (placeIfMarried(st, x.id, own) !== null) || x.born - y.born);
     const taken = new Set();
+    // where a couple would live, or null; one of them needs a place under 'land', and the spouse's home counts otherwise
+    const homeFor = (m, f, cu, pm = placeIfMarried(st, m.id), pf = placeIfMarried(st, f.id)) => {
+      if (cu.residence === 'land') return pm !== null && pf !== null ? null : pm !== null ? pm : pf;
+      return cu.residence === 'husband' ? m.household : f.household;
+    };
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
       const pm = placeIfMarried(st, m.id);
       for (const f of women) {
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
-        const pf = placeIfMarried(st, f.id);
-        let home = null;
-        if (cu.residence === 'land') { if (pm !== null && pf !== null) continue; home = pm !== null ? pm : pf; }
-        else if (cu.residence === 'husband') home = m.household; else home = f.household;
+        const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
         const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
@@ -4121,6 +4176,7 @@ VB['sim/lifecycle'] = (() => {
       log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`);
       m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
     }
+    kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
     for (const hh of st.households) {
       if (hh.dissolved) continue;
@@ -4418,7 +4474,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
-    //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger), ...}
+    //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
+    //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
@@ -4600,7 +4657,7 @@ const Sim = (() => {
   const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, RIVER, byRiver } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
-    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
+    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
   } = VB['sim/records'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
@@ -4616,7 +4673,7 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
 
   return {
-    seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
+    seed, advance, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY, YEAR, YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,

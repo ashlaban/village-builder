@@ -104,7 +104,8 @@ VB['sim/rules'] = (() => {
     ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
     sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
     minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
-    kinPhi: { second: 1 / 64, first: 1 / 16, close: 1 / 8 }, // kinship coefficient limit per kinLimit custom
+    kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
+    scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
   };
 
   const SPEED = 3; // tiles per game hour on foot, on meadow

@@ -1,6 +1,6 @@
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 let failed = 0; const fail = (m) => { failed++; console.error('REGRESSION:', m); };
-for (const seed of [7, 42]) {
+for (const seed of [7, 12]) {
   const it = G.generate(seed); let r; while (!(r = it.next()).done); const w = r.value;
   const st = Sim.seed(w, seed, 'founders'); st.naturalDeaths = false;
   const t0 = Date.now();

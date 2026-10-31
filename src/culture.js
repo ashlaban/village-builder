@@ -58,6 +58,7 @@ const Culture = (() => {
         ['second', 'Third cousins or further'],
         ['first', 'Second cousins or further'],
         ['close', 'First cousins or further'],
+        ['uncle', 'Uncle–niece or further'],
     ] },
     { key: 'feedOrder', label: 'Who eats first when food is short', m: 0.5,
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
