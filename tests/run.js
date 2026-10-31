@@ -9,13 +9,13 @@ const TEST = [
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'],
-  ['node', 'tests/smoke.js'],
+  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose');
 const cmds = { test: TEST, verify: VERIFY }[suite];
 if (!cmds) { console.error('usage: node tests/run.js test|verify [--verbose]'); process.exit(2); }
 // longest first, so the slow scripts do not start last
-const SLOW = ['populous', 'smoke', 'golden', 'births', 'hunger', 'stones'];
+const SLOW = ['populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
 const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
 const queue = [...cmds].sort((a, b) => rank(a) - rank(b)), t0 = Date.now(), failed = [];
 function run(cmd) {
