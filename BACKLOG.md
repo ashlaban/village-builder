@@ -65,7 +65,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-022 | Daily meals that always happen (unblocks VB-009) | food | implement | done | 2 | M | A rations store, starting rations, cooking for the next day; the cook may leave other work after 14:00. | [backlog/VB-022.md](backlog/VB-022.md) |
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | blocked | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
 | VB-024 | Wood supply: how fast the forest runs out | - | - | ready | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
-| VB-025 | Browser smoke test in real Chromium | tooling | implement | ready | 2 | M | Playwright smoke test of `index.html` in real Chromium. | [backlog/VB-025.md](backlog/VB-025.md) |
+| VB-025 | Browser smoke test in real Chromium | tooling | implement | done | 2 | M | Playwright smoke test of `index.html` in real Chromium. | [backlog/VB-025.md](backlog/VB-025.md) |
 | VB-026 | Name generators, and farm names in big villages | expansion | implement | ready | 3 | M | Name generators per entity kind, preferred per culture; farms: compass, landmark, owner. | [backlog/VB-026.md](backlog/VB-026.md) |
 | VB-027 | Births within marriage | - | - | done | 2 | M | Married women conceive, give birth and nurse; infant and child mortality. | [backlog/VB-027.md](backlog/VB-027.md) |
 | VB-028 | Hunger has consequences | - | - | done | 2 | M | Hunger raises death risk, slows work, postpones marriage and births; `feedOrder` custom. | [backlog/VB-028.md](backlog/VB-028.md) |
