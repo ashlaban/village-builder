@@ -10,6 +10,7 @@ VB['sim/lifecycle'] = (() => {
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
   const { settleRound } = VB['sim/settle'];
+  const { careForOrphans, takeServants } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
@@ -161,6 +162,7 @@ VB['sim/lifecycle'] = (() => {
     st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
     startPlots(st);
     settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
+    takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
     payOwed(st);
     refreshPrestige(st);
     st.visualDirty = true;
@@ -169,6 +171,7 @@ VB['sim/lifecycle'] = (() => {
     const env = st.cenv;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
     comeOfAge(st);
+    careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
     // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
     const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];

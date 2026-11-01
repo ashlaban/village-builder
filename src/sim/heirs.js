@@ -136,7 +136,19 @@ VB['sim/heirs'] = (() => {
     const near = smallest(open.filter((h) => vOf(h) === best));
     return near ? near.id : null;
   }
-  function extinct(st, hh) {
+  // A child's nearest grown kin with a household other than hh, by kinship (the oldest on a tie), or null (stability review: an orphan goes to
+  // an aunt or a grandparent before going into service).
+  function kinHomeFor(st, id, hh) {
+    const memo = new Map(); let best = null, bk = 0;
+    for (const q of st.pawns) {
+      if (!q.alive || q.age < 18 || q.household === null || q.household === hh.id || st.households[q.household].dissolved) continue;
+      const k = kinship(st, id, q.id, memo);
+      if (k > bk || (k === bk && k > 0 && q.born < best.born)) { best = q; bk = k; }
+    }
+    return best ? best.household : null;
+  }
+  // why: the end of the log line ("no heir would take it").
+  function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
@@ -145,12 +157,13 @@ VB['sim/heirs'] = (() => {
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id]; if (!p.alive) continue;
-      const kinHome = kinNear(st, id).map((q) => st.pawns[q])
+      const near = kinNear(st, id).map((q) => st.pawns[q])
         .find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
-      const target = kinHome ? kinHome.household : serviceHome(st, hh);
+      const kinHome = near ? near.household : p.age < 18 ? kinHomeFor(st, id, hh) : null;
+      const target = kinHome !== null ? kinHome : serviceHome(st, hh);
       if (target !== null) {
         moveTo(st, id, target);
-        if (!kinHome) {
+        if (kinHome === null) {
           st.pawns[id].servant = true;
           personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`);
           log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`);
@@ -161,7 +174,7 @@ VB['sim/heirs'] = (() => {
     const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
     hh.members = [];
-    log(st, `${f.name} stands empty: no heir would take it.`);
+    log(st, `${f.name} stands empty: ${why}.`);
     st.visualDirty = true;
   }
   // The guardian of a minor: the surviving parent in the house, else the nearest adult relative there (the oldest on a tie), else the oldest adult.
@@ -245,5 +258,5 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
-  return { heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf };
+  return { heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf, setGuardian };
 })();

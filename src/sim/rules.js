@@ -182,6 +182,10 @@ VB['sim/rules'] = (() => {
   // terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join` steps of home.
   const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 36, reach: [10, 30], apart: 3, fields: 3,
     fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
+  // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
+  // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
+  // centre lies within `reach` steps of it.
+  const SERVICE = { ages: [18, 50], keepHands: 2, reach: 15 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
@@ -203,5 +207,5 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH };
 })();
