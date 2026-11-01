@@ -22,6 +22,7 @@ Workers take `ready` tasks by priority, but several edit the same files, so this
 2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game. Moving to new land (VB-146 to VB-150, review of 1 November, `docs/review-expansion.md`) runs in this order; VB-146 and VB-147 edit `src/sim/expansion.js` and the moving round, so they go before VB-033 and VB-090, which edit the same.
 3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
+5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157, VB-158, then VB-033, in that order; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
 
 ## Archs
 
@@ -49,16 +50,16 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 
 | ID | Name | Arch | Phase | Status | Priority | Size | Summary | File |
 |----|------|------|-------|--------|----------|------|---------|------|
-| VB-004 | Ownership map overlay | claims | implement | ready | 3 | S | Toggle overlay that tints each owned tile by its owner. | [backlog/VB-004.md](backlog/VB-004.md) |
+| VB-004 | Ownership map overlay | claims | implement | ready | 1 | S | A "Land" button tints owned tiles by owner and shows claims, contested tiles and cairns; claims in the tile panel. | [backlog/VB-004.md](backlog/VB-004.md) |
 | VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | needs-review | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
 | VB-024 | Wood supply: how fast the forest runs out | - | - | ready | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
-| VB-033 | Claiming an empty farm | expansion | implement | needs-review | 1 | M | Landless adults claim empty farms under the `claims` custom and restore them before moving in. | [backlog/VB-033.md](backlog/VB-033.md) |
+| VB-033 | Claiming an empty farm | expansion | implement | ready | 1 | M | Landless adults claim empty farms under the `claims` custom and restore them before moving in. | [backlog/VB-033.md](backlog/VB-033.md) |
 | VB-034 | Splitting land between heirs | expansion | implement | blocked | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
 | VB-035 | Wrap-up: inheritance and expansion | expansion | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
 | VB-036 | Plan: relationships and courting | courting | plan | ready | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |
 | VB-040 | Wrap-up: relationships and courting | courting | wrap-up | blocked | 3 | S | Long runs check marriage age, never-married share and help between kin against history; report. | [backlog/VB-040.md](backlog/VB-040.md) |
-| VB-042 | Tile claims, realised and unrealised | claims | implement | ready | 2 | M | Any entity can hold a claim on a tile it does not own: realised (in force) or unrealised (wanted). | [backlog/VB-042.md](backlog/VB-042.md) |
+| VB-042 | Tile claims, realised and unrealised | claims | implement | ready | 1 | M | Any entity can hold a claim on a tile it does not own: realised (in force) or unrealised (wanted). | [backlog/VB-042.md](backlog/VB-042.md) |
 | VB-043 | One scope model: a membership graph of entities | claims | implement | ready | 3 | M | A scope (level, entities, dimension) asks one membership graph for the tiles, stores or people it covers. | [backlog/VB-043.md](backlog/VB-043.md) |
 | VB-044 | Overlay filters by scope, and claims on the overlay | claims | implement | ready | 3 | M | The ownership overlay can be filtered by any entity level and also shows claims. | [backlog/VB-044.md](backlog/VB-044.md) |
 | VB-045 | Overlay cached per map chunk | claims | implement | ready | 3 | S | Draw the overlay per chunk and redraw only the chunks whose owners or claims changed. | [backlog/VB-045.md](backlog/VB-045.md) |
@@ -113,3 +114,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-142 | A pawn is allotted at most one cleared plot | expansion | implement | ready | 2 | S | Fix: `allot` gives a second cleared plot to a pawn who already holds one. | [backlog/VB-142.md](backlog/VB-142.md) |
 | VB-143 | A profile report: where a game day's time goes | tooling | implement | ready | 2 | S | `tools/sim.js --report perf`: milliseconds per system per game day, so the next slow step is found, not guessed. | [backlog/VB-143.md](backlog/VB-143.md) |
 | VB-144 | Ewes' milk and wool | animals | implement | needs-review | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |
+| VB-155 | A tiny world from a text map, for fast tests, and a land report | tooling | implement | ready | 1 | S | `tests/lib/tiny.js` builds a world from a text map with villages placed by hand; `--report land`. | [backlog/VB-155.md](backlog/VB-155.md) |
+| VB-156 | The village's outland, claimed by need | claims | implement | ready | 1 | M | Each meeting a village claims free land near its green by need; no taking in of another village's land; settlers in wilderness. | [backlog/VB-156.md](backlog/VB-156.md) |
+| VB-157 | Borders: disputes between villages, cairns and grudges | claims | implement | ready | 1 | S | Two villages claiming one tile: the Disputed claims custom settles it; cairns mark the border; the losers remember. | [backlog/VB-157.md](backlog/VB-157.md) |
+| VB-158 | Households stake a claim before they clear, and may contest a weakened claim | claims | implement | ready | 1 | S | A field or meadow project stakes a claim that breaking the ground realises; contests by custom where land is short. | [backlog/VB-158.md](backlog/VB-158.md) |

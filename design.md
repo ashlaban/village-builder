@@ -539,6 +539,23 @@ Ownership and claims are tracked on tiles: every tile has an owner, and any enti
 
 A household making a new field first claims its meadow tile (Decided). Claims on empty farms would become tile claims under this model too (Proposed).
 
+### Infield, outland and wilderness (claims review, 1 Nov)
+
+Land lies in three rings, as in the medieval village: the infield of houses, fields and meadows (*inägor*), held by households, with the green and plots held by the village; the village's outland (*utmark*), its common pasture, wood and land to take in, held by the village; and wilderness, held by nobody. Review and sources: `docs/review-claims.md`. (Decided by Kim, 1 Nov: the parts and their effects; numbers Proposed)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Outland | Claimed by need at each autumn meeting: free tiles nearest the green, within 8 walking steps, until the village holds about 8 tiles of outland a farm; the nearest forest first when it holds none | Decided (by need), Proposed (numbers), 1 Nov |
+| A year and a day | An outland claim that stands unopposed until the next meeting becomes village land; the village claims a tile another village wants only when it lies nearer its own green | Decided, 1 Nov |
+| Borders | Two villages claiming one tile: the Disputed claims custom settles it at the meeting (the custom both hold; if they differ, the culture's); the border is marked with cairns (*rå och rör*), drawn on the map and told in the log | Decided, 1 Nov |
+| Border grudges | The losing village's holders remember the winners' holders ("Took our land"), fading over 3 years | Decided, 1 Nov |
+| Taking in land | Households and plots take in land only from their own village's outland or from wilderness, never from another village's land or claims | Decided, 1 Nov |
+| Settlers | New villages are founded in wilderness only | Decided, 1 Nov |
+| The commons wood | Chosen in the village's own land when it holds forest | Decided, 1 Nov |
+| Stakes | A field or meadow project stakes an unrealised claim; breaking the ground makes it the household's; a household with no free tile within reach may contest a neighbour's claim weakened below half (about 18 months unworked); the custom decides and the loser remembers it ("Took our claim") | Decided, 1 Nov |
+| Birthright | When a farm empties, its last holder's family keeps a birthright claim on it (*bördsrätt*) for 20 years, which puts them first under "kin first" (VB-033) | Decided, 1 Nov |
+| Land and tax | The land each household and village holds, by ring and kind, is counted in one place, as the base for a land tax and for landholding elites later | Decided (as a base), 1 Nov |
+
 ### One scope model for overlays, stores and trees (Agreed, 30 Oct)
 
 - **A scope** is an entity level, the entities chosen, and a dimension (owns, claims, uses, works, is kin of). The same scope drives the ownership overlay, the store views and the family tree.
@@ -723,7 +740,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] Farm names as surnames (*gårdsnamn*) in place of, or beside, patronymics.
 - [x] Next batch: claims on empty farms, clearing and building new plots, splitting land between heirs. Agreed on 30 October 2026; now backlog tasks VB-031 to VB-034.
 - [x] One scope model shared by the ownership overlay, the store views and the family tree. Agreed (30 Oct).
-- [ ] Claims on empty farms and cleared plots as tile claims. New fields are claimed by tile (Decided, VB-010); claims on empty farms are not yet a task.
+- [x] Claims on empty farms and cleared plots as tile claims. New fields are claimed by tile (Decided, VB-010); empty farms with a birthright claim, Decided 1 Nov (VB-033).
 - [ ] The debug panel's actions as commands.
 - [ ] New customs: grazing on the commons, hunting rights, sharing hay from common meadows.
 - [ ] The founders' first year as sketched under Starting scenarios, with a year's food, seed and a winter's hay brought along. Standing houses, a year's food and seed, and making fields are Decided (VB-010); hay meadows, hay and animals are not yet tasks.
@@ -732,6 +749,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (claims review) | 1 November 2026 | A review of claims, ownership and territory against medieval Scandinavian land holding (`docs/review-claims.md`): Claims, ownership and territory gains Infield, outland and wilderness. Decided by Kim: the outland claimed by need at the meetings, a year and a day, borders settled by the Disputed claims custom and marked with cairns, border grudges, no taking in of another village's land, settlers in wilderness only, the commons wood in the village's land, stakes before clearing with contests, a birthright on empty farms, and land counted as the base for a later land tax. Numbers Proposed. Implement tasks VB-042, VB-004, VB-155 to VB-158 and VB-033 |
 | 0.3 (expansion review) | 1 November 2026 | A review of crowded villages against medieval Scandinavian settlement (`docs/review-expansion.md`): Inheritance and expansion gains Moving to new land, and Land and ecology a row on fresh land. Decided by Kim: only landless adults leave; never-farmed ground yields more its first crops, in every scenario; settlers prefer small villages of 1 to 3 farms that are not crowded; new villages 10 to 30 steps from home. The rest Proposed. Implement tasks VB-146 to VB-150 |
 | 0.3 (balance review) | 1 November 2026 | A review of performance, the food balance and the animals' economics against history (`docs/review-balance.md`), with milk and butter, manure and soil, and oxen built (VB-135, VB-137, VB-138). Decided: no fixed number of fields; a farm's fields are limited by its labour and its size. Proposed: about 2 fields a working adult (1.5 more with oxen), fields and meadows made in every scenario, poorer land only when meadow runs out; grain spoils in store (5%, 20%, 40% a year by years of need held; the village store 20%); haymaking only while hay is short of two winters' need; a dung heap that rots; widowed partners mind the age gap less. Questions in `QUESTIONS.md` |
 | 0.3 (review, 1 Nov) | 1 November 2026 | Review after the animals' first batch (VB-131 to VB-134): Animals and hay now partly built; the cost, idle and growth findings restated in `REVIEW.md`; no Decided or Agreed point changed |

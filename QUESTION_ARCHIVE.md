@@ -2,6 +2,18 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 1 November 2026 (claims review)
+
+Asked with the review of claims, ownership and territory (`docs/review-claims.md`). Kim answered in the session of 1 November: the outland claimed by need at the meetings; all four effects (no taking in of another village's land, settlers in wilderness only, border grudges, the commons wood in the village's land), "the basis for land based taxation later (and the aristocracy/big men)"; stakes before clearing, with contests; and claiming empty farms in this change, with VB-033's proposed answers below.
+
+## VB-033: claiming an empty farm (raised by the nightly run of 30 October)
+The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 (clearing a plot) no longer waits for this task, but growth needs both: empty farms are the cheapest new places.
+1. What does the claimants' new household start with? **P:** as a new plot's household (VB-032): the claimants' inheritance shares (`stake`) as grain; if that is less than seed for the farm's fields plus 60 days of food for them, their old households give the difference from grain above their own buffer and seed reserve, as far as they can; firewood and rations as a founders household (`ECON.startWood`, 2 days of rations under VB-022).
+2. May a ruin (below 15%) be claimed before the full rebuild (VB-032) exists? **P:** no: ruins are left out of claims until VB-032 is done; derelict farms (15% and up) can be claimed now.
+3. Who works on the restoration, and where do the claimants live meanwhile? **P:** they live and eat in their old household until they move in. The claimants take the restoration at priority 9, and the members of their old households may help at 5, as for a cleared plot (VB-031).
+4. Under "the meeting assigns", until support through ties is built: oldest claimant first, or youngest? **P:** oldest first, as elders carry more voice at the meeting.
+   **A (Kim, 1 Nov):** as proposed (P), all four; and a birthright: the old family's claim on an empty farm for 20 years (`design.md`, Infield, outland and wilderness).
+
 # Archived 1 November 2026 (stability review)
 
 Questions 5 and 6 under "Towns: the bases of city formation" (cities review, `docs/review-cities.md`), answered when Kim asked for the long-term stability work (`docs/review-stability.md`). The other questions of that section stay open.
