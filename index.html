@@ -1771,7 +1771,13 @@ VB['sim/rules'] = (() => {
     startGrain: 180, startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
     weedEvery: 6, weedCut: 0.08, weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
+    // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
+    // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
+    storeLoss: [0.05, 0.2, 0.4], villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
   };
+  // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
+  // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
+  const FIELDS = { want: 1.1, expect: 0.75, perHand: 2, oxenHands: 1.5 };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
@@ -1855,6 +1861,9 @@ VB['sim/rules'] = (() => {
   const MARRIAGE = {
     menFrom: 20, womenFrom: 18, // youngest age to marry
     ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
+    // a widow or widower minds the gap less (balance review): remarriage was common in pre-industrial Sweden, above all for men, and a farm
+    // widow's marriage to a younger landless man was a road to land (Dribe and Lundh 2007)
+    widowedGapWeight: 0.15,
     sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
     minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
@@ -1882,8 +1891,10 @@ VB['sim/rules'] = (() => {
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
-  // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep ----
-  const SOIL = { start: 1, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5] };
+  // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
+  // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
+  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md) ----
+  const SOIL = { start: 1, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
@@ -1925,7 +1936,7 @@ VB['sim/rules'] = (() => {
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
@@ -2573,7 +2584,7 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
       ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, larder: [], fodderDay: -1,
-      milkDay: -1, manure: 0 };
+      milkDay: -1, manure: 0, spoilt: 0 };
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -3220,9 +3231,9 @@ VB['sim/herds'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, each pawn's hunger level and health
+// @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, DAY } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -3285,7 +3296,16 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood };
+  // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
+  // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
+  function spoilGrain(st, hh) {
+    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = hh.grain;
+    if (!(g > 0)) return;
+    const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
+    const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
+    hh.grain -= lost; hh.spoilt = (hh.spoilt || 0) + lost;
+  }
+  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
 </script>
 <script>
@@ -3382,24 +3402,32 @@ VB['sim/deaths'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/fields: making new fields: how many a household wants, choosing a meadow tile, clearing it and breaking the ground
+// @sys sim/fields: making new fields: how many a household wants, choosing a tile, clearing it and breaking the ground; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, SOIL, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
-  const MAX_FIELDS = 4, REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
+  const { team } = VB['sim/herds'];
+  const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
     let n = 0;
     for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) n += age(st, p) >= 14 ? ECON.ration.adult : ECON.ration.child; }
     return n * YEAR_DAYS;
   }
-  // Fields a household wants: enough for 110% of its rations at three quarters of the full yield, at most four.
-  const fieldsWanted = (st, hh) => Math.min(MAX_FIELDS, Math.ceil((1.1 * yearlyRations(st, hh)) / (0.75 * ECON.fieldYield)));
+  // Fields its hands can till: FIELDS.perHand for each working adult, and more with a team of oxen.
+  function fieldsWorkable(st, hh) {
+    let hands = 0;
+    for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) hands++; }
+    return Math.floor(hands * FIELDS.perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
+  }
+  // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
+  const fieldsWanted = (st, hh) => Math.max(1, Math.min(fieldsWorkable(st, hh),
+    Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * ECON.fieldYield))));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
@@ -3409,14 +3437,16 @@ VB['sim/fields'] = (() => {
     for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
     return out;
   }
-  // The best unowned meadow tile within reach of the house, not on a river and not next to a house or green: fertile (watered by one),
-  // few stones, near, and 1 better when it touches one of the farm's fields, so the fields grow as one block (VB-109). -1 when there is none.
+  // The best unowned farmable tile within reach of the house, not on a river and not next to a house or green: fertile (watered by one),
+  // few stones, near, and 1 better when it touches one of the farm's fields, so the fields grow as one block (VB-109). Open meadow always
+  // comes first; heath, hills or marsh (poorer, by FERTILITY) only when no meadow is free (balance review: where land ran short, poorer land
+  // was taken in). -1 when there is none.
   function chooseTile(st, f) {
     const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || w.biome[t] !== B.MEADOW || w.river[t] || st.owner[t] !== 0 || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
-      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0);
+      if (d < 1 || !farmable(w, t) || st.owner[t] !== 0 || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
@@ -3463,8 +3493,8 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n; fd.soil = Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad);
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil, manureWanted,
-    manureDone };
+  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+    manureWanted, manureDone };
 })();
 </script>
 <script>
@@ -3545,11 +3575,19 @@ VB['sim/meadows'] = (() => {
   const RAKE_DAYS = 10, UNRAKED = 0.8, MOW_LAST = 2, DRY_DAYS = 1;
   // Days into the haymaking window, or -1 outside it.
   const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
-  // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household.
-  function meadowJobs(f, m, c) {
+  // Hay is wanted while the barn and the hay lying mown hold less than ENOUGH winters' need of the household's animals now; a household with
+  // none mows nothing (balance review: a farm whose herds were gone mowed 3,893 hay that nothing would eat).
+  const ENOUGH = 2;
+  function hayWanted(st, f, hh) {
+    const need = winterNeed(st, hh);
+    return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < ENOUGH * need;
+  }
+  // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
+  // wanted (`want`); hay already mown is always carried in.
+  function meadowJobs(f, m, c, want = true) {
     const k = `f${f.id}.m${m.id}`, out = [];
-    if (m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
-    if (m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
+    if (want && m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
+    if (want && m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
     if (m.stage === 'mown' && c.day >= m.mown + DRY_DAYS) out.push(['hay:' + k, 'hay']);
     return out;
   }
@@ -3576,15 +3614,15 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, hayDay, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow, finishMeadow,
-    placeMeadows,
+    HAY, UNRAKED, ENOUGH, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
+    finishMeadow, placeMeadows,
   };
 })();
 </script>
 <script>
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
-  const { HERD, SOIL, WORK } = VB['sim/rules'];
+  const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -3740,6 +3778,7 @@ VB['sim/byre'] = (() => {
         const meat = spoilt.filter((l) => l.kind === 'meat').reduce((s, l) => s + l.n, 0);
         if (meat >= 1) log(st, `${Math.round(meat)} rations of meat spoiled at ${st.farmsteads[hh.farmstead].name}: nobody salted it.`);
       }
+      if (hh.manure > 0) hh.manure *= Math.pow(1 - SOIL.rot, 1 / YEAR_DAYS); // the heap rots and washes away (balance review)
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
@@ -4308,7 +4347,7 @@ VB['sim/jobs'] = (() => {
   const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject, manureWanted } = VB['sim/fields'];
-  const { startMeadow, meadowJobs } = VB['sim/meadows'];
+  const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
@@ -4354,11 +4393,14 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
       }
-      for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
+      const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
+      for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
       const dung = manureWanted(f, hh, c); // VB-137
       if (dung) post(st, `manure:f${f.id}.${dung[0].id}`, 'manure', own, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
       if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(st, key, kind, own, f.house, { farm: f, ...extra });
-      if (st.makeFields) { startProject(st, f, hh); startMeadow(st, f, hh); } // a meadow once the fields are enough
+      // a household looks for land for a new field, or a meadow once the fields are enough, once a day at the start of work (balance review:
+      // households in every scenario look, and those short of land searched in vain every hour)
+      if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
       if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
@@ -5000,6 +5042,8 @@ VB['sim/lifecycle'] = (() => {
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
     const fed = (p) => p.hunger < HUNGER.marryBelow;
+    const widowed = new Set(); // the single who have been married: their marriage ended by a death (balance review)
+    for (const u of st.unions) if (u.end !== null) { widowed.add(u.a); widowed.add(u.b); }
     const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
@@ -5026,7 +5070,8 @@ VB['sim/lifecycle'] = (() => {
         const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
-        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
+        const gw = widowed.has(m.id) || widowed.has(f.id) ? MARRIAGE.widowedGapWeight : MARRIAGE.gapWeight;
+        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * gw
           + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }
@@ -5362,7 +5407,7 @@ VB['sim/scenarios'] = (() => {
     //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
-    //   manure (loads on the heap by the byre; VB-137)}
+    //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
@@ -5374,7 +5419,8 @@ VB['sim/scenarios'] = (() => {
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done, holder (pawn id or null), started,
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
-    // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
+    // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;
+    //   tests may turn it off; see sim/fields, sim/meadows)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
@@ -5397,7 +5443,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -5433,7 +5479,7 @@ VB['sim/clock'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
-  const { feedHousehold } = VB['sim/hunger'];
+  const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const { shareFood } = VB['sim/help'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
@@ -5476,9 +5522,10 @@ VB['sim/clock'] = (() => {
     shareFood(st);
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      feedHousehold(st, hh);
+      feedHousehold(st, hh); spoilGrain(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
+    for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);

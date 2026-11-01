@@ -39,8 +39,9 @@ check(F.manureWanted(f0, hh0, cal(2))[0] === f0.fields[0], 'carting to a sown fi
 hh0.manure = 0.5; check(!F.manureWanted(f0, hh0, cal(2)), 'carting with less than a load on the heap');
 hh0.manure = 10; f0.fields[0].soil = 1.1;
 check(near(F.manureWanted(f0, hh0, cal(2))[1], (S.cap - 1.1) / S.perLoad), 'carting more than the soil can take');
-F.manureDone(st, f0.fields[0], hh0, 1.25);
-check(near(f0.fields[0].soil, S.cap) && near(hh0.manure, 8.75), `after 1.25 loads: soil ${f0.fields[0].soil}, heap ${hh0.manure}`);
+const toCap = (S.cap - 1.1) / S.perLoad;
+F.manureDone(st, f0.fields[0], hh0, toCap);
+check(near(f0.fields[0].soil, S.cap) && near(hh0.manure, 10 - toCap), `after ${toCap} loads: soil ${f0.fields[0].soil}, heap ${hh0.manure}`);
 F.manureDone(st, f0.fields[2], hh0, 100);
 check(near(hh0.manure, 0) && f0.fields[2].soil <= S.cap + 1e-9, 'spreading more than the heap holds');
 

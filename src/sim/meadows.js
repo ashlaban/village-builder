@@ -75,11 +75,19 @@ VB['sim/meadows'] = (() => {
   const RAKE_DAYS = 10, UNRAKED = 0.8, MOW_LAST = 2, DRY_DAYS = 1;
   // Days into the haymaking window, or -1 outside it.
   const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
-  // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household.
-  function meadowJobs(f, m, c) {
+  // Hay is wanted while the barn and the hay lying mown hold less than ENOUGH winters' need of the household's animals now; a household with
+  // none mows nothing (balance review: a farm whose herds were gone mowed 3,893 hay that nothing would eat).
+  const ENOUGH = 2;
+  function hayWanted(st, f, hh) {
+    const need = winterNeed(st, hh);
+    return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < ENOUGH * need;
+  }
+  // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
+  // wanted (`want`); hay already mown is always carried in.
+  function meadowJobs(f, m, c, want = true) {
     const k = `f${f.id}.m${m.id}`, out = [];
-    if (m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
-    if (m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
+    if (want && m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
+    if (want && m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
     if (m.stage === 'mown' && c.day >= m.mown + DRY_DAYS) out.push(['hay:' + k, 'hay']);
     return out;
   }
@@ -106,7 +114,7 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, hayDay, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow, finishMeadow,
-    placeMeadows,
+    HAY, UNRAKED, ENOUGH, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
+    finishMeadow, placeMeadows,
   };
 })();

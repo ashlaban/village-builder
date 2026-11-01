@@ -30,8 +30,11 @@ function morning() {
 }
 {
   const { st, hh, son } = morning(), field = son.job, hours = field.hours ?? Sim.KINDS.plow.hours;
-  const n = field.claims.filter((id) => st.agents[id].phase === 'work').length;
-  field.done = hours - 0.8 - 0.5 * n; // 0.8 h of work left at the full hour, under an hour at the son's rate (1)
+  // the workers' rate together: each at its own rate, the driver of a team of oxen at the team's (VB-138)
+  const A = VB['sim/agents'], rate = field.claims.filter((id) => st.agents[id].phase === 'work')
+    .reduce((s, id) => s + A.rateOf(st, st.pawns[id]) * (A.withOxen(st, st.agents[id]) ? Sim.HERD.team.rate : 1), 0);
+  // 0.8 h of work left when the hour turns (after the 6-minute steps before it), under an hour at the son's rate (1)
+  field.done = hours - 0.8 - (Math.ceil(st.t) - st.t - 0.1) * rate;
   hh.wood = 5;
   Sim.advance(st, 0.55);
   check(son.job === field && field.done < hours, `the son left a field he would finish within the hour (${son.job && son.job.kind}, ${field.done} of ${hours})`);

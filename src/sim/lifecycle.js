@@ -99,6 +99,8 @@ VB['sim/lifecycle'] = (() => {
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
     const fed = (p) => p.hunger < HUNGER.marryBelow;
+    const widowed = new Set(); // the single who have been married: their marriage ended by a death (balance review)
+    for (const u of st.unions) if (u.end !== null) { widowed.add(u.a); widowed.add(u.b); }
     const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
@@ -125,7 +127,8 @@ VB['sim/lifecycle'] = (() => {
         const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
-        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * MARRIAGE.gapWeight
+        const gw = widowed.has(m.id) || widowed.has(f.id) ? MARRIAGE.widowedGapWeight : MARRIAGE.gapWeight;
+        const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * gw
           + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }

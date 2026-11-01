@@ -56,9 +56,9 @@ Sim.advance(s2, 15 * Sim.DAY + 20 - s2.t); // day 15 (summer), 20:00
 const h2 = s2.households.find((h) => F.larderOf(h, 'milk') > 0);
 check(h2, 'no household with milk in the larder on a summer evening');
 if (h2) {
-  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.rations, need = F.dailyNeed(s2, h2);
+  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.rations, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0;
   Sim.advance(s2, 4.5);
-  const used = g0 - (h2.grain + h2.rations);
+  const used = g0 - (h2.grain + h2.rations) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
   check(F.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
   check(Math.abs(used - (need - m0)) < 1e-6, `the meal took ${used.toFixed(2)} grain and rations, wanted ${(need - m0).toFixed(2)} (need less milk)`);
 }

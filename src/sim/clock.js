@@ -7,7 +7,7 @@ VB['sim/clock'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
-  const { feedHousehold } = VB['sim/hunger'];
+  const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const { shareFood } = VB['sim/help'];
   const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
@@ -50,9 +50,10 @@ VB['sim/clock'] = (() => {
     shareFood(st);
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      feedHousehold(st, hh);
+      feedHousehold(st, hh); spoilGrain(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
+    for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
