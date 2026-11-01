@@ -172,7 +172,9 @@ VB['sim/scenarios'] = (() => {
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
-    //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done, holder (pawn id or null), started,
+    //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
+    //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
+    //   farmstead is then its id; sim/cottage),
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)

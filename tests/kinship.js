@@ -25,10 +25,11 @@ const w = world(7), k = C.IDX.kinLimit, off = C.OFF[k];
 {
   const s = Sim.seed(w, 7, 'heirs'); s.naturalDeaths = false;
   for (const set of s.cenv.settlements) set.practice[k] = 0;
-  for (let y = 0; y < 8; y++) Sim.advance(s, Sim.YEAR);
+  const everPushed = new Set(); // new cottages (VB-032) give adults homes, so count those pulled in any year, not only at the end
+  for (let y = 0; y < 8; y++) { Sim.advance(s, Sim.YEAR); for (const p of s.pawns) if (p.alive && p.kinPush) everPushed.add(p.id); }
   const pushed = s.pawns.filter((p) => p.alive && p.kinPush);
   console.log('strictest custom: adults pulled', pushed.length, 'log:', s.meetingLog.filter((e) => /only because of kin/.test(e.text)).length);
-  check(pushed.length > 0, 'some adults are pulled'); check(pushed.every((p) => [rules.MARRIAGE.scarcePush, rules.MARRIAGE.plentyPush].includes(p.kinPush.w)), 'pull weights');
+  check(everPushed.size > 0, 'some adults are pulled'); check(pushed.every((p) => [rules.MARRIAGE.scarcePush, rules.MARRIAGE.plentyPush].includes(p.kinPush.w)), 'pull weights');
   check(s.meetingLog.some((e) => /only because of kin/.test(e.text)), 'the meeting log counts adults blocked only by kin');
 }
 // the pulls move attitudes: a population pulled to a looser option drifts towards it faster than an unpulled one

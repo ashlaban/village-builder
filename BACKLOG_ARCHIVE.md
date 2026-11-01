@@ -79,3 +79,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-132 | Hay meadows, made and placed | animals | implement | done | 2 | M | Meadows claimed and cleared by households with animals; generated villages start with theirs. | [backlog/VB-132.md](backlog/VB-132.md) |
 | VB-133 | Haymaking and the hay barn | animals | implement | done | 2 | M | Rake in spring, mow, dry and carry hay in summer; the haystack shows the stock. | [backlog/VB-133.md](backlog/VB-133.md) |
 | VB-134 | The byre, the autumn count, slaughter and salt meat | animals | implement | done | 2 | M | Daily hay in the byre, the autumn count and slaughter, salt meat in the larder, the hard limit. | [backlog/VB-134.md](backlog/VB-134.md) |
+| VB-032 | Constructing a new farmstead | expansion | implement | done | 1 | L | Build the cottage on a cleared or ruined site; a new household moves in, starting from its shares. | [backlog/VB-032.md](backlog/VB-032.md) |
