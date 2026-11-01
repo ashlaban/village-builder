@@ -9,6 +9,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
   const { fadeRelations, forget } = VB['sim/relations'];
@@ -146,6 +147,7 @@ VB['sim/lifecycle'] = (() => {
     // who wants out: landless adults with no prospect of a farm
     st.demand = (() => { const heirs = firstHeirs(st); return alive.filter((p) => wantsOut(st, p, heirs)).map((p) => p.id); })();
     startPlots(st);
+    payOwed(st);
     refreshPrestige(st);
     st.visualDirty = true;
   }

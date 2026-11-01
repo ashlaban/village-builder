@@ -105,6 +105,7 @@ VB['sim/heirs'] = (() => {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
         hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
+        if (due > paid) st.pawns[q].owedFrom = hh.id; // the farm the debt is paid from (sim/cottage)
         if (due) {
           personEvent(st, q, 'share',
             `Received ${paid} rations as a share of ${f.name}${due > paid ? `, ${due - paid} still owed` : ''}` +
