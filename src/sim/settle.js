@@ -1,16 +1,16 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
   const { B } = VB['gen'];
-  const { SETTLE, ECON, fertility, farmable } = VB['sim/rules'];
+  const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
   const { seedReserve } = VB['sim/hunger'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
-  const { findSite, hasPlot, activePlots, building } = VB['sim/expansion'];
+  const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
@@ -97,13 +97,15 @@ VB['sim/settle'] = (() => {
   };
   // Walking steps from village v's centre to every tile within reach of new villages and small villages to join.
   const reachOf = (st, v) => bfs(st.w, v.center, Math.max(SETTLE.reach[1], SETTLE.join), walkable(st.w)).dist;
-  // House sites SETTLE.reach walking steps from village v's centre (reach: reachOf(st, v)), on meadow nobody uses, by siteScore less
-  // SETTLE.perStep a step, best first; a third of the tiles are tried, as for the generated lone farm.
+  // House sites SETTLE.reach walking steps from village v's centre (reach: reachOf(st, v)), on meadow nobody uses, at least SETTLE.centreApart
+  // hex steps from every village centre (VB-154), by siteScore less SETTLE.perStep a step, best first; a third of the tiles are tried, as for
+  // the generated lone farm.
   function candidates(st, v, use, reach) {
-    const w = st.w, [lo, hi] = SETTLE.reach, out = [];
+    const w = st.w, [lo, hi] = SETTLE.reach, out = [], centres = st.villages.map((u) => u.center);
     for (const [t, d] of reach) {
       if (d > hi) continue;
       if (d < lo || (t * 31) % 3 || w.biome[t] !== B.MEADOW || !farmable(w, t) || use.taken.has(t) || use.near.has(t)) continue;
+      if (centres.some((c) => hexSteps(w, c, t) < SETTLE.centreApart)) continue;
       out.push([t, d, siteScore(w, t) - SETTLE.perStep * d]);
     }
     return out.sort((a, b) => b[2] - a[2] || a[0] - b[0]);
@@ -119,6 +121,8 @@ VB['sim/settle'] = (() => {
       if (use.taken.has(t) || use.near.has(t)) continue;
       tried++;
       const block = placeFields(w, use.taken, t, SETTLE.fields, use.near); if (!block) continue;
+      // room besides the block for meadow and pasture, away from other farms (VB-154)
+      if (roomAt(st, t, (j) => j === t || block.includes(j) || use.taken.has(j) || use.near.has(j)) < FIELDS.room) continue;
       const fert = block.reduce((a, k) => a + fertility(w, k), 0), s = s0 + SETTLE.fieldWeight * fert;
       if (fert / block.length < minFert || s <= bs) continue;
       const wood = nearestWood(w, use.taken, t); if (wood < 0) continue;
