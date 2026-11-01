@@ -6,22 +6,24 @@ VB['sim/cottage'] = (() => {
   const { setOwner } = VB['sim/ownership'];
   const { SHARES, SOIL } = VB['sim/rules'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
-  const farmName = (st, v) => {
-    let n = 1; while (st.farmsteads.some((g) => g.village === v.id && g.name === (n === 1 ? 'Nybygget' : `Nybygget ${n}`))) n++;
-    return n === 1 ? 'Nybygget' : `Nybygget ${n}`;
-  };
+  const names = VB['sim/names'];
+  // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
+  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rand.
+  const farmName = (st, v, f, owner = null) => names.farmName({ w: st.w, f, village: v, owner },
+    new Set(v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id].name)), names.tileRand(f.house), names.prefsOf(st, v.id).farm);
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   function finishCottage(st, plot) {
     const v = st.villages[plot.village], holder = st.pawns[plot.holder], sp = spouseOf(st, holder.id);
-    if (!holder.alive || isHolder(st, holder.id)) { // the holder died or took another farm meanwhile: the roof stands, nobody is to live there
+    // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there
+    if (!holder.alive || isHolder(st, holder.id) || (sp !== null && st.pawns[sp].alive && isHolder(st, sp))) {
       plot.holder = null; log(st, `The new cottage in ${v.name} stands empty.`); return;
     }
     plot.built = true;
     const house = plot.tiles.find((t) => t.kind === 'house').tile, field = plot.tiles.find((t) => t.kind === 'field').tile;
     const f = makeFarmstead(st.w, st.farmsteads.length, house, [field], v, st.used);
     if (plot.tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
-    f.name = farmName(st, v); f.woodlot = v.commonsWood; f.state = 'occupied'; f.condition = 1; f.emptySince = null; f.fence = null;
+    f.name = farmName(st, v, f, holder); f.woodlot = v.commonsWood; f.state = 'occupied'; f.condition = 1; f.emptySince = null; f.fence = null;
     st.farmsteads.push(f); v.farmsteads.push(f.id); plot.farmstead = f.id;
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
@@ -29,7 +31,7 @@ VB['sim/cottage'] = (() => {
     for (const id of [...members]) {
       for (const c of childrenOf(st, id)) {
         const q = st.pawns[c];
-        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c)) members.push(c);
+        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
     const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);

@@ -102,10 +102,14 @@ const Culture = (() => {
     for (let k = 0; k < n; k++) a[o + k] /= s;
   }
 
+  // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
+  // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
+  const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
   function makeCulture(env, name, customs, centre, parent = null) {
+    const prefs = parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs ? env.cultures[parent].namePrefs : NAME_PREFS;
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
-      parent, founded: env.t, history: [],
+      parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
     };
     env.cultures.push(c);
     return c;
@@ -127,6 +131,7 @@ const Culture = (() => {
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
+  const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, dt, rand) {
     const mul = env.driftMul || 1, byId = env.byId;
     const means = new Map();
@@ -158,7 +163,7 @@ const Culture = (() => {
         const o = OFF[d], n = NOPT[d], m = DIMS[d].m;
         const rs = m * P.social * P.kind[kind] * ageF, ru = m * P.selfInterest, sig = m * P.noise;
         const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
-        let nz = 0; const xi = []; for (let j = 0; j < n; j++) { xi.push(gauss(rand)); nz += xi[j]; } nz /= n;
+        let nz = 0; const xi = XI; for (let j = 0; j < n; j++) { xi[j] = gauss(rand); nz += xi[j]; } nz /= n;
         let pr = 0; for (let j = 0; j < n; j++) pr += press[o + j];
         const rp = P.persuasion * Math.pow(m, 0.75) * P.kind[kind] * ageF;
         for (let j = 0; j < n; j++) {
@@ -279,7 +284,7 @@ const Culture = (() => {
   }
 
   return {
-    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
 })();

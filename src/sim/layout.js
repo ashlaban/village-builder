@@ -1,7 +1,8 @@
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -46,11 +47,6 @@ VB['sim/layout'] = (() => {
     for (const [j, d] of d6) { const b = w.biome[j]; if (b === B.FOREST || b === B.PINE) wood++; if (byRiver(w, j) && d + 1 < river) river = d + 1; }
     for (let k = 0; k < 6; k++) { const j = w.nb[c * 6 + k]; if (j >= 0 && w.water[j]) shore++; }
     return farm + Math.min(wood, 12) * 0.6 + (shore > 0 ? 4 : 0) + (RIVER.site[river] || 0) - w.hp[c] * 6;
-  }
-  function villageName(rand) {
-    const A = ['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'],
-      C = ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter'];
-    return A[(rand() * A.length) | 0] + C[(rand() * C.length) | 0];
   }
 
   // The land a village fences: its green, houses and fields, and the yards and gaps they close in: every tile within their reach from the
@@ -119,8 +115,7 @@ VB['sim/layout'] = (() => {
   // first first, takes its block of fields beyond the yards (placeFields). A house whose fields find no room is not built.
   // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
-    let name = villageName(rand);
-    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: true, well: true };
     used.add(center);
     const built = new Set([center]), near = new Set(), houses = [];
@@ -149,32 +144,20 @@ VB['sim/layout'] = (() => {
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
   }
+  // Names at seeding (VB-026), before any culture exists, so by the generators every culture starts with (sim/names): the farms of a village
+  // of two or more by compass, then landmark; a lone farm (a one-farm village) by its surroundings, with a name no other village has, and
+  // its village takes that name, so the farm's map label is unique on the island.
   function nameFarms(w, villages, farmsteads, rand) {
     for (const f of farmsteads) {
-      if (villages[f.village].farmsteads.length >= 2) {
-        const v = villages[f.village], dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
-        const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
-        let nm = DIRNAME[k] + 'gården';
-        if (farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm)) {
-          nm = farmsteads.some((g) => g.village === f.village && g.name === 'Mellangården') ? 'Nygården' : 'Mellangården';
-        }
-        // a big village runs out of names: number the rest
-        for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
-        f.name = nm;
-      } else f.name = loneFarmName(w, f, rand); // a one-farm village: the farm is named for its surroundings
+      const v = villages[f.village];
+      if (v.farmsteads.length >= 2) {
+        const taken = new Set(farmsteads.filter((g) => g !== f && g.village === f.village && g.name).map((g) => g.name));
+        f.name = farmName({ w, f, village: v, owner: null }, taken, rand);
+      } else { f.name = loneFarmName(w, f, rand, new Set(villages.filter((u) => u !== v).map((u) => u.name))); v.name = f.name; }
     }
   }
-  // The name of a lone farm (a one-farm village), by its surroundings within 2 steps: shore, woods, hills, marsh, or a plain name.
-  function loneFarmName(w, f, rand) {
-    let coast = false, woods = 0, hills = 0, marsh = 0;
-    const { dist: near } = bfs(w, f.house, 2, () => true);
-    for (const [j] of near) {
-      if (w.water[j]) coast = true; const b = w.biome[j];
-      if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++;
-    }
-    const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
-    return coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
-  }
+  // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
+  const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
   // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
   function nearestWood(w, used, from) {
     const { dist: dd } = bfs(w, from, 24, walkable(w));
@@ -209,9 +192,8 @@ VB['sim/layout'] = (() => {
       if (s > ls) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
-    // the farm is a village of its own: its centre is the house, and it has neither green nor well
-    let name = villageName(rand);
-    while (villages.some((v) => v.name === name)) name = villageName(rand);
+    // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
+    const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = { id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);

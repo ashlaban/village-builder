@@ -2,6 +2,16 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 1 November 2026 (stability review)
+
+Questions 5 and 6 under "Towns: the bases of city formation" (cities review, `docs/review-cities.md`), answered when Kim asked for the long-term stability work (`docs/review-stability.md`). The other questions of that section stay open.
+
+## Towns: the bases of city formation (questions 5 and 6)
+5. Two holders who wish to marry. Under "with the land" a couple needs exactly one place: two people who each hold a farm, or are first heir to one, cannot marry each other (`homeFor` in `src/sim/lifecycle.js`). Settlers who found farms alone become such holders. **P:** they may: the couple lives on the farm with more fields, and the other passes to its next heir, or to tenants once tenancy exists; heir–heiress marriages were the old way farms were joined.
+   **A (Kim, 1 Nov):** as proposed (P): two holders may marry; the couple lives on one farm and the other goes to its next heir, or else to a landless adult of its village who waits for land (VB-153). Kim also chose: marriage needs means (the home holds food for a year of its people and one more), and no later minimum ages.
+6. Households of one. A quarter of all household-years on the tiny map are one person, mostly settlers and widowed holders; they are hungry in half their years although they make 1.5 times their need and hold nearly 3 years of it, because one person cannot farm and keep house at once. **P:** a lone waiter leaves only with a companion (a sibling, or a landless adult of the village as servant), and a lone holder takes a servant at the moving round when one is free.
+   **A (Kim, 1 Nov):** a lone holder takes a servant at the moving round, as proposed (VB-152); settlers need not leave in pairs. Also: an orphaned minor heir left with no adult takes in a landless adult relative as guardian, or else the children go to their kin and the farm stands empty (VB-152).
+
 # Archived 31 October 2026 (animals review)
 
 Asked with the review of the animals design against history and the game (`docs/review-animals.md`). Kim answered questions 1 to 4 in the session of 31 October; the others were taken as proposed.

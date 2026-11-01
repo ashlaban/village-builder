@@ -109,12 +109,29 @@ VB['sim/routes'] = (() => {
   // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
   // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
   // so a route that costs less than that cannot change because of t.
+  // The test is skipped where its outcome is certain without the route's cost: a route of n steps costs at least n minSteps, and at most n
+  // times the dearest step (MAX_STEP), so a changed tile nearer than n - 1 always drops it and one beyond n * MAX_STEP / minStep never does.
+  // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
+  const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0];
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
-    const w = st.w, N = w.N, dirty = [...st.routeDirty];
+    const w = st.w, N = w.N, C = w.COLS, n = st.routeDirty.size, dq = new Int32Array(n), dr = new Int32Array(n);
+    let i = 0;
+    for (const t of st.routeDirty) { const y = (t / C) | 0; dq[i] = (t % C) - ((y - (y & 1)) >> 1); dr[i] = y; i++; }
+    const qOf = (t) => { const y = (t / C) | 0; return (t % C) - ((y - (y & 1)) >> 1); };
     for (const [k, p] of st.pathCache) {
-      const to = k % N, from = (k - to) / N, reach = routeCost(w, p) / ROUTE.minStep;
-      if ((p.length === 1 && from !== to) || dirty.some((t) => hexSteps(w, from, t) + hexSteps(w, t, to) <= reach)) st.pathCache.delete(k);
+      const to = k % N, from = (k - to) / N;
+      if (p.length === 1 && from !== to) { st.pathCache.delete(k); continue; }
+      const fq = qOf(from), fr = (from / C) | 0, tq = qOf(to), tr = (to / C) | 0;
+      let near = Infinity; // the least hexSteps(from, t) + hexSteps(t, to) over the changed tiles t
+      for (let j = 0; j < n; j++) {
+        const a = fq - dq[j], b = fr - dr[j], c = dq[j] - tq, d = dr[j] - tr;
+        const s = (Math.abs(a) + Math.abs(b) + Math.abs(a + b) + Math.abs(c) + Math.abs(d) + Math.abs(c + d)) / 2;
+        if (s < near) near = s;
+      }
+      const steps = p.length - 1;
+      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
+      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
     }
     st.routeDirty.clear();
   }

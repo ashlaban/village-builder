@@ -1257,10 +1257,12 @@
     if (st !== s) return; // another settlement was built while the font loaded
     labelsReady = true; buildLabels(wd);
   }
-  // Map labels: a village with a green by its name, the farms of any other village by theirs. Rebuilt when villages or farm names change
-  // (settlers found villages and build farms in play; VB-148), once the label font has loaded.
+  // Map labels: a village of two or more farms (or with a green) by its name, at its centre; a lone farm by its farm's name, at the house
+  // (a one-farm village bears its farm's name, unique on the island; VB-026). Rebuilt when villages or farm names change (settlers found
+  // villages and join them in play; VB-148), once the label font has loaded.
   let labelsReady = false, labelSig = '';
-  const labelSigOf = () => st.villages.map((v) => (v.green ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
+  const byName = (v) => v.green || v.farmsteads.length >= 2;
+  const labelSigOf = () => st.villages.map((v) => (byName(v) ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
   function buildLabels(wd) {
     for (const t of L.labels.removeChildren()) t.destroy();
     labels = []; labelSig = labelSigOf();
@@ -1269,7 +1271,7 @@
       t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
     };
     for (const v of st.villages) {
-      if (v.green) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, 30);
+      if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26);
       else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24); }
     }
   }

@@ -5,7 +5,7 @@ const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.ne
 // A fresh heirs-scenario state with villager `a` (single, older), a married couple `b`, `c` and a plot started for `a`.
 function setup(newLand) {
   const st = Sim.seed(world(7), 7, 'heirs'), v = st.villages[0];
-  const adults = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id));
+  const adults = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id) && Sim.spouseOf(st, p.id) === null);
   const men = adults.filter((p) => p.sex === 'm'), women = adults.filter((p) => p.sex === 'f');
   const a = men[0], b = men[1], c = women[0];
   if (!a || !b || !c) return null;

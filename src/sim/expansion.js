@@ -1,7 +1,7 @@
 // @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
-  const { fertility, farmable } = VB['sim/rules'];
+  const { fertility, farmable, FIELDS } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
@@ -23,7 +23,16 @@ VB['sim/expansion'] = (() => {
   };
   // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
   // The house grows on the village (it may touch other houses, never a field); the field lies 2 to FIELD_REACH steps from it, next to
-  // no house or green (VB-113). Null when there is no room.
+  // no house or green (VB-113); and the farm has room (roomAt). Null when there is no room.
+  // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unowned and unused, that `taken` does
+  // not exclude; counted up to FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
+  function roomAt(st, h, taken = () => false) {
+    const w = st.w; let n = 0;
+    for (const [t] of bfs(w, h, FIELD_REACH, walkable(w)).dist) {
+      if (farmable(w, t) && st.owner[t] === 0 && !st.used.has(t) && !taken(t) && ++n >= FIELDS.room) break;
+    }
+    return n;
+  }
   function findSite(st, v) {
     const w = st.w, vreg = w.region[v.center], cand = [], built = builtTiles(st), fields = new Set();
     for (const f of st.farmsteads) { for (const fd of f.fields) fields.add(fd.tile); if (f.project) fields.add(f.project.tile); }
@@ -50,6 +59,7 @@ VB['sim/expansion'] = (() => {
         const sc = fieldScore(t) - 0.15 * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
+      if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t)) < FIELDS.room) continue;
       let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
       const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
       if (s > bs) { bs = s; best = { house: h, field: f }; }
@@ -117,8 +127,10 @@ VB['sim/expansion'] = (() => {
     return st.villages.some((u) => u.plots.some((p) => building(p) && (p.holder === id || (sp !== null && p.holder === sp))));
   }
   // The village's pick among those still waiting, by `village` rule: married couples first, then by age, single adults once no couple waits.
+  // A pawn with a farm already: a holder, or married to one (who lives on the spouse's farm; VB-153).
+  const landed = (st, id) => { const sp = spouseOf(st, id); return isHolder(st, id) || (sp !== null && isHolder(st, sp)); };
   function byVillage(st, v, ids) {
-    const live = ids.filter((id) => st.pawns[id].alive && !isHolder(st, id) && !awaitsCottage(st, id));
+    const live = ids.filter((id) => st.pawns[id].alive && !landed(st, id) && !awaitsCottage(st, id));
     const couple = (id) => { const sp = spouseOf(st, id); return sp !== null && st.pawns[sp].alive ? 0 : 1; };
     live.sort((a, b) => couple(a) - couple(b) || st.pawns[a].born - st.pawns[b].born || a - b);
     return live.length ? live[0] : null;
@@ -126,9 +138,9 @@ VB['sim/expansion'] = (() => {
   function allot(st, v, plot) {
     const waiting = st.demand.filter((id) => settlementIdOf(st, st.pawns[id]) === v.id);
     const rule = practice(st, v.id).newLand, worked = Object.keys(plot.hours).map(Number)
-      .filter((id) => st.pawns[id].alive && !awaitsCottage(st, id) && !isHolder(st, id));
+      .filter((id) => st.pawns[id].alive && !awaitsCottage(st, id) && !landed(st, id));
     let pick = null;
-    if (rule === 'intended' && st.pawns[plot.intended].alive && !isHolder(st, plot.intended)
+    if (rule === 'intended' && st.pawns[plot.intended].alive && !landed(st, plot.intended)
       && !awaitsCottage(st, plot.intended)) pick = plot.intended;
     else if (rule === 'labour' && worked.length) {
       worked.sort((a, b) => plot.hours[b] - plot.hours[a] || st.pawns[a].born - st.pawns[b].born || a - b); pick = worked[0];
@@ -173,5 +185,7 @@ VB['sim/expansion'] = (() => {
     const hh = f.household !== null ? st.households[f.household] : null;
     log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`);
   }
-  return { COTTAGE, building, claimableFarm, findSite, hasPlot, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob, finishBoothStage };
+  return {
+    COTTAGE, building, claimableFarm, roomAt, findSite, hasPlot, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob, finishBoothStage,
+  };
 })();
