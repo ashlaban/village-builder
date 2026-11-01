@@ -54,7 +54,7 @@ Kim's decisions are in the next section; the numbers are Proposed starting value
 
 **The new village** is a village of one farm (Settlements and look): no green, no well, its fields unfenced. Its name follows the founder, as many *torp* did: the founder's given name in the genitive with *-torp*, *-ryd*, *-boda*, *-hult* or *-mark* (Erikstorp, Olofsboda, Anderstorp). It keeps its mother village's practice and culture; its tie to the culture's centre is computed as for any village, so a far daughter is weakly tied, drifts more easily and may split off as a culture of its own after generations. The village records where it came from and who founded it (`v.founded`).
 
-**Fresh land.** A field broken on ground that was never farmed starts with soil 1.4 instead of 1.0, above the cap of 1.15 that manure can reach; each crop wears it by 0.08 as now, so the bonus is gone after about 4 crops. This applies to every new field in every scenario.
+**Fresh land.** A field broken on ground that was never farmed starts with soil 1.4 instead of 1.0, above the cap of 1.15 that manure can reach; each crop wears it by 0.08 as now. On a manured farm it falls to the cap in about 3 crops and then keeps up like any field; without manure it keeps its lead of 0.4 over an old field until both reach the floor of 0.75 (about 9 crops). Settlers have no cattle, so their fields wear to the floor in about a decade: the frontier farm that does well at first and struggles later. This applies to every new field in every scenario.
 
 ### Play
 

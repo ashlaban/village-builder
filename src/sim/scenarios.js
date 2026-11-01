@@ -171,7 +171,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
+    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
+    //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
@@ -181,7 +182,8 @@ VB['sim/scenarios'] = (() => {
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage),
-    //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
+    //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done), fresh (a field broken on ground never
+    //   farmed; VB-149)}}; a plot is cleared for those who want out
     //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);
     //   founded {t, from (village id), by (pawn id)} for a village founded in play by settlers, else null (sim/settle)
     // @state st.owner: Int32Array of tile owners (see sim/ownership)

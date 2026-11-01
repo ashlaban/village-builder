@@ -150,7 +150,7 @@ function checkHerds(st, bad) {
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
   const { SOIL } = VB['sim/rules'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
-    if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= SOIL.cap + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
+    if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
   }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.

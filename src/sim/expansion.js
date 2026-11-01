@@ -143,7 +143,7 @@ VB['sim/expansion'] = (() => {
     if (step === 'fell') { w.trees[tr.tile] = 0; st.regrow.delete(tr.tile); st.treeDirty.add(tr.tile); }
     else if (step === 'grub') clearTile(st, tr.tile);
     else if (step === 'clear') w.stones[tr.tile] = 0;
-    else if (tr.kind === 'field') w.dev[tr.tile] = 1;
+    else if (tr.kind === 'field') { tr.fresh = !w.dev[tr.tile]; w.dev[tr.tile] = 1; } // ground never farmed starts fresh (VB-149)
     tr.i++; st.biomeDirty.add(tr.tile); st.visualDirty = true;
     if (!plot.tiles.every((q) => q.i >= q.steps.length)) return;
     plot.done = true; plot.holder = allot(st, v, plot); plot.cottage = { i: 0, done: 0 }; plot.built = false;

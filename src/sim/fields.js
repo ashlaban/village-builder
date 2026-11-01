@@ -62,11 +62,11 @@ VB['sim/fields'] = (() => {
     w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
     st.biomeDirty.add(tile);
   }
-  // Breaking done: the tile is a field in stubble.
+  // Breaking done: the tile is a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh (SOIL.fresh, VB-149).
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
     f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
-      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
+      soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`);
@@ -84,10 +84,10 @@ VB['sim/fields'] = (() => {
     }
     return best ? [best, Math.min(hh.manure, (SOIL.cap - best.soil) / SOIL.perLoad)] : null;
   }
-  // The manure is spread: each load the job carried raises the soil, as far as the heap still holds it.
+  // The manure is spread: each load the job carried raises the soil, as far as the heap still holds it; never below a fresh field's soil.
   function manureDone(st, fd, hh, loads) {
     const n = Math.max(0, Math.min(loads, hh.manure));
-    hh.manure -= n; fd.soil = Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad);
+    hh.manure -= n; fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
   return { BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };

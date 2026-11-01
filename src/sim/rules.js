@@ -148,8 +148,9 @@ VB['sim/rules'] = (() => {
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
   // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
-  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md) ----
-  const SOIL = { start: 1, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
+  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
+  // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
+  const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food

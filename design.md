@@ -238,7 +238,7 @@ Tiles carry their own state (trees, stones, grazing), and work, grazing or negle
 | Stones | Meadow tiles track their stone content: every untouched meadow tile has some, and tiles near hills have more, the extra fading to nothing within about 2 tiles | Decided |
 | Meadow to field | Breaking ground takes long where stones are many; the stones cleared become building material | Decided |
 | Abandoned fields | An untended field becomes a stone-free meadow | Decided |
-| Fresh land | Ground never farmed yields more for its first crops: a new field there starts with soil 1.4 and wears to the ordinary level in about 4 crops (see Inheritance and expansion, Moving to new land) | Decided, 1 Nov (the bonus); Proposed (numbers) |
+| Fresh land | Ground never farmed yields more for its first crops: a new field there starts with soil 1.4 and wears to manure's cap in about 3 crops (see Inheritance and expansion, Moving to new land) | Decided, 1 Nov (the bonus); Proposed (numbers) |
 | Forest spread | Forest turns nearby meadow, and fields by way of meadow, into scrub and then woodland, unless grazing or farming keeps the land open. Built after grazing pressure: open land next to forest reaches scrub in 8 years and forest in 30; a field in use, a house, a green, a meadow mown that year, work in the last year or enough grazing keep it open; heath closes like meadow (backlog VB-091) | Decided; Agreed (rates), 30 Oct |
 | Grazing | Herds of wild and domestic animals graze, and grazing pressure shapes the land (see Animals) | Decided |
 | Worn paths | Where pawns walk often, trodden paths show in the world; a path speeds up walking, so routes prefer existing paths and pawns come to share them | Decided, 30 Oct |
@@ -519,7 +519,7 @@ When a village is full, its landless adults may leave to found a farm of their o
 | The new site | Meadow nobody owns, at least 3 steps from any house, green or field, with a block of 3 free fields and a wood within reach; the best by land, wood, water and nearness, its fields at least 0.9 times as fertile as the home village's | Proposed |
 | The booth | The party moves at once into a booth (*bod*) on the site and builds the cottage as its own household's work: foundation 30 hours, walls 60, roof 30; it clears its first field and makes more as any farm does | Proposed |
 | The new village | A village of one farm, no green or well, named for its founder (Erikstorp, Olofsboda); it keeps its mother village's customs and culture and records where it came from; its tie to the centre is computed as for any village, so a far daughter drifts more easily and may split off | Proposed |
-| Fresh land | A field broken on ground never farmed starts with soil 1.4, above manure's cap of 1.15, and wears 0.08 a crop as any field, so new land pays well for about 4 crops; in every scenario | Decided, 1 Nov (the bonus); Proposed (numbers) |
+| Fresh land | A field broken on ground never farmed starts with soil 1.4, above manure's cap of 1.15, and wears 0.08 a crop as any field: on a manured farm it is down to the cap in about 3 crops; without manure it stays 0.4 ahead of an old field until both reach the floor (about 9 crops); in every scenario | Decided, 1 Nov (the bonus); Proposed (numbers) |
 
 ## Claims, ownership and territory
 
