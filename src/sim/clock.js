@@ -18,6 +18,7 @@ VB['sim/clock'] = (() => {
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
   const { byreDay } = VB['sim/byre'];
+  const { lapseClaims } = VB['sim/claims'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
     for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
@@ -55,6 +56,7 @@ VB['sim/clock'] = (() => {
     }
     for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
+    lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);

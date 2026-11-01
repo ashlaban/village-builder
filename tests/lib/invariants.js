@@ -74,6 +74,25 @@ function checkState(st) {
       for (const m of f.meadows || []) if (st.owner[m.tile] === 0 || !st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unowned or unused`);
     }
   }
+  // claims on tiles (sim/claims, VB-042): valid tiles and claimants, no claimant twice on a tile, strengths in 0..1, no empty lists
+  if (st.claims) {
+    const CL = VB['sim/claims'], WHY = ['outland', 'field', 'meadow', 'farm', 'birthright'];
+    const exists = (by) => by.type === 'pawn' ? !!st.pawns[by.id] : by.type === 'household' ? !!st.households[by.id] : by.type === 'village' && !!st.villages[by.id];
+    for (const [tile, list] of st.claims) {
+      if (!tileOk(tile)) bad.push(`claims: tile ${tile} out of range`);
+      if (!list.length) bad.push(`claims[${tile}]: empty list kept`);
+      const seen = new Set();
+      for (const c of list) {
+        const k = c.by.type + ':' + c.by.id;
+        if (seen.has(k)) bad.push(`claims[${tile}]: ${k} claims twice`);
+        seen.add(k);
+        if (!exists(c.by)) bad.push(`claims[${tile}]: claimant ${k} does not exist`);
+        if (!['unrealised', 'realised'].includes(c.state) || !WHY.includes(c.why)) bad.push(`claims[${tile}]: ${k} is ${c.state}, ${c.why}`);
+        if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq)) bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
+        if (c.by.type === 'household' && st.households[c.by.id] && st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
+      }
+    }
+  }
   // nothing is built on a river tile (VB-111): houses, fields, fields in the making, plots and greens
   const onRiver = (t) => tileOk(t) && st.w.river[t] > 0;
   for (const f of st.farmsteads) {

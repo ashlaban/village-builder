@@ -5,8 +5,11 @@ VB['sim/ownership'] = (() => {
     const n = st.owner[tile];
     return n === 0 ? null : n > 0 ? { type: 'household', id: n - 1 } : { type: 'village', id: -n - 1 };
   };
-  // owner is {type: 'household'|'village', id} or null
-  const setOwner = (st, tile, owner) => { st.owner[tile] = !owner ? 0 : owner.type === 'household' ? owner.id + 1 : -owner.id - 1; };
+  // owner is {type: 'household'|'village', id} or null; the tile is marked for the Land overlay (st.landDirty, sim/claims)
+  const setOwner = (st, tile, owner) => {
+    st.owner[tile] = !owner ? 0 : owner.type === 'household' ? owner.id + 1 : -owner.id - 1;
+    if (st.landDirty) st.landDirty.add(tile);
+  };
   // Seeding: house and fields belong to the household, or to the village when the farm stands empty; the commons wood and the centre
   // (unless it is a house) belong to the village.
   function seedOwners(st) {

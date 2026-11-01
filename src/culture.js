@@ -64,6 +64,12 @@ const Culture = (() => {
       opts: [['equal', 'Equal shares'], ['children', 'Children first'], ['workers', 'Those who work first']] },
     { key: 'ownHeir', label: 'Heir to their own parents’ farm', m: 0.6,
       opts: [['behind', 'Steps behind other relatives'], ['keeps', 'Keeps their place']] },
+    { key: 'dispute', label: 'Disputed claims', m: 0.7, opts: [
+        ['first', 'The first claim stands'],
+        ['strongest', 'The strongest claim stands'],
+        ['kin', 'Kin of the last holder first'],
+        ['meeting', 'The meeting decides'],
+    ] },
   ];
   const OFF = [], NOPT = [], IDX = {};
   let TOTAL = 0;
@@ -74,7 +80,7 @@ const Culture = (() => {
     oldNordic: {
       claims: 'kin', newLand: 'village', handover: 'marriage', daughterShare: 'half', heirCount: 'buyout', widow: 'life', heirSex: 'sonsFirst',
       voice: 'landholders', birthOrder: 'eldest', residence: 'land', kinLimit: 'first',
-      feedOrder: 'equal', ownHeir: 'behind' },
+      feedOrder: 'equal', ownHeir: 'behind', dispute: 'first' },
   };
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
