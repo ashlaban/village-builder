@@ -15,6 +15,14 @@ Refactor rules (every task titled "Refactor:"):
 
 Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR.
 
+## Pick order
+
+Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 1 November 2026):
+1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
+2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game.
+3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
+4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
+
 ## Archs
 
 An arch groups the tasks that build one part of the design. Its tasks go through three phases:
@@ -46,7 +54,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | needs-review | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
 | VB-024 | Wood supply: how fast the forest runs out | - | - | ready | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
 | VB-026 | Name generators, and farm names in big villages | expansion | implement | ready | 3 | M | Name generators per entity kind, preferred per culture; farms: compass, landmark, owner. | [backlog/VB-026.md](backlog/VB-026.md) |
-| VB-032 | Constructing a new farmstead | expansion | implement | ready | 1 | L | Build the cottage on a cleared or ruined site; a new household moves in, starting from its shares. | [backlog/VB-032.md](backlog/VB-032.md) |
 | VB-033 | Claiming an empty farm | expansion | implement | needs-review | 1 | M | Landless adults claim empty farms under the `claims` custom and restore them before moving in. | [backlog/VB-033.md](backlog/VB-033.md) |
 | VB-034 | Splitting land between heirs | expansion | implement | blocked | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
 | VB-035 | Wrap-up: inheritance and expansion | expansion | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
@@ -58,7 +65,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-045 | Overlay cached per map chunk | claims | implement | ready | 3 | S | Draw the overlay per chunk and redraw only the chunks whose owners or claims changed. | [backlog/VB-045.md](backlog/VB-045.md) |
 | VB-046 | Wrap-up: claims, ownership and territory | claims | wrap-up | blocked | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. | [backlog/VB-046.md](backlog/VB-046.md) |
 | VB-048 | Wrap-up: tune yields and the food balance of a farm | animals | wrap-up | needs-review | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. | [backlog/VB-048.md](backlog/VB-048.md) |
-| VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 2 | L | Split the 1,600-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
+| VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 1 | L | Split the 1,900-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
 | VB-055 | Type checking of the JavaScript with checkJs | tooling | implement | ready | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. | [backlog/VB-055.md](backlog/VB-055.md) |
 | VB-057 | Golden text of the page's panels | tooling | implement | ready | 3 | S | Record the text of every panel for a fixed seed and day, so unintended UI changes fail the verify run. | [backlog/VB-057.md](backlog/VB-057.md) |
 | VB-058 | The village green and well, built by the village | expansion | implement | blocked | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
@@ -98,11 +105,12 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-126 | Occasions: the meeting, weddings and funeral ales bring people together | social | implement | needs-review | 2 | M | Gatherings on the map where several households, and other villages, meet and talk. | [backlog/VB-126.md](backlog/VB-126.md) |
 | VB-127 | Familiarity from talk and time at home, not from standing near each other | social | implement | needs-review | 3 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. | [backlog/VB-127.md](backlog/VB-127.md) |
 | VB-128 | Report: who is hungry and why | tooling | implement | ready | 2 | S | `tools/sim.js --report hunger`: hungry households with grain, fields, members and the cause. | [backlog/VB-128.md](backlog/VB-128.md) |
-| VB-129 | Spread the moving round over several steps | tooling | implement | needs-review | 2 | S | The yearly moving round ran in one 1 s step; VB-143 brought it to 20 ms; close or keep for saves. | [backlog/VB-129.md](backlog/VB-129.md) |
+| VB-129 | Spread the moving round over several steps | tooling | implement | needs-review | 2 | S | The yearly moving round ran in one 1 s step; VB-145 brought it to 20 ms; close or keep for saves. | [backlog/VB-129.md](backlog/VB-129.md) |
 | VB-130 | Grain outlets: what a hoard of grain does | food | implement | needs-review | 3 | S | Founders end up with 1,000+ grain and nothing to spend it on; add storage loss or another outlet. | [backlog/VB-130.md](backlog/VB-130.md) |
 | VB-136 | Herding and grazing pressure | animals | implement | ready | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. | [backlog/VB-136.md](backlog/VB-136.md) |
 | VB-139 | Roe deer | animals | implement | ready | 3 | M | Deer stock per region, crop damage by broken fences, hunting. | [backlog/VB-139.md](backlog/VB-139.md) |
 | VB-140 | Livestock in shares and a new household's start | animals | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |
 | VB-141 | Plan: customs of the animals | animals | plan | ready | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. | [backlog/VB-141.md](backlog/VB-141.md) |
 | VB-142 | A pawn is allotted at most one cleared plot | expansion | implement | ready | 2 | S | Fix: `allot` gives a second cleared plot to a pawn who already holds one. | [backlog/VB-142.md](backlog/VB-142.md) |
+| VB-143 | A profile report: where a game day's time goes | tooling | implement | ready | 2 | S | `tools/sim.js --report perf`: milliseconds per system per game day, so the next slow step is found, not guessed. | [backlog/VB-143.md](backlog/VB-143.md) |
 | VB-144 | Ewes' milk and wool | animals | implement | needs-review | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |

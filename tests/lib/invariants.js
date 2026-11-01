@@ -64,6 +64,10 @@ function checkState(st) {
   }
   for (const v of st.villages) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
+    for (const pl of v.plots || []) {
+      if (pl.cottage && !(Number.isInteger(pl.cottage.i) && pl.cottage.i >= 0 && pl.cottage.i <= 3)) bad.push(`villages[${v.id}]: plot ${pl.id} cottage stage ${pl.cottage.i}`);
+      if (pl.built && !st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
+    }
     for (const pl of v.plots || []) for (const tr of pl.tiles) if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id} on river tile ${tr.tile}`);
   }
   // worn paths (VB-094): counts finite and not negative, none on water; a stage from 0 to 3 that its count supports

@@ -31,9 +31,9 @@ The balance review (`docs/review-balance.md`) built milk, manure and oxen and tu
 The rule is built (no `plow` job while another field is hoed and its seed is in the house), but it does not bring in a crop in year 2 at seeds 7 and 11: a lone bachelor sows his first field only on spring day 4–7, after water, wood and cooking, so the stooks are lost to frost on summer day 11, and crops in year 3 fall from 3 to 0–1.
 1. What should give? **P:** lower the assertion, since the lone bachelor of the founders scenario is a harsh case: at least 1 crop in years 1–3 taken together at each of seeds 3, 7, 11 and 42 (the run reports them per year); and sow before wood and water for any household with a hoed field and seed in the house (a one-line priority change in `ROLES`), as it is the one chore with a closing date.
 
-### VB-129: the moving round in slices (raised by VB-143, balance review of 31 October)
-VB-143 cached the heir rankings that made the round cost 1.3 s; it now takes about 20 ms in one step on populous medium at seed 7.
-1. Is VB-129 still wanted? **P:** close it as met by VB-143; if saves (VB-074) ever need to stop inside the round, that task can slice it.
+### VB-129: the moving round in slices (raised by VB-145, balance review of 31 October)
+VB-145 cached the heir rankings that made the round cost 1.3 s; it now takes about 20 ms in one step on populous medium at seed 7.
+1. Is VB-129 still wanted? **P:** close it as met by VB-145; if saves (VB-074) ever need to stop inside the round, that task can slice it.
 
 ### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
 Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.

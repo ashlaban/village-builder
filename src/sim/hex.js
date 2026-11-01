@@ -14,7 +14,7 @@ VB['sim/hex'] = (() => {
     }
     return { dist, prev };
   }
-  // Steps from `from` to `to` by the same search as bfs, or -1 beyond maxSteps; it stops once `to` is reached (VB-143: the yearly ties
+  // Steps from `from` to `to` by the same search as bfs, or -1 beyond maxSteps; it stops once `to` is reached (VB-145: the yearly ties
   // searched the whole island from each village).
   let mark = new Int32Array(0), stamp = 0, depth = new Int32Array(0);
   function stepsTo(w, from, to, maxSteps, pass) {

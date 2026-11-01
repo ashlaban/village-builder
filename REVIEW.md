@@ -280,3 +280,39 @@ Since the first review 59 tasks are done, among them the food balance (VB-080), 
 - VB-032 set `ready` (was blocked on a task that is done).
 - New: VB-128 (hunger report, `ready`), VB-129 (spread the moving round, `ready`, unblocks VB-088), VB-130 (grain outlets, `needs-review`).
 - VB-023 set `needs-review`: its blocking question was in the task file only; it is now in `QUESTIONS.md`.
+
+## Review, 1 November 2026 (at `7e92296`, after the animals' first batch)
+
+Since the review of 31 October: VB-131 to VB-134 (herds, hay meadows, haymaking, the byre and the autumn count), VB-039 (food help from kin and the village), VB-029, VB-025, VB-105 and the relationships work (VB-060, VB-061, VB-124, VB-125) are done and archived. `npm test` passes (36 scripts, 28 s) and `npm run verify` passes (44 scripts, 69 s). No question in `QUESTIONS.md` has been answered, so none moved to the archive.
+
+### Summary
+
+1. **Growth is still the gap.** Founders at seed 7 hold 11, 13, 13, 13, 14, 13 ... 13 people over 12 years, with 2 marriages. The animals arch was built first; the critical path (VB-142, VB-032, VB-033, VB-034) is untouched. VB-033's four questions have waited since 30 October; if they stay open, their proposed answers (**P**) are a safe default for the next review to adopt.
+2. **Animals work as designed in the first batch.** Founders keep named cattle and counted sheep; calves and lambs are born in year 2; hay over winter need is 0.57 to 1.45 (median 1.05) across 20 populous households; the byre counts and culls each autumn. The cost is not visible: 95-100 ms per game day on populous medium both before (`c613a9b`) and after.
+3. **Hunger is uneven and returned in year 5.** Populous medium at seed 7: hungry household-days 0, 33, 61, 59, 246, 132 in years 1-6 with mean grain 260-350. The cause is unknown until VB-128 (hunger report) exists; it is the cheapest task that unblocks tuning (VB-130, VB-023, VB-048).
+4. **The page script is the collision point for parallel work.** `src/body.html` is 1,894 lines, 250 more than a day ago, and seven open presentation tasks edit it. VB-053 is now priority 1 and first in the new "Pick order" of `BACKLOG.md`.
+5. **Two cost numbers disagree.** `tools/sim.js` shows about 100 ms a game day; the Systems overview said 62. VB-143 (profile report) finds out which systems take the time and why.
+6. **Idle work is lower in the small populous run.** Mean unclaimed jobs at the end of a work day, seed 7 small, 3 years: plow 7, wood 9, mow 6, cook 3, sow 1. The jobs queue for wood and plowing is the thing to watch once herding (VB-136) adds work.
+
+### Design against code (changes since 31 October)
+
+| Design point | Status | Notes |
+| --- | --- | --- |
+| Herds as named cattle and counted sheep, spring breeding, bull in reach | done | VB-131 |
+| Hay meadows, haymaking, hay barn, winter limit | done | VB-132, VB-133 |
+| Byre, autumn count, slaughter, salt meat | done | VB-134 |
+| Milk, herding, manure, oxen, deer | task | VB-135 to VB-139 |
+| Food help from kin and the village | done | VB-039 |
+| A farmstead on a cleared plot | task | VB-032, `ready`, priority 1, not started |
+
+### Code observations
+
+- Module sizes are within the convention (largest module `src/gen.js`, 672 lines, in the lint baseline); the animals modules (`herds.js` 280, `byre.js` 186) are small and have their own tests (`tests/herds.js`, `hay.js`, `byre.js`, `meadows.js`).
+- Inspectability is good: `tools/sim.js` has ten reports, and `--report herds` was added with the herds. What is missing is time per system (VB-143) and the reason for hunger (VB-128).
+- The `--report` names are listed in three places in `tools/sim.js` (usage line, validation list, tables). A new report must be added to all three; a worker adding two reports at once should check the usage line.
+
+### Backlog changes from this review
+
+- New: VB-143 (profile report, `ready`, priority 2).
+- VB-053 raised to priority 1; "Pick order" added to `BACKLOG.md`; VB-128 got a note on the year-5 hunger numbers.
+- Nothing to archive (VB-131 to VB-134 were archived with the merge) and no answered question to move.

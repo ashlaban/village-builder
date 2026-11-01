@@ -1,4 +1,4 @@
-// @sys sim/expansion: clearing a new plot for those who want to move out: trigger, site, jobs, progress and who gets it
+// @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable } = VB['sim/rules'];
@@ -9,11 +9,13 @@ VB['sim/expansion'] = (() => {
   const { clearTile } = VB['sim/forest'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, nextTo } = VB['sim/layout'];
+  const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // Whether the pawn may claim an empty farm instead of waiting for a plot. Null until claiming empty farms is built (VB-033).
   const claimableFarm = (st, pawnId) => null; // eslint-disable-line no-unused-vars
   const activePlots = (v) => v.plots.filter((p) => !p.done);
+  const building = (p) => p.done && p.holder !== null && p.cottage && !p.built;
   const stepsFor = (w, tile, kind) => [...wooded(w, tile) ? ['fell', 'grub'] : [], 'clear', ...kind === 'field' ? ['break'] : []];
   const stepHours = (st, tr) => {
     const s = tr.steps[tr.i];
@@ -91,6 +93,11 @@ VB['sim/expansion'] = (() => {
       if (tr.i >= tr.steps.length) continue;
       out.push([`plot:v${v.id}.${plot.id}.${tr.tile}`, tr.steps[tr.i], tr.tile, { plot, tr, hours: stepHours(st, tr) }]);
     }
+    for (const v of st.villages) for (const plot of v.plots.filter(building)) {
+      const k = plot.cottage, key = `plot:v${v.id}.${plot.id}.cottage`, live = st.jobs.get(key);
+      if (live) k.done = live.done; // hours worked on the open stage persist while the job is dropped and posted again
+      out.push([key, COTTAGE[k.i], plot.tiles[0].tile, { plot, cottage: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }]);
+    }
     return out;
   }
   // 0..1: finished steps of the plot's tiles, with the hours already worked on the open ones.
@@ -104,18 +111,25 @@ VB['sim/expansion'] = (() => {
     }
     return total ? got / total : 1;
   }
+  // The pawn, or their spouse, is already to have a cleared plot whose cottage is not yet built.
+  function awaitsCottage(st, id) {
+    const sp = spouseOf(st, id);
+    return st.villages.some((u) => u.plots.some((p) => building(p) && (p.holder === id || (sp !== null && p.holder === sp))));
+  }
   // The village's pick among those still waiting, by `village` rule: married couples first, then by age, single adults once no couple waits.
   function byVillage(st, v, ids) {
-    const live = ids.filter((id) => st.pawns[id].alive && !isHolder(st, id));
+    const live = ids.filter((id) => st.pawns[id].alive && !isHolder(st, id) && !awaitsCottage(st, id));
     const couple = (id) => { const sp = spouseOf(st, id); return sp !== null && st.pawns[sp].alive ? 0 : 1; };
     live.sort((a, b) => couple(a) - couple(b) || st.pawns[a].born - st.pawns[b].born || a - b);
     return live.length ? live[0] : null;
   }
   function allot(st, v, plot) {
     const waiting = st.demand.filter((id) => settlementIdOf(st, st.pawns[id]) === v.id);
-    const rule = practice(st, v.id).newLand, worked = Object.keys(plot.hours).map(Number).filter((id) => st.pawns[id].alive);
+    const rule = practice(st, v.id).newLand, worked = Object.keys(plot.hours).map(Number)
+      .filter((id) => st.pawns[id].alive && !awaitsCottage(st, id) && !isHolder(st, id));
     let pick = null;
-    if (rule === 'intended' && st.pawns[plot.intended].alive && !isHolder(st, plot.intended)) pick = plot.intended;
+    if (rule === 'intended' && st.pawns[plot.intended].alive && !isHolder(st, plot.intended)
+      && !awaitsCottage(st, plot.intended)) pick = plot.intended;
     else if (rule === 'labour' && worked.length) {
       worked.sort((a, b) => plot.hours[b] - plot.hours[a] || st.pawns[a].born - st.pawns[b].born || a - b); pick = worked[0];
     }
@@ -124,6 +138,7 @@ VB['sim/expansion'] = (() => {
   }
   // A tile's step is done: stumps stay after felling, grubbing turns the wood into meadow, clearing takes the stones, breaking turns the soil.
   function finishStep(st, j) {
+    if (j.cottage) return finishCottageStage(st, j);
     const w = st.w, { plot, tr } = j, step = tr.steps[tr.i], v = st.villages[plot.village];
     if (step === 'fell') { w.trees[tr.tile] = 0; st.regrow.delete(tr.tile); st.treeDirty.add(tr.tile); }
     else if (step === 'grub') clearTile(st, tr.tile);
@@ -131,10 +146,15 @@ VB['sim/expansion'] = (() => {
     else if (tr.kind === 'field') w.dev[tr.tile] = 1;
     tr.i++; st.biomeDirty.add(tr.tile); st.visualDirty = true;
     if (!plot.tiles.every((q) => q.i >= q.steps.length)) return;
-    plot.done = true; plot.holder = allot(st, v, plot);
+    plot.done = true; plot.holder = allot(st, v, plot); plot.cottage = { i: 0, done: 0 }; plot.built = false;
     if (plot.holder === null) { log(st, `${v.name} has cleared a new plot; nobody is left to claim it.`); return; }
     personEvent(st, plot.holder, 'plot', `Was allotted a cleared plot in ${v.name}`);
     log(st, `${v.name} has cleared a new plot, and ${fullName(st.pawns[plot.holder])} is to have it.`);
   }
-  return { claimableFarm, startPlots, plotJobs, plotProgress, finishStep, activePlots };
+  // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
+  function finishCottageStage(st, j) {
+    const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
+    if (plot.cottage.i >= COTTAGE.length) VB['sim/cottage'].finishCottage(st, plot);
+  }
+  return { COTTAGE, building, claimableFarm, startPlots, plotJobs, plotProgress, finishStep, activePlots };
 })();

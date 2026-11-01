@@ -1308,12 +1308,18 @@
     for (const v of st.villages) {
       if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
       for (const s2 of v.fence) addFence(s2);
-      for (const plot of v.plots) for (const tr of plot.tiles) {
+      for (const plot of v.plots.filter((q) => !q.built)) for (const tr of plot.tiles) {
         // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
         const g = new PIXI.Graphics(), x = wd.hx[tr.tile], y = wd.hy[tr.tile], step = tr.steps[tr.i];
         if (step === 'grub') for (const [dx, dy] of [[-7, 2], [0, -5], [6, 4], [-2, 8]]) g.ellipse(x + dx, y + dy, 2.2, 2.2).fill(0x5a4128);
         if (tr.kind === 'field' && tr.i >= tr.steps.length) g.ellipse(x, y + 2, 14, 8).fill({ color: 0x6b4a2e, alpha: 0.85 });
-        if (!plot.done) g.ellipse(x, y + 2, 16, 9).stroke({ width: 1.5, color: 0xf2e6c4, alpha: 0.7 });
+        if (tr.kind === 'house' && plot.cottage) { // the cottage by stage: foundation stones, rising log walls, then the turf roof
+          const n = plot.cottage.i;
+          if (n >= 1) for (const [dx, dy] of [[-9, 3], [-3, 6], [4, 6], [10, 3], [-9, -3], [10, -3]]) g.ellipse(x + dx, y + dy, 3, 2).fill(0x8b8a84);
+          if (n >= 2) g.rect(x - 9, y - 7, 19, 12).fill(0x7a5a38).stroke({ width: 1, color: 0x4a3524 });
+          if (n >= 3) g.poly([x - 11, y - 6, x, y - 17, x + 12, y - 6]).fill(0x5f7a3a);
+        }
+        if (!plot.done || (plot.cottage && !plot.built)) g.ellipse(x, y + 2, 16, 9).stroke({ width: 1.5, color: 0xf2e6c4, alpha: 0.7 });
         L.fences.addChild(g);
       }
     }
@@ -1532,7 +1538,7 @@
         h += `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done</p>`;
       }
       for (const plot of v.plots.filter((q) => q.done)) {
-        h += `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; the cottage is yet to be built.</p>`;
+        h += `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage && !plot.built ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
       }
       for (const f of empties) h += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
       h += '</div>';

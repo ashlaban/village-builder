@@ -10,7 +10,7 @@ Measurements are from `populous` on the small map (about 350–450 people) at se
 
 A CPU profile of one game year of populous medium at seed 7, after a year's warm-up, at `7e92296` (before this review): 127 ms per game day on average, but a worst day of 669 ms, and a worst single 6-minute step of **1,305 ms** in year 1: the moving round, which the page shows as a freeze.
 
-| Part (inclusive) | Before | After VB-143 |
+| Part (inclusive) | Before | After VB-145 |
 | --- | --- | --- |
 | Contact hours (`noteContacts`) | 16% | 18% |
 | Talk (`talkHour`) | 16% | 17% |
@@ -23,7 +23,7 @@ A CPU profile of one game year of populous medium at seed 7, after a year's warm
 
 **The fault:** VB-052 had cached the man's place in the marriage match, but the woman's place was a default argument, `homeFor(m, f, cu, pm = place(m), pf = placeIfMarried(st, f.id))`, computed afresh for every pair, and each call ranked the heirs of every farm, each ranking ranking every other farm again: men × women × farms². `kinPressure`, `wantsOut` and the handover loop did the same. The yearly meetings' `updateTies` searched 160 steps of the island from every village.
 
-**The fix (VB-143, behaviour unchanged):** one `ownFirstOf` shared until a marriage or a handover changes the families; `stepsTo`, a breadth-first search that stops at its target; the page's smoke loop marks the cooking households in one pass instead of one pass over all agents per house. The golden file is unchanged, and a 3-year populous medium run hashes the same before and after.
+**The fix (VB-145, behaviour unchanged):** one `ownFirstOf` shared until a marriage or a handover changes the families; `stepsTo`, a breadth-first search that stops at its target; the page's smoke loop marks the cooking households in one pass instead of one pass over all agents per house. The golden file is unchanged, and a 3-year populous medium run hashes the same before and after.
 
 | Populous medium, seed 7 | Before | After |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ In pre-industrial Sweden "remarriage was common..., especially among men"; age l
 
 | Task | What it adds |
 | --- | --- |
-| VB-143 | The performance fix above |
+| VB-145 | The performance fix above |
 | VB-135 Milk and butter | A cow that calved this spring is in milk while the herds are out; a daily milking job at the byre gives 0.5 rations a cow (less for the winter's lean days); 40% is churned to butter that keeps a year; the meal drinks the day's milk first. The ledger records milk, butter and meat |
 | VB-137 Manure and the soil | Each field has a soil; a crop yields in proportion and wears it by 0.08 to 0.75; feeding in the byre puts dung on the heap; in spring it is carted to the poorest field before the hoe |
 | VB-138 Oxen at the plough | Two oxen draw the ard for the first hand on the household's hoeing or breaking, at 2.5 times; the team is in one field at a time |
@@ -251,7 +251,7 @@ By the year's weather:
 
 - Profile: `node --cpu-prof` of a scratch script that seeds populous medium at seed 7, advances a year, then times 48 single days; inclusive time summed per function.
 - Steps: a scratch script timing every `Sim.advance(st, 0.1)` over 2 years of populous medium at seed 7, before (a `git worktree` of `7e92296`) and after.
-- Equivalence: a scratch script hashing pawns, households, unions, demand, log and herds after 3 years of populous medium at seed 7, before and after VB-143.
+- Equivalence: a scratch script hashing pawns, households, unions, demand, log and herds after 3 years of populous medium at seed 7, before and after VB-145.
 - Balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15 --from 2` and `--scenario founders ... --years 30 --from 3`, before at `ab09a65` and after.
 - Hunger causes: a scratch script stepping populous small a day at a time and classifying each hungry household-day (no grain and nothing ripe, a crop ripe in the field, sheaves not threshed, grain kept as seed).
 - Land: a scratch script counting, after 10 years, households with fewer fields than their need and whether they lack free land or hands.

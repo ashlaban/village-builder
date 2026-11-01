@@ -161,6 +161,12 @@ VB['sim/kinds'] = (() => {
       verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
       type: 'tilling', field: true, spot: onField,
     },
+    foundation: { verb: 'Laying the foundation', go: 'Going to lay a foundation', name: 'Lay the foundation', label: 'Foundation', anim: 'mallet', hours: 30,
+      hands: Infinity, type: 'wood' },
+    walls: { verb: 'Raising the log walls', go: 'Going to raise the walls', name: 'Raise the walls', label: 'Walls', anim: 'chop', hours: 60, hands: Infinity,
+      type: 'wood' },
+    roof: { verb: 'Laying the turf roof', go: 'Going to lay the roof', name: 'Lay the roof', label: 'Roof', anim: 'mallet', hours: 30, hands: Infinity,
+      type: 'wood' },
     mend: {
       verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
       type: 'upkeep',

@@ -7,7 +7,7 @@ const table = run('--years', '1');
 check(/^\s+1\s+\d+/m.test(table), 'no line for year 1');
 const rows = JSON.parse(run('--years', '1', '--json', '--report', 'households'));
 const it = VB.gen.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
-check(Array.isArray(rows) && rows.length === VB.sim.seed(r.value, 7, 'founders').households.length, `households report has ${rows.length} entries`);
+check(Array.isArray(rows) && rows.length >= VB.sim.seed(r.value, 7, 'founders').households.length, `households report has ${rows.length} entries`);
 check(rows.every((h) => typeof h.grain === 'number'), 'household entries lack grain');
 const idle = JSON.parse(cp.execFileSync('node', [tool, '--scenario', 'founders', '--seed', '7', '--map', 'tiny', '--years', '1', '--report', 'idle', '--json'], { encoding: 'utf8' }));
 for (const [role, bs] of Object.entries(idle.hoursShare)) for (const [season, v] of Object.entries(bs)) {
