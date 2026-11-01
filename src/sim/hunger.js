@@ -1,6 +1,6 @@
-// @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, each pawn's hunger level and health
+// @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, DAY } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
@@ -63,5 +63,14 @@ VB['sim/hunger'] = (() => {
     if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
-  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood };
+  // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
+  // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
+  function spoilGrain(st, hh) {
+    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = hh.grain;
+    if (!(g > 0)) return;
+    const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
+    const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
+    hh.grain -= lost; hh.spoilt = (hh.spoilt || 0) + lost;
+  }
+  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();

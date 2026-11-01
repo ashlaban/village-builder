@@ -1,7 +1,7 @@
 // @sys sim/layout: placing villages, farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, farmable, byRiver, fertility, DIRNAME } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -98,7 +98,7 @@ VB['sim/layout'] = (() => {
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
-        weedOpen: false, weedPosted: null, weedMiss: 0 })),
+        soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [],
     };
   }
@@ -230,7 +230,7 @@ VB['sim/layout'] = (() => {
     if (best < 0) return false;
     used.add(best);
     f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
-      weedOpen: false, weedPosted: null, weedMiss: 0 });
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.

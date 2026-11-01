@@ -17,5 +17,11 @@ for (const [role, bs] of Object.entries(idle.hoursShare)) for (const [season, v]
 check(Object.keys(idle.hoursShare).length > 0, 'idle report has no roles');
 const paths = JSON.parse(cp.execFileSync('node', [tool, '--scenario', 'populous', '--seed', '7', '--map', 'tiny', '--years', '0', '--report', 'paths', '--json'], { encoding: 'utf8' }));
 check(paths[0].village === 'all' && paths[0].trodden + paths[0].path > 0 && paths.length > 1, 'paths report: no worn-in paths on a populous map');
+// tools/balance.js (VB-048): food made by source against need, per household-year; made is the sum of the sources
+const bal = JSON.parse(cp.execFileSync('node', [path.join(__dirname, '..', 'tools', 'balance.js'), '--scenario', 'populous', '--seeds', '7', '--map', 'tiny',
+  '--years', '2', '--from', '1', '--json'], { encoding: 'utf8' }));
+check(bal.rows.length > 0 && bal.bySize.length > 0 && bal.byWeather.length > 0, 'balance report is empty');
+check(bal.rows.every((x) => Math.abs(x.grain + x.milk + x.butter + x.meat - x.total) < 0.2 && x.need > 0), 'balance rows: sources do not add up');
+check(bal.rows.some((x) => x.milk > 0) && bal.rows.some((x) => x.grain > 0), 'balance rows: no grain or no milk in two years');
 if (failed) process.exit(1);
-console.log(`tools ok: ${rows.length} households`);
+console.log(`tools ok: ${rows.length} households; balance: ${bal.rows.length} household-years`);

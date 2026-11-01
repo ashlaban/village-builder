@@ -15,9 +15,25 @@ The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 
 
 ## Priority 2
 
+### Balance review: the tuned values (raised 1 November 2026)
+The balance review (`docs/review-balance.md`) built milk, manure and oxen and tuned the food balance; the values below are in the code as Proposed. Numbers are from `tools/balance.js` over 4 seeds.
+1. Fields by labour (your rule: no fixed cap). **P:** a household wants fields for 1.1 times its rations at three quarters of the full yield, but no more than 2 a working adult (14 to 59, not retired) and 1.5 more with a team of oxen (`FIELDS` in `src/sim/rules.js`); every scenario makes fields and meadows; heath, hills or marsh only when no meadow is free.
+2. Grain spoils in store. **P:** 5% a year of the first year's need held, 20% of the second, 40% of the rest; the village store 20% a year (`ECON.storeLoss`, `ECON.villageStoreLoss`).
+3. Haymaking to need. **P:** rake and mow only while the barn and the hay lying mown hold less than 2 winters' need of the animals now; none without animals.
+4. Manure. Built: the heap loses half a year and carting goes before the hoe (urgency 1.7). With +0.04 a load, 1.5 head of cattle keep 3 fields at full strength and more cattle add nothing to the corn; +0.02 (about 3 head) makes herd size show in the harvest, as dung was scarce in history, but cost about a quarter more hungry days over 8 seeds. **P:** keep +0.04 now; revisit with herding (VB-136) and food from the wild (VB-117, VB-118), when farms have more slack.
+5. Remarriage. **P:** a widowed partner's age gap counts half (`MARRIAGE.widowedGapWeight` 0.15).
+6. Meat. History puts a small medieval cow's meat at about 9 rations; the game has 15. With milk in, a cow alive gives 15 to 32 rations a year (milk, a calf, and dung while the fields need it), so the carcass is worth about a year of her life either way. **P:** keep 15 (it stands in for the offal, blood, tallow and hide the game does not count).
+7. Ewes' milk and wool. Walter of Henley (13th century) counts 20 ewes on salt-marsh pasture as giving the cheese and butter of 2 cows, and the *Hosebondrie* milks ewes only until August. **P:** a later task (VB-144): ewes in milk from turn-out to summer's end at 0.05 rations a day, wool with the winter crafts (VB-121).
+8. Yields rising over a game (VB-048). **P:** the soil's cap rises with a village's years of farming, from 1.15 by 0.1 a century, so well-dunged old farms out-yield new ones by about 10% after 100 years.
+
+
 ### VB-023: sowing a hoed field before the next (raised by the nightly run of 30 October; gathered in the review of 31 October)
 The rule is built (no `plow` job while another field is hoed and its seed is in the house), but it does not bring in a crop in year 2 at seeds 7 and 11: a lone bachelor sows his first field only on spring day 4–7, after water, wood and cooking, so the stooks are lost to frost on summer day 11, and crops in year 3 fall from 3 to 0–1.
 1. What should give? **P:** lower the assertion, since the lone bachelor of the founders scenario is a harsh case: at least 1 crop in years 1–3 taken together at each of seeds 3, 7, 11 and 42 (the run reports them per year); and sow before wood and water for any household with a hoed field and seed in the house (a one-line priority change in `ROLES`), as it is the one chore with a closing date.
+
+### VB-129: the moving round in slices (raised by VB-145, balance review of 31 October)
+VB-145 cached the heir rankings that made the round cost 1.3 s; it now takes about 20 ms in one step on populous medium at seed 7.
+1. Is VB-129 still wanted? **P:** close it as met by VB-145; if saves (VB-074) ever need to stop inside the round, that task can slice it.
 
 ### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
 Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
@@ -48,6 +64,7 @@ Kim kept the tie model unchanged in VB-061; this is the later rework.
 ### VB-130: what grain does once a household is fed (raised in the review of 31 October)
 Founders at seed 7 hold 300 grain per household in year 2 and 1,700 in year 38, with 12–14 people: a surplus has no use and no loss.
 1. What is the first outlet? **P:** storage loss, which is the cheapest and historically true (damp, mice, weevils): each year 8% of the grain above a year's food for the household is lost at the autumn count (so a household keeps a buffer but a hoard shrinks), shown in the household panel as "spoilt"; a tithe and trade stay for later (Open, "Outlets for grain").
+   - Balance review, 1 November: built as a daily loss by tiers instead (question 2 under "Balance review: the tuned values"): 8% above a year's need left founders' stores near 600 and rising; with 5%, 20% and 40% by years of need held they level off near 350–400. If accepted, VB-130 is done.
 
 ### VB-120: village work days (job review, second pass)
 1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.

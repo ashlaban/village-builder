@@ -18,8 +18,9 @@ const Sim = (() => {
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
-  const { HERD } = VB['sim/rules'];
-  const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport } = VB['sim/herds'];
+  const { HERD, SOIL } = VB['sim/rules'];
+  const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
+  const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
 
   return {
@@ -27,7 +28,7 @@ const Sim = (() => {
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut,
     isHolder, holdingOf, settlementIdOf, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
-    HERD, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf,
+    HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
   };
 })();
 VB['sim'] = Sim;

@@ -9,7 +9,7 @@ VB['sim/scenarios'] = (() => {
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { dailyNeed } = VB['sim/hunger'];
-  const { refreshRoles, wantsOut, firstHeirs } = VB['sim/heirs'];
+  const { refreshRoles, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
@@ -162,13 +162,16 @@ VB['sim/scenarios'] = (() => {
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
-    //   ledger[] ({t, kind, n}; kind 'gift' has n signed and from or to; sim/help), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
-    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat', n, until}: stored food lots; sim/hunger),
-    //   fodderDay (the last day the animals were fed in the byre; sim/byre)}
+    //   ledger[] ({t, kind, n}; kind 'harvest', 'gift' (n signed, from or to; sim/help), 'meat', 'milk' (drunk fresh), 'butter' (rations made;
+    //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
+    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
+    //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, weedOpen, weedPosted (day), weedMiss (jobs missed)};
+    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
+    //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
@@ -177,7 +180,8 @@ VB['sim/scenarios'] = (() => {
     //   farmstead is then its id; sim/cottage),
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
-    // @state st.makeFields: boolean; households start projects for new fields (founders scenario only; see sim/fields)
+    // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;
+    //   tests may turn it off; see sim/fields, sim/meadows)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
@@ -200,7 +204,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     const st = {
       t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: false, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -214,7 +218,9 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
-    st.countDemand = () => { const heirs = firstHeirs(st); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs)).map((p) => p.id); };
+    st.countDemand = () => {
+      const own = ownFirstOf(st), heirs = firstHeirs(st, own); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs, own)).map((p) => p.id);
+    };
     return st;
   }
 
