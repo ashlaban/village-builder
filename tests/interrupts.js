@@ -12,6 +12,8 @@ function morning() {
   const st = Sim.seed(world, 7, 'heirs'), hh = st.households[0];
   for (const id of hh.members.slice(3)) { const p = st.pawns[id]; p.died = st.t; p.alive = false; }
   hh.members = hh.members.slice(0, 3);
+  // no manure to cart (VB-137), which outranks hoeing: whether the heap holds a load moves with the random draws
+  for (const fd of st.farmsteads[hh.farmstead].fields) fd.soil = Sim.SOIL.cap;
   const [farmer, , son] = hh.members.map((id) => st.agents[id]);
   Sim.advance(st, Math.floor(st.t) + 0.5 - st.t);
   while (!(hoeing(farmer) && hoeing(son)) && st.t < 15) Sim.advance(st, 1);

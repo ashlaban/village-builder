@@ -13,6 +13,8 @@ function hoe(hands) {
     hh.members = hh.members.slice(0, 3);
     for (const q of f.fields.slice(1)) { q.stage = 'sown'; q.sown = 0; }
     for (const m of f.meadows) m.raked = true; // no spring raking (VB-133) to take hands from the hoeing measured here
+    for (const q of f.fields) q.soil = Sim.SOIL.cap; // nor manure to cart (VB-137): whether the heap holds a load moves with the random draws
+    for (const hd of Sim.herdsOf(st, hh)) if (hd.head) hd.head = hd.head.filter((h) => h.kind !== 'ox'); // nor a team (VB-138), which speeds one hoer
     const t0 = st.t; let most = 0, rows = 0;
     while (fd.stage === 'stubble' && st.t < t0 + 4 * Sim.DAY) {
       Sim.advance(st, 0.5);

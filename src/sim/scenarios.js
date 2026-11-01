@@ -186,7 +186,7 @@ VB['sim/scenarios'] = (() => {
     //   farmed; VB-149)}}; a plot is cleared for those who want out
     //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);
     //   founded {t, from (village id), by (pawn id)} for a village founded in play by settlers, else null (sim/settle)
-    // @state st.owner: Int32Array of tile owners (see sim/ownership)
+    // @state st.owner: Int32Array of tile owners (see sim/ownership). st.claims, st.claimSeq, st.landDirty: see sim/claims
     // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;
     //   tests may turn it off; see sim/fields, sim/meadows)
     // @state st.used: Set of tile indexes taken by houses and fields
@@ -220,6 +220,7 @@ VB['sim/scenarios'] = (() => {
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
+      claims: new Map(), claimSeq: 0, landDirty: new Set(),
     };
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);

@@ -122,6 +122,12 @@ VB['sim/society'] = (() => {
       const young = childrenOf(st, p.id).filter((c) => st.pawns[c].alive && st.pawns[c].age < 14 && st.pawns[c].household === p.household);
       if (young.length) set('feedOrder', { children: 1 });
       if (p.kinPush) set('kinLimit', { [p.kinPush.to]: p.kinPush.w });
+      // disputed claims (sim/claims): holders favour the claim already made, the landless the claim that is worked or has friends; a household
+      // that lost a dispute leans for a while towards the rules that would have let it win
+      if (landless) set('dispute', { strongest: 0.5, meeting: 0.5 });
+      if (holder) set('dispute', { first: 0.6, kin: 0.4 });
+      const gr = p.household !== null ? st.households[p.household].grievance : null;
+      if (gr && st.t < gr.until && p.age >= 16) set('dispute', Object.fromEntries(gr.rules.map((r) => [r, 1 / gr.rules.length])));
       p.interest = it;
     }
   }

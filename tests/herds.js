@@ -19,8 +19,11 @@ for (const h of hhs) {
   check(h.hay === want, `founders: household ${h.id} starts with ${h.hay} hay, wanted ${want}`);
 }
 check(!checkState(st).length, 'founders at the start: ' + checkState(st).slice(0, 3).join('; '));
-// a year and spring day 3: calves and lambs
+// a year and spring day 3: calves and lambs. Cattle do not die over this winter, so the bull's yearly chance of dying (3%, which fell on it
+// once the Disputed claims custom shifted the random draws) does not decide a test of calving.
+const deathRate = Sim.HERD.death.cattle; Sim.HERD.death.cattle = 0;
 Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
+Sim.HERD.death.cattle = deathRate;
 const calves = st.herds.reduce((s, hd) => s + (hd.head ? hd.head.filter((h) => h.kind === 'calf').length : 0), 0);
 const lambs = st.herds.reduce((s, hd) => s + (hd.lambs || 0), 0);
 check(calves >= 2 && lambs >= 3, `founders year 2: ${calves} calves and ${lambs} lambs born`);

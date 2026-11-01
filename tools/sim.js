@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
@@ -8,7 +8,7 @@ const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'land'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -68,6 +68,32 @@ const tables = {
       booths: farms.filter((f) => f.booth).length, people, crowded: v.crowded,
       founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '' };
   }),
+  // land (sim/claims, VB-155): per village, the tiles it holds by kind and its households' tiles, claims held and on disputed tiles, cairns
+  // (VB-157), and the hex steps from its land to the nearest other village's land
+  land: () => {
+    const w = st.w, { hexSteps } = VB['sim/hex'], CL = VB['sim/claims'], held = CL.holdings(st), cairns = st.cairns || new Map();
+    const villageOfOwner = (n) => (n < 0 ? -n - 1 : st.farmsteads[st.households[n - 1].farmstead].village);
+    const tiles = st.villages.map(() => []);
+    for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0) tiles[villageOfOwner(st.owner[t])].push(t);
+    const villageOfClaim = (c) => (c.by.type === 'village' ? c.by.id : c.by.type === 'household' ? st.farmsteads[st.households[c.by.id].farmstead].village : null);
+    const disputed = st.villages.map(() => 0);
+    for (const list of st.claims.values()) if (list.length > 1) for (const v of new Set(list.map(villageOfClaim))) if (v !== null) disputed[v]++;
+    return st.villages.map((v) => {
+      const own = held.villages.get(v.id) || { green: 0, farms: 0, plots: 0, outland: 0, claims: 0 }, hh = { house: 0, fields: 0, meadows: 0, other: 0, claims: 0 };
+      for (const id of v.farmsteads) {
+        const f = st.farmsteads[id], r = f.household !== null ? held.households.get(f.household) : null;
+        if (r) for (const k of Object.keys(hh)) hh[k] += r[k];
+      }
+      let near = null;
+      for (const u of st.villages) if (u.id !== v.id && tiles[u.id].length) {
+        for (const a of tiles[v.id]) for (const b of tiles[u.id]) { const d = hexSteps(w, a, b); if (near === null || d < near) near = d; }
+      }
+      return { id: v.id, name: v.name, occupied: v.farmsteads.filter((id) => st.farmsteads[id].household !== null).length, tiles: tiles[v.id].length,
+        houses: hh.house, fields: hh.fields, meadows: hh.meadows, green: own.green, outland: own.outland, emptyFarms: own.farms, plots: own.plots,
+        claims: own.claims + hh.claims, disputed: disputed[v.id], cairns: [...cairns.values()].filter((c) => c.a === v.id || c.b === v.id).length,
+        nearestOther: near };
+    });
+  },
   relations: () => {
     const R = VB['sim/relations'], rows = new Map(), WORD = { 'close friend': 'close', friend: 'friend', neutral: 'neutral', dislikes: 'dislikes', enemy: 'enemy' };
     const row = (k, name) => rows.get(k) || rows.set(k, { village: name, people: 0, adults: 0, records: 0, close: 0, friend: 0, neutral: 0, dislikes: 0,
