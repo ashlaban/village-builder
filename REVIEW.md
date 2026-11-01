@@ -1,5 +1,7 @@
 # Review, 30 October 2026
 
+*Later reviews: animals and husbandry (`docs/review-animals.md`, 31 October); relationships (`docs/review-relationships.md`, 31 October); performance, the food balance and the animals' economics against history (`docs/review-balance.md`, 1 November), which answers points 1 (in part) and 2 of the summary below.*
+
 A review of the game as built at `6b9149b` (after VB-049) against `design.md` v0.3: whether the stated design is implemented, what is broken or costly, and what would make development cheaper and safer. The design-level reflection (which systems the game needs, and whether they are fun, realistic and affordable) is in `design.md`, "Systems overview". Questions for Kim are in `QUESTIONS.md` under "Review, 30 October 2026"; new and changed tasks are in `BACKLOG.md`.
 
 An addendum of the same day reviews the work and jobs system at `6e5e39b`, against the colony-sim genre: see "Work and jobs" below. A second pass the same day, at `243d9dd`, measures the job system again, profiles it, compares its design with the genre's and proposes new concrete jobs: see "Work and jobs, second pass". A review of 31 October, also at `243d9dd`, follows the paths, fords and village layout work: see "Review, 31 October 2026" at the end.

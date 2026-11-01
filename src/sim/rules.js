@@ -116,8 +116,8 @@ VB['sim/rules'] = (() => {
   const MARRIAGE = {
     menFrom: 20, womenFrom: 18, // youngest age to marry
     ageGap: 3, gapWeight: 0.3, // preferred age gap (man older) and score lost per year off it
-    // a widow or widower minds the gap less (balance review): remarriage was common in pre-industrial Sweden, above all for men, and a farm
-    // widow's marriage to a younger landless man was a road to land (Dribe and Lundh 2007)
+    // a widow or widower minds the gap less (balance review): remarriage was common in pre-industrial Sweden, above all for men, and a widowed
+    // holder brought a farm to the marriage (Lundh 2007)
     widowedGapWeight: 0.15,
     sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
     minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
