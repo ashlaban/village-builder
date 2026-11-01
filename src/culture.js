@@ -127,6 +127,7 @@ const Culture = (() => {
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
+  const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, dt, rand) {
     const mul = env.driftMul || 1, byId = env.byId;
     const means = new Map();
@@ -158,7 +159,7 @@ const Culture = (() => {
         const o = OFF[d], n = NOPT[d], m = DIMS[d].m;
         const rs = m * P.social * P.kind[kind] * ageF, ru = m * P.selfInterest, sig = m * P.noise;
         const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
-        let nz = 0; const xi = []; for (let j = 0; j < n; j++) { xi.push(gauss(rand)); nz += xi[j]; } nz /= n;
+        let nz = 0; const xi = XI; for (let j = 0; j < n; j++) { xi[j] = gauss(rand); nz += xi[j]; } nz /= n;
         let pr = 0; for (let j = 0; j < n; j++) pr += press[o + j];
         const rp = P.persuasion * Math.pow(m, 0.75) * P.kind[kind] * ageF;
         for (let j = 0; j < n; j++) {
