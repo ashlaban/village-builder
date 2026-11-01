@@ -7,7 +7,8 @@ const seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 40
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 // expose st and the camera to page.evaluate
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
-  'let st = null, speed = 1, selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim };');
+  'let st = null, speed = 1, selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
+  + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
 const page_ = path.join(os.tmpdir(), 'vb-cities.html'); fs.writeFileSync(page_, html);
 (async () => {
   const browser = await chromium.launch(), page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -38,14 +39,18 @@ const page_ = path.join(os.tmpdir(), 'vb-cities.html'); fs.writeFileSync(page_, 
       founded: !!v.founded, people: st.pawns.filter((p) => p.alive && p.household !== null && Sim.settlementIdOf(st, p) === v.id).length }));
   });
   fs.writeFileSync(path.join(os.tmpdir(), 'vb-cities-villages.json'), JSON.stringify(info));
-  const shoot = async (name, x, y, z, wait = 3500) => {
-    await page.evaluate(([x, y, z]) => { const c = window.__vb.cam(); c.x = x; c.y = y; c.z = z; }, [x, y, z]);
-    await page.waitForTimeout(wait); await page.screenshot({ path: path.join(outDir, name), type: 'jpeg', quality: 82 }); console.error('shot', name);
+  // set the view, then wait until the detail is painted (the "Painting detail" note is hidden), at most 60 s
+  const shoot = async (name, x, y, z, wait = 3000) => {
+    await page.evaluate(([x, y, z]) => window.__vb.view(x, y, z), [x, y, z]);
+    await page.waitForTimeout(wait);
+    await page.waitForFunction(() => document.getElementById('lod').hidden, null, { timeout: 60000 })
+      .catch(() => console.error('painting not finished for', name));
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: path.join(outDir, name), type: 'jpeg', quality: 82 }); console.error('shot', name);
   };
   // the whole island, then the largest crowded village close up, then the settlers panel
-  const xs = info.map((v) => v.x), ys = info.map((v) => v.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  const span = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...ys) - Math.min(...ys)) * 1.6) + 600;
-  await shoot(`cities-island-y${years}.jpg`, cx, cy, 1440 / span, 6000);
+  const W = await page.evaluate(() => [window.__vb.st.w.W, window.__vb.st.w.H]);
+  await shoot(`cities-island-y${years}.jpg`, W[0] / 2, W[1] / 2, Math.min(1440 / W[0], 900 / W[1]), 6000);
   const big = [...info].sort((a, b) => (b.crowded - a.crowded) || (b.people - a.people))[0];
   await shoot(`cities-crowded-y${years}.jpg`, big.x, big.y, 1.1, 6000);
   await page.click('#settlersBtn'); await page.waitForTimeout(1500);

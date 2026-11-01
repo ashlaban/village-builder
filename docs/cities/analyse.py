@@ -61,7 +61,9 @@ def wealth(h):
 
 
 def summarise(d):
-    name = f"{d['scenario']} {d['map']} seed {d['seed']}" + (' + town' if d.get('town') else '')
+    t = d.get('town')
+    variant = '' if not t else ' + town (fed from outside)' if not t.get('buy', True) else f" + town (keeps {t['keep']} years)" if t.get('keep', 1) != 1 else ' + town'
+    name = f"{d['scenario']} {d['map']} seed {d['seed']}" + variant
     by_year = defaultdict(list)
     for h in d['households']:
         by_year[h['year']].append(h)
@@ -102,6 +104,22 @@ def decade_table(name, rows):
         print(f"| {ds[0]['year']}–{e['year']} | {e['pop']} | {e['hh']} | {e['villages']} | {e['landless']} of {e['adults']} | {e['crowded']} | "
               f"{m('left'):.1f} | {m('starved'):.1f} | {sum(r['made'] for r in ds) / sum(r['need'] for r in ds):.2f} | {m('pos') / YD:.0f} | "
               f"{m('neg') / YD:.0f} | {m('spoilt') / YD:.0f} | {e['spare'] / YD:.0f} | {m('giniWealth'):.2f} | {m('top10'):.2f} |")
+
+
+def vitals(name, rows, d):
+    """Crude birth and death rates per 1,000, deaths from hunger, one-person households and lone holders, per decade."""
+    ys = {y['year']: y for y in d['years']}
+    print(f'\n{name}: | Years | Births / 1,000 | Deaths / 1,000 | Hunger deaths / 1,000 | One-person households (end) | '
+          'Single holders 20–50, men / women (end) | Women 45–54 never married (end) |')
+    for a in range(0, len(rows), 10):
+        ds = rows[a:a + 10]
+        if not ds:
+            continue
+        e, pop = ds[-1], sum(r['pop'] for r in ds)
+        y = ys[e['year']]
+        sh = f"{y['singleHoldersM']} / {y['singleHoldersF']}" if 'singleHoldersM' in y else '–'
+        print(f"| {ds[0]['year']}–{e['year']} | {1000 * sum(r['births'] for r in ds) / pop:.0f} | {1000 * sum(r['deaths'] for r in ds) / pop:.0f} | "
+              f"{1000 * sum(r['starved'] for r in ds) / pop:.1f} | {e['single']} of {e['hh']} | {sh} | {e['nm45']} of {e['w45']} |")
 
 
 def persistence(name, by_year, lags=(10, 20, 30)):
@@ -196,6 +214,46 @@ def figs(runs, outdir):
              'after the moving round.')
 
 
+def town_fig(runs, path):
+    """The toy town: people on the map at each seed with no town, and with the town fed three ways (buys above one year's need, above two,
+    or fed from outside)."""
+    plt = setup_mpl()
+    by = {n: r for n, r, _ in runs}
+    seeds = sorted({n.split(' + town')[0] for n in by if ' + town' in n}, key=lambda n: (n.split(' seed ')[0], int(n.split(' seed ')[1])))
+    seeds = [sd for sd in seeds if sd in by]
+    if not seeds:
+        return
+    variants = [('', 'no town', C['blue']), (' + town', 'town buys above 1 year of need', C['orange']),
+                (' + town (keeps 2 years)', 'town buys above 2 years of need', C['aqua']),
+                (' + town (fed from outside)', 'town fed from outside', '#eda100')]
+    cols = 2 if len(seeds) > 1 else 1
+    rws = (len(seeds) + cols - 1) // cols
+    fig, axes = plt.subplots(rws, cols, figsize=(5.2 * cols, 2.9 * rws + 0.9), squeeze=False)
+    for k, sd in enumerate(seeds):
+        ax = axes[k // cols][k % cols]
+        for suffix, label, color in variants:
+            rows = by.get(sd + suffix)
+            if rows:
+                ax.plot([r['year'] for r in rows], [r['pop'] for r in rows], color=color, label=label)
+        ax.set_ylim(bottom=0)
+        ax.set_title(sd, fontsize=9, loc='left')
+        ax.set_xlabel('year', fontsize=8)
+        if k % cols == 0:
+            ax.set_ylabel('people on the map', fontsize=8)
+    for k in range(len(seeds), rws * cols):
+        axes[k // cols][k % cols].axis('off')
+    h, l = axes[0][0].get_legend_handles_labels()
+    fig.legend(h, l, loc='lower center', ncol=4, fontsize=8)
+    fig.suptitle('A toy town that takes the stuck landless: how it is fed decides what happens to the countryside', x=0.01, y=0.985, ha='left',
+                 fontsize=11, color=C['ink'])
+    fig.text(0.01, 1 - 0.75 / fig.get_figheight(), 'The town takes landless adults still waiting in a crowded village after the moving round '
+             '(chance 0.3 a round) and dies at 1.8 times the hazard;\nit buys its food from households\' threshed grain above their seed and one or '
+             'two years of their need, or is fed from outside. Sizes of the town are in the table.', fontsize=8, color=C['ink2'], va='top')
+    fig.tight_layout(rect=(0, 0.06, 1, 1 - 1.05 / fig.get_figheight()))
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+
 def map_fig(d, path, title):
     """Market potential on foot and with boats over the map of one run's last year; villages by size; the best site of each marked."""
     import matplotlib
@@ -266,13 +324,62 @@ def neighbours(i, cols, n):
             yield rr * cols + cc
 
 
+def summary_tables(runs, datas):
+    """The review's tables 3.1 (the ceiling), 3.2 (hunger by household size) and 3.3 (wealth), over the baseline runs."""
+    import contextlib
+    import io
+    base = [(r, d) for r, d in zip(runs, datas) if not d.get('town')]
+    print('\n| Run | People at year 20 / 40 / 60 / 80 / 100 | Landless of adults (end) | First year a village finds no land | '
+          'Times a party could not get provisions / parties that left | Deaths from hunger per 1,000, last 20 years | Women 45–54 never married (end) |')
+    print('|' + '---|' * 7)
+    for (n, rows, _), d in base:
+        ys = {r['year']: r for r in rows}
+        pops = ' / '.join(str(ys[y]['pop']) if y in ys else '–' for y in (20, 40, 60, 80, 100))
+        e, last = rows[-1], rows[-20:]
+        nl = [y['year'] for y in d['years'] if y['noLand'] > 0]
+        print(f"| {n} | {pops} | {e['landless']} of {e['adults']} ({100 * e['landless'] / e['adults']:.0f}%) | {nl[0] if nl else 'never'} | "
+              f"{sum(y['noGrain'] for y in d['years'])} / {sum(y['left'] for y in d['years'])} | "
+              f"{1000 * sum(r['starved'] for r in last) / sum(r['pop'] for r in last):.1f} | {e['nm45']} of {e['w45']} |")
+    for label, keys in [('small', 'small'), ('tiny', 'tiny')]:
+        g, tot, n_all = defaultdict(lambda: [0, 0, 0, 0.0, 0.0]), 0, 0
+        for (n, rows, _), d in base:
+            if d['map'] != keys:
+                continue
+            for h in d['households']:
+                if h['members'] == 0:
+                    continue
+                x = g[min(h['members'], 6)]
+                x[0] += 1; x[1] += h['hungry']; x[2] += h['hungry'] > 0; x[3] += h['made'] / max(1, h['need']); x[4] += h['store'] / max(1, h['need'])
+                tot += h['hungry']; n_all += 1
+        if not g:
+            continue
+        print(f'\n{label} map, pooled: | Members | Household-years | Hungry in the year | Hungry days a year | Share of all hungry days | '
+              'Made / need | Store / need (after harvest) |')
+        print('|' + '---|' * 7)
+        for k in sorted(g):
+            m, hd, hy, mn, sn = g[k]
+            print(f'| {k}{" or more" if k == 6 else ""} | {m:,} ({100 * m / n_all:.0f}%) | {100 * hy / m:.0f}% | {hd / m:.1f} | {100 * hd / tot:.0f}% | '
+                  f'{mn / m:.2f} | {sn / m:.1f} |')
+    print("\n| Run | Gini of wealth | Top tenth's share | Gini of grain in store | Gini of cattle | Gini of fields | Households with a servant | "
+          "Rank correlation of a farm's wealth after 10 / 20 / 30 years |")
+    print('|' + '---|' * 8)
+    for (n, rows, by), d in base:
+        with contextlib.redirect_stdout(io.StringIO()):
+            pers = persistence(n, by)
+        rs = rows[4:]
+        m = lambda k: sum(r[k] for r in rs) / len(rs)
+        print(f"| {n} | {m('giniWealth'):.2f} | {100 * m('top10'):.0f}% | {m('giniStore'):.2f} | {m('giniCattle'):.2f} | {m('giniFields'):.2f} | "
+              f"{100 * sum(r['hhWithServants'] for r in rs) / sum(r['hh'] for r in rs):.1f}% | {pers[10]:.2f} / {pers[20]:.2f} / {pers[30]:.2f} |")
+
+
 def town_compare(runs):
     by = {n: r for n, r, _ in runs}
     for n, rows in by.items():
         if 'town' not in n:
             continue
-        b = by.get(n.replace(' + town', ''))
-        print(f'\n## {n} against {n.replace(" + town", "")}')
+        bn = n.split(' + town')[0]
+        b = by.get(bn)
+        print(f'\n## {n} against {bn}')
         print('| Years | Pop. on the map | Town (end) | Into town / yr | Town births / yr | Town deaths / yr | Town fed (%) | '
               'Crowded waiting (end) | Starved / yr on the map | Rotted / yr (person-yrs) |')
         print('|' + '---|' * 10)
@@ -291,16 +398,20 @@ def town_compare(runs):
 if __name__ == '__main__':
     files = [a for a in sys.argv[1:] if a.endswith('.json')]
     outdir = sys.argv[sys.argv.index('--figs') + 1] if '--figs' in sys.argv else None
-    runs = []
+    runs, datas = [], []
     for f in files:
         d = json.load(open(f))
         n, rows, by_year = summarise(d)
         runs.append((n, rows, by_year))
+        datas.append(d)
         decade_table(n, rows)
+        vitals(n, rows, d)
         persistence(n, by_year)
+    summary_tables(runs, datas)
     town_compare(runs)
     if outdir:
         figs(runs, outdir)
+        town_fig(runs, f'{outdir}/cities-town.png')
         for f in files:
             d = json.load(open(f))
             if not d.get('town'):

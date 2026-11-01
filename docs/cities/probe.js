@@ -2,7 +2,8 @@
 // writes one JSON file for docs/cities/analyse.py. Sampled once a year, two hours after the moving round (autumn day 11), when the harvest
 // is in and the year's moves are done.
 //   node docs/cities/probe.js --scenario populous --seed 7 --map small --years 80 --out /tmp/cities/p7.json
-//   [--town 1 --pull 0.3 --mort 1.8 --fert 0.8 --from 1]   a toy town outside the map (section 4 of the review): stuck landless adults go there
+//   [--town 1 --pull 0.3 --mort 1.8 --fert 0.8 --from 1 --buy 1 --keep 1]   a toy town outside the map (section 4 of the review): stuck landless
+//   adults go there; it buys its food from grain above seed and `keep` years of a household's need (--buy 0: fed from outside)
 // Per year: population, landless adults by kind, marriage, households' stores, surplus and spoilage, wealth, the moves of the round.
 // At the end: the map (biome, water, rivers), the villages, and two market potentials per land tile (on foot; on foot and by boat).
 const VB = require('../../src/load.js'), G = VB.gen, Sim = VB.sim, fs = require('fs');
@@ -11,6 +12,11 @@ const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'populous'), seed = +opt('seed', 7), map = opt('map', 'small'), years = +opt('years', 40), out = opt('out', '/tmp/probe.json');
 const TOWN = +opt('town', 0) === 1, PULL = +opt('pull', 0.3), MORT = +opt('mort', 1.8), FERT = +opt('fert', 0.8), FROM = +opt('from', 1);
+const BUY = +opt('buy', 1) === 1; // 0: the town is fed from outside, and takes no grain from the map
+const KEEP = +opt('keep', 1); // years of their own need households keep above their seed before they sell to the town
+// the toy town draws from its own stream, so its dice do not shift the game's (st.rand); the map's history changes only by what the town does
+const trand = (() => { let a = (seed * 7919 + 12345) >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })();
 const YEAR = Sim.YEAR, YD = Sim.YEAR_DAYS, E = RULES.ECON;
 
 const it = G.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done);
@@ -38,18 +44,18 @@ function townYear(y, arrivals) {
   t.need = town.people.reduce((s, q) => s + (q.age >= 14 ? 1 : 0.5) * YD, 0);
   // (only threshed grain is sold: grain still in sheaf counts towards what the household keeps, not what it sells)
   const spare = st.households.filter((h) => !h.dissolved)
-    .map((h) => [h, Math.min(h.grain, Math.max(0, storeOf(h) - F.seedReserve(st, h) - F.dailyNeed(st, h) * YD))]);
-  const total = spare.reduce((s, x) => s + x[1], 0), take = Math.min(t.need, total);
-  for (const [h, s] of spare) if (s > 0) h.grain = Math.max(0, h.grain - take * s / total);
+    .map((h) => [h, Math.min(h.grain, Math.max(0, storeOf(h) - F.seedReserve(st, h) - KEEP * F.dailyNeed(st, h) * YD))]);
+  const total = spare.reduce((s, x) => s + x[1], 0), take = BUY ? Math.min(t.need, total) : t.need;
+  if (BUY) for (const [h, s] of spare) if (s > 0) h.grain = Math.max(0, h.grain - take * s / total);
   t.bought = take; town.fedShare = t.need ? take / t.need : 1;
   // deaths: the sim's hazard by age, times the urban penalty, times more when the town went short
   const hungerMul = 1 + 3 * (1 - town.fedShare);
-  town.people = town.people.filter((q) => { const dead = st.rand() < hazard(q.age) * MORT * hungerMul; if (dead) t.deaths++; return !dead; });
+  town.people = town.people.filter((q) => { const dead = trand() < hazard(q.age) * MORT * hungerMul; if (dead) t.deaths++; return !dead; });
   // births: married women 20 to 44 at the rural rate measured this year, times FERT
   const women = town.people.filter((q) => q.sex === 'f' && q.married && q.age >= 20 && q.age < 45);
-  for (const q of women) if (st.rand() < rural.birthRate * FERT) { town.people.push({ age: 0, sex: st.rand() < 0.5 ? 'm' : 'f', married: false }); t.births++; }
+  for (const q of women) if (trand() < rural.birthRate * FERT) { town.people.push({ age: 0, sex: trand() < 0.5 ? 'm' : 'f', married: false }); t.births++; }
   // marriage in town needs no land: single adults pair off at 0.3 a year each
-  for (const q of town.people) if (!q.married && q.age >= 20 && st.rand() < 0.3) q.married = true;
+  for (const q of town.people) if (!q.married && q.age >= 20 && trand() < 0.3) q.married = true;
   for (const q of town.people) q.age += 1;
   t.end = town.people.length; town.log.push(t);
 }
@@ -121,7 +127,7 @@ function toTown(y) {
   const goers = [], gone = new Set();
   for (const p of st.pawns) {
     if (!p.alive || (p.landWait || 0) < 1 || gone.has(p.id)) continue;
-    const a = ageOf(p); if (a < 18 || a > 45 || Sim.isHolder(st, p.id) || st.rand() >= PULL) continue;
+    const a = ageOf(p); if (a < 18 || a > 45 || Sim.isHolder(st, p.id) || trand() >= PULL) continue;
     const party = [p.id], sp = R.spouseOf(st, p.id);
     if (sp !== null && st.pawns[sp].alive && !Sim.isHolder(st, sp)) party.push(sp);
     for (const id of [...party]) for (const c of R.childrenOf(st, id)) { const q = st.pawns[c]; if (q.alive && ageOf(q) < 18 && q.household === p.household && !Sim.isHolder(st, c)) party.push(c); }
@@ -176,7 +182,7 @@ for (const v of vrows) {
 }
 const round = (a, k = 1) => Array.from(a, (x) => +x.toFixed(k));
 fs.writeFileSync(out, JSON.stringify({
-  scenario, seed, map, years, town: TOWN ? { pull: PULL, mort: MORT, fert: FERT, from: FROM, log: town.log, final: town.people.length } : null,
+  scenario, seed, map, years, town: TOWN ? { pull: PULL, mort: MORT, fert: FERT, from: FROM, buy: BUY, keep: KEEP, log: town.log, final: town.people.length } : null,
   years: years_, households, villages: vrows,
   world: { cols: w.COLS, rows: w.ROWS, hx: round(w.hx), hy: round(w.hy), biome: Array.from(w.biome), water: Array.from(w.water), ocean: Array.from(w.ocean),
     river: Array.from(w.river, (x) => (x ? 1 : 0)), owner: Array.from(st.owner, (x) => (x > 0 ? 1 : x < 0 ? 2 : 0)), potFoot: round(potFoot, 2), potBoat: round(potBoat, 2),
