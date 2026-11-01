@@ -19,7 +19,7 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 1 November 2026):
 1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
-2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game.
+2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game. Moving to new land (VB-146 to VB-150, review of 1 November, `docs/review-expansion.md`) runs in this order; VB-146 and VB-147 edit `src/sim/expansion.js` and the moving round, so they go before VB-033 and VB-090, which edit the same.
 3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
 
@@ -34,7 +34,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
-| expansion | Inheritance and expansion | Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
+| expansion | Inheritance and expansion | Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land, or leave a crowded village for new land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
 | courting | Relationships and courting | Marriages come from courting; the marriage limit by degree; kin and the village help a hungry family. | People, households and family records; Inheritance and expansion (Leaving home) |
 | claims | Claims, ownership and territory | Owners and claims on every tile, the ownership overlay with filters, one scope model for overlays, stores and family trees. | Claims, ownership and territory |
 | animals | Animals and husbandry | Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |
@@ -114,3 +114,8 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-142 | A pawn is allotted at most one cleared plot | expansion | implement | ready | 2 | S | Fix: `allot` gives a second cleared plot to a pawn who already holds one. | [backlog/VB-142.md](backlog/VB-142.md) |
 | VB-143 | A profile report: where a game day's time goes | tooling | implement | ready | 2 | S | `tools/sim.js --report perf`: milliseconds per system per game day, so the next slow step is found, not guessed. | [backlog/VB-143.md](backlog/VB-143.md) |
 | VB-144 | Ewes' milk and wool | animals | implement | needs-review | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |
+| VB-146 | Founding a new farm from a crowded village | expansion | implement | ready | 1 | L | Waiting adults of a full village leave with family and siblings to found a one-farm village 10–30 steps away, in a booth until the cottage stands. | [backlog/VB-146.md](backlog/VB-146.md) |
+| VB-147 | Settlers join small villages nearby before founding | expansion | implement | blocked | 1 | M | Settlers prefer a village of 1–3 farms within 30 steps that is not crowded, kin first, so lone farms grow into hamlets. | [backlog/VB-147.md](backlog/VB-147.md) |
+| VB-148 | Booths, new villages and the crowded note on the page | expansion | implement | blocked | 2 | M | Booth and cottage art, labels for villages founded in play, the crowded note and origin in panels, `--report villages`. | [backlog/VB-148.md](backlog/VB-148.md) |
+| VB-149 | Fresh land yields more for its first crops | expansion | implement | blocked | 2 | S | A field on never-farmed ground starts at soil 1.4 and wears to normal in about 4 crops, in every scenario. | [backlog/VB-149.md](backlog/VB-149.md) |
+| VB-150 | Measure moving to new land in long runs | expansion | implement | blocked | 2 | S | Long runs before and after: villages founded, waiting adults, population, never-married share; tuning proposed to Kim. | [backlog/VB-150.md](backlog/VB-150.md) |
