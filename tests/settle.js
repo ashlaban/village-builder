@@ -1,6 +1,6 @@
-// Moving to new land (VB-146): a waiting adult of a crowded village leaves with a sibling who follows and founds a village of one farm
-// 10 to 30 walking steps away, in a booth until the cottage is built; the household sows its first field. A village with room founds
-// nothing, and a party without provisions stays.
+// Moving to new land (VB-146, VB-147): a waiting adult of a crowded village leaves with a sibling who follows and founds a village of one
+// farm 10 to 30 walking steps away, in a booth until the cottage is built; the household sows its first field. A village with room founds
+// nothing, and a party without provisions stays. With a small village nearby that has room, the settler joins it instead.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, S = VB['sim/settle'];
 const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'], { SETTLE } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SETTLE FAIL:', m); } };
@@ -26,7 +26,7 @@ const roll = (st, f) => { const r = st.rand; st.rand = () => 0; try { f(); } fin
   roll(st, () => S.settleRound(st));
   check(v.crowded === 0 && st.villages.length === n && m.landWait === 0, `a village with room founds nothing (crowded ${v.crowded})`);
 }
-// 2. Crowded: the settler leaves with the sibling and founds a village 10 to 30 steps away.
+// 2. Crowded (village B lies beyond reach): the settler leaves with the sibling and founds a village 10 to 30 steps away.
 const { st, v, m, sib } = setUp();
 fill(st, v);
 st.demand = [m.id, sib.id]; m.landWait = 2; sib.landWait = 2; m.stake = 300;
@@ -71,5 +71,39 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && t.st.events.some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
+// 4. Founders at seed 42: the lone farm Alsta lies 15 steps from the crowded village. With room there, a waiting adult joins it, building a
+// booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
+let joined = '';
+const founders = () => {
+  const st = Sim.seed(world(42), 42, 'founders'); st.naturalDeaths = false;
+  const v = st.villages[0], lone = st.villages[1];
+  const m = st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
+    && Sim.spouseOf(st, p.id) === null);
+  fill(st, v); st.demand = [m.id]; m.landWait = 3; m.stake = 300;
+  return { st, v, lone, m };
+};
+{
+  const t = founders(), n = t.st.villages.length, farms = t.lone.farmsteads.length, d = S.reachOf(t.st, t.v).get(t.lone.center);
+  roll(t.st, () => S.settleRound(t.st));
+  const g = t.st.farmsteads[t.lone.farmsteads[t.lone.farmsteads.length - 1]];
+  check(d <= SETTLE.join, `the lone farm lies within ${SETTLE.join} steps (${d})`);
+  check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
+    `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
+  check(g.name === 'Nybygget' && t.st.events.some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)), `the log says so (${g.name})`);
+  bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);
+  joined = `; joined ${t.lone.name} ${d} steps away`;
+}
+{ // an adult of its own waits for land there: the settler founds
+  const t = founders(), n = t.st.villages.length;
+  const other = t.st.pawns.find((p) => p.alive && p.age >= 18 && p.id !== t.m.id && Sim.settlementIdOf(t.st, p) === 0 && !Sim.isHolder(t.st, p.id));
+  VB['sim/heirs'].moveTo(t.st, other.id, t.st.farmsteads[t.lone.farmsteads[0]].household); t.st.demand.push(other.id);
+  roll(t.st, () => S.settleRound(t.st));
+  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'with its own adult waiting, the lone farm is passed over');
+}
+{ // no room at the lone farm either: the settler founds
+  const t = founders(), n = t.st.villages.length; fill(t.st, t.lone);
+  roll(t.st, () => S.settleRound(t.st));
+  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'with no room at the lone farm, the settler founds');
+}
 if (failed) process.exit(1);
-console.log(`settle ok: ${m.given} founded ${nv.name} ${steps} steps from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}`);
+console.log(`settle ok: ${m.given} founded ${nv.name} ${steps} steps from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}${joined}`);

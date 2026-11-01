@@ -85,3 +85,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-137 | Manure and the soil | animals | implement | done | 2 | S | Harvests wear a field's soil; manure from the byre restores it. | [backlog/VB-137.md](backlog/VB-137.md) |
 | VB-138 | Oxen at the plough | animals | implement | done | 2 | S | A pair of oxen tills at 2.5 times a hoe. | [backlog/VB-138.md](backlog/VB-138.md) |
 | VB-146 | Founding a new farm from a crowded village | expansion | implement | done | 1 | L | Waiting adults of a full village leave with family and siblings to found a one-farm village 10–30 steps away, in a booth until the cottage stands. | [backlog/VB-146.md](backlog/VB-146.md) |
+| VB-147 | Settlers join small villages nearby before founding | expansion | implement | done | 1 | M | Settlers prefer a village of 1–3 farms within 30 steps that is not crowded, kin first, so lone farms grow into hamlets. | [backlog/VB-147.md](backlog/VB-147.md) |
