@@ -7,14 +7,14 @@ VB['sim/settle'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { placeFields, siteScore, nearestWood, makeFarmstead, villageName, loneFarmName } = VB['sim/layout'];
+  const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
+  const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
   const { findSite, hasPlot, activePlots, building } = VB['sim/expansion'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
-  const SUFFIX = ['torp', 'ryd', 'boda', 'hult', 'mark']; // clearing (-ryd), booths (-boda), grove (-hult), outland (-mark), daughter (-torp)
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const guardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
   // ---- who waits, and which villages are crowded ----
@@ -126,13 +126,8 @@ VB['sim/settle'] = (() => {
     }
     return best;
   }
-  // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name; the first not taken.
-  function founderName(st, p) {
-    const base = p.given.endsWith('s') ? p.given : p.given + 's', names = new Set(st.villages.map((v) => v.name));
-    for (const s of SUFFIX) if (!names.has(base + s)) return base + s;
-    let n = villageName(st.rand); while (names.has(n)) n = villageName(st.rand);
-    return n;
-  }
+  // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
+  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), st.rand);
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
@@ -164,7 +159,8 @@ VB['sim/settle'] = (() => {
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
     f.woodlot = v.commonsWood; f.condition = 1; f.emptySince = null; f.booth = { i: 0, done: 0 };
     st.farmsteads.push(f); v.farmsteads.push(f.id);
-    f.name = v.farmsteads.length === 1 ? loneFarmName(w, f, st.rand) : farmName(st, v);
+    // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
+    f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
     const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], settler.id);
     hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
     for (const id of party.all) st.pawns[id].stake = 0;

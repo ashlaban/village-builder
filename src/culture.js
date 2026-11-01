@@ -102,10 +102,14 @@ const Culture = (() => {
     for (let k = 0; k < n; k++) a[o + k] /= s;
   }
 
+  // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
+  // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
+  const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
   function makeCulture(env, name, customs, centre, parent = null) {
+    const prefs = parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs ? env.cultures[parent].namePrefs : NAME_PREFS;
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
-      parent, founded: env.t, history: [],
+      parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
     };
     env.cultures.push(c);
     return c;
@@ -280,7 +284,7 @@ const Culture = (() => {
   }
 
   return {
-    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
 })();

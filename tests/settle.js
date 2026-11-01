@@ -39,6 +39,7 @@ check(nv.name.startsWith(m.given.endsWith('s') ? m.given : m.given + 's'), `name
 const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
 check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
 check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth && f.booth.i === 0, 'one farm, in a booth');
+check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
 check(f.fields.length === 0 && f.project && f.project.stage === 'clear', 'the first field is the farm\'s project');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
@@ -71,7 +72,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && t.st.events.some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
-// 4. Founders at seed 42: the lone farm Alsta lies 15 steps from the crowded village. With room there, a waiting adult joins it, building a
+// 4. Founders at seed 42: a lone farm lies 15 steps from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
 const founders = () => {
@@ -89,7 +90,10 @@ const founders = () => {
   check(d <= SETTLE.join, `the lone farm lies within ${SETTLE.join} steps (${d})`);
   check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
     `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
-  check(g.name === 'Nybygget' && t.st.events.some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)), `the log says so (${g.name})`);
+  // named by direction from the lone farm, now the hamlet's centre (VB-026), and the log says so
+  check(/^(Norr|Söder|Öster|Väster|Mellan|Ny)gården$/.test(g.name) && t.st.events.some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
+    `the joined farm is named by compass and the log says so (${g.name})`);
+  check(t.lone.name === t.st.farmsteads[t.lone.farmsteads[0]].name, `the lone farm's village bears its farm's name (${t.lone.name})`);
   bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);
   joined = `; joined ${t.lone.name} ${d} steps away`;
 }
