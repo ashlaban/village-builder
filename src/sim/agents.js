@@ -155,7 +155,9 @@ VB['sim/agents'] = (() => {
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
       const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); } else { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); }
+      else if (reach > 0) { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
+      else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
       left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }

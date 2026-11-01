@@ -19,7 +19,7 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 1 November 2026):
 1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
-2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game.
+2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game. Moving to new land (VB-146 to VB-150, review of 1 November, `docs/review-expansion.md`) runs in this order; VB-146 and VB-147 edit `src/sim/expansion.js` and the moving round, so they go before VB-033 and VB-090, which edit the same.
 3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
 
@@ -34,7 +34,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
-| expansion | Inheritance and expansion | Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
+| expansion | Inheritance and expansion | Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land, or leave a crowded village for new land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
 | courting | Relationships and courting | Marriages come from courting; the marriage limit by degree; kin and the village help a hungry family. | People, households and family records; Inheritance and expansion (Leaving home) |
 | claims | Claims, ownership and territory | Owners and claims on every tile, the ownership overlay with filters, one scope model for overlays, stores and family trees. | Claims, ownership and territory |
 | animals | Animals and husbandry | Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |

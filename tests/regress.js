@@ -13,4 +13,16 @@ for (const seed of [7, 12]) {
   console.log('   roles:', st.pawns.map((p) => `${p.given} ${p.role}`).join(', '));
   console.log('   meeting log:', st.meetingLog.slice(0, 3).map((e) => `y${e.year} ${e.text}`).join(' | '));
 }
+// A walking budget that underflows (5e-324, seen at populous seed 42 in year 39) moved nothing and never shrank: moveAgent spun forever.
+{
+  const it = G.generate(7); let r; while (!(r = it.next()).done);
+  const st = Sim.seed(r.value, 7, 'founders'), a = st.agents[0], A = VB['sim/agents'], { SPEED } = VB['sim/rules'];
+  // a budget of a few smallest doubles; the first segment takes all but the last one, which a step of cost 2.73 cannot spend
+  const dt = Number.MIN_VALUE, budget = SPEED * st.w.HW * dt; // a whole multiple of the smallest double, as moveAgent computes it
+  a.x = 0; a.y = 0; a.carry = null; a.seg = 0;
+  a.path = [[0, 0], [budget - Number.MIN_VALUE, 0, 1, -1], [100, 0, 2.73, -1]];
+  const t0 = Date.now(); A.moveAgent(st, a, dt);
+  if (!(budget > Number.MIN_VALUE) || a.seg !== 1) fail(`the underflow case was not set up (budget ${budget}, segment ${a.seg})`);
+  if (Date.now() - t0 > 1000) fail(`a walker left with a budget of ${Number.MIN_VALUE} took ${Date.now() - t0} ms`);
+}
 if (failed) process.exit(1);

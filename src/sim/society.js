@@ -25,19 +25,7 @@ VB['sim/society'] = (() => {
     const customs = Culture.fromArchetype('oldNordic');
     for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0);
-    for (const v of st.villages) {
-      const s = {
-        id: v.id, name: v.name, culture: c.id, kind: 'village', tie: v.id === 0 ? 1 : 0.5, practice: Int8Array.from(customs), fissionYears: 0, divergence: 0,
-      };
-      s.members = () => {
-        const out = [];
-        for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
-          const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
-        }
-        return out.sort((a, b) => a.id - b.id);
-      };
-      env.settlements.push(s);
-    }
+    for (const v of st.villages) addSettlement(st, v, c.id, customs, v.id === 0 ? 1 : 0.5);
     for (const p of st.pawns) {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
@@ -50,6 +38,20 @@ VB['sim/society'] = (() => {
       p.ties.set(q, Math.max(p.ties.get(q) || 0, 0.5)); st.pawns[q].ties.set(p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
     }
     updateTies(st); refreshPrestige(st); refreshInterests(st);
+  }
+  // The Culture settlement of village v, with the same id: its culture, a copy of the practice it keeps and its tie to the centre.
+  // Seeding makes one per village; a village founded in play (sim/settle) gets one too, so the two lists keep the same ids.
+  function addSettlement(st, v, culture, practice, tie) {
+    const s = { id: v.id, name: v.name, culture, kind: 'village', tie, practice: Int8Array.from(practice), fissionYears: 0, divergence: 0 };
+    s.members = () => {
+      const out = [];
+      for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
+        const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+      }
+      return out.sort((a, b) => a.id - b.id);
+    };
+    st.cenv.settlements.push(s);
+    return s;
   }
   // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
   function updateTies(st) {
@@ -154,5 +156,5 @@ VB['sim/society'] = (() => {
     }
     return { out, cells, cellOf, size: NEAR };
   }
-  return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+  return { initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();

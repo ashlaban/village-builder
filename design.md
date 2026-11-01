@@ -238,6 +238,7 @@ Tiles carry their own state (trees, stones, grazing), and work, grazing or negle
 | Stones | Meadow tiles track their stone content: every untouched meadow tile has some, and tiles near hills have more, the extra fading to nothing within about 2 tiles | Decided |
 | Meadow to field | Breaking ground takes long where stones are many; the stones cleared become building material | Decided |
 | Abandoned fields | An untended field becomes a stone-free meadow | Decided |
+| Fresh land | Ground never farmed yields more for its first crops: a new field there starts with soil 1.4 and wears to manure's cap in about 3 crops (see Inheritance and expansion, Moving to new land) | Decided, 1 Nov (the bonus); Proposed (numbers) |
 | Forest spread | Forest turns nearby meadow, and fields by way of meadow, into scrub and then woodland, unless grazing or farming keeps the land open. Built after grazing pressure: open land next to forest reaches scrub in 8 years and forest in 30; a field in use, a house, a green, a meadow mown that year, work in the last year or enough grazing keep it open; heath closes like meadow (backlog VB-091) | Decided; Agreed (rates), 30 Oct |
 | Grazing | Herds of wild and domestic animals graze, and grazing pressure shapes the land (see Animals) | Decided |
 | Worn paths | Where pawns walk often, trodden paths show in the world; a path speeds up walking, so routes prefer existing paths and pawns come to share them | Decided, 30 Oct |
@@ -504,6 +505,22 @@ The job hours were revised to the long-work scale on 30 October 2026; stones in 
 
 **Concern:** with one heir per farm and few empty farms, most younger siblings end up as servants or unmarried at home. Clearing new land is the release valve.
 
+### Moving to new land
+
+When a village is full, its landless adults may leave to found a farm of their own on new land, or join a small village nearby: the daughter settlements (*torp*, *-ryd*, *-boda*) of the medieval colonisation of the outland. Review and sources: `docs/review-expansion.md`. (Decided, 1 Nov: who leaves, fresh land, small villages, distance; the rest Proposed)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Crowded | At the moving round, after plots are started, a village is crowded when adults of it wait for land (no plot, no cottage coming) and no plot site can be found; the village panel shows how many wait | Proposed |
+| Who leaves | Landless adults only, with their spouse, their minor children and siblings who follow; holders never leave their farms | Decided, 1 Nov |
+| Deciding | A waiting adult of 18–45 in a crowded village leaves at a moving round with a chance of 0.3 after one round of waiting there, 0.6 after two, 0.8 from three; older waiters first. Each unmarried sibling also waiting there follows with a chance of 0.5, at most 2, as farmhand or maid, still landless | Proposed |
+| Provisions | Food until the next harvest (36 days of the party's rations) and seed for one field, from the party's stakes and then from their old households' grain above their own seed and food until the harvest (or the holder's buffer, if longer); short of it, they stay a year and the log says why | Proposed |
+| Where | First a small village: one of 1 to 3 farms, within 30 walking steps of home, not crowded (room for a plot, none of its own adults waiting, fewer than 2 plots or booths under way), with kin first, then the nearest. Otherwise a new village, 10 to 30 walking steps from home | Decided (small villages, distance), 1 Nov; Proposed (rest) |
+| The new site | Meadow nobody owns, at least 3 steps from any house, green or field, with a block of 3 free fields and a wood within reach; the best by land, wood, water and nearness, its fields at least 0.9 times as fertile as the home village's | Proposed |
+| The booth | The party moves at once into a booth (*bod*) on the site and builds the cottage as its own household's work: foundation 30 hours, walls 60, roof 30; it clears its first field and makes more as any farm does | Proposed |
+| The new village | A village of one farm, no green or well, named for its founder (Erikstorp, Olofsboda); it keeps its mother village's customs and culture and records where it came from; its tie to the centre is computed as for any village, so a far daughter drifts more easily and may split off | Proposed |
+| Fresh land | A field broken on ground never farmed starts with soil 1.4, above manure's cap of 1.15, and wears 0.08 a crop as any field: on a manured farm it is down to the cap in about 3 crops; without manure it stays 0.4 ahead of an old field until both reach the floor (about 9 crops); in every scenario | Decided, 1 Nov (the bonus); Proposed (numbers) |
+
 ## Claims, ownership and territory
 
 Ownership and claims are tracked on tiles: every tile has an owner, and any entity may hold a claim on it that is realised (in force) or unrealised (wanted). (Decided)
@@ -715,6 +732,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (expansion review) | 1 November 2026 | A review of crowded villages against medieval Scandinavian settlement (`docs/review-expansion.md`): Inheritance and expansion gains Moving to new land, and Land and ecology a row on fresh land. Decided by Kim: only landless adults leave; never-farmed ground yields more its first crops, in every scenario; settlers prefer small villages of 1 to 3 farms that are not crowded; new villages 10 to 30 steps from home. The rest Proposed. Implement tasks VB-146 to VB-150 |
 | 0.3 (balance review) | 1 November 2026 | A review of performance, the food balance and the animals' economics against history (`docs/review-balance.md`), with milk and butter, manure and soil, and oxen built (VB-135, VB-137, VB-138). Decided: no fixed number of fields; a farm's fields are limited by its labour and its size. Proposed: about 2 fields a working adult (1.5 more with oxen), fields and meadows made in every scenario, poorer land only when meadow runs out; grain spoils in store (5%, 20%, 40% a year by years of need held; the village store 20%); haymaking only while hay is short of two winters' need; a dung heap that rots; widowed partners mind the age gap less. Questions in `QUESTIONS.md` |
 | 0.3 (review, 1 Nov) | 1 November 2026 | Review after the animals' first batch (VB-131 to VB-134): Animals and hay now partly built; the cost, idle and growth findings restated in `REVIEW.md`; no Decided or Agreed point changed |
 | 0.3 (animals review) | 31 October 2026 | A review of the animals design against medieval Swedish husbandry and the game (`docs/review-animals.md`). Agreed: a herd's cattle as named animals, sheep as counts; meat a cow 15, an ox 18, a sheep 3 (from 40 and 8); soil wear and manure with numbers; grazing pressure counted where herds graze; starting values for hay, breeding, meadows, haymaking, the byre and the autumn count, milk, herding and oxen (Animals, First version). Implement tasks VB-131 to VB-141 |

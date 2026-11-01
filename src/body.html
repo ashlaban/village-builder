@@ -1242,6 +1242,7 @@
   const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => { const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
 
   function clearSettlement() {
+    labelsReady = false;
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
     for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(), ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
     fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
@@ -1253,6 +1254,16 @@
     if (!art) makeArt(wd.R);
     buildFarms(wd);
     try { await Promise.race([document.fonts.load('italic 700 30px Alegreya'), new Promise((r) => setTimeout(r, 1500))]); } catch (e) { /* the fallback font is fine */ }
+    if (st !== s) return; // another settlement was built while the font loaded
+    labelsReady = true; buildLabels(wd);
+  }
+  // Map labels: a village with a green by its name, the farms of any other village by theirs. Rebuilt when villages or farm names change
+  // (settlers found villages and build farms in play; VB-148), once the label font has loaded.
+  let labelsReady = false, labelSig = '';
+  const labelSigOf = () => st.villages.map((v) => (v.green ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
+  function buildLabels(wd) {
+    for (const t of L.labels.removeChildren()) t.destroy();
+    labels = []; labelSig = labelSigOf();
     const mkLabel = (text, x, y, size) => {
       const t = new PIXI.Text({ text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: { color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
       t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
@@ -1261,6 +1272,20 @@
       if (v.green) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, 30);
       else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24); }
     }
+  }
+  // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
+  // rising log walls, the turf roof; a ring while the work goes on (VB-148).
+  function drawBooth(wd, f, empty) {
+    const x = wd.hx[f.house], y = wd.hy[f.house], g = new PIXI.Graphics(), n = f.booth.i;
+    g.poly([x + 6, y + 8, x + 15, y - 6, x + 24, y + 8]).fill(0x6b5135).stroke({ width: 1, color: 0x3e2c1c });
+    for (const dx of [-3, 0, 3]) g.moveTo(x + 15 + dx, y - 6).lineTo(x + 15 + dx * 2.6, y - 10).stroke({ width: 1.2, color: 0x4a3524 });
+    g.rect(x + 13, y + 2, 4, 6).fill(0x2a1e14); // the opening
+    const cx = x - 8, cy = y + 2;
+    if (n >= 1) for (const [dx, dy] of [[-9, 3], [-3, 6], [4, 6], [10, 3], [-9, -3], [10, -3]]) g.ellipse(cx + dx, cy + dy, 3, 2).fill(0x8b8a84);
+    if (n >= 2) g.rect(cx - 9, cy - 7, 19, 12).fill(0x7a5a38).stroke({ width: 1, color: 0x4a3524 });
+    if (!empty) g.ellipse(cx, cy + 2, 16, 9).stroke({ width: 1.5, color: 0xf2e6c4, alpha: 0.7 });
+    if (empty) g.alpha = 0.55;
+    g.zIndex = y + 8; L.objects.addChild(g);
   }
   // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
   function buildFarms(wd) {
@@ -1289,9 +1314,12 @@
       const v = f.id % 3;
       // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
       const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
-      const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95), stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
-      for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
-      if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
+      if (f.booth) drawBooth(wd, f, empty);
+      else {
+        const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95), stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
+        for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
+        if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
+      }
       const wood = place(art.wood[0], hx + 13, hy + 16, 0.5, 0.9); wood.visible = !empty;
       const herds = !empty && st.households[f.household].herds.length > 0;
       if (herds) place(art.byre, hx - 25, hy + 2, 0.5, 0.92);
@@ -1301,7 +1329,8 @@
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
-        houseInfo.push({ f, puffs, wood, stack, heap, cx: hx - 7 + (67 - 52) * 0.27, cy: hy + 10 + (9 - 73.6) * 0.27 });
+        // smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built
+        houseInfo.push({ f, puffs, wood, stack, heap, cx: f.booth ? hx + 15 : hx - 7 + (67 - 52) * 0.27, cy: f.booth ? hy - 2 : hy + 10 + (9 - 73.6) * 0.27 });
       }
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
@@ -1323,6 +1352,7 @@
         L.fences.addChild(g);
       }
     }
+    if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
     for (const p of st.pawns) {
       const married = Sim.spouseOf(st, p.id) !== null || (p.sex === 'f' && st.unions.some((u) => u.a === p.id || u.b === p.id));
       const R = makeRig(p, married); R.root.visible = false;
@@ -1532,7 +1562,13 @@
       const worst = Math.min(...v.fence.map((s) => s.cond));
       const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
       const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
-      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair. ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
+      const fenceText = v.fence.length ? `Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair.` : 'No fence yet.';
+      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>${fenceText} ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
+      // moving to new land (VB-148): where the village came from, the villages it gave rise to, and whether it is crowded
+      if (v.founded) h += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
+      const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
+      if (daughters.length) h += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
+      if (v.crowded > 0) h += `<p>Crowded: ${v.crowded === 1 ? '1 adult waits' : `${v.crowded} adults wait`} for land, and there is no room to clear.</p>`;
       h += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}</p>`;
       for (const plot of v.plots.filter((q) => !q.done)) {
         h += `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done</p>`;
@@ -1548,6 +1584,7 @@
       const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
       const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
       h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
+      if (f.booth) h += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
       h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined && hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
       h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st, hh) ? ` (${Sim.seedReserve(st, hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n, 0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` : ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100, ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
       const herdText = Sim.describeHerds(st, hh);

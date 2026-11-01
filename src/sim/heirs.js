@@ -74,13 +74,14 @@ VB['sim/heirs'] = (() => {
     for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     return out;
   }
-  function moveTo(st, id, hhId) {
+  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
+  function moveTo(st, id, hhId, text = null) {
     const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
     if (old) old.members = old.members.filter((m) => m !== id);
     const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
     p.household = hhId; p.servant = false;
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', `Moved to ${st.farmsteads[hh.farmstead].name}`);
+    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`);
   }
   function transfer(st, hh, heir, reason) {
     const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), old = hh.holder, op = st.pawns[old];
@@ -191,11 +192,13 @@ VB['sim/heirs'] = (() => {
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
       if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
-      personEvent(st, spouse, 'inherited',
-        `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
-      log(st,
-        `${fullName(st.pawns[spouse])} keeps ${f.name}` +
-        `${cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own' : ' until the heir comes of age'}.`);
+      // under "a right to her keep" the spouse holds only for a minor heir, or, with no heir at all, as the one left on the farm
+      const how = cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life'
+        : heir !== null ? `as guardian for ${fullName(st.pawns[heir])}` : 'with no heir';
+      const until = cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own'
+        : heir !== null ? ' until the heir comes of age' : ', having no heir';
+      personEvent(st, spouse, 'inherited', `Holds ${f.name} ${how}`);
+      log(st, `${fullName(st.pawns[spouse])} keeps ${f.name}${until}.`);
       st.visualDirty = true;
       return;
     }

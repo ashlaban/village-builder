@@ -19,7 +19,18 @@ function checkState(st) {
     const f = st.farmsteads[h.farmstead];
     if (!f || f.household !== h.id) bad.push(`households[${h.id}]: farmstead ${h.farmstead} does not name it`);
   }
-  for (const v of st.villages) if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
+  for (const v of st.villages) {
+    if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
+    // every village has the Culture settlement of the same id (sim/society, addSettlement); moving to new land (sim/settle)
+    const s = st.cenv.settlements[v.id];
+    if (!s || s.id !== v.id) bad.push(`villages[${v.id}]: no Culture settlement with its id`);
+    if (!(Number.isInteger(v.crowded) && v.crowded >= 0)) bad.push(`villages[${v.id}]: crowded is ${v.crowded}`);
+    const fd = v.founded;
+    if (fd !== null && !(Number.isInteger(fd.from) && fd.from >= 0 && fd.from < v.id && st.pawns[fd.by] && Number.isFinite(fd.t))) {
+      bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
+    }
+  }
+  if (st.cenv.settlements.length !== st.villages.length) bad.push(`${st.cenv.settlements.length} settlements for ${st.villages.length} villages`);
   for (const p of st.pawns) {
     if (p.alive) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
@@ -34,6 +45,7 @@ function checkState(st) {
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
     if (p.rel) checkRel(st, p, bad);
     if (p.kinPush !== null && !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
+    if (p.landWait !== undefined && !(Number.isInteger(p.landWait) && p.landWait >= 0)) bad.push(`pawns[${p.id}]: landWait is ${p.landWait}`);
   }
   const open = new Map();
   for (const u of st.unions) {
@@ -47,6 +59,8 @@ function checkState(st) {
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
+    const b = f.booth; // settlers' booth: cottage stages done (0..2) and hours on the open one (sim/settle)
+    if (b !== null && !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
     if (f.household !== null && st.owner) {
       if (st.owner[f.house] === 0) bad.push(`farmsteads[${f.id}]: house tile ${f.house} has no owner`);
@@ -136,7 +150,7 @@ function checkHerds(st, bad) {
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
   const { SOIL } = VB['sim/rules'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
-    if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= SOIL.cap + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
+    if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
   }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.

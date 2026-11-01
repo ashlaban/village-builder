@@ -9,7 +9,7 @@ VB['sim/jobs'] = (() => {
   const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
-  const { plotJobs } = VB['sim/expansion'];
+  const { plotJobs, boothJob } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -62,6 +62,7 @@ VB['sim/jobs'] = (() => {
       // households in every scenario look, and those short of land searched in vain every hour)
       if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
+      const bj = boothJob(st, f); if (bj) post(st, bj[0], bj[1], own, f.house, bj[2]); // settlers build their cottage (sim/settle)
       if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });

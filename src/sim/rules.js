@@ -148,8 +148,9 @@ VB['sim/rules'] = (() => {
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
   // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
-  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md) ----
-  const SOIL = { start: 1, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
+  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
+  // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
+  const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
@@ -173,6 +174,14 @@ VB['sim/rules'] = (() => {
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
+  // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
+  // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
+  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a wood within
+  // woodReach; sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the best `candidates` by the first and last
+  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join` steps of home.
+  const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 36, reach: [10, 30], apart: 3, fields: 3,
+    fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
@@ -194,5 +203,5 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, MATCH };
 })();
