@@ -79,3 +79,35 @@ Kim's decisions are in the next section; the numbers are Proposed starting value
 | VB-148 | The page: booths, new villages' labels, the crowded note and founding in the panels; `--report villages` in `tools/sim.js` |
 | VB-149 | Fresh land yields more for its first crops |
 | VB-150 | Wrap-up: long runs before and after |
+
+## 6. Results (VB-150)
+
+Populous small, 40 years, before (`91daa68`) and after (VB-146 to VB-149), per decade: population, villages (founded in play), settler farms founded / joined, adults waiting for land with no room at the decade's end, hungry household-days per household-year and deaths by starvation in the decade. From a scratch probe that reads the same state as `tools/sim.js --report villages` at the end of each decade (reported, not asserted).
+
+**Seed 7**
+
+| Year | Population | Villages | Settler farms | Waiting, no room | Hungry days | Starvation |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10 | 435 → 437 | 11 → 14 (3) | 3 / 2 | 2 → 0 | 0.65 → 0.12 | 0 → 0 |
+| 20 | 509 → 517 | 11 → 15 (4) | 4 / 10 | 2 → 2 | 2.11 → 0.27 | 5 → 0 |
+| 30 | 602 → 620 | 11 → 20 (9) | 8 / 20 | 20 → 3 | 4.01 → 0.88 | 13 → 1 |
+| 40 | 662 → 780 | 11 → 22 (11) | 8 / 25 | 32 → 4 | 3.65 → 0.35 | 46 → 0 |
+
+**Seed 42** (the baseline is `91daa68` with only the walking fix of b1b5f16: without it, both runs hang at this seed, the baseline between years 20 and 30)
+
+| Year | Population | Villages | Settler farms | Waiting, no room | Hungry days | Starvation |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10 | 439 → 424 | 9 → 14 (5) | 4 / 7 | 8 → 6 | 1.27 → 0.98 | 1 → 0 |
+| 20 | 447 → 509 | 9 → 17 (8) | 7 / 13 | 12 → 8 | 5.99 → 2.02 | 65 → 11 |
+| 30 | 474 → 614 | 9 → 20 (11) | 8 / 22 | 22 → 5 | 5.84 → 0.86 | 54 → 5 |
+| 40 | 491 → 616 | 9 → 25 (16) | 12 / 31 | 22 → 14 | 7.04 → 3.00 | 35 → 92 |
+
+Over 40 years at seed 42, 155 starved before and 108 after, but years 31–40 after hold a famine (years 37–38) that killed 92. It is chance, not the frontier: the same seed advanced a day at a time instead of a year (which changes the random history, as stepping does) reaches 755 people at year 40 with 12 deaths by starvation in years 31–40, 2 of them in founded villages, and the fields of founded villages are as good as old ones by then (soil 0.91 both). One seed's decade is noise; the trend over both seeds and all decades is the result.
+
+**Founders** (small, seeds 7 and 42, 100 years): no village of theirs ever fills, so nobody leaves and the rule never engages; their population follows its own course (seed 42 dies out by year 60–80 both before and after; seed 7 by year 100 after, 29 people before). Fresh land changes their numbers only by chance (VB-149, 7 seeds).
+
+What it shows:
+- **The release valve works.** Full villages send their landless out at about the rate they come of age, so the queue stays at 2–8 adults instead of growing by one a year per village; the hunger of crowded villages, which killed 46 people in years 31–40 at seed 7, is gone there, and at seed 42 deaths by starvation over 40 years fall from 155 to 108 despite one bad famine.
+- **Hamlets, not scattered farms.** Three settler farms in four join a small village (the generated lone farms and the first daughters), so the island fills with hamlets of up to 4 farms 10–30 steps from the old villages.
+- **The frontier wears.** Settlers have no cattle, so their fresh fields wear to the floor in about a decade; some first farms empty (in VB-146's 30-year probe, Signestorp at seed 7 and Björnstorp at seed 42 were ruins by year 30), as frontier farms did.
+- **Open:** lone settlers who stay unmarried for years, the provisions' thin margin, and the founders' own decline; questions in `QUESTIONS.md`, "Moving to new land: the tuned values".
