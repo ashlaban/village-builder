@@ -1918,6 +1918,14 @@ VB['sim/rules'] = (() => {
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
+  // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
+  // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
+  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a wood within
+  // woodReach; sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the best `candidates` by the first and last
+  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join` steps of home.
+  const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 36, reach: [10, 30], apart: 3, fields: 3,
+    fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
@@ -1939,7 +1947,7 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, MATCH };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, MATCH };
 })();
 </script>
 <script>
@@ -2297,7 +2305,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [],
+      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
     };
   }
 
@@ -2359,17 +2367,19 @@ VB['sim/layout'] = (() => {
         // a big village runs out of names: number the rest
         for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
-      } else { // a one-farm village: the farm is named for its surroundings
-        let coast = false, woods = 0, hills = 0, marsh = 0;
-        const { dist: near } = bfs(w, f.house, 2, () => true);
-        for (const [j] of near) {
-          if (w.water[j]) coast = true; const b = w.biome[j];
-          if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++;
-        }
-        const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
-        f.name = coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
-      }
+      } else f.name = loneFarmName(w, f, rand); // a one-farm village: the farm is named for its surroundings
     }
+  }
+  // The name of a lone farm (a one-farm village), by its surroundings within 2 steps: shore, woods, hills, marsh, or a plain name.
+  function loneFarmName(w, f, rand) {
+    let coast = false, woods = 0, hills = 0, marsh = 0;
+    const { dist: near } = bfs(w, f.house, 2, () => true);
+    for (const [j] of near) {
+      if (w.water[j]) coast = true; const b = w.biome[j];
+      if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++;
+    }
+    const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
+    return coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
   }
   // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
   function nearestWood(w, used, from) {
@@ -2464,7 +2474,7 @@ VB['sim/layout'] = (() => {
   }
   return {
     settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, nameFarms, finishLand, nearestWood, findLoneFarm,
+    buildVillage, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
   };
 })();
 </script>
@@ -3989,7 +3999,24 @@ VB['sim/expansion'] = (() => {
     const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
     if (plot.cottage.i >= COTTAGE.length) VB['sim/cottage'].finishCottage(st, plot);
   }
-  return { COTTAGE, building, claimableFarm, startPlots, plotJobs, plotProgress, finishStep, activePlots };
+  // ---- the cottage of a household living in a booth (settlers, sim/settle): the same stages, as the household's own work ----
+  // The open stage of farm f's cottage while f.booth stands: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.
+  function boothJob(st, f) {
+    const k = f.booth; if (!k) return null;
+    const key = `booth:f${f.id}`, live = st.jobs.get(key);
+    if (live) k.done = live.done;
+    return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
+  }
+  // A stage of a booth's cottage is done; with the roof on, the household leaves the booth for its cottage.
+  function finishBoothStage(st, j) {
+    const f = j.farm, k = f.booth; if (!k) return;
+    k.i++; k.done = 0; st.biomeDirty.add(f.house); st.visualDirty = true;
+    if (k.i < COTTAGE.length) return;
+    f.booth = null;
+    const hh = f.household !== null ? st.households[f.household] : null;
+    log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`);
+  }
+  return { COTTAGE, building, claimableFarm, findSite, hasPlot, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob, finishBoothStage };
 })();
 </script>
 <script>
@@ -4002,6 +4029,7 @@ VB['sim/kinds'] = (() => {
   const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
+  const { finishBoothStage } = VB['sim/expansion'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -4156,12 +4184,13 @@ VB['sim/kinds'] = (() => {
       verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
       type: 'tilling', field: true, spot: onField,
     },
+    // the cottage's stages: a plot's are finished by sim/expansion (j.plot); a booth's (j.booth, settlers) here
     foundation: { verb: 'Laying the foundation', go: 'Going to lay a foundation', name: 'Lay the foundation', label: 'Foundation', anim: 'mallet', hours: 30,
-      hands: Infinity, type: 'wood' },
+      hands: Infinity, type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     walls: { verb: 'Raising the log walls', go: 'Going to raise the walls', name: 'Raise the walls', label: 'Walls', anim: 'chop', hours: 60, hands: Infinity,
-      type: 'wood' },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     roof: { verb: 'Laying the turf roof', go: 'Going to lay the roof', name: 'Lay the roof', label: 'Roof', anim: 'mallet', hours: 30, hands: Infinity,
-      type: 'wood' },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     mend: {
       verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
       type: 'upkeep',
@@ -4375,7 +4404,7 @@ VB['sim/jobs'] = (() => {
   const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
-  const { plotJobs } = VB['sim/expansion'];
+  const { plotJobs, boothJob } = VB['sim/expansion'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -4428,6 +4457,7 @@ VB['sim/jobs'] = (() => {
       // households in every scenario look, and those short of land searched in vain every hour)
       if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
       if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
+      const bj = boothJob(st, f); if (bj) post(st, bj[0], bj[1], own, f.house, bj[2]); // settlers build their cottage (sim/settle)
       if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
         post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
         if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
@@ -4636,13 +4666,14 @@ VB['sim/heirs'] = (() => {
     for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     return out;
   }
-  function moveTo(st, id, hhId) {
+  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
+  function moveTo(st, id, hhId, text = null) {
     const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
     if (old) old.members = old.members.filter((m) => m !== id);
     const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
     p.household = hhId; p.servant = false;
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', `Moved to ${st.farmsteads[hh.farmstead].name}`);
+    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`);
   }
   function transfer(st, hh, heir, reason) {
     const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), old = hh.holder, op = st.pawns[old];
@@ -4753,11 +4784,13 @@ VB['sim/heirs'] = (() => {
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
       if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
-      personEvent(st, spouse, 'inherited',
-        `Holds ${f.name} ${cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life' : `as guardian for ${fullName(st.pawns[heir])}`}`);
-      log(st,
-        `${fullName(st.pawns[spouse])} keeps ${f.name}` +
-        `${cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own' : ' until the heir comes of age'}.`);
+      // under "a right to her keep" the spouse holds only for a minor heir, or, with no heir at all, as the one left on the farm
+      const how = cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life'
+        : heir !== null ? `as guardian for ${fullName(st.pawns[heir])}` : 'with no heir';
+      const until = cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own'
+        : heir !== null ? ' until the heir comes of age' : ', having no heir';
+      personEvent(st, spouse, 'inherited', `Holds ${f.name} ${how}`);
+      log(st, `${fullName(st.pawns[spouse])} keeps ${f.name}${until}.`);
       st.visualDirty = true;
       return;
     }
@@ -4871,7 +4904,7 @@ VB['sim/cottage'] = (() => {
       personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`);
     }
   }
-  return { finishCottage, payOwed };
+  return { farmName, finishCottage, payOwed };
 })();
 </script>
 <script>
@@ -4902,19 +4935,7 @@ VB['sim/society'] = (() => {
     const customs = Culture.fromArchetype('oldNordic');
     for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0);
-    for (const v of st.villages) {
-      const s = {
-        id: v.id, name: v.name, culture: c.id, kind: 'village', tie: v.id === 0 ? 1 : 0.5, practice: Int8Array.from(customs), fissionYears: 0, divergence: 0,
-      };
-      s.members = () => {
-        const out = [];
-        for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
-          const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
-        }
-        return out.sort((a, b) => a.id - b.id);
-      };
-      env.settlements.push(s);
-    }
+    for (const v of st.villages) addSettlement(st, v, c.id, customs, v.id === 0 ? 1 : 0.5);
     for (const p of st.pawns) {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
@@ -4927,6 +4948,20 @@ VB['sim/society'] = (() => {
       p.ties.set(q, Math.max(p.ties.get(q) || 0, 0.5)); st.pawns[q].ties.set(p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
     }
     updateTies(st); refreshPrestige(st); refreshInterests(st);
+  }
+  // The Culture settlement of village v, with the same id: its culture, a copy of the practice it keeps and its tie to the centre.
+  // Seeding makes one per village; a village founded in play (sim/settle) gets one too, so the two lists keep the same ids.
+  function addSettlement(st, v, culture, practice, tie) {
+    const s = { id: v.id, name: v.name, culture, kind: 'village', tie, practice: Int8Array.from(practice), fissionYears: 0, divergence: 0 };
+    s.members = () => {
+      const out = [];
+      for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
+        const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+      }
+      return out.sort((a, b) => a.id - b.id);
+    };
+    st.cenv.settlements.push(s);
+    return s;
   }
   // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
   function updateTies(st) {
@@ -5031,7 +5066,200 @@ VB['sim/society'] = (() => {
     }
     return { out, cells, cellOf, size: NEAR };
   }
-  return { initCulture, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+  return { initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+})();
+</script>
+<script>
+// @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
+VB['sim/settle'] = (() => {
+  const { B } = VB['gen'];
+  const { SETTLE, SHARES, ECON, fertility, farmable } = VB['sim/rules'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
+  const { log, fullName, spouseOf, childrenOf, siblingsOf, makeHousehold, settlementIdOf, isHolder } = VB['sim/records'];
+  const { setOwner } = VB['sim/ownership'];
+  const { placeFields, siteScore, nearestWood, makeFarmstead, villageName, loneFarmName } = VB['sim/layout'];
+  const { builtTiles, clearHours } = VB['sim/fields'];
+  const { findSite, hasPlot } = VB['sim/expansion'];
+  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { farmName } = VB['sim/cottage'];
+  const { addSettlement } = VB['sim/society'];
+  const SUFFIX = ['torp', 'ryd', 'boda', 'hult', 'mark']; // clearing (-ryd), booths (-boda), grove (-hult), outland (-mark), daughter (-torp)
+  const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  const guardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
+  // ---- who waits, and which villages are crowded ----
+  // The adults of each village who want out (st.demand) and have no plot coming: village id -> pawn ids, in demand order.
+  function waitingByVillage(st) {
+    const out = new Map();
+    for (const id of st.demand) {
+      const p = st.pawns[id]; if (!p.alive || p.household === null || hasPlot(st, id)) continue;
+      const v = settlementIdOf(st, p), l = out.get(v); if (l) l.push(id); else out.set(v, [id]);
+    }
+    return out;
+  }
+  // After plots are started: a village is crowded when adults of it wait for land and there is no room for a plot (findSite). v.crowded counts
+  // them; each counts the moving rounds waited in a crowded village (p.landWait), 0 for every other living pawn.
+  function markCrowded(st) {
+    const waiting = waitingByVillage(st), crowded = new Set();
+    for (const v of st.villages) {
+      const ids = waiting.get(v.id) || [];
+      v.crowded = ids.length && findSite(st, v) === null ? ids.length : 0;
+      if (v.crowded) for (const id of ids) crowded.add(id);
+    }
+    for (const p of st.pawns) if (p.alive) p.landWait = crowded.has(p.id) ? (p.landWait || 0) + 1 : 0;
+    return waiting;
+  }
+  // ---- the party and its provisions ----
+  // Who goes with settler p: their spouse, waiting unmarried siblings who choose to follow (each with SETTLE.follow, at most SETTLE.maxFollow,
+  // in id order), and the children under 18 of any of them who live with them, unless the child holds a farm or is a ward.
+  function partyOf(st, p, waiting, taken) {
+    const all = [p.id], followers = [], sp = spouseOf(st, p.id);
+    if (sp !== null && st.pawns[sp].alive) all.push(sp);
+    for (const id of siblingsOf(st, p.id)) {
+      if (followers.length >= SETTLE.maxFollow) break;
+      if (!st.pawns[id].alive || taken.has(id) || !waiting.includes(id) || spouseOf(st, id) !== null || guardian(st, id)) continue;
+      if (st.rand() < SETTLE.follow) followers.push(id);
+    }
+    all.push(...followers);
+    for (const id of [...all]) for (const c of childrenOf(st, id)) {
+      const q = st.pawns[c], hh = q.household !== null ? st.households[q.household] : null;
+      if (!q.alive || q.age >= 18 || all.includes(c) || q.household !== st.pawns[id].household || isHolder(st, c) || (hh && hh.ward === c)) continue;
+      all.push(c);
+    }
+    return { all, followers };
+  }
+  // Food until the next harvest (SETTLE.provisionDays of the party's rations) and seed for one field: the party's stakes, then their old
+  // households' grain above the shares reserve for those who stay, the settler's household first. {grain, gifts: [[household, grain]]}, or
+  // null when it is not enough (and nothing is taken).
+  function provisions(st, all) {
+    const rations = all.reduce((s, id) => s + (st.pawns[id].age >= 14 ? ECON.ration.adult : ECON.ration.child), 0);
+    const need = Math.ceil(SETTLE.provisionDays * rations) + ECON.seedPerField, gifts = [];
+    let have = all.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
+    for (const h of new Set(all.map((id) => st.pawns[id].household))) {
+      if (have >= need) break;
+      const hh = st.households[h], stay = hh.members.filter((m) => !all.includes(m)).length;
+      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - SHARES.reserveBase - stay * SHARES.reservePerMember)));
+      if (give > 0) { gifts.push([h, give]); have += give; }
+    }
+    return have >= need ? { grain: have, gifts } : null;
+  }
+  // ---- the site of a new village ----
+  // The land in use, for the site search: `taken`, tiles a new farm may not take (houses, greens, fields, field projects, plots, owned tiles);
+  // `near`, every tile within SETTLE.apart - 1 steps of a house, green, field, field project or plot tile, where no new house or field goes.
+  function landInUse(st) {
+    const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = [...builtTiles(st)];
+    for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0) use.taken.add(t);
+    for (const f of st.farmsteads) { for (const fd of f.fields) marks.push(fd.tile); if (f.project) marks.push(f.project.tile); }
+    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.push(tr.tile);
+    for (const t of marks) markUsed(w, use, t);
+    return use;
+  }
+  function markUsed(w, use, t) {
+    use.taken.add(t);
+    for (const [j] of bfs(w, t, SETTLE.apart - 1, () => true).dist) use.near.add(j);
+  }
+  const meanFertility = (st, v) => {
+    let n = 0, s = 0;
+    for (const id of v.farmsteads) for (const fd of st.farmsteads[id].fields) { s += fd.fert; n++; }
+    return n ? s / n : 1;
+  };
+  // House sites SETTLE.reach walking steps from village v's centre, on meadow nobody uses, by siteScore less SETTLE.perStep a step, best first;
+  // a third of the tiles are tried, as for the generated lone farm.
+  function candidates(st, v, use) {
+    const w = st.w, [lo, hi] = SETTLE.reach, out = [];
+    for (const [t, d] of bfs(w, v.center, hi, walkable(w)).dist) {
+      if (d < lo || (t * 31) % 3 || w.biome[t] !== B.MEADOW || !farmable(w, t) || use.taken.has(t) || use.near.has(t)) continue;
+      out.push([t, d, siteScore(w, t) - SETTLE.perStep * d]);
+    }
+    return out.sort((a, b) => b[2] - a[2] || a[0] - b[0]);
+  }
+  // The best site for a new village from village v: of the best SETTLE.candidates sites still free, one with a block of SETTLE.fields fields
+  // (placeFields, none near other farms) at least SETTLE.fertility times as fertile on average as v's fields, and a wood within reach; scored
+  // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps, wood}, or null.
+  function newSite(st, v, use, cands) {
+    const w = st.w, minFert = SETTLE.fertility * meanFertility(st, v);
+    let best = null, bs = -Infinity, tried = 0;
+    for (const [t, d, s0] of cands) {
+      if (tried >= SETTLE.candidates) break;
+      if (use.taken.has(t) || use.near.has(t)) continue;
+      tried++;
+      const block = placeFields(w, use.taken, t, SETTLE.fields, use.near); if (!block) continue;
+      const fert = block.reduce((a, k) => a + fertility(w, k), 0), s = s0 + SETTLE.fieldWeight * fert;
+      if (fert / block.length < minFert || s <= bs) continue;
+      const wood = nearestWood(w, use.taken, t); if (wood < 0) continue;
+      bs = s; best = { house: t, field: block[0], steps: d, wood };
+    }
+    return best;
+  }
+  // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name; the first not taken.
+  function founderName(st, p) {
+    const base = p.given.endsWith('s') ? p.given : p.given + 's', names = new Set(st.villages.map((v) => v.name));
+    for (const s of SUFFIX) if (!names.has(base + s)) return base + s;
+    let n = villageName(st.rand); while (names.has(n)) n = villageName(st.rand);
+    return n;
+  }
+  // ---- settling ----
+  // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, built by
+  // sim/expansion's booth jobs), a household with the provisions as its grain, and `field` as its first field project.
+  function settleFarm(st, v, home, party, house, field, prov, use) {
+    const w = st.w, settler = st.pawns[party.all[0]];
+    const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
+    f.woodlot = v.commonsWood; f.condition = 1; f.emptySince = null; f.booth = { i: 0, done: 0 };
+    st.farmsteads.push(f); v.farmsteads.push(f.id);
+    f.name = v.farmsteads.length === 1 ? loneFarmName(w, f, st.rand) : farmName(st, v);
+    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], settler.id);
+    hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
+    for (const id of party.all) st.pawns[id].stake = 0;
+    for (const [h, n] of prov.gifts) st.households[h].grain -= n;
+    setOwner(st, house, { type: 'household', id: hh.id }); setOwner(st, field, { type: 'household', id: hh.id });
+    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
+    const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
+    for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
+    for (const id of party.followers) st.pawns[id].servant = true;
+    for (const t of [house, field]) markUsed(w, use, t);
+    refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
+    return f;
+  }
+  // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
+  function found(st, home, p, party, site, prov, use) {
+    const hs = st.cenv.settlements[home.id];
+    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
+      green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
+    st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
+    return settleFarm(st, v, home, party, site.house, site.field, prov, use);
+  }
+  // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
+  // oldest, may leave (SETTLE.chance by rounds waited) with their party, if it has provisions and there is land for a new village.
+  function settleRound(st) {
+    const waiting = markCrowded(st);
+    let use = null;
+    for (const v of [...st.villages]) {
+      if (!v.crowded) continue;
+      const ids = [...waiting.get(v.id)], taken = new Set(), at = (id) => st.pawns[id];
+      ids.sort((a, b) => at(b).landWait - at(a).landWait || at(a).born - at(b).born || a - b);
+      let cands = null;
+      for (const id of ids) {
+        const p = st.pawns[id];
+        if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
+        if (st.rand() >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
+        const party = partyOf(st, p, ids, taken), prov = provisions(st, party.all);
+        if (!prov) { log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`); continue; }
+        if (!use) use = landInUse(st);
+        if (!cands) cands = candidates(st, v, use);
+        const site = newSite(st, v, use, cands);
+        if (!site) { log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`); break; }
+        const f = found(st, v, p, party, site, prov, use), nv = st.villages[f.village];
+        for (const q of party.all) taken.add(q);
+        const others = party.all.slice(1), adults = others.filter((q) => st.pawns[q].age >= 18), kids = others.length - adults.length;
+        const company = [...adults.map((q) => fullName(st.pawns[q])), ...kids ? [`${kids} ${kids > 1 ? 'children' : 'child'}`] : []];
+        log(st, `${fullName(p)} leaves crowded ${v.name}${company.length ? ` with ${listed(company)}` : ''} and founds ${nv.name}, `
+          + `${site.steps} steps away.`);
+        v.crowded = Math.max(0, v.crowded - party.all.filter((q) => ids.includes(q)).length);
+        st.demand = st.demand.filter((q) => !party.all.includes(q) || party.followers.includes(q)); // the followers still want land
+      }
+    }
+  }
+  return { waitingByVillage, markCrowded, partyOf, provisions, landInUse, candidates, newSite, founderName, settleFarm, found, settleRound };
 })();
 </script>
 <script>
@@ -5046,6 +5274,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { settleRound } = VB['sim/settle'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
@@ -5196,6 +5425,7 @@ VB['sim/lifecycle'] = (() => {
     // who wants out: landless adults with no prospect of a farm
     st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
     startPlots(st);
+    settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     payOwed(st);
     refreshPrestige(st);
     st.visualDirty = true;
@@ -5491,7 +5721,8 @@ VB['sim/scenarios'] = (() => {
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
-    //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle), ...}
+    //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
+    //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
@@ -5509,13 +5740,17 @@ VB['sim/scenarios'] = (() => {
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
-    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
+    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
+    //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
+    //   their cottage is built (sim/settle, sim/expansion)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage),
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
+    //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);
+    //   founded {t, from (village id), by (pawn id)} for a village founded in play by settlers, else null (sim/settle)
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;
     //   tests may turn it off; see sim/fields, sim/meadows)
@@ -5550,7 +5785,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
-    for (const v of villages) v.plots = [];
+    for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with

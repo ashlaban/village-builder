@@ -7,6 +7,7 @@ VB['sim/kinds'] = (() => {
   const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
+  const { finishBoothStage } = VB['sim/expansion'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -161,12 +162,13 @@ VB['sim/kinds'] = (() => {
       verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
       type: 'tilling', field: true, spot: onField,
     },
+    // the cottage's stages: a plot's are finished by sim/expansion (j.plot); a booth's (j.booth, settlers) here
     foundation: { verb: 'Laying the foundation', go: 'Going to lay a foundation', name: 'Lay the foundation', label: 'Foundation', anim: 'mallet', hours: 30,
-      hands: Infinity, type: 'wood' },
+      hands: Infinity, type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     walls: { verb: 'Raising the log walls', go: 'Going to raise the walls', name: 'Raise the walls', label: 'Walls', anim: 'chop', hours: 60, hands: Infinity,
-      type: 'wood' },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     roof: { verb: 'Laying the turf roof', go: 'Going to lay the roof', name: 'Lay the roof', label: 'Roof', anim: 'mallet', hours: 30, hands: Infinity,
-      type: 'wood' },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
     mend: {
       verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
       type: 'upkeep',

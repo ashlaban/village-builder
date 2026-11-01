@@ -156,5 +156,22 @@ VB['sim/expansion'] = (() => {
     const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
     if (plot.cottage.i >= COTTAGE.length) VB['sim/cottage'].finishCottage(st, plot);
   }
-  return { COTTAGE, building, claimableFarm, startPlots, plotJobs, plotProgress, finishStep, activePlots };
+  // ---- the cottage of a household living in a booth (settlers, sim/settle): the same stages, as the household's own work ----
+  // The open stage of farm f's cottage while f.booth stands: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.
+  function boothJob(st, f) {
+    const k = f.booth; if (!k) return null;
+    const key = `booth:f${f.id}`, live = st.jobs.get(key);
+    if (live) k.done = live.done;
+    return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
+  }
+  // A stage of a booth's cottage is done; with the roof on, the household leaves the booth for its cottage.
+  function finishBoothStage(st, j) {
+    const f = j.farm, k = f.booth; if (!k) return;
+    k.i++; k.done = 0; st.biomeDirty.add(f.house); st.visualDirty = true;
+    if (k.i < COTTAGE.length) return;
+    f.booth = null;
+    const hh = f.household !== null ? st.households[f.household] : null;
+    log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`);
+  }
+  return { COTTAGE, building, claimableFarm, findSite, hasPlot, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob, finishBoothStage };
 })();

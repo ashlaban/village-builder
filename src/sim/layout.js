@@ -99,7 +99,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [],
+      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
     };
   }
 
@@ -161,17 +161,19 @@ VB['sim/layout'] = (() => {
         // a big village runs out of names: number the rest
         for (let n = 2; farmsteads.some((g) => g !== f && g.village === f.village && g.name === nm); n++) nm = `${nm.replace(/ \d+$/, '')} ${n}`;
         f.name = nm;
-      } else { // a one-farm village: the farm is named for its surroundings
-        let coast = false, woods = 0, hills = 0, marsh = 0;
-        const { dist: near } = bfs(w, f.house, 2, () => true);
-        for (const [j] of near) {
-          if (w.water[j]) coast = true; const b = w.biome[j];
-          if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++;
-        }
-        const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
-        f.name = coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
-      }
+      } else f.name = loneFarmName(w, f, rand); // a one-farm village: the farm is named for its surroundings
     }
+  }
+  // The name of a lone farm (a one-farm village), by its surroundings within 2 steps: shore, woods, hills, marsh, or a plain name.
+  function loneFarmName(w, f, rand) {
+    let coast = false, woods = 0, hills = 0, marsh = 0;
+    const { dist: near } = bfs(w, f.house, 2, () => true);
+    for (const [j] of near) {
+      if (w.water[j]) coast = true; const b = w.biome[j];
+      if (b === B.FOREST || b === B.PINE) woods++; if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++;
+    }
+    const plain = ['Ängen', 'Hagen', 'Berga', 'Åkern'];
+    return coast ? 'Strand' : woods >= 4 ? 'Lunden' : hills >= 3 ? 'Backa' : marsh >= 2 ? 'Myra' : plain[(rand() * plain.length) | 0];
   }
   // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
   function nearestWood(w, used, from) {
@@ -266,6 +268,6 @@ VB['sim/layout'] = (() => {
   }
   return {
     settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, nameFarms, finishLand, nearestWood, findLoneFarm,
+    buildVillage, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
   };
 })();

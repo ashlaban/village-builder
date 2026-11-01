@@ -154,7 +154,8 @@ VB['sim/scenarios'] = (() => {
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
-    //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle), ...}
+    //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
+    //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
@@ -172,13 +173,17 @@ VB['sim/scenarios'] = (() => {
     //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.15: worn by harvests, raised by manure; VB-137), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
-    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1
+    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
+    //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
+    //   their cottage is built (sim/settle, sim/expansion)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, green, well}; center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage),
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done)}}; a plot is cleared for those who want out
+    //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);
+    //   founded {t, from (village id), by (pawn id)} for a village founded in play by settlers, else null (sim/settle)
     // @state st.owner: Int32Array of tile owners (see sim/ownership)
     // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;
     //   tests may turn it off; see sim/fields, sim/meadows)
@@ -213,7 +218,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
     };
-    for (const v of villages) v.plots = [];
+    for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with

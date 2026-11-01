@@ -61,5 +61,5 @@ VB['sim/cottage'] = (() => {
       personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`);
     }
   }
-  return { finishCottage, payOwed };
+  return { farmName, finishCottage, payOwed };
 })();

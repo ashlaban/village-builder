@@ -9,6 +9,7 @@ VB['sim/lifecycle'] = (() => {
   const { release } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { settleRound } = VB['sim/settle'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
@@ -159,6 +160,7 @@ VB['sim/lifecycle'] = (() => {
     // who wants out: landless adults with no prospect of a farm
     st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
     startPlots(st);
+    settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     payOwed(st);
     refreshPrestige(st);
     st.visualDirty = true;
