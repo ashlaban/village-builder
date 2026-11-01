@@ -15,6 +15,14 @@ Refactor rules (every task titled "Refactor:"):
 
 Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR.
 
+## Pick order
+
+Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 1 November 2026):
+1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
+2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game.
+3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
+4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
+
 ## Archs
 
 An arch groups the tasks that build one part of the design. Its tasks go through three phases:
@@ -57,7 +65,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-045 | Overlay cached per map chunk | claims | implement | ready | 3 | S | Draw the overlay per chunk and redraw only the chunks whose owners or claims changed. | [backlog/VB-045.md](backlog/VB-045.md) |
 | VB-046 | Wrap-up: claims, ownership and territory | claims | wrap-up | blocked | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. | [backlog/VB-046.md](backlog/VB-046.md) |
 | VB-048 | Wrap-up: tune yields and the food balance of a farm | animals | wrap-up | blocked | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. | [backlog/VB-048.md](backlog/VB-048.md) |
-| VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 2 | L | Split the 1,600-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
+| VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 1 | L | Split the 1,900-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
 | VB-055 | Type checking of the JavaScript with checkJs | tooling | implement | ready | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. | [backlog/VB-055.md](backlog/VB-055.md) |
 | VB-057 | Golden text of the page's panels | tooling | implement | ready | 3 | S | Record the text of every panel for a fixed seed and day, so unintended UI changes fail the verify run. | [backlog/VB-057.md](backlog/VB-057.md) |
 | VB-058 | The village green and well, built by the village | expansion | implement | blocked | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
@@ -107,3 +115,4 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-140 | Livestock in shares and a new household's start | animals | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |
 | VB-141 | Plan: customs of the animals | animals | plan | ready | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. | [backlog/VB-141.md](backlog/VB-141.md) |
 | VB-142 | A pawn is allotted at most one cleared plot | expansion | implement | ready | 2 | S | Fix: `allot` gives a second cleared plot to a pawn who already holds one. | [backlog/VB-142.md](backlog/VB-142.md) |
+| VB-143 | A profile report: where a game day's time goes | tooling | implement | ready | 2 | S | `tools/sim.js --report perf`: milliseconds per system per game day, so the next slow step is found, not guessed. | [backlog/VB-143.md](backlog/VB-143.md) |
