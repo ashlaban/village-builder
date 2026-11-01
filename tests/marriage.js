@@ -31,12 +31,35 @@ function setUp(grain) {
   check(st.households.filter((h) => !h.dissolved && (h.holder === man.id || h.holder === woman.id)).length === 1, 'they hold one farm');
   const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 }
-// 2. No food in store: they put it off, and the log says so.
+// 2a. Two lone holders with no food in store still marry: a home with fewer than two adults needs the spouse's hands, not the means.
 {
   const { st, man } = setUp(0);
   roll(st, () => movingRound(st));
-  check(R.spouseOf(st, man.id) === null, 'with an empty store they do not marry');
-  check(st.events.some((e) => /put off marrying/.test(e.text)), 'the log says they put it off');
+  check(R.spouseOf(st, man.id) !== null, 'lone holders marry with an empty store');
+}
+// 2b. A first heir who lives with grown kin and an unmarried woman of his village: with no food in store they put it off, and the log says so;
+// with food, they marry.
+for (const grain of [0, 5000]) {
+  const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
+  let man = null, woman = null;
+  for (const h of st.households) {
+    const r = H.heirRanking(st, h)[0], p = r !== undefined ? st.pawns[r] : null;
+    if (!p || p.sex !== 'm' || p.age < 20 || p.household !== h.id || R.spouseOf(st, p.id) !== null) continue;
+    if (h.members.filter((id) => st.pawns[id].age >= 18).length < 2) continue;
+    const cu = R.practice(st, R.settlementIdOf(st, p));
+    woman = st.pawns.find((q) => q.alive && q.sex === 'f' && q.age >= 18 && R.spouseOf(st, q.id) === null && !R.isHolder(st, q.id)
+      && H.placeIfMarried(st, q.id) === null && R.settlementIdOf(st, q) === R.settlementIdOf(st, p) && VB['sim/lifecycle'].kinOk(st, p.id, q.id, cu));
+    if (woman) { man = p; break; }
+  }
+  if (!man) { console.error('MARRIAGE FAIL: no first heir living with grown kin'); process.exit(1); }
+  for (const p of st.pawns) if (p.alive && p.id !== man.id && p.id !== woman.id) p.hunger = 0.9;
+  const hh = st.households[man.household]; hh.grain = grain; hh.unthreshed = []; hh.larder = []; hh.rations = 0;
+  roll(st, () => movingRound(st));
+  if (grain) check(R.spouseOf(st, man.id) === woman.id, 'with food in store the heir marries');
+  else {
+    check(R.spouseOf(st, man.id) === null, 'with an empty store the heir does not marry');
+    check(st.events.some((e) => /put off marrying/.test(e.text)), 'the log says they put it off');
+  }
 }
 // 3. A lone holder and the first heir of another farm of her village: they live on her farm, and he leaves the line of his own.
 {

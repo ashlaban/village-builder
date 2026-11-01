@@ -1874,7 +1874,8 @@ VB['sim/rules'] = (() => {
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
     // the means to marry (stability review, VB-153): the household the couple will live in holds food, above its seed, for `means` years of
-    // its members and the newcomer; a match that lacks it waits a year (Malthus's preventive check: marriages fell after bad harvests)
+    // its members and the newcomer; a match that lacks it waits a year (Malthus's preventive check: marriages fell after bad harvests). A home
+    // with fewer than two adults is exempt: it needs the spouse's hands.
     means: 1,
   };
 
@@ -5715,12 +5716,14 @@ VB['sim/lifecycle'] = (() => {
       return cu.residence === 'husband' ? m.household : f.household;
     };
     // The means to marry (VB-153): the home holds food above its seed for MARRIAGE.means years of its members and one more, counting grain
-    // still in sheaf and the larder, so that marriages fall after a bad harvest (the preventive check). Cached per household until a marriage.
+    // still in sheaf and the larder, so that marriages fall after a bad harvest (the preventive check). A home with fewer than two adults
+    // needs no means: a lone holder, or a widow with small children, needs the spouse's hands. Cached per household until a marriage.
     let means = new Map();
     const affords = (h) => {
       if (!means.has(h)) {
         const hh = st.households[h], store = hh.grain + hh.rations + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
-        means.set(h, store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
+        const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
+        means.set(h, grown < 2 || store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }
       return means.get(h);
     };

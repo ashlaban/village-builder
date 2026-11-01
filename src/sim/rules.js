@@ -124,7 +124,8 @@ VB['sim/rules'] = (() => {
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
     // the means to marry (stability review, VB-153): the household the couple will live in holds food, above its seed, for `means` years of
-    // its members and the newcomer; a match that lacks it waits a year (Malthus's preventive check: marriages fell after bad harvests)
+    // its members and the newcomer; a match that lacks it waits a year (Malthus's preventive check: marriages fell after bad harvests). A home
+    // with fewer than two adults is exempt: it needs the spouse's hands.
     means: 1,
   };
 

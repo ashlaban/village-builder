@@ -31,6 +31,12 @@ function checkState(st) {
     }
   }
   if (st.cenv.settlements.length !== st.villages.length) bad.push(`${st.cenv.settlements.length} settlements for ${st.villages.length} villages`);
+  // each culture's order of preference among farm-name generators (sim/names, VB-026): known generators, each once
+  const gens = Object.keys(VB['sim/names'].FARM);
+  for (const c of st.cenv.cultures) {
+    const f = c.namePrefs && c.namePrefs.farm;
+    if (!Array.isArray(f) || !f.length || new Set(f).size !== f.length || !f.every((g) => gens.includes(g))) bad.push(`cultures[${c.id}]: namePrefs ${JSON.stringify(c.namePrefs)}`);
+  }
   for (const p of st.pawns) {
     if (p.alive) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
