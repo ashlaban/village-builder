@@ -20,12 +20,12 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
   await page.click('#debugBtn');
-  for (const id of ['settlersBtn', 'customsBtn', 'treeBtn']) {
+  for (const id of ['landBtn', 'settlersBtn', 'customsBtn', 'treeBtn', 'landBtn']) {
     await page.click('#' + id); await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');
   }
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, settlers, customs, tree)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off)');
 })().catch((e) => { console.error(e); process.exit(1); });
