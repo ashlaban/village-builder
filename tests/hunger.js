@@ -79,6 +79,7 @@ for (const h of [0, 1]) {
 {
   const count = (h) => {
     const st = fresh('heirs'); for (const p of st.pawns) p.hunger = h;
+    for (const hh of st.households) hh.grain = 5000; // the means to marry (VB-153) are not what is tested here
     const before = st.unions.length; Sim.movingRound(st); return st.unions.length - before;
   };
   assert.strictEqual(count(0.5), 0, 'no marriage at h >= 0.5'); assert(count(0) > 0, 'the control marries');

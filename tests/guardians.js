@@ -2,7 +2,7 @@
 // as guardian, or, with none, the children go to their kin and the farm stands empty; a holder who lives alone takes in an unmarried landless
 // adult as servant, but never one whose household would be left with fewer than SERVICE.keepHands working hands.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], { SERVICE } = VB['sim/rules'];
-const { killPawn } = VB['sim/lifecycle'], { checkState } = require('./lib/invariants.js');
+const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('GUARDIANS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 const fresh = () => { const st = Sim.seed(world(7), 7, 'heirs'); st.naturalDeaths = false; return st; };
@@ -19,7 +19,14 @@ function orphanCase(st) {
   }
   return null;
 }
-const orphan = (st, hh) => { for (const id of adultsOf(st, hh)) killPawn(st, id, 'illness'); };
+// The children left alone with the farm: the adults move to another household and the eldest child holds (as when every grown heir in line
+// is gone; sim/heirs heirFor prefers a grown heir when the house has no adult to be guardian).
+const orphan = (st, hh) => {
+  const away = st.households.find((h) => h !== hh && !h.dissolved);
+  for (const id of adultsOf(st, hh)) VB['sim/heirs'].moveTo(st, id, away.id);
+  const kid = [...hh.members].sort((a, b) => st.pawns[a].born - st.pawns[b].born)[0];
+  VB['sim/heirs'].transfer(st, hh, kid, 'death');
+};
 let report = '';
 // 1. The children's landless adult relative moves in as guardian of the heir.
 {

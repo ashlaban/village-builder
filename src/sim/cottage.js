@@ -15,7 +15,8 @@ VB['sim/cottage'] = (() => {
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   function finishCottage(st, plot) {
     const v = st.villages[plot.village], holder = st.pawns[plot.holder], sp = spouseOf(st, holder.id);
-    if (!holder.alive || isHolder(st, holder.id)) { // the holder died or took another farm meanwhile: the roof stands, nobody is to live there
+    // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there
+    if (!holder.alive || isHolder(st, holder.id) || (sp !== null && st.pawns[sp].alive && isHolder(st, sp))) {
       plot.holder = null; log(st, `The new cottage in ${v.name} stands empty.`); return;
     }
     plot.built = true;
@@ -30,7 +31,7 @@ VB['sim/cottage'] = (() => {
     for (const id of [...members]) {
       for (const c of childrenOf(st, id)) {
         const q = st.pawns[c];
-        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c)) members.push(c);
+        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
     const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);

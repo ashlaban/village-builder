@@ -117,8 +117,10 @@ VB['sim/expansion'] = (() => {
     return st.villages.some((u) => u.plots.some((p) => building(p) && (p.holder === id || (sp !== null && p.holder === sp))));
   }
   // The village's pick among those still waiting, by `village` rule: married couples first, then by age, single adults once no couple waits.
+  // A pawn with a farm already: a holder, or married to one (who lives on the spouse's farm; VB-153).
+  const landed = (st, id) => { const sp = spouseOf(st, id); return isHolder(st, id) || (sp !== null && isHolder(st, sp)); };
   function byVillage(st, v, ids) {
-    const live = ids.filter((id) => st.pawns[id].alive && !isHolder(st, id) && !awaitsCottage(st, id));
+    const live = ids.filter((id) => st.pawns[id].alive && !landed(st, id) && !awaitsCottage(st, id));
     const couple = (id) => { const sp = spouseOf(st, id); return sp !== null && st.pawns[sp].alive ? 0 : 1; };
     live.sort((a, b) => couple(a) - couple(b) || st.pawns[a].born - st.pawns[b].born || a - b);
     return live.length ? live[0] : null;
@@ -126,9 +128,9 @@ VB['sim/expansion'] = (() => {
   function allot(st, v, plot) {
     const waiting = st.demand.filter((id) => settlementIdOf(st, st.pawns[id]) === v.id);
     const rule = practice(st, v.id).newLand, worked = Object.keys(plot.hours).map(Number)
-      .filter((id) => st.pawns[id].alive && !awaitsCottage(st, id) && !isHolder(st, id));
+      .filter((id) => st.pawns[id].alive && !awaitsCottage(st, id) && !landed(st, id));
     let pick = null;
-    if (rule === 'intended' && st.pawns[plot.intended].alive && !isHolder(st, plot.intended)
+    if (rule === 'intended' && st.pawns[plot.intended].alive && !landed(st, plot.intended)
       && !awaitsCottage(st, plot.intended)) pick = plot.intended;
     else if (rule === 'labour' && worked.length) {
       worked.sort((a, b) => plot.hours[b] - plot.hours[a] || st.pawns[a].born - st.pawns[b].born || a - b); pick = worked[0];

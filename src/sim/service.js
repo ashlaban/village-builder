@@ -4,6 +4,7 @@ VB['sim/service'] = (() => {
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
+  const { hasPlot } = VB['sim/expansion'];
   const adult = (p) => p.alive && p.age >= 18;
   // a before b, comparing arrays of numbers element by element
   const before = (a, b) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k]; return false; };
@@ -13,8 +14,8 @@ VB['sim/service'] = (() => {
   const isGuardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
   // Working hands of a household: members of 14 to 59 who have not retired (as VB-090 counts them).
   const hands = (st, hh) => hh.members.filter((id) => { const p = st.pawns[id]; return p.alive && p.age >= 14 && p.age < 60 && !p.retired; }).length;
-  // An adult who wants land (st.demand, refreshed at each moving round) and can move: alive, landless still, not a guardian.
-  const free = (st, p) => adult(p) && !p.retired && p.household !== null && !isHolder(st, p.id) && !isGuardian(st, p.id)
+  // An adult who wants land (st.demand, refreshed at each moving round) and can move: alive, landless still, with no plot coming, not a guardian.
+  const free = (st, p) => adult(p) && !p.retired && p.household !== null && !isHolder(st, p.id) && !hasPlot(st, p.id) && !isGuardian(st, p.id)
     && (spouseOf(st, p.id) === null || !isHolder(st, spouseOf(st, p.id)));
 
   // ---- guardians (stability review) ----

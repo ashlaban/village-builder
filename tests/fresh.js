@@ -36,7 +36,8 @@ F.manureDone(st, fresh, hh, 2);
 check(near(fresh.soil, 1.3), `manure lowered a fresh field's soil to ${fresh.soil}`);
 // a plot's field broken on fresh ground keeps its soil when the cottage makes the farmstead
 const X = VB['sim/expansion'], v = st.villages[0];
-const ids = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === v.id && !Sim.isHolder(st, p.id)).map((p) => p.id);
+const landed = (id) => Sim.isHolder(st, id) || (Sim.spouseOf(st, id) !== null && Sim.isHolder(st, Sim.spouseOf(st, id))); // no plot for a holder's spouse
+const ids = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === v.id && !landed(p.id)).map((p) => p.id);
 st.demand = ids.slice(0, 1);
 X.startPlots(st);
 const plot = v.plots[v.plots.length - 1];

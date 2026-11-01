@@ -2,12 +2,15 @@
 VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
+  const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd, holdingOf,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
-  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const {
+    heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf, handOn, heirFor,
+  } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
   const { settleRound } = VB['sim/settle'];
   const { careForOrphans, takeServants } = VB['sim/service'];
@@ -116,11 +119,41 @@ VB['sim/lifecycle'] = (() => {
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
     const taken = new Set();
-    // where a couple would live, or null; one of them needs a place under 'land', and the spouse's home counts otherwise
+    // Where a couple would live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one
+    // (VB-153): a holder keeps their farm and a spouse who is only first heir steps out of that line; of two holders, the couple lives where
+    // the other farm is best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the
+    // farm with more fields, the man's on a tie. Under the other customs the spouse's home counts.
+    const fieldsAt = (h) => st.farmsteads[st.households[h].farmstead].fields.length;
+    let handed = new Map();
+    const handsOnWell = (h) => {
+      if (!handed.has(h)) {
+        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh), hh.holder), v = st.farmsteads[hh.farmstead].village;
+        const grown = heir !== null && (st.pawns[heir].age >= 18 || hh.members.some((id) => id !== hh.holder && st.pawns[id].age >= 18));
+        handed.set(h, grown ? 2 : st.demand.some((id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v) ? 1 : 0);
+      }
+      return handed.get(h);
+    };
+    const both = (m, f, pm, pf) => {
+      const hm = st.households[pm].holder === m.id, hf = st.households[pf].holder === f.id;
+      if (hm !== hf) return hm ? pm : pf;
+      if (hm && hf && handsOnWell(pm) !== handsOnWell(pf)) return handsOnWell(pm) > handsOnWell(pf) ? pf : pm;
+      return fieldsAt(pf) > fieldsAt(pm) ? pf : pm;
+    };
     const homeFor = (m, f, cu, pm = place(m.id), pf = place(f.id)) => {
-      if (cu.residence === 'land') return pm !== null && pf !== null ? null : pm !== null ? pm : pf;
+      if (cu.residence === 'land') return pm !== null && pf !== null ? both(m, f, pm, pf) : pm !== null ? pm : pf;
       return cu.residence === 'husband' ? m.household : f.household;
     };
+    // The means to marry (VB-153): the home holds food above its seed for MARRIAGE.means years of its members and one more, counting grain
+    // still in sheaf and the larder, so that marriages fall after a bad harvest (the preventive check). Cached per household until a marriage.
+    let means = new Map();
+    const affords = (h) => {
+      if (!means.has(h)) {
+        const hh = st.households[h], store = hh.grain + hh.rations + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+        means.set(h, store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
+      }
+      return means.get(h);
+    };
+    const putOff = new Map(); // village -> couples who put off marrying for want of means
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
@@ -136,7 +169,8 @@ VB['sim/lifecycle'] = (() => {
         if (s > bs) { bs = s; best = { f, home }; }
       }
       if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
-      taken.add(best.f.id); own = null; places = new Map(); // the families change
+      if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
+      taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {
         if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
@@ -145,6 +179,11 @@ VB['sim/lifecycle'] = (() => {
       const fm = st.farmsteads[st.households[best.home].farmstead];
       log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`);
       m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
+      // a spouse who held a farm of their own hands it on (VB-153)
+      for (const id of [m.id, best.f.id]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== best.home) handOn(st, own2, id, best.home); }
+    }
+    for (const [v, n] of putOff) {
+      log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`);
     }
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
