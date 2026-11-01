@@ -211,6 +211,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <button class="primary" id="regen" type="button">New archipelago</button>
       <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
       <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
+      <button id="landBtn" type="button" aria-pressed="false">Land</button>
       <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
       <button id="treeBtn" type="button">Family tree</button>
       <button id="customsBtn" type="button" aria-pressed="false">Customs</button>
@@ -6535,9 +6536,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const world = new PIXI.Container();
   app.stage.addChild(world);
   const L = {};
-  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
+  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'land', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
   const lodLayer = [L.lod0, L.lod1, L.lod2];
-  L.regions.visible = false;
+  L.regions.visible = false; L.land.visible = false;
 
   // ---- static textures ----
   const SPR = G.makeSprites(makeCanvas);
@@ -6788,6 +6789,74 @@ if (typeof module !== 'undefined') module.exports = Sim;
     return g;
   }
 
+  // ---- the Land overlay (VB-004): who holds each tile and who claims it ----
+  // Village land a light tint of the village's colour, household land a stronger one with the household's own outline; borders between
+  // villages' land dark; unrealised claims as a dashed ring in the claimant's colour, realised ones (a birthright) as a solid ring; tiles claimed
+  // by two or more hatched; cairns (VB-157) as small stone piles. Redrawn whole when st.landDirty holds tiles, at most twice a second.
+  let landG = null, landOn = false, landAt = -1;
+  const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
+  function hslHex(h, sat, l) {
+    const f = (n) => { const k = (n + h / 30) % 12, a = sat * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+    return (f(0) << 16) | (f(8) << 8) | f(4);
+  }
+  const villageHue = (vid) => (vid * 137.508 + 20) % 360;
+  const villageColour = (vid) => hslHex(villageHue(vid), 0.7, 0.5);
+  const householdColour = (st_, hid) => hslHex(villageHue(st_.farmsteads[st_.households[hid].farmstead].village), 0.75, 0.28 + 0.4 * ((hid * 0.618034) % 1));
+  const ownerVillage = (n) => (n < 0 ? -n - 1 : st.farmsteads[st.households[n - 1].farmstead].village);
+  function claimColour(by) {
+    if (by.type === 'village') return villageColour(by.id);
+    if (by.type === 'household') return householdColour(st, by.id);
+    const p = st.pawns[by.id]; return p && p.household !== null ? householdColour(st, p.household) : 0x555555;
+  }
+  const corner = (i, a, s) => [w.hx[i] + Math.cos((a * Math.PI) / 180) * w.R * s, w.hy[i] + Math.sin((a * Math.PI) / 180) * w.R * s];
+  function hexPoly(i, s = 1) { const out = []; for (let k = 0; k < 6; k++) out.push(...corner(i, 30 + 60 * k, s)); return out; }
+  function edge(g, i, d, s = 1, from = 0, to = 1) {
+    const [x0, y0] = corner(i, EDGE[d] - 30, s), [x1, y1] = corner(i, EDGE[d] + 30, s);
+    g.moveTo(x0 + (x1 - x0) * from, y0 + (y1 - y0) * from).lineTo(x0 + (x1 - x0) * to, y0 + (y1 - y0) * to);
+  }
+  function drawLand() {
+    if (!w || !st) return;
+    if (!landG) { landG = new PIXI.Graphics(); L.land.addChild(landG); }
+    const g = landG, R = w.R; g.clear();
+    for (let i = 0; i < w.N; i++) {
+      const n = st.owner[i]; if (!n) continue;
+      g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: n < 0 ? 0.2 : 0.38 });
+    }
+    // a household's outline: edges between its tiles and any other owner's or none
+    for (let i = 0; i < w.N; i++) {
+      const n = st.owner[i]; if (n <= 0) continue;
+      for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j < 0 || st.owner[j] !== n) edge(g, i, d, 0.94); }
+      g.stroke({ width: R * 0.07, color: householdColour(st, n - 1), alpha: 0.9 });
+    }
+    // borders between villages' land, and of each village's land against the unheld
+    for (let i = 0; i < w.N; i++) {
+      const n = st.owner[i]; if (!n) continue;
+      const v = ownerVillage(n);
+      for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j >= 0 && st.owner[j] && ownerVillage(st.owner[j]) !== v) edge(g, i, d); }
+    }
+    g.stroke({ width: R * 0.13, color: 0x2a1a0c, alpha: 0.85 });
+    for (const [i, list] of st.claims) {
+      if (list.length > 1) { // contested: hatched
+        for (const k of [-0.4, 0, 0.4]) g.moveTo(w.hx[i] - R * 0.45 + k * R, w.hy[i] + R * 0.45).lineTo(w.hx[i] + R * 0.45 + k * R, w.hy[i] - R * 0.45);
+        g.stroke({ width: R * 0.08, color: 0xb02020, alpha: 0.8 });
+      }
+      list.forEach((c, k) => {
+        const s = 0.8 - 0.14 * k;
+        if (c.state === 'realised') g.poly(hexPoly(i, s)); else for (let d = 0; d < 6; d++) for (const [a, b] of [[0, 0.32], [0.5, 0.82]]) edge(g, i, d, s, a, b);
+        g.stroke({ width: R * 0.08, color: claimColour(c.by), alpha: 0.95 });
+      });
+    }
+    for (const i of (st.cairns || new Map()).keys()) {
+      for (const [dx, dy, r] of [[-0.16, 0.1, 0.13], [0.16, 0.1, 0.13], [0, -0.1, 0.14]]) g.circle(w.hx[i] + dx * R, w.hy[i] + dy * R, r * R);
+      g.fill({ color: 0x9a948a }).stroke({ width: R * 0.04, color: 0x3b362f });
+    }
+    st.landDirty.clear(); landAt = time;
+  }
+  function refreshLand() {
+    if (!landOn) { st.landDirty.clear(); return; }
+    if (time - landAt >= 0.5) drawLand();
+  }
+
   // ---- loader ----
   const loader = $('loader');
   const setLoad = (text, p) => { if (text) $('loadText').textContent = text; if (p != null) $('loadBar').style.width = (p * 100).toFixed(1) + '%'; };
@@ -6855,6 +6924,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     makeClouds(wd);
     drawMinimap(wd, wc, over);
     await buildSettlement(wd, sim);
+    if (landG) landG.clear();
+    if (landOn) drawLand();
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
@@ -6954,9 +7025,23 @@ if (typeof module !== 'undefined') module.exports = Sim;
       ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
-    if (farm) card(farm[0], [...farm[1], ...ownLine, where]);
-    else card(b.name, [line, ...river, ...worn, ...ownLine, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+    const claims = claimLines(i);
+    if (farm) card(farm[0], [...farm[1], ...ownLine, ...claims, where]);
+    else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
+  }
+  // The claims on a tile (sim/claims) and its cairn (VB-157), one line each, for the tile panel.
+  function claimLines(i) {
+    if (!st) return [];
+    const who = (by) => (by.type === 'village' ? st.villages[by.id].name : by.type === 'household' ? st.farmsteads[st.households[by.id].farmstead].name
+      : `the family of ${Sim.fullName(st.pawns[by.id])}`);
+    const WHY = { outland: 'as outland', field: 'for a field', meadow: 'for a hay meadow', farm: 'to take the farm', birthright: 'by birthright' };
+    const out = Sim.claimsOn(st, i).map((c) => (c.state === 'realised'
+      ? `Held ${WHY[c.why]} by ${who(c.by)}${c.until !== null ? ` until year ${Math.floor(c.until / Sim.YEAR) + 1}` : ''}`
+      : `Claimed by ${who(c.by)} ${WHY[c.why]}, ${Math.round(Sim.claimStrength(st, c) * 100)}% strong`));
+    const cairn = st.cairns && st.cairns.get(i);
+    if (cairn) out.push(`A cairn between ${st.villages[cairn.a].name} and ${st.villages[cairn.b].name}, set in year ${Math.floor(cairn.t / Sim.YEAR) + 1}`);
+    return out;
   }
   function pick(sx, sy) {
     if (!w) return;
@@ -7060,6 +7145,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   toggle($('gridBtn'), (on) => { gridOn = on; });
   toggle($('regionBtn'), (on) => { L.regions.visible = on; });
+  toggle($('landBtn'), (on) => { landOn = on; L.land.visible = on; if (on) drawLand(); });
   toggle($('settlersBtn'), (on) => { $('settlers').hidden = !on; if (on && st) { settlersHTML = ''; renderSettlers(); } });
   let lastSpeed = 1;
   function setSpeed(v) {
@@ -7869,6 +7955,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
+    if (st.landDirty.size) refreshLand();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }

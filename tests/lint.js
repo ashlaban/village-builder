@@ -25,7 +25,7 @@ for (const f of files) {
 for (const f of files) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
   const hit = clockUse(l); if (hit) errors.push(`${f}:${i + 1} ${hit} in a module (use the seeded random source, or add "// lint-allow: clock <reason>")`);
 });
-// the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, treeDirty and biomeDirty
+// the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, treeDirty, biomeDirty, pathDirty and landDirty
 for (const f of ['src/body.html']) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
   for (const wr of pageWrites(l)) errors.push(`${f}:${i + 1} the page writes to the simulation state: ${wr}`);
 });

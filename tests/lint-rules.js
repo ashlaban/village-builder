@@ -3,7 +3,7 @@ const CLOCK = /\b(Math\.random|Date\.now|performance\.now)\b|\bnew Date\b/;
 // A line that reads the clock or draws unseeded randomness, unless it carries `// lint-allow: clock <reason>`.
 const clockUse = (line) => (/\/\/ lint-allow: clock \S/.test(line) || !CLOCK.test(line) ? null : line.match(CLOCK)[0]);
 
-const PATH = String.raw`st((?:\.\w+|\[[^\]]*\])+)`, WRITE_OK = new Set(['visualDirty', 'naturalDeaths', 'driftMul']), CLEAR_OK = new Set(['rigDirty', 'treeDirty', 'biomeDirty', 'pathDirty']);
+const PATH = String.raw`st((?:\.\w+|\[[^\]]*\])+)`, WRITE_OK = new Set(['visualDirty', 'naturalDeaths', 'driftMul']), CLEAR_OK = new Set(['rigDirty', 'treeDirty', 'biomeDirty', 'pathDirty', 'landDirty']);
 const ASSIGN = new RegExp(String.raw`(?<![\w.$])${PATH}\s*(?:=(?!=)|[-+*/%&|^]=|\*\*=|<<=|>>>?=|\?\?=|\|\|=|&&=)`, 'g');
 const STEP = new RegExp(String.raw`(?:(?:\+\+|--)\s*(?<![\w.$])${PATH}|(?<![\w.$])${PATH}\s*(?:\+\+|--))`, 'g');
 const MUTATE = new RegExp(String.raw`(?<![\w.$])${PATH}\.(push|pop|shift|unshift|splice|set|add|delete|clear|sort|reverse|fill)\(`, 'g');

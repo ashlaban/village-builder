@@ -58,6 +58,7 @@ const iv = setInterval(async () => {
     }
   }
   q('[data-speed="1"]').click();
+  doc.getElementById('landBtn').click(); tick(5); doc.getElementById('landBtn').click(); tick(2); // the Land overlay on and off (VB-004)
   doc.getElementById('settlersBtn').click(); tick(20);
   console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));

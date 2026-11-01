@@ -50,7 +50,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 
 | ID | Name | Arch | Phase | Status | Priority | Size | Summary | File |
 |----|------|------|-------|--------|----------|------|---------|------|
-| VB-004 | Ownership map overlay | claims | implement | ready | 1 | S | A "Land" button tints owned tiles by owner and shows claims, contested tiles and cairns; claims in the tile panel. | [backlog/VB-004.md](backlog/VB-004.md) |
 | VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | needs-review | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
 | VB-024 | Wood supply: how fast the forest runs out | - | - | ready | 3 | S | Report how fast villages fell their woodlots; decide whether to retune. | [backlog/VB-024.md](backlog/VB-024.md) |
