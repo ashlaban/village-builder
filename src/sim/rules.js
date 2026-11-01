@@ -127,8 +127,10 @@ VB['sim/rules'] = (() => {
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
     // the means to marry (stability review, VB-153): the household the couple will live in holds food, above its seed, for `means` years of
     // its members and the newcomer; a match that lacks it waits a year (Malthus's preventive check: marriages fell after bad harvests). A home
-    // with fewer than two adults is exempt: it needs the spouse's hands.
-    means: 1,
+    // with fewer than two adults is exempt: it needs the spouse's hands. Proposed 1.5 (stability review): the round falls just after the harvest,
+    // when stores are at their highest, and at 1 the check seldom bound (births and hunger as before); at 1.5, over four tiny-map runs of 80
+    // years, deaths from hunger fell by about 40% and women married 2 to 3 years later.
+    means: 1.5,
   };
 
   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
