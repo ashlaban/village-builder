@@ -54,14 +54,14 @@ VB['sim/lifecycle'] = (() => {
       for (const x of ch) {
         const d = Culture.DIMS[x.dim],
           txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
-        log(st, txt); out.push({ year: c.year, text: txt });
+        log(st, txt, { kind: 'custom', village: s.id }); out.push({ year: c.year, text: txt });
       }
     }
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
       for (const x of r.changes) {
         const d = Culture.DIMS[x.dim], txt = `Across the ${cu.name} culture: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}”.`;
-        log(st, txt); out.push({ year: c.year, text: txt });
+        log(st, txt, { kind: 'custom', village: cu.centres[0] }); out.push({ year: c.year, text: txt });
       }
     }
     st.meetingLog.unshift(...out.length ? out : [{ year: c.year, text: 'The meetings changed nothing this year.' }]);
@@ -97,7 +97,7 @@ VB['sim/lifecycle'] = (() => {
     const c = cal(st.t), out = [];
     for (const [s, n] of blocked) {
       const txt = `At the ${env.settlements[s].name} moving round, ${n} adult${n > 1 ? 's' : ''} found no spouse only because of kin.`;
-      log(st, txt); out.push({ year: c.year, text: txt });
+      log(st, txt, { kind: 'kinBarred', village: s, n }); out.push({ year: c.year, text: txt });
     }
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
@@ -189,7 +189,8 @@ VB['sim/lifecycle'] = (() => {
       for (const id of [m.id, best.f.id]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== best.home) handOn(st, own2, id, best.home); }
     }
     for (const [v, n] of putOff) {
-      log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`);
+      log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`, {
+        kind: 'putOff', village: v, n });
     }
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60

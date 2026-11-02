@@ -4,7 +4,7 @@ VB['sim/expansion'] = (() => {
   const { fertility, farmable, FIELDS } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
+  const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor } = VB['sim/territory'];
   const { clearTile } = VB['sim/forest'];
@@ -77,7 +77,7 @@ VB['sim/expansion'] = (() => {
       setOwner(st, tr.tile, { type: 'village', id: v.id }); st.used.add(tr.tile);
     }
     v.plots.push(plot); st.visualDirty = true;
-    log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`);
+    log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, { kind: 'plotStarted', pawn: intended, village: v.id });
     return true;
   }
   // A plot already waits for the pawn, or for their spouse, until a cottage stands on it (VB-032): no second plot.
@@ -162,9 +162,9 @@ VB['sim/expansion'] = (() => {
     tr.i++; st.biomeDirty.add(tr.tile); st.visualDirty = true;
     if (!plot.tiles.every((q) => q.i >= q.steps.length)) return;
     plot.done = true; plot.holder = allot(st, v, plot); plot.cottage = { i: 0, done: 0 }; plot.built = false;
-    if (plot.holder === null) { log(st, `${v.name} has cleared a new plot; nobody is left to claim it.`); return; }
-    personEvent(st, plot.holder, 'plot', `Was allotted a cleared plot in ${v.name}`);
-    log(st, `${v.name} has cleared a new plot, and ${fullName(st.pawns[plot.holder])} is to have it.`);
+    if (plot.holder === null) { log(st, `${v.name} has cleared a new plot; nobody is left to claim it.`, { kind: 'plot', village: v.id }); return; }
+    personEvent(st, plot.holder, 'plot', `Was allotted a cleared plot in ${v.name}`, false); // recorded below
+    log(st, `${v.name} has cleared a new plot, and ${fullName(st.pawns[plot.holder])} is to have it.`, { kind: 'plot', pawn: plot.holder, village: v.id });
   }
   // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
   function finishCottageStage(st, j) {
@@ -186,7 +186,8 @@ VB['sim/expansion'] = (() => {
     if (k.i < COTTAGE.length) return;
     f.booth = null;
     const hh = f.household !== null ? st.households[f.household] : null;
-    log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`);
+    log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`, {
+      kind: 'cottage', pawn: hh ? hh.holder : null, ...atFarm(f) });
   }
   return {
     COTTAGE, building, claimableFarm, roomAt, findSite, hasPlot, awaitsCottage, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob,

@@ -2,7 +2,7 @@
 VB['sim/byre'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
   const { hexSteps } = VB['sim/hex'];
@@ -93,7 +93,8 @@ VB['sim/byre'] = (() => {
       need -= a.hay * HERD.stallDays * HERD.margin; room -= a.room;
       go(a);
     }
-    if (names.length) log(st, `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`);
+    if (names.length) log(st, `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`, {
+      kind: 'slaughter', n: names.length, ...atFarm(f) });
   }
   // When the hay left will not last the stall days to come, the household slaughters at once what it must; that meat is lean.
   function emergency(st, hh, c) {
@@ -102,7 +103,8 @@ VB['sim/byre'] = (() => {
     const list = animals(st, hh);
     let need = list.reduce((s, a) => s + a.hay, 0) * left, n = 0;
     while (list.length && need > hh.hay) { const a = list.shift(); need -= a.hay * left; cullOne(a, true); n++; }
-    if (n) log(st, `Hay runs short at ${st.farmsteads[hh.farmstead].name}: ${n === 1 ? 'an animal' : `${n} animals`} must be slaughtered now.`);
+    if (n) log(st, `Hay runs short at ${st.farmsteads[hh.farmstead].name}: ${n === 1 ? 'an animal' : `${n} animals`} must be slaughtered now.`, {
+      kind: 'slaughter', n, ...atHousehold(st, hh) });
   }
   // The cull lists hold only animals that are still there.
   function tidy(herd) {
@@ -155,7 +157,8 @@ VB['sim/byre'] = (() => {
       if (spoilt.length) {
         hh.larder = hh.larder.filter((l) => l.until > st.t);
         const meat = spoilt.filter((l) => l.kind === 'meat').reduce((s, l) => s + l.n, 0);
-        if (meat >= 1) log(st, `${Math.round(meat)} rations of meat spoiled at ${st.farmsteads[hh.farmstead].name}: nobody salted it.`);
+        if (meat >= 1) log(st, `${Math.round(meat)} rations of meat spoiled at ${st.farmsteads[hh.farmstead].name}: nobody salted it.`, {
+          kind: 'spoiled', n: Math.round(meat), ...atHousehold(st, hh) });
       }
       if (hh.manure > 0) hh.manure *= Math.pow(1 - SOIL.rot, 1 / YEAR_DAYS); // the heap rots and washes away (balance review)
       if (!hh.herds.length) continue;
@@ -174,7 +177,8 @@ VB['sim/byre'] = (() => {
           const a = animals(st, hh, true).find((x) => x.herd === herd) || null; // the weakest: young first, marked or not
           if (!a) continue;
           remove(herd, a.head ? { head: a.head.id } : { sheep: a.sheep }); tidy(herd);
-          log(st, `Hunger in the byre at ${st.farmsteads[hh.farmstead].name}: ${a.head ? a.head.name : `a ${a.sheep}`} died.`);
+          log(st, `Hunger in the byre at ${st.farmsteads[hh.farmstead].name}: ${a.head ? a.head.name : `a ${a.sheep}`} died.`, {
+            kind: 'herdDeath', n: 1, ...atHousehold(st, hh) });
         }
       }
       emergency(st, hh, c);

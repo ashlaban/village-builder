@@ -65,7 +65,7 @@ VB['sim/relations'] = (() => {
     const was = r.band;
     r.band = bandOf(was, opinionOf(st, a, b));
     if (r.band !== was && r.band !== 0) {
-      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`);
+      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`, { other: b });
     }
   }
   // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.

@@ -2,6 +2,28 @@
 // every union a married event; recordOf filters by pawn, place, kind and time and returns time order.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
+
+// every log(st, text, event) call in the simulation passes its event: two commas at the call's own depth
+const missing = [];
+for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js'])) {
+  const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), toks = tokenize(src).filter((t) => t.t !== 'com');
+  for (let i = 0; i + 1 < toks.length; i++) {
+    const t = toks[i], prev = toks[i - 1];
+    if (t.t !== 'word' || t.v !== 'log' || toks[i + 1].v !== '(' || (prev && (prev.v === '.' || prev.v === 'function'))) continue;
+    let depth = 0, commas = 0, j = i + 1;
+    for (; j < toks.length; j++) {
+      const v = toks[j].v;
+      if (v === '(' || v === '[' || v === '{') depth++;
+      else if (v === ')' || v === ']' || v === '}') { depth--; if (!depth) break; }
+      else if (v === ',' && depth === 1) commas++;
+      if (toks[j].t === 'tpl' && toks[j].open) depth++;
+      if (toks[j].t === 'tpl' && src[toks[j].s] === '}') depth--;
+    }
+    if (commas < 2) missing.push(`${f}:${src.slice(0, t.s).split('\n').length}`);
+  }
+}
+assert.deepStrictEqual(missing, [], `log calls without an event: ${missing.join(', ')}`);
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR);

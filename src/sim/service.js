@@ -1,6 +1,6 @@
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
@@ -45,8 +45,9 @@ VB['sim/service'] = (() => {
       if (best) {
         for (const id of familyOf(st, best.id)) moveTo(st, id, hh.id);
         setGuardian(st, hh, ward.id);
-        personEvent(st, best.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`);
-        log(st, `${fullName(best)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`);
+        personEvent(st, best.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`, false); // recorded below
+        log(st, `${fullName(best)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`, {
+          kind: 'guardian', pawn: best.id, other: ward.id, ...atHousehold(st, hh) });
       } else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
       refreshRoles(st); st.visualDirty = true;
     }
@@ -77,8 +78,9 @@ VB['sim/service'] = (() => {
       if (!best) continue;
       const from = farmIn(st, st.households[best.household], v.id);
       moveTo(st, best.id, hh.id); best.servant = true;
-      personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`);
-      log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`);
+      personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
+      log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
+        kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
     }
     refreshRoles(st); st.visualDirty = true;
   }

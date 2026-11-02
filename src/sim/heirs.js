@@ -1,7 +1,7 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
+    personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship, atHousehold,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -83,7 +83,7 @@ VB['sim/heirs'] = (() => {
     const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
     p.household = hhId; p.servant = false;
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`);
+    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, atHousehold(st, hh));
   }
   // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
   // farm left with no heir; nobody is owed shares of it).
@@ -115,15 +115,16 @@ VB['sim/heirs'] = (() => {
         if (due) {
           personEvent(st, q, 'share',
             `Received ${paid} rations as a share of ${f.name}${due > paid ? `, ${due - paid} still owed` : ''}` +
-            `${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`);
+            `${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`, { n: paid, ...atHousehold(st, hh) });
         }
       }
     }
-    personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`);
+    personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`, false); // recorded below
     log(st,
       `${fullName(hp)} takes over ${f.name}` +
       `${reason === 'death' ? ` after ${fullName(op)}` : reason === 'marriage' ? ' on marrying' : reason === 'married away' ? ` as ${fullName(op)} marries away`
-        : reason === 'claim' ? `, left with no heir when ${fullName(op)} married away` : ' as the old holder retires'}.`);
+        : reason === 'claim' ? `, left with no heir when ${fullName(op)} married away` : ' as the old holder retires'}.`,
+      { kind: 'inherited', pawn: heir, other: op ? op.id : null, ...atHousehold(st, hh) });
     st.visualDirty = true;
   }
   // The smallest undissolved household of the village, or of the nearest village (by hexSteps between centres) when it has none.
@@ -172,8 +173,9 @@ VB['sim/heirs'] = (() => {
         moveTo(st, id, target);
         if (kinHome === null) {
           st.pawns[id].servant = true;
-          personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`);
-          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`);
+          personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`, false); // recorded below
+          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`, {
+            kind: 'service', pawn: id, ...atHousehold(st, st.households[target]) });
         }
       }
     }
@@ -181,7 +183,7 @@ VB['sim/heirs'] = (() => {
     const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
     hh.members = [];
-    log(st, `${f.name} stands empty: ${why}.`);
+    log(st, `${f.name} stands empty: ${why}.`, { kind: 'empty', ...atHousehold(st, hh) });
     st.visualDirty = true;
   }
   // The guardian of a minor: the surviving parent in the house, else the nearest adult relative there (the oldest on a tie), else the oldest adult.
@@ -201,7 +203,8 @@ VB['sim/heirs'] = (() => {
       const ward = st.pawns[hh.ward];
       if (ward.alive && ward.age < 18) continue;
       hh.guardian = null;
-      if (ward.alive && hh.holder === ward.id) personEvent(st, ward.id, 'inherited', `Came of age and took charge of ${st.farmsteads[hh.farmstead].name}`);
+      if (ward.alive && hh.holder === ward.id) personEvent(st, ward.id, 'inherited', `Came of age and took charge of ${st.farmsteads[hh.farmstead].name}`,
+        atHousehold(st, hh));
     }
   }
   // The heir who takes the farm: the first in line, but when no adult is left in the house to be a minor's guardian (other than `leaving`),
@@ -226,8 +229,8 @@ VB['sim/heirs'] = (() => {
         : heir !== null ? `as guardian for ${fullName(st.pawns[heir])}` : 'with no heir';
       const until = cu.widow === 'life' ? ' for life' : cu.widow === 'outright' ? ' as her own'
         : heir !== null ? ' until the heir comes of age' : ', having no heir';
-      personEvent(st, spouse, 'inherited', `Holds ${f.name} ${how}`);
-      log(st, `${fullName(st.pawns[spouse])} keeps ${f.name}${until}.`);
+      personEvent(st, spouse, 'inherited', `Holds ${f.name} ${how}`, false); // recorded below
+      log(st, `${fullName(st.pawns[spouse])} keeps ${f.name}${until}.`, { kind: 'inherited', pawn: spouse, ...atHousehold(st, hh) });
       st.visualDirty = true;
       return;
     }

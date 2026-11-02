@@ -3,7 +3,7 @@ VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, YEAR, HERD } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { remember } = VB['sim/relations'];
@@ -152,9 +152,10 @@ VB['sim/herds'] = (() => {
       const f = st.farmsteads[st.households[hid].farmstead], parts = [];
       if (b.calves) parts.push(`${b.calves} ${b.calves === 1 ? 'calf' : 'calves'}`);
       if (b.lambs) parts.push(`${b.lambs} ${b.lambs === 1 ? 'lamb' : 'lambs'}`);
-      if (parts.length) log(st, `${f.name}: ${parts.join(' and ')} born this spring.`);
+      if (parts.length) log(st, `${f.name}: ${parts.join(' and ')} born this spring.`, {
+        kind: 'herdBirths', n: (b.calves || 0) + (b.lambs || 0), ...atFarm(f) });
       const d = b.died, lost = d.length > 1 ? `${d.slice(0, -1).join(', ')} and ${d[d.length - 1]}` : d[0];
-      if (d.length) log(st, `${f.name} lost ${lost} over the winter.`);
+      if (d.length) log(st, `${f.name} lost ${lost} over the winter.`, { kind: 'herdDeath', n: d.length, ...atFarm(f) });
     }
   }
   // Once a game day, at its start (sim/clock): the spring round, and a new grazing spot for a herd whose old one was built on.

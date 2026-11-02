@@ -1,6 +1,6 @@
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
   const { makeHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
   const { setOwner } = VB['sim/ownership'];
@@ -17,7 +17,7 @@ VB['sim/cottage'] = (() => {
     const v = st.villages[plot.village], holder = st.pawns[plot.holder], sp = spouseOf(st, holder.id);
     // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there
     if (!holder.alive || isHolder(st, holder.id) || (sp !== null && st.pawns[sp].alive && isHolder(st, sp))) {
-      plot.holder = null; log(st, `The new cottage in ${v.name} stands empty.`); return;
+      plot.holder = null; log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id }); return;
     }
     plot.built = true;
     const house = plot.tiles.find((t) => t.kind === 'house').tile, field = plot.tiles.find((t) => t.kind === 'field').tile;
@@ -46,8 +46,8 @@ VB['sim/cottage'] = (() => {
       st.rigDirty.add(id);
     }
     hh.rations = 0;
-    personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`);
-    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`);
+    personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
+    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
     refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
@@ -61,7 +61,7 @@ VB['sim/cottage'] = (() => {
       if (pay <= 0) continue;
       hh.grain -= pay; p.owed -= pay;
       if (p.household !== null && p.household !== hh.id) st.households[p.household].grain += pay; else p.stake = (p.stake || 0) + pay;
-      personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`);
+      personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`, { n: pay, ...atHousehold(st, hh) });
     }
   }
   return { farmName, finishCottage, payOwed };

@@ -6,7 +6,7 @@ VB['sim/settle'] = (() => {
   const { seedReserve } = VB['sim/hunger'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder } = VB['sim/records'];
+  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -205,7 +205,8 @@ VB['sim/settle'] = (() => {
         if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
         if (rnd(st.rng.settle) >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
         const party = partyOf(st, p, ids, taken), prov = provisions(st, party.all);
-        if (!prov) { log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`); continue; }
+        if (!prov) { log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`, {
+          kind: 'stayed', pawn: p.id, village: v.id }); continue; }
         if (!use) use = landInUse(st);
         if (!reach) reach = reachOf(st, v);
         let f = null, steps = 0;
@@ -215,7 +216,7 @@ VB['sim/settle'] = (() => {
           if (!cands) cands = candidates(st, v, use, reach);
           const site = newSite(st, v, use, cands);
           if (site) { f = found(st, v, p, party, site, prov, use); steps = site.steps; }
-          else { noLand = true; log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`); }
+          else { noLand = true; log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`, { kind: 'noLand', village: v.id }); }
         }
         if (!f) continue;
         const nv = st.villages[f.village];
@@ -223,7 +224,8 @@ VB['sim/settle'] = (() => {
         const others = party.all.slice(1), adults = others.filter((q) => st.pawns[q].age >= 18), kids = others.length - adults.length;
         const company = [...adults.map((q) => fullName(st.pawns[q])), ...kids ? [`${kids} ${kids > 1 ? 'children' : 'child'}`] : []];
         log(st, `${fullName(p)} leaves crowded ${v.name}${company.length ? ` with ${listed(company)}` : ''} and `
-          + `${join ? `settles at ${f.name} in ${nv.name}` : `founds ${nv.name}`}, ${steps} steps away.`);
+          + `${join ? `settles at ${f.name} in ${nv.name}` : `founds ${nv.name}`}, ${steps} steps away.`, {
+            kind: 'left', pawn: p.id, n: party.all.length, ...atFarm(f) });
         v.crowded = Math.max(0, v.crowded - party.all.filter((q) => ids.includes(q)).length);
         st.demand = st.demand.filter((q) => !party.all.includes(q) || party.followers.includes(q)); // the followers still want land
       }
