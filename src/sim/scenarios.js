@@ -1,7 +1,7 @@
 // @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
-  const { fromState, drawer, seeding } = VB['sim/rng'];
+  const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -35,7 +35,7 @@ VB['sim/scenarios'] = (() => {
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
-    return st;
+    splitStreams(st, seedNum); return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
@@ -72,7 +72,7 @@ VB['sim/scenarios'] = (() => {
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`);
-    return st;
+    splitStreams(st, seedNum); return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
@@ -149,14 +149,14 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st); seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
-    return st;
+    splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
-    // @state st.rng: {seed, work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: random streams
-    //   as plain data, each {s} (sim/rng); every call site names its system's stream. While seeding, all are the one seeding stream.
+    // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
+    //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,

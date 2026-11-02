@@ -72,6 +72,7 @@ function tinyState(w, villages, opt = {}) {
   if (opt.customs) for (const s of st.cenv.settlements) setPractice(st, s.id, opt.customs);
   if (opt.herds) { VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); }
   if (opt.outland !== false) VB['sim/territory'].seedOutland(st, opt.outland !== 'claimed'); // as the populous scenario; 'claimed': as the founders
+  VB['sim/rng'].splitStreams(st, opt.seed ?? 1);
   return st;
 }
 // Sets village vid's practice of the given customs: {key: option key}.

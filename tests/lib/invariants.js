@@ -1,6 +1,15 @@
 // State invariants: checkState(st) returns a list of violations, each naming the record. A new state field or record gets its checks here.
+const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
+  // random streams (VB-072): after seeding, exactly one stream per system, none shared, each a 32-bit state, none fixed by a test
+  const keys = Object.keys(st.rng || {}).sort().join(), streams = Object.values(st.rng || {});
+  if (keys !== [...SYSTEMS].sort().join()) bad.push(`rng: streams ${keys}, want ${[...SYSTEMS].sort().join()}`);
+  if (new Set(streams).size !== streams.length) bad.push('rng: two systems share a stream');
+  for (const [k, r] of Object.entries(st.rng || {})) {
+    if (!Number.isInteger(r.s) || (r.s | 0) !== r.s) bad.push(`rng.${k}: state ${r.s} is not a 32-bit integer`);
+    if (r.fix !== undefined) bad.push(`rng.${k}: fixed at ${r.fix}`);
+  }
   const within = (x, lo, hi) => Number.isFinite(x) && x >= lo && x <= hi;
   const memberOf = new Map();
   for (const h of st.households) {

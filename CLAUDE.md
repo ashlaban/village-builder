@@ -53,7 +53,8 @@ the refactor and golden-file rules) and its pick order, which holds a feature fr
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions
-- Determinism: all randomness comes from a seeded `mulberry32`; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
+- Determinism: all randomness comes from seeded streams (VB-072, `src/sim/rng.js`): in play each system draws from its own, `rnd(st.rng.<system>)`,
+  and a new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `ROUTE`, `PATHS`, `SETTLE` and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`;
