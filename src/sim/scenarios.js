@@ -172,8 +172,9 @@ VB['sim/scenarios'] = (() => {
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
-    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
-    //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
+    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
+    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
+    //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};

@@ -44,6 +44,13 @@ VB['sim/claims'] = (() => {
     st.claims.delete(tile); dirty(st, tile);
     return list;
   }
+  // Every claim by `by` is dropped (a household that dissolves, sim/stakes). The number dropped.
+  function dropAllOf(st, by) {
+    const tiles = [];
+    for (const [tile, list] of st.claims) if (list.some((c) => same(c.by, by))) tiles.push(tile);
+    for (const t of tiles) dropClaim(st, t, by);
+    return tiles.length;
+  }
   // The claim is realised as ownership: the claimant (a household or a village) owns the tile and the claim is dropped.
   function realise(st, tile, by) {
     if (by.type !== 'household' && by.type !== 'village') throw new Error(`realise: a ${by.type} cannot own land`);
@@ -128,6 +135,6 @@ VB['sim/claims'] = (() => {
     }
     return { households, villages };
   }
-  return { claimsOn, claimOf, strength, addClaim, renewClaim, dropClaim, clearClaims, realise, lapseClaims, speaker, support, scores, settle, rulesFor,
-    aggrieve, holdings, DISPUTE };
+  return { claimsOn, claimOf, strength, addClaim, renewClaim, dropClaim, dropAllOf, clearClaims, realise, lapseClaims, speaker, support, scores, settle,
+    rulesFor, aggrieve, holdings, DISPUTE };
 })();

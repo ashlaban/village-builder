@@ -22,7 +22,7 @@ Workers take `ready` tasks by priority, but several edit the same files, so this
 2. The growth path: VB-032 and VB-142 and moving to new land (VB-146 to VB-154) are done; what is left is VB-033 (answered with the claims review of 1 November; built after the claims tasks, item 5; empty farms pile up without it), VB-090 (ready; edits the moving round), then VB-034 and VB-058. Growth is no longer the gap it was (populous small, seed 7: 351 people in year 1, 719 in year 38), but founders still stand at 14 to 28 in 38 years.
 3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) are done (nightly 2 November); VB-130, VB-023 and VB-048 may now be answered and tuned from them. The profile puts talk and contacts at 37% of a game day, so VB-127 is the speed task to ask Kim about first.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
-5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157, VB-158, then VB-033, in that order; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
+5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157 and VB-158 are done; VB-033 is next; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
 
 ## Archs
 
@@ -107,4 +107,3 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-140 | Livestock in shares and a new household's start | animals | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |
 | VB-141 | Plan: customs of the animals | animals | plan | ready | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. | [backlog/VB-141.md](backlog/VB-141.md) |
 | VB-144 | Ewes' milk and wool | animals | implement | needs-review | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |
-| VB-158 | Households stake a claim before they clear, and may contest a weakened claim | claims | implement | ready | 1 | S | A field or meadow project stakes a claim that breaking the ground realises; contests by custom where land is short. | [backlog/VB-158.md](backlog/VB-158.md) |

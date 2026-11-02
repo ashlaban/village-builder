@@ -82,6 +82,9 @@ const land = CL.holdings(st), h0 = land.households.get(0), v0 = land.villages.ge
 const f0 = st.farmsteads[hA.farmstead];
 check(h0 && h0.house === 1 && h0.fields === f0.fields.length && h0.claims === 1, `household 0 holds ${JSON.stringify(h0)}`);
 check(v0 && v0.green === 1 && v0.claims === 1, `village 0 holds ${JSON.stringify(v0)}`);
+// two households' stakes on one tile are this test's fixture of the dispute rules; in play a stake is its household's project and a staked
+// tile is free for nobody else (VB-158, tests/stakes.js), so the fixture goes before the invariants
+CL.clearClaims(st, tileAt(st.w, 8, 7));
 check(!checkState(st).length, `invariants after disputes: ${checkState(st).slice(0, 2).join('; ')}`);
 if (failed) process.exit(1);
 console.log(`claims ok: lapse after ${CLAIMS.years} years; first, strongest, kin and meeting settle as they should; ${JSON.stringify(h0)}`);

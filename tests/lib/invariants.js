@@ -73,6 +73,12 @@ function checkState(st) {
       for (const fd of f.fields) if (st.owner[fd.tile] === 0) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} has no owner`);
       for (const m of f.meadows || []) if (st.owner[m.tile] === 0 || !st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unowned or unused`);
     }
+    // a field or meadow in the making is staked by its household, not owned by it (VB-158); an empty farm has no project
+    if (f.project && st.claims) {
+      const c = f.household === null ? null : VB['sim/claims'].claimOf(st, f.project.tile, { type: 'household', id: f.household });
+      if (!c || c.state !== 'unrealised' || c.why !== (f.project.stage === 'meadow' ? 'meadow' : 'field')) bad.push(`farmsteads[${f.id}]: project on ${f.project.tile} not staked by its household`);
+      if (f.household !== null && st.owner[f.project.tile] === f.household + 1) bad.push(`farmsteads[${f.id}]: project tile ${f.project.tile} owned before it is made`);
+    }
   }
   // claims on tiles (sim/claims, VB-042): valid tiles and claimants, no claimant twice on a tile, strengths in 0..1, no empty lists
   if (st.claims) {
@@ -91,6 +97,10 @@ function checkState(st) {
         if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq)) bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
         if (c.by.type === 'household' && st.households[c.by.id] && st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
         if ((c.why === 'outland') !== (c.by.type === 'village')) bad.push(`claims[${tile}]: ${k} claims ${c.why}`); // only villages claim outland (VB-156)
+        if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
+          const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
+          if (!f || !f.project || f.project.tile !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
+        }
       }
     }
   }

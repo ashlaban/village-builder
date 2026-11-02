@@ -120,6 +120,7 @@ VB['sim/agents'] = (() => {
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
     j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
+    if (K.worked) K.worked(st, j);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working

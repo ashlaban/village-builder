@@ -8,6 +8,7 @@ VB['sim/kinds'] = (() => {
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
+  const { renewClaim } = VB['sim/claims'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -15,7 +16,9 @@ VB['sim/kinds'] = (() => {
   //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
-  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does.
+  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
+  //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
+  //   the project (sim/jobs drops it, its hands freed, once it is no longer posted).
   // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
   const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -26,6 +29,10 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
+  // The job's project still stands at this stage on its tile (it was not given up or contested away meanwhile, sim/stakes).
+  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // Work on a land project renews the household's stake on its tile (sim/stakes).
+  const workStake = (st, j) => { renewClaim(st, j.site, j.owner); };
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   // Hoeing and sowing grow more urgent as the sowing window runs out.
@@ -110,15 +117,15 @@ VB['sim/kinds'] = (() => {
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishClear(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishClear(st, j.farm, hh),
     },
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j) => finishBreak(st, j.farm),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(j) && finishBreak(st, j.farm),
     },
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishMeadow(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
     },
     rake: {
       verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,

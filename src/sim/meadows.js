@@ -10,6 +10,7 @@ VB['sim/meadows'] = (() => {
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
   const { freeFor } = VB['sim/territory'];
+  const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -25,12 +26,12 @@ VB['sim/meadows'] = (() => {
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
   // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
-  // farm's meadows, and away from its fields' block.
-  function chooseMeadow(st, f) {
+  // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
+  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village)) {
     const w = st.w, built = builtTiles(st), own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !freeFor(st, t, f.village) || st.used.has(t) || built.has(t)) continue;
+      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
       if (nextTo(w, t, built)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
@@ -44,17 +45,22 @@ VB['sim/meadows'] = (() => {
     f.meadows.push({ id: f.meadows.length, tile, stage: 'grass', fert: meadowFert(st.w, tile), raked: false, mown: null, held: 0 });
     st.used.add(tile); st.w.dev[tile] = 1; st.biomeDirty.add(tile);
   }
-  // A household with animals and no land project, short of meadow for its herds' winter, claims a tile and starts clearing it (founders).
+  // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
+  // with no free tile within reach, it may contest a stake another household of its village left unworked.
   function startMeadow(st, f, hh) {
     if (f.project || !wantsMeadow(st, f, hh)) return;
-    const tile = chooseMeadow(st, f);
-    if (tile < 0) return;
-    setOwner(st, tile, { type: 'household', id: hh.id });
+    let tile = chooseMeadow(st, f);
+    if (tile < 0) {
+      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
+    }
+    stake(st, hh, tile, 'meadow');
     f.project = { tile, stage: 'meadow', hours: CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) };
   }
-  // Cleared: the worst stones go to the household's store and the tile is a meadow from now on.
+  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on.
   function finishMeadow(st, f, hh) {
     const w = st.w, tile = f.project.tile, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
+    realiseStake(st, hh, tile);
     hh.stone += Math.round(gone / STONES_PER_LOAD); w.stones[tile] -= gone;
     f.project = null;
     addMeadow(st, f, hh, tile);
