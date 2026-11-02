@@ -5,6 +5,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
+  const { dropStakes } = VB['sim/stakes'];
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
@@ -156,7 +157,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
-    hh.dissolved = true; farmToVillage(st, f);
+    hh.dissolved = true; dropStakes(st, hh); farmToVillage(st, f);
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {

@@ -19,6 +19,7 @@ VB['sim/clock'] = (() => {
   const { meadowsDay } = VB['sim/meadows'];
   const { byreDay } = VB['sim/byre'];
   const { lapseClaims } = VB['sim/claims'];
+  const { lapsedStakes } = VB['sim/stakes'];
   const { landMeeting } = VB['sim/territory'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
@@ -57,7 +58,7 @@ VB['sim/clock'] = (() => {
     }
     for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
-    lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
+    lapsedStakes(st, lapseClaims(st)); // unworked claims fade out after 3 years (sim/claims); a lapsed stake ends its project (sim/stakes)
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);

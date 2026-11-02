@@ -1865,6 +1865,7 @@ VB['sim/rules'] = (() => {
       crossWords: { label: 'Cross words', v: -0.12, cap: -0.6, days: 3 * YEAR_DAYS },
       bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
       border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
+      claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       tie: 0.1, bubbleHours: 0.5 },
@@ -2645,7 +2646,6 @@ VB['sim/ownership'] = (() => {
     const o = { type: 'village', id: f.village };
     setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
     for (const m of f.meadows || []) setOwner(st, m.tile, o);
-    if (f.project) setOwner(st, f.project.tile, o);
   }
   return { ownerOf, setOwner, seedOwners, farmToVillage };
 })();
@@ -3082,6 +3082,13 @@ VB['sim/claims'] = (() => {
     st.claims.delete(tile); dirty(st, tile);
     return list;
   }
+  // Every claim by `by` is dropped (a household that dissolves, sim/stakes). The number dropped.
+  function dropAllOf(st, by) {
+    const tiles = [];
+    for (const [tile, list] of st.claims) if (list.some((c) => same(c.by, by))) tiles.push(tile);
+    for (const t of tiles) dropClaim(st, t, by);
+    return tiles.length;
+  }
   // The claim is realised as ownership: the claimant (a household or a village) owns the tile and the claim is dropped.
   function realise(st, tile, by) {
     if (by.type !== 'household' && by.type !== 'village') throw new Error(`realise: a ${by.type} cannot own land`);
@@ -3166,8 +3173,8 @@ VB['sim/claims'] = (() => {
     }
     return { households, villages };
   }
-  return { claimsOn, claimOf, strength, addClaim, renewClaim, dropClaim, clearClaims, realise, lapseClaims, speaker, support, scores, settle, rulesFor,
-    aggrieve, holdings, DISPUTE };
+  return { claimsOn, claimOf, strength, addClaim, renewClaim, dropClaim, dropAllOf, clearClaims, realise, lapseClaims, speaker, support, scores, settle,
+    rulesFor, aggrieve, holdings, DISPUTE };
 })();
 </script>
 <script>
@@ -3365,6 +3372,76 @@ VB['sim/territory'] = (() => {
     if (settled) settleOutland(st, true);
   }
   return { isOutland, freeFor, outlandOf, tally, claimOutland, settleOutland, borderRule, villageWood, moveWood, landMeeting, seedOutland, occupied };
+})();
+</script>
+<script>
+// @sys sim/stakes: a household's stake on the tile of its new field or meadow (VB-158): staked when the project starts, renewed by its work,
+// the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom
+VB['sim/stakes'] = (() => {
+  const { CLAIMS } = VB['sim/rules'];
+  const CL = VB['sim/claims'];
+  const { isOutland } = VB['sim/territory'];
+  const { log, practice } = VB['sim/records'];
+  const { remember } = VB['sim/relations'];
+  // Claims review, Decided 1 Nov: a project stakes an unrealised claim on its tile instead of owning it; breaking the ground (or finishing the
+  // meadow) makes it the household's. Other households take in no staked tile (sim/territory, freeFor). The work renews the claim (the job
+  // kinds' `worked`, sim/kinds), so a stake weakens only while its project stands still.
+  const HH = (id) => ({ type: 'household', id });
+  const STAKE = new Set(['field', 'meadow']);
+  const stake = (st, hh, tile, why) => CL.addClaim(st, tile, HH(hh.id), why);
+  const realiseStake = (st, hh, tile) => CL.realise(st, tile, HH(hh.id));
+  // The stake on tile t that a household hid of village vid could contest, or null: t is wilderness or vid's outland, staked for a field or
+  // meadow by one other household of vid, whose claim has fallen below CLAIMS.contestBelow (about 18 months unworked); no claim but vid's own
+  // besides.
+  function contestable(st, t, vid, hid) {
+    if (st.owner[t] !== 0 && !isOutland(st, t, vid)) return null;
+    let found = null;
+    for (const c of CL.claimsOn(st, t)) {
+      if (c.by.type === 'village' && c.by.id === vid) continue;
+      if (found || c.by.type !== 'household' || c.by.id === hid || !STAKE.has(c.why)) return null;
+      const h = st.households[c.by.id];
+      if (h.dissolved || st.farmsteads[h.farmstead].village !== vid || CL.strength(st, c) >= CLAIMS.contestBelow) return null;
+      found = c;
+    }
+    return found;
+  }
+  const RULE_WORD = { first: 'by the first claim', strongest: 'by the strongest claim', kin: 'as kin of the last holder',
+    meeting: 'by the voices at the meeting' };
+  // Household hh of farm f, with no free tile within reach, contests the weakened stake on `tile`: the village's Disputed claims practice
+  // settles it at once, the stake's older claim against hh's fresh one. Under `first` the stake stands; under `kin` too, as nobody held the
+  // tile before; under `strongest` hh's fresh claim wins; under `meeting` the better supported. If hh wins, the stake is dropped and its
+  // project ends; its holder remembers hh's ("Took our claim"), its household leans to the rules that would have let it keep the tile, and
+  // the log tells it. True when hh may stake the tile.
+  function contest(st, f, hh, tile, why) {
+    const old = contestable(st, tile, f.village, hh.id);
+    if (!old) return false;
+    const mine = { by: HH(hh.id), state: 'unrealised', why, since: st.t, renewed: st.t, seq: st.claimSeq + 1, until: null };
+    const rule = practice(st, f.village).dispute, ctx = { village: f.village }, claims = [old, mine];
+    if (CL.settle(st, claims, rule, ctx) !== mine) return false;
+    const loser = st.households[old.by.id], lf = st.farmsteads[loser.farmstead];
+    CL.aggrieve(st, claims, mine, ctx);
+    CL.dropClaim(st, tile, old.by);
+    if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
+    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) remember(st, loser.holder, hh.holder, 'claim');
+    log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`);
+    return true;
+  }
+  // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project, and the log tells it.
+  function lapsedStakes(st, dropped) {
+    for (const [tile, c] of dropped) {
+      if (c.by.type !== 'household' || !STAKE.has(c.why)) continue;
+      const f = st.farmsteads[st.households[c.by.id].farmstead];
+      if (!f.project || f.project.tile !== tile) continue;
+      f.project = null;
+      log(st, `${f.name} gives up its stake: the new ${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`);
+    }
+  }
+  // A household that dissolves drops its stakes, and every other claim it holds; its farm's project ends.
+  function dropStakes(st, hh) {
+    CL.dropAllOf(st, HH(hh.id));
+    st.farmsteads[hh.farmstead].project = null;
+  }
+  return { STAKE, stake, realiseStake, contestable, contest, lapsedStakes, dropStakes };
 })();
 </script>
 <script>
@@ -3891,9 +3968,9 @@ VB['sim/fields'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
-  const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
+  const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
@@ -3923,23 +4000,28 @@ VB['sim/fields'] = (() => {
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river and not next to a house or green: fertile (watered by one), few stones, near, and 1 better when it touches one of the
   // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
-  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none.
-  function chooseTile(st, f) {
+  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
+  // household may take a tile in (a stake it may contest, for sim/stakes).
+  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village)) {
     const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !farmable(w, t) || !freeFor(st, t, f.village) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
       const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
   }
-  // A household with fewer fields than it wants, none in progress, picks a tile and takes it: the project starts with clearing.
+  // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
+  // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
   function startProject(st, f, hh) {
     if (f.project || f.fields.length >= fieldsWanted(st, hh)) return;
-    const tile = chooseTile(st, f);
-    if (tile < 0) return;
-    setOwner(st, tile, { type: 'household', id: hh.id });
+    let tile = chooseTile(st, f);
+    if (tile < 0) {
+      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
+    }
+    stake(st, hh, tile, 'field');
     f.project = { tile, stage: 'clear', hours: clearHours(st, tile) };
   }
   // Clearing done: the stones go to the household's store, the tile is bare ground.
@@ -3949,9 +4031,11 @@ VB['sim/fields'] = (() => {
     w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
     st.biomeDirty.add(tile);
   }
-  // Breaking done: the tile is a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh (SOIL.fresh, VB-149).
+  // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
+  // (SOIL.fresh, VB-149).
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
+    realiseStake(st, st.households[f.household], tile);
     f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
@@ -3993,6 +4077,7 @@ VB['sim/meadows'] = (() => {
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
   const { freeFor } = VB['sim/territory'];
+  const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -4008,12 +4093,12 @@ VB['sim/meadows'] = (() => {
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
   // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
-  // farm's meadows, and away from its fields' block.
-  function chooseMeadow(st, f) {
+  // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
+  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village)) {
     const w = st.w, built = builtTiles(st), own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !freeFor(st, t, f.village) || st.used.has(t) || built.has(t)) continue;
+      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
       if (nextTo(w, t, built)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
@@ -4027,17 +4112,22 @@ VB['sim/meadows'] = (() => {
     f.meadows.push({ id: f.meadows.length, tile, stage: 'grass', fert: meadowFert(st.w, tile), raked: false, mown: null, held: 0 });
     st.used.add(tile); st.w.dev[tile] = 1; st.biomeDirty.add(tile);
   }
-  // A household with animals and no land project, short of meadow for its herds' winter, claims a tile and starts clearing it (founders).
+  // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
+  // with no free tile within reach, it may contest a stake another household of its village left unworked.
   function startMeadow(st, f, hh) {
     if (f.project || !wantsMeadow(st, f, hh)) return;
-    const tile = chooseMeadow(st, f);
-    if (tile < 0) return;
-    setOwner(st, tile, { type: 'household', id: hh.id });
+    let tile = chooseMeadow(st, f);
+    if (tile < 0) {
+      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
+    }
+    stake(st, hh, tile, 'meadow');
     f.project = { tile, stage: 'meadow', hours: CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) };
   }
-  // Cleared: the worst stones go to the household's store and the tile is a meadow from now on.
+  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on.
   function finishMeadow(st, f, hh) {
     const w = st.w, tile = f.project.tile, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
+    realiseStake(st, hh, tile);
     hh.stone += Math.round(gone / STONES_PER_LOAD); w.stones[tile] -= gone;
     f.project = null;
     addMeadow(st, f, hh, tile);
@@ -4523,6 +4613,7 @@ VB['sim/kinds'] = (() => {
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
+  const { renewClaim } = VB['sim/claims'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -4530,7 +4621,9 @@ VB['sim/kinds'] = (() => {
   //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
-  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does.
+  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
+  //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
+  //   the project (sim/jobs drops it, its hands freed, once it is no longer posted).
   // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
   const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -4541,6 +4634,10 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
+  // The job's project still stands at this stage on its tile (it was not given up or contested away meanwhile, sim/stakes).
+  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // Work on a land project renews the household's stake on its tile (sim/stakes).
+  const workStake = (st, j) => { renewClaim(st, j.site, j.owner); };
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   // Hoeing and sowing grow more urgent as the sowing window runs out.
@@ -4625,15 +4722,15 @@ VB['sim/kinds'] = (() => {
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishClear(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishClear(st, j.farm, hh),
     },
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j) => finishBreak(st, j.farm),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(j) && finishBreak(st, j.farm),
     },
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, done: (st, j, hh) => finishMeadow(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
     },
     rake: {
       verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,
@@ -4825,6 +4922,7 @@ VB['sim/agents'] = (() => {
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
     j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
+    if (K.worked) K.worked(st, j);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -4894,7 +4992,7 @@ VB['sim/jobs'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
+  const { start, release, freeHands, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
@@ -4967,7 +5065,12 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
-    for (const j of st.jobs.values()) if (!j.live && !j.claims.length) dropJob(st, j);
+    // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
+    for (const j of st.jobs.values()) {
+      if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
+      if (j.claims.length) freeHands(st, j, -1);
+      dropJob(st, j);
+    }
   }
   function mayTake(st, p, j) {
     if (j.owner.type === 'household') return j.owner.id === p.household;
@@ -5092,6 +5195,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
+  const { dropStakes } = VB['sim/stakes'];
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
@@ -5243,7 +5347,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
-    hh.dissolved = true; farmToVillage(st, f);
+    hh.dissolved = true; dropStakes(st, hh); farmToVillage(st, f);
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
@@ -5734,6 +5838,7 @@ VB['sim/settle'] = (() => {
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
+  const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const { farmName } = VB['sim/cottage'];
@@ -5894,7 +5999,7 @@ VB['sim/settle'] = (() => {
     hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
     for (const id of party.all) st.pawns[id].stake = 0;
     for (const [h, n] of prov.gifts) st.households[h].grain -= n;
-    setOwner(st, house, { type: 'household', id: hh.id }); setOwner(st, field, { type: 'household', id: hh.id });
+    setOwner(st, house, { type: 'household', id: hh.id }); stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
@@ -6476,8 +6581,9 @@ VB['sim/scenarios'] = (() => {
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
-    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making; sim/fields,
-    //   sim/meadows); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath', fert, raked, mown (day), held} (hay meadows; sim/meadows);
+    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
+    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
+    //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
@@ -6569,6 +6675,7 @@ VB['sim/clock'] = (() => {
   const { meadowsDay } = VB['sim/meadows'];
   const { byreDay } = VB['sim/byre'];
   const { lapseClaims } = VB['sim/claims'];
+  const { lapsedStakes } = VB['sim/stakes'];
   const { landMeeting } = VB['sim/territory'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
@@ -6607,7 +6714,7 @@ VB['sim/clock'] = (() => {
     }
     for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
-    lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
+    lapsedStakes(st, lapseClaims(st)); // unworked claims fade out after 3 years (sim/claims); a lapsed stake ends its project (sim/stakes)
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);

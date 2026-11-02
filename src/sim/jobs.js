@@ -4,7 +4,7 @@ VB['sim/jobs'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { start, release, ownerKey, dropJob, rateOf } = VB['sim/agents'];
+  const { start, release, freeHands, ownerKey, dropJob, rateOf } = VB['sim/agents'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
@@ -77,7 +77,12 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
-    for (const j of st.jobs.values()) if (!j.live && !j.claims.length) dropJob(st, j);
+    // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
+    for (const j of st.jobs.values()) {
+      if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
+      if (j.claims.length) freeHands(st, j, -1);
+      dropJob(st, j);
+    }
   }
   function mayTake(st, p, j) {
     if (j.owner.type === 'household') return j.owner.id === p.household;

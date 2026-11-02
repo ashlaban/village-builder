@@ -10,6 +10,7 @@ VB['sim/settle'] = (() => {
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
+  const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const { farmName } = VB['sim/cottage'];
@@ -170,7 +171,7 @@ VB['sim/settle'] = (() => {
     hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
     for (const id of party.all) st.pawns[id].stake = 0;
     for (const [h, n] of prov.gifts) st.households[h].grain -= n;
-    setOwner(st, house, { type: 'household', id: hh.id }); setOwner(st, field, { type: 'household', id: hh.id });
+    setOwner(st, house, { type: 'household', id: hh.id }); stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }

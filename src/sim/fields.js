@@ -5,9 +5,9 @@ VB['sim/fields'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log } = VB['sim/records'];
-  const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
+  const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
@@ -37,23 +37,28 @@ VB['sim/fields'] = (() => {
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river and not next to a house or green: fertile (watered by one), few stones, near, and 1 better when it touches one of the
   // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
-  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none.
-  function chooseTile(st, f) {
+  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
+  // household may take a tile in (a stake it may contest, for sim/stakes).
+  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village)) {
     const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !farmable(w, t) || !freeFor(st, t, f.village) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
       const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
   }
-  // A household with fewer fields than it wants, none in progress, picks a tile and takes it: the project starts with clearing.
+  // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
+  // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
   function startProject(st, f, hh) {
     if (f.project || f.fields.length >= fieldsWanted(st, hh)) return;
-    const tile = chooseTile(st, f);
-    if (tile < 0) return;
-    setOwner(st, tile, { type: 'household', id: hh.id });
+    let tile = chooseTile(st, f);
+    if (tile < 0) {
+      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
+    }
+    stake(st, hh, tile, 'field');
     f.project = { tile, stage: 'clear', hours: clearHours(st, tile) };
   }
   // Clearing done: the stones go to the household's store, the tile is bare ground.
@@ -63,9 +68,11 @@ VB['sim/fields'] = (() => {
     w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
     st.biomeDirty.add(tile);
   }
-  // Breaking done: the tile is a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh (SOIL.fresh, VB-149).
+  // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
+  // (SOIL.fresh, VB-149).
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
+    realiseStake(st, st.households[f.household], tile);
     f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
