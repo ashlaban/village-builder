@@ -100,7 +100,7 @@
     skipping = true;
     const days = n * Sim.YEAR_DAYS;
     for (let d = 0; d < days; d++) {
-      Sim.advance(st, Sim.DAY);
+      Sim.command(st, { actor: null, verb: 'skip', args: { hours: Sim.DAY }, source: 'debug' });
       if (d % 4 === 3) { $('dbgWhen').textContent = `Skipping: day ${d + 1} of ${days}…`; await frame(); }
     }
     skipping = false; st.visualDirty = true; settlersHTML = ''; dmsg(`Skipped ${n} ${n === 1 ? 'year' : 'years'}.`); updateDebug();
@@ -116,23 +116,28 @@
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
-      case 'kill': if (p && p.died === null) {
-        Sim.killPawn(st, id, 'killed'); dmsg(`${Sim.fullName(p)} has died.`);
-        if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'kill': {
+        if (!p) { dmsg('Select a living person first.'); break; }
+        const res = Sim.command(st, { actor: id, verb: 'kill', source: 'debug' });
+        if (res !== true) { dmsg(`Not done: ${res}.`); break; }
+        dmsg(`${Sim.fullName(p)} has died.`);
+        if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } break; }
       case 'retire': {
-        const hh = p ? Sim.holdingOf(st, id) : null;
-        if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`);
-        else dmsg('Select someone who holds a farm and has an heir.'); break; }
+        if (!p) { dmsg('Select someone who holds a farm and has an heir.'); break; }
+        const hh = Sim.holdingOf(st, id), res = Sim.command(st, { actor: id, verb: 'retire', source: 'debug' });
+        dmsg(res === true ? `${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.` : `Not done: ${res}.`); break; }
       case 'advP': case 'advV': {
         if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }
-        const dim = +$('advDim').value, opt = +$('advOpt').value, until = st.cenv.t + 10;
-        if (b.dataset.act === 'advP') { p.advocate = { dim, opt, until }; dmsg(`${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.`); }
-        else {
+        const dim = +$('advDim').value, opt = +$('advOpt').value, args = { dim, option: opt };
+        if (b.dataset.act === 'advP') {
+          const res = Sim.command(st, { actor: id, verb: 'argue', args, source: 'debug' });
+          dmsg(res === true ? `${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.` : `Not done: ${res}.`);
+        } else {
           const s = st.cenv.settlements[Sim.settlementIdOf(st, p)],
-            voiced = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
-          const want = Math.max(1, Math.ceil(voiced.length * 0.2)); let n = 0;
-          for (const q of voiced) { if (n >= want) break; q.advocate = { dim, opt, until }; n++; }
-          dmsg(`${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.`);
+            res = Sim.command(st, { actor: { settlement: s.id }, verb: 'rally', args, source: 'debug' });
+          const voiced = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0);
+          const n = voiced.filter((q) => q.advocate && q.advocate.dim === dim && q.advocate.opt === opt).length;
+          dmsg(res === true ? `${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.` : `Not done: ${res}.`);
         }
         break;
       }

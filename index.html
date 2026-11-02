@@ -1568,8 +1568,8 @@ const Culture = (() => {
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
-  // nameCulture(s, from) and onSplit(nc, from, cause); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment
-  // itself (cultures, settlements, people, driftMul) is plain data.
+  // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
+  // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
   function makeCulture(env, name, customs, centre, parent = null) {
     const prefs = parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs ? env.cultures[parent].namePrefs : NAME_PREFS;
     const c = {
@@ -1695,7 +1695,9 @@ const Culture = (() => {
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
       if (y === x) continue;
       const h = small * (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
-      if (S[o + y] > S[o + x] * (1 + h)) { changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] }); s.practice[d] = y; }
+      if (!(S[o + y] > S[o + x] * (1 + h))) continue;
+      // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
+      if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
     }
     return changes;
   }
@@ -5305,6 +5307,16 @@ VB['sim/agents'] = (() => {
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const Culture = VB['culture'];
+  const { holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
+  const later = (key) => VB[key];
+  const option = (c) =>
+    (!(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length) ? `there is no custom ${c.args && c.args.dim}`
+    : !(Number.isInteger(c.args.option) && c.args.option >= 0 &&
+      c.args.option < Culture.NOPT[c.args.dim]) ? `custom ${c.args.dim} has no option ${c.args.option}` : null);
+  const settlement = (st, c) =>
+    (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
@@ -5335,6 +5347,44 @@ VB['sim/commands'] = (() => {
     idle: {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => { st.agents[c.actor].idleUntil = c.args.until; },
+    },
+    // ---- a settlement's meeting (source 'meeting') ----
+    // decide({dim, option}): the settlement's practice of the custom becomes the option
+    decide: {
+      check: (st, c) => settlement(st, c) || option(c)
+        || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
+      run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
+    },
+    // ---- debug actions (source 'debug') ----
+    kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
+    // retire: a holder hands the farm to the first heir
+    retire: {
+      check: (st, c) => {
+        const dead = living(st, c.actor); if (dead) return dead;
+        const hh = holdingOf(st, c.actor);
+        return !hh || hh.dissolved ? `pawn ${c.actor} holds no farm` : !later('sim/heirs').heirRanking(st, hh).length ? 'the farm has no heir' : null;
+      },
+      run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
+    },
+    // argue({dim, option}): the pawn takes up the cause for ten years
+    argue: {
+      check: (st, c) => living(st, c.actor) || option(c),
+      run: (st, c) => { st.pawns[c.actor].advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 }; },
+    },
+    // rally({dim, option}): a fifth of the settlement's voices, the most esteemed first, take up the cause
+    rally: {
+      check: (st, c) => settlement(st, c) || option(c),
+      run: (st, c) => {
+        const s = st.cenv.settlements[c.actor.settlement];
+        const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
+        const want = Math.max(1, Math.ceil(voiced.length * 0.2));
+        for (const q of voiced.slice(0, want)) q.advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 };
+      },
+    },
+    // skip({hours}): the world goes on for that long (no actor)
+    skip: {
+      check: (st, c) => (c.args && c.args.hours > 0 && Number.isFinite(c.args.hours) ? null : `cannot skip ${c.args && c.args.hours} hours`),
+      run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };
   // Carries out cmd, or changes nothing: true, or the reason it was refused.
@@ -6059,6 +6109,7 @@ VB['sim/cottage'] = (() => {
 // @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns
 VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
+  const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
@@ -6072,6 +6123,7 @@ VB['sim/society'] = (() => {
       byId: (id) => st.pawns[id],
       settlementOf: (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; },
       voiceOf: (p, s) => voiceOf(st, p, s),
+      decide: (s, dim, option) => issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
       membersOf: (s) => membersOf(st, s.id),
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
       onSplit: (nc, from) => log(st, `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`,
@@ -7351,6 +7403,7 @@ const Sim = (() => {
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
+  const { issue: command } = VB['sim/commands'];
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf } = VB['sim/relations'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
@@ -7362,7 +7415,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY,
+    seed, advance, save, load, recordOf, command, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf,
+      SEASONS, DAY,
       YEAR,
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
@@ -9468,7 +9522,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     skipping = true;
     const days = n * Sim.YEAR_DAYS;
     for (let d = 0; d < days; d++) {
-      Sim.advance(st, Sim.DAY);
+      Sim.command(st, { actor: null, verb: 'skip', args: { hours: Sim.DAY }, source: 'debug' });
       if (d % 4 === 3) { $('dbgWhen').textContent = `Skipping: day ${d + 1} of ${days}…`; await frame(); }
     }
     skipping = false; st.visualDirty = true; settlersHTML = ''; dmsg(`Skipped ${n} ${n === 1 ? 'year' : 'years'}.`); updateDebug();
@@ -9484,23 +9538,28 @@ if (typeof module !== 'undefined') module.exports = Sim;
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
-      case 'kill': if (p && p.died === null) {
-        Sim.killPawn(st, id, 'killed'); dmsg(`${Sim.fullName(p)} has died.`);
-        if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } } else dmsg('Select a living person first.'); break;
+      case 'kill': {
+        if (!p) { dmsg('Select a living person first.'); break; }
+        const res = Sim.command(st, { actor: id, verb: 'kill', source: 'debug' });
+        if (res !== true) { dmsg(`Not done: ${res}.`); break; }
+        dmsg(`${Sim.fullName(p)} has died.`);
+        if (selPawn === id) { selPawn = -1; $('tile').hidden = true; } break; }
       case 'retire': {
-        const hh = p ? Sim.holdingOf(st, id) : null;
-        if (hh && Sim.retireHolder(st, hh.id)) dmsg(`${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.`);
-        else dmsg('Select someone who holds a farm and has an heir.'); break; }
+        if (!p) { dmsg('Select someone who holds a farm and has an heir.'); break; }
+        const hh = Sim.holdingOf(st, id), res = Sim.command(st, { actor: id, verb: 'retire', source: 'debug' });
+        dmsg(res === true ? `${Sim.fullName(p)} hands over ${st.farmsteads[hh.farmstead].name}.` : `Not done: ${res}.`); break; }
       case 'advP': case 'advV': {
         if (!p || p.died !== null) { dmsg('Select a living person first.'); break; }
-        const dim = +$('advDim').value, opt = +$('advOpt').value, until = st.cenv.t + 10;
-        if (b.dataset.act === 'advP') { p.advocate = { dim, opt, until }; dmsg(`${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.`); }
-        else {
+        const dim = +$('advDim').value, opt = +$('advOpt').value, args = { dim, option: opt };
+        if (b.dataset.act === 'advP') {
+          const res = Sim.command(st, { actor: id, verb: 'argue', args, source: 'debug' });
+          dmsg(res === true ? `${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.` : `Not done: ${res}.`);
+        } else {
           const s = st.cenv.settlements[Sim.settlementIdOf(st, p)],
-            voiced = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
-          const want = Math.max(1, Math.ceil(voiced.length * 0.2)); let n = 0;
-          for (const q of voiced) { if (n >= want) break; q.advocate = { dim, opt, until }; n++; }
-          dmsg(`${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.`);
+            res = Sim.command(st, { actor: { settlement: s.id }, verb: 'rally', args, source: 'debug' });
+          const voiced = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0);
+          const n = voiced.filter((q) => q.advocate && q.advocate.dim === dim && q.advocate.opt === opt).length;
+          dmsg(res === true ? `${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.` : `Not done: ${res}.`);
         }
         break;
       }

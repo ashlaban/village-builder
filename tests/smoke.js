@@ -72,9 +72,13 @@ const iv = setInterval(async () => {
   console.log('debug when:', doc.getElementById('dbgWhen').textContent, '| out:', doc.getElementById('dbgOut').textContent);
   q('[data-act="meet"]').click(); console.log('meet:', doc.getElementById('dbgMsg').textContent);
   q('[data-act="move"]').click(); console.log('move:', doc.getElementById('dbgMsg').textContent);
-  // select the bachelor through the settlers list, then kill him from the debug panel
-  const sb = qa('#settlers button[data-pawn]').find((x) => /Röninge|Ulsäter/.test(x.closest('.farm').textContent) && x.closest('.farm').querySelectorAll('li').length === 1);
-  if (sb) { sb.click(); tick(3); console.log('selected:', doc.getElementById('dbgSel').textContent); q('[data-act="kill"]').click(); console.log('kill:', doc.getElementById('dbgMsg').textContent); }
+  // select a settler through the settlers list, then kill them from the debug panel (a debug command, VB-170); the farm names of an older
+  // world were matched here once, so the step had stopped running
+  const sb = qa('#settlers button[data-pawn]')[0];
+  if (!sb) fail('no settler to select');
+  sb.click(); tick(3); console.log('selected:', doc.getElementById('dbgSel').textContent);
+  q('[data-act="kill"]').click(); const killed = doc.getElementById('dbgMsg').textContent; console.log('kill:', killed);
+  if (!/has died/.test(killed)) fail(`the debug kill did not report a death: ${killed}`);
   tick(30);
   doc.getElementById('treeBtn').click(); tick(2);
   console.log('tree:', doc.getElementById('treeSub').textContent, '| nodes', qa('#treeSvg g.tn').length, 'dead', qa('#treeSvg g.tn.dead').length, 'heir dots', qa('#treeSvg .heir').length);
