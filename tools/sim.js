@@ -122,6 +122,7 @@ if (out !== null && report === 'idle' && !json) {
   }
   console.log('idle hours by reason (%):'); console.table(out.idleReasons);
   console.log('wait from posting to claim (hours):'); console.table(out.waitHours);
+  console.log('job switches per pawn per year:'); console.table(out.switchesPerPawnYear);
   console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
 } else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);

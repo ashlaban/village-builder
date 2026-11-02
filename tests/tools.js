@@ -15,6 +15,10 @@ for (const [role, bs] of Object.entries(idle.hoursShare)) for (const [season, v]
   check(Math.abs(sum - 100) < 0.5, `idle shares of ${role} in ${season} sum to ${sum}`);
 }
 check(Object.keys(idle.hoursShare).length > 0, 'idle report has no roles');
+// VB-122: waits are measured per free spell and never negative; switches are counted per pawn per year
+const waitRows = Object.values(idle.waitHours);
+check(waitRows.length > 0 && waitRows.every((x) => x.n > 0 && x.median >= 0 && x.p90 >= x.median), 'idle report: waits missing, negative or out of order');
+check(typeof idle.switchesPerPawnYear.other === 'number' && idle.switchesPerPawnYear.other >= 0 && idle.switchesPerPawnYear.cookCall >= 0, 'idle report: no switches counted');
 const paths = JSON.parse(cp.execFileSync('node', [tool, '--scenario', 'populous', '--seed', '7', '--map', 'tiny', '--years', '0', '--report', 'paths', '--json'], { encoding: 'utf8' }));
 check(paths[0].village === 'all' && paths[0].trodden + paths[0].path > 0 && paths.length > 1, 'paths report: no worn-in paths on a populous map');
 // VB-128: the hunger report prints its summary, with grain quartiles in order
