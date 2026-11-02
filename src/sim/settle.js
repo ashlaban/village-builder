@@ -1,5 +1,6 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
+  const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
@@ -161,7 +162,7 @@ VB['sim/settle'] = (() => {
   // ---- settling ----
   // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, built by
   // sim/expansion's booth jobs), a household with the provisions as its grain, and `field` as its first field project.
-  function settleFarm(st, v, home, party, house, field, prov, use) {
+  function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
     f.woodlot = v.commonsWood; f.condition = 1; f.emptySince = null; f.booth = { i: 0, done: 0 };
@@ -177,17 +178,16 @@ VB['sim/settle'] = (() => {
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
     for (const id of party.followers) st.pawns[id].servant = true;
-    for (const t of [house, field]) markUsed(w, use, t);
     refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
-  function found(st, home, p, party, site, prov, use) {
+  function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
       green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
-    return settleFarm(st, v, home, party, site.house, site.field, prov, use);
+    return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
   // oldest, may leave (SETTLE.chance by rounds waited) with their party, if it has provisions: to a small village nearby that is not
@@ -210,12 +210,21 @@ VB['sim/settle'] = (() => {
         if (!use) use = landInUse(st);
         if (!reach) reach = reachOf(st, v);
         let f = null, steps = 0;
+        // the leave command; the new farm is the last one added, and its house and field are marked used for the rest of the round
+        const leave = (args) => {
+          const n = st.farmsteads.length;
+          if (issue(st, {
+            actor: p.id, verb: 'leave', args: { from: v.id, party: { all: party.all, followers: party.followers }, ...args },
+            source: 'round' }) !== true) return null;
+          for (const t of [args.house, args.field]) markUsed(st.w, use, t);
+          return st.farmsteads[n];
+        };
         const join = smallVillage(st, v, p, waiting, reach);
-        if (join) { f = settleFarm(st, join.village, v, party, join.house, join.field, prov, use); steps = join.steps; }
+        if (join) { f = leave({ village: join.village.id, house: join.house, field: join.field }); steps = join.steps; }
         else if (!noLand) {
           if (!cands) cands = candidates(st, v, use, reach);
           const site = newSite(st, v, use, cands);
-          if (site) { f = found(st, v, p, party, site, prov, use); steps = site.steps; }
+          if (site) { f = leave({ house: site.house, field: site.field, wood: site.wood }); steps = site.steps; }
           else { noLand = true; log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`, { kind: 'noLand', village: v.id }); }
         }
         if (!f) continue;
