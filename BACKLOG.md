@@ -110,6 +110,5 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-139 | Roe deer | animals | implement | ready | 3 | M | Deer stock per region, crop damage by broken fences, hunting. | [backlog/VB-139.md](backlog/VB-139.md) |
 | VB-140 | Livestock in shares and a new household's start | animals | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |
 | VB-141 | Plan: customs of the animals | animals | plan | ready | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. | [backlog/VB-141.md](backlog/VB-141.md) |
-| VB-142 | A pawn is allotted at most one cleared plot | expansion | implement | ready | 2 | S | Fix: `allot` gives a second cleared plot to a pawn who already holds one. | [backlog/VB-142.md](backlog/VB-142.md) |
 | VB-143 | A profile report: where a game day's time goes | tooling | implement | ready | 2 | S | `tools/sim.js --report perf`: milliseconds per system per game day, so the next slow step is found, not guessed. | [backlog/VB-143.md](backlog/VB-143.md) |
 | VB-144 | Ewes' milk and wool | animals | implement | needs-review | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |
