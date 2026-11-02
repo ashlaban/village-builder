@@ -202,8 +202,10 @@ VB['sim/rules'] = (() => {
   // household may contest a stake weaker than `contestBelow`; a family's birthright on its empty farm lasts `birthrightYears`; a household
   // that lost a dispute leans for `grievanceYears` towards the rules that would have let it win.
   // A village short of outland presses a richer neighbour for at most `pressPerMeeting` tiles a meeting; a cairn keeps the village that lost a
-  // border dispute from pressing for that tile again for `cairnYears`.
-  const CLAIMS = { years: 3, outReach: 8, outPerFarm: 8, contestBelow: 0.5, birthrightYears: 20, grievanceYears: 5, pressPerMeeting: 4, cairnYears: 3 };
+  // border dispute from pressing for that tile again for `cairnYears`. An empty farm may be claimed from a village whose centre lies within
+  // `farmReach` steps of the farm's village centre, under the customs that let outsiders claim (VB-033; as SERVICE.reach).
+  const CLAIMS = { years: 3, outReach: 8, outPerFarm: 8, contestBelow: 0.5, birthrightYears: 20, grievanceYears: 5, pressPerMeeting: 4, cairnYears: 3,
+    farmReach: 15 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
