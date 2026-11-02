@@ -90,6 +90,8 @@ Three rings of land, as in history. Numbers are Proposed starting values.
 3. **Stakes:** a project stakes a claim, breaking the ground makes it owned, a stalled stake weakens over 3 years, and a household short of land may contest a weakened stake; the custom decides and the loser remembers it.
 4. **This change** builds the claims core and overlay, the village outland, household stakes and claiming empty farms, with VB-033's four proposed answers accepted and the birthright added.
 
+5. **Border pressure (2 November).** As first built, villages almost never disputed a border (no dispute in 20 years at three seeds). Kim chose border pressure: a village short of outland may claim a neighbour's outland, and the custom decides. The rule built presses a neighbour that holds more outland a farm (`backlog/VB-157.md`).
+
 The design is recorded in `design.md`, "Infield, outland and wilderness"; the answered questions in `QUESTION_ARCHIVE.md`.
 
 ## 5. Tasks

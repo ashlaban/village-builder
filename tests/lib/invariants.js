@@ -94,6 +94,10 @@ function checkState(st) {
       }
     }
   }
+  // cairns on settled borders (VB-157): a valid tile, two different villages, set in the past
+  for (const [tile, c] of st.cairns || []) {
+    if (!tileOk(tile) || !st.villages[c.a] || !st.villages[c.b] || c.a === c.b || !(c.t <= st.t)) bad.push(`cairns[${tile}]: ${JSON.stringify(c)}`);
+  }
   // nothing is built on a river tile (VB-111): houses, fields, fields in the making, plots and greens
   const onRiver = (t) => tileOk(t) && st.w.river[t] > 0;
   for (const f of st.farmsteads) {

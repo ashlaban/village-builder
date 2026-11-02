@@ -107,6 +107,7 @@ VB['sim/rules'] = (() => {
       goodTalk: { label: 'A good talk', v: 0.1, cap: 0.5, days: 3 * YEAR_DAYS },
       crossWords: { label: 'Cross words', v: -0.12, cap: -0.6, days: 3 * YEAR_DAYS },
       bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
+      border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       tie: 0.1, bubbleHours: 0.5 },
@@ -199,7 +200,9 @@ VB['sim/rules'] = (() => {
   // without work or renewal; a village claims outland within `outReach` walking steps of its green, `outPerFarm` tiles an occupied farm; a
   // household may contest a stake weaker than `contestBelow`; a family's birthright on its empty farm lasts `birthrightYears`; a household
   // that lost a dispute leans for `grievanceYears` towards the rules that would have let it win.
-  const CLAIMS = { years: 3, outReach: 8, outPerFarm: 8, contestBelow: 0.5, birthrightYears: 20, grievanceYears: 5 };
+  // A village short of outland presses a richer neighbour for at most `pressPerMeeting` tiles a meeting; a cairn keeps the village that lost a
+  // border dispute from pressing for that tile again for `cairnYears`.
+  const CLAIMS = { years: 3, outReach: 8, outPerFarm: 8, contestBelow: 0.5, birthrightYears: 20, grievanceYears: 5, pressPerMeeting: 4, cairnYears: 3 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).

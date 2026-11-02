@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 2 November 2026 (claims review, borders)
+
+## VB-157: how borders become contested (raised in the session of 2 November)
+As built, villages almost never dispute a border: over 20 years on 3 seeds (populous tiny) there were no disputes and no cairns, since villages claim outland nearest first while land is free, and once the land between them is held a crowded village has nothing left to claim.
+1. How should borders become contested? **P:** border pressure: a village short of outland may claim a neighbour's outland that lies nearer its own green; the holder's right counts as the older claim and the custom decides at the next meeting. Alternatives: frontier only (as built), or leave it for herding and trespass (VB-136).
+   **A (Kim, 2 Nov):** border pressure. (Built with "a neighbour that holds more outland a farm" in place of "nearer its own green", which almost never held; `backlog/VB-157.md`.)
+
 # Archived 1 November 2026 (claims review)
 
 Asked with the review of claims, ownership and territory (`docs/review-claims.md`). Kim answered in the session of 1 November: the outland claimed by need at the meetings; all four effects (no taking in of another village's land, settlers in wilderness only, border grudges, the commons wood in the village's land), "the basis for land based taxation later (and the aristocracy/big men)"; stakes before clearing, with contests; and claiming empty farms in this change, with VB-033's proposed answers below.
