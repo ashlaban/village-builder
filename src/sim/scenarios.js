@@ -10,7 +10,7 @@ VB['sim/scenarios'] = (() => {
   const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { dailyNeed } = VB['sim/hunger'];
-  const { refreshRoles, wantsOut, firstHeirs, ownFirstOf } = VB['sim/heirs'];
+  const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
@@ -28,7 +28,7 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'founders');
-    initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
+    initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
@@ -66,7 +66,7 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = populousHouseholds(R, farmsteads, sizes);
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
-    initCulture(st, null); st.countDemand();
+    initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
     populousHerds(st); placeMeadows(st);
@@ -143,7 +143,7 @@ VB['sim/scenarios'] = (() => {
     }
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'heirs');
     // village B grew up apart and leans its own way on some customs
-    initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); st.countDemand();
+    initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); countDemand(st);
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
     heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
     placeMeadows(st); seedOutland(st, true);
@@ -213,7 +213,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.contacts: Map of pawn pair (pairKey in sim/society: i * 2^21 + j, i < j) to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
-    // @state st.demand: array of pawn ids who want to move out. st.countDemand: function; recomputes st.demand
+    // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
@@ -239,9 +239,6 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
-    st.countDemand = () => {
-      const own = ownFirstOf(st), heirs = firstHeirs(st, own); st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs, own)).map((p) => p.id);
-    };
     return st;
   }
 
