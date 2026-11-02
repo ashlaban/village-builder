@@ -22,6 +22,9 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 ## Finding things
 - Module map: `grep -rn "^// @sys" src`. State schema: `grep -rn "@state" src` (VB-015).
 - A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Modules are listed in `src/manifest.json` in load order.
+- The page script (VB-053): `src/page/*.js`, in the order of `src/page.json`; `build.py` splices them, without their `@sys` line, into the one
+  closure in `src/body.html` (which keeps the markup, styles and the closure's first and last lines). They are not `VB` modules: they share the
+  closure's variables, so a name defined in one is used in the others (grep `src/page` for it). Keep their order: `const` and `let` run in order.
 - Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
 
 ## Architecture
@@ -43,7 +46,7 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
   servant to a holder who lives alone; marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
   and `src/sim/heirs.js`.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
-- The page script in `src/body.html` draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
+- The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 

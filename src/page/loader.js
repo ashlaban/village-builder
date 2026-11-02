@@ -1,0 +1,111 @@
+// @sys page/loader: the generation screen and loader: building a world and a scenario, and the loading bar
+  // ---- loader ----
+  const loader = $('loader');
+  const setLoad = (text, p) => { if (text) $('loadText').textContent = text; if (p != null) $('loadBar').style.width = (p * 100).toFixed(1) + '%'; };
+  async function drive(gen, onP) {
+    let r, last = performance.now();
+    while (!(r = gen.next()).done) {
+      onP(r.value);
+      if (performance.now() - last > 30) { await frame(); last = performance.now(); }
+    }
+    return r.value;
+  }
+
+  let building = false;
+  const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
+  function showGenScreen(msg) {
+    $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
+    $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
+    $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
+  }
+  async function build(seed, scenario, size) {
+    choice = { seed, scenario, size };
+    $('genScreen').hidden = true;
+    building = true; $('regen').disabled = true;
+    loader.classList.remove('done');
+    setLoad('Raising the land', 0);
+    await frame(); await frame();
+    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
+    setLoad('Settling the founders', 0.52); await frame();
+    let sim = null;
+    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement on this map for this scenario', e); }
+    if (!sim) {
+      building = false; $('regen').disabled = false;
+      showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
+      return;
+    }
+    treeSel = -1; selPawn = -1;
+    setLoad('Painting the overview', 0.55); await frame();
+    const wc = makeCanvas(wd.CW, wd.CH);
+    G.bakeWater(wd, wc.getContext('2d'));
+    const nx2 = Math.ceil(wd.W / LV[2].size), ny2 = Math.ceil(wd.H / LV[2].size), over = [];
+    for (let cy = 0; cy < ny2; cy++) for (let cx = 0; cx < nx2; cx++) {
+      const canvas = makeCanvas(TEX, TEX);
+      await drive(chunkJob(wd, 2, cx, cy, canvas), (p) => setLoad(null, 0.55 + ((over.length + p) / (nx2 * ny2)) * 0.4));
+      over.push({ cx, cy, canvas });
+    }
+    setLoad('Drawing the regions', 0.96); await frame();
+
+    // swap in the new world
+    job = null;
+    for (const k of [...chunks.keys()]) dropChunk(k);
+    for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
+    if (regionG) { regionG.destroy(); regionG = null; }
+    w = wd; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
+    const water = new PIXI.Sprite(texFrom(wc));
+    water.scale.set(wd.STEP); water.position.set(-wd.STEP / 2, -wd.STEP / 2);
+    L.water.addChild(water);
+    for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
+    regionG = buildRegions(wd); L.regions.addChild(regionG);
+    if (!waves.length) {
+      waves = [new PIXI.TilingSprite({ texture: waveTexA, width: wd.W, height: wd.H }), new PIXI.TilingSprite({ texture: waveTexB, width: wd.W, height: wd.H })];
+      waves[1].tileScale.set(1.7);
+      for (const s of waves) L.waves.addChild(s);
+    }
+    makeClouds(wd);
+    drawMinimap(wd, wc, over);
+    await buildSettlement(wd, sim);
+    if (landG) landG.clear();
+    if (landOn) drawLand();
+    const landRegions = wd.regions.filter((r) => r.land > 0).length;
+    $('name').textContent = wd.name;
+    $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    document.title = `${wd.name}, a hex archipelago`;
+
+    // Opening move: start on the whole chart, then glide down through the clouds to the village.
+    let best = sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
+    for (let i = 0; i < wd.N && bd >= 0; i++) {
+      if (wd.water[i]) continue;
+      const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
+      if (d < bd) { bd = d; best = i; }
+    }
+    const z0 = zMin(), z1 = clamp(34 / wd.HW, z0, zMax);
+    const tx = best >= 0 ? wd.hx[best] : wd.W / 2, ty = best >= 0 ? wd.hy[best] : wd.H / 2;
+    const end = { x: tx, y: ty, z: z1 };
+    T = 2;
+    if (reduceMotion) { cam.x = tx; cam.y = ty; cam.z = z1; }
+    else {
+      cam.x = wd.W / 2; cam.y = wd.H / 2; cam.z = z0;
+      intro = { t: -0.6, d: 3.8, x0: cam.x, y0: cam.y, z0, x1: tx, y1: ty, z1, T: levelFor(z1, 1), rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, end) };
+    }
+    zt = cam.z; vel.x = vel.y = 0;
+    loader.classList.add('done');
+    building = false; $('regen').disabled = false;
+  }
+
+  function makeClouds(wd) {
+    for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); }
+    clouds = [];
+    const r = G.mulberry32(wd.seed * 7 + 3), K = wd.KS;
+    for (let k = 0; k < 13; k++) {
+      const tex = cloudTex[k % cloudTex.length], s = (1.8 + r() * 1.8) * K;
+      const spr = new PIXI.Sprite(tex), sh = new PIXI.Sprite(tex);
+      spr.anchor.set(0.5); sh.anchor.set(0.5); spr.scale.set(s, s * (0.8 + r() * 0.4)); sh.scale.copyFrom(spr.scale);
+      sh.tint = 0x06202c;
+      spr.x = r() * (wd.W + 800 * K) - 400 * K; spr.y = r() * wd.H;
+      L.shadows.addChild(sh); L.clouds.addChild(spr);
+      clouds.push({ spr, sh, vx: (9 + r() * 9) * K, vy: (r() - 0.5) * 3 * K });
+    }
+  }
+
