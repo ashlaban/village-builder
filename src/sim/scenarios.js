@@ -1,6 +1,7 @@
 // @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
-  const { B, mulberry32 } = VB['gen'];
+  const { B } = VB['gen'];
+  const { fromState, drawer } = VB['sim/rng'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -18,7 +19,7 @@ VB['sim/scenarios'] = (() => {
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   function seedFounders(w, seedNum) {
-    const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
+    const S = fromState((seedNum * 2654435761) ^ 0x51ed), rand = drawer(S);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
     const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
@@ -26,7 +27,7 @@ VB['sim/scenarios'] = (() => {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
-    const st = makeState(w, rand, R, households, farmsteads, villages, used, 'founders');
+    const st = makeState(w, S, R, households, farmsteads, villages, used, 'founders');
     initCulture(st, null, { kinLimit: 'close' }); st.countDemand();
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
@@ -42,7 +43,7 @@ VB['sim/scenarios'] = (() => {
   const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
   function seedPopulous(w, seedNum) {
-    const rand = mulberry32((seedNum * 2654435761) ^ 0x9091);
+    const S = fromState((seedNum * 2654435761) ^ 0x9091), rand = drawer(S);
     const [lo, hi] = POPULATION[w.N < 15000 ? 'tiny' : w.N < 40000 ? 'small' : 'big'], comp = landComponents(w);
     const gen = settlementGenerator(w, rand), centres = [], sizes = [], scores = new Float32Array(w.N).fill(NaN);
     let pop = 0;
@@ -64,7 +65,7 @@ VB['sim/scenarios'] = (() => {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = populousHouseholds(R, farmsteads, sizes);
-    const st = makeState(w, rand, R, households, farmsteads, villages, used, 'populous');
+    const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); st.countDemand();
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
@@ -75,7 +76,7 @@ VB['sim/scenarios'] = (() => {
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
-    const rand = mulberry32((seedNum * 2654435761) ^ 0x2a11);
+    const S = fromState((seedNum * 2654435761) ^ 0x2a11), rand = drawer(S);
     const comp = landComponents(w);
     const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) throw new Error('No village site found');
@@ -140,7 +141,7 @@ VB['sim/scenarios'] = (() => {
       f.household = null; f.state = state; f.emptySince = -years * YEAR; f.line = line; f.condition = Math.max(0.08, 1 - years * 0.075);
       for (const fd of f.fields) fd.stage = stage;
     }
-    const st = makeState(w, rand, R, households, farmsteads, villages, used, 'heirs');
+    const st = makeState(w, S, R, households, farmsteads, villages, used, 'heirs');
     // village B grew up apart and leans its own way on some customs
     initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); st.countDemand();
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
@@ -150,10 +151,12 @@ VB['sim/scenarios'] = (() => {
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
     return st;
   }
-  function makeState(w, rand, R, households, farmsteads, villages, used, scenario) {
+  function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
+    const rand = drawer(S); // the scenario's one seeding stream; it goes on as st.rand until VB-072's split
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
-    // @state st.rand: function; seeded random source, 0..1. st.w: the world (see w.*). st.ECON: the economy table
+    // @state st.rng: {seed: {s}}; random streams as plain data (sim/rng). st.rand: function; draws from st.rng.seed, 0..1.
+    // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
@@ -219,7 +222,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, rand, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, rand, rng: { seed: S }, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
