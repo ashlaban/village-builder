@@ -58,7 +58,7 @@ const tileAt = (w, col, row) => row * w.COLS + col;
 function tinyState(w, villages, opt = {}) {
   const { settlementGenerator } = VB['sim/layout'], { populousHouseholds, drawSize } = VB['sim/people'];
   const { nameKit } = VB['sim/records'], { makeState } = VB['sim/scenarios'], { initCulture } = VB['sim/society'];
-  const rand = mulberry32(((opt.seed ?? 1) * 2654435761) ^ 0x7177), gen = settlementGenerator(w, rand), sizes = [];
+  const S = VB['sim/rng'].fromState(((opt.seed ?? 1) * 2654435761) ^ 0x7177), rand = VB['sim/rng'].drawer(S), gen = settlementGenerator(w, rand), sizes = [];
   for (const v of villages) {
     const c = Array.isArray(v.at) ? tileAt(w, v.at[0], v.at[1]) : v.at;
     const made = gen.addVillage(c, v.farms);
@@ -67,7 +67,7 @@ function tinyState(w, villages, opt = {}) {
   const { used, farmsteads, villages: vs } = gen.finish();
   const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
   const households = populousHouseholds(R, farmsteads, sizes);
-  const st = makeState(w, rand, R, households, farmsteads, vs, used, 'populous');
+  const st = makeState(w, S, R, households, farmsteads, vs, used, 'populous');
   initCulture(st, null); st.countDemand();
   if (opt.customs) for (const s of st.cenv.settlements) setPractice(st, s.id, opt.customs);
   if (opt.herds) { VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); }
