@@ -53,8 +53,8 @@ const tileAt = (w, col, row) => row * w.COLS + col;
 
 // A state on world w with villages at given tiles: [{at: [col, row], farms, sizes: [household sizes]}], built as the populous scenario builds
 // its villages (houses round the green, each farm's fields one block beyond the yards), with its households, culture and owners.
-// opt.seed (default 1); opt.fields: seed fields per farm as generated (default: as the generator places them); opt.customs: practice to set
-// in every village, e.g. {dispute: 'kin'}. Nothing is advanced: st.t is the start of year 1.
+// opt.seed (default 1); opt.customs: practice to set in every village, e.g. {dispute: 'kin'}; opt.herds: the populous herds and meadows;
+// opt.outland: true (default) the villages hold their outland, 'claimed' they have only claimed it, false neither. Nothing is advanced: st.t is the start of year 1.
 function tinyState(w, villages, opt = {}) {
   const { settlementGenerator } = VB['sim/layout'], { populousHouseholds, drawSize } = VB['sim/people'];
   const { nameKit } = VB['sim/records'], { makeState } = VB['sim/scenarios'], { initCulture } = VB['sim/society'];
@@ -70,6 +70,8 @@ function tinyState(w, villages, opt = {}) {
   const st = makeState(w, rand, R, households, farmsteads, vs, used, 'populous');
   initCulture(st, null); st.countDemand();
   if (opt.customs) for (const s of st.cenv.settlements) setPractice(st, s.id, opt.customs);
+  if (opt.herds) { VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); }
+  if (opt.outland !== false) VB['sim/territory'].seedOutland(st, opt.outland !== 'claimed'); // as the populous scenario; 'claimed': as the founders
   return st;
 }
 // Sets village vid's practice of the given customs: {key: option key}.

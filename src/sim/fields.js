@@ -7,6 +7,7 @@ VB['sim/fields'] = (() => {
   const { age, log } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
+  const { freeFor } = VB['sim/territory'];
   const { team } = VB['sim/herds'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
@@ -33,15 +34,15 @@ VB['sim/fields'] = (() => {
     for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
     return out;
   }
-  // The best unowned farmable tile within reach of the house, not on a river and not next to a house or green: fertile (watered by one),
-  // few stones, near, and 1 better when it touches one of the farm's fields, so the fields grow as one block (VB-109). Open meadow always
-  // comes first; heath, hills or marsh (poorer, by FERTILITY) only when no meadow is free (balance review: where land ran short, poorer land
-  // was taken in). -1 when there is none.
+  // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
+  // not on a river and not next to a house or green: fertile (watered by one), few stones, near, and 1 better when it touches one of the
+  // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
+  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none.
   function chooseTile(st, f) {
     const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !farmable(w, t) || st.owner[t] !== 0 || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
+      if (d < 1 || !farmable(w, t) || !freeFor(st, t, f.village) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
       const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
       if (s > bs) { bs = s; best = t; }
     }

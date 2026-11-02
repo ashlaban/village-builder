@@ -9,6 +9,7 @@ VB['sim/meadows'] = (() => {
   const { nextTo } = VB['sim/layout'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
+  const { freeFor } = VB['sim/territory'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -22,13 +23,15 @@ VB['sim/meadows'] = (() => {
   const meadowFert = (w, i) => (SITE[w.biome[i]] || 0) * (wetBank(w, i) ? 1.3 : 1);
   // Hay a farm's meadows give in an ordinary year, before raking and weather.
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
-  // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, unowned
-  // and unused, not next to a house or green; by site value, near, few stones, beside the farm's meadows, and away from its fields' block.
+  // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
+  // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
+  // farm's meadows, and away from its fields' block.
   function chooseMeadow(st, f) {
     const w = st.w, built = builtTiles(st), own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || st.owner[t] !== 0 || st.used.has(t) || built.has(t) || nextTo(w, t, built)) continue;
+      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !freeFor(st, t, f.village) || st.used.has(t) || built.has(t)) continue;
+      if (nextTo(w, t, built)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
     }

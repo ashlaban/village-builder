@@ -2,19 +2,20 @@
 VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['gen'];
   const { YEAR_DAYS } = VB['sim/rules'];
-  const { nearestWood } = VB['sim/layout'];
   const { costChanged } = VB['sim/routes'];
+  const { villageWood, moveWood } = VB['sim/territory'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
 
   function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
 
-  // A tile with no trees left becomes meadow for good; farms and villages that used it as a woodlot pick the nearest forest.
+  // A tile with no trees left becomes meadow for good; villages that used it as their wood take the nearest forest in their own land, else the
+  // nearest no other village holds (sim/territory), and their farms with it; a farm with a woodlot of its own takes the nearest forest.
   function clearTile(st, tile) {
     const w = st.w;
     w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
     setBiome(w, tile, B.MEADOW);
     st.treeDirty.add(tile); st.biomeDirty.add(tile); costChanged(st, tile);
-    for (const v of st.villages) if (v.commonsWood === tile) v.commonsWood = nearestWood(w, st.used, v.center);
+    for (const v of st.villages) if (v.commonsWood === tile) { const wd = villageWood(st, v); moveWood(st, v, wd); v.commonsWood = wd; }
     for (const f of st.farmsteads) {
       if (f.woodlot !== tile) continue;
       f.woodlot = st.villages[f.village].commonsWood;
