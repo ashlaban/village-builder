@@ -17,6 +17,8 @@ the refactor and golden-file rules) and its pick order, which holds a feature fr
   `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15` prints rations made by source (grain net of seed,
   milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
+- Wrap long lines: `node tools/wrap.js FILE...` breaks lines over 160 characters at safe token boundaries (`--dry` reports only; long template text is
+  left for wrapping by hand); `node tools/wrap.js --compare OLD.html NEW.html` checks that two builds differ only in whitespace outside literals.
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
 
 ## Finding things
