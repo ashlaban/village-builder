@@ -1,6 +1,6 @@
 # Review, 30 October 2026
 
-*Later reviews: animals and husbandry (`docs/review-animals.md`, 31 October); relationships (`docs/review-relationships.md`, 31 October); performance, the food balance and the animals' economics against history (`docs/review-balance.md`, 1 November), which answers points 1 (in part) and 2 of the summary below.*
+*Later reviews: animals and husbandry (`docs/review-animals.md`, 31 October); relationships (`docs/review-relationships.md`, 31 October); performance, the food balance and the animals' economics against history (`docs/review-balance.md`, 1 November), which answers points 1 (in part) and 2 of the summary below; an external review and where each of its points went (`docs/review-external.md`, 2 November).*
 
 A review of the game as built at `6b9149b` (after VB-049) against `design.md` v0.3: whether the stated design is implemented, what is broken or costly, and what would make development cheaper and safer. The design-level reflection (which systems the game needs, and whether they are fun, realistic and affordable) is in `design.md`, "Systems overview". Questions for Kim are in `QUESTIONS.md` under "Review, 30 October 2026"; new and changed tasks are in `BACKLOG.md`.
 
