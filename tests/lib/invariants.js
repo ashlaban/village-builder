@@ -97,6 +97,10 @@ function checkState(st) {
         if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq)) bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
         if (c.by.type === 'household' && st.households[c.by.id] && st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
         if ((c.why === 'outland') !== (c.by.type === 'village')) bad.push(`claims[${tile}]: ${k} claims ${c.why}`); // only villages claim outland (VB-156)
+        if (c.why === 'birthright') { // the old family's claim on the house of its empty farm, for a while (VB-033)
+          const f = st.farmsteads.find((x) => x.house === tile);
+          if (c.by.type !== 'pawn' || c.state !== 'realised' || c.until === null || !f || f.household !== null) bad.push(`claims[${tile}]: ${k} birthright is ${c.state} on ${f ? `a farm held by ${f.household}` : 'no farm'}`);
+        }
         if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
           if (!f || !f.project || f.project.tile !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);

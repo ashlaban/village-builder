@@ -16,6 +16,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows } = VB['sim/meadows'];
   const { seedOutland } = VB['sim/territory'];
+  const { birthright } = VB['sim/farmclaims'];
   function seedFounders(w, seedNum) {
     const rand = mulberry32((seedNum * 2654435761) ^ 0x51ed);
     const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
@@ -145,6 +146,7 @@ VB['sim/scenarios'] = (() => {
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
     heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
     placeMeadows(st); seedOutland(st, true);
+    for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
     return st;
   }

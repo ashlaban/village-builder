@@ -189,6 +189,7 @@ VB['sim/expansion'] = (() => {
     log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`);
   }
   return {
-    COTTAGE, building, claimableFarm, roomAt, findSite, hasPlot, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob, finishBoothStage,
+    COTTAGE, building, claimableFarm, roomAt, findSite, hasPlot, awaitsCottage, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob,
+    finishBoothStage,
   };
 })();
