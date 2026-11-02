@@ -1,11 +1,17 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|hunger|perf|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
+//   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
+//                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/page/loader.js)
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt; };
-const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
+const fs = require('fs'), zlib = require('zlib'), saveTo = opt('save', null), loadFrom = opt('load', null);
+const readSave = (f) => JSON.parse((f.endsWith('.gz') ? zlib.gunzipSync(fs.readFileSync(f)) : fs.readFileSync(f)).toString('utf8'));
+const loaded = loadFrom ? readSave(loadFrom) : null;
+const mapOf = (d) => Object.keys(SIZES).find((k) => SIZES[k][0] === d.cols && SIZES[k][1] === d.rows);
+const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'), seedNum = loaded ? loaded.seed : +opt('seed', 7), map = loaded ? mapOf(loaded) : opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
 if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'land'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
@@ -26,15 +32,16 @@ function plain(v, seen = new Map(), where = '$') {
 
 const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1] });
 let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
+const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
 const causeOf = (p) => { const e = p.events.find((x) => x.kind === 'died'); return e ? e.cause : null; };
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
-say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${years} years`);
+const start = Math.floor(st.t / Sim.YEAR), last = opt('at', null) !== null ? years : start + years; // years done before, and the last to run
+say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${loaded ? `from the save ${loadFrom} at year ${start}, ` : ''}to year ${last}`);
 say('year  pop  births  deaths(by cause)  marriages  hungry-days  mean-grain  demand  ms/day');
 const idle = report === 'idle' ? require('./idle.js')(Sim, st) : null;
 let perfMs = 0;
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
-for (let y = 1; y <= years; y++) {
+for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
   if (idle) idle.advanceYear(); else if (hunger) hunger.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
@@ -44,6 +51,11 @@ for (let y = 1; y <= years; y++) {
   const grain = live.length ? live.reduce((s, h) => s + h.grain, 0) / live.length : 0;
   const d = Object.entries(deaths).map(([k, n]) => `${k} ${n}`).join(', ') || '-';
   say(`${String(y).padStart(4)} ${String(st.pawns.filter((p) => p.alive).length).padStart(4)} ${String(births).padStart(7)}  ${d.padEnd(16)} ${String(marriages).padStart(9)} ${String(st.households.reduce((s, h) => s + h.hungryDays, 0) - hungry0).padStart(12)} ${grain.toFixed(1).padStart(11)} ${String(st.demand.length).padStart(7)} ${ms.toFixed(1).padStart(7)}`);
+}
+if (saveTo) {
+  const text = JSON.stringify(Sim.save(st));
+  fs.writeFileSync(saveTo, saveTo.endsWith('.gz') ? zlib.gzipSync(text) : text);
+  console.error(`saved year ${Math.floor(st.t / Sim.YEAR)} to ${saveTo}: ${(text.length / 1048576).toFixed(2)} MB of JSON, ${(zlib.gzipSync(text).length / 1048576).toFixed(2)} MB gzipped`);
 }
 
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
