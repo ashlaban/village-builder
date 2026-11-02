@@ -68,7 +68,7 @@ function tinyState(w, villages, opt = {}) {
   const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
   const households = populousHouseholds(R, farmsteads, sizes);
   const st = makeState(w, S, R, households, farmsteads, vs, used, 'populous');
-  initCulture(st, null); st.countDemand();
+  initCulture(st, null); VB['sim/heirs'].countDemand(st);
   if (opt.customs) for (const s of st.cenv.settlements) setPractice(st, s.id, opt.customs);
   if (opt.herds) { VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); }
   if (opt.outland !== false) VB['sim/territory'].seedOutland(st, opt.outland !== 'claimed'); // as the populous scenario; 'claimed': as the founders

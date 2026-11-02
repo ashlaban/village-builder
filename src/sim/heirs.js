@@ -304,8 +304,14 @@ VB['sim/heirs'] = (() => {
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
   }
+  // st.demand: the living pawns who want to move out (landless adults with no prospect of a farm), in id order
+  function countDemand(st) {
+    const own = ownFirstOf(st), heirs = firstHeirs(st, own);
+    st.demand = st.pawns.filter((p) => p.alive && wantsOut(st, p, heirs, own)).map((p) => p.id);
+  }
   return {
-    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf, setGuardian, handOn,
+    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf, setGuardian,
+      handOn,
     heirFor,
   };
 })();
