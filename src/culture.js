@@ -111,6 +111,9 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
+  // nameCulture(s, from) and onSplit(nc, from, cause); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment
+  // itself (cultures, settlements, people, driftMul) is plain data.
   function makeCulture(env, name, customs, centre, parent = null) {
     const prefs = parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs ? env.cultures[parent].namePrefs : NAME_PREFS;
     const c = {
@@ -138,19 +141,19 @@ const Culture = (() => {
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
-  function dailyStep(env, dt, rand) {
-    const mul = env.driftMul || 1, byId = env.byId;
+  function dailyStep(env, hooks, dt, rand) {
+    const mul = env.driftMul || 1, byId = hooks.byId;
     const means = new Map();
     for (const s of env.settlements) {
       const m = new Float32Array(TOTAL); let n = 0;
-      for (const p of s.members()) { if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
+      for (const p of hooks.membersOf(s)) { if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
       means.set(s.id, n ? m : null);
     }
     const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
     for (const p of env.people) {
       if (!p.alive || p.age < 12) continue;
-      const s = env.settlementOf(p), kind = s ? s.kind : 'village', M = s ? means.get(s.id) : null;
+      const s = hooks.settlementOf(p), kind = s ? s.kind : 'village', M = s ? means.get(s.id) : null;
       // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
       tgt.fill(0); let wsum = 0; press.fill(0);
       for (const [j, w0] of p.ties) {
@@ -188,7 +191,7 @@ const Culture = (() => {
 
   // Norm entrepreneurs: now and then an adult takes up the cause of another option for some years. This is what
   // breaks the symmetry of drift; concentrated effort (events, influential pawns, later perhaps the player) uses the same slot.
-  function entrepreneurs(env, rand) {
+  function entrepreneurs(env, hooks, rand) {
     const out = [];
     for (const p of env.people) {
       if (!p.alive || p.age < 18) continue;
@@ -197,7 +200,7 @@ const Culture = (() => {
       for (let d = 0; d < DIMS.length; d++) {
         if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m) continue;
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
-        const o = OFF[d], n = NOPT[d], s = env.settlementOf(p), cur = s ? s.practice[d] : -1, sup = s && s.lastSupport;
+        const o = OFF[d], n = NOPT[d], s = hooks.settlementOf(p), cur = s ? s.practice[d] : -1, sup = s && s.lastSupport;
         let tot = 0; const wts = [];
         for (let j = 0; j < n; j++) {
           const v = j === cur ? 0 : 0.15 + (p.interest ? p.interest[o + j] : 0) + (sup ? sup[o + j] : p.att[o + j]);
@@ -224,13 +227,13 @@ const Culture = (() => {
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
-  function meeting(env, s) {
+  function meeting(env, hooks, s) {
     const c = env.cultures[s.culture], changes = [];
-    const { S, W } = support(env, s.members(), (p) => env.voiceOf(p, s));
+    const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s));
     s.lastSupport = S; s.lastVoices = W;
     if (W <= 0) return changes;
     // a handful of voices is noisy: below ten voices the margin grows
-    const nv = s.members().filter((p) => env.voiceOf(p, s) > 0).length, small = 1 + Math.max(0, 10 - nv) * 0.1;
+    const nv = hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length, small = 1 + Math.max(0, 10 - nv) * 0.1;
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d], n = NOPT[d], x = s.practice[d], cust = c.customs[d];
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
@@ -241,12 +244,12 @@ const Culture = (() => {
     return changes;
   }
   // ---- yearly reckoning of the whole culture ----
-  function cultureYear(env, c) {
+  function cultureYear(env, hooks, c) {
     const setts = env.settlements.filter((s) => s.culture === c.id);
     const agg = new Float32Array(TOTAL); let W = 0, N = 0;
     for (const s of setts) {
       if (!s.lastSupport || !s.lastVoices) continue;
-      const size = s.members().filter((p) => p.alive).length; N += size;
+      const size = hooks.membersOf(s).filter((p) => p.alive).length; N += size;
       const w = size * (0.3 + 0.7 * s.tie) * (c.centres.includes(s.id) ? 2 : 1) * (s.kind === 'city' ? 3 : 1);
       for (let k = 0; k < TOTAL; k++) agg[k] += w * s.lastSupport[k]; W += w;
     }
@@ -276,16 +279,16 @@ const Culture = (() => {
       if (s.fissionYears >= P.fission.years) splits.push(s);
     }
     const made = [];
-    for (const s of splits) made.push(split(env, [s.id], 'drift'));
+    for (const s of splits) made.push(split(env, hooks, [s.id], 'drift'));
     return { changes, splits: made };
   }
   // The one way a culture divides: drift calls it automatically; events can call it later with their own cause.
-  function split(env, settlementIds, cause, name) {
+  function split(env, hooks, settlementIds, cause, name) {
     const first = env.settlements.find((s) => s.id === settlementIds[0]), from = env.cultures[first.culture];
-    const nc = makeCulture(env, name || env.nameCulture(first, from), first.practice, first.id, from.id);
+    const nc = makeCulture(env, name || hooks.nameCulture(first, from), first.practice, first.id, from.id);
     for (const id of settlementIds) { const s = env.settlements.find((q) => q.id === id); s.culture = nc.id; s.tie = 1; s.fissionYears = 0; s.divergence = 0; }
     nc.history.push({ t: env.t, cause, from: from.id });
-    if (env.onSplit) env.onSplit(nc, from, cause);
+    if (hooks.onSplit) hooks.onSplit(nc, from, cause);
     return nc;
   }
 

@@ -146,8 +146,26 @@ VB['sim/records'] = (() => {
     return best;
   }
   const villageOf = (st, p) => st.farmsteads[st.households[p.household].farmstead].village;
+  // The living pawns of settlement sid (a village and its households), in id order.
+  function membersOf(st, sid) {
+    const out = [];
+    for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === sid) for (const m of hh.members) {
+      const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+    }
+    return out.sort((a, b) => a.id - b.id);
+  }
+  // How much p's voice counts at the meeting of settlement s, by its practice of the custom "voice": 0 or 1.
+  function voiceOf(st, p, s) {
+    if (!p.alive || p.age < 18) return 0;
+    const v = Culture.DIMS[Culture.IDX.voice].opts[s.practice[Culture.IDX.voice]][0];
+    if (v === 'adults') return 1;
+    const holder = isHolder(st, p.id);
+    if (holder) return 1;
+    if (v === 'heads') { const sp = spouseOf(st, p.id); return sp !== null && isHolder(st, sp) ? 1 : 0; }
+    return 0;
+  }
   return {
     person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree,
-    kinNear, villageOf, settlementIdOf, isHolder, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
+    kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();

@@ -27,14 +27,14 @@
         env.settlements[c.centres[0]].name)}${c.parent !== null ? `, split from ${esc(env.cultures[c.parent].name)}` : ''}.</p>`;
       const setts = env.settlements;
       for (const s of setts) {
-        const voices = s.members().filter((p) => env.voiceOf(p, s) > 0).length;
-        h += `<p class="dm">${esc(s.name)}: ${s.members().length} people, ${voices} with a voice; tie to the centre ${Math.round(
+        const voices = Sim.membersOf(st, s.id).filter((p) => Sim.voiceOf(st, p, s) > 0).length;
+        h += `<p class="dm">${esc(s.name)}: ${Sim.membersOf(st, s.id).length} people, ${voices} with a voice; tie to the centre ${Math.round(
           s.tie * 100)}%${s.id !== env.cultures[s.culture].centres[0] ? `, ${Math.round((s.divergence ||
           0) * 100)}% apart in practice${s.fissionYears ? `, ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}` : ''}.</p>`;
       }
       h += `<table class="cust"><thead><tr><th scope="col">Custom</th><th scope="col">Culture</th>${setts.map((s) =>
         `<th scope="col">${esc(s.name)}</th>`).join('')}</tr></thead><tbody>`;
-      const sup = setts.map((s) => Culture.support(env, s.members(), (p) => env.voiceOf(p, s)).S);
+      const sup = setts.map((s) => Culture.support(env, Sim.membersOf(st, s.id), (p) => Sim.voiceOf(st, p, s)).S);
       Culture.DIMS.forEach((d, k) => {
         const c = env.cultures[setts[0].culture], dots = Math.max(1, Math.round(d.m * 5));
         h += `<tr><th scope="row">${esc(d.label)}<br><span class="mall" title="How easily it changes">${'●'.repeat(dots)}${'○'.repeat(
@@ -129,7 +129,7 @@
         if (b.dataset.act === 'advP') { p.advocate = { dim, opt, until }; dmsg(`${Sim.fullName(p)} now argues for “${optLabel(dim, opt).toLowerCase()}”.`); }
         else {
           const s = st.cenv.settlements[Sim.settlementIdOf(st, p)],
-            voiced = s.members().filter((q) => st.cenv.voiceOf(q, s) > 0).sort((x, y) => y.prestige - x.prestige);
+            voiced = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
           const want = Math.max(1, Math.ceil(voiced.length * 0.2)); let n = 0;
           for (const q of voiced) { if (n >= want) break; q.advocate = { dim, opt, until }; n++; }
           dmsg(`${n} of ${voiced.length} voices in ${s.name} now argue for “${optLabel(dim, opt).toLowerCase()}”.`);

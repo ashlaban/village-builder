@@ -18,7 +18,7 @@ VB['sim/lifecycle'] = (() => {
   const { careForOrphans, takeServants } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
-  const { updateTies, refreshPrestige, refreshInterests, pairOf } = VB['sim/society'];
+  const { updateTies, refreshPrestige, refreshInterests, pairOf, hooks } = VB['sim/society'];
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -40,16 +40,16 @@ VB['sim/lifecycle'] = (() => {
     transfer(st, hh, r[0], 'retirement'); refreshRoles(st); refreshPrestige(st); return true;
   }
   function holdMeetings(st) {
-    const env = st.cenv; env.t = st.t / YEAR;
+    const env = st.cenv, hk = hooks(st); env.t = st.t / YEAR;
     refreshRoles(st); refreshPrestige(st); refreshInterests(st); updateTies(st);
-    const starters = Culture.entrepreneurs(env, drawer(st.rng.culture));
+    const starters = Culture.entrepreneurs(env, hk, drawer(st.rng.culture));
     for (const p of starters) {
       personEvent(st, p.id, 'cause',
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
     }
     const c = cal(st.t), out = [];
     for (const s of env.settlements) {
-      const ch = Culture.meeting(env, s);
+      const ch = Culture.meeting(env, hk, s);
       for (const x of ch) {
         const d = Culture.DIMS[x.dim],
           txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
@@ -57,7 +57,7 @@ VB['sim/lifecycle'] = (() => {
       }
     }
     for (const cu of env.cultures) {
-      const r = Culture.cultureYear(env, cu);
+      const r = Culture.cultureYear(env, hk, cu);
       for (const x of r.changes) {
         const d = Culture.DIMS[x.dim], txt = `Across the ${cu.name} culture: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}”.`;
         log(st, txt); out.push({ year: c.year, text: txt });
@@ -232,7 +232,7 @@ VB['sim/lifecycle'] = (() => {
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
-    Culture.dailyStep(env, 1 / YEAR_DAYS, drawer(st.rng.culture));
+    Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };

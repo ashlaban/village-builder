@@ -15,7 +15,7 @@ function compare(st, label) {
   }
   if (!st.cenv) return;
   for (const s of st.cenv.settlements) {
-    check(same(s.members().map((p) => p.id), st.pawns.filter((p) => p.alive && Sim.settlementIdOf(st, p) === s.id).map((p) => p.id)), `${label}: members of ${s.id}`);
+    check(same(Sim.membersOf(st, s.id).map((p) => p.id), st.pawns.filter((p) => p.alive && Sim.settlementIdOf(st, p) === s.id).map((p) => p.id)), `${label}: members of ${s.id}`);
   }
 }
 function run(scenario, size, years) {
