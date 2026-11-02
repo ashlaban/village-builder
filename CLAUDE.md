@@ -14,7 +14,8 @@ the refactor and golden-file rules) and its pick order, which holds a feature fr
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
-  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary).
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
+  `--save FILE` saves the run at the end and `--load FILE` goes on from a save (`.gz` files are gzipped), so a bug report can carry the run.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15` prints rations made by source (grain net of seed,
   milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
 - Wrap long lines: `node tools/wrap.js FILE...` breaks lines over 160 characters at safe token boundaries (`--dry` reports only; long template text is
@@ -47,6 +48,10 @@ the refactor and golden-file rules) and its pick order, which holds a feature fr
 - Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
   servant to a holder who lives alone; marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
   and `src/sim/heirs.js`.
+- Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
+  arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
+  `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts
+  (`tests/saves.js` catches it). A loaded run matches the unbroken one given the same `Sim.advance` calls.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
