@@ -14,6 +14,10 @@ None open: VB-033 was answered with the claims review (1 November; `QUESTION_ARC
 VB-033 was answered with the claims review and is built; the order of work, VB-127 and VB-129 were answered in the second pass (`QUESTION_ARCHIVE.md`). Measured in `REVIEW.md`, review of 2 November, second pass.
 1. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
 
+### VB-169: take control (raised 2 November 2026, writing the commands tasks)
+Answer 3 to VB-076 says the planner leaves a controlled pawn alone until released. One detail is open.
+1. Does a controlled pawn still eat and go home at dark? **P:** yes: needs go on as for any pawn (it eats, and at dark, when no command of the player's is under way, it goes home); only the choice of work and of idle walks passes to the player. Otherwise a pawn left in control overnight would stand in a field until it starves.
+
 ### VB-162, VB-163 and VB-165: the external review's new tasks (raised 2 November 2026)
 From the external review (`docs/review-external.md`). The task files hold the draft criteria; the answers below make them `ready`. VB-162 and VB-165 are page features, so they wait for the feature freeze to lift; VB-163 is tooling and may run during it.
 1. VB-163: what should the long-run test guard? **P:** a floor against collapse, not the design's targets: a scenario's population ends at or above its start; no village of 3 or more households at year 5 is empty at the end; hunger causes at most 2% of deaths after year 3; no household is hungry on more than 30% of its days in a year after year 3. Founders today stand at 25 to 28 in year 38, so a target of about 3% growth a year would fail at once; the targets belong in the wrap-ups (VB-035, VB-048).
