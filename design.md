@@ -505,6 +505,17 @@ The job hours were revised to the long-work scale on 30 October 2026; stones in 
 
 **Concern:** with one heir per farm and few empty farms, most younger siblings end up as servants or unmarried at home. Clearing new land is the release valve.
 
+### Households short of people (built 1 November; recorded 2 November)
+
+The stability review (`docs/review-stability.md`) added rules that keep a household from dying out for want of hands. Built, numbers in `MARRIAGE`, `SERVICE` and `SETTLE` (`src/sim/rules.js`). (Decided by Kim, 1 Nov; the numbers Proposed)
+
+- **Marriage of two holders.** Two people who each hold a place may marry; the farm they leave is handed on to an heir who can keep it, else to the landless adult of its village who has waited longest, else it stands empty until claimed (VB-033).
+- **The means to marry.** A couple marries only with a year and a half of food in store (`MARRIAGE.means` 1.5); a home with fewer than two adults is exempt.
+- **A guardian for an orphaned heir.** A household with no adult takes in a landless relative as guardian, else its children go to kin and the farm stands empty.
+- **A servant for a lone holder.** A holder who lives alone takes in an unmarried landless adult of 18 to 50 from a household that keeps 2 working hands, in its village or within 15 steps.
+- **Room.** A new village lies 5 steps or more from other farms and 12 from any village centre; a new farm needs 6 free farmable tiles within reach besides its first field.
+- **Names on the map.** A village of two or more farms is labelled once; a lone farm's village bears its farm's name (VB-026).
+
 ### Moving to new land
 
 When a village is full, its landless adults may leave to found a farm of their own on new land, or join a small village nearby: the daughter settlements (*torp*, *-ryd*, *-boda*) of the medieval colonisation of the outland. Review and sources: `docs/review-expansion.md`. (Decided, 1 Nov: who leaves, fresh land, small villages, distance; the rest Proposed)
@@ -732,6 +743,7 @@ The player's role is the largest open question; most proposals concern growth, t
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3 (review, 2 Nov) | 2 November 2026 | Review after the stability and expansion work (VB-146 to VB-154): the rules that keep households from dying out recorded in Inheritance and expansion (Households short of people); the profile report puts talk and contacts at 37% of a game day, so the tie cap (VB-127) is now a speed task; no Decided or Agreed point changed. See `REVIEW.md`, review of 2 November |
 | 0.3 (expansion review) | 1 November 2026 | A review of crowded villages against medieval Scandinavian settlement (`docs/review-expansion.md`): Inheritance and expansion gains Moving to new land, and Land and ecology a row on fresh land. Decided by Kim: only landless adults leave; never-farmed ground yields more its first crops, in every scenario; settlers prefer small villages of 1 to 3 farms that are not crowded; new villages 10 to 30 steps from home. The rest Proposed. Implement tasks VB-146 to VB-150 |
 | 0.3 (balance review) | 1 November 2026 | A review of performance, the food balance and the animals' economics against history (`docs/review-balance.md`), with milk and butter, manure and soil, and oxen built (VB-135, VB-137, VB-138). Decided: no fixed number of fields; a farm's fields are limited by its labour and its size. Proposed: about 2 fields a working adult (1.5 more with oxen), fields and meadows made in every scenario, poorer land only when meadow runs out; grain spoils in store (5%, 20%, 40% a year by years of need held; the village store 20%); haymaking only while hay is short of two winters' need; a dung heap that rots; widowed partners mind the age gap less. Questions in `QUESTIONS.md` |
 | 0.3 (review, 1 Nov) | 1 November 2026 | Review after the animals' first batch (VB-131 to VB-134): Animals and hay now partly built; the cost, idle and growth findings restated in `REVIEW.md`; no Decided or Agreed point changed |

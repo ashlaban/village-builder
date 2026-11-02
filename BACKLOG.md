@@ -17,10 +17,10 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 ## Pick order
 
-Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 1 November 2026):
+Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 2 November 2026):
 1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
-2. The growth path: VB-142 (fix), then VB-032, then VB-033 once Kim has answered (`QUESTIONS.md`), then VB-034, VB-058, VB-090. Growth is still the largest gap in the game. Moving to new land (VB-146 to VB-150, review of 1 November, `docs/review-expansion.md`) runs in this order; VB-146 and VB-147 edit `src/sim/expansion.js` and the moving round, so they go before VB-033 and VB-090, which edit the same.
-3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) before VB-130, VB-023 and VB-048.
+2. The growth path: VB-032 and VB-142 and moving to new land (VB-146 to VB-154) are done; what is left is VB-033 once Kim has answered (`QUESTIONS.md`, priority 1, waiting since 30 October; empty farms pile up without it), VB-090 (ready; edits the moving round), then VB-034 and VB-058. Growth is no longer the gap it was (populous small, seed 7: 351 people in year 1, 719 in year 38), but founders still stand at 14 to 28 in 38 years.
+3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) are done (nightly 2 November); VB-130, VB-023 and VB-048 may now be answered and tuned from them. The profile puts talk and contacts at 37% of a game day, so VB-127 is the speed task to ask Kim about first.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
 
 ## Archs

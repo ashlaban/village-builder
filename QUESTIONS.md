@@ -15,6 +15,12 @@ The criteria from VB-030 leave four gaps the nightly run could not fill. VB-031 
 
 ## Priority 2
 
+### Review, 2 November: where to spend Kim's answers (raised 2 November 2026)
+Five questions wait at priority 1 or 2 and block the most work. Measured in `REVIEW.md`, review of 2 November.
+1. Which to answer first? **P:** VB-033 (four answers above): the growth path stops at it, and empty farms accumulate. Then VB-127 (talk costs 37% of a game day; a cap of 150 ties is the fix), then the stability and expansion tuned values, which are all "keep".
+2. Founders do not grow (14 people in year 6, 28 in year 38, against 351 to 719 in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
+3. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
+
 ### Moving to new land: the tuned values (VB-150, expansion review of 1 November)
 Built in VB-146 to VB-149 with the starting values below (`SETTLE` and `SOIL.fresh` in `src/sim/rules.js`); the measurements are in `docs/review-expansion.md`, Results. In populous small at seed 7 over 40 years, adults waiting with no room fall from 32 to 4, deaths by starvation in years 31–40 from 46 to 0, and the population at year 40 rises from 662 to 780.
 1. Provisions. 36 days of the party's rations last from the moving round (autumn day 10) to the first threshing with no margin; a settler alone starts spring with about 21 days of food. Fresh land then feeds them well. **P:** 42 days (a week's margin), so a late sowing does not mean hunger.
