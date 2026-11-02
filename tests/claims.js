@@ -62,7 +62,7 @@ const childOfB = st.pawns.find((p) => p.father === hB.holder || p.mother === hB.
 check(childOfB && CL.settle(st, [ca, cb], 'kin', { lastHolder: childOfB.id }) === cb, 'kin: the claimant akin to the last holder');
 check(CL.settle(st, [ca, cb], 'kin', { lastHolder: null }) === ca, 'kin: with no last holder, the first');
 // the meeting: the voices of village 0 tied to b's holder, not to a's
-for (const p of st.cenv.settlements[0].members()) { p.ties.delete(hA.holder); if (p.id !== hB.holder) p.ties.set(hB.holder, 1); }
+for (const p of Sim.membersOf(st, 0)) { p.ties.delete(hA.holder); if (p.id !== hB.holder) p.ties.set(hB.holder, 1); }
 const sup = CL.support(st, [ca, cb], 0);
 check(sup[1] > sup[0], `meeting: support ${sup.map((x) => x.toFixed(1))}`);
 check(CL.settle(st, [ca, cb], 'meeting', { village: 0 }) === cb, 'meeting: the claimant with the voices behind them');

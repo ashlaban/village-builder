@@ -3,7 +3,7 @@ VB['sim/claims'] = (() => {
   const Culture = VB['culture'];
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
-  const { kinship } = VB['sim/records'];
+  const { kinship, membersOf, voiceOf } = VB['sim/records'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -71,7 +71,7 @@ VB['sim/claims'] = (() => {
   // Voice-weighted support for each claim at the meeting of village vid: a village's claim has its own voices (meetings of two villages);
   // a pawn's or household's has the voices of vid, each weighted by its tie to the speaker (the speaker's own voice counts in full).
   function support(st, claims, vid) {
-    const env = st.cenv, voiced = (sid) => env.settlements[sid].members().map((p) => [p, env.voiceOf(p, env.settlements[sid]) * p.prestige])
+    const env = st.cenv, voiced = (sid) => membersOf(st, sid).map((p) => [p, voiceOf(st, p, env.settlements[sid]) * p.prestige])
       .filter(([, v]) => v > 0);
     const here = vid === null || vid === undefined ? [] : voiced(vid);
     return claims.map((c) => {

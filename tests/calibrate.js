@@ -6,12 +6,12 @@ const hazard = (age) => 0.006 + 0.0007 * Math.exp(0.07 * age) + (age < 10 ? 0.02
 
 function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6, 0.5], remote = null, kind = 'village' }) {
   const rand = mulberry32(seed);
-  const env = { t: 0, cultures: [], settlements: [], people: [], driftMul: 1, nameCulture: () => 'new' };
+  const env = { t: 0, cultures: [], settlements: [], people: [], driftMul: 1 }, hooks = { nameCulture: () => 'new', membersOf: (s) => s.list };
   const custom = C.fromArchetype('oldNordic');
   const c = C.makeCulture(env, 'test', custom, 0);
   env.challenger = custom.map((x, k) => (x + 1) % C.NOPT[k]);
   const byIdMap = new Map();
-  env.byId = (id) => byIdMap.get(id);
+  hooks.byId = (id) => byIdMap.get(id);
   let nextId = 0;
   const mkPerson = (s, age, att, anc) => {
     const p = { id: nextId++, alive: true, age, settlement: s.id, att, anc, ties: new Map(), prestige: 1, interest: null, advocate: null, landholder: false };
@@ -22,12 +22,11 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
   for (let v = 0; v < villages; v++) {
     const tie = remote !== null && v === villages - 1 ? remote : ties[v % ties.length];
     const s = { id: v, culture: c.id, kind: v === 0 ? kind : 'village', tie, practice: Int8Array.from(custom), list: [] };
-    s.members = () => s.list;
     env.settlements.push(s);
     for (let k = 0; k < size; k++) { const a = C.seedAttitude(custom, rand); mkPerson(s, (rand() * 65) | 0, a, Float32Array.from(a)); }
   }
-  env.settlementOf = (p) => env.settlements[p.settlement];
-  env.voiceOf = (p) => (p.landholder && p.age >= 18 ? 1 : 0);
+  hooks.settlementOf = (p) => env.settlements[p.settlement];
+  hooks.voiceOf = (p) => (p.landholder && p.age >= 18 ? 1 : 0);
   const rewire = () => {
     for (const s of env.settlements) {
       const live = s.list.filter((p) => p.alive);
@@ -65,12 +64,12 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
     rewire();
   };
   rewire();
-  return { env, rand, c };
+  return { env, hooks, rand, c };
 }
 
 // Run a culture; returns the first year each custom flipped in the culture and in each settlement.
 function run(seed, opts, years, stepsPerYear = 6, setup = null) {
-  const { env, rand, c } = makeEnv(seed, opts);
+  const { env, hooks, rand, c } = makeEnv(seed, opts);
   if (setup) setup(env, rand);
   const assign = () => {
     if (!env.advTarget) return;
@@ -82,12 +81,12 @@ function run(seed, opts, years, stepsPerYear = 6, setup = null) {
   assign();
   const flip = new Array(C.DIMS.length).fill(null), local = env.settlements.map(() => new Array(C.DIMS.length).fill(null));
   for (let y = 1; y <= years; y++) {
-    for (let k = 0; k < stepsPerYear; k++) { env.t += 1 / stepsPerYear; C.dailyStep(env, 1 / stepsPerYear, rand); }
-    for (const s of env.settlements) { const ch = C.meeting(env, s); for (const x of ch) if (local[s.id][x.dim] === null) local[s.id][x.dim] = y; }
-    const r = C.cultureYear(env, c);
+    for (let k = 0; k < stepsPerYear; k++) { env.t += 1 / stepsPerYear; C.dailyStep(env, hooks, 1 / stepsPerYear, rand); }
+    for (const s of env.settlements) { const ch = C.meeting(env, hooks, s); for (const x of ch) if (local[s.id][x.dim] === null) local[s.id][x.dim] = y; }
+    const r = C.cultureYear(env, hooks, c);
     for (const x of r.changes) if (flip[x.dim] === null) flip[x.dim] = y;
     if (opts.stopDim !== undefined && flip[opts.stopDim] !== null) break;
-    if (!opts.noEntrepreneurs) C.entrepreneurs(env, rand);
+    if (!opts.noEntrepreneurs) C.entrepreneurs(env, hooks, rand);
     env.year(); assign();
     if (opts.everyYear) opts.everyYear(env, y, rand);
   }

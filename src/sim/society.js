@@ -5,24 +5,22 @@ VB['sim/society'] = (() => {
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder } = VB['sim/records'];
+  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, membersOf, voiceOf } = VB['sim/records'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
+  // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
+  function hooks(st) {
+    const env = st.cenv;
+    return {
+      byId: (id) => st.pawns[id],
+      settlementOf: (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; },
+      voiceOf: (p, s) => voiceOf(st, p, s),
+      membersOf: (s) => membersOf(st, s.id),
+      nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
+      onSplit: (nc, from) => log(st, `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`),
+    };
+  }
   function initCulture(st, leanBySettlement, overrides = {}) {
     const env = st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 };
-    env.byId = (id) => st.pawns[id];
-    env.settlementOf = (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; };
-    env.voiceOf = (p, s) => {
-      if (!p.alive || p.age < 18) return 0;
-      const v = Culture.DIMS[Culture.IDX.voice].opts[s.practice[Culture.IDX.voice]][0];
-      if (v === 'adults') return 1;
-      const holder = isHolder(st, p.id);
-      if (holder) return 1;
-      if (v === 'heads') { const sp = spouseOf(st, p.id); return sp !== null && isHolder(st, sp) ? 1 : 0; }
-      return 0;
-    };
-    env.nameCulture = (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`;
-    env.onSplit = (nc, from, cause) => log(st,
-      `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`);
     const customs = Culture.fromArchetype('oldNordic');
     for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0);
@@ -44,13 +42,6 @@ VB['sim/society'] = (() => {
   // Seeding makes one per village; a village founded in play (sim/settle) gets one too, so the two lists keep the same ids.
   function addSettlement(st, v, culture, practice, tie) {
     const s = { id: v.id, name: v.name, culture, kind: 'village', tie, practice: Int8Array.from(practice), fissionYears: 0, divergence: 0 };
-    s.members = () => {
-      const out = [];
-      for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === s.id) for (const m of hh.members) {
-        const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
-      }
-      return out.sort((a, b) => a.id - b.id);
-    };
     st.cenv.settlements.push(s);
     return s;
   }
@@ -165,5 +156,5 @@ VB['sim/society'] = (() => {
     }
     return { out, cells, cellOf, size: NEAR };
   }
-  return { initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
 })();

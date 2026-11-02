@@ -93,7 +93,7 @@ function contest(dispute, idle = 2, ties = 'contestor') {
   const job = st.jobs.get(`clear:f${f[0].id}`), worker = st.agents[hh[0].members.find((id) => st.pawns[id].age >= 18)];
   A.start(st, worker, job);
   const [a, b] = [hh[2].holder, hh[0].holder];
-  for (const p of st.cenv.settlements[0].members()) {
+  for (const p of Sim.membersOf(st, 0)) {
     p.ties.delete(a); p.ties.delete(b);
     if (p.id !== a && p.id !== b) p.ties.set(ties === 'contestor' ? a : b, 1);
   }

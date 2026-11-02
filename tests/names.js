@@ -26,7 +26,7 @@ for (const seed of [7, 42]) {
   // a culture that splits off keeps its parent's preference, as a copy
   const s = st.cenv.settlements[st.villages.length - 1], parent = st.cenv.cultures[s.culture];
   parent.namePrefs.farm = ['owner', 'compass', 'landmark'];
-  const nc = Culture.split(st.cenv, [s.id], 'test');
+  const nc = Culture.split(st.cenv, Sim.hooks(st), [s.id], 'test');
   check(nc.namePrefs.farm.join() === 'owner,compass,landmark' && nc.namePrefs.farm !== parent.namePrefs.farm, `${tag}: a split culture's preference`);
 }
 // 2. The generators in order: compass, landmark, owner, then a number; the farm's own stream (tileRand) gives the same name every time

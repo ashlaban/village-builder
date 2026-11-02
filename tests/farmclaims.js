@@ -62,7 +62,7 @@ const names = (st, ids) => ids.map((id) => st.pawns[id].given).join(', ');
 const orders = {};
 for (const rule of ['kin', 'villagers', 'anyone', 'assembly']) {
   const { st, f, who } = scene(rule);
-  if (rule === 'assembly') for (const p of st.cenv.settlements[1].members()) { p.ties.clear(); if (p.id !== who.olof) p.ties.set(who.olof, 1); }
+  if (rule === 'assembly') for (const p of Sim.membersOf(st, 1)) { p.ties.clear(); if (p.id !== who.olof) p.ties.set(who.olof, 1); }
   const list = FC.claimants(st, f);
   orders[rule] = names(st, list);
   const w = who, want = {
