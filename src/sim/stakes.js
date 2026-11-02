@@ -4,7 +4,7 @@ VB['sim/stakes'] = (() => {
   const { CLAIMS } = VB['sim/rules'];
   const CL = VB['sim/claims'];
   const { isOutland } = VB['sim/territory'];
-  const { log, practice } = VB['sim/records'];
+  const { log, practice, atFarm } = VB['sim/records'];
   const { remember } = VB['sim/relations'];
   // Claims review, Decided 1 Nov: a project stakes an unrealised claim on its tile instead of owning it; breaking the ground (or finishing the
   // meadow) makes it the household's. Other households take in no staked tile (sim/territory, freeFor). The work renews the claim (the job
@@ -46,7 +46,8 @@ VB['sim/stakes'] = (() => {
     CL.dropClaim(st, tile, old.by);
     if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
     if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) remember(st, loser.holder, hh.holder, 'claim');
-    log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`);
+    log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
+      kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
     return true;
   }
   // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project, and the log tells it.
@@ -56,7 +57,8 @@ VB['sim/stakes'] = (() => {
       const f = st.farmsteads[st.households[c.by.id].farmstead];
       if (!f.project || f.project.tile !== tile) continue;
       f.project = null;
-      log(st, `${f.name} gives up its stake: the new ${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`);
+      log(st, `${f.name} gives up its stake: the new ${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, {
+        kind: 'stakeLapsed', ...atFarm(f) });
     }
   }
   // A household that dissolves drops its stakes, and every other claim it holds; its farm's project ends.

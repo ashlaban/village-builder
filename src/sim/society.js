@@ -16,7 +16,8 @@ VB['sim/society'] = (() => {
       voiceOf: (p, s) => voiceOf(st, p, s),
       membersOf: (s) => membersOf(st, s.id),
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
-      onSplit: (nc, from) => log(st, `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`),
+      onSplit: (nc, from) => log(st, `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`,
+        { kind: 'split', village: nc.centres[0] }),
     };
   }
   function initCulture(st, leanBySettlement, overrides = {}) {

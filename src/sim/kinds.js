@@ -2,7 +2,7 @@
 VB['sim/kinds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { ROLES, cal } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
@@ -74,7 +74,8 @@ VB['sim/kinds'] = (() => {
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => {
         hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
-        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`);
+        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
+          kind: 'harvest', ...atFarm(f) });
         j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
       },
     },

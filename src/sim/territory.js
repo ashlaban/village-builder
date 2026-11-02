@@ -125,7 +125,7 @@ VB['sim/territory'] = (() => {
       const [a, b] = k.split(',').map(Number), A = st.villages[a].name, Bn = st.villages[b].name, tiles = (n) => `${n} tile${n > 1 ? 's' : ''}`;
       const what = o.took ? `${A} takes ${tiles(o.took)} of ${Bn}'s outland${o.n > o.took ? ` and keeps ${o.n - o.took} more` : ''}`
         : `${A} keeps ${tiles(o.n)}`;
-      log(st, `${A} and ${Bn} meet over their border, and set cairns: ${what}, ${RULE_WORD[o.rule]}.`);
+      log(st, `${A} and ${Bn} meet over their border, and set cairns: ${what}, ${RULE_WORD[o.rule]}.`, { kind: 'border', village: a, n: o.took });
       for (const hb of homes(b)) {
         if (o.rules.length) hb.grievance = { rules: o.rules, until: st.t + CLAIMS.grievanceYears * YEAR };
         for (const ha of homes(a)) if (st.pawns[hb.holder].alive && st.pawns[ha.holder].alive) remember(st, hb.holder, ha.holder, 'border');

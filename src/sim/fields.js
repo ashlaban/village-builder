@@ -4,7 +4,7 @@ VB['sim/fields'] = (() => {
   const { ECON, FIELDS, SOIL, farmable, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { age, log } = VB['sim/records'];
+  const { age, log, atFarm } = VB['sim/records'];
   const { nextTo } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
@@ -77,7 +77,7 @@ VB['sim/fields'] = (() => {
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
-    log(st, `${f.name} has broken a new field.`);
+    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.

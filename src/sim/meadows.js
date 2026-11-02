@@ -5,7 +5,7 @@ VB['sim/meadows'] = (() => {
   const { byRiver, SEASON_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log } = VB['sim/records'];
+  const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
   const { winterNeed } = VB['sim/herds'];
@@ -66,7 +66,7 @@ VB['sim/meadows'] = (() => {
     f.project = null;
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;
-    log(st, `${f.name} has made a new hay meadow.`);
+    log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
   }
   // Generated farms (populous, heirs) have stood a while: each with animals has its meadows already, at most START_MAX.
   function placeMeadows(st) {
@@ -111,7 +111,8 @@ VB['sim/meadows'] = (() => {
     hh.hay += m.held; m.held = 0; m.stage = 'aftermath';
     if (f.meadows.some((q) => q.stage !== 'aftermath')) return;
     const need = winterNeed(st, hh), short = need > hh.hay;
-    log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`);
+    log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
+      kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
   }
   // Once a game day, at its start: each spring the meadows are grass again; hay still lying at the autumn frost rots.
   function meadowsDay(st, c) {
@@ -119,7 +120,7 @@ VB['sim/meadows'] = (() => {
       if (c.doy === 0) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
       if (c.season === 2 && c.sday === SEASON_DAYS - 1 && m.stage === 'mown') {
         m.stage = 'aftermath'; m.held = 0;
-        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`);
+        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
       }
     }
   }

@@ -1,7 +1,7 @@
 // @sys sim/help: food help between households: gifts from kin and the village store, and the village store's filling
 VB['sim/help'] = (() => {
   const { HELP } = VB['sim/rules'];
-  const { personEvent, childrenOf, siblingsOf } = VB['sim/records'];
+  const { personEvent, childrenOf, siblingsOf, atHousehold } = VB['sim/records'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
@@ -27,11 +27,13 @@ VB['sim/help'] = (() => {
   function gift(st, from, to, n, fromName) {
     to.grain += n; to.ledger.push({ t: st.t, kind: 'gift', n, from: fromName });
     const ht = to.holder !== null ? st.pawns[to.holder] : null;
-    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`);
+    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
+      n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
     if (from) {
       from.grain -= n; from.ledger.push({ t: st.t, kind: 'gift', n: -n, to: st.farmsteads[to.farmstead].name });
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
-      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`);
+      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
+        n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
       if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) a.ties.set(b.id, (a.ties.get(b.id) || 0) + HELP.tieGain);
     }
   }

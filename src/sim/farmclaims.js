@@ -3,7 +3,8 @@
 VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold } = VB['sim/records'];
+  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold, atFarm,
+    atHousehold } = VB['sim/records'];
   const CL = VB['sim/claims'];
   const { setOwner } = VB['sim/ownership'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
@@ -95,15 +96,15 @@ VB['sim/farmclaims'] = (() => {
     CL.addClaim(st, f.house, PAWN(id), 'farm', { state: 'unrealised', until: null }); // the last holder's own birthright is taken up by it
     st.demand = st.demand.filter((q) => q !== id && q !== sp);
     const kin = right && Number.isFinite(kinDegree(st, id, right.by.id)) && practice(st, f.village).claims === 'kin';
-    personEvent(st, id, 'claim', `Claimed the empty farm ${f.name} in ${v.name}${kin ? ' by birthright' : ''}`);
+    personEvent(st, id, 'claim', `Claimed the empty farm ${f.name} in ${v.name}${kin ? ' by birthright' : ''}`, false); // recorded below
     log(st, `${fullName(p)} claims the empty farm ${f.name} in ${v.name}${kin ? ', by the old family\'s birthright,' : ''} and sets about `
-      + `mending it (${Math.round(f.claim.hours)} hours).`);
+      + `mending it (${Math.round(f.claim.hours)} hours).`, { kind: 'claim', pawn: id, ...atFarm(f) });
   }
   // The claim ends unfulfilled (the claimant died or took land, or the claim lapsed): the farm stands empty, claimable again.
   function endClaim(st, f, text) {
     CL.dropClaim(st, f.house, PAWN(f.claim.by));
     f.claim = null;
-    if (text) log(st, text);
+    if (text) log(st, text, { kind: 'claimEnded', ...atFarm(f) });
   }
   const ended = (st, f) => {
     const p = st.pawns[f.claim.by];
@@ -150,7 +151,8 @@ VB['sim/farmclaims'] = (() => {
     for (const [tile, c] of dropped) {
       if (c.why !== 'farm') continue;
       const f = st.farmsteads.find((x) => x.house === tile && x.claim && x.claim.by === c.by.id);
-      if (f) { f.claim = null; log(st, `The claim on ${f.name} has lapsed: nobody mended it for ${CLAIMS.years} years.`); }
+      if (f) { f.claim = null; log(st, `The claim on ${f.name} has lapsed: nobody mended it for ${CLAIMS.years} years.`, { kind: 'claimEnded', ...atFarm(f) });
+        }
     }
   }
   // ---- moving in (the roof mended): a new household, as a new plot's (Kim, 1 Nov) ----
@@ -192,8 +194,9 @@ VB['sim/farmclaims'] = (() => {
     CL.clearClaims(st, f.house);
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));
     st.demand = st.demand.filter((id) => !members.includes(id));
-    personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`);
-    log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`);
+    personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`, false); // recorded below
+    log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`, {
+      kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
     refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
   }
   return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim, restored,

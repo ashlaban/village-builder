@@ -34,7 +34,8 @@ VB['sim/scenarios'] = (() => {
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
-    log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`);
+    log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
+      kind: 'settled', n: R.pawns.length, village: village.id });
     splitStreams(st, seedNum); return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
@@ -71,7 +72,7 @@ VB['sim/scenarios'] = (() => {
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
-    log(st, `${R.pawns.length} people in ${villages.length} villages.`);
+    log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
     splitStreams(st, seedNum); return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
@@ -148,7 +149,7 @@ VB['sim/scenarios'] = (() => {
     heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
     placeMeadows(st); seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
-    log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`);
+    log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, { kind: 'settled', n: R.pawns.length });
     splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {

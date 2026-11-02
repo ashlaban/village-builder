@@ -2,7 +2,7 @@
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
-  const { log, age } = VB['sim/records'];
+  const { log, age, atFarm } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
@@ -80,7 +80,7 @@ VB['sim/clock'] = (() => {
     }
     if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`);
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
       }
     }
     const decay = E.fenceDecay[c.season];
@@ -102,7 +102,7 @@ VB['sim/clock'] = (() => {
   function newYear(st, c) {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
-    log(st, `Year ${c.year} begins. The weather ${word}.`);
+    log(st, `Year ${c.year} begins. The weather ${word}.`, { kind: 'year', n: c.year });
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
   }
   function advance(st, hours) {
