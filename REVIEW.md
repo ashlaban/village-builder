@@ -316,3 +316,38 @@ Since the review of 31 October: VB-131 to VB-134 (herds, hay meadows, haymaking,
 - New: VB-143 (profile report, `ready`, priority 2).
 - VB-053 raised to priority 1; "Pick order" added to `BACKLOG.md`; VB-128 got a note on the year-5 hunger numbers.
 - Nothing to archive (VB-131 to VB-134 were archived with the merge) and no answered question to move.
+
+## Review, 2 November 2026 (after the stability work and the first nightly of the day)
+
+Since 1 November: the expansion, stability and name work (VB-146 to VB-154, VB-026, VB-151), and the nightly run of 2 November (PR #40: VB-142, VB-128, VB-143, VB-122, VB-024, all done and archived). `npm test` passes (46 scripts, 40 s). No question in `QUESTIONS.md` has been answered since 1 November, so nothing moved to `QUESTION_ARCHIVE.md`.
+
+### Summary
+
+1. **The population now grows where there is room.** Populous small, seed 7: 351 people in year 1, 445 in year 10, 586 in year 23, 719 in year 38; hungry household-days 5 to 130 a year after year 3. Founders still stay small (14 in year 6, 28 in year 38): their village never fills, as the expansion review said (Q6 of its questions, for VB-035).
+2. **Speed: pawn talk is the largest cost.** The new profile report (`--report perf`, VB-143), populous small, 8 years: 41 ms a game day; talk and contacts 15.2 ms (37%), agents and walking 11.0 (27%), jobs 6.7 (16%), daily life 5.5 (13%), routes 0.9, the moving round 0.6 (49 ms at worst), meals 0.5; herds, meadows and trees under 0.1 together. This is the number to hold the design against: the social model costs most, and ties grow with the village, so VB-127 (ties from talk, capped at 150 per pawn) is a speed task as much as a design one.
+3. **The growth path waits on one answer.** VB-033 (claim an empty farm) has stood at priority 1 since 30 October. The stability work makes farms stand empty more often (orphans go to kin), and only the interim rule of VB-153 takes them up. Everything behind it (VB-034, VB-035, VB-058) is blocked or waits for it.
+4. **The page script is still the collision risk.** `src/body.html` is 2,000 lines; VB-053 stays first in the pick order.
+5. **Rules had outrun the design.** Guardians, servants, marriage of two holders, the means to marry, spacing and village labels were built but not in `design.md`; they are now (Inheritance and expansion, "Households short of people").
+
+### Design against code (changes since 1 November)
+
+| Design point | Status | Notes |
+| --- | --- | --- |
+| Moving to new land: leaving, joining or founding, booth, fresh land | done | VB-146 to VB-150; the tuned values are Proposed (QUESTIONS.md) |
+| Farmstead on a cleared plot | done | VB-032 |
+| Guardian, servant, marriage of holders, the means to marry, spacing | done | VB-152 to VB-154; recorded in the design on 2 November |
+| Name generators, one label per village | done | VB-026 |
+| Service by hands per field (general rule) | task | VB-090, `ready` |
+| Claims on empty farms | task | VB-033, needs Kim |
+
+### Code observations
+
+- The hot spots are named by measurement now, not guessed: talk and contacts (`noteContacts`, 15 ms at worst per call) and `dailyLife` (29 ms at worst). A perf budget (VB-088) is still blocked on VB-129 being closed; Q "VB-129" in `QUESTIONS.md` proposes closing it, which would unblock a cheap guard against the next regression.
+- `tools/sim.js` has twelve reports; the three places to list a new one (usage, validation, tables) still hold.
+- Worker output is landing as small tasks with their own tests; tests number 46 and take 40 s, which is still fine for `npm test`.
+
+### Backlog changes from this review
+
+- Pick order rewritten: VB-142, VB-128 and VB-143 are done; the growth path now reads VB-033, VB-090, VB-034, VB-058.
+- Nothing new archived (PR #40 already did it); no new tasks: 25 tasks are `ready` and the next gate is Kim's answers.
+- New question block in `QUESTIONS.md` ("Review, 2 November"): the order in which Kim should answer.
