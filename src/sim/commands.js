@@ -2,6 +2,16 @@
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const Culture = VB['culture'];
+  const { holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
+  const later = (key) => VB[key];
+  const option = (c) =>
+    (!(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length) ? `there is no custom ${c.args && c.args.dim}`
+    : !(Number.isInteger(c.args.option) && c.args.option >= 0 &&
+      c.args.option < Culture.NOPT[c.args.dim]) ? `custom ${c.args.dim} has no option ${c.args.option}` : null);
+  const settlement = (st, c) =>
+    (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
@@ -32,6 +42,44 @@ VB['sim/commands'] = (() => {
     idle: {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => { st.agents[c.actor].idleUntil = c.args.until; },
+    },
+    // ---- a settlement's meeting (source 'meeting') ----
+    // decide({dim, option}): the settlement's practice of the custom becomes the option
+    decide: {
+      check: (st, c) => settlement(st, c) || option(c)
+        || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
+      run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
+    },
+    // ---- debug actions (source 'debug') ----
+    kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
+    // retire: a holder hands the farm to the first heir
+    retire: {
+      check: (st, c) => {
+        const dead = living(st, c.actor); if (dead) return dead;
+        const hh = holdingOf(st, c.actor);
+        return !hh || hh.dissolved ? `pawn ${c.actor} holds no farm` : !later('sim/heirs').heirRanking(st, hh).length ? 'the farm has no heir' : null;
+      },
+      run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
+    },
+    // argue({dim, option}): the pawn takes up the cause for ten years
+    argue: {
+      check: (st, c) => living(st, c.actor) || option(c),
+      run: (st, c) => { st.pawns[c.actor].advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 }; },
+    },
+    // rally({dim, option}): a fifth of the settlement's voices, the most esteemed first, take up the cause
+    rally: {
+      check: (st, c) => settlement(st, c) || option(c),
+      run: (st, c) => {
+        const s = st.cenv.settlements[c.actor.settlement];
+        const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
+        const want = Math.max(1, Math.ceil(voiced.length * 0.2));
+        for (const q of voiced.slice(0, want)) q.advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 };
+      },
+    },
+    // skip({hours}): the world goes on for that long (no actor)
+    skip: {
+      check: (st, c) => (c.args && c.args.hours > 0 && Number.isFinite(c.args.hours) ? null : `cannot skip ${c.args && c.args.hours} hours`),
+      run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };
   // Carries out cmd, or changes nothing: true, or the reason it was refused.

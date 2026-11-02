@@ -62,4 +62,36 @@ for (const [cmd, why] of [
   [{ actor: b.id, verb: 'idle' }, /past/],
 ]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
-console.log(`commands ok: work, walkTo, goHome and idle carried out; ${refusals.length + 5} refusals change nothing; start, walkTo and goHome are called only from sim/commands`);
+// the meeting's decide and the debug verbs (VB-170), on the heirs scenario, which has farms with heirs
+const hw = (() => { const it2 = G.generate(7); let q; while (!(q = it2.next()).done); return q.value; })();
+const st2 = Sim.seed(hw, 7, 'heirs'); Sim.advance(st2, 2 * Sim.DAY);
+const snap2 = () => { const { w, ...rest } = st2; return canon(rest); };
+const C = VB.culture, s0 = st2.cenv.settlements[0], d0 = C.IDX.voice, now = s0.practice[d0], other = (now + 1) % C.NOPT[d0];
+assert.strictEqual(issue(st2, { actor: { settlement: 0 }, verb: 'decide', args: { dim: d0, option: other }, source: 'meeting' }), true);
+assert.strictEqual(s0.practice[d0], other);
+const holder = st2.households.find((h) => !h.dissolved && h.holder !== null && VB['sim/heirs'].heirRanking(st2, h).length);
+const hp = holder.holder;
+assert.strictEqual(issue(st2, { actor: hp, verb: 'retire', source: 'debug' }), true);
+assert.notStrictEqual(holder.holder, hp, 'the farm is handed on');
+const arguer = st2.pawns.find((p) => p.died === null && p.age >= 18);
+assert.strictEqual(issue(st2, { actor: arguer.id, verb: 'argue', args: { dim: d0, option: now }, source: 'debug' }), true);
+assert.deepStrictEqual([arguer.advocate.dim, arguer.advocate.opt], [d0, now]);
+assert.strictEqual(issue(st2, { actor: { settlement: 0 }, verb: 'rally', args: { dim: d0, option: other }, source: 'debug' }), true);
+const voiced = Sim.membersOf(st2, 0).filter((q) => Sim.voiceOf(st2, q, s0) > 0);
+assert.strictEqual(voiced.filter((q) => q.advocate && q.advocate.opt === other).length, Math.max(1, Math.ceil(voiced.length * 0.2)), 'a fifth rallied');
+const t0 = st2.t; assert.strictEqual(issue(st2, { actor: null, verb: 'skip', args: { hours: 5 }, source: 'debug' }), true);
+assert.ok(Math.abs(st2.t - (t0 + 5)) < 1e-6, 'skipped 5 hours');
+const landless = st2.pawns.find((p) => p.died === null && !Sim.isHolder(st2, p.id));
+const killed = st2.pawns.find((p) => p.died === null && p.id !== arguer.id);
+assert.strictEqual(issue(st2, { actor: killed.id, verb: 'kill', source: 'debug' }), true); assert.ok(killed.died !== null);
+const before3 = snap2();
+for (const [cmd, why] of [
+  [{ actor: { settlement: 0 }, verb: 'decide', args: { dim: d0, option: s0.practice[d0] } }, /already/],
+  [{ actor: { settlement: 99 }, verb: 'decide', args: { dim: d0, option: 0 } }, /no settlement/],
+  [{ actor: { settlement: 0 }, verb: 'decide', args: { dim: 999, option: 0 } }, /no custom/],
+  [{ actor: arguer.id, verb: 'argue', args: { dim: d0, option: 99 } }, /has no option/],
+  [{ actor: killed.id, verb: 'kill' }, /not a living pawn/], [{ actor: killed.id, verb: 'argue', args: { dim: d0, option: 0 } }, /not a living pawn/],
+  [{ actor: landless.id, verb: 'retire' }, /holds no farm/], [{ actor: null, verb: 'skip', args: { hours: -1 } }, /cannot skip/],
+]) { const res = issue(st2, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+assert.strictEqual(snap2(), before3, 'refused meeting and debug commands change nothing');
+console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill; ${refusals.length + 13} refusals change nothing; start, walkTo and goHome are called only from sim/commands`);

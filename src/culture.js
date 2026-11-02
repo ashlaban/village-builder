@@ -112,8 +112,8 @@ const Culture = (() => {
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
-  // nameCulture(s, from) and onSplit(nc, from, cause); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment
-  // itself (cultures, settlements, people, driftMul) is plain data.
+  // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
+  // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
   function makeCulture(env, name, customs, centre, parent = null) {
     const prefs = parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs ? env.cultures[parent].namePrefs : NAME_PREFS;
     const c = {
@@ -239,7 +239,9 @@ const Culture = (() => {
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
       if (y === x) continue;
       const h = small * (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
-      if (S[o + y] > S[o + x] * (1 + h)) { changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] }); s.practice[d] = y; }
+      if (!(S[o + y] > S[o + x] * (1 + h))) continue;
+      // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
+      if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
     }
     return changes;
   }

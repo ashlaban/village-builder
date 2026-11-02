@@ -1,6 +1,7 @@
 // @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns
 VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
+  const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
@@ -14,6 +15,7 @@ VB['sim/society'] = (() => {
       byId: (id) => st.pawns[id],
       settlementOf: (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; },
       voiceOf: (p, s) => voiceOf(st, p, s),
+      decide: (s, dim, option) => issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
       membersOf: (s) => membersOf(st, s.id),
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
       onSplit: (nc, from) => log(st, `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`,
