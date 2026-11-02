@@ -10,6 +10,31 @@ Answered by Kim in the session of 2 November.
 1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
    **A (Kim, 2 Nov):** after the page split (VB-053), the foundations first (VB-072 to VB-076), then the growth path; VB-127 yes; VB-129 closed; the tuned-value blocks to be gone through one by one.
 
+## Balance review: the tuned values (raised 1 November 2026)
+The balance review (`docs/review-balance.md`) built milk, manure and oxen and tuned the food balance; the values below are in the code as Proposed. Numbers are from `tools/balance.js` over 4 seeds.
+1. Fields by labour (your rule: no fixed cap). **P:** a household wants fields for 1.1 times its rations at three quarters of the full yield, but no more than 2 a working adult (14 to 59, not retired) and 1.5 more with a team of oxen (`FIELDS` in `src/sim/rules.js`); every scenario makes fields and meadows; heath, hills or marsh only when no meadow is free.
+   **A (Kim, 2 Nov):** keep (P).
+2. Grain spoils in store. **P:** 5% a year of the first year's need held, 20% of the second, 40% of the rest; the village store 20% a year (`ECON.storeLoss`, `ECON.villageStoreLoss`).
+   **A (Kim, 2 Nov):** keep (P); VB-130 is done.
+3. Haymaking to need. **P:** rake and mow only while the barn and the hay lying mown hold less than 2 winters' need of the animals now; none without animals.
+   **A (Kim, 2 Nov):** keep as built, but hay spoils too: in tiers like grain, 5%, 25% and 50% a year by winters of need held (VB-159).
+4. Manure. Built: the heap loses half a year and carting goes before the hoe (urgency 1.7). With +0.04 a load, 1.5 head of cattle keep 3 fields at full strength and more cattle add nothing to the corn; +0.02 (about 3 head) makes herd size show in the harvest, as dung was scarce in history, but cost about a quarter more hungry days over 8 seeds. **P:** keep +0.04 now; revisit with herding (VB-136) and food from the wild (VB-117, VB-118), when farms have more slack.
+   **A (Kim, 2 Nov):** +0.04 now (P).
+5. Remarriage. **P:** a widowed partner's age gap counts half (`MARRIAGE.widowedGapWeight` 0.15).
+   **A (Kim, 2 Nov):** keep (P).
+6. Meat. History puts a small medieval cow's meat at about 9 rations; the game has 15. With milk in, a cow alive gives 15 to 32 rations a year (milk, a calf, and dung while the fields need it), so the carcass is worth about a year of her life either way. **P:** keep 15 (it stands in for the offal, blood, tallow and hide the game does not count).
+   **A (Kim, 2 Nov):** keep 15 (P).
+7. Ewes' milk and wool. Walter of Henley (13th century) counts 20 ewes on salt-marsh pasture as giving the cheese and butter of 2 cows, and the *Hosebondrie* milks ewes only until August. **P:** a later task (VB-144): ewes in milk from turn-out to summer's end at 0.05 rations a day, wool with the winter crafts (VB-121).
+   **A (Kim, 2 Nov):** accept (P); VB-144 is `ready`.
+8. Yields rising over a game (VB-048). **P:** the soil's cap rises with a village's years of farming, from 1.15 by 0.1 a century, so well-dunged old farms out-yield new ones by about 10% after 100 years.
+   **A (Kim, 2 Nov):** accept (P); built in VB-160.
+
+## VB-130: what grain does once a household is fed (raised in the review of 31 October)
+Founders at seed 7 hold 300 grain per household in year 2 and 1,700 in year 38, with 12–14 people: a surplus has no use and no loss.
+1. What is the first outlet? **P:** storage loss, which is the cheapest and historically true (damp, mice, weevils): each year 8% of the grain above a year's food for the household is lost at the autumn count (so a household keeps a buffer but a hoard shrinks), shown in the household panel as "spoilt"; a tithe and trade stay for later (Open, "Outlets for grain").
+   - Balance review, 1 November: built as a daily loss by tiers instead (question 2 under "Balance review: the tuned values"): 8% above a year's need left founders' stores near 600 and rising; with 5%, 20% and 40% by years of need held they level off near 350–400. If accepted, VB-130 is done.
+   **A (Kim, 2 Nov):** the tiers of the balance review (question 2 there); VB-130 is done.
+
 ## Review, 2 November, second pass (question 2)
 2. Founders do not grow (25 people in year 38 at seed 7, even with empty farms claimable, against 353 to 427 in 8 years in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
    **A (Kim, 2 Nov):** intended (P).
