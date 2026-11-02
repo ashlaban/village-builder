@@ -6,7 +6,7 @@ VB['sim/heirs'] = (() => {
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { dropStakes } = VB['sim/stakes'];
-  const { birthright } = VB['sim/farmclaims'];
+  const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
@@ -299,6 +299,7 @@ VB['sim/heirs'] = (() => {
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
     if (placeIfMarried(st, p.id, own) !== null) return false;
+    if (claimOf(st, p.id)) return false; // restoring an empty farm they claimed (sim/farmclaims)
     if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;

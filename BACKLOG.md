@@ -19,10 +19,10 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 2 November 2026):
 1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
-2. The growth path: VB-032 and VB-142 and moving to new land (VB-146 to VB-154) are done; what is left is VB-033 (answered with the claims review of 1 November; built after the claims tasks, item 5; empty farms pile up without it), VB-090 (ready; edits the moving round), then VB-034 and VB-058. Growth is no longer the gap it was (populous small, seed 7: 351 people in year 1, 719 in year 38), but founders still stand at 14 to 28 in 38 years.
+2. The growth path: VB-032 and VB-142 and moving to new land (VB-146 to VB-154) are done; VB-033 (claiming empty farms) is done too; what is left is VB-090 (ready; edits the moving round), then VB-034 and VB-058. Growth is no longer the gap it was (populous small, seed 7: 351 people in year 1, 719 in year 38), but founders still stand at 14 to 28 in 38 years.
 3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) are done (nightly 2 November); VB-130, VB-023 and VB-048 may now be answered and tuned from them. The profile puts talk and contacts at 37% of a game day, so VB-127 is the speed task to ask Kim about first.
 4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
-5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157 and VB-158 are done; VB-033 is next; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
+5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157, VB-158 and VB-033 are done; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
 
 ## Archs
 
@@ -52,7 +52,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 |----|------|------|-------|--------|----------|------|---------|------|
 | VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | needs-review | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
-| VB-033 | Claiming an empty farm | expansion | implement | ready | 1 | M | Landless adults claim empty farms under the `claims` custom and restore them before moving in. | [backlog/VB-033.md](backlog/VB-033.md) |
 | VB-034 | Splitting land between heirs | expansion | implement | blocked | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
 | VB-035 | Wrap-up: inheritance and expansion | expansion | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
 | VB-036 | Plan: relationships and courting | courting | plan | ready | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |

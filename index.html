@@ -1960,9 +1960,10 @@ VB['sim/rules'] = (() => {
   // that lost a dispute leans for `grievanceYears` towards the rules that would have let it win.
   // A village short of outland presses a richer neighbour for at most `pressPerMeeting` tiles a meeting; a cairn keeps the village that lost a
   // border dispute from pressing for that tile again for `cairnYears`. An empty farm may be claimed from a village whose centre lies within
-  // `farmReach` steps of the farm's village centre, under the customs that let outsiders claim (VB-033; as SERVICE.reach).
+  // `farmReach` steps of the farm's village centre, under the customs that let outsiders claim (VB-033; as SERVICE.reach); the claimants start
+  // with seed for its fields and `farmFood` days of food; they mend it at role priority `claimantPrio`, their housemates help at `helperPrio`.
   const CLAIMS = { years: 3, outReach: 8, outPerFarm: 8, contestBelow: 0.5, birthrightYears: 20, grievanceYears: 5, pressPerMeeting: 4, cairnYears: 3,
-    farmReach: 15 };
+    farmReach: 15, farmFood: 60, claimantPrio: 9, helperPrio: 5 };
   // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
   // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
   // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
@@ -2458,7 +2459,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
+      village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
     };
   }
 
@@ -4424,8 +4425,8 @@ VB['sim/expansion'] = (() => {
   const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
-  // Whether the pawn may claim an empty farm instead of waiting for a plot. Null until claiming empty farms is built (VB-033).
-  const claimableFarm = (st, pawnId) => null; // eslint-disable-line no-unused-vars
+  // The empty farm the pawn may claim instead of waiting for a plot, or null (sim/farmclaims, VB-033; loaded after this module).
+  const claimableFarm = (st, pawnId) => VB['sim/farmclaims'].claimableFarm(st, pawnId);
   const activePlots = (v) => v.plots.filter((p) => !p.done);
   const building = (p) => p.done && p.holder !== null && p.cottage && !p.built;
   const stepsFor = (w, tile, kind) => [...wooded(w, tile) ? ['fell', 'grub'] : [], 'clear', ...kind === 'field' ? ['break'] : []];
@@ -4606,14 +4607,18 @@ VB['sim/expansion'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, the hours to restore a farm, and who may claim it, in the
-// order of the village's "Claims on empty farms" custom
+// @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
+// "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { spouseOf, isHolder, kinDegree, practice, settlementIdOf } = VB['sim/records'];
+  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold } = VB['sim/records'];
   const CL = VB['sim/claims'];
+  const { setOwner } = VB['sim/ownership'];
+  const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
+  // @state farmstead.claim: {by (pawn id), since (game hours), hours (to restore, by the condition when claimed), done (hours worked)} or
+  //   null: an empty farm a landless adult has claimed and is restoring; the claimant's unrealised claim (`why` 'farm') stands on its house
   // ---- the birthright (bördsrätt; Kim, 1 Nov): when a farm empties, its last holder's family keeps a realised claim on its house ----
   const PAWN = (id) => ({ type: 'pawn', id });
   // Farm f has emptied (at `since`, game hours) after `holder` held it: a realised birthright claim by that pawn on its house, until
@@ -4687,7 +4692,121 @@ VB['sim/farmclaims'] = (() => {
     list = list.filter((id) => { const sp = spouseOf(st, id); if (seen.has(id)) return false; seen.add(id); if (sp !== null) seen.add(sp); return true; });
     return list;
   }
-  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants };
+  // ---- the claim, at the moving round ----
+  const HH = (id) => ({ type: 'household', id });
+  // The claimant of farm f may still take it: alive, in a household, with no farm of their own meanwhile.
+  const valid = (st, f) => { const p = st.pawns[f.claim.by]; return p.alive && p.household !== null && !landed(st, p.id) && f.household === null; };
+  // Pawn id claims farm f: the claim, the claimant's unrealised claim on the house, renewed by the restoration (`worked`); no longer waiting
+  // for land (st.demand; sim/heirs' wantsOut leaves claimants out).
+  function startClaim(st, f, id) {
+    const p = st.pawns[id], sp = spouseOf(st, id), right = birthrightOn(st, f), v = st.villages[f.village];
+    f.claim = { by: id, since: st.t, hours: restoreHours(f.condition), done: 0 };
+    CL.addClaim(st, f.house, PAWN(id), 'farm', { state: 'unrealised', until: null }); // the last holder's own birthright is taken up by it
+    st.demand = st.demand.filter((q) => q !== id && q !== sp);
+    const kin = right && Number.isFinite(kinDegree(st, id, right.by.id)) && practice(st, f.village).claims === 'kin';
+    personEvent(st, id, 'claim', `Claimed the empty farm ${f.name} in ${v.name}${kin ? ' by birthright' : ''}`);
+    log(st, `${fullName(p)} claims the empty farm ${f.name} in ${v.name}${kin ? ', by the old family\'s birthright,' : ''} and sets about `
+      + `mending it (${Math.round(f.claim.hours)} hours).`);
+  }
+  // The claim ends unfulfilled (the claimant died or took land, or the claim lapsed): the farm stands empty, claimable again.
+  function endClaim(st, f, text) {
+    CL.dropClaim(st, f.house, PAWN(f.claim.by));
+    f.claim = null;
+    if (text) log(st, text);
+  }
+  const ended = (st, f) => {
+    const p = st.pawns[f.claim.by];
+    endClaim(st, f, p.alive ? `${fullName(p)} gives up the claim on ${f.name}, having land now.` : `The claim on ${f.name} died with ${fullName(p)}.`);
+  };
+  // At the moving round, after st.demand is counted and before plots are started (sim/expansion): each farm that may be claimed, in id order,
+  // goes to its first claimant (claimants) who has not claimed another this round. Claims whose claimant died or took land end first.
+  function claimFarms(st) {
+    for (const f of st.farmsteads) if (f.claim && !valid(st, f)) ended(st, f);
+    for (const f of st.farmsteads) {
+      if (!claimable(f)) continue;
+      const pick = claimants(st, f)[0];
+      if (pick !== undefined) startClaim(st, f, pick);
+    }
+  }
+  // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
+  const claimableFarm = (st, id) => st.farmsteads.find((f) => claimable(f) && claimants(st, f, [id]).length > 0) || null;
+  // ---- the restoration: one job, owned by the claimant's household; progress kept on the claim ----
+  // The restoration jobs to post: [key, kind, owner, site, extra]. A claim no longer valid ends here. The key names the household, so a
+  // claimant who moves house goes on with the hours done (kept on f.claim at each posting).
+  function claimJobs(st) {
+    const out = [];
+    for (const f of st.farmsteads) {
+      if (!f.claim) continue;
+      if (!valid(st, f)) { ended(st, f); continue; }
+      const c = f.claim, hid = st.pawns[c.by].household, key = `restore:f${f.id}.h${hid}`, live = st.jobs.get(key);
+      if (live) c.done = live.done;
+      out.push([key, 'restore', HH(hid), f.house, { farm: f, claim: { by: c.by, since: c.since }, done: c.done, hours: c.hours }]);
+    }
+    return out;
+  }
+  // Role priority (0..10) for a restoration job: the claimant and spouse CLAIMS.claimantPrio, the other grown members of the household
+  // CLAIMS.helperPrio (Kim, 1 Nov; as for a plot).
+  function claimPrio(st, p, j) {
+    const by = j.claim.by;
+    return p.id === by || p.id === spouseOf(st, by) ? CLAIMS.claimantPrio : p.role === 'child' ? 0 : CLAIMS.helperPrio;
+  }
+  // The job is still that claim's (it did not end meanwhile).
+  const ofClaim = (j) => !!j.farm.claim && j.farm.claim.by === j.claim.by && j.farm.claim.since === j.claim.since;
+  const workClaim = (st, j) => { if (ofClaim(j)) CL.renewClaim(st, j.farm.house, PAWN(j.claim.by)); };
+  const restored = (st, j) => { if (ofClaim(j)) moveIn(st, j.farm); };
+  // Once a day, after sim/claims' lapseClaims: a claim on a farm unworked for CLAIMS.years has lapsed; the farm is claimable again.
+  function lapsedFarmClaims(st, dropped) {
+    for (const [tile, c] of dropped) {
+      if (c.why !== 'farm') continue;
+      const f = st.farmsteads.find((x) => x.house === tile && x.claim && x.claim.by === c.by.id);
+      if (f) { f.claim = null; log(st, `The claim on ${f.name} has lapsed: nobody mended it for ${CLAIMS.years} years.`); }
+    }
+  }
+  // ---- moving in (the roof mended): a new household, as a new plot's (Kim, 1 Nov) ----
+  const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0);
+  // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
+  // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes.
+  function provisions(st, f, members) {
+    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * st.ECON.seedPerField;
+    let have = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
+    for (const h of new Set(members.map((id) => st.pawns[id].household))) {
+      if (have >= need) break;
+      const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
+      const keep = seedReserve(st, hh) + st.pawns[hh.holder].buffer * rationsOf(st, stay);
+      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      if (give > 0) { hh.grain -= give; have += give; }
+    }
+    for (const id of members) st.pawns[id].stake = 0;
+    return have;
+  }
+  // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
+  // meadows, with the grain of `provisions`, the firewood and two days of cooked food of a founders household. The claim on the house and the
+  // old family's birthright are spent.
+  function moveIn(st, f) {
+    if (!valid(st, f)) { ended(st, f); return; }
+    const { moveTo, refreshRoles } = VB['sim/heirs'], holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
+    const members = [holder.id];
+    if (sp !== null && st.pawns[sp].alive) members.push(sp);
+    const from = new Set(members.map((id) => st.pawns[id].household));
+    for (const id of [...members]) for (const c of childrenOf(st, id)) {
+      const q = st.pawns[c];
+      if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
+    }
+    const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
+    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);
+    hh.grain = grain; st.households.push(hh);
+    for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
+    hh.rations = 2 * dailyNeed(st, hh);
+    f.claim = null; f.condition = 1; f.emptySince = null;
+    CL.clearClaims(st, f.house);
+    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));
+    st.demand = st.demand.filter((id) => !members.includes(id));
+    personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`);
+    log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`);
+    refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
+  }
+  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim, restored,
+    lapsedFarmClaims, moveIn };
 })();
 </script>
 <script>
@@ -4702,6 +4821,7 @@ VB['sim/kinds'] = (() => {
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
+  const { workClaim, restored } = VB['sim/farmclaims'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -4819,6 +4939,15 @@ VB['sim/kinds'] = (() => {
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
       type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
+    },
+    reclaim: {
+      verb: 'Clearing an overgrown field', go: 'Going to clear an overgrown field', name: 'Clear an overgrown field', label: 'Reclaim', anim: 'hoe',
+      hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
+      done: (st, j) => { if (j.field.stage === 'fallow' || j.field.stage === 'scrub') { j.field.stage = 'stubble'; st.visualDirty = true; } },
+    },
+    restore: { // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
+      verb: 'Mending an empty farm', go: 'Going to mend an empty farm', name: 'Mend an empty farm', label: 'Mending a farm', anim: 'mallet', hours: 20,
+      hands: Infinity, type: 'wood', project: true, worked: workClaim, done: restored,
     },
     rake: {
       verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,
@@ -5086,6 +5215,8 @@ VB['sim/jobs'] = (() => {
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
   const { plotJobs, boothJob } = VB['sim/expansion'];
+  const { claimJobs, claimPrio } = VB['sim/farmclaims'];
+  const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -5128,6 +5259,8 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
+        // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
+        if (fd.stage === 'fallow' || fd.stage === 'scrub') post(st, 'reclaim:' + fk, 'reclaim', own, fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
       }
       const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
       for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
@@ -5153,6 +5286,7 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
+    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(st, key, kind, owner, site, extra); // empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {
       if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
@@ -5171,12 +5305,14 @@ VB['sim/jobs'] = (() => {
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours. A job that k pawns already
   // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
+  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
+  const prioOf = (st, p, j) => (j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
   // or a poor fit for a job that has not waited long enough.
   function score(st, p, j, c) {
     if (p.role === 'child' && age(st, p) < CHILD.from) return null;
-    const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
+    const pr = prioOf(st, p, j);
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
     return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
@@ -5219,7 +5355,7 @@ VB['sim/jobs'] = (() => {
     const here = st.farmsteads[st.households[p.household].farmstead].house;
     for (const j of st.jobs.values()) {
       if (!mayTake(st, p, j)) continue;
-      const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0, row = { job: j.key, kind: j.kind, bid: null, reason: null };
+      const pr = prioOf(st, p, j), row = { job: j.key, kind: j.kind, bid: null, reason: null };
       if (!isOpen(j)) row.reason = 'taken';
       else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
       else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
@@ -5284,7 +5420,7 @@ VB['sim/heirs'] = (() => {
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const { dropStakes } = VB['sim/stakes'];
-  const { birthright } = VB['sim/farmclaims'];
+  const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
@@ -5577,6 +5713,7 @@ VB['sim/heirs'] = (() => {
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
     if (placeIfMarried(st, p.id, own) !== null) return false;
+    if (claimOf(st, p.id)) return false; // restoring an empty farm they claimed (sim/farmclaims)
     if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
     else for (const hh of st.households) if (!hh.dissolved && heirRanking(st, hh)[0] === p.id) return false;
     return true;
@@ -6165,6 +6302,7 @@ VB['sim/lifecycle'] = (() => {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, firstHeirs, ownFirstOf, handOn, heirFor,
   } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
+  const { claimFarms } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
   const { careForOrphans, takeServants } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
@@ -6354,6 +6492,7 @@ VB['sim/lifecycle'] = (() => {
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
     st.demand = (() => { const o = ownFirstOf(st), heirs = firstHeirs(st, o); return alive.filter((p) => wantsOut(st, p, heirs, o)).map((p) => p.id); })();
+    claimFarms(st); // empty farms go to claimants by custom (sim/farmclaims), before any plot is cleared
     startPlots(st);
     settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
@@ -6674,7 +6813,8 @@ VB['sim/scenarios'] = (() => {
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
-    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
+    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
+    //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
     //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
@@ -6768,6 +6908,7 @@ VB['sim/clock'] = (() => {
   const { byreDay } = VB['sim/byre'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
+  const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { landMeeting } = VB['sim/territory'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
@@ -6806,7 +6947,8 @@ VB['sim/clock'] = (() => {
     }
     for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
-    lapsedStakes(st, lapseClaims(st)); // unworked claims fade out after 3 years (sim/claims); a lapsed stake ends its project (sim/stakes)
+    const lapsed = lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
+    lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
@@ -6830,8 +6972,8 @@ VB['sim/clock'] = (() => {
     }
     const decay = E.fenceDecay[c.season];
     const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
-    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub
-    for (const f of st.farmsteads) if (f.household === null) {
+    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub; not while a claimant mends it (VB-033)
+    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
       f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
       const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }

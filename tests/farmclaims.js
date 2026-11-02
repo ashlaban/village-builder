@@ -1,6 +1,6 @@
 // Claims on empty farms (VB-033, sim/farmclaims) on a tiny world: the hours to restore a farm by its condition; the old family's birthright
 // when a farm empties, and its lapse; who may claim an empty farm, and in what order, under each option of the "Claims on empty farms" custom.
-const VB = require('../src/load.js'), FC = VB['sim/farmclaims'], CL = VB['sim/claims'], H = VB['sim/heirs'];
+const VB = require('../src/load.js'), Sim = VB.sim, FC = VB['sim/farmclaims'], CL = VB['sim/claims'], H = VB['sim/heirs'];
 const { CLAIMS, YEAR } = VB['sim/rules'], { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FARMCLAIMS FAIL:', m); } };
@@ -86,5 +86,104 @@ for (const rule of ['kin', 'villagers', 'anyone', 'assembly']) {
   check(names(st, list) === names(st, [who.jons, who.cecilia, who.kerstin, who.olof]), `kin, lapsed: ${names(st, list)}`);
 }
 out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; ')}`);
+
+// ---- the claim: at the moving round the first claimant takes the farm, mends it and moves in ----
+const J = VB['sim/jobs'], X = VB['sim/expansion'], { KINDS } = VB['sim/kinds'], { cal, SEASON_DAYS, DAY } = VB['sim/rules'];
+const P = (id) => ({ type: 'pawn', id });
+{
+  const { st, f, who } = scene('kin');
+  const holder = st.demand[st.demand.length - 1];
+  check(FC.claimableFarm(st, who.gunhild) === f && FC.claimableFarm(st, holder) === null && FC.claimableFarm(st, who.per) === null,
+    'claimableFarm: the farm for a claimant, none for a holder or for one out of reach');
+  f.condition = 0.3; f.fields[0].stage = 'fallow'; f.fields[1].stage = 'scrub';
+  const n = st.events.length;
+  FC.claimFarms(st);
+  const c = CL.claimOf(st, f.house, P(who.gunhild));
+  check(f.claim && f.claim.by === who.gunhild && Math.abs(f.claim.hours - 36) < 1e-9 && c && c.why === 'farm' && c.state === 'unrealised',
+    `Gunhild claims the farm, 36 hours to mend at 30% (${JSON.stringify(f.claim)})`);
+  check(!st.demand.includes(who.gunhild) && !st.demand.includes(who.jons), 'the claimant and her husband no longer wait for land');
+  check(st.events.slice(0, st.events.length - n).some((e) => /claims the empty farm .* birthright/.test(e.text)), 'the log tells the claim, by birthright');
+  check(FC.claimableFarm(st, who.olof) === null && !VB['sim/heirs'].wantsOut(st, st.pawns[who.gunhild]), 'a claimed farm is claimable no more');
+  ok(st, 'claimed');
+  // the restoration job: the claimant's household's, at 9 for the couple and 5 for grown housemates
+  st.t += 10; J.refreshJobs(st, cal(st.t));
+  const hid = st.pawns[who.gunhild].household, job = st.jobs.get(`restore:f${f.id}.h${hid}`);
+  check(job && job.owner.type === 'household' && job.owner.id === hid && job.hours === f.claim.hours, 'a restoration job owned by the claimant\'s household');
+  const FCp = (id) => FC.claimPrio(st, st.pawns[id], job);
+  check(FCp(who.gunhild) === CLAIMS.claimantPrio && FCp(who.jons) === CLAIMS.claimantPrio && FCp(who.kerstin) === CLAIMS.helperPrio,
+    `priorities: claimant ${FCp(who.gunhild)}, spouse ${FCp(who.jons)}, housemate ${FCp(who.kerstin)}`);
+  // progress is kept: worked 20 hours, then the claimant moves house; the job goes on from there under the new household
+  job.done = 20; st.t += 1; J.refreshJobs(st, cal(st.t));
+  check(f.claim.done === 20, 'hours done are kept on the claim');
+  const A0 = st.farmsteads[st.villages[0].farmsteads[1]].household;
+  for (const id of [who.gunhild, who.jons]) H.moveTo(st, id, A0);
+  st.t += 1; J.refreshJobs(st, cal(st.t));
+  const job2 = st.jobs.get(`restore:f${f.id}.h${A0}`);
+  check(job2 && job2.done === 20 && !st.jobs.has(`restore:f${f.id}.h${hid}`), 'moved house: the job goes on at 20 hours, the old one is gone');
+  st.t += YEAR; KINDS.restore.worked(st, job2);
+  check(CL.strength(st, CL.claimOf(st, f.house, P(who.gunhild))) === 1, 'work on the farm renews the claim');
+  // the roof mended: they move in, their old household able to spare their start
+  st.households[A0].grain = 2000;
+  const before = st.households.length;
+  KINDS.restore.done(st, job2);
+  const hh = st.households[f.household];
+  check(st.households.length === before + 1 && hh && hh.holder === who.gunhild && hh.members.includes(who.jons) && f.state === 'occupied' && !f.claim,
+    `moved in: a new household (${hh && hh.members})`);
+  check([f.house, ...f.fields.map((fd) => fd.tile)].every((t) => st.owner[t] === hh.id + 1) && !CL.claimsOn(st, f.house).length,
+    'house and fields are theirs; the claim and the birthright are spent');
+  const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * st.ECON.seedPerField;
+  check(hh.grain === need && hh.rations > 0 && hh.wood === st.ECON.startWood, `stores: ${hh.grain} grain of ${need}, ${hh.rations} rations, ${hh.wood} wood`);
+  // the fields gone to grass and scrub are cleared again by the new household
+  J.refreshJobs(st, cal(st.t));
+  const r0 = st.jobs.get(`reclaim:f${f.id}.${f.fields[0].id}`), r1 = st.jobs.get(`reclaim:f${f.id}.${f.fields[1].id}`);
+  check(r0 && r0.hours === 10 && r1 && r1.hours === 20 && r0.owner.id === hh.id, 'clearing jobs: 10 hours for grass, 20 for scrub');
+  KINDS.reclaim.done(st, r0);
+  check(f.fields[0].stage === 'stubble', 'a cleared field is in stubble again');
+  ok(st, 'moved in');
+  out.push(`claimed and mended: ${hh.grain} rations to start`);
+}
+// ---- a claim ends: the claimant dies; or nobody works it for 3 years ----
+{
+  const { st, f, who } = scene('kin');
+  FC.claimFarms(st);
+  VB['sim/lifecycle'].killPawn(st, who.gunhild, 'illness');
+  st.t += 10; J.refreshJobs(st, cal(st.t));
+  check(!f.claim && !CL.claimsOn(st, f.house).some((c) => c.why === 'farm') && FC.claimable(f), 'the claim dies with the claimant; the farm is claimable again');
+  ok(st, 'died');
+  FC.claimFarms(st);
+  check(f.claim && f.claim.by === who.brita, `the next claimant takes it (${f.claim && st.pawns[f.claim.by].given})`);
+  st.t += CLAIMS.years * YEAR; FC.lapsedFarmClaims(st, CL.lapseClaims(st));
+  check(!f.claim && FC.claimable(f), 'a claim unworked for 3 years lapses');
+  ok(st, 'lapsed');
+}
+// ---- the last holder, landless again, claims the farm: their birthright becomes their claim ----
+{
+  const { st, f, last } = scene('kin');
+  st.demand = [last];
+  FC.claimFarms(st);
+  const c = CL.claimOf(st, f.house, P(last));
+  check(f.claim && f.claim.by === last && c && c.why === 'farm' && c.state === 'unrealised' && c.until === null,
+    `the last holder's birthright becomes their claim (${JSON.stringify(c)})`);
+  ok(st, 'own birthright');
+}
+// ---- no plot for those who may claim a farm ----
+{
+  const { st, who } = scene('kin');
+  st.demand = [who.olof, who.cecilia];
+  X.startPlots(st);
+  check(!st.villages[1].plots.length, 'nobody who may claim an empty farm gets a plot');
+}
+// ---- in play: the moving round gives the farm to a claimant, who mends it and moves in within days ----
+{
+  const { st, f } = scene('kin');
+  f.condition = 0.5;
+  st.t = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 10) * DAY + 11; // the hour before the moving round
+  const n = st.events.length;
+  for (let d = 0; d < 4 && f.household === null; d++) Sim.advance(st, DAY);
+  const lines = st.events.slice(0, st.events.length - n).map((e) => e.text);
+  check(f.household !== null && lines.some((t) => /claims the empty farm/.test(t)) && lines.some((t) => /moves into/.test(t)),
+    `claimed and moved in within 4 days: ${lines.filter((t) => /claim|moves into/.test(t)).join(' | ')}`);
+  ok(st, 'in play');
+}
 if (failed) process.exit(1);
 console.log(`farmclaims ok: ${out.join('; ')}`);

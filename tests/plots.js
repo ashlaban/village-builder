@@ -14,6 +14,8 @@ function setup(newLand) {
   st.demand = [a.id, b.id, c.id];
   const C = VB.culture, k = C.IDX.newLand;
   st.cenv.settlements[0].practice[k] = C.DIMS[k].opts.findIndex((o) => o[0] === newLand);
+  // village A's empty farm could be claimed, and nobody who may claim a farm gets a plot (VB-033, tests/farmclaims.js); here it is a ruin
+  for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
   X.startPlots(st);
   return { st, v, a, b, c };
 }

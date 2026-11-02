@@ -13,8 +13,8 @@ VB['sim/expansion'] = (() => {
   const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
-  // Whether the pawn may claim an empty farm instead of waiting for a plot. Null until claiming empty farms is built (VB-033).
-  const claimableFarm = (st, pawnId) => null; // eslint-disable-line no-unused-vars
+  // The empty farm the pawn may claim instead of waiting for a plot, or null (sim/farmclaims, VB-033; loaded after this module).
+  const claimableFarm = (st, pawnId) => VB['sim/farmclaims'].claimableFarm(st, pawnId);
   const activePlots = (v) => v.plots.filter((p) => !p.done);
   const building = (p) => p.done && p.holder !== null && p.cottage && !p.built;
   const stepsFor = (w, tile, kind) => [...wooded(w, tile) ? ['fell', 'grub'] : [], 'clear', ...kind === 'field' ? ['break'] : []];
