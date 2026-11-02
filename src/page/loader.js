@@ -59,7 +59,8 @@
     for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
     regionG = buildRegions(wd); L.regions.addChild(regionG);
     if (!waves.length) {
-      waves = [new PIXI.TilingSprite({ texture: waveTexA, width: wd.W, height: wd.H }), new PIXI.TilingSprite({ texture: waveTexB, width: wd.W, height: wd.H })];
+      waves = [new PIXI.TilingSprite({ texture: waveTexA, width: wd.W, height: wd.H }),
+        new PIXI.TilingSprite({ texture: waveTexB, width: wd.W, height: wd.H })];
       waves[1].tileScale.set(1.7);
       for (const s of waves) L.waves.addChild(s);
     }

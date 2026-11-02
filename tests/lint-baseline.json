@@ -17,62 +17,62 @@
  },
  "src/page/setup.js": {
   "lines": 104,
-  "longLines": 3
+  "longLines": 0
  },
  "src/page/chunks.js": {
   "lines": 188,
-  "longLines": 1
+  "longLines": 0
  },
  "src/page/land.js": {
   "lines": 79,
-  "longLines": 2
+  "longLines": 0
  },
  "src/page/loader.js": {
   "lines": 111,
-  "longLines": 1
+  "longLines": 0
  },
  "src/page/tileinfo.js": {
   "lines": 58,
-  "longLines": 1
+  "longLines": 0
  },
  "src/page/input.js": {
   "lines": 98,
-  "longLines": 1
+  "longLines": 0
  },
  "src/page/rigs.js": {
   "lines": 185,
-  "longLines": 40
+  "longLines": 0
  },
  "src/page/farmart.js": {
   "lines": 233,
-  "longLines": 15
+  "longLines": 0
  },
  "src/page/fieldart.js": {
   "lines": 101,
-  "longLines": 4
+  "longLines": 0
  },
  "src/page/settlement.js": {
   "lines": 147,
-  "longLines": 7
+  "longLines": 0
  },
  "src/page/animate.js": {
   "lines": 150,
-  "longLines": 1
+  "longLines": 0
  },
  "src/page/words.js": {
   "lines": 151,
-  "longLines": 23
+  "longLines": 0
  },
  "src/page/family.js": {
   "lines": 120,
-  "longLines": 13
+  "longLines": 0
  },
  "src/page/drawer.js": {
   "lines": 114,
-  "longLines": 20
+  "longLines": 0
  },
  "src/page/frame.js": {
   "lines": 80,
-  "longLines": 1
+  "longLines": 0
  }
 }

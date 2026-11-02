@@ -54,7 +54,8 @@
         const v = ownerVillage(n); if (!edges.has(v)) edges.set(v, []); edges.get(v).push([i, d]);
       }
     }
-    for (const [v, list] of edges) { for (const [i, d] of list) edge(g, i, d); g.stroke({ width: R * 0.11, color: hslHex(villageHue(v), 0.8, 0.3), alpha: 0.9 }); }
+    for (const [v, list] of edges) {
+      for (const [i, d] of list) edge(g, i, d); g.stroke({ width: R * 0.11, color: hslHex(villageHue(v), 0.8, 0.3), alpha: 0.9 }); }
     for (const [i, list] of st.claims) {
       if (list.length > 1) { // contested: hatched
         for (const k of [-0.4, 0, 0.4]) g.moveTo(w.hx[i] - R * 0.45 + k * R, w.hy[i] + R * 0.45).lineTo(w.hx[i] + R * 0.45 + k * R, w.hy[i] - R * 0.45);
@@ -62,7 +63,8 @@
       }
       list.forEach((c, k) => {
         const s = 0.8 - 0.14 * k;
-        if (c.state === 'realised') g.poly(hexPoly(i, s)); else for (let d = 0; d < 6; d++) for (const [a, b] of [[0, 0.32], [0.5, 0.82]]) edge(g, i, d, s, a, b);
+        if (c.state === 'realised') g.poly(hexPoly(i, s));
+          else for (let d = 0; d < 6; d++) for (const [a, b] of [[0, 0.32], [0.5, 0.82]]) edge(g, i, d, s, a, b);
         g.stroke({ width: R * 0.08, color: claimColour(c.by), alpha: 0.95 });
       });
     }

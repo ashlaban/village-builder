@@ -45,7 +45,8 @@
   }
   stage.addEventListener('pointerup', endPointer);
   stage.addEventListener('pointercancel', endPointer);
-  stage.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pointers.size) { sel = -1; selPawn = -1; hoverDirty = true; showTile(-1); } });
+  stage.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse' && !pointers.size) { sel = -1; selPawn = -1; hoverDirty = true; showTile(-1); } });
   stage.addEventListener('wheel', (e) => {
     e.preventDefault(); stopIntro();
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;

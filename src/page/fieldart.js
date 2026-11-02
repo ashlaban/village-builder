@@ -21,12 +21,18 @@
     g.save(); hexClip(g, cx, cy, rr0); g.clip();
     g.fillStyle = rgb(P.base); g.fillRect(0, 0, Wc, Hc);
     for (let y = 4; y < Hc; y += 9) {
-      if (stage === 'fallow' || stage === 'scrub') { for (let x = r() * 4; x < Wc; x += 2 + r() * 4) { if (stage === 'fallow' && r() < 0.35) { g.strokeStyle = r() < 0.5 ? 'rgba(196,186,120,0.8)' : 'rgba(90,120,56,0.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x + (r() - 0.5) * 2, y - 3); g.stroke(); } else if (stage === 'scrub' && r() < 0.14) { g.fillStyle = r() < 0.5 ? 'rgba(70,96,52,0.9)' : 'rgba(96,110,60,0.9)'; g.beginPath(); g.arc(x, y, 2.5 + r() * 2.5, 0, 7); g.fill(); } } continue; }
+      if (stage === 'fallow' || stage === 'scrub') {
+        for (let x = r() * 4; x < Wc; x += 2 + r() * 4) {
+        if (stage === 'fallow' && r() < 0.35) {
+        g.strokeStyle = r() < 0.5 ? 'rgba(196,186,120,0.8)' : 'rgba(90,120,56,0.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2);
+        g.lineTo(x + (r() - 0.5) * 2, y - 3); g.stroke(); } else if (stage === 'scrub' && r() < 0.14) {
+        g.fillStyle = r() < 0.5 ? 'rgba(70,96,52,0.9)' : 'rgba(96,110,60,0.9)'; g.beginPath(); g.arc(x, y, 2.5 + r() * 2.5, 0, 7); g.fill(); } } continue; }
       g.strokeStyle = rgb(P.row); g.lineWidth = stage === 'growing' || stage === 'ripe' ? 5 : stage === 'plowed' ? 4 : 3;
       g.beginPath(); for (let x = 0; x <= Wc; x += 6) g[x ? 'lineTo' : 'moveTo'](x, y + Math.sin(x * 0.2 + y) * 0.8); g.stroke();
       if (stage !== 'stubble') { g.strokeStyle = rgb(P.hi); g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, y - 2); g.lineTo(Wc, y - 2); g.stroke(); }
       for (let x = r() * 6; x < Wc; x += stage === 'young' ? 1.5 + r() * 2 : 3 + r() * 5) {
-        if (stage === 'stubble') { g.strokeStyle = rgb(P.hi, 0.95 + r() * 0.1); g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x + 0.6, y - 2); g.stroke(); }
+        if (stage === 'stubble') {
+          g.strokeStyle = rgb(P.hi, 0.95 + r() * 0.1); g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x + 0.6, y - 2); g.stroke(); }
         else if (stage === 'sown' && r() < 0.22) { g.fillStyle = 'rgba(214,196,140,0.8)'; g.fillRect(x, y - 1, 1.4, 1.4); }
         else if (stage === 'plowed' && r() < 0.3) { g.fillStyle = 'rgba(60,44,30,0.6)'; g.fillRect(x, y + 1, 2.4, 1.6); }
         else if (stage === 'young') { g.fillStyle = rgb(P.hi, 0.9 + r() * 0.2); g.fillRect(x, y - 2.5, 2.2, 3.5); }
@@ -52,8 +58,10 @@
       g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 2.5, y - tall * (0.6 + r() * 0.6)); g.stroke();
     }
     if (stage !== 'mown') {
-      const flowers = stage === 'grass' ? 160 : 30, cols = ['rgba(250,250,240,0.95)', 'rgba(244,214,80,0.95)', 'rgba(170,110,190,0.9)', 'rgba(120,140,220,0.9)', 'rgba(230,120,140,0.85)'];
-      for (let k = 0; k < flowers; k++) { g.fillStyle = cols[(r() * cols.length) | 0]; g.beginPath(); g.arc(r() * Wc, r() * Hc, 1.1 + r() * 0.8, 0, 7); g.fill(); }
+      const flowers = stage === 'grass' ? 160 : 30,
+        cols = ['rgba(250,250,240,0.95)', 'rgba(244,214,80,0.95)', 'rgba(170,110,190,0.9)', 'rgba(120,140,220,0.9)', 'rgba(230,120,140,0.85)'];
+      for (let k = 0; k < flowers; k++) {
+        g.fillStyle = cols[(r() * cols.length) | 0]; g.beginPath(); g.arc(r() * Wc, r() * Hc, 1.1 + r() * 0.8, 0, 7); g.fill(); }
     } else {
       for (let y = 10; y < Hc; y += 16) { // windrows
         g.strokeStyle = 'rgb(196,182,108)'; g.lineWidth = 5; g.beginPath();

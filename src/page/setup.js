@@ -8,7 +8,8 @@
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler or tile for details.' : 'Drag to explore, scroll to zoom, point at a settler or tile for details.';
+  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler or tile for details.' :
+    'Drag to explore, scroll to zoom, point at a settler or tile for details.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');
@@ -17,7 +18,8 @@
   if (!window.PIXI) { failed('The rendering library didn’t load. Check your connection and reload the page.'); return; }
   const app = new PIXI.Application();
   try {
-    await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2), preference: 'webgl' });
+    await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2),
+      preference: 'webgl' });
   } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
   stage.appendChild(app.canvas);
   // Daylight: a dark wash over the map that follows Sim.dark: full day, 2 hours of dusk before the dark, night, 2 hours of dawn after it.
@@ -36,7 +38,8 @@
   const world = new PIXI.Container();
   app.stage.addChild(world);
   const L = {};
-  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'land', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
+  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'land', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows',
+    'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
   const lodLayer = [L.lod0, L.lod1, L.lod2];
   L.regions.visible = false; L.land.visible = false;
 

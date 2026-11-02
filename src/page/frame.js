@@ -69,7 +69,8 @@
     try { onFrame(tk); }
     catch (e) {
       console.error(e);
-      if (performance.now() - frameErrAt > 5000) { frameErrAt = performance.now(); lodEl.hidden = false; lodEl.textContent = `Something went wrong in a frame: ${e.message}`; }
+      if (performance.now() - frameErrAt > 5000) {
+        frameErrAt = performance.now(); lodEl.hidden = false; lodEl.textContent = `Something went wrong in a frame: ${e.message}`; }
     }
   });
 
