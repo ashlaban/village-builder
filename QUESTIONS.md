@@ -10,10 +10,10 @@ None open: VB-033 was answered with the claims review (1 November; `QUESTION_ARC
 
 ## Priority 2
 
-### Review, 2 November: where to spend Kim's answers (raised 2 November 2026)
-Five questions wait at priority 1 or 2 and block the most work. Measured in `REVIEW.md`, review of 2 November.
-1. Which to answer first? **P:** VB-033 (four answers above): the growth path stops at it, and empty farms accumulate. (Answered with the claims review of 1 November, `QUESTION_ARCHIVE.md`; VB-127 is now first.) Then VB-127 (talk costs 37% of a game day; a cap of 150 ties is the fix), then the stability and expansion tuned values, which are all "keep".
-2. Founders do not grow (14 people in year 6, 28 in year 38, against 351 to 719 in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
+### Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
+VB-033 was answered with the claims review and is built. About 15 tasks now wait on the answers below; three unblock the most. Measured in `REVIEW.md`, review of 2 November, second pass.
+1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
+2. Founders do not grow (25 people in year 38 at seed 7, even with empty farms claimable, against 353 to 427 in 8 years in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
 3. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
 
 ### Moving to new land: the tuned values (VB-150, expansion review of 1 November)

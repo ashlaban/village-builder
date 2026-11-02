@@ -17,12 +17,12 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 ## Pick order
 
-Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 2 November 2026):
-1. VB-053 first: it moves `src/body.html` (1,894 lines, 250 more in a day), which VB-004, VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
-2. The growth path: VB-032 and VB-142 and moving to new land (VB-146 to VB-154) are done; VB-033 (claiming empty farms) is done too; what is left is VB-090 (ready; edits the moving round), then VB-034 and VB-058. Growth is no longer the gap it was (populous small, seed 7: 351 people in year 1, 719 in year 38), but founders still stand at 14 to 28 in 38 years.
-3. Diagnostics before tuning: VB-128 (hunger report) and VB-143 (profile report) are done (nightly 2 November); VB-130, VB-023 and VB-048 may now be answered and tuned from them. The profile puts talk and contacts at 37% of a game day, so VB-127 is the speed task to ask Kim about first.
-4. Animals batch two (VB-135 to VB-138) is independent of the growth path and may run in parallel.
-5. Claims and territory (claims review, 1 November 2026, `docs/review-claims.md`): VB-155, VB-042, VB-004, VB-156, VB-157, VB-158 and VB-033 are done; VB-156 edits `chooseTile`, `chooseMeadow`, `findSite` and the settlers' site search, so it goes before other work on them.
+Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 2 November 2026, second pass):
+1. VB-053 first: it moves `src/body.html` (2,097 lines), which VB-062, VB-083, VB-084, VB-095, VB-098, VB-099 and every animals task with art all edit; done later, each of them conflicts with it.
+2. Foundations: VB-072 (random streams), then VB-073 (state without closures), VB-074 (save and restore) and VB-075 (record of events), and the commands plan VB-076, whose answers are in. Each new system adds state that saves must cover, so these grow dearer the longer they wait. VB-072 and VB-073 touch most simulation modules; run them alone, not beside other simulation tasks.
+3. The growth path: VB-090 (service; edits the moving round), then VB-034 (splitting land) and VB-058 (green and well), both `ready` again now that VB-032 is done. Claims and territory (VB-155 to VB-158, VB-042, VB-004, VB-033) are done. Populous grows (seed 7 small: 353 people in year 1, 427 in year 8); founders still stand at 25 in year 38.
+4. Animals batch two (VB-136, VB-139) is independent of the growth path and may run in parallel.
+5. Speed: talk and contacts are still 37% of a game day (populous small, seed 7, 8 years); VB-127 is the fix and waits on Kim, and the speed budget VB-088 waits on closing VB-129.
 
 ## Archs
 
@@ -52,7 +52,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 |----|------|------|-------|--------|----------|------|---------|------|
 | VB-009 | Hand-quern milling and making rations | food | implement | ready | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
 | VB-023 | Sow a hoed field before hoeing the next | food | implement | needs-review | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
-| VB-034 | Splitting land between heirs | expansion | implement | blocked | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
+| VB-034 | Splitting land between heirs | expansion | implement | ready | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
 | VB-035 | Wrap-up: inheritance and expansion | expansion | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
 | VB-036 | Plan: relationships and courting | courting | plan | ready | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |
 | VB-040 | Wrap-up: relationships and courting | courting | wrap-up | blocked | 3 | S | Long runs check marriage age, never-married share and help between kin against history; report. | [backlog/VB-040.md](backlog/VB-040.md) |
@@ -64,7 +64,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-053 | Refactor: page script into modules under lint | tooling | implement | ready | 1 | L | Split the 1,900-line page script in `src/body.html` into `src/page/*.js` modules that lint and greps cover. | [backlog/VB-053.md](backlog/VB-053.md) |
 | VB-055 | Type checking of the JavaScript with checkJs | tooling | implement | ready | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. | [backlog/VB-055.md](backlog/VB-055.md) |
 | VB-057 | Golden text of the page's panels | tooling | implement | ready | 3 | S | Record the text of every panel for a fixed seed and day, so unintended UI changes fail the verify run. | [backlog/VB-057.md](backlog/VB-057.md) |
-| VB-058 | The village green and well, built by the village | expansion | implement | blocked | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
+| VB-058 | The village green and well, built by the village | expansion | implement | ready | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
 | VB-062 | Mood and its modifiers, shown in the pawn panel | social | implement | ready | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. | [backlog/VB-062.md](backlog/VB-062.md) |
 | VB-063 | Wrap-up: pawn interactions | social | wrap-up | blocked | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. | [backlog/VB-063.md](backlog/VB-063.md) |
 | VB-072 | Random streams per system, with saveable state | core | implement | ready | 2 | M | One seeded stream per system as plain data, so systems do not reshuffle each other and saves can hold them. | [backlog/VB-072.md](backlog/VB-072.md) |
@@ -76,7 +76,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-078 | Wrap-up: commands, saves and the record of events | core | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
 | VB-079 | Plan: the player's role | player | plan | ready | 2 | S | Settle the player's role (Open) so the player arch can be planned. | [backlog/VB-079.md](backlog/VB-079.md) |
 | VB-082 | Customs made legible: votes, leanings and causes | - | - | ready | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
-| VB-083 | Seasons on the map | - | - | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
+| VB-083 | Seasons on the map | - | - | ready | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
 | VB-084 | A 30× speed and an uncapped speed | - | - | ready | 3 | S | Speeds of 30× and "Max", as fast as a 12 ms frame budget allows. | [backlog/VB-084.md](backlog/VB-084.md) |
 | VB-088 | A performance budget in the verify run | tooling | implement | blocked | 3 | S | `tests/perf.js` in verify, failing above twice the budget per game day and per step. | [backlog/VB-088.md](backlog/VB-088.md) |
 | VB-090 | Landless adults take service where labour is short | expansion | implement | ready | 2 | M | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. | [backlog/VB-090.md](backlog/VB-090.md) |

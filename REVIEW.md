@@ -351,3 +351,20 @@ Since 1 November: the expansion, stability and name work (VB-146 to VB-154, VB-0
 - Pick order rewritten: VB-142, VB-128 and VB-143 are done; the growth path now reads VB-033, VB-090, VB-034, VB-058.
 - Nothing new archived (PR #40 already did it); no new tasks: 25 tasks are `ready` and the next gate is Kim's answers.
 - New question block in `QUESTIONS.md` ("Review, 2 November"): the order in which Kim should answer.
+
+## Review, 2 November 2026, second pass (at `ba9b8d1`, after the claims work)
+
+Since the first pass: claims on tiles and the Disputed claims custom (VB-155, VB-042), the Land overlay (VB-004), the village's outland (VB-156), borders and cairns (VB-157), stakes and contests (VB-158), and claiming an empty farm (VB-033). `npm test` passes (52 scripts, 61 s).
+
+### Summary
+
+1. **The growth path is nearly built.** Clearing, building, moving to new land and claiming empty farms are in; service (VB-090), splitting land (VB-034) and the green and well (VB-058) are left. Founders still stay small: seed 7 small has 11 people in year 3, 18 in year 13 and 25 in year 38.
+2. **The claims cost little.** Populous small, seed 7, 8 years, `--report perf`, on one machine: 69 ms a game day at `ba9b8d1` against 63 ms at `5777a3d`, before the claims (one run each). The shares are unchanged: talk and contacts 37%, agents and walking 28%, jobs 17%, daily life 14%. The 41 ms of the first pass was measured on another machine.
+3. **The foundations have not moved since 30 October.** Random streams, state without closures, saves, the record of events and the commands plan (VB-072 to VB-076) are all `ready`. Animals and claims have since added state that saves must cover; each further system adds more.
+4. **Three tasks were blocked on finished work.** VB-034 and VB-058 waited on VB-032, VB-083 on VB-025; all three are `ready` again.
+
+### Backlog changes from this review
+
+- VB-034, VB-058 and VB-083 set to `ready`.
+- Pick order rewritten: VB-053, then the foundations (VB-072 to VB-076), then the growth path (VB-090, VB-034, VB-058).
+- The question block "Review, 2 November" in `QUESTIONS.md` revised: VB-033 is answered; VB-127, VB-129 and the "keep" blocks are first.
