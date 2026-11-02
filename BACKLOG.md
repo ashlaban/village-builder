@@ -18,6 +18,9 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 ## Pick order
 
 Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 2 November 2026, second pass):
+
+**Feature freeze** (Kim, 2 November 2026, after the external review, `docs/review-external.md`): until VB-072, VB-073, VB-074 and VB-075 are done and the commands plan VB-076 has written its implement tasks, workers take only tasks of the `core` and `tooling` archs, refactors, and plan tasks (which write no code). Other `ready` tasks keep their status and wait; items 3 to 5 below resume once the freeze lifts. A review lifts it by striking this paragraph.
+
 1. VB-053 is done (2 November): the page script is `src/page/*.js`. VB-161 wraps its long lines; run it before other page tasks (VB-062, VB-083, VB-084, VB-095, VB-098, VB-099, animals art), as it touches every page file.
 2. Foundations: VB-072 (random streams), then VB-073 (state without closures), VB-074 (save and restore) and VB-075 (record of events), and the commands plan VB-076, whose answers are in. Each new system adds state that saves must cover, so these grow dearer the longer they wait. VB-072 and VB-073 touch most simulation modules; run them alone, not beside other simulation tasks.
 3. The growth path: VB-090 (service; edits the moving round), then VB-034 (splitting land) and VB-058 (green and well), both `ready` again now that VB-032 is done. Claims and territory (VB-155 to VB-158, VB-042, VB-004, VB-033) are done. Populous grows (seed 7 small: 353 people in year 1, 427 in year 8); founders still stand at 25 in year 38.
@@ -44,6 +47,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | tooling | Code and verification | Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
 | core | Commands, saves and the record of events | Pawns and other entities act through commands; a run can be saved and loaded exactly; every notable event is kept as a typed record. | Commands, time steps and views; Systems overview |
 | player | The player's role | Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
+| foresight | Needs, intentions and plans | Households and pawns look ahead: what they will lack and by when (needs), what they mean to do about it over days or seasons (intentions), and the jobs and commands that carry it out (actions); temper and attitudes bend the choice. Job matching stays the means of acting. | Economy and jobs; People, households and family records; Customs and culture |
 | work | Work and jobs | Pawns work when there is work: several hands per job, children's work, help between households, interrupts, and the 6:00–18:00 day with a short night; steered by the player later. | Economy and jobs; Time and calendar (Daily rhythm) |
 
 ## Tasks
@@ -106,3 +110,8 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-159 | Hay spoils in the barn, by winters held | animals | implement | ready | 3 | S | Hay in the barn loses 5%, 25% and 50% a year by winters of need held, as grain does. | [backlog/VB-159.md](backlog/VB-159.md) |
 | VB-160 | The soil's cap rises with a village's years of farming | animals | implement | ready | 3 | S | Manure's cap on the soil rises 0.1 a century of a village's farming, so old farms out-yield new ones by about 10% after 100 years. | [backlog/VB-160.md](backlog/VB-160.md) |
 | VB-161 | Refactor: wrap the page script's long lines | tooling | implement | ready | 2 | S | Wrap the 133 lines over 160 characters that VB-053 moved verbatim into `src/page/*.js`. | [backlog/VB-161.md](backlog/VB-161.md) |
+| VB-162 | A village overview: food, people, idle hands and warnings | - | - | needs-review | 3 | M | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. | [backlog/VB-162.md](backlog/VB-162.md) |
+| VB-163 | Long-run viability tests in the verify run | tooling | implement | needs-review | 2 | S | Scenarios run for decades at four seeds in verify, failing when a village collapses, hunger kills or growth leaves its band. | [backlog/VB-163.md](backlog/VB-163.md) |
+| VB-164 | Plan: needs, intentions and households that plan ahead | foresight | plan | ready | 2 | S | Design needs, intentions and actions over the job system, so households look ahead and temper shapes choices. | [backlog/VB-164.md](backlog/VB-164.md) |
+| VB-165 | Inspect the map from the keyboard, and lists beside the canvas | - | - | needs-review | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. | [backlog/VB-165.md](backlog/VB-165.md) |
+| VB-166 | A frame-time budget for the page, in headless Chromium | tooling | implement | ready | 3 | S | Frame times of the built page at populous medium against a recorded baseline, failing above twice it. | [backlog/VB-166.md](backlog/VB-166.md) |

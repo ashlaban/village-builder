@@ -1,9 +1,9 @@
 # Village builder: guide for agents
 
-A village builder proof of concept on a generated hex archipelago: one self-contained `index.html` (PixiJS 8), built from `src/`.
+A village builder proof of concept on a generated hex archipelago: one `index.html` (PixiJS 8), built from `src/`; self-contained but for PixiJS (jsDelivr) and the fonts (Google Fonts), so it needs a network connection.
 Design reference: `design.md`, "Village builder: game design snapshot v0.3"; read-only for implementing tasks (only design and review tasks change it).
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
-the refactor and golden-file rules). Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
@@ -68,3 +68,10 @@ the refactor and golden-file rules). Open design questions for Kim are gathered 
 - Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
 - A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
+- Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
+  any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit
+  (external review, `docs/review-external.md`).
+- A change to behaviour reports numbers before and after (`tools/sim.js`, `tools/balance.js`, `node tests/run.js verify --verbose`)
+  at the seeds and maps it names, in the PR and in the task file, and says whether households, not only averages, are better off.
+- When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
+- A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
