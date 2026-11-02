@@ -1,6 +1,7 @@
 // @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold, atFarm,
@@ -117,7 +118,7 @@ VB['sim/farmclaims'] = (() => {
     for (const f of st.farmsteads) {
       if (!claimable(f)) continue;
       const pick = claimants(st, f)[0];
-      if (pick !== undefined) startClaim(st, f, pick);
+      if (pick !== undefined) issue(st, { actor: pick, verb: 'claim', target: f.id, source: 'round' });
     }
   }
   // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
@@ -199,6 +200,7 @@ VB['sim/farmclaims'] = (() => {
       kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
     refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
   }
-  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim, restored,
+  return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
+    restored,
     lapsedFarmClaims, moveIn };
 })();

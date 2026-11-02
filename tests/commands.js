@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands (and inside sim/agents, where they are defined)
-const WRAPPED = ['start', 'walkTo', 'goHome'], ALLOWED = new Set(['src/sim/commands.js', 'src/sim/agents.js']), calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome', 'wed', 'enterService', 'startClaim'], ALLOWED = new Set(['src/sim/commands.js', 'src/sim/agents.js']), calls = [];
 for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js'])) {
   if (ALLOWED.has(f)) continue;
   const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), toks = tokenize(src).filter((t) => t.t !== 'com');
@@ -94,4 +94,36 @@ for (const [cmd, why] of [
   [{ actor: landless.id, verb: 'retire' }, /holds no farm/], [{ actor: null, verb: 'skip', args: { hours: -1 } }, /cannot skip/],
 ]) { const res = issue(st2, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap2(), before3, 'refused meeting and debug commands change nothing');
-console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill; ${refusals.length + 13} refusals change nothing; start, walkTo and goHome are called only from sim/commands`);
+// the moving round's verbs (VB-171), on a fresh heirs state
+const st3 = Sim.seed((() => { const it3 = G.generate(7); let q; while (!(q = it3.next()).done); return q.value; })(), 7, 'heirs');
+Sim.advance(st3, Sim.DAY);
+const snap3 = () => { const { w, ...rest } = st3; return canon(rest); };
+const single = (sex) => st3.pawns.find((p) => p.died === null && p.age >= 18 && p.sex === sex && Sim.spouseOf(st3, p.id) === null && !Sim.isHolder(st3, p.id));
+const groom = single('m'), bride = single('f'), wedHome = groom.household, nUnions = st3.unions.length;
+const R3 = [];
+assert.strictEqual(issue(st3, { actor: groom.id, verb: 'marry', target: bride.id, args: { home: wedHome }, source: 'round' }), true);
+assert.strictEqual(st3.unions.length, nUnions + 1); assert.strictEqual(bride.household, wedHome); assert.strictEqual(Sim.spouseOf(st3, groom.id), bride.id);
+const hh3 = st3.households.find((h) => !h.dissolved && h.holder !== null && st3.pawns[h.holder].died === null && VB['sim/heirs'].heirRanking(st3, h).length);
+const old3 = hh3.holder, heir3 = VB['sim/heirs'].heirRanking(st3, hh3)[0];
+assert.strictEqual(issue(st3, { actor: old3, verb: 'handOn', target: heir3, args: { household: hh3.id, reason: 'retirement' }, source: 'round' }), true);
+assert.strictEqual(hh3.holder, heir3);
+const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isHolder(st3, p.id) && p.id !== groom.id && p.id !== bride.id);
+const master = st3.households.find((h) => !h.dissolved && h.id !== servant.household);
+assert.strictEqual(issue(st3, { actor: servant.id, verb: 'serve', target: master.id, source: 'round' }), true);
+assert.strictEqual(servant.household, master.id); assert.strictEqual(servant.servant, true);
+const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(f));
+if (empty) {
+  const claimant = st3.pawns.find((p) => p.died === null && p.age >= 18 && p.id !== groom.id && p.id !== bride.id);
+  assert.strictEqual(issue(st3, { actor: claimant.id, verb: 'claim', target: empty.id, source: 'round' }), true);
+  assert.strictEqual(empty.claim.by, claimant.id);
+  R3.push([{ actor: claimant.id, verb: 'claim', target: empty.id }, /cannot be claimed/]);
+}
+const before4 = snap3();
+R3.push([{ actor: groom.id, verb: 'marry', target: groom.id, args: { home: wedHome } }, /oneself/],
+  [{ actor: groom.id, verb: 'marry', target: single('f') ? single('f').id : bride.id, args: { home: wedHome } }, /married/],
+  [{ actor: servant.id, verb: 'marry', target: single('f') ? single('f').id : bride.id, args: { home: 999 } }, /no household|married/],
+  [{ actor: old3, verb: 'handOn', target: heir3, args: { household: hh3.id, reason: 'retirement' } }, /does not hold/],
+  [{ actor: servant.id, verb: 'serve', target: master.id }, /lives there already/], [{ actor: servant.id, verb: 'claim', target: 9999 }, /no farm/]);
+for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
+console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ' and claim' : ''}; ${refusals.length + 13 + R3.length} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);

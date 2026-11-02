@@ -4716,6 +4716,7 @@ VB['sim/expansion'] = (() => {
 // @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold, atFarm,
@@ -4832,7 +4833,7 @@ VB['sim/farmclaims'] = (() => {
     for (const f of st.farmsteads) {
       if (!claimable(f)) continue;
       const pick = claimants(st, f)[0];
-      if (pick !== undefined) startClaim(st, f, pick);
+      if (pick !== undefined) issue(st, { actor: pick, verb: 'claim', target: f.id, source: 'round' });
     }
   }
   // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
@@ -4914,7 +4915,8 @@ VB['sim/farmclaims'] = (() => {
       kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
     refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
   }
-  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim, restored,
+  return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
+    restored,
     lapsedFarmClaims, moveIn };
 })();
 </script>
@@ -5308,13 +5310,14 @@ VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     (!(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length) ? `there is no custom ${c.args && c.args.dim}`
     : !(Number.isInteger(c.args.option) && c.args.option >= 0 &&
       c.args.option < Culture.NOPT[c.args.dim]) ? `custom ${c.args.dim} has no option ${c.args.option}` : null);
+  const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
   const settlement = (st, c) =>
     (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
@@ -5354,6 +5357,32 @@ VB['sim/commands'] = (() => {
       check: (st, c) => settlement(st, c) || option(c)
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
+    },
+    // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+    // marry(target, {home}): the actor and the target marry and live in household args.home
+    marry: {
+      check: (st, c) => living(st, c.actor) || living(st, c.target) || (c.actor === c.target ? 'one cannot marry oneself'
+        : spouseOf(st, c.actor) !== null || spouseOf(st, c.target) !== null ? 'one of them is married'
+          : !home(st, c.args && c.args.home) ? `there is no household ${c.args && c.args.home}` : null),
+      run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
+    },
+    // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
+    handOn: {
+      check: (st, c) => (!home(st, c.args && c.args.household) ? `there is no household ${c.args && c.args.household}`
+        : st.households[c.args.household].holder !== c.actor ? `pawn ${c.actor} does not hold household ${c.args.household}` : living(st, c.target)),
+      run: (st, c) => later('sim/heirs').transfer(st, st.households[c.args.household], c.target, c.args.reason),
+    },
+    // serve(target): the actor goes into service with the holder of household `target`
+    serve: {
+      check: (st, c) => living(st, c.actor) || (!home(st, c.target) ? `there is no household ${c.target}`
+        : st.pawns[c.actor].household === c.target ? `pawn ${c.actor} lives there already` : null),
+      run: (st, c) => later('sim/service').enterService(st, c.actor, c.target),
+    },
+    // claim(target): the actor claims the empty farm `target` and sets about restoring it
+    claim: {
+      check: (st, c) => living(st, c.actor) || (!st.farmsteads[c.target] ? `there is no farm ${c.target}`
+        : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
+      run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
@@ -5950,6 +5979,7 @@ VB['sim/heirs'] = (() => {
 VB['sim/service'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
+  const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
@@ -6006,6 +6036,15 @@ VB['sim/service'] = (() => {
   // land (st.demand) as farmhand or maid, if that adult's household keeps at least SERVICE.keepHands working hands without them: from the
   // holder's village first, then from the nearest village whose centre lies within SERVICE.reach steps; among them, the one whose household
   // keeps the most hands, then the oldest. The servant still wants land, as VB-090 has it, and may marry the holder.
+  // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
+  function enterService(st, id, hhId) {
+    const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
+    const from = farmIn(st, st.households[best.household], v);
+    moveTo(st, best.id, hh.id); best.servant = true;
+    personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
+    log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
+      kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+  }
   function takeServants(st) {
     const lone = st.households.filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
@@ -6024,15 +6063,11 @@ VB['sim/service'] = (() => {
         if (!bs || before(s, bs)) { best = q; bs = s; }
       }
       if (!best) continue;
-      const from = farmIn(st, st.households[best.household], v.id);
-      moveTo(st, best.id, hh.id); best.servant = true;
-      personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
-      log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
-        kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+      issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' });
     }
     refreshRoles(st); st.visualDirty = true;
   }
-  return { careForOrphans, takeServants, hands };
+  return { careForOrphans, takeServants, enterService, hands };
 })();
 </script>
 <script>
@@ -6530,6 +6565,7 @@ VB['sim/lifecycle'] = (() => {
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf, hooks } = VB['sim/society'];
+  const { issue } = VB['sim/commands'];
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -6612,6 +6648,21 @@ VB['sim/lifecycle'] = (() => {
     }
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
+  // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, and a spouse who held a farm of
+  // their own hands it on (VB-153).
+  function wed(st, mId, fId, home) {
+    const m = st.pawns[mId], f = st.pawns[fId];
+    st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    for (const id of [mId, fId]) {
+      if (st.pawns[id].household !== home) moveTo(st, id, home);
+      personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false); st.rigDirty.add(id); // recorded below
+    }
+    const fm = st.farmsteads[st.households[home].farmstead];
+    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
+      kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
+    m.ties.set(fId, 2); f.ties.set(mId, 2);
+    for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
+  }
   function movingRound(st) {
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
@@ -6687,17 +6738,7 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
-      st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
-      for (const id of [m.id, best.f.id]) {
-        if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
-        personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === m.id ? best.f.id : m.id])}`, false); st.rigDirty.add(id); // recorded below
-      }
-      const fm = st.farmsteads[st.households[best.home].farmstead];
-      log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`, {
-        kind: 'married', pawn: m.id, other: best.f.id, ...atHousehold(st, st.households[best.home]) });
-      m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
-      // a spouse who held a farm of their own hands it on (VB-153)
-      for (const id of [m.id, best.f.id]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== best.home) handOn(st, own2, id, best.home); }
+      issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
     }
     for (const [v, n] of putOff) {
       log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`, {
@@ -6711,8 +6752,9 @@ VB['sim/lifecycle'] = (() => {
       if (!own) own = ownFirstOf(st);
       const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
-      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) { transfer(st, hh, heir, 'marriage'); own = null; }
-      else if (cu.handover === 'age60' && holder.age >= 60) { transfer(st, hh, heir, 'retirement'); own = null; }
+      const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
+        : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
+      if (why) { issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' }); own = null; }
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
@@ -6749,7 +6791,7 @@ VB['sim/lifecycle'] = (() => {
     Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
-  return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
+  return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };
 })();
 </script>
 <script>

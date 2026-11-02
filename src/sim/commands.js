@@ -3,13 +3,14 @@ VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     (!(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length) ? `there is no custom ${c.args && c.args.dim}`
     : !(Number.isInteger(c.args.option) && c.args.option >= 0 &&
       c.args.option < Culture.NOPT[c.args.dim]) ? `custom ${c.args.dim} has no option ${c.args.option}` : null);
+  const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
   const settlement = (st, c) =>
     (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
@@ -49,6 +50,32 @@ VB['sim/commands'] = (() => {
       check: (st, c) => settlement(st, c) || option(c)
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
+    },
+    // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+    // marry(target, {home}): the actor and the target marry and live in household args.home
+    marry: {
+      check: (st, c) => living(st, c.actor) || living(st, c.target) || (c.actor === c.target ? 'one cannot marry oneself'
+        : spouseOf(st, c.actor) !== null || spouseOf(st, c.target) !== null ? 'one of them is married'
+          : !home(st, c.args && c.args.home) ? `there is no household ${c.args && c.args.home}` : null),
+      run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
+    },
+    // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
+    handOn: {
+      check: (st, c) => (!home(st, c.args && c.args.household) ? `there is no household ${c.args && c.args.household}`
+        : st.households[c.args.household].holder !== c.actor ? `pawn ${c.actor} does not hold household ${c.args.household}` : living(st, c.target)),
+      run: (st, c) => later('sim/heirs').transfer(st, st.households[c.args.household], c.target, c.args.reason),
+    },
+    // serve(target): the actor goes into service with the holder of household `target`
+    serve: {
+      check: (st, c) => living(st, c.actor) || (!home(st, c.target) ? `there is no household ${c.target}`
+        : st.pawns[c.actor].household === c.target ? `pawn ${c.actor} lives there already` : null),
+      run: (st, c) => later('sim/service').enterService(st, c.actor, c.target),
+    },
+    // claim(target): the actor claims the empty farm `target` and sets about restoring it
+    claim: {
+      check: (st, c) => living(st, c.actor) || (!st.farmsteads[c.target] ? `there is no farm ${c.target}`
+        : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
+      run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },

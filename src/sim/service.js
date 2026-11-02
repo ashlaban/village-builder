@@ -2,6 +2,7 @@
 VB['sim/service'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
+  const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
@@ -58,6 +59,15 @@ VB['sim/service'] = (() => {
   // land (st.demand) as farmhand or maid, if that adult's household keeps at least SERVICE.keepHands working hands without them: from the
   // holder's village first, then from the nearest village whose centre lies within SERVICE.reach steps; among them, the one whose household
   // keeps the most hands, then the oldest. The servant still wants land, as VB-090 has it, and may marry the holder.
+  // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
+  function enterService(st, id, hhId) {
+    const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
+    const from = farmIn(st, st.households[best.household], v);
+    moveTo(st, best.id, hh.id); best.servant = true;
+    personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
+    log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
+      kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+  }
   function takeServants(st) {
     const lone = st.households.filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
@@ -76,13 +86,9 @@ VB['sim/service'] = (() => {
         if (!bs || before(s, bs)) { best = q; bs = s; }
       }
       if (!best) continue;
-      const from = farmIn(st, st.households[best.household], v.id);
-      moveTo(st, best.id, hh.id); best.servant = true;
-      personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
-      log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
-        kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+      issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' });
     }
     refreshRoles(st); st.visualDirty = true;
   }
-  return { careForOrphans, takeServants, hands };
+  return { careForOrphans, takeServants, enterService, hands };
 })();
