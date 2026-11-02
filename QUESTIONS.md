@@ -11,10 +11,9 @@ None open: VB-033 was answered with the claims review (1 November; `QUESTION_ARC
 ## Priority 2
 
 ### Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
-VB-033 was answered with the claims review and is built. About 15 tasks now wait on the answers below; three unblock the most. Measured in `REVIEW.md`, review of 2 November, second pass.
-1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
-2. Founders do not grow (25 people in year 38 at seed 7, even with empty farms claimable, against 353 to 427 in 8 years in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
-3. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
+VB-033 was answered with the claims review and is built; the order of work, VB-127 and VB-129 were answered in the second pass (`QUESTION_ARCHIVE.md`). Measured in `REVIEW.md`, review of 2 November, second pass.
+1. Founders do not grow (25 people in year 38 at seed 7, even with empty farms claimable, against 353 to 427 in 8 years in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
+2. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
 
 ### Moving to new land: the tuned values (VB-150, expansion review of 1 November)
 Built in VB-146 to VB-149 with the starting values below (`SETTLE` and `SOIL.fresh` in `src/sim/rules.js`); the measurements are in `docs/review-expansion.md`, Results. In populous small at seed 7 over 40 years, adults waiting with no room fall from 32 to 4, deaths by starvation in years 31–40 from 46 to 0, and the population at year 40 rises from 662 to 780.
@@ -63,10 +62,6 @@ The stability review (`docs/review-stability.md`) built Kim's decisions of 1 Nov
 The rule is built (no `plow` job while another field is hoed and its seed is in the house), but it does not bring in a crop in year 2 at seeds 7 and 11: a lone bachelor sows his first field only on spring day 4–7, after water, wood and cooking, so the stooks are lost to frost on summer day 11, and crops in year 3 fall from 3 to 0–1.
 1. What should give? **P:** lower the assertion, since the lone bachelor of the founders scenario is a harsh case: at least 1 crop in years 1–3 taken together at each of seeds 3, 7, 11 and 42 (the run reports them per year); and sow before wood and water for any household with a hoed field and seed in the house (a one-line priority change in `ROLES`), as it is the one chore with a closing date.
 
-### VB-129: the moving round in slices (raised by VB-145, balance review of 31 October)
-VB-145 cached the heir rankings that made the round cost 1.3 s; it now takes about 20 ms in one step on populous medium at seed 7.
-1. Is VB-129 still wanted? **P:** close it as met by VB-145; if saves (VB-074) ever need to stop inside the round, that task can slice it.
-
 ### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
 Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
 1. Fishing grounds and catch. **P:** a shore tile within 6 steps of the house; a 3-hour trip brings 4 rations × the water tile's stock; a trip lowers a river or small lake tile's stock by 0.1 and it recovers 0.02 a day; the sea and lakes of 20 tiles or more never run down; no fishing in winter.
@@ -85,11 +80,6 @@ Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind 
 No two pawns of different villages ever meet today, so courting would keep marriages inside the village.
 1. Which occasions first? **P:** the village meeting (the people with a voice on the green, 10:00 to the meeting at 12:00), the wedding (the day after, 16:00–21:00 at the couple's farm, near kin of both spouses from any village within a day's walk) and the funeral ale (the day after a death, 16:00–21:00 at the farm of the dead, its household and near kin).
 2. Do occasions override work? **P:** the meeting and a funeral ale do (work stops for them); a wedding takes those who are free, as it falls in the evening.
-
-### VB-127: familiarity from talk and time at home (relationships review)
-Kim kept the tie model unchanged in VB-061; this is the later rework.
-1. Replace counting hours near each other with talk, waking hours at home and work together? **P:** yes: +0.5 per talk, +1 per 24 waking hours under one roof, +0.5 per job worked together; the kin floor stays at 0.4.
-2. Cap ties at the 150 strongest per pawn, kin always kept? **P:** yes.
 
 ## Priority 3
 

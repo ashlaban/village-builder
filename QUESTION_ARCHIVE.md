@@ -2,6 +2,26 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 2 November 2026 (review, second pass)
+
+Answered by Kim in the session of 2 November.
+
+## Review, 2 November, second pass: where to spend Kim's answers (question 1)
+1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
+   **A (Kim, 2 Nov):** after the page split (VB-053), the foundations first (VB-072 to VB-076), then the growth path; VB-127 yes; VB-129 closed; the tuned-value blocks to be gone through one by one.
+
+## VB-127: familiarity from talk and time at home (relationships review)
+Kim kept the tie model unchanged in VB-061; this is the later rework.
+1. Replace counting hours near each other with talk, waking hours at home and work together? **P:** yes: +0.5 per talk, +1 per 24 waking hours under one roof, +0.5 per job worked together; the kin floor stays at 0.4.
+   **A (Kim, 2 Nov):** yes, as proposed.
+2. Cap ties at the 150 strongest per pawn, kin always kept? **P:** yes.
+   **A (Kim, 2 Nov):** yes.
+
+## VB-129: the moving round in slices (raised by VB-145, balance review of 31 October)
+VB-145 cached the heir rankings that made the round cost 1.3 s; it now takes about 20 ms in one step on populous medium at seed 7.
+1. Is VB-129 still wanted? **P:** close it as met by VB-145; if saves (VB-074) ever need to stop inside the round, that task can slice it.
+   **A (Kim, 2 Nov):** close it (P).
+
 # Archived 2 November 2026 (claims review, borders)
 
 ## VB-157: how borders become contested (raised in the session of 2 November)

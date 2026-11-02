@@ -22,7 +22,7 @@ Workers take `ready` tasks by priority, but several edit the same files, so this
 2. Foundations: VB-072 (random streams), then VB-073 (state without closures), VB-074 (save and restore) and VB-075 (record of events), and the commands plan VB-076, whose answers are in. Each new system adds state that saves must cover, so these grow dearer the longer they wait. VB-072 and VB-073 touch most simulation modules; run them alone, not beside other simulation tasks.
 3. The growth path: VB-090 (service; edits the moving round), then VB-034 (splitting land) and VB-058 (green and well), both `ready` again now that VB-032 is done. Claims and territory (VB-155 to VB-158, VB-042, VB-004, VB-033) are done. Populous grows (seed 7 small: 353 people in year 1, 427 in year 8); founders still stand at 25 in year 38.
 4. Animals batch two (VB-136, VB-139) is independent of the growth path and may run in parallel.
-5. Speed: talk and contacts are still 37% of a game day (populous small, seed 7, 8 years); VB-127 is the fix and waits on Kim, and the speed budget VB-088 waits on closing VB-129.
+5. Speed: talk and contacts are still 37% of a game day (populous small, seed 7, 8 years). VB-088 (the speed budget; VB-129 is closed) first, then VB-127 (ties from talk, at most 150 a pawn; answered 2 November), which measures itself with VB-088's test. VB-127 touches the social modules and the customs calibration, so it does not run beside VB-072 or VB-073.
 
 ## Archs
 
@@ -78,7 +78,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-082 | Customs made legible: votes, leanings and causes | - | - | ready | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
 | VB-083 | Seasons on the map | - | - | ready | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
 | VB-084 | A 30× speed and an uncapped speed | - | - | ready | 3 | S | Speeds of 30× and "Max", as fast as a 12 ms frame budget allows. | [backlog/VB-084.md](backlog/VB-084.md) |
-| VB-088 | A performance budget in the verify run | tooling | implement | blocked | 3 | S | `tests/perf.js` in verify, failing above twice the budget per game day and per step. | [backlog/VB-088.md](backlog/VB-088.md) |
+| VB-088 | A performance budget in the verify run | tooling | implement | ready | 3 | S | `tests/perf.js` in verify, failing above twice the budget per game day and per step. | [backlog/VB-088.md](backlog/VB-088.md) |
 | VB-090 | Landless adults take service where labour is short | expansion | implement | ready | 2 | M | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. | [backlog/VB-090.md](backlog/VB-090.md) |
 | VB-091 | Forest spread into open land | animals | implement | blocked | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. | [backlog/VB-091.md](backlog/VB-091.md) |
 | VB-092 | Store views for households and villages | claims | implement | blocked | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. | [backlog/VB-092.md](backlog/VB-092.md) |
@@ -98,8 +98,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-121 | Winter crafts: tools and fence poles | work | implement | needs-review | 3 | M | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. | [backlog/VB-121.md](backlog/VB-121.md) |
 | VB-123 | A job as a few steps: go, work, fetch, carry | work | implement | needs-review | 3 | M | Job kinds list their steps, so building and milling can fetch and carry; with the first building task. | [backlog/VB-123.md](backlog/VB-123.md) |
 | VB-126 | Occasions: the meeting, weddings and funeral ales bring people together | social | implement | needs-review | 2 | M | Gatherings on the map where several households, and other villages, meet and talk. | [backlog/VB-126.md](backlog/VB-126.md) |
-| VB-127 | Familiarity from talk and time at home, not from standing near each other | social | implement | needs-review | 3 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. | [backlog/VB-127.md](backlog/VB-127.md) |
-| VB-129 | Spread the moving round over several steps | tooling | implement | needs-review | 2 | S | The yearly moving round ran in one 1 s step; VB-145 brought it to 20 ms; close or keep for saves. | [backlog/VB-129.md](backlog/VB-129.md) |
+| VB-127 | Familiarity from talk and time at home, not from standing near each other | social | implement | ready | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. | [backlog/VB-127.md](backlog/VB-127.md) |
 | VB-130 | Grain outlets: what a hoard of grain does | food | implement | needs-review | 3 | S | Founders end up with 1,000+ grain and nothing to spend it on; add storage loss or another outlet. | [backlog/VB-130.md](backlog/VB-130.md) |
 | VB-136 | Herding and grazing pressure | animals | implement | ready | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. | [backlog/VB-136.md](backlog/VB-136.md) |
 | VB-139 | Roe deer | animals | implement | ready | 3 | M | Deer stock per region, crop damage by broken fences, hunting. | [backlog/VB-139.md](backlog/VB-139.md) |
