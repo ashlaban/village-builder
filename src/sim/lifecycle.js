@@ -19,6 +19,7 @@ VB['sim/lifecycle'] = (() => {
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, pairOf, hooks } = VB['sim/society'];
+  const { issue } = VB['sim/commands'];
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -101,6 +102,21 @@ VB['sim/lifecycle'] = (() => {
     }
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
+  // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, and a spouse who held a farm of
+  // their own hands it on (VB-153).
+  function wed(st, mId, fId, home) {
+    const m = st.pawns[mId], f = st.pawns[fId];
+    st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    for (const id of [mId, fId]) {
+      if (st.pawns[id].household !== home) moveTo(st, id, home);
+      personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false); st.rigDirty.add(id); // recorded below
+    }
+    const fm = st.farmsteads[st.households[home].farmstead];
+    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
+      kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
+    m.ties.set(fId, 2); f.ties.set(mId, 2);
+    for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
+  }
   function movingRound(st) {
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
@@ -176,17 +192,7 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
-      st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
-      for (const id of [m.id, best.f.id]) {
-        if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
-        personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === m.id ? best.f.id : m.id])}`, false); st.rigDirty.add(id); // recorded below
-      }
-      const fm = st.farmsteads[st.households[best.home].farmstead];
-      log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`, {
-        kind: 'married', pawn: m.id, other: best.f.id, ...atHousehold(st, st.households[best.home]) });
-      m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
-      // a spouse who held a farm of their own hands it on (VB-153)
-      for (const id of [m.id, best.f.id]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== best.home) handOn(st, own2, id, best.home); }
+      issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
     }
     for (const [v, n] of putOff) {
       log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`, {
@@ -200,8 +206,9 @@ VB['sim/lifecycle'] = (() => {
       if (!own) own = ownFirstOf(st);
       const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
-      if (cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id) { transfer(st, hh, heir, 'marriage'); own = null; }
-      else if (cu.handover === 'age60' && holder.age >= 60) { transfer(st, hh, heir, 'retirement'); own = null; }
+      const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
+        : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
+      if (why) { issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' }); own = null; }
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
@@ -238,5 +245,5 @@ VB['sim/lifecycle'] = (() => {
     Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
-  return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
+  return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };
 })();
