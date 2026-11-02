@@ -70,7 +70,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-058 | The village green and well, built by the village | expansion | implement | ready | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
 | VB-062 | Mood and its modifiers, shown in the pawn panel | social | implement | ready | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. | [backlog/VB-062.md](backlog/VB-062.md) |
 | VB-063 | Wrap-up: pawn interactions | social | wrap-up | blocked | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. | [backlog/VB-063.md](backlog/VB-063.md) |
-| VB-075 | A typed record of events | core | implement | ready | 2 | M | An append-only `st.record` of typed events, queryable by pawn, household, farm, village and kind. | [backlog/VB-075.md](backlog/VB-075.md) |
 | VB-076 | Plan: commands | core | plan | ready | 1 | S | Design the command layer (Decided, not built) so its implement tasks can be written. | [backlog/VB-076.md](backlog/VB-076.md) |
 | VB-077 | Plan: saving and loading in the page | core | plan | ready | 2 | S | Where saves live, autosave, and saves from older builds. | [backlog/VB-077.md](backlog/VB-077.md) |
 | VB-078 | Wrap-up: commands, saves and the record of events | core | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
