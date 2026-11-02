@@ -10,8 +10,9 @@ VB['sim/clock'] = (() => {
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const { shareFood } = VB['sim/help'];
-  const { homeSpot, release, wantsWork, idleAbout, goHome, stepWork, moveAgent } = VB['sim/agents'];
-  const { refreshJobs, callCooks, lookUp, planRound } = VB['sim/jobs'];
+  const { homeSpot, release, wantsWork, stepWork, moveAgent } = VB['sim/agents'];
+  const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
+  const { issue } = VB['sim/commands'];
   const { noteContacts } = VB['sim/society'];
   const { talkHour } = VB['sim/relations'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
@@ -42,7 +43,7 @@ VB['sim/clock'] = (() => {
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
       release(st, a);
-      if (!a.inside) { goHome(st, a); a.phase = 'home'; }
+      if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
     if (h === 0) {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)

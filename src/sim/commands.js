@@ -1,6 +1,6 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out (VB-167)
 VB['sim/commands'] = (() => {
-  const { start, release } = VB['sim/agents'];
+  const { start, release, walkTo, goHome } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
@@ -12,6 +12,26 @@ VB['sim/commands'] = (() => {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
         : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
       run: (st, c) => { const a = st.agents[c.actor]; release(st, a); start(st, a, st.jobs.get(c.target)); },
+    },
+    // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
+    walkTo: {
+      // Not refused on a tile the walking rule closes: an idle walk to company may end on a river tile (twice in a founders year at seed 7),
+      // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
+      check: (st, c) => living(st, c.actor) || (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
+      run: (st, c) => {
+        const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target], y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
+        walkTo(st, st.agents[c.actor], c.target, x, y);
+      },
+    },
+    // goHome: walk home and go in (phase 'home')
+    goHome: {
+      check: (st, c) => living(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
+      run: (st, c) => { const a = st.agents[c.actor]; goHome(st, a); a.phase = 'home'; },
+    },
+    // idle(until): look for nothing to do until game time args.until
+    idle: {
+      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
+      run: (st, c) => { st.agents[c.actor].idleUntil = c.args.until; },
     },
   };
   // Carries out cmd, or changes nothing: true, or the reason it was refused.
