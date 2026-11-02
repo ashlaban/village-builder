@@ -10,6 +10,8 @@ VB['sim/jobs'] = (() => {
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
   const { byreJobs } = VB['sim/byre'];
   const { plotJobs, boothJob } = VB['sim/expansion'];
+  const { claimJobs, claimPrio } = VB['sim/farmclaims'];
+  const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -52,6 +54,8 @@ VB['sim/jobs'] = (() => {
         if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
         if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
+        // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
+        if (fd.stage === 'fallow' || fd.stage === 'scrub') post(st, 'reclaim:' + fk, 'reclaim', own, fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
       }
       const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
       for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
@@ -77,6 +81,7 @@ VB['sim/jobs'] = (() => {
       post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
     }
     for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
+    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(st, key, kind, owner, site, extra); // empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {
       if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
@@ -95,12 +100,14 @@ VB['sim/jobs'] = (() => {
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours. A job that k pawns already
   // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
+  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
+  const prioOf = (st, p, j) => (j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
   // or a poor fit for a job that has not waited long enough.
   function score(st, p, j, c) {
     if (p.role === 'child' && age(st, p) < CHILD.from) return null;
-    const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0;
+    const pr = prioOf(st, p, j);
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
     return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
@@ -143,7 +150,7 @@ VB['sim/jobs'] = (() => {
     const here = st.farmsteads[st.households[p.household].farmstead].house;
     for (const j of st.jobs.values()) {
       if (!mayTake(st, p, j)) continue;
-      const pr = j.plot ? plotPrio(st, p) : ROLES[p.role].prio[j.kind] || 0, row = { job: j.key, kind: j.kind, bid: null, reason: null };
+      const pr = prioOf(st, p, j), row = { job: j.key, kind: j.kind, bid: null, reason: null };
       if (!isOpen(j)) row.reason = 'taken';
       else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
       else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {

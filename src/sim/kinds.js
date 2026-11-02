@@ -9,6 +9,7 @@ VB['sim/kinds'] = (() => {
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
+  const { workClaim, restored } = VB['sim/farmclaims'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -126,6 +127,15 @@ VB['sim/kinds'] = (() => {
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
       type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
+    },
+    reclaim: {
+      verb: 'Clearing an overgrown field', go: 'Going to clear an overgrown field', name: 'Clear an overgrown field', label: 'Reclaim', anim: 'hoe',
+      hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
+      done: (st, j) => { if (j.field.stage === 'fallow' || j.field.stage === 'scrub') { j.field.stage = 'stubble'; st.visualDirty = true; } },
+    },
+    restore: { // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
+      verb: 'Mending an empty farm', go: 'Going to mend an empty farm', name: 'Mend an empty farm', label: 'Mending a farm', anim: 'mallet', hours: 20,
+      hands: Infinity, type: 'wood', project: true, worked: workClaim, done: restored,
     },
     rake: {
       verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,

@@ -20,6 +20,7 @@ VB['sim/clock'] = (() => {
   const { byreDay } = VB['sim/byre'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
+  const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { landMeeting } = VB['sim/territory'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
@@ -58,7 +59,8 @@ VB['sim/clock'] = (() => {
     }
     for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
     growTrees(st);
-    lapsedStakes(st, lapseClaims(st)); // unworked claims fade out after 3 years (sim/claims); a lapsed stake ends its project (sim/stakes)
+    const lapsed = lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
+    lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
     const day = Math.floor(st.t / DAY);
@@ -82,8 +84,8 @@ VB['sim/clock'] = (() => {
     }
     const decay = E.fenceDecay[c.season];
     const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
-    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub
-    for (const f of st.farmsteads) if (f.household === null) {
+    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub; not while a claimant mends it (VB-033)
+    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
       f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
       const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }

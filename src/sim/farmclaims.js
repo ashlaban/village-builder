@@ -1,11 +1,15 @@
-// @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, the hours to restore a farm, and who may claim it, in the
-// order of the village's "Claims on empty farms" custom
+// @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
+// "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { spouseOf, isHolder, kinDegree, practice, settlementIdOf } = VB['sim/records'];
+  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold } = VB['sim/records'];
   const CL = VB['sim/claims'];
+  const { setOwner } = VB['sim/ownership'];
+  const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
+  // @state farmstead.claim: {by (pawn id), since (game hours), hours (to restore, by the condition when claimed), done (hours worked)} or
+  //   null: an empty farm a landless adult has claimed and is restoring; the claimant's unrealised claim (`why` 'farm') stands on its house
   // ---- the birthright (bördsrätt; Kim, 1 Nov): when a farm empties, its last holder's family keeps a realised claim on its house ----
   const PAWN = (id) => ({ type: 'pawn', id });
   // Farm f has emptied (at `since`, game hours) after `holder` held it: a realised birthright claim by that pawn on its house, until
@@ -79,5 +83,119 @@ VB['sim/farmclaims'] = (() => {
     list = list.filter((id) => { const sp = spouseOf(st, id); if (seen.has(id)) return false; seen.add(id); if (sp !== null) seen.add(sp); return true; });
     return list;
   }
-  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants };
+  // ---- the claim, at the moving round ----
+  const HH = (id) => ({ type: 'household', id });
+  // The claimant of farm f may still take it: alive, in a household, with no farm of their own meanwhile.
+  const valid = (st, f) => { const p = st.pawns[f.claim.by]; return p.alive && p.household !== null && !landed(st, p.id) && f.household === null; };
+  // Pawn id claims farm f: the claim, the claimant's unrealised claim on the house, renewed by the restoration (`worked`); no longer waiting
+  // for land (st.demand; sim/heirs' wantsOut leaves claimants out).
+  function startClaim(st, f, id) {
+    const p = st.pawns[id], sp = spouseOf(st, id), right = birthrightOn(st, f), v = st.villages[f.village];
+    f.claim = { by: id, since: st.t, hours: restoreHours(f.condition), done: 0 };
+    CL.addClaim(st, f.house, PAWN(id), 'farm', { state: 'unrealised', until: null }); // the last holder's own birthright is taken up by it
+    st.demand = st.demand.filter((q) => q !== id && q !== sp);
+    const kin = right && Number.isFinite(kinDegree(st, id, right.by.id)) && practice(st, f.village).claims === 'kin';
+    personEvent(st, id, 'claim', `Claimed the empty farm ${f.name} in ${v.name}${kin ? ' by birthright' : ''}`);
+    log(st, `${fullName(p)} claims the empty farm ${f.name} in ${v.name}${kin ? ', by the old family\'s birthright,' : ''} and sets about `
+      + `mending it (${Math.round(f.claim.hours)} hours).`);
+  }
+  // The claim ends unfulfilled (the claimant died or took land, or the claim lapsed): the farm stands empty, claimable again.
+  function endClaim(st, f, text) {
+    CL.dropClaim(st, f.house, PAWN(f.claim.by));
+    f.claim = null;
+    if (text) log(st, text);
+  }
+  const ended = (st, f) => {
+    const p = st.pawns[f.claim.by];
+    endClaim(st, f, p.alive ? `${fullName(p)} gives up the claim on ${f.name}, having land now.` : `The claim on ${f.name} died with ${fullName(p)}.`);
+  };
+  // At the moving round, after st.demand is counted and before plots are started (sim/expansion): each farm that may be claimed, in id order,
+  // goes to its first claimant (claimants) who has not claimed another this round. Claims whose claimant died or took land end first.
+  function claimFarms(st) {
+    for (const f of st.farmsteads) if (f.claim && !valid(st, f)) ended(st, f);
+    for (const f of st.farmsteads) {
+      if (!claimable(f)) continue;
+      const pick = claimants(st, f)[0];
+      if (pick !== undefined) startClaim(st, f, pick);
+    }
+  }
+  // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
+  const claimableFarm = (st, id) => st.farmsteads.find((f) => claimable(f) && claimants(st, f, [id]).length > 0) || null;
+  // ---- the restoration: one job, owned by the claimant's household; progress kept on the claim ----
+  // The restoration jobs to post: [key, kind, owner, site, extra]. A claim no longer valid ends here. The key names the household, so a
+  // claimant who moves house goes on with the hours done (kept on f.claim at each posting).
+  function claimJobs(st) {
+    const out = [];
+    for (const f of st.farmsteads) {
+      if (!f.claim) continue;
+      if (!valid(st, f)) { ended(st, f); continue; }
+      const c = f.claim, hid = st.pawns[c.by].household, key = `restore:f${f.id}.h${hid}`, live = st.jobs.get(key);
+      if (live) c.done = live.done;
+      out.push([key, 'restore', HH(hid), f.house, { farm: f, claim: { by: c.by, since: c.since }, done: c.done, hours: c.hours }]);
+    }
+    return out;
+  }
+  // Role priority (0..10) for a restoration job: the claimant and spouse CLAIMS.claimantPrio, the other grown members of the household
+  // CLAIMS.helperPrio (Kim, 1 Nov; as for a plot).
+  function claimPrio(st, p, j) {
+    const by = j.claim.by;
+    return p.id === by || p.id === spouseOf(st, by) ? CLAIMS.claimantPrio : p.role === 'child' ? 0 : CLAIMS.helperPrio;
+  }
+  // The job is still that claim's (it did not end meanwhile).
+  const ofClaim = (j) => !!j.farm.claim && j.farm.claim.by === j.claim.by && j.farm.claim.since === j.claim.since;
+  const workClaim = (st, j) => { if (ofClaim(j)) CL.renewClaim(st, j.farm.house, PAWN(j.claim.by)); };
+  const restored = (st, j) => { if (ofClaim(j)) moveIn(st, j.farm); };
+  // Once a day, after sim/claims' lapseClaims: a claim on a farm unworked for CLAIMS.years has lapsed; the farm is claimable again.
+  function lapsedFarmClaims(st, dropped) {
+    for (const [tile, c] of dropped) {
+      if (c.why !== 'farm') continue;
+      const f = st.farmsteads.find((x) => x.house === tile && x.claim && x.claim.by === c.by.id);
+      if (f) { f.claim = null; log(st, `The claim on ${f.name} has lapsed: nobody mended it for ${CLAIMS.years} years.`); }
+    }
+  }
+  // ---- moving in (the roof mended): a new household, as a new plot's (Kim, 1 Nov) ----
+  const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0);
+  // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
+  // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes.
+  function provisions(st, f, members) {
+    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * st.ECON.seedPerField;
+    let have = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
+    for (const h of new Set(members.map((id) => st.pawns[id].household))) {
+      if (have >= need) break;
+      const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
+      const keep = seedReserve(st, hh) + st.pawns[hh.holder].buffer * rationsOf(st, stay);
+      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      if (give > 0) { hh.grain -= give; have += give; }
+    }
+    for (const id of members) st.pawns[id].stake = 0;
+    return have;
+  }
+  // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
+  // meadows, with the grain of `provisions`, the firewood and two days of cooked food of a founders household. The claim on the house and the
+  // old family's birthright are spent.
+  function moveIn(st, f) {
+    if (!valid(st, f)) { ended(st, f); return; }
+    const { moveTo, refreshRoles } = VB['sim/heirs'], holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
+    const members = [holder.id];
+    if (sp !== null && st.pawns[sp].alive) members.push(sp);
+    const from = new Set(members.map((id) => st.pawns[id].household));
+    for (const id of [...members]) for (const c of childrenOf(st, id)) {
+      const q = st.pawns[c];
+      if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
+    }
+    const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
+    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);
+    hh.grain = grain; st.households.push(hh);
+    for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
+    hh.rations = 2 * dailyNeed(st, hh);
+    f.claim = null; f.condition = 1; f.emptySince = null;
+    CL.clearClaims(st, f.house);
+    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));
+    st.demand = st.demand.filter((id) => !members.includes(id));
+    personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`);
+    log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`);
+    refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
+  }
+  return { birthright, birthrightOn, restoreHours, claimable, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim, restored,
+    lapsedFarmClaims, moveIn };
 })();
