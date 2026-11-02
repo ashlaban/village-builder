@@ -1,10 +1,12 @@
 // @sys page/settlement: building the settlement layer: farms, pawns, labels, booths, fences and herd sprites
-  const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => { const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
+  const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => {
+    const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
 
   function clearSettlement() {
     labelsReady = false;
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
-    for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(), ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
+    for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(),
+      ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
     fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
   }
   async function buildSettlement(wd, s) {
@@ -13,7 +15,8 @@
     if (!st) return;
     if (!art) makeArt(wd.R);
     buildFarms(wd);
-    try { await Promise.race([document.fonts.load('italic 700 30px Alegreya'), new Promise((r) => setTimeout(r, 1500))]); } catch (e) { /* the fallback font is fine */ }
+    try { await Promise.race([document.fonts.load('italic 700 30px Alegreya'), new Promise((r) => setTimeout(r, 1500))]);
+      } catch (e) { /* the fallback font is fine */ }
     if (st !== s) return; // another settlement was built while the font loaded
     labelsReady = true; buildLabels(wd);
   }
@@ -27,7 +30,9 @@
     for (const t of L.labels.removeChildren()) t.destroy();
     labels = []; labelSig = labelSigOf();
     const mkLabel = (text, x, y, size) => {
-      const t = new PIXI.Text({ text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: { color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
+      const t = new PIXI.Text({
+        text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: {
+        color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
       t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
     };
     for (const v of st.villages) {
@@ -51,7 +56,8 @@
   }
   // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
   function buildFarms(wd) {
-    for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()]) if (s2 !== ring) s2.destroy({ children: true });
+    for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()]) if (s2 !== ring) s2.destroy({
+      children: true });
     fieldSprites = []; rigs = []; houseInfo = []; fences = []; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
     L.objects.sortableChildren = true;
     for (const f of st.farmsteads) {
@@ -78,7 +84,8 @@
       const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
       if (f.booth) drawBooth(wd, f, empty);
       else {
-        const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95), stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
+        const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95),
+          stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
         for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
         if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
       }
@@ -141,7 +148,8 @@
     if (hd.head) for (const h of hd.head) out.push({ id: h.id, key: h.id * 2 + 1, cow: hash(h.id * 7 + 3) * COATS.length | 0, sc: COW_SCALE[h.kind] });
     else {
       const all = hd.ewes + hd.rams + hd.lambs, n = Math.min(10, all), lambs = all ? Math.round((n * hd.lambs) / all) : 0;
-      for (let k = 0; k < n; k++) out.push({ key: hd.id * 1000 + k * 2, tint: SHEEP_TINT[(hash(hd.id * 31 + k) * SHEEP_TINT.length) | 0], sc: k < n - lambs ? 0.25 : 0.17 });
+      for (let k = 0; k < n;
+        k++) out.push({ key: hd.id * 1000 + k * 2, tint: SHEEP_TINT[(hash(hd.id * 31 + k) * SHEEP_TINT.length) | 0], sc: k < n - lambs ? 0.25 : 0.17 });
     }
     return out;
   }

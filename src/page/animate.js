@@ -12,7 +12,8 @@
       used.add(a.id); for (const h of oxen) teamOut.add(h.id);
       let e = teamDraw.get(a.id);
       if (!e) {
-        e = { oxen: [0, 1].map(() => { const sp = new PIXI.Sprite(art.cow[0][1]); sp.anchor.set(0.5, 0.92); L.objects.addChild(sp); return sp; }), g: new PIXI.Graphics() };
+        e = { oxen: [0, 1].map(() => { const sp = new PIXI.Sprite(art.cow[0][1]); sp.anchor.set(0.5, 0.92); L.objects.addChild(sp); return sp; }),
+          g: new PIXI.Graphics() };
         L.objects.addChild(e.g); teamDraw.set(a.id, e);
       }
       if (milking) { // the cow stands side on just beyond the milker, chewing, head now down, now up

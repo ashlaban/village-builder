@@ -7,7 +7,8 @@
   const nCols = (l) => Math.ceil(w.W / LV[l].size), nRows = (l) => Math.ceil(w.H / LV[l].size);
   function rangeIn(l, r) {
     const s = LV[l].size;
-    return [Math.max(0, Math.floor(r[0] / s)), Math.max(0, Math.floor(r[1] / s)), Math.min(nCols(l) - 1, Math.floor(r[2] / s)), Math.min(nRows(l) - 1, Math.floor(r[3] / s))];
+    return [Math.max(0, Math.floor(r[0] / s)), Math.max(0, Math.floor(r[1] / s)), Math.min(nCols(l) - 1, Math.floor(r[2] / s)),
+      Math.min(nRows(l) - 1, Math.floor(r[3] / s))];
   }
   const TH0 = 0.63, TH1 = 0.22, HY = 1.06;
   function levelFor(z, cur) {

@@ -9,7 +9,8 @@
     g.fillStyle = 'rgba(255,255,255,0.13)'; g.fillRect(x0 + 2, y + 0.8, x1 - x0 - 4, 1.1);
     g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x0 + 1, y + h - 1.4, x1 - x0 - 2, 1.4);
     g.strokeStyle = 'rgba(0,0,0,0.08)'; g.lineWidth = 0.6;
-    for (let k = 0; k < 4; k++) { const x = x0 + 6 + r() * (x1 - x0 - 12); g.beginPath(); g.moveTo(x, y + h * 0.35); g.lineTo(x + 6 + r() * 8, y + h * 0.45); g.stroke(); }
+    for (let k = 0; k < 4; k++) {
+      const x = x0 + 6 + r() * (x1 - x0 - 12); g.beginPath(); g.moveTo(x, y + h * 0.35); g.lineTo(x + 6 + r() * 8, y + h * 0.45); g.stroke(); }
   }
   function logEnds(g, x, y0, n, h, r) {
     for (let k = 0; k < n; k++) {
@@ -19,21 +20,25 @@
     }
   }
   function turf(g, pts, r, dark) {
-    g.fillStyle = dark ? 'rgb(92,104,58)' : 'rgb(104,118,64)'; g.beginPath(); pts.forEach(([x, y], k) => g[k ? 'lineTo' : 'moveTo'](x, y)); g.closePath(); g.fill();
+    g.fillStyle = dark ? 'rgb(92,104,58)' : 'rgb(104,118,64)'; g.beginPath(); pts.forEach(([x, y], k) => g[k ? 'lineTo' : 'moveTo'](x, y)); g.closePath();
+      g.fill();
     g.save(); g.clip();
     for (let k = 0; k < 260; k++) {
       const x = r() * 110, y = r() * 60, l = 2 + r() * 3;
       g.strokeStyle = r() < 0.5 ? 'rgba(70,88,40,0.75)' : 'rgba(150,164,92,0.65)'; g.lineWidth = 0.9;
       g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 1.5, y - l); g.stroke();
     }
-    for (let k = 0; k < 10; k++) { g.fillStyle = ['rgba(240,230,120,0.9)', 'rgba(250,250,240,0.9)', 'rgba(200,120,170,0.8)'][k % 3]; g.beginPath(); g.arc(r() * 100, r() * 40, 0.9, 0, 7); g.fill(); }
+    for (let k = 0; k < 10; k++) {
+      g.fillStyle = ['rgba(240,230,120,0.9)', 'rgba(250,250,240,0.9)', 'rgba(200,120,170,0.8)'][k % 3]; g.beginPath(); g.arc(r() * 100, r() * 40, 0.9, 0, 7);
+      g.fill(); }
     g.restore();
   }
   function stugaCanvas(v) {
     const c = makeCanvas(104, 80), g = c.getContext('2d'), r = G.mulberry32(100 + v);
     const logs = [[132, 108, 84], [120, 100, 80], [138, 116, 90]][v % 3];
     g.fillStyle = 'rgba(20,30,20,0.32)'; g.beginPath(); g.ellipse(54, 73, 48, 7, 0, 0, 7); g.fill();
-    for (let x = 9; x < 94; x += 7 + r() * 3) { g.fillStyle = `rgb(${[130, 128, 122].map((q) => (q * (0.85 + r() * 0.25)) | 0)})`; g.beginPath(); g.ellipse(x, 69, 4.2, 2.6, 0, 0, 7); g.fill(); }
+    for (let x = 9; x < 94; x += 7 + r() * 3) {
+      g.fillStyle = `rgb(${[130, 128, 122].map((q) => (q * (0.85 + r() * 0.25)) | 0)})`; g.beginPath(); g.ellipse(x, 69, 4.2, 2.6, 0, 0, 7); g.fill(); }
     for (let k = 0; k < 6; k++) logCourse(g, 11, 93, 36 + k * 5.3, 5.3, logs, r);
     logEnds(g, 9, 36, 6, 5.3, r); logEnds(g, 95, 36, 6, 5.3, r);
     // low plank door with a heavy frame, and a small wind-eye with a shutter
@@ -46,7 +51,8 @@
     g.fillStyle = 'rgb(226,218,200)'; g.fillRect(3, 37.5, 98, 2.5);
     g.fillStyle = 'rgba(60,50,40,0.6)'; for (let x = 6; x < 100; x += 5 + r() * 4) g.fillRect(x, 38, 2, 0.8);
     g.fillStyle = 'rgb(110,86,60)'; rr(g, 2, 39.5, 100, 3.4, 1.7); g.fill();
-    g.fillStyle = 'rgb(118,92,64)'; g.beginPath(); g.ellipse(14, 13.5, 2.6, 2.4, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(90, 13.5, 2.6, 2.4, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgb(118,92,64)'; g.beginPath(); g.ellipse(14, 13.5, 2.6, 2.4, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(90, 13.5, 2.6, 2.4, 0, 0, 7);
+      g.fill();
     // smoke hole (ljore) near the ridge
     g.fillStyle = 'rgb(96,74,52)'; g.fillRect(62, 8, 10, 7); g.fillStyle = 'rgb(34,28,24)'; g.fillRect(64, 9.5, 6, 3.5);
     return c;
@@ -65,7 +71,9 @@
     g.fillStyle = 'rgb(70,52,36)'; g.fillRect(22, 26, 11, 15); g.fillStyle = 'rgb(50,40,32)'; g.fillRect(31, 33, 1.6, 1.6);
     g.fillStyle = 'rgb(84,76,70)'; g.beginPath(); g.moveTo(0, 24); g.lineTo(56, 24); g.lineTo(47, 4); g.lineTo(9, 4); g.closePath(); g.fill();
     g.strokeStyle = 'rgba(40,34,30,0.55)'; g.lineWidth = 0.8;
-    for (let y = 8; y < 24; y += 3.2) { const k = (y - 4) / 20; g.beginPath(); g.moveTo(9 - 9 * k, y); g.lineTo(47 + 9 * k, y); g.stroke(); for (let x = 10; x < 46; x += 4) { g.beginPath(); g.moveTo(x + (y % 2) * 2, y); g.lineTo(x + (y % 2) * 2, y - 3); g.stroke(); } }
+    for (let y = 8; y < 24; y += 3.2) {
+      const k = (y - 4) / 20; g.beginPath(); g.moveTo(9 - 9 * k, y); g.lineTo(47 + 9 * k, y); g.stroke();
+      for (let x = 10; x < 46; x += 4) { g.beginPath(); g.moveTo(x + (y % 2) * 2, y); g.lineTo(x + (y % 2) * 2, y - 3); g.stroke(); } }
     // steps up to the door
     g.fillStyle = 'rgb(112,88,62)'; g.save(); g.translate(40, 78); g.rotate(-1.25); g.fillRect(0, 0, 38, 3); g.restore();
     return c;
@@ -129,7 +137,9 @@
     const gr = g.createRadialGradient(85, 58, 8, 85, 58, 80);
     gr.addColorStop(0, 'rgba(146,128,96,0.78)'); gr.addColorStop(0.7, 'rgba(146,128,96,0.4)'); gr.addColorStop(1, 'rgba(146,128,96,0)');
     g.fillStyle = gr; g.save(); g.scale(1, 116 / 170); g.beginPath(); g.arc(85, 85, 82, 0, 7); g.fill(); g.restore();
-    for (let k = 0; k < 140; k++) { const a = r() * 6.28, d = Math.sqrt(r()) * 70; g.fillStyle = r() < 0.5 ? 'rgba(110,94,70,0.4)' : 'rgba(120,150,80,0.35)'; g.fillRect(85 + Math.cos(a) * d, 58 + Math.sin(a) * d * 0.68, 1.6, 1.6); }
+    for (let k = 0; k < 140; k++) {
+      const a = r() * 6.28, d = Math.sqrt(r()) * 70; g.fillStyle = r() < 0.5 ? 'rgba(110,94,70,0.4)' : 'rgba(120,150,80,0.35)';
+      g.fillRect(85 + Math.cos(a) * d, 58 + Math.sin(a) * d * 0.68, 1.6, 1.6); }
     return c;
   }
   // Byre (fähus): a low log house with a turf roof and a plank door, smaller than the barn; the animals stand in it from autumn to spring.
@@ -153,9 +163,11 @@
     g.fillStyle = 'rgb(104,80,56)'; g.fillRect(19, level ? 4 : 18, 2, level ? 37 : 23); // the pole
     if (level) {
       const h = [0, 14, 24, 34][level], wdt = [0, 11, 14, 16][level];
-      g.fillStyle = 'rgb(186,170,96)'; g.beginPath(); g.moveTo(20 - wdt, 41); g.quadraticCurveTo(20 - wdt * 0.9, 41 - h * 0.7, 20, 41 - h); g.quadraticCurveTo(20 + wdt * 0.9, 41 - h * 0.7, 20 + wdt, 41); g.fill();
+      g.fillStyle = 'rgb(186,170,96)'; g.beginPath(); g.moveTo(20 - wdt, 41); g.quadraticCurveTo(20 - wdt * 0.9, 41 - h * 0.7, 20, 41 - h);
+        g.quadraticCurveTo(20 + wdt * 0.9, 41 - h * 0.7, 20 + wdt, 41); g.fill();
       g.strokeStyle = 'rgba(140,124,62,0.8)'; g.lineWidth = 0.8;
-      for (let k = 0; k < 14; k++) { const x = 20 + (r() - 0.5) * wdt * 1.6, y = 41 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 3, y + 3); g.stroke(); }
+      for (let k = 0; k < 14; k++) {
+        const x = 20 + (r() - 0.5) * wdt * 1.6, y = 41 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 3, y + 3); g.stroke(); }
       g.fillStyle = 'rgba(255,240,180,0.15)'; g.beginPath(); g.ellipse(16, 41 - h * 0.55, wdt * 0.35, h * 0.25, -0.3, 0, 7); g.fill();
     }
     return c;
@@ -166,9 +178,12 @@
     g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(18, 17.5, wdt + 2, 2.5, 0, 0, 7); g.fill();
     g.fillStyle = 'rgb(74,54,36)'; g.beginPath(); g.moveTo(18 - wdt, 17.5); g.quadraticCurveTo(18 - wdt * 0.6, 17.5 - h * 1.1, 18, 17.5 - h);
     g.quadraticCurveTo(18 + wdt * 0.7, 17.5 - h * 1.05, 18 + wdt, 17.5); g.fill();
-    g.fillStyle = 'rgba(40,28,18,0.6)'; for (let k = 0; k < 6; k++) { g.beginPath(); g.ellipse(18 + (r() - 0.5) * wdt * 1.3, 17 - r() * h * 0.7, 2, 1.2, 0, 0, 7); g.fill(); }
+    g.fillStyle = 'rgba(40,28,18,0.6)';
+      for (let k = 0; k < 6; k++) { g.beginPath(); g.ellipse(18 + (r() - 0.5) * wdt * 1.3, 17 - r() * h * 0.7, 2, 1.2, 0, 0, 7); g.fill(); }
     g.strokeStyle = 'rgba(196,176,110,0.85)'; g.lineWidth = 0.7;
-    for (let k = 0; k < 5 + level * 3; k++) { const x = 18 + (r() - 0.5) * wdt * 1.4, y = 17 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 1 + r() * 2); g.stroke(); }
+    for (let k = 0; k < 5 + level * 3; k++) {
+      const x = 18 + (r() - 0.5) * wdt * 1.4, y = 17 - r() * h * 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 1 + r() * 2); g.stroke();
+      }
     return c;
   }
   // Cattle and sheep, side on, facing right; `look` 0 grazes with the head down, 1 looks up. Coats after old Nordic landraces:
@@ -184,14 +199,17 @@
     g.fillStyle = col(0.5); g.beginPath(); g.ellipse(8, 33, 1.6, 2.4, 0, 0, 7); g.fill();
     g.fillStyle = col(1); rr(g, 11, 13, 41, 17, 8); g.fill(); // body
     const hx = 56, hy = look ? 14 : 31;
-    g.beginPath(); g.moveTo(44, 15); g.quadraticCurveTo(52, look ? 9 : 20, hx - 3, hy - 2); g.lineTo(hx, hy + 4); g.quadraticCurveTo(50, 28, 44, 27); g.fill(); // neck
+    g.beginPath(); g.moveTo(44, 15); g.quadraticCurveTo(52, look ? 9 : 20, hx - 3, hy - 2); g.lineTo(hx, hy + 4); g.quadraticCurveTo(50, 28, 44, 27);
+      g.fill(); // neck
     g.beginPath(); g.ellipse(hx, hy + 2, 5, 4.4, look ? 0.5 : 1.2, 0, 7); g.fill(); // head
     g.fillStyle = col(0.62); g.beginPath(); g.ellipse(hx + (look ? 3.5 : 1.5), hy + (look ? 4.5 : 6), 2.6, 2.2, 0, 0, 7); g.fill(); // muzzle
-    g.fillStyle = 'rgb(232,222,196)'; g.beginPath(); g.moveTo(hx - 2, hy - 2); g.quadraticCurveTo(hx - 4, hy - 7, hx - 1, hy - 8); g.lineTo(hx - 0.5, hy - 2); g.fill(); // horn
+    g.fillStyle = 'rgb(232,222,196)'; g.beginPath(); g.moveTo(hx - 2, hy - 2); g.quadraticCurveTo(hx - 4, hy - 7, hx - 1, hy - 8); g.lineTo(hx - 0.5, hy - 2);
+      g.fill(); // horn
     g.fillStyle = 'rgb(30,26,22)'; g.fillRect(hx + 1, hy, 1.4, 1.4); // eye
     if (COATS[coat] === 'pied') {
       g.save(); rr(g, 11, 13, 41, 17, 8); g.clip();
-      g.fillStyle = 'rgb(64,52,44)'; for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(15 + r() * 32, 15 + r() * 12, 4 + r() * 5, 3 + r() * 3, r() * 3, 0, 7); g.fill(); }
+      g.fillStyle = 'rgb(64,52,44)';
+        for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(15 + r() * 32, 15 + r() * 12, 4 + r() * 5, 3 + r() * 3, r() * 3, 0, 7); g.fill(); }
       g.restore();
     }
     g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(13, 26, 37, 3); // belly shade
@@ -227,7 +245,9 @@
         g.moveTo(x, y - 0.2).lineTo(x + ux * run, y + uy * run - 4.6);
       }
       g.stroke({ width: 0.85, color: 0x9a8c78, alpha: 0.95 });
-      if (broken) { for (let k = 0; k < 2; k++) { const t0 = r(), x = e.x1 + dx * t0, y = e.y1 + dy * t0 + 1.5; g.moveTo(x, y).lineTo(x + ux * 6, y + uy * 6 + 0.8); } g.stroke({ width: 0.8, color: 0x8a7c68, alpha: 0.85 }); }
+      if (broken) { for (let k = 0; k < 2; k++) {
+        const t0 = r(), x = e.x1 + dx * t0, y = e.y1 + dy * t0 + 1.5; g.moveTo(x, y).lineTo(x + ux * 6, y + uy * 6 + 0.8);
+        } g.stroke({ width: 0.8, color: 0x8a7c68, alpha: 0.85 }); }
     }
   }
 
