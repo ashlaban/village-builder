@@ -10,6 +10,23 @@ Answered by Kim in the session of 2 November.
 1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
    **A (Kim, 2 Nov):** after the page split (VB-053), the foundations first (VB-072 to VB-076), then the growth path; VB-127 yes; VB-129 closed; the tuned-value blocks to be gone through one by one.
 
+## Stability review: the tuned values (raised 1 November 2026)
+The stability review (`docs/review-stability.md`) built Kim's decisions of 1 November in VB-151 to VB-154; the values below are in the code as Proposed. Numbers are means over six long runs (populous small, seeds 7 and 42, 60 years; tiny, seeds 3, 7, 11 and 42, 80 years), before and after.
+1. The means to marry. At a year of food the check seldom bound (the moving round falls just after the harvest); at a year and a half, with homes of fewer than two adults exempt, deaths from hunger fell by about 45% against the baseline and women marry 2–3 years later, while households of one fell from 16–24% to 6–9%. **P:** keep `MARRIAGE.means` 1.5 and the exemption.
+   **A (Kim, 2 Nov):** keep (P).
+2. Service for the lone. **P:** keep `SERVICE` (unmarried adults of 18 to 50, from a household that keeps 2 working hands, from the holder's village or one within 15 steps); VB-090 adds the general rule by hands per field later.
+   **A (Kim, 2 Nov):** keep (P).
+3. Farms left empty by the orphan rule. With no landless relative to be guardian, the children go to kin and the farm stands empty (as decided): 11–30 farms over 60 years at tiny seeds 3 and 7, holding 3–6% of the farmable land, against 1–3 before. Nothing takes them up until claims exist, so the land in use rose (25% at year 60 against 21%) although villages lie farther apart. **P:** raise VB-033 (claiming an empty farm) to priority 1; until then, a farm emptied this way goes to the landless adult of its village who has waited longest, as a farm left by a holder who marries away does (VB-153).
+   **A (Kim, 2 Nov):** overtaken: VB-033 (claiming an empty farm) was answered and built on 2 November.
+4. Spacing. The nearest village is 13.5–15.9 steps away in every decade (falling from 14.5 to 7.9 before). **P:** keep `SETTLE.apart` 5, `SETTLE.centreApart` 12 and `FIELDS.room` 6.
+   **A (Kim, 2 Nov):** keep (P).
+5. Late marriage. Almost every woman still marries. **P:** nothing more now; service in other households (VB-090) and courting (VB-036) are where the north-west European pattern of late marriage and celibacy should come from.
+   **A (Kim, 2 Nov):** nothing more now (P).
+6. The design. **P:** record in `design.md` at the next design pass: one map label for a village of two or more farms, and a lone farm's village named for its farm; two people with a place may marry, and the farm left behind is handed on; the means to marry; a guardian for an orphaned heir and a servant for a lone holder; the spacing of new villages and the room of a new farm.
+   **A (Kim, 2 Nov):** done in the review of 2 November (design.md, Households short of people).
+7. Speed. **P:** raise VB-127 (familiarity from talk, at most 150 ties a pawn) to priority 1: the social model is most of a late game day, and ties per pawn grow with the village.
+   **A (Kim, 2 Nov):** priority 2, after the page split and the foundations, with the speed budget VB-088 before it (VB-127 answered the same day).
+
 ## Balance review: the tuned values (raised 1 November 2026)
 The balance review (`docs/review-balance.md`) built milk, manure and oxen and tuned the food balance; the values below are in the code as Proposed. Numbers are from `tools/balance.js` over 4 seeds.
 1. Fields by labour (your rule: no fixed cap). **P:** a household wants fields for 1.1 times its rations at three quarters of the full yield, but no more than 2 a working adult (14 to 59, not retired) and 1.5 more with a team of oxen (`FIELDS` in `src/sim/rules.js`); every scenario makes fields and meadows; heath, hills or marsh only when no meadow is free.
