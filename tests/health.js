@@ -27,7 +27,7 @@ const starve = (p, age, days) => { // hunger 1 every day; the day on which the p
 // risk: below 50 the hazard is multiplied by 1 + (50 - health) / 25
 {
   const rate = (health) => {
-    let s = 4242, n = 0; const st = { t: 0, rand: () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296) };
+    let n = 0; const st = { t: 0, rng: { deaths: VB['sim/rng'].fromState(4242) } };
     for (let i = 0; i < 400000; i++) if (deathRoll(st, { born: -30 * YEAR, hunger: 0, health })) n++;
     return n;
   };

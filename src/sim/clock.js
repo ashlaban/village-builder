@@ -1,5 +1,6 @@
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
@@ -95,11 +96,11 @@ VB['sim/clock'] = (() => {
       }
     }
     for (const s of all) {
-      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + st.rand())); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
+      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
     }
   }
   function newYear(st, c) {
-    st.weather = 0.75 + st.rand() * 0.45;
+    st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
     log(st, `Year ${c.year} begins. The weather ${word}.`);
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);

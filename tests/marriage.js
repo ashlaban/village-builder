@@ -5,7 +5,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/reco
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MARRIAGE FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const roll = (st, f) => { const r = st.rand; st.rand = () => 0; try { f(); } finally { st.rand = r; } }; // every chance comes up
+const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
 // Populous tiny at seed 7, natural deaths off: the holders of the first two households of the first village with an unmarried pair of
 // holders' sexes, each left alone (housemates die) and widowed; every other single adult is kept from marrying (hungry).
 function setUp(grain) {

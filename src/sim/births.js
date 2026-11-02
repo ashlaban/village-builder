@@ -1,5 +1,6 @@
 // @sys sim/births: conception, pregnancy, childbirth and nursing of married women
 VB['sim/births'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { person, personEvent, log, fullName, spouseOf } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
@@ -20,9 +21,9 @@ VB['sim/births'] = (() => {
     const hh = m.household !== null ? st.households[m.household] : null, fatherId = m.pregnantBy, father = st.pawns[fatherId];
     m.pregnantUntil = null; m.pregnantBy = null;
     if (!hh || hh.dissolved) return;
-    const sex = st.rand() < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
-    const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(st.rand() * pool.length) | 0];
-    const id = person({ pawns: st.pawns, rand: st.rand }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
+    const sex = rnd(st.rng.births) < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
+    const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(rnd(st.rng.people) * pool.length) | 0];
+    const id = person({ pawns: st.pawns, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
     p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
     p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
@@ -30,14 +31,14 @@ VB['sim/births'] = (() => {
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
     st.agents.push({
-      id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: st.rand() * 6,
-      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
+      id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
+      ox: (rnd(st.rng.people) - 0.5) * 12, oy: (rnd(st.rng.people) - 0.5) * 8, work: null, idleUntil: 0, talk: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
     log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`);
     refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
-    if (st.rand() < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
+    if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }
   function dailyBirths(st) {
     for (const m of st.pawns) {
@@ -46,7 +47,7 @@ VB['sim/births'] = (() => {
       if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;
       const sp = spouseOf(st, m.id);
       if (sp === null || m.household === null || st.pawns[sp].household !== m.household) continue;
-      if (st.rand() < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
+      if (rnd(st.rng.births) < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
     }
   }
   return { conceiveChance, expectedBirths, dailyBirths };

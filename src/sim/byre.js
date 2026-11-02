@@ -1,5 +1,6 @@
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
@@ -76,7 +77,7 @@ VB['sim/byre'] = (() => {
           else go(a);
         }
       } else if (a.sheep === 'ram' && a.value < 1) go(a);
-      else if (a.sheep === 'ewe' && st.rand() < HERD.oldEwe) go(a, 'an old ewe');
+      else if (a.sheep === 'ewe' && rnd(st.rng.herds) < HERD.oldEwe) go(a, 'an old ewe');
     }
     for (const herd of herdsOf(st, hh)) {
       if (herd.species !== 'sheep') continue;

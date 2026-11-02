@@ -2009,9 +2009,13 @@ VB['sim/rng'] = (() => {
     for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193);
     return fromState(Math.imul(seed | 0, 0x9e3779b1) ^ h);
   }
+  // The systems that draw, one stream each once seeding is over (Kim, 2 Nov: every system has its own source of randomness).
+  const SYSTEMS = ['work', 'fields', 'weather', 'fences', 'births', 'deaths', 'culture', 'people', 'society', 'talk', 'herds', 'settle'];
+  // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
+  const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
   // a draw function over a stream, for code that takes one (Culture, the generators)
   const drawer = (r) => () => next(r);
-  return { next, fromState, makeStream, drawer };
+  return { next, fromState, makeStream, drawer, SYSTEMS, seeding };
 })();
 </script>
 <script>
@@ -2135,7 +2139,7 @@ VB['sim/names'] = (() => {
     return (c && c.namePrefs) || DEFAULT_PREFS;
   };
   // A random stream of its own for a farm named in play (mulberry32 seeded by the house tile), so naming never shifts the simulation's
-  // stream (st.rand) and so its history.
+  // streams (st.rng) and so its history.
   const tileRand = (t) => {
     let a = Math.imul(t + 1, 0x9e3779b1) >>> 0;
     return () => {
@@ -2838,6 +2842,7 @@ VB['sim/records'] = (() => {
 // @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
 // people a pawn knows
 VB['sim/relations'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
   const M = SOCIAL.memories;
@@ -2948,7 +2953,7 @@ VB['sim/relations'] = (() => {
     }
     const draws = n <= T.sample + 1 ? n : T.sample;
     for (let d = 0; d < draws; d++) {
-      let k = draws === n ? d : Math.floor(st.rand() * n), b = null;
+      let k = draws === n ? d : Math.floor(rnd(st.rng.talk) * n), b = null;
       for (const l of lists) { if (k < l.length) { b = near.out[l[k]]; break; } k -= l.length; }
       if (seen[b.id] === look) continue;
       seen[b.id] = look;
@@ -2962,12 +2967,12 @@ VB['sim/relations'] = (() => {
   const cand = [], wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
-    const ag = st.agents, n = ag.length, start = Math.floor(st.rand() * n);
+    const ag = st.agents, n = ag.length, start = Math.floor(rnd(st.rng.talk) * n);
     if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
     round++;
     for (let k = 0; k < n; k++) {
       const a = ag[(start + k) % n];
-      if (busy[a.id] === round || !able(st, a) || st.rand() >= T.chance) continue;
+      if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
       partnersOf(st, a, near);
@@ -2976,7 +2981,7 @@ VB['sim/relations'] = (() => {
         const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
-      let x = st.rand() * tot, i = 0;
+      let x = rnd(st.rng.talk) * tot, i = 0;
       while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
       busy[a.id] = round; busy[cand[i].id] = round;
       talk(st, a, cand[i]);
@@ -2987,10 +2992,10 @@ VB['sim/relations'] = (() => {
   function talk(st, a, b) {
     const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
     const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
-    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = st.rand() * (1 + wg + wc);
+    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = rnd(st.rng.talk) * (1 + wg + wc);
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     remember(st, i, j, kind); remember(st, j, i, kind);
-    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + st.rand() * T.bubbleHours, until = at + T.bubbleHours;
+    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
     pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
@@ -3022,18 +3027,18 @@ VB['sim/relations'] = (() => {
   // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
   // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
   function companyFor(st, a) {
-    if (st.rand() >= SOCIAL.seek) return null;
+    if (rnd(st.rng.talk) >= SOCIAL.seek) return null;
     const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
     if (!list || !list.length) return null;
     let tot = 0; cand.length = 0; wts.length = 0;
     for (let k = 0; k < SOCIAL.seekSample; k++) {
-      const b = list[Math.floor(st.rand() * list.length)];
+      const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;
       const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
       if (w > 0) { cand.push(b); wts.push(w); tot += w; }
     }
     if (!cand.length) return null;
-    let x = st.rand() * tot, i = 0;
+    let x = rnd(st.rng.talk) * tot, i = 0;
     while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
     return cand[i];
   }
@@ -3524,6 +3529,7 @@ VB['sim/forest'] = (() => {
 <script>
 // @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, the herds of each scenario, handing on
 VB['sim/herds'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, YEAR, HERD } = VB['sim/rules'];
   const { log } = VB['sim/records'];
@@ -3581,7 +3587,7 @@ VB['sim/herds'] = (() => {
     const villageOf = (hd) => st.farmsteads[st.households[hd.household].farmstead].village;
     for (const hd of st.herds) if (hd.head && hd.household !== null && villageOf(hd) === v) for (const h of hd.head) taken.add(h.name);
     const list = sex === 'f' ? COWS : BULLS, free = list.filter((n) => !taken.has(n));
-    const pool = free.length ? free : list, name = pool[(st.rand() * pool.length) | 0];
+    const pool = free.length ? free : list, name = pool[(rnd(st.rng.herds) * pool.length) | 0];
     const h = { id: st.headSeq++, name, sex, born, kind };
     herd.head.push(h);
     return h;
@@ -3601,7 +3607,7 @@ VB['sim/herds'] = (() => {
   }
   const ramNear = (st, house) => st.herds.some((hd) => hd.species === 'sheep' && hd.household !== null && hd.rams > 0
     && hexSteps(st.w, house, houseOf(st, hd)) <= HERD.reach);
-  const binom = (st, n, p) => { let k = 0; for (let i = 0; i < n; i++) if (st.rand() < p) k++; return k; };
+  const binom = (st, n, p) => { let k = 0; for (let i = 0; i < n; i++) if (rnd(st.rng.herds) < p) k++; return k; };
 
   // ---- spring: the animals age, the old and some others die, then cows calve and ewes lamb ----
   function ageCattle(st, herd) {
@@ -3625,7 +3631,7 @@ VB['sim/herds'] = (() => {
       if (herd.species === 'cattle') {
         ageCattle(st, herd);
         herd.head = herd.head.filter((h) => {
-          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && st.rand() < HERD.death.cattle);
+          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
           if (gone) note(herd).died.push(h.name);
           return !gone;
         });
@@ -3647,10 +3653,10 @@ VB['sim/herds'] = (() => {
         if (!bull) continue;
         let calves = 0;
         for (const cow of herd.head.filter((h) => h.kind === 'cow')) {
-          if (st.rand() >= HERD.calve) continue;
+          if (rnd(st.rng.herds) >= HERD.calve) continue;
           cow.calved = Math.floor(st.t / YEAR) + 1; // in milk this summer, whether or not the calf lives (VB-135)
-          const sex = st.rand() < 0.5 ? 'f' : 'm';
-          if (st.rand() < HERD.calfDeath) continue;
+          const sex = rnd(st.rng.herds) < 0.5 ? 'f' : 'm';
+          if (rnd(st.rng.herds) < HERD.calfDeath) continue;
           addHead(st, herd, sex, st.t, 'calf'); calves++;
         }
         if (!calves) continue;
@@ -3664,9 +3670,9 @@ VB['sim/herds'] = (() => {
         if (!herd.ewes || !(herd.rams > 0 || ramNear(st, house))) continue;
         let lambs = 0;
         for (let e = 0; e < herd.ewes; e++) {
-          if (st.rand() >= HERD.lamb) continue;
-          const n = st.rand() < HERD.twins ? 2 : 1;
-          for (let k = 0; k < n; k++) if (st.rand() >= HERD.lambDeath) lambs++;
+          if (rnd(st.rng.herds) >= HERD.lamb) continue;
+          const n = rnd(st.rng.herds) < HERD.twins ? 2 : 1;
+          for (let k = 0; k < n; k++) if (rnd(st.rng.herds) >= HERD.lambDeath) lambs++;
         }
         herd.lambs += lambs; note(herd).lambs += lambs;
       }
@@ -3696,7 +3702,7 @@ VB['sim/herds'] = (() => {
     const keep = hhs.filter((h) => !lone(h)).slice(0, 3);
     keep.forEach((hh, k) => {
       const cattle = makeHerd(st, hh, 'cattle');
-      for (let c = 0; c < 2; c++) addHead(st, cattle, 'f', bornAgo(4 + ((st.rand() * 5) | 0)), 'cow');
+      for (let c = 0; c < 2; c++) addHead(st, cattle, 'f', bornAgo(4 + ((rnd(st.rng.herds) * 5) | 0)), 'cow');
       if (k === 0) { addHead(st, cattle, 'm', bornAgo(4), 'bull'); addHead(st, cattle, 'm', bornAgo(5), 'ox'); addHead(st, cattle, 'm', bornAgo(6), 'ox'); }
       if (k < 2) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4; sheep.rams = k === 0 ? 1 : 0; }
     });
@@ -3709,23 +3715,24 @@ VB['sim/herds'] = (() => {
       const hhs = v.farmsteads.map((id) => st.farmsteads[id]).filter((f) => f.household !== null).map((f) => st.households[f.household]);
       for (const hh of hhs) {
         const n = hh.members.length;
-        if (st.rand() < 0.75) {
+        if (rnd(st.rng.herds) < 0.75) {
           const cattle = makeHerd(st, hh, 'cattle'), cows = n <= 5 ? 2 : n <= 7 ? 3 : 4;
-          for (let c = 0; c < cows; c++) addHead(st, cattle, 'f', bornAgo(3 + ((st.rand() * 8) | 0)), 'cow');
-          if (st.rand() < 0.5) addHead(st, cattle, 'f', bornAgo(1 + ((st.rand() * 2) | 0)), 'heifer');
+          for (let c = 0; c < cows; c++) addHead(st, cattle, 'f', bornAgo(3 + ((rnd(st.rng.herds) * 8) | 0)), 'cow');
+          if (rnd(st.rng.herds) < 0.5) addHead(st, cattle, 'f', bornAgo(1 + ((rnd(st.rng.herds) * 2) | 0)), 'heifer');
         }
-        if (st.rand() < 0.5) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4 + ((st.rand() * 5) | 0); }
+        if (rnd(st.rng.herds) < 0.5) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4 + ((rnd(st.rng.herds) * 5) | 0); }
       }
       const most = (species, size) => hhs.map((hh) => herdOf(st, hh, species)).filter(Boolean).sort((a, b) => size(b) - size(a) || a.id - b.id)[0];
       const cows = (hd) => hd.head.filter((h) => h.kind === 'cow').length;
       const bullHerd = most('cattle', cows);
-      if (bullHerd) addHead(st, bullHerd, 'm', bornAgo(3 + ((st.rand() * 5) | 0)), 'bull'); // at most 4 cows and a heifer: the byre has room
+      if (bullHerd) addHead(st, bullHerd, 'm', bornAgo(3 + ((rnd(st.rng.herds) * 5) | 0)), 'bull'); // at most 4 cows and a heifer: the byre has room
       const ramHerd = most('sheep', (hd) => hd.ewes);
       if (ramHerd) ramHerd.rams = 1;
       for (const hh of hhs) {
         const cattle = herdOf(st, hh, 'cattle');
         if (cattle && cows(cattle) >= 3 && byreRoom(cattle) + 2 <= HERD.byre) {
-          addHead(st, cattle, 'm', bornAgo(4 + ((st.rand() * 4) | 0)), 'ox'); addHead(st, cattle, 'm', bornAgo(4 + ((st.rand() * 4) | 0)), 'ox');
+          addHead(st, cattle, 'm', bornAgo(4 + ((rnd(st.rng.herds) * 4) | 0)), 'ox');
+            addHead(st, cattle, 'm', bornAgo(4 + ((rnd(st.rng.herds) * 4) | 0)), 'ox');
         }
       }
     }
@@ -3964,6 +3971,7 @@ VB['sim/help'] = (() => {
 <script>
 // @sys sim/deaths: causes of death, with their texts, and the daily death roll
 VB['sim/deaths'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
@@ -3980,7 +3988,7 @@ VB['sim/deaths'] = (() => {
   const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
   // One pawn's death roll for the day: null or a cause key; a roll that falls in the share added by hunger is 'hunger'. One random draw.
   function deathRoll(st, p) {
-    const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = st.rand();
+    const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = rnd(st.rng.deaths);
     if (p.health <= 0) return 'starvation';
     const frail = p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1;
     if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger) * frail) return null;
@@ -4096,6 +4104,7 @@ VB['sim/fields'] = (() => {
 <script>
 // @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project, and the meadows of generated farms
 VB['sim/meadows'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
@@ -4199,7 +4208,7 @@ VB['sim/meadows'] = (() => {
   // Mown: the meadow holds its year's hay, by site, weather and raking.
   function mowDone(st, m, c) {
     m.stage = 'mown'; m.mown = c.day;
-    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + st.rand() * 0.2));
+    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
   function hayIn(st, m, hh, f) {
@@ -4227,6 +4236,7 @@ VB['sim/meadows'] = (() => {
 <script>
 // @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
 VB['sim/byre'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
@@ -4303,7 +4313,7 @@ VB['sim/byre'] = (() => {
           else go(a);
         }
       } else if (a.sheep === 'ram' && a.value < 1) go(a);
-      else if (a.sheep === 'ewe' && st.rand() < HERD.oldEwe) go(a, 'an old ewe');
+      else if (a.sheep === 'ewe' && rnd(st.rng.herds) < HERD.oldEwe) go(a, 'an old ewe');
     }
     for (const herd of herdsOf(st, hh)) {
       if (herd.species !== 'sheep') continue;
@@ -4838,6 +4848,7 @@ VB['sim/farmclaims'] = (() => {
 <script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { ROLES, cal } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -4899,7 +4910,7 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON, fd = j.field;
         fd.stage = 'stooks'; fd.reaped = c.day;
-        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + st.rand() * 0.2)
+        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
           * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
         wearSoil(fd); // the crop takes from the soil (VB-137)
         fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
@@ -5045,6 +5056,7 @@ VB['sim/kinds'] = (() => {
 <script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
@@ -5130,13 +5142,13 @@ VB['sim/agents'] = (() => {
   function idleAbout(st, a) {
     // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
     const mate = st.cenv ? companyFor(st, a) : null;
-    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (st.rand() - 0.5) * 16, mate.y + (st.rand() - 0.5) * 8);
+    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
     else {
       const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-      const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
-      walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+      const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
+      walkTo(st, a, spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
     }
-    a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
+    a.idleUntil = st.t + 0.75 + rnd(st.rng.work) * 1.25;
   }
   function arrived(st, a) {
     a.anim = 'idle';
@@ -5231,6 +5243,7 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
@@ -5347,7 +5360,7 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (!isOpen(j) || !mayTake(st, p, j)) return -1;
     const s = score(st, p, j, c);
-    return s === null ? -1 : (s + st.rand() * MATCH.noise) * MATCH.join ** j.claims.length;
+    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
@@ -5849,7 +5862,7 @@ VB['sim/cottage'] = (() => {
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
-  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rand.
+  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
   const farmName = (st, v, f, owner = null) => names.farmName({ w: st.w, f, village: v, owner },
     new Set(v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id].name)), names.tileRand(f.house), names.prefsOf(st, v.id).farm);
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
@@ -5911,6 +5924,7 @@ VB['sim/cottage'] = (() => {
 <script>
 // @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns
 VB['sim/society'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
@@ -5940,7 +5954,7 @@ VB['sim/society'] = (() => {
     for (const p of st.pawns) {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
-      p.att = Culture.seedAttitude(customs, st.rand, 0.6, lean); p.anc = Float32Array.from(p.att);
+      p.att = Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean); p.anc = Float32Array.from(p.att);
       p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     }
     // starting ties: household, kin, and a few neighbours
@@ -6081,6 +6095,7 @@ VB['sim/society'] = (() => {
 <script>
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
   const { seedReserve } = VB['sim/hunger'];
@@ -6130,7 +6145,7 @@ VB['sim/settle'] = (() => {
     for (const id of siblingsOf(st, p.id)) {
       if (followers.length >= SETTLE.maxFollow) break;
       if (!st.pawns[id].alive || taken.has(id) || !waiting.includes(id) || spouseOf(st, id) !== null || guardian(st, id)) continue;
-      if (st.rand() < SETTLE.follow) followers.push(id);
+      if (rnd(st.rng.settle) < SETTLE.follow) followers.push(id);
     }
     all.push(...followers);
     for (const id of [...all]) for (const c of childrenOf(st, id)) {
@@ -6214,7 +6229,7 @@ VB['sim/settle'] = (() => {
     return best;
   }
   // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
-  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), st.rand);
+  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), drawer(st.rng.settle));
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
@@ -6283,7 +6298,7 @@ VB['sim/settle'] = (() => {
       for (const id of ids) {
         const p = st.pawns[id];
         if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
-        if (st.rand() >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
+        if (rnd(st.rng.settle) >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
         const party = partyOf(st, p, ids, taken), prov = provisions(st, party.all);
         if (!prov) { log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`); continue; }
         if (!use) use = landInUse(st);
@@ -6316,6 +6331,7 @@ VB['sim/settle'] = (() => {
 <script>
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
@@ -6357,7 +6373,7 @@ VB['sim/lifecycle'] = (() => {
   function holdMeetings(st) {
     const env = st.cenv; env.t = st.t / YEAR;
     refreshRoles(st); refreshPrestige(st); refreshInterests(st); updateTies(st);
-    const starters = Culture.entrepreneurs(env, st.rand);
+    const starters = Culture.entrepreneurs(env, drawer(st.rng.culture));
     for (const p of starters) {
       personEvent(st, p.id, 'cause',
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
@@ -6484,10 +6500,10 @@ VB['sim/lifecycle'] = (() => {
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
         const gw = widowed.has(m.id) || widowed.has(f.id) ? MARRIAGE.widowedGapWeight : MARRIAGE.gapWeight;
         const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * gw
-          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
+          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + rnd(st.rng.society) * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }
-      if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
+      if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
@@ -6547,7 +6563,7 @@ VB['sim/lifecycle'] = (() => {
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
-    Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
+    Culture.dailyStep(env, 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
@@ -6556,6 +6572,7 @@ VB['sim/lifecycle'] = (() => {
 <script>
 // @sys sim/births: conception, pregnancy, childbirth and nursing of married women
 VB['sim/births'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { person, personEvent, log, fullName, spouseOf } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
@@ -6576,9 +6593,9 @@ VB['sim/births'] = (() => {
     const hh = m.household !== null ? st.households[m.household] : null, fatherId = m.pregnantBy, father = st.pawns[fatherId];
     m.pregnantUntil = null; m.pregnantBy = null;
     if (!hh || hh.dissolved) return;
-    const sex = st.rand() < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
-    const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(st.rand() * pool.length) | 0];
-    const id = person({ pawns: st.pawns, rand: st.rand }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
+    const sex = rnd(st.rng.births) < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
+    const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(rnd(st.rng.people) * pool.length) | 0];
+    const id = person({ pawns: st.pawns, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
     p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
     p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
@@ -6586,14 +6603,14 @@ VB['sim/births'] = (() => {
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
     st.agents.push({
-      id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: st.rand() * 6,
-      ox: (st.rand() - 0.5) * 12, oy: (st.rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
+      id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
+      ox: (rnd(st.rng.people) - 0.5) * 12, oy: (rnd(st.rng.people) - 0.5) * 8, work: null, idleUntil: 0, talk: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
     log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`);
     refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
-    if (st.rand() < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
+    if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }
   function dailyBirths(st) {
     for (const m of st.pawns) {
@@ -6602,7 +6619,7 @@ VB['sim/births'] = (() => {
       if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;
       const sp = spouseOf(st, m.id);
       if (sp === null || m.household === null || st.pawns[sp].household !== m.household) continue;
-      if (st.rand() < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
+      if (rnd(st.rng.births) < conceiveChance(m.age) * (1 - m.hunger)) { m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY; m.pregnantBy = sp; }
     }
   }
   return { conceiveChance, expectedBirths, dailyBirths };
@@ -6665,7 +6682,7 @@ VB['sim/people'] = (() => {
 // @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
-  const { fromState, drawer } = VB['sim/rng'];
+  const { fromState, drawer, seeding } = VB['sim/rng'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -6816,10 +6833,11 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
-    const rand = drawer(S); // the scenario's one seeding stream; it goes on as st.rand until VB-072's split
+    const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
-    // @state st.rng: {seed: {s}}; random streams as plain data (sim/rng). st.rand: function; draws from st.rng.seed, 0..1.
+    // @state st.rng: {seed, work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: random streams
+    //   as plain data, each {s} (sim/rng); every call site names its system's stream. While seeding, all are the one seeding stream.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
@@ -6886,7 +6904,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, rand, rng: { seed: S }, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
@@ -6917,6 +6935,7 @@ VB['sim/scenarios'] = (() => {
 <script>
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
   const { log, age } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
@@ -7012,11 +7031,11 @@ VB['sim/clock'] = (() => {
       }
     }
     for (const s of all) {
-      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + st.rand())); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
+      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
     }
   }
   function newYear(st, c) {
-    st.weather = 0.75 + st.rand() * 0.45;
+    st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
     log(st, `Year ${c.year} begins. The weather ${word}.`);
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);

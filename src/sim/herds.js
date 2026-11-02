@@ -1,5 +1,6 @@
 // @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, the herds of each scenario, handing on
 VB['sim/herds'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, YEAR, HERD } = VB['sim/rules'];
   const { log } = VB['sim/records'];
@@ -57,7 +58,7 @@ VB['sim/herds'] = (() => {
     const villageOf = (hd) => st.farmsteads[st.households[hd.household].farmstead].village;
     for (const hd of st.herds) if (hd.head && hd.household !== null && villageOf(hd) === v) for (const h of hd.head) taken.add(h.name);
     const list = sex === 'f' ? COWS : BULLS, free = list.filter((n) => !taken.has(n));
-    const pool = free.length ? free : list, name = pool[(st.rand() * pool.length) | 0];
+    const pool = free.length ? free : list, name = pool[(rnd(st.rng.herds) * pool.length) | 0];
     const h = { id: st.headSeq++, name, sex, born, kind };
     herd.head.push(h);
     return h;
@@ -77,7 +78,7 @@ VB['sim/herds'] = (() => {
   }
   const ramNear = (st, house) => st.herds.some((hd) => hd.species === 'sheep' && hd.household !== null && hd.rams > 0
     && hexSteps(st.w, house, houseOf(st, hd)) <= HERD.reach);
-  const binom = (st, n, p) => { let k = 0; for (let i = 0; i < n; i++) if (st.rand() < p) k++; return k; };
+  const binom = (st, n, p) => { let k = 0; for (let i = 0; i < n; i++) if (rnd(st.rng.herds) < p) k++; return k; };
 
   // ---- spring: the animals age, the old and some others die, then cows calve and ewes lamb ----
   function ageCattle(st, herd) {
@@ -101,7 +102,7 @@ VB['sim/herds'] = (() => {
       if (herd.species === 'cattle') {
         ageCattle(st, herd);
         herd.head = herd.head.filter((h) => {
-          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && st.rand() < HERD.death.cattle);
+          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
           if (gone) note(herd).died.push(h.name);
           return !gone;
         });
@@ -123,10 +124,10 @@ VB['sim/herds'] = (() => {
         if (!bull) continue;
         let calves = 0;
         for (const cow of herd.head.filter((h) => h.kind === 'cow')) {
-          if (st.rand() >= HERD.calve) continue;
+          if (rnd(st.rng.herds) >= HERD.calve) continue;
           cow.calved = Math.floor(st.t / YEAR) + 1; // in milk this summer, whether or not the calf lives (VB-135)
-          const sex = st.rand() < 0.5 ? 'f' : 'm';
-          if (st.rand() < HERD.calfDeath) continue;
+          const sex = rnd(st.rng.herds) < 0.5 ? 'f' : 'm';
+          if (rnd(st.rng.herds) < HERD.calfDeath) continue;
           addHead(st, herd, sex, st.t, 'calf'); calves++;
         }
         if (!calves) continue;
@@ -140,9 +141,9 @@ VB['sim/herds'] = (() => {
         if (!herd.ewes || !(herd.rams > 0 || ramNear(st, house))) continue;
         let lambs = 0;
         for (let e = 0; e < herd.ewes; e++) {
-          if (st.rand() >= HERD.lamb) continue;
-          const n = st.rand() < HERD.twins ? 2 : 1;
-          for (let k = 0; k < n; k++) if (st.rand() >= HERD.lambDeath) lambs++;
+          if (rnd(st.rng.herds) >= HERD.lamb) continue;
+          const n = rnd(st.rng.herds) < HERD.twins ? 2 : 1;
+          for (let k = 0; k < n; k++) if (rnd(st.rng.herds) >= HERD.lambDeath) lambs++;
         }
         herd.lambs += lambs; note(herd).lambs += lambs;
       }
@@ -172,7 +173,7 @@ VB['sim/herds'] = (() => {
     const keep = hhs.filter((h) => !lone(h)).slice(0, 3);
     keep.forEach((hh, k) => {
       const cattle = makeHerd(st, hh, 'cattle');
-      for (let c = 0; c < 2; c++) addHead(st, cattle, 'f', bornAgo(4 + ((st.rand() * 5) | 0)), 'cow');
+      for (let c = 0; c < 2; c++) addHead(st, cattle, 'f', bornAgo(4 + ((rnd(st.rng.herds) * 5) | 0)), 'cow');
       if (k === 0) { addHead(st, cattle, 'm', bornAgo(4), 'bull'); addHead(st, cattle, 'm', bornAgo(5), 'ox'); addHead(st, cattle, 'm', bornAgo(6), 'ox'); }
       if (k < 2) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4; sheep.rams = k === 0 ? 1 : 0; }
     });
@@ -185,23 +186,24 @@ VB['sim/herds'] = (() => {
       const hhs = v.farmsteads.map((id) => st.farmsteads[id]).filter((f) => f.household !== null).map((f) => st.households[f.household]);
       for (const hh of hhs) {
         const n = hh.members.length;
-        if (st.rand() < 0.75) {
+        if (rnd(st.rng.herds) < 0.75) {
           const cattle = makeHerd(st, hh, 'cattle'), cows = n <= 5 ? 2 : n <= 7 ? 3 : 4;
-          for (let c = 0; c < cows; c++) addHead(st, cattle, 'f', bornAgo(3 + ((st.rand() * 8) | 0)), 'cow');
-          if (st.rand() < 0.5) addHead(st, cattle, 'f', bornAgo(1 + ((st.rand() * 2) | 0)), 'heifer');
+          for (let c = 0; c < cows; c++) addHead(st, cattle, 'f', bornAgo(3 + ((rnd(st.rng.herds) * 8) | 0)), 'cow');
+          if (rnd(st.rng.herds) < 0.5) addHead(st, cattle, 'f', bornAgo(1 + ((rnd(st.rng.herds) * 2) | 0)), 'heifer');
         }
-        if (st.rand() < 0.5) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4 + ((st.rand() * 5) | 0); }
+        if (rnd(st.rng.herds) < 0.5) { const sheep = makeHerd(st, hh, 'sheep'); sheep.ewes = 4 + ((rnd(st.rng.herds) * 5) | 0); }
       }
       const most = (species, size) => hhs.map((hh) => herdOf(st, hh, species)).filter(Boolean).sort((a, b) => size(b) - size(a) || a.id - b.id)[0];
       const cows = (hd) => hd.head.filter((h) => h.kind === 'cow').length;
       const bullHerd = most('cattle', cows);
-      if (bullHerd) addHead(st, bullHerd, 'm', bornAgo(3 + ((st.rand() * 5) | 0)), 'bull'); // at most 4 cows and a heifer: the byre has room
+      if (bullHerd) addHead(st, bullHerd, 'm', bornAgo(3 + ((rnd(st.rng.herds) * 5) | 0)), 'bull'); // at most 4 cows and a heifer: the byre has room
       const ramHerd = most('sheep', (hd) => hd.ewes);
       if (ramHerd) ramHerd.rams = 1;
       for (const hh of hhs) {
         const cattle = herdOf(st, hh, 'cattle');
         if (cattle && cows(cattle) >= 3 && byreRoom(cattle) + 2 <= HERD.byre) {
-          addHead(st, cattle, 'm', bornAgo(4 + ((st.rand() * 4) | 0)), 'ox'); addHead(st, cattle, 'm', bornAgo(4 + ((st.rand() * 4) | 0)), 'ox');
+          addHead(st, cattle, 'm', bornAgo(4 + ((rnd(st.rng.herds) * 4) | 0)), 'ox');
+            addHead(st, cattle, 'm', bornAgo(4 + ((rnd(st.rng.herds) * 4) | 0)), 'ox');
         }
       }
     }

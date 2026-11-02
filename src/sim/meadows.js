@@ -1,5 +1,6 @@
 // @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project, and the meadows of generated farms
 VB['sim/meadows'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
@@ -103,7 +104,7 @@ VB['sim/meadows'] = (() => {
   // Mown: the meadow holds its year's hay, by site, weather and raking.
   function mowDone(st, m, c) {
     m.stage = 'mown'; m.mown = c.day;
-    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + st.rand() * 0.2));
+    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
   function hayIn(st, m, hh, f) {

@@ -17,7 +17,11 @@ VB['sim/rng'] = (() => {
     for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193);
     return fromState(Math.imul(seed | 0, 0x9e3779b1) ^ h);
   }
+  // The systems that draw, one stream each once seeding is over (Kim, 2 Nov: every system has its own source of randomness).
+  const SYSTEMS = ['work', 'fields', 'weather', 'fences', 'births', 'deaths', 'culture', 'people', 'society', 'talk', 'herds', 'settle'];
+  // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
+  const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
   // a draw function over a stream, for code that takes one (Culture, the generators)
   const drawer = (r) => () => next(r);
-  return { next, fromState, makeStream, drawer };
+  return { next, fromState, makeStream, drawer, SYSTEMS, seeding };
 })();

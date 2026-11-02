@@ -1,5 +1,6 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
@@ -85,13 +86,13 @@ VB['sim/agents'] = (() => {
   function idleAbout(st, a) {
     // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
     const mate = st.cenv ? companyFor(st, a) : null;
-    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (st.rand() - 0.5) * 16, mate.y + (st.rand() - 0.5) * 8);
+    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
     else {
       const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-      const v = st.villages[f.village], spot = v.green && st.rand() < 0.5 ? v.center : f.house;
-      walkTo(st, a, spot, st.w.hx[spot] + (st.rand() - 0.5) * 26, st.w.hy[spot] + 6 + (st.rand() - 0.5) * 12);
+      const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
+      walkTo(st, a, spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
     }
-    a.idleUntil = st.t + 0.75 + st.rand() * 1.25;
+    a.idleUntil = st.t + 0.75 + rnd(st.rng.work) * 1.25;
   }
   function arrived(st, a) {
     a.anim = 'idle';

@@ -1,6 +1,7 @@
 // @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
 // people a pawn knows
 VB['sim/relations'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
   const M = SOCIAL.memories;
@@ -111,7 +112,7 @@ VB['sim/relations'] = (() => {
     }
     const draws = n <= T.sample + 1 ? n : T.sample;
     for (let d = 0; d < draws; d++) {
-      let k = draws === n ? d : Math.floor(st.rand() * n), b = null;
+      let k = draws === n ? d : Math.floor(rnd(st.rng.talk) * n), b = null;
       for (const l of lists) { if (k < l.length) { b = near.out[l[k]]; break; } k -= l.length; }
       if (seen[b.id] === look) continue;
       seen[b.id] = look;
@@ -125,12 +126,12 @@ VB['sim/relations'] = (() => {
   const cand = [], wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
-    const ag = st.agents, n = ag.length, start = Math.floor(st.rand() * n);
+    const ag = st.agents, n = ag.length, start = Math.floor(rnd(st.rng.talk) * n);
     if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
     round++;
     for (let k = 0; k < n; k++) {
       const a = ag[(start + k) % n];
-      if (busy[a.id] === round || !able(st, a) || st.rand() >= T.chance) continue;
+      if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
       partnersOf(st, a, near);
@@ -139,7 +140,7 @@ VB['sim/relations'] = (() => {
         const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
-      let x = st.rand() * tot, i = 0;
+      let x = rnd(st.rng.talk) * tot, i = 0;
       while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
       busy[a.id] = round; busy[cand[i].id] = round;
       talk(st, a, cand[i]);
@@ -150,10 +151,10 @@ VB['sim/relations'] = (() => {
   function talk(st, a, b) {
     const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
     const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
-    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = st.rand() * (1 + wg + wc);
+    const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = rnd(st.rng.talk) * (1 + wg + wc);
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     remember(st, i, j, kind); remember(st, j, i, kind);
-    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + st.rand() * T.bubbleHours, until = at + T.bubbleHours;
+    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
     pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
@@ -185,18 +186,18 @@ VB['sim/relations'] = (() => {
   // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
   // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
   function companyFor(st, a) {
-    if (st.rand() >= SOCIAL.seek) return null;
+    if (rnd(st.rng.talk) >= SOCIAL.seek) return null;
     const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
     if (!list || !list.length) return null;
     let tot = 0; cand.length = 0; wts.length = 0;
     for (let k = 0; k < SOCIAL.seekSample; k++) {
-      const b = list[Math.floor(st.rand() * list.length)];
+      const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;
       const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
       if (w > 0) { cand.push(b); wts.push(w); tot += w; }
     }
     if (!cand.length) return null;
-    let x = st.rand() * tot, i = 0;
+    let x = rnd(st.rng.talk) * tot, i = 0;
     while (i < cand.length - 1 && (x -= wts[i]) > 0) i++;
     return cand[i];
   }

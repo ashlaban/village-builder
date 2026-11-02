@@ -58,7 +58,7 @@ VB['sim/names'] = (() => {
     return (c && c.namePrefs) || DEFAULT_PREFS;
   };
   // A random stream of its own for a farm named in play (mulberry32 seeded by the house tile), so naming never shifts the simulation's
-  // stream (st.rand) and so its history.
+  // streams (st.rng) and so its history.
   const tileRand = (t) => {
     let a = Math.imul(t + 1, 0x9e3779b1) >>> 0;
     return () => {

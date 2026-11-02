@@ -1,5 +1,6 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
@@ -116,7 +117,7 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (!isOpen(j) || !mayTake(st, p, j)) return -1;
     const s = score(st, p, j, c);
-    return s === null ? -1 : (s + st.rand() * MATCH.noise) * MATCH.join ** j.claims.length;
+    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
