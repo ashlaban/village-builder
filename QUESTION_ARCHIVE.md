@@ -10,6 +10,26 @@ Answered by Kim in the session of 2 November.
 1. Which to answer first? **P:** VB-127 (talk is 37% of a game day; ties from talk, capped at 150 a pawn, is the fix); then VB-129 (close it, which unblocks the speed budget VB-088); then the tuned values of moving to new land, balance and stability, which are all "keep" (one "P to all" settles each block, and VB-130 with the balance block).
    **A (Kim, 2 Nov):** after the page split (VB-053), the foundations first (VB-072 to VB-076), then the growth path; VB-127 yes; VB-129 closed; the tuned-value blocks to be gone through one by one.
 
+## Review, 2 November, second pass (question 2)
+2. Founders do not grow (25 people in year 38 at seed 7, even with empty farms claimable, against 353 to 427 in 8 years in populous). Is that wanted? **P:** yes for the first decades: a scenario of ten people on one farm should be a struggle; the courting and occasions tasks (VB-036, VB-126) are where brides come from. Check at VB-035 that it does not die out before year 80.
+   **A (Kim, 2 Nov):** intended (P).
+
+## Moving to new land: the tuned values (VB-150, expansion review of 1 November)
+Built in VB-146 to VB-149 with the starting values below (`SETTLE` and `SOIL.fresh` in `src/sim/rules.js`); the measurements are in `docs/review-expansion.md`, Results. In populous small at seed 7 over 40 years, adults waiting with no room fall from 32 to 4, deaths by starvation in years 31–40 from 46 to 0, and the population at year 40 rises from 662 to 780.
+1. Provisions. 36 days of the party's rations last from the moving round (autumn day 10) to the first threshing with no margin; a settler alone starts spring with about 21 days of food. Fresh land then feeds them well. **P:** 42 days (a week's margin), so a late sowing does not mean hunger.
+   **A (Kim, 2 Nov):** 42.
+2. Who leaves and when. 0.3, 0.6 and 0.8 by moving rounds waited in a crowded village; ages 18–45; a sibling follows with 0.5, at most 2. **P:** keep; the queue of waiting adults stays at 2–8 in 40 years.
+   **A (Kim, 2 Nov):** keep.
+3. Join or found. Settlers mostly join small villages (seed 7, 40 years: 25 farms joined, 8 villages founded), so hamlets of up to 4 farms grow around the generated lone farms and the first daughter villages. **P:** keep; the green and well (VB-058) make such hamlets villages.
+   **A (Kim, 2 Nov):** keep.
+4. Fresh land. Soil 1.4 on ground never farmed. Households of 1 and 2 (mostly settlers) are hungry in 19% and 10% of years, against 36% and 24% without it. **P:** keep 1.4.
+   **A (Kim, 2 Nov):** keep 1.4.
+5. Lone settlers. Many settlers leave alone and stay alone for years (seed 42, after 10 years: 4 of 16 settlers ever married): courting does not cross villages yet (no two pawns of different villages meet, VB-126), and the yearly match favours a spouse of the same village. **P:** nothing now; occasions (VB-126) and courting (VB-036) should bring brides from the mother village.
+   **A (Kim, 2 Nov):** nothing now (P).
+6. The founders do not grow, with or without the new rule: their village never fills, and at seeds 7 and 42 they die out by year 80–100. **P:** a question for VB-035, outside this review.
+   **A (Kim, 2 Nov):** intended for the first decades; check at VB-035 that they do not die out before year 80.
+   Measured after the change (populous small, seeds 3, 7 and 42, 25 years, 36 against 42 days): 1,639 against 1,682 alive, 42 against 50 deaths from hunger and starvation, 5,019 against 5,145 hungry household-days; the seeds disagree in sign, so the effect is within the noise of one shared random stream (VB-072).
+
 ## VB-127: familiarity from talk and time at home (relationships review)
 Kim kept the tie model unchanged in VB-061; this is the later rework.
 1. Replace counting hours near each other with talk, waking hours at home and work together? **P:** yes: +0.5 per talk, +1 per 24 waking hours under one roof, +0.5 per job worked together; the kin floor stays at 0.4.

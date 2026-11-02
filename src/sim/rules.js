@@ -190,8 +190,9 @@ VB['sim/rules'] = (() => {
   // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a wood within
   // woodReach; sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the best `candidates` by the first and last
   // terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join` steps of home. Spacing (stability review,
-  // VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village centre.
-  const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 36, reach: [10, 30], apart: 5, centreApart: 12,
+  // VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village centre. Provisions were 36 days,
+  // which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
+  const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 42, reach: [10, 30], apart: 5, centreApart: 12,
     fields: 3, fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
