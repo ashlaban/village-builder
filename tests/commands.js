@@ -5,14 +5,18 @@ const fs = require('fs'), path = require('path'), { tokenize } = require('../too
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
 
-// static: the acts a verb wraps are called only from sim/commands (and inside sim/agents, where they are defined)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'wed', 'enterService', 'startClaim'], ALLOWED = new Set(['src/sim/commands.js', 'src/sim/agents.js']), calls = [];
-for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js'])) {
-  if (ALLOWED.has(f)) continue;
-  const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), toks = tokenize(src).filter((t) => t.t !== 'com');
+// static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
+const WRAPPED = ['start', 'walkTo', 'goHome', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found'], calls = [];
+const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
+const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
+const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
+for (const n of WRAPPED) if (!definedIn[n]) throw new Error(`no module defines ${n}`);
+for (const f of files) {
+  if (f === 'src/sim/commands.js') continue;
+  const src = text[f], toks = tokenize(src).filter((t) => t.t !== 'com');
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
-    if (t.t === 'word' && WRAPPED.includes(t.v) && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
+    if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
       calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     }
   });
@@ -126,4 +130,23 @@ R3.push([{ actor: groom.id, verb: 'marry', target: groom.id, args: { home: wedHo
   [{ actor: servant.id, verb: 'serve', target: master.id }, /lives there already/], [{ actor: servant.id, verb: 'claim', target: 9999 }, /no farm/]);
 for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
-console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ' and claim' : ''}; ${refusals.length + 13 + R3.length} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);
+// leave: a settler founds a village on a site the round would choose
+const S3 = VB['sim/settle'], settler = st3.pawns.find((p) => p.died === null && p.age >= 18 && !Sim.isHolder(st3, p.id) && p.household !== null);
+st3.households[settler.household].grain += 2000; // a family that can spare the provisions
+assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
+const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
+if (site3) {
+  const nf = st3.farmsteads.length, nv = st3.villages.length, party = { all: [settler.id], followers: [] };
+  assert.strictEqual(issue(st3, { actor: settler.id, verb: 'leave', args: { from: fromV.id, party, house: site3.house, field: site3.field, wood: site3.wood }, source: 'round' }), true);
+  assert.strictEqual(st3.farmsteads.length, nf + 1); assert.strictEqual(st3.villages.length, nv + 1);
+  assert.strictEqual(st3.households[settler.household].farmstead, nf, 'the settler lives on the new farm');
+  R3.push(['leave', 1]);
+}
+const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >= 18);
+for (const [cmd, why] of [
+  [{ actor: lead.id, verb: 'leave', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
+  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
+  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
+]) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
+assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
+console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 13 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);

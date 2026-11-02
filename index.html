@@ -5384,6 +5384,25 @@ VB['sim/commands'] = (() => {
         : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
       run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
+    // leave({from, party: {all, followers}, house, field, village | wood}): the actor's party leaves village `from` to settle at `house` with
+    // its first `field`: in the small village `village` if given, else founding a new one with woodlot `wood`; provisions as the round reckons them
+    leave: {
+      check: (st, c) => {
+        const a = c.args || {}, S = later('sim/settle');
+        if (!st.villages[a.from]) return `there is no village ${a.from}`;
+        if (!a.party || !Array.isArray(a.party.all) || a.party.all[0] !== c.actor) return 'the party must be led by the actor';
+        for (const id of a.party.all) { const dead = living(st, id); if (dead) return dead; }
+        if (![a.house, a.field].every((t) => Number.isInteger(t) && t >= 0 && t < st.w.N)) return 'the house and field must be tiles';
+        if (a.village !== undefined && !st.villages[a.village]) return `there is no village ${a.village}`;
+        return S.provisions(st, a.party.all) ? null : 'the family cannot spare the grain';
+      },
+      run: (st, c) => {
+        const a = c.args, S = later('sim/settle'), home = st.villages[a.from], party = { all: a.party.all, followers: a.party.followers || [] };
+        const prov = S.provisions(st, party.all);
+        if (a.village !== undefined) S.settleFarm(st, st.villages[a.village], home, party, a.house, a.field, prov);
+        else S.found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field, wood: a.wood }, prov);
+      },
+    },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
     // retire: a holder hands the farm to the first heir
@@ -6308,6 +6327,7 @@ VB['sim/society'] = (() => {
 <script>
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
+  const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
@@ -6469,7 +6489,7 @@ VB['sim/settle'] = (() => {
   // ---- settling ----
   // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, built by
   // sim/expansion's booth jobs), a household with the provisions as its grain, and `field` as its first field project.
-  function settleFarm(st, v, home, party, house, field, prov, use) {
+  function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
     f.woodlot = v.commonsWood; f.condition = 1; f.emptySince = null; f.booth = { i: 0, done: 0 };
@@ -6485,17 +6505,16 @@ VB['sim/settle'] = (() => {
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
     for (const id of party.followers) st.pawns[id].servant = true;
-    for (const t of [house, field]) markUsed(w, use, t);
     refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
-  function found(st, home, p, party, site, prov, use) {
+  function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
       green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
-    return settleFarm(st, v, home, party, site.house, site.field, prov, use);
+    return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
   // oldest, may leave (SETTLE.chance by rounds waited) with their party, if it has provisions: to a small village nearby that is not
@@ -6518,12 +6537,21 @@ VB['sim/settle'] = (() => {
         if (!use) use = landInUse(st);
         if (!reach) reach = reachOf(st, v);
         let f = null, steps = 0;
+        // the leave command; the new farm is the last one added, and its house and field are marked used for the rest of the round
+        const leave = (args) => {
+          const n = st.farmsteads.length;
+          if (issue(st, {
+            actor: p.id, verb: 'leave', args: { from: v.id, party: { all: party.all, followers: party.followers }, ...args },
+            source: 'round' }) !== true) return null;
+          for (const t of [args.house, args.field]) markUsed(st.w, use, t);
+          return st.farmsteads[n];
+        };
         const join = smallVillage(st, v, p, waiting, reach);
-        if (join) { f = settleFarm(st, join.village, v, party, join.house, join.field, prov, use); steps = join.steps; }
+        if (join) { f = leave({ village: join.village.id, house: join.house, field: join.field }); steps = join.steps; }
         else if (!noLand) {
           if (!cands) cands = candidates(st, v, use, reach);
           const site = newSite(st, v, use, cands);
-          if (site) { f = found(st, v, p, party, site, prov, use); steps = site.steps; }
+          if (site) { f = leave({ house: site.house, field: site.field, wood: site.wood }); steps = site.steps; }
           else { noLand = true; log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`, { kind: 'noLand', village: v.id }); }
         }
         if (!f) continue;
