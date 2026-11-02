@@ -2,7 +2,7 @@
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|hunger|perf|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
-const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/body.html)
+const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/page/loader.js)
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt; };
 const scenario = opt('scenario', 'founders'), seedNum = +opt('seed', 7), map = opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));

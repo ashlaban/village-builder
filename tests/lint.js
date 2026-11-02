@@ -1,14 +1,16 @@
 // Structure lint: @sys header on line 1, at most 400 lines, no line over 160 characters; no clock or unseeded random in the modules
-// (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st.
+// (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
+// (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing violations are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
 const MAX_LINES = 400, MAX_COLS = 160;
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
+const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
 const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
 const base = fs.existsSync(BASE) ? JSON.parse(fs.readFileSync(BASE, 'utf8')) : {};
 const cur = {}, errors = [], notes = [];
-for (const f of files) {
+for (const f of files.concat(pageFiles)) {
   const lines = fs.readFileSync(path.join(root, f), 'utf8').split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
   const head = new RegExp(`^// @sys ${key(f).replace('/', '\\/')}: \\S.*$`);
@@ -26,7 +28,7 @@ for (const f of files) fs.readFileSync(path.join(root, f), 'utf8').split('\n').f
   const hit = clockUse(l); if (hit) errors.push(`${f}:${i + 1} ${hit} in a module (use the seeded random source, or add "// lint-allow: clock <reason>")`);
 });
 // the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, treeDirty, biomeDirty, pathDirty and landDirty
-for (const f of ['src/body.html']) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
+for (const f of ['src/body.html', ...pageFiles]) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
   for (const wr of pageWrites(l)) errors.push(`${f}:${i + 1} the page writes to the simulation state: ${wr}`);
 });
 // every top-level key of w and st must have an @state tag: `// @state st.a,b: ...` or `// @state st.a: ...`
@@ -39,7 +41,7 @@ for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: t
 for (const k of new Set(states.flatMap((s) => Object.keys(s)))) if (k !== 'w' && !tagged.st.has(k)) errors.push(`src/sim.js: top-level key st.${k} has no @state tag`);
 if (process.argv.includes('--update')) {
   const next = {};
-  for (const f of files) {
+  for (const f of files.concat(pageFiles)) {
     const c = cur[f], b = base[f];
     next[f] = b ? { lines: Math.min(b.lines, c.lines), longLines: Math.min(b.longLines, c.longLines) } : c;
   }

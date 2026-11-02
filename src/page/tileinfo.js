@@ -1,0 +1,58 @@
+// @sys page/tileinfo: the tile info panel
+  // ---- tile info ----
+  function showTile(i) {
+    const box = $('tile');
+    if (i < 0 || !w) { box.hidden = true; return; }
+    const b = G.BIOMES[w.biome[i]], col = i % w.COLS, row = (i / w.COLS) | 0;
+    let line;
+    if (w.water[i]) {
+      const d = w.csample(w.cdist, w.hx[i], w.hy[i]);
+      const m = b.key === 'lake' ? 2 + 28 * (1 - Math.exp(-d / 70)) : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
+      line = `Depth about ${Math.round(m)} m`;
+    } else {
+      const soil = w.hm[i] < 0.33 ? 'dry ground' : w.hm[i] < 0.56 ? 'fresh ground' : 'damp ground';
+      line = `Elevation ${Math.max(2, Math.round(w.he[i] * 1400))} m, ${soil}`;
+    }
+    const rg = w.regions[w.region[i]];
+    const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
+    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
+    const ownLine = own ? [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
+    const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
+    const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
+    const worn = w.worn && w.worn[i] ? [`${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${perDay >= 0.75
+      ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
+    const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
+      ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
+    const claims = claimLines(i);
+    if (farm) card(farm[0], [...farm[1], ...ownLine, ...claims, where]);
+    else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+      ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
+  }
+  // The claims on a tile (sim/claims) and its cairn (VB-157), one line each, for the tile panel.
+  function claimLines(i) {
+    if (!st) return [];
+    const who = (by) => (by.type === 'village' ? st.villages[by.id].name : by.type === 'household' ? st.farmsteads[st.households[by.id].farmstead].name
+      : `the family of ${Sim.fullName(st.pawns[by.id])}`);
+    const WHY = { outland: 'as outland', field: 'for a field', meadow: 'for a hay meadow', farm: 'to take the farm', birthright: 'by birthright' };
+    const out = Sim.claimsOn(st, i).map((c) => (c.state === 'realised'
+      ? `Held ${WHY[c.why]} by ${who(c.by)}${c.until !== null ? ` until year ${Math.floor(c.until / Sim.YEAR) + 1}` : ''}`
+      : `Claimed by ${who(c.by)} ${WHY[c.why]}, ${Math.round(Sim.claimStrength(st, c) * 100)}% strong`));
+    const cairn = st.cairns && st.cairns.get(i);
+    if (cairn) out.push(`A cairn between ${st.villages[cairn.a].name} and ${st.villages[cairn.b].name}, set in year ${Math.floor(cairn.t / Sim.YEAR) + 1}`);
+    return out;
+  }
+  function pick(sx, sy) {
+    if (!w) return;
+    const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
+    if (pw >= 0) { if (pw !== selPawn) selectPawn(pw); return; }
+    const i = loc(x, y, [0, 0]);
+    if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
+  }
+  function drawHover() {
+    hoverG.clear();
+    if (sel < 0 || !w || selPawn >= 0) return;
+    const pts = [];
+    for (let k = 0; k < 6; k++) { const a = (Math.PI / 180) * (30 + 60 * k); pts.push(w.hx[sel] + Math.cos(a) * w.R, w.hy[sel] + Math.sin(a) * w.R); }
+    hoverG.poly(pts).fill({ color: 0xffffff, alpha: 0.14 }).stroke({ width: 2.4 / cam.z, color: 0xffffff, alpha: 0.95 });
+  }
+
