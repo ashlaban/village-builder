@@ -2,7 +2,33 @@
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
-  const log = (st, text) => { st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop(); };
+  // ---- the record of events (VB-075) ----
+  // st.record: every notable event, appended in play: {t, kind, pawn, other, household, farm, village, n, text}, the fields that do not
+  // apply absent. log and personEvent write their event as they write their text; `false` for ev says another call records the event.
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text'];
+  function record(st, ev, t = st.t) {
+    const e = { t, kind: ev.kind };
+    for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
+    st.record.push(e);
+    return e;
+  }
+  // where an event of household hh or farm f happened
+  const atHousehold = (st, hh) => ({ household: hh.id, farm: hh.farmstead, village: st.farmsteads[hh.farmstead].village });
+  const atFarm = (f) => ({ household: f.household, farm: f.id, village: f.village });
+  // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
+  function recordOf(st, q = {}) {
+    const kinds = q.kinds ? new Set(q.kinds) : null;
+    const out = st.record.filter((e) => (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
+      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
+      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
+      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
+    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+  }
+  // The village log (the last 40 lines) and the event behind the line.
+  const log = (st, text, ev = { kind: 'note' }) => {
+    st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop();
+    if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
+  };
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
     const father = o.father !== undefined && o.father !== null ? R.pawns[o.father] : null;
@@ -93,7 +119,10 @@ VB['sim/records'] = (() => {
     return out;
   };
   const farmPractice = (st, f) => practice(st, f.village);
-  function personEvent(st, id, kind, text) { st.pawns[id].events.push({ t: st.t, kind, text }); }
+  function personEvent(st, id, kind, text, ev = {}) {
+    st.pawns[id].events.push({ t: st.t, kind, text });
+    if (ev) record(st, { kind, pawn: id, text, ...ev });
+  }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
   const fullName = (p) => `${p.given} ${p.patronym}`;
@@ -165,7 +194,8 @@ VB['sim/records'] = (() => {
     return 0;
   }
   return {
-    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree,
+    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, record, recordOf, atHousehold, atFarm, age, birthYear, fullName, spouseOf,
+      childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
   };
 })();

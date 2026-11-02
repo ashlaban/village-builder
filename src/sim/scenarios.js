@@ -7,7 +7,7 @@ VB['sim/scenarios'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
-  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age } = VB['sim/records'];
+  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
@@ -207,6 +207,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
+    //   seeding writes the history before the start (births, deaths, marriages), in time order
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
@@ -225,7 +227,7 @@ VB['sim/scenarios'] = (() => {
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
+      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -240,6 +242,15 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
+    // the record's history before the start: births, deaths and marriages of the people on record, in time order
+    const before = [];
+    for (const p of st.pawns) {
+      const hh = p.household !== null && p.household !== undefined ? atHousehold(st, st.households[p.household]) : {};
+      before.push([p.born, { kind: 'born', pawn: p.id, other: p.mother, ...(p.died === null ? hh : {}) }]);
+      if (p.died !== null) before.push([p.died, { kind: 'died', pawn: p.id, text: 'before the record' }]);
+    }
+    for (const u of st.unions) before.push([u.start, { kind: 'married', pawn: u.a, other: u.b }]);
+    before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
     return st;
   }
 

@@ -5,7 +5,7 @@ const Sim = (() => {
   const { KINDS } = VB['sim/kinds'];
   const {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
-    membersOf, voiceOf,
+    membersOf, voiceOf, recordOf,
   } = VB['sim/records'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
@@ -27,7 +27,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY, YEAR,
+    seed, advance, save, load, recordOf, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf, SEASONS, DAY,
+      YEAR,
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
     isHolder, holdingOf, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve,
