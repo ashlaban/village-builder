@@ -104,7 +104,7 @@ for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
 const idleAt = (p, dx) => { const g = st.agents[p.id]; g.inside = false; g.job = null; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };
 idleAt(fr, 40); st.t += 0.01;
 const ax = st.agents[x.id];
-A.idleAbout(st, ax);
+VB['sim/jobs'].idleAbout(st, ax); // the planner's idle choice (VB-168)
 const end = ax.path[ax.path.length - 1];
 check(Math.abs(end[0] - (hx + 40)) <= 8 && Math.abs(end[1] - hy) <= 4, `walks to the friend: ends at ${end.slice(0, 2).map(Math.round)}, friend at ${hx + 40},${hy}`);
 st.agents[fr.id].inside = true; idleAt(foe, 40); st.t += 0.01;

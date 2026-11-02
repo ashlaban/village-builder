@@ -5,7 +5,8 @@ VB['sim/jobs'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
+  const { companyFor } = VB['sim/relations'];
   const { issue } = VB['sim/commands'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject, manureWanted } = VB['sim/fields'];
@@ -205,5 +206,17 @@ VB['sim/jobs'] = (() => {
     }
     return busy;
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, explainIdle, idleLine };
+  // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
+  function idleAbout(st, a) {
+    const mate = st.cenv ? companyFor(st, a) : null, go = (tile, x, y) =>
+      issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
+    if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
+    else {
+      const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
+      const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
+      go(spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
+    }
+    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
+  }
+  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine };
 })();

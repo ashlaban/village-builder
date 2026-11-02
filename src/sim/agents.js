@@ -5,7 +5,6 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
-  const { companyFor } = VB['sim/relations'];
   const { team } = VB['sim/herds'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
@@ -83,17 +82,6 @@ VB['sim/agents'] = (() => {
     a.carry = null; a.job = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
-  function idleAbout(st, a) {
-    // nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while
-    const mate = st.cenv ? companyFor(st, a) : null;
-    if (mate) walkTo(st, a, tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
-    else {
-      const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
-      const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
-      walkTo(st, a, spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
-    }
-    a.idleUntil = st.t + 0.75 + rnd(st.rng.work) * 1.25;
-  }
   function arrived(st, a) {
     a.anim = 'idle';
     if (a.phase === 'go') {
@@ -178,7 +166,7 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, idleAbout, arrived, goHome, rateOf,
+    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, arrived, goHome, rateOf,
     withOxen, stepWork,
     moveAgent, describe,
   };

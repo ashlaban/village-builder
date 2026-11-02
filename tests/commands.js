@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands (and inside sim/agents, where they are defined)
-const WRAPPED = ['start'], ALLOWED = new Set(['src/sim/commands.js', 'src/sim/agents.js']), calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome'], ALLOWED = new Set(['src/sim/commands.js', 'src/sim/agents.js']), calls = [];
 for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js'])) {
   if (ALLOWED.has(f)) continue;
   const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), toks = tokenize(src).filter((t) => t.t !== 'com');
@@ -45,4 +45,21 @@ assert.ok(full, 'a job with no room');
 refusals.push([{ actor: a.id, verb: 'work', target: full.key }, /has no room/]);
 for (const [cmd, why] of refusals) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before, 'a refused command changes nothing');
-console.log(`commands ok: work carried out; ${refusals.length} refusals change nothing; start is called only from sim/commands`);
+// walkTo, goHome, idle (VB-168)
+const b = st.agents.find((x) => st.pawns[x.id].died === null && x.id !== a.id), home = st.farmsteads[st.households[st.pawns[b.id].household].farmstead].house;
+const there = st.farmsteads.find((f) => f.house !== home).house;
+assert.strictEqual(issue(st, { actor: b.id, verb: 'walkTo', target: there, args: { x: st.w.hx[there], y: st.w.hy[there] + 3 }, source: 'test' }), true);
+assert.ok(b.path && b.path.length >= 2 && b.anim === 'walk', 'walking');
+assert.deepStrictEqual(b.path[b.path.length - 1].slice(0, 2), [st.w.hx[there], st.w.hy[there] + 3], 'to the spot asked');
+assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'test' }), true);
+assert.strictEqual(b.phase, 'home'); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
+assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'test' }), true);
+assert.strictEqual(b.idleUntil, st.t + 2);
+const before2 = snap();
+for (const [cmd, why] of [
+  [{ actor: b.id, verb: 'walkTo', target: -1 }, /there is no tile/], [{ actor: b.id, verb: 'walkTo', target: st.w.N }, /there is no tile/],
+  [{ actor: dead.id, verb: 'goHome' }, /not a living pawn/], [{ actor: b.id, verb: 'idle', args: { until: st.t - 1 } }, /past/],
+  [{ actor: b.id, verb: 'idle' }, /past/],
+]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
+console.log(`commands ok: work, walkTo, goHome and idle carried out; ${refusals.length + 5} refusals change nothing; start, walkTo and goHome are called only from sim/commands`);
