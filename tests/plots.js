@@ -34,5 +34,16 @@ for (const rule of ['village', 'labour', 'intended']) {
   check(plot.holder === want, `${rule}: expected ${want}, got ${plot.holder}`);
   check(X.plotProgress(st, plot) === 1, `${rule}: progress is 1 when done`);
 }
+// VB-142: founders seed 7, small map, two years (96 days): no pawn holds two cleared plots.
+{
+  const it = G.generate(7, { cols: 180, rows: 130 }); let r; while (!(r = it.next()).done);
+  const st = Sim.seed(r.value, 7, 'founders');
+  for (let d = 0; d < 2 * 48; d++) {
+    Sim.advance(st, 24);
+    const held = new Map();
+    for (const v of st.villages) for (const pl of v.plots) if (pl.holder !== null && !pl.built) held.set(pl.holder, (held.get(pl.holder) || 0) + 1);
+    for (const [id, n] of held) check(n <= 1, `founders seed 7: pawn ${id} holds ${n} cleared plots on day ${d + 1}`);
+  }
+}
 if (failed) process.exit(1);
 console.log('plots ok');
