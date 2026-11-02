@@ -6,7 +6,7 @@ VB['sim/lifecycle'] = (() => {
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd, holdingOf,
+    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd, holdingOf, atHousehold,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const {
@@ -29,7 +29,8 @@ VB['sim/lifecycle'] = (() => {
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
     if (p.rel) forget(st, id);
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
-      + `${CAUSES[cause].log}, aged ${p.age}.`);
+      + `${CAUSES[cause].log}, aged ${p.age}.`, {
+        kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { hh.members = hh.members.filter((m) => m !== id); if (hh.holder === id) succession(st, hh, 'death'); }
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
@@ -178,10 +179,11 @@ VB['sim/lifecycle'] = (() => {
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
       for (const id of [m.id, best.f.id]) {
         if (st.pawns[id].household !== best.home) moveTo(st, id, best.home);
-        personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === m.id ? best.f.id : m.id])}`); st.rigDirty.add(id);
+        personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === m.id ? best.f.id : m.id])}`, false); st.rigDirty.add(id); // recorded below
       }
       const fm = st.farmsteads[st.households[best.home].farmstead];
-      log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`);
+      log(st, `${fullName(m)} and ${fullName(best.f)} marry and live at ${fm.name}.`, {
+        kind: 'married', pawn: m.id, other: best.f.id, ...atHousehold(st, st.households[best.home]) });
       m.ties.set(best.f.id, 2); best.f.ties.set(m.id, 2);
       // a spouse who held a farm of their own hands it on (VB-153)
       for (const id of [m.id, best.f.id]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== best.home) handOn(st, own2, id, best.home); }

@@ -2,7 +2,7 @@
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { person, personEvent, log, fullName, spouseOf } = VB['sim/records'];
+  const { person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
@@ -29,14 +29,15 @@ VB['sim/births'] = (() => {
     p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { p.ties.set(j, 1); st.pawns[j].ties.set(id, 1); }
     p.events.push({ t: st.t, kind: 'born' });
-    personEvent(st, m.id, 'child', `Child born: ${given}`); personEvent(st, fatherId, 'child', `Child born: ${given}`);
+    personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
       ox: (rnd(st.rng.people) - 0.5) * 12, oy: (rnd(st.rng.people) - 0.5) * 8, work: null, idleUntil: 0, talk: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
-    log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`);
+    log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`, {
+      kind: 'born', pawn: id, other: m.id, ...atHousehold(st, hh) });
     refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
     if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }

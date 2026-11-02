@@ -1,7 +1,16 @@
 // State invariants: checkState(st) returns a list of violations, each naming the record. A new state field or record gets its checks here.
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
+const checked = new WeakMap(); // the record's length at the last check, by record
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
+  // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
+  const from = checked.get(st.record) || 0;
+  for (let i = from; i < (st.record || []).length; i++) {
+    const e = st.record[i], ids = { pawn: st.pawns, other: st.pawns, household: st.households, farm: st.farmsteads, village: st.villages };
+    if (typeof e.kind !== 'string' || !e.kind || !(e.t <= st.t)) bad.push(`record[${i}]: ${JSON.stringify(e)}`);
+    for (const [k, list] of Object.entries(ids)) if (k in e && !(Number.isInteger(e[k]) && e[k] >= 0 && e[k] < list.length)) bad.push(`record[${i}].${k}: ${e[k]}`);
+  }
+  if (st.record) checked.set(st.record, st.record.length);
   // the idle pawns of the hour (VB-074): built this hour or before, each an agent of a living pawn
   if (st.idlers) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
