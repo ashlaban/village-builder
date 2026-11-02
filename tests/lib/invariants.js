@@ -2,6 +2,11 @@
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
+  // the idle pawns of the hour (VB-074): built this hour or before, each an agent of a living pawn
+  if (st.idlers) {
+    if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
+    for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
+  }
   // random streams (VB-072): after seeding, exactly one stream per system, none shared, each a 32-bit state, none fixed by a test
   const keys = Object.keys(st.rng || {}).sort().join(), streams = Object.values(st.rng || {});
   if (keys !== [...SYSTEMS].sort().join()) bad.push(`rng: streams ${keys}, want ${[...SYSTEMS].sort().join()}`);

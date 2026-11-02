@@ -165,12 +165,13 @@ VB['sim/relations'] = (() => {
   }
 
   // ---- company: an idle pawn may join someone it likes who idles outdoors in its village ----
-  // The idle pawns outdoors of each village as of this game hour (derived, not state; rebuilt each hour): companyFor checks that a
-  // pawn drawn from it still idles outdoors.
-  const idleCache = new WeakMap();
+  // The idle pawns outdoors of each village as of the first ask in this game hour; companyFor checks that a pawn drawn from it still idles
+  // outdoors. It is kept in the state, not a cache aside, because who is in it depends on when in the hour it was built: a run loaded
+  // mid-hour must draw from the same list as the run that was saved (VB-074).
+  // @state st.idlers: {hour, by: Map(village id -> agents[])} or absent; the idle pawns outdoors by village, as of the first ask in that hour
   const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
   function idlersBy(st) {
-    let c = idleCache.get(st);
+    let c = st.idlers;
     const hour = Math.floor(st.t);
     if (!c || c.hour !== hour) {
       c = { hour, by: new Map() };
@@ -179,7 +180,7 @@ VB['sim/relations'] = (() => {
         const v = settlementIdOf(st, st.pawns[b.id]); if (v === null) continue;
         const l = c.by.get(v); if (l) l.push(b); else c.by.set(v, [b]);
       }
-      idleCache.set(st, c);
+      st.idlers = c;
     }
     return c.by;
   }

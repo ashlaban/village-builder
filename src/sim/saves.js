@@ -1,5 +1,6 @@
 // @sys sim/saves: saving and loading a run (VB-074): the state as JSON-compatible data, with shared objects, Maps, Sets and typed arrays kept
 VB['sim/saves'] = (() => {
+  const { setBiome } = VB['gen'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -20,7 +21,7 @@ VB['sim/saves'] = (() => {
     for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
     return out;
   }
-  function encode(root) {
+  function encode(root, stop = null) {
     // pass 1: which objects are reached more than once
     const count = new Map(), stack = [root];
     while (stack.length) {
@@ -44,6 +45,7 @@ VB['sim/saves'] = (() => {
       }
       if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
       if (typeof v !== 'object') throw new Error(`save: a ${typeof v} at ${where}`);
+      if (stop && stop.has(v)) throw new Error(`save: ${where} reaches an object that is not saved with the state`);
       if (ids.has(v)) return { $ref: ids.get(v) };
       const shared = count.get(v) > 1, id = shared ? ids.size : -1;
       if (shared) ids.set(v, id);
@@ -90,5 +92,35 @@ VB['sim/saves'] = (() => {
     };
     return dec(data);
   }
-  return { encode, decode };
+  // ---- a run ----
+  // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
+  // also recomputes the tile's colours from it; dev, wear and worn are added to the world by seeding.
+  const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn'];
+  const FORMAT = 1;
+  // A save: the format, what makes the world (scenario, seed, size), the tiles above and the whole state, with st.w as null in its place.
+  function save(st) {
+    const w = st.w, state = {};
+    for (const k of Object.keys(st)) state[k] = k === 'w' ? null : st[k];
+    const world = {};
+    for (const k of WORLD) if (w[k]) world[k] = encode(w[k]);
+    return { format: FORMAT, scenario: st.scenario, seed: w.seed, cols: w.COLS, rows: w.ROWS, world, state: encode(state, new Set([w])) };
+  }
+  // A state from a save, on w: a world freshly generated from the save's seed and size.
+  function load(w, data) {
+    if (!data || data.format !== FORMAT) throw new Error(`load: format ${data && data.format}, this build reads ${FORMAT}`);
+    if (w.seed !== data.seed || w.COLS !== data.cols || w.ROWS !== data.rows) {
+      throw new Error(`load: the save is of seed ${data.seed}, ${data.cols} by ${data.rows}; the world is seed ${w.seed}, ${w.COLS} by ${w.ROWS}`);
+    }
+    for (const k of WORLD) {
+      if (!(k in data.world)) continue;
+      const a = decode(data.world[k]);
+      if (k === 'biome') { for (let i = 0; i < a.length; i++) if (w.biome[i] !== a[i]) setBiome(w, i, a[i]); }
+      else if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
+      else w[k] = a;
+    }
+    const st = decode(data.state);
+    st.w = w;
+    return st;
+  }
+  return { encode, decode, save, load, FORMAT };
 })();
