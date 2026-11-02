@@ -5,7 +5,8 @@ VB['sim/jobs'] = (() => {
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { start, release, freeHands, ownerKey, dropJob, rateOf } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf } = VB['sim/agents'];
+  const { issue } = VB['sim/commands'];
   const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
   const { startProject, manureWanted } = VB['sim/fields'];
   const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
@@ -37,7 +38,7 @@ VB['sim/jobs'] = (() => {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
         if (p.died === null && pr > top) { best = st.agents[id]; top = pr; }
       }
-      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) { release(st, best); start(st, best, j); }
+      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
   function refreshJobs(st, c) {
@@ -137,7 +138,7 @@ VB['sim/jobs'] = (() => {
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
       }
-      if (best) { release(st, a); start(st, a, best); }
+      if (best) issue(st, { actor: a.id, verb: 'work', target: best.key, source: 'planner' });
     }
   }
   // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
@@ -200,7 +201,7 @@ VB['sim/jobs'] = (() => {
         const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b); continue;
       }
-      start(st, a, j); busy.add(a);
+      issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' }); busy.add(a);
     }
     return busy;
   }
