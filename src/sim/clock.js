@@ -19,6 +19,7 @@ VB['sim/clock'] = (() => {
   const { meadowsDay } = VB['sim/meadows'];
   const { byreDay } = VB['sim/byre'];
   const { lapseClaims } = VB['sim/claims'];
+  const { landMeeting } = VB['sim/territory'];
   // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
   function nearForest(w, tile) {
     for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
@@ -26,7 +27,7 @@ VB['sim/clock'] = (() => {
   }
   function onHour(st, h, c) {
     if (st.cenv) talkHour(st, h, noteContacts(st));
-    if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) holdMeetings(st);
+    if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }

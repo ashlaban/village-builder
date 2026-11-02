@@ -6,6 +6,7 @@ VB['sim/expansion'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
+  const { freeFor } = VB['sim/territory'];
   const { clearTile } = VB['sim/forest'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, nextTo } = VB['sim/layout'];
@@ -21,15 +22,16 @@ VB['sim/expansion'] = (() => {
     const s = tr.steps[tr.i];
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
-  // A house tile and one field tile within REACH steps of the green: unowned, passable, off the rivers, in the village's region or one touching it.
-  // The house grows on the village (it may touch other houses, never a field); the field lies 2 to FIELD_REACH steps from it, next to
-  // no house or green (VB-113); and the farm has room (roomAt). Null when there is no room.
-  // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unowned and unused, that `taken` does
-  // not exclude; counted up to FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
-  function roomAt(st, h, taken = () => false) {
+  // A house tile and one field tile within REACH steps of the green: the village's outland or wilderness (sim/territory), passable, off the
+  // rivers, in the village's region or one touching it. The house grows on the village (it may touch other houses, never a field); the field
+  // lies 2 to FIELD_REACH steps from it, next to no house or green (VB-113); and the farm has room (roomAt). Null when there is no room.
+  // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unused and free for village vid
+  // (its outland or wilderness; vid null: wilderness only, for a new village; sim/territory), that `taken` does not exclude; counted up to
+  // FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
+  function roomAt(st, h, taken = () => false, vid = null) {
     const w = st.w; let n = 0;
     for (const [t] of bfs(w, h, FIELD_REACH, walkable(w)).dist) {
-      if (farmable(w, t) && st.owner[t] === 0 && !st.used.has(t) && !taken(t) && ++n >= FIELDS.room) break;
+      if (farmable(w, t) && freeFor(st, t, vid) && !st.used.has(t) && !taken(t) && ++n >= FIELDS.room) break;
     }
     return n;
   }
@@ -43,7 +45,7 @@ VB['sim/expansion'] = (() => {
       return false;
     };
     for (const [t, d] of bfs(w, v.center, REACH, walkable(w)).dist) {
-      if (d < 1 || st.owner[t] !== 0 || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
+      if (d < 1 || !freeFor(st, t, v.id) || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
@@ -59,7 +61,7 @@ VB['sim/expansion'] = (() => {
         const sc = fieldScore(t) - 0.15 * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
-      if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t)) < FIELDS.room) continue;
+      if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t), v.id) < FIELDS.room) continue;
       let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
       const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
       if (s > bs) { bs = s; best = { house: h, field: f }; }

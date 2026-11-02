@@ -417,7 +417,7 @@
     const g = landG, R = w.R; g.clear();
     for (let i = 0; i < w.N; i++) {
       const n = st.owner[i]; if (!n) continue;
-      g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: n < 0 ? 0.2 : 0.38 });
+      g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: n < 0 ? 0.28 : 0.42 });
     }
     // a household's outline: edges between its tiles and any other owner's or none
     for (let i = 0; i < w.N; i++) {
@@ -432,6 +432,16 @@
       for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j >= 0 && st.owner[j] && ownerVillage(st.owner[j]) !== v) edge(g, i, d); }
     }
     g.stroke({ width: R * 0.13, color: 0x2a1a0c, alpha: 0.85 });
+    // the edge of each village's land against land nobody holds, in the village's colour
+    const edges = new Map();
+    for (let i = 0; i < w.N; i++) {
+      const n = st.owner[i]; if (!n) continue;
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d]; if (j < 0 || st.owner[j] || w.water[j]) continue;
+        const v = ownerVillage(n); if (!edges.has(v)) edges.set(v, []); edges.get(v).push([i, d]);
+      }
+    }
+    for (const [v, list] of edges) { for (const [i, d] of list) edge(g, i, d); g.stroke({ width: R * 0.11, color: hslHex(villageHue(v), 0.8, 0.3), alpha: 0.9 }); }
     for (const [i, list] of st.claims) {
       if (list.length > 1) { // contested: hatched
         for (const k of [-0.4, 0, 0.4]) g.moveTo(w.hx[i] - R * 0.45 + k * R, w.hy[i] + R * 0.45).lineTo(w.hx[i] + R * 0.45 + k * R, w.hy[i] - R * 0.45);

@@ -18,6 +18,14 @@ function checkSeeding(st, label) {
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) expected.set(t, o); // hay meadows (VB-132)
     check(f.fence === null || f.fence === undefined, `${label}: ${f.name} has its own fence`);
   }
+  // the outland (sim/territory, VB-156): village land not in use; held from the start by villages that have stood a while, claimed by newcomers
+  const T = VB['sim/territory'];
+  for (const v of st.villages) {
+    const out = T.outlandOf(st, v), want = Sim.CLAIMS.outPerFarm * T.occupied(st, v);
+    for (const t of out) if (!expected.has(t)) expected.set(t, { type: 'village', id: v.id });
+    if (st.scenario === 'founders') check(out.filter((t) => t !== v.commonsWood).length === 0, `${label}: ${v.name} holds outland before its first meeting`);
+    else check(out.length >= 1 && out.length <= want + 1, `${label}: ${v.name} holds ${out.length} tiles of outland for ${want} wanted`);
+  }
   for (let t = 0; t < st.w.N; t++) check(same(own(t), expected.get(t) || null), `${label}: tile ${t} owner ${JSON.stringify(own(t))}`);
   for (const v of st.villages) if (v.farmsteads.length === 1) {
     const f = st.farmsteads[v.farmsteads[0]];

@@ -11,7 +11,7 @@ let sites = 0;
 for (const v of st.villages) {
   const site = X.findSite(st, v); if (!site) continue;
   sites++;
-  check(X.roomAt(st, site.house, (t) => t === site.field || t === site.house) >= FIELDS.room, `${v.name}: the site at ${site.house} has room`);
+  check(X.roomAt(st, site.house, (t) => t === site.field || t === site.house, v.id) >= FIELDS.room, `${v.name}: the site at ${site.house} has room`);
 }
 check(sites > 0, 'some village has a site');
 const room = FIELDS.room; FIELDS.room = 1000;
