@@ -38,7 +38,7 @@ const drift = (push, opt = 'uncle') => {
   for (const p of s.pawns) if (p.alive && p.age >= 16) p.kinPush = push;
   Sim.refreshInterests(s);
   const pulled = s.pawns.filter((p) => p.alive && p.interest);
-  for (let d = 0; d < 4 * Sim.YEAR_DAYS; d++) C.dailyStep(s.cenv, 1 / Sim.YEAR_DAYS, s.rand);
+  for (let d = 0; d < 4 * Sim.YEAR_DAYS; d++) C.dailyStep(s.cenv, 1 / Sim.YEAR_DAYS, VB['sim/rng'].drawer(s.rng.culture));
   const mean = (opt) => pulled.reduce((a, p) => a + p.att[off + opts.indexOf(opt)], 0) / pulled.length;
   return mean(opt);
 };

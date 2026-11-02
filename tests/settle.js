@@ -15,7 +15,7 @@ function setUp() {
 }
 // No room left near village v: every tile within 6 steps is taken.
 const fill = (st, v) => { for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t); };
-const roll = (st, f) => { const r = st.rand; st.rand = () => 0; try { f(); } finally { st.rand = r; } }; // every chance comes up
+const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
 
 // 1. A village with room is not crowded, and nobody leaves.
 {

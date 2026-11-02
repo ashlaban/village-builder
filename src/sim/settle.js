@@ -1,5 +1,6 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
   const { seedReserve } = VB['sim/hunger'];
@@ -49,7 +50,7 @@ VB['sim/settle'] = (() => {
     for (const id of siblingsOf(st, p.id)) {
       if (followers.length >= SETTLE.maxFollow) break;
       if (!st.pawns[id].alive || taken.has(id) || !waiting.includes(id) || spouseOf(st, id) !== null || guardian(st, id)) continue;
-      if (st.rand() < SETTLE.follow) followers.push(id);
+      if (rnd(st.rng.settle) < SETTLE.follow) followers.push(id);
     }
     all.push(...followers);
     for (const id of [...all]) for (const c of childrenOf(st, id)) {
@@ -133,7 +134,7 @@ VB['sim/settle'] = (() => {
     return best;
   }
   // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
-  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), st.rand);
+  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), drawer(st.rng.settle));
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
@@ -202,7 +203,7 @@ VB['sim/settle'] = (() => {
       for (const id of ids) {
         const p = st.pawns[id];
         if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
-        if (st.rand() >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
+        if (rnd(st.rng.settle) >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
         const party = partyOf(st, p, ids, taken), prov = provisions(st, party.all);
         if (!prov) { log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`); continue; }
         if (!use) use = landInUse(st);

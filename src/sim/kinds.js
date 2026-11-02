@@ -1,5 +1,6 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
   const { ROLES, cal } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -61,7 +62,7 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON, fd = j.field;
         fd.stage = 'stooks'; fd.reaped = c.day;
-        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + st.rand() * 0.2)
+        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
           * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
         wearSoil(fd); // the crop takes from the soil (VB-137)
         fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;

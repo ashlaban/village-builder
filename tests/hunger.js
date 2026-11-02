@@ -54,7 +54,7 @@ for (const [order, check] of [
 // deaths: more at h = 1, by age group, and the added deaths are logged as hunger
 {
   const trials = (a, h) => {
-    const st = { t: 0, rand: (() => { let s = 12345; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })() };
+    const st = { t: 0, rng: { deaths: VB['sim/rng'].fromState(12345) } };
     let n = 0, hung = 0;
     for (let i = 0; i < 1500; i++) for (let d = 0; d < YEAR_DAYS * 40; d++) {
       const c = deathRoll(st, { born: -a * YEAR, hunger: h }); if (c) { n++; if (c === 'hunger') hung++; }

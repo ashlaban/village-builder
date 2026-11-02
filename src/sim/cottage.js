@@ -8,7 +8,7 @@ VB['sim/cottage'] = (() => {
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
-  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rand.
+  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
   const farmName = (st, v, f, owner = null) => names.farmName({ w: st.w, f, village: v, owner },
     new Set(v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id].name)), names.tileRand(f.house), names.prefsOf(st, v.id).farm);
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.

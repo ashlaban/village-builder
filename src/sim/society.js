@@ -1,5 +1,6 @@
 // @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns
 VB['sim/society'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
@@ -29,7 +30,7 @@ VB['sim/society'] = (() => {
     for (const p of st.pawns) {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
-      p.att = Culture.seedAttitude(customs, st.rand, 0.6, lean); p.anc = Float32Array.from(p.att);
+      p.att = Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean); p.anc = Float32Array.from(p.att);
       p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
     }
     // starting ties: household, kin, and a few neighbours

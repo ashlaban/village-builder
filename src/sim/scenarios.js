@@ -1,7 +1,7 @@
 // @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
-  const { fromState, drawer } = VB['sim/rng'];
+  const { fromState, drawer, seeding } = VB['sim/rng'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -152,10 +152,11 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
-    const rand = drawer(S); // the scenario's one seeding stream; it goes on as st.rand until VB-072's split
+    const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
-    // @state st.rng: {seed: {s}}; random streams as plain data (sim/rng). st.rand: function; draws from st.rng.seed, 0..1.
+    // @state st.rng: {seed, work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: random streams
+    //   as plain data, each {s} (sim/rng); every call site names its system's stream. While seeding, all are the one seeding stream.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
@@ -222,7 +223,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, rand, rng: { seed: S }, w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,

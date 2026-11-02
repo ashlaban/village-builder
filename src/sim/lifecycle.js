@@ -1,5 +1,6 @@
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
 VB['sim/lifecycle'] = (() => {
+  const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
@@ -41,7 +42,7 @@ VB['sim/lifecycle'] = (() => {
   function holdMeetings(st) {
     const env = st.cenv; env.t = st.t / YEAR;
     refreshRoles(st); refreshPrestige(st); refreshInterests(st); updateTies(st);
-    const starters = Culture.entrepreneurs(env, st.rand);
+    const starters = Culture.entrepreneurs(env, drawer(st.rng.culture));
     for (const p of starters) {
       personEvent(st, p.id, 'cause',
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
@@ -168,10 +169,10 @@ VB['sim/lifecycle'] = (() => {
         const sf = settlementIdOf(st, f), sameV = sf === sm, tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
         const gw = widowed.has(m.id) || widowed.has(f.id) ? MARRIAGE.widowedGapWeight : MARRIAGE.gapWeight;
         const s = -Math.abs(m.age - f.age - MARRIAGE.ageGap) * gw
-          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + st.rand() * MARRIAGE.noise;
+          + (sameV ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie)) + rnd(st.rng.society) * MARRIAGE.noise;
         if (s > bs) { bs = s; best = { f, home }; }
       }
-      if (!best || bs < MARRIAGE.minScore || st.rand() > MARRIAGE.goAhead) continue;
+      if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
       st.unions.push({ id: st.unions.length, a: m.id, b: best.f.id, start: st.t, end: null, kind: 'marriage' });
@@ -231,7 +232,7 @@ VB['sim/lifecycle'] = (() => {
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
-    Culture.dailyStep(env, 1 / YEAR_DAYS, st.rand);
+    Culture.dailyStep(env, 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, movingRound, dailyLife };
