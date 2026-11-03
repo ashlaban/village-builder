@@ -1,5 +1,7 @@
 # External review, 2 November 2026
 
+*A second external review, of the architecture, is `docs/review-architecture.md` (3 November).*
+
 A review of the repository by another assistant (ChatGPT), read from GitHub, not run. Kim passed it on on 2 November 2026; this file records what it said
 and where each point goes, at `68cd81b` (after VB-053). The review's own text is not kept here; its points are summarised in its order, with its
 priorities (P0 to P2).
