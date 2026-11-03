@@ -42,5 +42,11 @@ const bal = JSON.parse(cp.execFileSync('node', [path.join(__dirname, '..', 'tool
 check(bal.rows.length > 0 && bal.bySize.length > 0 && bal.byWeather.length > 0, 'balance report is empty');
 check(bal.rows.every((x) => Math.abs(x.grain + x.milk + x.butter + x.meat - x.total) < 0.2 && x.need > 0), 'balance rows: sources do not add up');
 check(bal.rows.some((x) => x.milk > 0) && bal.rows.some((x) => x.grain > 0), 'balance rows: no grain or no milk in two years');
+// VB-172: the writes map finds the one writer of the tile owners, the many of household grain, and the cycle through farmclaims and heirs
+const wr = require('../tools/writes.js').build(), fieldW = (k) => (wr.fields.find((f) => f.field === k) || { writers: [] }).writers;
+check(fieldW('st.owner').join() === 'sim/ownership', `writes map: st.owner written by ${fieldW('st.owner').join(', ')}`);
+check(fieldW('household.grain').length > 1 && fieldW('household.members').includes('sim/heirs'), 'writes map: household grain or members not found');
+check(wr.loops.some((l) => l.from === 'sim/farmclaims' && l.via.includes('sim/heirs')), 'writes map: the farmclaims and heirs cycle not found');
+check(wr.unresolved.length < 20, `writes map: ${wr.unresolved.length} unresolved writes; the scan has lost track of names`);
 if (failed) process.exit(1);
 console.log(`tools ok: ${rows.length} households; balance: ${bal.rows.length} household-years`);
