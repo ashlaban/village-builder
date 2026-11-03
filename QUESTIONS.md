@@ -6,6 +6,15 @@ The questions marked "review" come from the review of 30 October 2026; the reaso
 
 ## Priority 1
 
+### Roadmap: vertical slices, the late game and `design.md` v0.4 (raised 3 November 2026)
+From `docs/roadmap.md`, written when Kim made `docs/architecture/target-v2.md` the architecture reference. The answers set the order of work and let the backlog be rewritten as slices, one arch per slice.
+1. The slices and their order (roadmap, sections 3 and 4): 0 the yardstick; 1 kin help, booked, beside 2 a life; then 3 the household's year, 4 the autumn fair, 5 debt and land, 6 the mill and the loom, 7 talk travels, 8 the ship, 9 the town, 10 roads, boats and ice. **P:** as proposed; slices 1 and 2 in parallel; the gossip experiment from slice 0 on.
+2. The late game's size. `design.md` says "up to about 1,000 pawns simulated in full" (Decided), but populous medium starts at 807 and grows about 2% a year, so it passes 1,000 by about year 12 unless a loop holds it. **P:** about 1,000 living on medium is the budget's reference; a large map may reach 2,000 at half the speed.
+3. The budget (roadmap, section 5.2). **P:** at a late reference (populous medium at year 60, a saved fixture): 160 ms a game day (30× at 10% of a core), no 6-minute step over 50 ms, cost per living pawn-day at year 60 at most 1.25 times year 5, save and load under 0.5 s each.
+4. `design.md` v0.4 (roadmap, section 7). **P:** keep v0.3 unchanged as `docs/design-v0.3.md`; one skeleton pass now (the vision, the new section list, v0.3's points carried over, target-v2's changes marked "Under revision"); each slice's plan task then writes its own sections.
+5. Work counters (roadmap, section 6): deterministic counts of work done, kept in `VB.count` outside `st` and asserted at tiny scale in `npm test`. **P:** yes, with one lint allowance; counters never feed the simulation.
+6. The ten rules for systems (roadmap, section 5.3) into `CLAUDE.md`'s working rules. **P:** yes.
+
 ### Architecture review: the vision and the first steps (raised 3 November 2026)
 From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173).
 1. The player role: write the text proposed in section 3 of the review into `design.md`, in place of the family line Decided on 30 October? **P:** yes, as written; VB-079 then writes the player arch's tasks from it, after VB-169 (take control) and VB-077 (saves in the page).
@@ -17,6 +26,14 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 7. The feature freeze. Its condition was met on 2 November, but the paragraph in `BACKLOG.md` still stands. **P:** strike it now. Its foundations are in, and the review asks only that refactors wait for Kim's review of the map, not features; until VB-173 lands, a feature task that writes household food or membership says so in its impact note. Keeping the freeze until the map is reviewed would spare the first refactor some merging, at the cost of a pause in the growth and animals tasks.
 
 ## Priority 2
+
+### Target architecture v2: decisions waiting (raised 3 November 2026)
+From `docs/architecture/target-v2.md`, section 10.1. None blocks slice 0, 1 or 2; each is needed by the slice named.
+1. Bodies: one membership graph with rules per kind (Proposed; it passed the succession probe), or a domain per kind? Kim asked to iterate first. **P:** settle it by measurement in slice 5's plan: build the household cache from the graph at populous medium, and adopt the graph if the build and the updates stay under 50 ms (VB-043's bound).
+2. The 600 / 325 / 75 target (target-v2, section 6.3). **P:** a band for a developed island at the end game, not a quota; strata counted by relation to production, not residence, so a rural smith or miller is in the 325. Reported nightly from slice 9.
+3. May the player accept a deal that takes its household below the floor that binds every pawn (needed in slice 2)? **P:** yes, with a warning that names who goes hungry; the floor is a rule of how pawns choose, not a law of the world, and the player choosing badly is no privilege.
+4. A meeting that fails to decide its yearly routines (no quorum, a tie; needed in slice 3). **P:** a practice says what follows, "nothing" or "as last year", with "nothing" the default, which keeps Kim's decision that routines are decided afresh each year: a failed meeting means no common fence work that year, and the cattle in the crops become a story.
+5. Who mints, and when coin is taken (needed in slice 8). **P:** only an established Crown mints, after silver has circulated by weight; whether coin is taken is a norm learned from deals (target-v2, section 5.3); a town mints only by the Crown's grant.
 
 ### Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
 VB-033 was answered with the claims review and is built; the order of work, VB-127 and VB-129 were answered in the second pass (`QUESTION_ARCHIVE.md`). Measured in `REVIEW.md`, review of 2 November, second pass.

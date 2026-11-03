@@ -1,5 +1,10 @@
 # Architecture review, 3 November 2026
 
+**Superseded as the target** by `docs/architecture/target-v2.md` (3 November 2026), which grew from this review in 17 batches with Kim and
+is now the architecture reference; the order of work is `docs/roadmap.md`. This file stays as the record of the first response to the
+external proposal: what the code met, Kim's adoption of the vision (section 3), and where each point went. Its proposed text for
+`design.md` (section 3) still waits for Kim's approval in `QUESTIONS.md`.
+
 A second review by another assistant (ChatGPT), from a session with Kim, passed on on 3 November 2026 and read here at `4ef37fa` (after VB-171).
 Unlike the first (`docs/review-external.md`) it does not review the repository: it describes a target architecture for the game Kim wants, written
 without reference to the code (it names no file, module or task). It came as three documents, kept verbatim in `docs/architecture/`:
