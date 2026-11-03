@@ -6,6 +6,26 @@ Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind t
 
 Answered by Kim in the session of 3 November; recorded in `docs/roadmap.md` and the slice archs of `BACKLOG.md`.
 
+## Roadmap: vertical slices, the late game and `design.md` v0.4 (questions 3, 5 and 6)
+From `docs/roadmap.md`; questions 1, 2 and 4 are below.
+3. The budget (roadmap, section 5.2). **P:** at a late reference (populous medium at year 60, a saved fixture): 160 ms a game day (30× at 10% of a core), no 6-minute step over 50 ms, cost per living pawn-day at year 60 at most 1.25 times year 5, save and load under 0.5 s each.
+   **A (Kim, 3 Nov):** P, as proposed.
+5. Work counters (roadmap, section 6): deterministic counts of work done, kept in `VB.count` outside `st` and asserted at tiny scale in `npm test`. **P:** yes, with one lint allowance; counters never feed the simulation.
+   **A (Kim, 3 Nov):** P: yes, with one lint allowance; counters never feed the simulation.
+6. The ten rules for systems (roadmap, section 5.3) into `CLAUDE.md`'s working rules. **P:** yes.
+   **A (Kim, 3 Nov):** P: yes; they are in `CLAUDE.md`, Working rules.
+
+## Architecture review: the vision and the first steps (raised 3 November 2026) (questions 1 to 4)
+From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173).
+1. The player role: write the text proposed in section 3 of the review into `design.md`, in place of the family line Decided on 30 October? **P:** yes, as written; VB-079 then writes the player arch's tasks from it, after VB-169 (take control) and VB-077 (saves in the page).
+   **A (Kim, 3 Nov):** P: approved as written; VB-191 writes it into `design.md` v0.4, and VB-079 plans slice 2 from it.
+2. Which pawn does the player inhabit? **P:** at the start, any living adult, chosen from the pawn panel; each scenario suggests one (a holder in founders and heirs). After a death, the player chooses from the pawn's kin by blood or marriage, its household and its close ties, with the heir first in the list; if none is alive, any adult, and the chronicle marks the break. The rule of 30 October ended the run there; an open life should not end with one family.
+   **A (Kim, 3 Nov):** P.
+3. The score. **P:** no fixed score. The player picks ambitions, each with its progress in the chronicle (VB-099): hold three farms, change a custom, found a village, become a master household, leave service and hold land; the line's prestige over time is one of them and the default. Ambitions are read from the state and the record of events and grant nothing.
+   **A (Kim, 3 Nov):** P.
+4. The scale of society: add the row proposed in section 3 (the pawn, the household, the settlement, the region, and the world beyond, abstract until its people arrive)? **P:** yes. The cities review's phases become the road to the vision, so its questions ("Towns", Priority 2 below) are the next design decisions worth answering.
+   **A (Kim, 3 Nov):** P: yes; the row goes into v0.4's Vision and scope (VB-191).
+
 ## Roadmap: vertical slices, the late game and `design.md` v0.4 (raised 3 November 2026) (questions 1, 2 and 4)
 From `docs/roadmap.md`, written when Kim made `docs/architecture/target-v2.md` the architecture reference. The answers set the order of work and let the backlog be rewritten as slices, one arch per slice.
 1. The slices and their order (roadmap, sections 3 and 4): 0 the yardstick; 1 kin help, booked, beside 2 a life; then 3 the household's year, 4 the autumn fair, 5 debt and land, 6 the mill and the loom, 7 talk travels, 8 the ship, 9 the town, 10 roads, boats and ice. **P:** as proposed; slices 1 and 2 in parallel; the gossip experiment from slice 0 on.

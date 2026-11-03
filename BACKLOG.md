@@ -25,7 +25,7 @@ Workers take `ready` tasks by priority, but several edit the same files, so this
 2. **Beside the slices:**
    - The ownership refactors run in their order: VB-173 (the owners table and its check), VB-174 (food), VB-175 (membership and founding), VB-176 (the dependency rule), VB-177 (a pawn's movement, before VB-169), VB-178 (ties, before VB-127), VB-179 (the crop's life); VB-180 wraps up. VB-174 and VB-178 are what slice 1 builds on, so they go first among the simulation tasks. They touch the files of the food and growth code (`sim/hunger`, `sim/kinds`, `sim/help`, `sim/heirs`, `sim/cottage`, `sim/settle`), so run them one at a time.
    - VB-127 (ties from talk) runs early, since the late game already exceeds the budget (roadmap, section 5.1); it measures itself with `tests/perf.js` and one year from a late save (roadmap, section 6).
-   - `design.md` v0.4's skeleton (VB-191) once Kim has approved the text of the vision (`QUESTIONS.md`, Priority 1).
+   - `design.md` v0.4's skeleton (VB-191): Kim approved the vision's text on 3 November.
    - Small tasks that touch nothing above, once the freeze lifts: VB-159, VB-160, VB-084, VB-165, VB-139.
 
 ## Archs
@@ -87,7 +87,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-063 | Wrap-up: pawn interactions | talk | wrap-up | blocked | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. | [backlog/VB-063.md](backlog/VB-063.md) |
 | VB-077 | Plan: saving and loading in the page | life | plan | ready | 2 | S | Where saves live, autosave, and saves from older builds. | [backlog/VB-077.md](backlog/VB-077.md) |
 | VB-078 | Wrap-up: commands, saves and the record of events | life | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
-| VB-079 | Plan: a life, the player inhabits a pawn (slice 2) | life | plan | needs-review | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. | [backlog/VB-079.md](backlog/VB-079.md) |
+| VB-079 | Plan: a life, the player inhabits a pawn (slice 2) | life | plan | ready | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. | [backlog/VB-079.md](backlog/VB-079.md) |
 | VB-082 | Customs made legible: votes, leanings and causes | debt | implement | blocked | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
 | VB-083 | Seasons on the map | roads | implement | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
 | VB-084 | A 30× speed and an uncapped speed | - | - | ready | 3 | S | Speeds of 30× and "Max", as fast as a 12 ms frame budget allows. | [backlog/VB-084.md](backlog/VB-084.md) |
@@ -133,7 +133,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-178 | Refactor: ties and attitudes only through `sim/relations` and `culture` | ownership | implement | ready | 2 | S | One owner for ties, so VB-127's cap holds in one place; one function sets a new pawn's culture fields. | [backlog/VB-178.md](backlog/VB-178.md) |
 | VB-179 | Refactor: the crop's life only through `sim/fields` | ownership | implement | ready | 2 | M | The kinds, the clock and a farm emptying change a crop through `sim/fields`; its daily rules leave the clock. | [backlog/VB-179.md](backlog/VB-179.md) |
 | VB-180 | Wrap-up: state ownership and boundaries | ownership | wrap-up | blocked | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. | [backlog/VB-180.md](backlog/VB-180.md) |
-| VB-181 | Plan: the yardstick, cheap measurement of cost (slice 0) | yardstick | plan | needs-review | 1 | S | Write slice 0's tasks: work counters, scaling and history checks, late fixtures, bands, the rules registry, indexes of the living. | [backlog/VB-181.md](backlog/VB-181.md) |
+| VB-181 | Plan: the yardstick, cheap measurement of cost (slice 0) | yardstick | plan | ready | 1 | S | Write slice 0's tasks: work counters, scaling and history checks, late fixtures, bands, the rules registry, indexes of the living. | [backlog/VB-181.md](backlog/VB-181.md) |
 | VB-182 | Plan: kin help, booked as goodwill (slice 1) | kin-help | plan | ready | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. | [backlog/VB-182.md](backlog/VB-182.md) |
 | VB-183 | Plan: the autumn fair (slice 4) | fair | plan | blocked | 3 | S | Design the fair: goods and quanta, worth and need, how deals are found, grain loans as obligations. | [backlog/VB-183.md](backlog/VB-183.md) |
 | VB-184 | Plan: debt and land (slice 5) | debt | plan | blocked | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. | [backlog/VB-184.md](backlog/VB-184.md) |
@@ -143,4 +143,4 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-188 | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | plan | blocked | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. | [backlog/VB-188.md](backlog/VB-188.md) |
 | VB-189 | Plan: the town (slice 9) | town | plan | blocked | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. | [backlog/VB-189.md](backlog/VB-189.md) |
 | VB-190 | Plan: roads, boats and ice (slice 10) | roads | plan | blocked | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. | [backlog/VB-190.md](backlog/VB-190.md) |
-| VB-191 | design.md v0.4: the skeleton | - | - | needs-review | 1 | M | Keep v0.3 unchanged; write v0.4's sections with v0.3's points carried over and target-v2's changes marked. | [backlog/VB-191.md](backlog/VB-191.md) |
+| VB-191 | design.md v0.4: the skeleton | - | - | ready | 1 | M | Keep v0.3 unchanged; write v0.4's sections with v0.3's points carried over and target-v2's changes marked. | [backlog/VB-191.md](backlog/VB-191.md) |

@@ -6,9 +6,9 @@ measuring that cheap. Kim also noted that target-v2 is mostly a framework, and t
 designing. Read at `fc5c2fc`. The numbers in section 5 were measured that day in this repository's container (4 cores, Node), with
 `tools/sim.js` and a 40-year save. They are one run each, so treat them as accurate to about 10%.
 
-Kim decided three points on 3 November, marked **Decided**: the slices and their order, about 1,000 living pawns on a medium map as
-the late game's reference, and `design.md` v0.4 as a skeleton the slices fill in. The rest is **Proposed**; the open questions are
-in section 8 and in `QUESTIONS.md`. The slices are archs of `BACKLOG.md` (keys in section 7). No code changes.
+Kim decided on 3 November, marked **Decided**: the slices and their order, about 1,000 living pawns on a medium map as the late
+game's reference, `design.md` v0.4 as a skeleton the slices fill in, the budget, the work counters, and the ten rules (now in
+`CLAUDE.md`). The rest is **Proposed**. The slices are archs of `BACKLOG.md` (keys in section 7). No code changes.
 
 ## 1. In short
 
@@ -356,7 +356,7 @@ or over pairs:
 The moving round grew twelvefold, and it is the one that freezes. None of this shows in the early benchmark (`tests/perf.js`,
 year 2), which is why late fixtures matter (section 6).
 
-### 5.2 Budget (Proposed)
+### 5.2 Budget (Decided, Kim, 3 Nov)
 
 The **late reference** is populous medium at year 60, with about 1,000 living (Decided, Kim, 3 Nov: about 1,000 living on a medium map
 is the reference; a large map may reach about 2,000 at half the speed), saved as a fixture and regenerated nightly when behaviour changes, so it
@@ -375,7 +375,7 @@ its line; its wrap-up measures it.
 
 ### 5.3 Ten rules for systems
 
-Proposed for `CLAUDE.md`'s working rules. Each slice's plan is checked against them.
+Decided (Kim, 3 Nov), and in `CLAUDE.md` (Rules for cost) in short form. Each slice's plan is checked against them.
 
 1. **Cost follows activity, not history.** No loop in a step walks every record ever made: dead pawns, dissolved households, ended
    edges, met obligations, the record. The owner keeps an index of the live ones (a cache with one writer, checked against its
@@ -493,7 +493,7 @@ VB-127 (ties from talk) stays `ready` ahead of its slice, since the budget alrea
 
 ## 8. Questions for Kim
 
-Also in `QUESTIONS.md`, Priority 1, with these proposals. Questions 1, 2 and 4 were answered on 3 November (`QUESTION_ARCHIVE.md`).
+Raised in `QUESTIONS.md`, Priority 1, with these proposals.
 
 1. **The slices and their order** (sections 3 and 4). **P:** as proposed, with slices 1 and 2 in parallel. **Decided (Kim, 3 Nov):** P.
 2. **The late game's size.** `design.md` says "up to about 1,000 pawns simulated in full" (Decided). Populous medium starts at 807
@@ -501,8 +501,10 @@ Also in `QUESTIONS.md`, Priority 1, with these proposals. Questions 1, 2 and 4 w
    Is 1,000 living the target for medium, or a band for the late game, with large maps allowed more? **P:** about 1,000 living on
    medium is the budget's reference; large may reach 2,000 at half the speed. **Decided (Kim, 3 Nov):** P.
 3. **The budget** (section 5.2). **P:** as proposed: 160 ms a game day at the late reference, steps under 50 ms, cost per living pawn
-   flat in history, save under 0.5 s.
+   flat in history, save under 0.5 s. **Decided (Kim, 3 Nov):** P.
 4. **`design.md` v0.4** (section 7). **P:** keep v0.3 as `docs/design-v0.3.md`; a skeleton pass now; each slice's plan writes its
    own sections. **Decided (Kim, 3 Nov):** P.
-5. **Counters in `VB.count`** (section 6). **P:** yes, with one lint allowance; counters never feed the simulation.
-6. **The ten rules** (section 5.3) into `CLAUDE.md`'s working rules. **P:** yes, once Kim agrees with them.
+5. **Counters in `VB.count`** (section 6). **P:** yes, with one lint allowance; counters never feed the simulation. **Decided (Kim, 3 Nov):** P.
+6. **The ten rules** (section 5.3) into `CLAUDE.md`'s working rules. **P:** yes, once Kim agrees with them. **Decided (Kim, 3 Nov):** P.
+
+All six were answered on 3 November (`QUESTION_ARCHIVE.md`).
