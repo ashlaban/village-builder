@@ -92,7 +92,7 @@ budget and cheap measurement.
 - Interface sketches in design documents are TypeScript-style types: shape and ownership, not code to build.
 - Hot paths to watch: the household's membership caches, the per-tile travel cost (compile it), the death roll; the rules registry's `value()`
   must not allocate. A categorical derived view (class, tier) feeds a rule only through hysteresis.
-- Late-game cost (`docs/roadmap.md`, section 5): cost grows with history and with pairs before it grows with people. Measure a change that adds a
+- Late-game cost: cost grows with history and with pairs before it grows with people (Rules for cost, below). Measure a change that adds a
   loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
 ## Working rules
@@ -109,3 +109,19 @@ budget and cheap measurement.
   at the seeds and maps it names, in the PR and in the task file, and says whether households, not only averages, are better off.
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
+
+## Rules for cost (Kim, 3 November; `docs/roadmap.md`, section 5)
+Budget at the late reference (populous medium at year 60, about 1,000 living): 160 ms of simulation a game day, no 6-minute step over 50 ms,
+cost per living pawn at year 60 at most 1.25 times year 5, save and load under 0.5 s each. Every plan and PR is checked against these rules:
+1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
+   obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
+2. No pass over pairs: pairs meet only among the present (cells, a venue, a household); every per-pawn collection has a declared cap.
+3. Decay lazily: store a value and when it was set and read it in closed form, or store against a shared scale; no daily pass to decay.
+4. Schedule, don't poll: what falls due at a known time goes into a due-queue in `st`, as plain data; a step touches only what is due.
+5. Stagger and spread: per-holder work on its planning day; yearly work spread over steps, a village or a few households at a time.
+6. Compile what is hot: a rule read in an inner loop becomes an array refreshed at its cadence; `value()` allocates nothing.
+7. Detail by state, never by camera: what the camera shows never changes what the simulation does; only the page interpolates.
+8. Bound every cache (routes, reach maps), and bound history (routine events fold into yearly counts; a pawn's events index the record).
+9. Name the cost before building: entities, times cadence, times work per call, in the plan; measure it in the wrap-up, early and on a
+   late save.
+10. Work counters (slice 0) live in `VB.count`, outside `st`: never saved, never read by the simulation, read only by tools and tests.
