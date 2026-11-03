@@ -4,6 +4,8 @@ A village builder proof of concept on a generated hex archipelago: one `index.ht
 Design reference: `design.md`, "Village builder: game design snapshot v0.3"; read-only for implementing tasks (only design and review tasks change it).
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
 the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+An external target architecture (ChatGPT, 3 November) is kept in `docs/architecture/`: a proposal, not design; what was taken from it, and Kim's adoption of its
+vision of a player who inhabits a pawn, are in `docs/review-architecture.md`.
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.

@@ -6,7 +6,15 @@ The questions marked "review" come from the review of 30 October 2026; the reaso
 
 ## Priority 1
 
-None open: VB-033 was answered with the claims review (1 November; `QUESTION_ARCHIVE.md`).
+### Architecture review: the vision and the first steps (raised 3 November 2026)
+From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173).
+1. The player role: write the text proposed in section 3 of the review into `design.md`, in place of the family line Decided on 30 October? **P:** yes, as written; VB-079 then writes the player arch's tasks from it, after VB-169 (take control) and VB-077 (saves in the page).
+2. Which pawn does the player inhabit? **P:** at the start, any living adult, chosen from the pawn panel; each scenario suggests one (a holder in founders and heirs). After a death, the player chooses from the pawn's kin by blood or marriage, its household and its close ties, with the heir first in the list; if none is alive, any adult, and the chronicle marks the break. The rule of 30 October ended the run there; an open life should not end with one family.
+3. The score. **P:** no fixed score. The player picks ambitions, each with its progress in the chronicle (VB-099): hold three farms, change a custom, found a village, become a master household, leave service and hold land; the line's prestige over time is one of them and the default. Ambitions are read from the state and the record of events and grant nothing.
+4. The scale of society: add the row proposed in section 3 (the pawn, the household, the settlement, the region, and the world beyond, abstract until its people arrive)? **P:** yes. The cities review's phases become the road to the vision, so its questions ("Towns", Priority 2 below) are the next design decisions worth answering.
+5. What a pawn knows. **P:** unchanged for now: all know all, fathers included (Decided 30 October), and an Open question in `design.md` as proposed. Knowledge with a source comes first where it changes a choice: prices at another fair, news brought by a ship.
+6. Reads and writes. The review asks that no module expose its collections (Rule 2). **P:** reads stay free, since `st` is plain data for saves and the page reads it every frame; every field has one owner module, which alone writes it, and other modules call its operations; a static check enforces it (VB-173). The rule goes into `CLAUDE.md` with VB-173.
+7. The feature freeze. Its condition was met on 2 November, but the paragraph in `BACKLOG.md` still stands. **P:** strike it now. Its foundations are in, and the review asks only that refactors wait for Kim's review of the map, not features; until VB-173 lands, a feature task that writes household food or membership says so in its impact note. Keeping the freeze until the map is reviewed would spare the first refactor some merging, at the cost of a pause in the growth and animals tasks.
 
 ## Priority 2
 
