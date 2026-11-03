@@ -1,6 +1,6 @@
 # Backlog
 
-Tasks for the village builder proof of concept. The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order. Design refs point to sections of `design.md` ("Village builder: game design snapshot v0.3").
+Tasks for the village builder proof of concept. The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order. Design refs point to sections of `design.md` ("Village builder: game design snapshot v0.4"). Refs written before 3 November point to v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so most still find their place (v0.4's Status of this snapshot says where each section went).
 
 Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`; their files stay in `backlog/`. Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth. The table below is the overview of open tasks: when a task's name, arch, phase, status, priority or size changes, update its row too. A new task takes the next free ID, gets a file and a row.
 
@@ -25,7 +25,7 @@ The feature freeze of 2 November 2026 was lifted by Kim on 3 November: its found
 2. **Beside the slices:**
    - The ownership refactors run in their order: VB-173 (the owners table and its check), VB-174 (food), VB-175 (membership and founding), VB-176 (the dependency rule), VB-177 (a pawn's movement, before VB-169), VB-178 (ties, before VB-127), VB-179 (the crop's life); VB-180 wraps up. VB-174 and VB-178 are what slice 1 builds on, so they go first among the simulation tasks. They touch the files of the food and growth code (`sim/hunger`, `sim/kinds`, `sim/help`, `sim/heirs`, `sim/cottage`, `sim/settle`), so run them one at a time.
    - VB-127 (ties from talk) runs early, since the late game already exceeds the budget (roadmap, section 5.1); it measures itself with `tests/perf.js` and one year from a late save (roadmap, section 6).
-   - `design.md` v0.4's skeleton (VB-191): Kim approved the vision's text on 3 November.
+   - `design.md` v0.4's skeleton (VB-191) is done (3 November); each slice's plan fills in its sections.
    - Small tasks that touch nothing above: VB-159, VB-160, VB-084, VB-165, VB-139.
 
 ## Archs
@@ -42,12 +42,12 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
 | yardstick | Slice 0: the yardstick | Every later slice measured at its own cost, early and late in a run, cheaply: work counters, scaling and history checks, late-game fixtures, a bench history, the reduced-scenario harness with bands, the rules registry, indexes of the living. | `docs/roadmap.md`, sections 3.0, 5 and 6 |
-| kin-help | Slice 1: kin help, booked | The walking skeleton: help in hunger as a gift through Exchange, goodwill booked between the two pawns, `allowance` as a rule, shown in the pawn panel. | Economy and jobs (Help in hunger); roadmap 3.1 |
+| kin-help | Slice 1: kin help, booked | The walking skeleton: help in hunger as a gift through Exchange, goodwill booked between the two pawns, `allowance` as a rule, shown in the pawn panel. | Goods, production and animals (Help in hunger); Exchange, goodwill and obligations; roadmap 3.1 |
 | life | Slice 2: a life | The player inhabits a pawn: chooses what it does from what it may do here, answers at the meeting, goes on as kin after its death, saves in the page, picks ambitions. | Vision and scope (Player role); roadmap 3.2 |
-| year | Slice 3: the household's year | Work is available, not posted: plans (standing routines, seasonal plans, the meeting's yearly routines) make tasks that eligible pawns take; planning days; attention. | Economy and jobs; roadmap 3.3 |
+| year | Slice 3: the household's year | Work is available, not posted: plans (standing routines, seasonal plans, the meeting's yearly routines) make tasks that eligible pawns take; planning days; attention. | Work: opportunities, plans and tasks; roadmap 3.3 |
 | fair | Slice 4: the autumn fair | Barter between villages in whole goods; need decides, customary worth books goodwill; grain loans as obligations. | Roadmap 3.4; `docs/review-cities.md`, phase 1 |
 | debt | Slice 5: debt and land | Land rights with `own` and `use` apart; default, cases at the meeting, foreclosure into tenancy; the landed household; the bodies decision. | Claims, ownership and territory; Inheritance and expansion; roadmap 3.5 |
-| mill | Slice 6: the mill and the loom | Facilities and construction as recipes, crafts and skills, the textile chain, occupations seen in hours worked. | Economy and jobs (Long work and processing); roadmap 3.6 |
+| mill | Slice 6: the mill and the loom | Facilities and construction as recipes, crafts and skills, the textile chain, occupations seen in hours worked. | Goods, production and animals; roadmap 3.6 |
 | talk | Slice 7: talk travels | Traits, encounters at venues, stories, lies and counter-stories; talk cheaper than today. | People, households and family records; Customs and culture; roadmap 3.7 |
 | ship | Slice 8: the ship | The outside world, silver, the Church and the Crown, rank, tithe and tax, disease by sea. | Roadmap 3.8; `docs/review-cities.md`, phases 3 and 5 |
 | town | Slice 9: the town | Market places and towns, burgage plots, the urban sink, settlement tiers and regions. | Roadmap 3.9; `docs/review-cities.md`, phase 4 |
@@ -143,4 +143,3 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-188 | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | plan | blocked | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. | [backlog/VB-188.md](backlog/VB-188.md) |
 | VB-189 | Plan: the town (slice 9) | town | plan | blocked | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. | [backlog/VB-189.md](backlog/VB-189.md) |
 | VB-190 | Plan: roads, boats and ice (slice 10) | roads | plan | blocked | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. | [backlog/VB-190.md](backlog/VB-190.md) |
-| VB-191 | design.md v0.4: the skeleton | - | - | ready | 1 | M | Keep v0.3 unchanged; write v0.4's sections with v0.3's points carried over and target-v2's changes marked. | [backlog/VB-191.md](backlog/VB-191.md) |

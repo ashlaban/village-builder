@@ -1,16 +1,19 @@
-# Village builder: game design snapshot v0.3
+# Village builder: game design snapshot v0.4
 
-Oct 29, 2026 · @Kim
+Nov 3, 2026 · @Kim
 
 ## Status of this snapshot
 
-Version 0.3 records the game design as discussed up to 29 October 2026; it adds animals, fields and meadows as built land, and starting scenarios to version 0.2. It is a reference for later work, not the truth: where it and the game differ, either may be wrong, and any point can be reopened.
+Version 0.4 begins on 3 November 2026, when `docs/architecture/target-v2.md` became the architecture reference and Kim chose to grow the game
+in vertical slices (`docs/roadmap.md`). It is a skeleton: every point of version 0.3 is carried over with its status, in a new order of
+sections, and Kim's decisions of 3 November are added. Points those decisions change are marked **Under revision**, with the slice whose
+plan task rewrites them; until then they stand as written. Sections marked "to be written" are filled in by that slice's plan. It is a
+reference for later work, not the truth: where it and the game differ, either may be wrong, and any point can be reopened.
 
-Each version is its own document and is left unchanged once a newer one exists: Village builder: game design snapshot v0.2, Village builder: game design snapshot v0.1.
+Each version is its own document and is left unchanged once a newer one exists: version 0.3 is `docs/design-v0.3.md`.
 
-**Architecture and the next version (3 November 2026).** `docs/architecture/target-v2.md` is now the architecture reference. Its section 11.1 lists points of this snapshot that change: jobs, owners and roles (jobs become opportunities, plans and tasks); stats and traits; customs (new practices, norms, doctrine); seasons and ice. Each goes through a design pass before code follows. `docs/roadmap.md` proposes a version 0.4 of this document, written slice by slice, with this one kept unchanged beside it (Proposed). Until then these points stand as written here; a task that extends them says so in its impact note.
-
-Implementation details (rendering, code structure, performance) are left out, apart from the cost column of the Systems overview, which a review of 30 October 2026 added as a Proposed section. Numbers are design targets or starting values to tune, not fixed values.
+Implementation details (rendering, code structure, performance) are left out: the architecture is target-v2, and the budget and the rules
+for cost are in `docs/roadmap.md` and `CLAUDE.md`. Numbers are design targets or starting values to tune, not fixed values.
 
 | Label | Meaning |
 | --- | --- |
@@ -18,23 +21,76 @@ Implementation details (rendering, code structure, performance) are left out, ap
 | Agreed | Proposed in planning and accepted, or adopted without objection |
 | Proposed | Suggested, not yet accepted |
 | Open | Not decided |
+| Under revision | Decided or Agreed, but changed by a later decision; it stands as written until the named slice's plan rewrites it |
 
-## Vision and scope
+**Where version 0.3's sections went.**
 
-A village builder on a generated hex archipelago, played at the level of individual pawns with family histories, for up to about 1,000 pawns.
+| v0.3 | v0.4 |
+| --- | --- |
+| Vision and scope | 1, with the player role replaced and four rows added; and The game, in Kim's terms |
+| World and scale; Weather, seasons and daylight | 2, as subsections |
+| Time and calendar | 3 |
+| People, households and family records | 4 |
+| Economy and jobs: its opening line, Jobs, owners and roles | 7 |
+| Economy and jobs: Goods and the farming year, Long work and processing, Known gaps | 8 |
+| Land and ecology | 6, except Worn paths, which is in 2 |
+| Animals | 8, as a subsection |
+| Settlements and look | 11 |
+| Customs and culture | 10 |
+| Inheritance and expansion | 5 |
+| Claims, ownership and territory | 6, as a subsection |
+| Starting scenarios | 14 |
+| Commands, time steps and views | 15 |
+| Systems overview | Appendix |
+| Open questions and proposals | 16 |
+| Change log | Change log |
+
+New in v0.4: section 9 (Exchange, goodwill and obligations), 12 (Institutions and the world beyond), 13 (Balance loops and targets), and
+the subsections "to be written" in 2, 4, 5, 6, 8, 10 and 11.
+
+## 1. Vision and scope
+
+A village builder on a generated hex archipelago, played at the level of individual pawns with family histories, for about 1,000 living pawns on a medium map.
 
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Genre | Village builder and colony simulation; pawns plan their own work | Decided |
-| Population | Up to about 1,000 pawns; every pawn individually represented | Decided |
+| Population | About 1,000 living pawns on a medium map is the reference for the late game and its budget; a large map may reach about 2,000, at half the speed. Every pawn is individually represented; balance loops, not a cap, hold the number (see Balance loops and targets) | Decided, 3 Nov (was: up to about 1,000 pawns) |
 | Setting | Medieval Nordic peasant society, with inspiration from medieval Sweden | Decided |
 | Look | Naturalistic, painterly hex terrain; medieval Swedish farmsteads | Decided |
 | Society | Families, inheritance and customs that shift over generations | Decided |
 | Pace | A game about incremental progress; one run lasts 40–80 hours | Decided |
 | Start | Several starting scenarios; by default the founders arrive to almost unprepared land and spend the first year making fields and meadows | Decided |
-| Player role | The player follows a family line: they act through the head of the line as that pawn's source of commands, argue at the meeting with its prestige, and plan their household's land and work. When the head dies they continue with a relative, by blood or marriage; with none left, the run ends. The score is the line's prestige over time, shown in the chronicle, with optional ambitions (hold three farms, change a custom, found a village). The player should be able to influence the world a lot, through all the systems, the job system among them. Built after commands and saving (backlog VB-079) | Decided, 30 Oct |
+| Player role | The player inhabits one pawn as its source of commands (Commands, direct control) and lives a life the game does not prescribe: works and marries, inherits or leaves, takes service, clears land, argues at the meeting with the pawn's prestige, and later learns a craft, trades at the fair, joins the Church or moves to a town. The pawn keeps its needs and the rules every pawn has, and the world goes on without the player. When the pawn dies, the player goes on with another: by default the heir or another relative (the family line), or someone of its household or close ties. There is no fixed score: the player picks ambitions (hold three farms, change a custom, found a village, become a master household, leave service and hold land), and the chronicle shows their progress; the line's prestige over time is one of them. The player should be able to influence the world a lot, through all the systems. Slice 2 (backlog VB-079) plans it | Decided, 3 Nov (replaces the family line of 30 Oct) |
+| Which pawn | At the start, any living adult, chosen from the pawn panel; each scenario suggests one (a holder in founders and heirs). After a death, the player chooses among the pawn's kin by blood or marriage, its household and its close ties, the heir first; if none is alive, any adult, and the chronicle marks the break | Decided, 3 Nov |
+| Ambitions | Read from the state and the record of events; they grant nothing | Decided, 3 Nov |
+| Scale of society | A society at five scales: the pawn, the household, the settlement (village, market place, town), the region of the archipelago, and the world beyond it, which stays abstract (ships, the Church, the Crown, migrants, news) until its people arrive and become pawns. Towns, institutions and markets grow out of the villages along the phases of the cities review (`docs/review-cities.md`) | Decided, 3 Nov |
+| What a pawn knows | All is known to all for now, fathers included. Those who decide read through an actor view, a seam that filters nothing until stories arrive (slice 7); knowledge with a source is Open (see Open questions) | Decided, 30 Oct; kept 3 Nov |
 
-## World and scale
+### The game, in Kim's terms (3 November 2026)
+
+Kim's description of the game in the architecture conversation of 3 November (`docs/architecture/target-v2.md`); Decided as aims. The
+slices of `docs/roadmap.md` build towards them, and the sections below say how far each is designed.
+
+- **Society and economy.** Several strata: an agricultural base supports town life and a specialised economy, with a land-owning elite on
+  top. Many systems balance themselves, and tuning the game means tuning their balance points (peasant fertility held in check by taxation and
+  by higher death rates in crowded towns). Social hierarchy grows from a few founding homesteads; homesteads, families and households are
+  distinct. An alderman can gather wealth and prestige, collect a debt in land, pay for a mill, and become the first level of landed elite.
+- **Exchange.** Goods are exchanged for goods and decaying goodwill; elites and merchants use currency once it exists. Markets arise between
+  villages and can grow into towns; a region holds a town or city and its villages, about two cities a map; alehouses mix villages.
+- **Culture.** Values are held by individuals, by institutions (the Church) and by social bodies (a village, a city, a court). Inheritance
+  (patri-, matri- or mixed) and marriage rules differ between villages.
+- **World and work.** An island world, where terrain and water separate cultures; boats are few early (fishermen) and more common later
+  (merchants). Late in the game there is limited contact with an abstract outside world: a port draws merchant ships that sell exotic goods
+  and buy in bulk; diplomats and a few immigrants arrive. Resources come in subtypes (granite and marble are both stone; cow's and sheep's
+  milk), extracted and refined through work; pawns plan simply, and specialised roles such as miller and baker emerge. Pawns track relations,
+  stats and skills.
+- **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
+  Work, Death and the Peasant".
+
+## 2. World, climate and travel
+
+### World and scale
 
 One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m across, so a house is one tile; distances, farmland and time are compressed rather than tiles mixed in size.
 
@@ -54,13 +110,13 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Walking and terrain | Routes and walking cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed, in the current route search (backlog VB-096); routes over regions (HPA\*) only if routes then cost too much (VB-097) | Agreed, 30 Oct |
 | Uses of regions | Overview, territory, simplified simulation off screen, hierarchical pathfinding for 1,000 pawns (HPA\*, Botea, Müller and Schaeffer 2004) | Agreed |
 
-### Compression
+#### Compression
 
 - **Distance:** villages sit 13–15 tiles apart instead of a realistic 100–250 tiles (1–3 km).
 - **Farmland:** a farm has 2–4 field tiles; a medieval household farmed about 12 ha, close to 1,000 hexes.
 - **Rejected alternative:** a separate world map with local maps to enter (as in RimWorld or Dwarf Fortress). It only pays off with hundreds of settlements and breaks continuous scrolling.
 
-### Sizing at 1,000 pawns
+#### Sizing at 1,000 pawns
 
 | Unit | Size | People |
 | --- | --- | --- |
@@ -71,7 +127,63 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 
 Hay meadows (see Animals) add 2–3 tiles to a farm that keeps animals, private or shared; the figures above predate them and need revising (Open).
 
-## Time and calendar
+### Weather, seasons and daylight
+
+The map has a day and night cycle, seasons with a temperature, and simple weather with wind and rain patterns. (Decided, 30 Oct.) How they show on the map and act on the simulation is Proposed.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Day and night | Light changes over the day: dawn, full day, dusk and night are visible on the map | Decided, 30 Oct |
+| Weather | Simple weather with wind and rain patterns | Decided, 30 Oct |
+| Seasons | Seasons with temperature | Decided, 30 Oct |
+| Seasons on the map | Seasons show on the map: spring green, autumn colour, snow and ice in winter; on fixed dates first, then following temperature (see Settlements and look; backlog VB-083) | Agreed, 30 Oct; **Under revision** (slice 10, VB-190): climate by latitude, with ice |
+| Determinism | Weather comes from the world's seed, so the same seed gives the same weather | Proposed |
+
+#### Daylight (Decided, 30 Oct; the look at night Proposed)
+
+- **Night is short:** dark from 22:00 to 4:00 at the equinoxes, with 2 hours of dusk and dawn (see Time and calendar).
+- **The seasons move it a little:** the dark part runs from about 4 hours at midsummer to 8 at midwinter, a mild echo of Sweden's light summer nights and long winter dark that keeps winter nights short.
+- **At night** the land darkens and cools in tone but stays readable; hearths glow through doorways and smoke holes, and the few pawns still out carry their own light.
+
+#### Temperature (Proposed)
+
+- **One curve for the year,** cold in winter and warm in summer, plus spells of a few days warmer or colder than usual; high ground is colder.
+- **Below freezing,** snow lies on land and lakes ice over; the snow and the season's colours on the map follow temperature, not fixed dates.
+- **Firewood use** follows the temperature instead of a fixed winter-to-summer ratio.
+- **Spring work** waits for thawed ground, and growth starts with the warmth; a late frost or an early one in autumn is the frost risk of the farming year (see Goods and the farming year).
+
+#### Wind and rain (Proposed)
+
+- **Wind** has a direction and a strength for the whole archipelago that change slowly, mostly from the south-west and west, as in Scandinavia.
+- **Rain** comes in fronts: large soft areas, a few regions wide, that drift across the map with the wind, so it can rain on one island and be dry on the next.
+- **Rain stops** haymaking and the carrying in of sheaves, which need dry weather, and slows field work; hay rained on while drying loses value.
+- **Wind** turns the windmill only above a set strength, carries smoke and moves the trees.
+- **The year's weather factor** (see Goods and the farming year) comes from the season's actual weather instead of a separate draw: a wet harvest or a dry early summer makes a poor year.
+- **A game day stands for about a week,** so a day's weather reads as a week's weather.
+
+### Worn paths
+
+Paths are not built; they are worn into the land by people and animals walking. (Decided, 30 Oct; the speeds Decided; the counts, stages, fading and snow Agreed, 30 Oct; the rest Proposed.) Built in two steps: drawn first (backlog VB-094), then the faster walking and routes that prefer paths (VB-110), after terrain costs (VB-096).
+
+1. **Each crossing counts:** every tile keeps a count of the pawns and animals that cross it, halving each game year so unused paths fade.
+2. **Three stages:** trodden ground at a count of 50, a path at 200, a lane at 800, about 1, 4 and 16 crossings a day kept up.
+3. **Faster walking:** walking is 5% faster on trodden ground, 15% on a path and 30% on a lane than on the bare terrain, so paths draw routes without lanes ruling all travel.
+4. **Sharing paths:** route-finding counts the faster walking, so a pawn takes a path when it is quicker even if it is longer; routes merge, and the merged path wears deeper. Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
+5. **Land kept open:** grass does not grow back on a path, and forest does not spread onto one while it is used.
+6. **Under snow,** lanes stay visible as trodden snow; paths and trodden ground are covered.
+
+Villages had a village street (*bygata*) and fenced cattle lanes (*fägator*) that led the herds through the infield to the outland pastures; in the game such lanes are worn by use, not laid out.
+
+### Climate and travel beyond walking (to be written: slice 10, VB-190)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Climate | Set at world generation by latitude: the growing season, frost, snow, and whether and when lakes, rivers and sounds freeze | Proposed (target-v2, section 4.2) |
+| Frozen water | Opens travel where the climate is cold enough: colder further north | Decided, 3 Nov |
+| Modes | Foot, cart, sledge, boat and ship, each with a cost for a person and one for a load; one reach query serves every use of distance | Proposed (target-v2, section 4.2) |
+| Built ways | Tracks, roads, causeways, bridges and ferry landings are built things (see Goods, production and facilities), with passage rights over the holdings they cross (see Land, ecology and rights) | Proposed |
+
+## 3. Time and calendar
 
 A year has 4 seasons of 12 days, so one game day stands for about a week; at 1× a day lasts 48 seconds and a year about 38 minutes.
 
@@ -94,41 +206,7 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 
 **Run length.** A single run should last 40–80 hours (Decided). At about 38 minutes a year, 150 years is about 95 hours at 1×, so a run would mostly play between 1× and 3×.
 
-## Weather, seasons and daylight
-
-The map has a day and night cycle, seasons with a temperature, and simple weather with wind and rain patterns. (Decided, 30 Oct.) How they show on the map and act on the simulation is Proposed.
-
-| Aspect | Design | Status |
-| --- | --- | --- |
-| Day and night | Light changes over the day: dawn, full day, dusk and night are visible on the map | Decided, 30 Oct |
-| Weather | Simple weather with wind and rain patterns | Decided, 30 Oct |
-| Seasons | Seasons with temperature | Decided, 30 Oct |
-| Seasons on the map | Seasons show on the map: spring green, autumn colour, snow and ice in winter; on fixed dates first, then following temperature (see Settlements and look; backlog VB-083) | Agreed, 30 Oct |
-| Determinism | Weather comes from the world's seed, so the same seed gives the same weather | Proposed |
-
-### Daylight (Decided, 30 Oct; the look at night Proposed)
-
-- **Night is short:** dark from 22:00 to 4:00 at the equinoxes, with 2 hours of dusk and dawn (see Time and calendar).
-- **The seasons move it a little:** the dark part runs from about 4 hours at midsummer to 8 at midwinter, a mild echo of Sweden's light summer nights and long winter dark that keeps winter nights short.
-- **At night** the land darkens and cools in tone but stays readable; hearths glow through doorways and smoke holes, and the few pawns still out carry their own light.
-
-### Temperature (Proposed)
-
-- **One curve for the year,** cold in winter and warm in summer, plus spells of a few days warmer or colder than usual; high ground is colder.
-- **Below freezing,** snow lies on land and lakes ice over; the snow and the season's colours on the map follow temperature, not fixed dates.
-- **Firewood use** follows the temperature instead of a fixed winter-to-summer ratio.
-- **Spring work** waits for thawed ground, and growth starts with the warmth; a late frost or an early one in autumn is the frost risk of the farming year (see Goods and the farming year).
-
-### Wind and rain (Proposed)
-
-- **Wind** has a direction and a strength for the whole archipelago that change slowly, mostly from the south-west and west, as in Scandinavia.
-- **Rain** comes in fronts: large soft areas, a few regions wide, that drift across the map with the wind, so it can rain on one island and be dry on the next.
-- **Rain stops** haymaking and the carrying in of sheaves, which need dry weather, and slows field work; hay rained on while drying loses value.
-- **Wind** turns the windmill only above a set strength, carries smoke and moves the trees.
-- **The year's weather factor** (see Goods and the farming year) comes from the season's actual weather instead of a separate draw: a wet harvest or a dry early summer makes a poor year.
-- **A game day stands for about a week,** so a day's weather reads as a week's weather.
-
-## People, households and family records
+## 4. People, households and family records
 
 Every pawn is a person on record with parents, marriages and life events; households are where people live and work, which is not the same as family.
 
@@ -149,309 +227,21 @@ Every pawn is a person on record with parents, marriages and life events; househ
 | Births | Natural births drive growth; very limited immigration by boat comes in a later stage. Children are spaced by explicit pregnancy and nursing; some are born outside marriage, from courting and relationships between pawns, with the man she was with as father; an unmarried mother and the father often marry quickly. Starting targets: about 7 births for a woman married at 20 and 5.5 at 25; about 20% of children die before age 1 and a third before 15; 1% of mothers die in childbirth | Decided (growth from births, spacing), Agreed (starting targets) |
 | Courting | Unmarried pawns may court from 16; marriage stays at 18 for women and 20 for men, and still needs a place to live and kin no closer than the limit. Hunger of 0.5 or more postpones the marriage, not the courting. About 5% of births at first come while courting, and about 3 in 4 such couples marry within the year if they can. The true father is recorded and, for now, known to all. A widow or widower minds the age gap half as much, so a widowed holder may marry a younger landless adult and bring the farm to the marriage (balance review; remarriage was common in pre-industrial Sweden, Lundh 2007) | Decided (from 16; true father), Agreed (rest), 30 Oct; Agreed (remarriage), 2 Nov |
 | Pawn interactions | Pawns who meet (working near each other, at the well, on the green, at home) may interact, each pair at most once a game hour; the first kind is talk. A relationship holds familiarity (the tie), an opinion from −1 to 1 and a courting flag; kin links stay in the family records. Opinion has a direction and is the sum of the standing (spouse, parent, child, sibling, housemate) and timed memories that gain up to a cap and fade, as in RimWorld; becoming friends or falling out is a life event. In each waking hour a pawn talks with at most one partner, chosen by familiarity and liking; by the pair's fixed compatibility the talk is a chat, a good talk or cross words. Idle pawns seek out those they like. Talk shows as a short bubble near the camera, and the pawn panel lists the people a pawn knows best and mood modifiers such as “talked with a friend +5” | Decided (talk first; mood shown; 30 Oct), Agreed (rest, 30 Oct); Decided (opinion from memories, one partner an hour, numbers in backlog VB-060, VB-061, VB-125; 31 Oct) |
-| Stats and traits | Come later | Decided |
-| Inherited traits | Whether founders get hidden values that children inherit (parents' average plus noise) | Open |
+| Stats and traits | Come later | Decided; **Under revision** (slice 7, VB-186): twelve traits, Decided 3 Nov (below) |
+| Inherited traits | Whether founders get hidden values that children inherit (parents' average plus noise) | Open; **Under revision** (slice 7, VB-186): partly inherited, Decided 3 Nov (below) |
 | Family tree | Generations in rows, spouses linked, children under their parents; the dead greyed, heirs marked; father, mother, spouse with kinship, children, siblings and life events per person | Decided (a view), Agreed (content) |
 
-## Economy and jobs
-
-Jobs come from things that need doing (a field, a meadow, a herd, a household, a fence), each with an owner that decides who may take it; pawns pick by role, matched best fit first.
-
-### Goods and the farming year
+### Traits, talk and stories (to be written: slice 7, VB-186)
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| Food | Grain counted in rations: one adult's food for one day; a child eats half; milk, butter and meat add to them (see Animals) | Agreed |
-| Fuel | Firewood in loads; winter use about five times summer (1.6 against 0.3 loads a day) | Agreed |
-| Built land | Fields and meadows have to be made by work before they produce; either can be private or common | Decided |
-| Making a field | Claim the tile, clear scrub and stones (many stones make it slow, and the stones become building material), then break the ground. A household starts one field at a time when it needs more (2–4 per farm); the people who till do the work; a typical meadow tile takes about 50 work hours (scrub 10, stones up to 20, breaking 30). A farm's fields lie together as one contiguous block within 4 steps of the house, not necessarily next to it, in every scenario; a new field joins the block where a free tile touches it (backlog VB-109). Balance review, 1 Nov: no fixed number of fields: a household wants fields for its food but no more than its hands can till (about 2 a working adult, 1.5 more with a team of oxen); households in every scenario make fields and meadows; heath, hills or marsh are broken only when no meadow is free (`docs/review-balance.md`) | Decided, Agreed (hours); Decided (block), 30 Oct; Decided (no fixed cap; by labour and household size), 1 Nov; Agreed (numbers, poorer land), 2 Nov |
-| Field cycle | Stubble, tilled over several days, sown, sprouting, growing with light upkeep, ripe, reaped into stooks, dried, threshed, grain stored | Decided (long work), Agreed (stages) |
-| Seed | Sowing costs a quarter of the expected harvest, a 4:1 yield ratio as Slicher van Bath (1963) reports for medieval Europe; a household keeps back seed for all its fields before it eats | Agreed |
-| Field yield | Before animals, a meadow field gives about 100 rations in an ordinary year, less 25 of seed, so 3 fields give about 218 and 4 about 290 and a family of 6 is fed from its own fields; populous households of 7 or more get a fourth field. Retuned when milk and meat arrive (backlog VB-080, VB-048) | Decided, 30 Oct |
-| Meals | A household keeps a store of rations, cooked from grain (later from flour); each afternoon the cook makes the next day's food, and may leave other work after 14:00 to do it; households start with 2 days of rations, so one missed cooking uses the buffer, not a hungry day | Decided, 30 Oct |
-| Food from the wild | Fishing in rivers, lakes and the sea from spring to autumn, and gathering berries, mushrooms and nuts in the woods in late summer and autumn. Both are always posted, with an urgency that is low while the household has food and high when it runs short, so they fill slack hours and answer a lean summer; each water or wood tile holds a stock that use lowers and time restores (backlog VB-117, VB-118) | Decided (by urgency), Proposed (numbers), 30 Oct |
-| Mixed meals | A day's meal drawn from 2 food sources needs 10% less food, from 3 or more 20% less; grain or flour, fish and gathered food are sources now, milk and meat with the animals. Fresh fish and gathered food are eaten first and spoil after 3 game days; drying and salting come later. Built with hand-quern milling (backlog VB-119, VB-009) | Decided, Agreed (numbers), 30 Oct |
-| Help in hunger | A hungry household asks its kin, then the village store. Each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households; loans come with money | Decided (the store), Agreed (rest), 30 Oct |
-| Soil | Each harvest wears a field down; manure from the byre restores it. Starting values: −0.08 a harvest to a floor of 0.75, +0.04 a load of manure to 1.15 (backlog VB-137). Balance review: the dung heap loses half of what lies on it in a year, and is carted before the hoe; +0.02 a load (so about 3 head of cattle, not 1.5, keep 3 fields) was tried and cost a quarter more hungry days, so +0.04 stays until herding (VB-136) and food from the wild (VB-117, VB-118) give farms more slack | Agreed; numbers Agreed, 31 Oct; Agreed (the heap rots; +0.04 for now), 2 Nov |
-| Risk | Frost destroys whatever is left in the field; each year has a weather factor | Agreed |
-| Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); the soil's cap (1.15 from manure) rises by 0.1 a century of a village's years of farming, so a well-dunged old farm out-yields a new one by about 10% after 100 years (backlog VB-160) | Decided (rise), 30 Oct; Agreed (rate), 2 Nov |
-| Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe | Agreed |
-
-### Jobs, owners and roles
-
-| Aspect | Design | Status |
-| --- | --- | --- |
-| Sources | Each field and meadow posts its stage's job; herds post herding, milking and feeding; households post firewood when low, water daily and cooking each afternoon; fences wear, faster in winter, and each stretch posts a mend job | Decided |
-| Owners | Each job is owned by a household (its fields, meadows, herds, cooking, cooking) or a village (common fields and meadows, the village fence, also a one-farm village's fence); city commons later | Decided |
-| Who may take a job | Members of the owning household, servants included, or adults of the owning village | Decided |
-| Help between households | Adults of another household in the same village may help with a household's work, and the help builds the relationship between them; it is a gift, nothing is owed. Starting values: field, threshing and fence work that has waited 2 hours, by helpers with no work of their own; near kin and friends first (backlog VB-106) | Decided (help, relationships), Agreed (rules), 30 Oct |
-| Commons | Village well, green, commons wood (*allmänning*), common fields and meadows, and the infield's roundpole fence (*gärdesgård*), kept by the village as medieval provincial laws such as Upplandslagen (1296) required | Decided (common land), Agreed (the rest) |
-| Role priorities | Each role ranks job kinds; farmers favour fields, firewood and fences; the mistress of the house and maids favour water, cooking and milking; children fetch water, weed, help at the harvest and herd | Decided (by role, children's work), Agreed (rankings) |
-| Types of work | Roles rank types of work (tilling, tending, harvest, threshing, wood, upkeep, household; more as kinds arrive) rather than each job kind, with exceptions for single kinds where a role differs; a new kind of an existing type needs no new rankings, and types are the natural unit for the player's steering later (backlog VB-116) | Agreed, 30 Oct |
-| Matching | Idle pawns and open jobs are matched best fit first; a poor fit only takes a job that has waited two hours | Agreed |
-| Work beats idling | A pawn takes any allowed job that suits its role rather than stand idle, however far or low in urgency, so every posted job gets done; firewood for the winter is laid in from summer (backlog VB-103) | Agreed, 30 Oct |
-| Several hands | The whole household can take part in field, land and threshing work at once (tilling, sowing, weeding, reaping, carrying sheaves, threshing, clearing, breaking), ordered by role priority, each hand at full rate; cooking, water, firewood and mending take one pawn each (backlog VB-102) | Decided, 30 Oct |
-| More urgent work | A pawn at work leaves its job, which keeps its progress, when another is much more urgent: checked each hour, at most one switch an hour, not while walking or carrying, never for a job finished within the hour; much more urgent is a bid above 1.5 times the current job's plus 1. So a farmer keeps hoeing when the woodpile runs low and a son or farmhand goes for wood. The cook's call after 14:00 stays its own rule (backlog VB-107; see Multi-day jobs) | Agreed, 30 Oct |
-| How busy | The village is busy at the peaks, sowing and harvest (75–90% of adults' work hours), and partly idle in the slack seasons (40–60%); the new jobs are tuned against this, and spare time goes to talk once pawns talk (backlog VB-061). Measured on 30 Oct: 55–79% idle across the year (`REVIEW.md`, Work and jobs, second pass) | Decided, 30 Oct |
-| Village work days | The meeting sets days on which the whole village works together: closing the infield fence before the animals go out, clearing the commons; a household that does not turn up loses standing (backlog VB-120) | Decided (work days), Proposed (rules) |
-| Winter crafts | In winter men make and mend tools and cut fence poles indoors and in the woods (*slöjd*); field work wears tools and worn tools slow it; fences are mended with poles (backlog VB-121) | Decided (crafts), Proposed (numbers) |
-| Player steering | The player can steer the job system, as part of influencing the world through all the systems; it comes after the player's role is settled | Decided (later), 30 Oct |
-| Sowing first | A hoed field is sown before the next field is hoed, so a small household brings in some crop | Decided, 30 Oct |
-| Multi-step jobs | Walk to the site, work, carry the load home (sheaves to the barn, hay to the hay barn, wood to the woodpile, water indoors) | Agreed |
-
-### Long work and processing
-
-Farm work and building are slow and span several days; a game is about incremental progress, and a single run lasts 40–80 hours. (Decided)
-
-| Aspect | Design | Status |
-| --- | --- | --- |
-| Multi-day jobs | A job keeps its progress when pawns stop to sleep, eat or answer something more urgent; they go home at night and carry on next day, or someone else allowed to take it does | Decided |
-| Tilling | Several days of work per field, scaled to the internal time: about 20 work hours with a hoe | Decided, Agreed (hours) |
-| Sowing | Quicker than tilling | Decided |
-| Summer upkeep | Growing fields post a little work to keep them up; neglect lowers the yield. Weeding takes 2 work hours every 6 days per field; each round missed cuts the yield by 8%, at most 40% | Decided, Agreed (numbers) |
-| Harvest | Work-intensive: reap the ripe crop, dry it, then thresh to get the grain out. Sheaves wait unthreshed in the barn; threshing takes about 6 work hours per field's crop | Decided, Agreed (hours) |
-| Haymaking | Several days per meadow: mow, dry, carry to the hay barn | Agreed |
-| Milling at home | Grain is ground into flour in the house with a hand quern (*handkvarn*); slow, about 1 work hour per 4 units of grain. Flour goes further than grain: a daily household job makes rations from flour at 1:1, or from grain at 1.25 grain per ration | Decided, Agreed (numbers) |
-| Milling at a mill | Much faster; a water mill by a river, or a windmill, likely dearer to build; often owned by the village and built as a commons job | Decided |
-| Windmill | The first mill is a windmill, until rivers for water mills are generated: a village of 3 or more farms builds one at the moving round on a free open tile within 6 steps of the green, hills preferred; 140 work hours with 10 loads of stone and 20 of timber; it grinds 5 times as fast as the quern; households of other villages within 10 steps pay a toll of 1 in 16; wind is ignored at first (backlog VB-093) | Agreed, 30 Oct |
-| Miller and baker | In towns, milling becomes the miller's role, which supplies the baker | Decided |
-| Building | Slow: clear the site and prepare the foundation; fancier, more prestigious houses also need lumber prepared and stone hewn and carted | Decided |
-| Building jobs | Each key step is a job; a person or the village may prepare materials over a long time | Decided |
-| Run length | 40–80 hours for one run, comparable to Europa Universalis IV and Crusader Kings III | Decided |
-
-Water mills need rivers, which the world does not generate yet; what a more prestigious house brings its owner is not yet defined (both Open).
-
-### Known gaps
-
-- Grain still lacks outlets beyond feed and seed: storage losses, tithes or trade are needed. Balance review (Agreed, 2 Nov): grain in store spoils, 5% a year of the first year's need held, 20% of the second, 40% of the rest, and the village store 20% a year, so a good farm's store levels off at a year or two of need; tithes and trade stay open.
-- Hunger now has consequences (backlog VB-028): it can kill, mostly infants and the old, slows work, and postpones marriages and births; who eats first when food is short is a custom (Decided). Starting values: a year of hunger about doubles deaths, mostly infants and the old; work slows by up to 40%; marriages wait while hunger is at half or more (Agreed). Health (see People) adds a starving pawn's death within a season.
-- A grown family eats more than 3–4 fields give after seed; see Systems overview, Food balance (Proposed).
-- Money only makes sense once towns and markets exist.
-
-## Land and ecology
-
-Tiles carry their own state (trees, stones, grazing), and work, grazing or neglect moves them from one kind of land to another.
-
-| Aspect | Design | Status |
-| --- | --- | --- |
-| Trees per tile | Each wooded tile holds a sensible number of trees, at full cover about 60 broadleaf or 80 pine (±20% per tile); cutting fells them one by one, one per firewood trip. A partly felled tile grows back to full in about 30 game years, by one growth model for all trees | Decided |
-| Showing trees | Not every tree is drawn: a tile shows stages for about 100%, 75%, 50% and 25% of its trees remaining | Decided |
-| Cleared woodland | At 0% trees the tile becomes meadow; regrowth applies only to tiles that still have trees | Decided |
-| Stones | Meadow tiles track their stone content: every untouched meadow tile has some, and tiles near hills have more, the extra fading to nothing within about 2 tiles | Decided |
-| Meadow to field | Breaking ground takes long where stones are many; the stones cleared become building material | Decided |
-| Abandoned fields | An untended field becomes a stone-free meadow | Decided |
-| Fresh land | Ground never farmed yields more for its first crops: a new field there starts with soil 1.4 and wears to manure's cap in about 3 crops (see Inheritance and expansion, Moving to new land) | Decided, 1 Nov (the bonus); Agreed, 2 Nov (soil 1.4); Proposed (wear) |
-| Forest spread | Forest turns nearby meadow, and fields by way of meadow, into scrub and then woodland, unless grazing or farming keeps the land open. Built after grazing pressure: open land next to forest reaches scrub in 8 years and forest in 30; a field in use, a house, a green, a meadow mown that year, work in the last year or enough grazing keep it open; heath closes like meadow (backlog VB-091) | Decided; Agreed (rates), 30 Oct |
-| Grazing | Herds of wild and domestic animals graze, and grazing pressure shapes the land (see Animals) | Decided |
-| Worn paths | Where pawns walk often, trodden paths show in the world; a path speeds up walking, so routes prefer existing paths and pawns come to share them | Decided, 30 Oct |
-
-### Making a hay meadow
-
-A hay meadow is built land: it has to be found, claimed and prepared before it yields hay, and it can be private or common. (Decided; the steps are Agreed)
-
-1. **Find a suitable tile:** open grass, a shore, or damp ground where hay grows well; northern Swedish farms also mowed mires and lakeshores.
-2. **Claim it** as a tile claim, for the household or for the village.
-3. **Clear it** of scrub and the worst stones, which takes longer on stony ground.
-4. **Fence it into the infield** where animals graze nearby.
-5. **Each spring, rake it clean** of twigs, leaves and fallen branches before the summer mowing (*fagning*).
-
-After mowing, herds may graze the regrowth (*efterbete*). A meadow left unmown and ungrazed falls under the forest-spread rule.
-
-### Worn paths
-
-Paths are not built; they are worn into the land by people and animals walking. (Decided, 30 Oct; the speeds Decided; the counts, stages, fading and snow Agreed, 30 Oct; the rest Proposed.) Built in two steps: drawn first (backlog VB-094), then the faster walking and routes that prefer paths (VB-110), after terrain costs (VB-096).
-
-1. **Each crossing counts:** every tile keeps a count of the pawns and animals that cross it, halving each game year so unused paths fade.
-2. **Three stages:** trodden ground at a count of 50, a path at 200, a lane at 800, about 1, 4 and 16 crossings a day kept up.
-3. **Faster walking:** walking is 5% faster on trodden ground, 15% on a path and 30% on a lane than on the bare terrain, so paths draw routes without lanes ruling all travel.
-4. **Sharing paths:** route-finding counts the faster walking, so a pawn takes a path when it is quicker even if it is longer; routes merge, and the merged path wears deeper. Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
-5. **Land kept open:** grass does not grow back on a path, and forest does not spread onto one while it is used.
-6. **Under snow,** lanes stay visible as trodden snow; paths and trodden ground are covered.
-
-Villages had a village street (*bygata*) and fenced cattle lanes (*fägator*) that led the herds through the infield to the outland pastures; in the game such lanes are worn by use, not laid out.
-
-### Grazing at low cost (Agreed, see Animals)
-
-- **Herds, not individuals:** animals live as herds with a species, a count and a home range.
-- **One number per tile:** grazing pressure, updated once a game day from the herds whose ranges cover the tile; about 56,000 values, a negligible cost.
-- **Pressure feeds forest spread:** it decides whether meadow near woodland stays open, and heavy grazing thins it.
-- **Near the camera:** each herd shows a handful of animal sprites wandering inside its range; the same few stand for the whole herd.
-- **Farther out:** grazing shows only in the painted ground as shorter, browner grass, repainted for an area only when its pressure has changed enough.
-- **Individuals where the story needs them:** a herd's cattle, by name (Agreed, 31 Oct); hunting and herding act on the herd.
-- **Pressure where herds graze:** a herd adds pressure only on the tile it grazes with its herder, which fades by half each year as worn paths do; cheaper than updating every tile of a home range, and it shows where herds have been (Agreed, 31 Oct; backlog VB-136).
-
-## Animals
-
-Hay sets how many animals a household can winter, and the animals give milk, meat, wool, draught and manure; the first version has cattle, sheep and one wild grazer, and a hard winter limit. (Decided: species, wild grazers only, hard limit. Mechanics: Agreed)
-
-The old Swedish saying *äng är åkers moder*, “the meadow is the mother of the field”, sums up the loop: meadow hay fed the animals through winter and their manure fed the fields. Myrdal's volume on medieval farming in *Det svenska jordbrukets historia* (1999) describes it, with the fenced infield of fields and meadows and the open outfield where animals grazed in summer.
-
-### Herds
-
-| Herd | Made of | Gives | Needs | Status |
-| --- | --- | --- | --- | --- |
-| Cattle | Cows, a pair of oxen, young stock | Milk in summer (butter keeps for winter), calves in spring, meat at slaughter, manure, draught | Byre (*fähus*) space; about 1 hay unit per cow per stall day | Decided (species), Agreed (rest) |
-| Sheep | Ewes, rams, lambs | Wool, lambs, meat, manure | About 0.2 hay units per head per stall day; graze heath and hills that cattle do poorly on | Decided (species), Agreed (rest) |
-| Wild grazers | One species to start: roe deer, with elk perhaps later | Meat and hides when hunted | Forest edges and meadows; can damage crops | Decided (wild grazers only; roe deer, 30 Oct) |
-
-- **Ownership:** each household owns its cattle herd and its sheep flock as two herds. A herd is the one unit that moves, grazes and posts jobs; its cattle are a short list of named animals (sex, birth, kind: calf, heifer, cow, bull, steer, ox), so calving, gelding, oxen and culling work and the log can name them, while sheep are counts (Agreed, 31 Oct; backlog VB-131).
-- **The founders' herds:** not every farm keeps animals; at least one farm keeps a bull, since oxen are castrated, and at least one keeps a ram; a farm with sheep keeps 4 ewes (Decided, 30 Oct). Three of the four founders farms keep cattle (2 cows each, the first also a bull) and two keep sheep (4 ewes each, the first also a ram); one keeps neither. One pair of oxen in the group, at the bull's farm; the others hoe until they raise oxen from bull calves (Agreed, 30 Oct).
-- **Food from animals:** a cow in milk gives 0.5 rations a day in summer, part of it kept as butter for winter (Agreed). Slaughter gives meat, a cow 15 rations' worth, an ox 18 and a sheep 3, which a household job salts into food that keeps; stored food spoils after a year (Decided, 30 Oct; meat values lowered from 40 and 8 after the review, so a living cow is worth more than her carcass, Agreed 31 Oct).
-- **The byre** holds 6 cattle at first and is enlarged later by a building job (Agreed, 30 Oct).
-- **Numbers** are starting values to tune.
-
-### The year
-
-- **Spring:** turn the herds out around spring day 6, cart the winter's manure to the fields, till with the oxen.
-- **Summer:** daily herding and milking; haymaking as the main work.
-- **Autumn:** after harvest, the household decides how many animals to keep against its stored hay; the rest are slaughtered for salted meat.
-- **Winter:** daily feeding and mucking out in the byre, from about autumn day 9 to spring day 6, 21 of 48 days.
-
-### Hay and the hard winter limit
-
-- **Stored hay** is counted daily against the animals in the byre. (Decided)
-- **When hay runs out,** the household slaughters in an emergency for lean meat; if nobody acts, animals die and give nothing. (Decided)
-- **Hay comes from meadows** the household has made and claimed, and its share of common meadows (see Land and ecology). A meadow tile might yield about 30 hay units, enough for 1–1.5 cows over winter. A household rakes and mows only while its barn and the hay lying mown hold less than two winters' need of its animals; with no animals it mows nothing (balance review, Agreed 2 Nov). Hay in the barn spoils as grain does, by winters held: 5% a year of the hay up to one winter's need, 25% of the second winter's worth, 50% of the rest (Kim, 2 Nov; backlog VB-159).
-- **The first winter** of a new settlement needs a hay stock brought along, or the founders' animals die in their first season.
-
-### Ties to existing systems
-
-| System | What animals add | Status |
-| --- | --- | --- |
-| Land and ecology | Herd grazing and haymaking keep land open under the forest-spread rule | Agreed |
-| Fields | Manure restores soil worn down by harvests; oxen speed up tilling | Agreed |
-| Jobs | Summer work: haymaking, herding, milking; autumn slaughter; spring manure | Agreed |
-| Fences | A broken stretch lets cattle or deer into the crops and costs yield | Agreed |
-| Roles | Children from about 8 herd; milking ranks high for the mistress of the house and maids | Agreed |
-| Customs | Candidates: grazing on the commons (limited per farm by land share, open to all, or set by the meeting); hunting rights; how hay from common meadows is shared | Proposed |
-| Inheritance | Livestock is the main movable wealth: siblings' shares can be paid partly in animals, and a cow and a few ewes give a new household its start | Agreed |
-| Buildings | A byre and hay barns join the building jobs; the byre's size caps the herd | Agreed |
-| Commands | A herd is a non-person entity acting through commands: move, graze, come home | Agreed |
-
-Limiting grazing per farm (“stinting”) was a common rule for village commons; Ostrom's *Governing the Commons* (1990) is the standard account of such rules, against Hardin's “tragedy of the commons” (1968). Vera's *Grazing Ecology and Forest History* (2000) argues that large grazers keep landscapes a mix of open land and forest.
-
-### First version (Agreed, 31 October 2026)
-
-The review of 31 October (`docs/review-animals.md`) set starting values for the first version, to tune in backlog VB-048; its questions and answers are in `QUESTION_ARCHIVE.md`.
-
-| Point | Starting value | Task |
-| --- | --- | --- |
-| Hay a stall day | Cow, bull, ox 1; heifer, steer 0.6; calf 0.4; ewe, ram 0.2; lamb 0.1; 21 stall days, autumn day 9 to spring day 5 | VB-131, VB-134 |
-| Breeding | On spring day 3 a cow of 3 or more calves with chance 0.85 if a bull of 2 or more lives within 12 steps of her farm; a ewe lambs (0.3 chance of twins) with a ram within reach; 15% of calves and 20% of lambs die. Taking the cow to another farm's bull is remembered as a favour ("Lent us the bull") | VB-131 |
-| Meadows | 30 hay a tile × site (meadow 1, marsh 0.8, heath 0.6; × 1.3 by a river or water) × weather; claimed and cleared (4 h + stones), within 6 steps; households with animals want 1.2 times their winter need | VB-132 |
-| Haymaking | Rake 2 h in spring (unraked 80%); mow 16 h a tile from summer day 1 to autumn day 3 (men); dry a day; carry 4 h | VB-133 |
-| The byre | A daily fodder job (women's work); the autumn count on autumn day 8 keeps what the hay × 1.1 and the byre's 6 cattle allow, the least valuable going first, oxen last; meat is salted within 3 days or spoils | VB-134 |
-| Milk | 0.5 rations a cow in milk a day, half without a herder; 40% churned to butter | VB-135 |
-| Herding | One herder from 8 years for a household's herds, 9 hours a day to a pasture within 8 steps; an unherded herd may get into a crop through a broken fence, and the field's holder blames the fence's keeper, as the provincial laws did | VB-136 |
-| Soil | −0.08 a harvest to a floor of 0.75; a load of manure +0.04 to 1.15; 0.2 loads a head of cattle a stall day | VB-137 |
-| Oxen | A team works one tilling hand at 2.5 times | VB-138 |
-
-### Cost
-
-About 440 domestic herds and up to 100 wild ones at full scale; only a few dozen sprites are drawn near the camera. Counting grazing where herds graze makes it a few hundred updates a day (Agreed, 31 Oct). A profile of 31 October puts the work and economy systems at under a tenth of the simulation's time and the social layer at two thirds; the animals' budget is 10 ms a game day at populous medium (`docs/review-animals.md`, Performance).
-
-### Later
-
-Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*fäbod*), and leaf fodder from pollarded trees, which would tie trees per tile to the hay economy.
-
-## Settlements and look
-
-Villages are clusters of farmsteads around a green with a well sweep, fenced together; the buildings follow medieval Swedish practice rather than later Falu red farmhouses.
-
-| Aspect | Design | Status |
-| --- | --- | --- |
-| Village | Farmsteads around a green with a well sweep (*brunnsvinge*); the infield fenced by a roundpole fence; a commons wood nearby | Decided (look), Agreed (layout) |
-| Every farm in a village | Every farm belongs to a village; a lone farm is an ordinary village of one farm, with its own meeting and a generated village name, and its map label shows the farm name only; an empty farm is owned by its village. When a village gains a second farm, it can lay out a green and dig a well as village work; they are not made automatically | Decided |
-| Farmstead | Unpainted log cottage (*stuga*) with a turf roof on birch bark and a smoke hole (*ljore*) instead of a chimney; storehouse on posts (*härbre*); gapped barn (*lada*); yard; woodpile | Decided (look), Agreed (buildings) |
-| For animals | A byre (*fähus*) on the farm; small hay barns out in the meadows | Agreed |
-| Signs of life | The woodpile grows and shrinks with the stock; smoke thickens when cooking, in the evening and in winter; sheaf stooks (*skylar*) stand on reaped fields; herds graze near the farms | Agreed |
-| Seasons on the map | A tint per season over the painted land (fresh green in spring, full in summer, ochre and russet on broadleaf and meadow in autumn, bare broadleaf in winter; pine stays green), and snow from winter day 2 to spring day 3 with lakes iced over, until snow can follow temperature (backlog VB-083) | Agreed, 30 Oct |
-| Worn paths | Walking wears the ground: trodden, path and lane by crossings, fading over a year; lanes show as trodden snow. Drawn first (backlog VB-094); the faster walking decided under Land and ecology, Worn paths, follows (VB-110) | Agreed, 30 Oct |
-| Farm names | Village farms by compass direction from the green (Norrgården, Södergården); lone farms (one-farm villages) by surroundings (Strand, Lunden, Backa, Myra, Ängen) | Agreed |
-| Name generators | Names come from generators, several per kind of entity, and in the long run cultures prefer different generators. For farms, landmarks and owners' names combine with compass directions, so big villages need no numbers | Decided, 30 Oct |
-| Pawns | Wool kirtles in undyed or plant-dyed colours, hose and turnshoes; hoods for men, and for all men in winter; a linen headcloth for married women, braids and a band for unmarried ones | Decided (good-looking), Agreed (dress) |
-| Pawn size | Drawn about twice true size against buildings, so individuals read at play zoom; children smaller | Agreed |
-| Animation | Walking, hoeing, broadcast sowing along the rows, reaping with a sickle, chopping, drawing water, mending fences, carrying sheaves, firewood and water | Decided |
-| Empty farms | Buildings grey and decay into ruins; fields go to meadow and, near woodland (within 2 steps of forest, until forest spread exists), to scrub; full decay art comes with claims | Agreed |
-| Generated villages | The village generator makes more varied and realistic villages, which look like villages that have grown in play; once worn paths exist, generated villages have them | Decided, 30 Oct |
-
-### Generated villages (Proposed)
-
-- **Grown, not stamped:** the generator grows each village farm by farm by the rules of play: a household builds where a household in play would, takes fields near its house, and the village lays out a green and digs a well once it has two farms. A generated village and one grown over a run then look alike.
-- **Worn in:** after the farms stand, the generator walks a few simulated years of daily trips (fields, well, wood, the neighbours) so the village starts with its paths and lanes.
-- **Varied forms:** irregular cluster villages (*klungbyar*), the most common form in medieval Sweden; row villages (*radbyar*) along a lane or a shore, as in the regulated villages of the plains (*solskifte*, in the provincial laws from the 13th century); and lone farms (*ensamgårdar*). Farms differ in age, size and number of buildings.
-- **Fitted to the land:** villages follow shores, slopes, rivers and the edge of the forest, and avoid stony and wet ground for houses.
-
-## Customs and culture
-
-One culture holds a single set of customs with a default when generated; members' attitudes drift every game day, villages change their practice only at a yearly meeting, and remote villages can drift off into new cultures. (Decided)
-
-&#91;embedded content: customs cycle · daily drift, yearly round\]
-
-Daily contact moves attitudes; only the yearly round turns them into practice, customs and splits, and its moves, like marriages from courting, change who meets whom.
-
-### Two layers
-
-- **Attitudes, per pawn:** a preference over each custom's options, updated every game day (about weekly). Decided.
-- **Custom in force, per settlement:** a village applies the culture's custom unless its own practice differs. Practice changes only at the yearly village meeting (*bystämma*) after harvest. Decided.
-- **The culture's customs** change only at the yearly reckoning after all meetings. Decided.
-- **Every system reads customs** rather than hard-coded rules: succession, marriage, claims, who may speak. Agreed.
-
-### Custom dimensions
-
-Gender eligibility, number of heirs, timing of succession and claims on empty farms are customs (Decided). The full set, default “Old Nordic” positions and malleability (1 = easiest to change) are Agreed. Candidates from the animal design (grazing on the commons, hunting rights, sharing hay from common meadows) are Proposed and not yet in the table.
-
-| Custom | Options | Default | Malleability |
-| --- | --- | --- | --- |
-| Claims on empty farms | Kin of the old family first (*bördsrätt*); villagers first; anyone; the meeting assigns | Kin first | 1.0 |
-| Cleared land belongs to | The village allots it; whoever worked most; whoever it was cleared for | The village | 0.9 |
-| When the heir takes over | At the holder's death; when the heir marries, parents retiring on the farm; when the holder turns 60 | When the heir marries | 0.8 |
-| A daughter's share | Equal to a son's; half a son's (*systerlott*) | Half | 0.65 |
-| How many heirs | One heir takes all; one heir buys out the rest; land split between heirs | Buys out the rest | 0.55 |
-| The widow | Keeps the farm for life; keeps a right to her keep; inherits outright | For life | 0.45 |
-| Who can inherit | Sons only; sons first; any child; daughters first | Sons first | 0.35 |
-| Who speaks at the meeting | Landholders; all household heads; all adults | Landholders | 0.3 |
-| Which child inherits | The eldest; the youngest; chosen by the parent | The eldest | 0.25 |
-| Where a married couple lives | With whoever holds land; at the husband's home; at the wife's home | With the land | 0.2 |
-| Closest kin who may marry | Third cousins or further; second cousins or further; first cousins or further; uncle–niece or further (civil degree 8, 6, 4 or 3 and up; siblings never) | Second cousins or further | 0.12 |
-| Heir to their own parents' farm | Steps behind other relatives, so farms are not combined; keeps their place, so farms may be combined | Steps behind (Agreed) | 0.6 (Agreed) |
-| Who eats first when food is short | Equal shares; children first; those who work first | Equal shares (Agreed) | 0.5 (Agreed) |
-| Children born outside marriage | Inherit like other children; inherit after children born in marriage; do not inherit | After children born in marriage (Agreed) | 0.5 (Agreed) |
-| Disputed claims | The first claim stands; the strongest claim stands (the one most recently worked or renewed); kin of the tile's last owner first; the meeting decides by voice-weighted support | The first claim stands (Agreed) | 0.7 (Agreed) |
-
-### How attitudes move (Agreed)
-
-- **Anchored social influence:** a pull towards the weighted average of one's contacts, anchored to what was learned young (Friedkin and Johnsen 1990).
-- **Contacts:** weighted by time together at work, in the household and at the well or green, plus kin; ties fade with a half-life of about a year.
-- **Prestige:** landholders and elders weigh more (Boyd and Richerson 1985; Henrich and Gil-White 2001); traits later.
-- **Self-interest:** a pull towards options that would help one's position, such as a landless daughter towards equal shares, or parents of young children towards feeding children first when food is short.
-- **Scarcity:** when adults cannot find a spouse the marriage limit allows, attitudes shift towards letting closer kin marry; siblings never. When allowed spouses are plentiful, attitudes drift slowly back towards a stricter limit (Decided).
-- **Upbringing:** children start from their parents and the village norm (Cavalli-Sforza and Feldman 1981).
-- **Norm entrepreneurs:** now and then an adult takes up a cause for 5–15 years, usually one already in the air locally. Added in calibration.
-- **Persuasion:** advocates pull directly on their contacts, in proportion to their share of each contact's ties. Added in calibration.
-- **Advocacy input:** one slot used by entrepreneurs, events and influential pawns, and by any later player role.
-- **Legible customs:** each change in the meeting log shows the support for the old and new option and the margin needed, and customs within 5% of changing are noted; the pawn panel shows where a pawn leans and the cause it argues for; a cause taken up and a change of practice are announced (backlog VB-082; Agreed, 30 Oct).
-
-### Meetings, culture and splits
-
-- **Village meeting:** practice moves from one option to another only if voice-weighted support beats it by a margin, about 25%. The margin grows with the village's tie to the centre and below 10 voices; returning to the culture's custom is easier. Agreed.
-- **Culture reckoning:** support across settlements, weighted by size, tie and centrality. The margin grows with roughly the square root of the culture's size, with extra inertia below 40 people. Agreed.
-- **Tie to the centre:** travel distance, with sea crossings costing more, plus living kin across the gap. Distant villages drift more easily. Decided (principle), Agreed (measure).
-- **Fission:** automatic when a weakly tied settlement stays far from the culture's customs for 3 years; hard customs count most. The same split function can be called by events later. Decided.
-- **Cities:** will count more at the reckoning and change faster, through more contacts and newcomers. Decided (principle).
-
-### Pace
-
-All customs change on the scale of generations; concentrated effort can do it within one; villages are stable and larger cultures slower (Decided). Current calibration, one generation taken as 30 years:
-
-| Test | Easiest custom | Middle | Hardest |
-| --- | --- | --- | --- |
-| Natural drift, 300 people | About 3 generations | 4.6–5.7 generations | None within 200 years |
-| A coalition with 20% of the voice | 1.1 generations | 1.4–1.7 generations | 2.1 generations |
-
-A village with a 10% tie forms local practice after about 1.5 generations, against 2.1 for a 60% tie. Cultures of 100, 300 and 1,000 people first change in about 2.2, 2.8 and over 6.7 generations.
-
-## Inheritance and expansion
+| Traits | Twelve, continuous and latent, shown only as labels at the tails: values (generosity, piety, ambition, honour), temperament (sociability, temper, diligence, openness) and aptitudes (body, hands, husbandry, wits). Values come mostly from upbringing, temperament and aptitudes partly by inheritance. A trait acts on at least two rules and never chooses for the player (target-v2, section 4.4) | Decided, 3 Nov (twelve, as sketched); numbers Open |
+| Personal values | Held as traits; each culture gives their distribution | Decided, 3 Nov |
+| Skills | Learnt by doing, faster with the matching aptitude; they fade unused | Proposed (target-v2, section 4.4) |
+| Gossip | Stories: an event and who was in it, passed on where people meet, believed by the hearer's opinion of the teller and the story's fit; tested first against opinion averaging in an experiment (backlog VB-187) | Decided, 3 Nov |
+| Slander | Pawns and the player alike may lie; a discovered lie is the source of a counter-story about the liar, of higher valence, scaled by the culture's values | Decided, 3 Nov |
+
+## 5. Inheritance, expansion and other bodies
 
 A couple needs a household of its own to marry, and one heir takes each farm, so younger siblings become landless adults who must serve, marry an heir or a widow, claim an empty farm, or clear new land.
 
@@ -534,7 +324,56 @@ When a village is full, its landless adults may leave to found a farm of their o
 | The new village | A village of one farm, no green or well, named for its founder (Erikstorp, Olofsboda); it keeps its mother village's customs and culture and records where it came from; its tie to the centre is computed as for any village, so a far daughter drifts more easily and may split off | Proposed |
 | Fresh land | A field broken on ground never farmed starts with soil 1.4, above manure's cap of 1.15, and wears 0.08 a crop as any field: on a manured farm it is down to the cap in about 3 crops; without manure it stays 0.4 ahead of an old field until both reach the floor (about 9 crops); in every scenario | Decided, 1 Nov (the bonus); Agreed, 2 Nov (soil 1.4); Proposed (wear) |
 
-## Claims, ownership and territory
+### Bodies, succession and estates (to be written: slice 5, VB-184)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Bodies | Households, villages, parishes, courts, estates, workshops, crews and ships as bodies, with members along typed role edges; a body exists only when something needs its own identity. One membership graph with rules per kind is Proposed: it passed the succession probe (target-v2, section 9) | Open (Decided, 3 Nov: iterate before deciding) |
+| The alderman's estate | A derived view first: the alderman is an implicit elite with no title; once a holder has rank, his estate is a body of its own | Decided, 3 Nov |
+| Testament | Choosing an heir outside the custom's order only where custom allows a testament | Decided, 3 Nov |
+
+## 6. Land, ecology and rights
+
+### Land and ecology
+
+Tiles carry their own state (trees, stones, grazing), and work, grazing or neglect moves them from one kind of land to another.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Trees per tile | Each wooded tile holds a sensible number of trees, at full cover about 60 broadleaf or 80 pine (±20% per tile); cutting fells them one by one, one per firewood trip. A partly felled tile grows back to full in about 30 game years, by one growth model for all trees | Decided |
+| Showing trees | Not every tree is drawn: a tile shows stages for about 100%, 75%, 50% and 25% of its trees remaining | Decided |
+| Cleared woodland | At 0% trees the tile becomes meadow; regrowth applies only to tiles that still have trees | Decided |
+| Stones | Meadow tiles track their stone content: every untouched meadow tile has some, and tiles near hills have more, the extra fading to nothing within about 2 tiles | Decided |
+| Meadow to field | Breaking ground takes long where stones are many; the stones cleared become building material | Decided |
+| Abandoned fields | An untended field becomes a stone-free meadow | Decided |
+| Fresh land | Ground never farmed yields more for its first crops: a new field there starts with soil 1.4 and wears to manure's cap in about 3 crops (see Inheritance and expansion, Moving to new land) | Decided, 1 Nov (the bonus); Agreed, 2 Nov (soil 1.4); Proposed (wear) |
+| Forest spread | Forest turns nearby meadow, and fields by way of meadow, into scrub and then woodland, unless grazing or farming keeps the land open. Built after grazing pressure: open land next to forest reaches scrub in 8 years and forest in 30; a field in use, a house, a green, a meadow mown that year, work in the last year or enough grazing keep it open; heath closes like meadow (backlog VB-091) | Decided; Agreed (rates), 30 Oct |
+| Grazing | Herds of wild and domestic animals graze, and grazing pressure shapes the land (see Animals) | Decided |
+| Worn paths | Where pawns walk often, trodden paths show in the world; a path speeds up walking, so routes prefer existing paths and pawns come to share them | Decided, 30 Oct |
+
+#### Making a hay meadow
+
+A hay meadow is built land: it has to be found, claimed and prepared before it yields hay, and it can be private or common. (Decided; the steps are Agreed)
+
+1. **Find a suitable tile:** open grass, a shore, or damp ground where hay grows well; northern Swedish farms also mowed mires and lakeshores.
+2. **Claim it** as a tile claim, for the household or for the village.
+3. **Clear it** of scrub and the worst stones, which takes longer on stony ground.
+4. **Fence it into the infield** where animals graze nearby.
+5. **Each spring, rake it clean** of twigs, leaves and fallen branches before the summer mowing (*fagning*).
+
+After mowing, herds may graze the regrowth (*efterbete*). A meadow left unmown and ungrazed falls under the forest-spread rule.
+
+#### Grazing at low cost (Agreed, see Animals)
+
+- **Herds, not individuals:** animals live as herds with a species, a count and a home range.
+- **One number per tile:** grazing pressure, updated once a game day from the herds whose ranges cover the tile; about 56,000 values, a negligible cost.
+- **Pressure feeds forest spread:** it decides whether meadow near woodland stays open, and heavy grazing thins it.
+- **Near the camera:** each herd shows a handful of animal sprites wandering inside its range; the same few stand for the whole herd.
+- **Farther out:** grazing shows only in the painted ground as shorter, browner grass, repainted for an area only when its pressure has changed enough.
+- **Individuals where the story needs them:** a herd's cattle, by name (Agreed, 31 Oct); hunting and herding act on the herd.
+- **Pressure where herds graze:** a herd adds pressure only on the tile it grazes with its herder, which fades by half each year as worn paths do; cheaper than updating every tile of a home range, and it shows where herds have been (Agreed, 31 Oct; backlog VB-136).
+
+### Claims, ownership and territory
 
 Ownership and claims are tracked on tiles: every tile has an owner, and any entity may hold a claim on it that is realised (in force) or unrealised (wanted). (Decided)
 
@@ -552,7 +391,7 @@ Ownership and claims are tracked on tiles: every tile has an owner, and any enti
 
 A household making a new field first claims its meadow tile (Decided). Claims on empty farms would become tile claims under this model too (Proposed).
 
-### Infield, outland and wilderness (claims review, 1 Nov)
+#### Infield, outland and wilderness (claims review, 1 Nov)
 
 Land lies in three rings, as in the medieval village: the infield of houses, fields and meadows (*inägor*), held by households, with the green and plots held by the village; the village's outland (*utmark*), its common pasture, wood and land to take in, held by the village; and wilderness, held by nobody. Review and sources: `docs/review-claims.md`. (Decided by Kim, 1 Nov: the parts and their effects; numbers Proposed)
 
@@ -570,7 +409,7 @@ Land lies in three rings, as in the medieval village: the infield of houses, fie
 | Birthright | When a farm empties, its last holder's family keeps a birthright claim on it (*bördsrätt*) for 20 years, which puts them first under "kin first" (VB-033) | Decided, 1 Nov |
 | Land and tax | The land each household and village holds, by ring and kind, is counted in one place, as the base for a land tax and for landholding elites later | Decided (as a base), 1 Nov |
 
-### One scope model for overlays, stores and trees (Agreed, 30 Oct)
+#### One scope model for overlays, stores and trees (Agreed, 30 Oct)
 
 - **A scope** is an entity level, the entities chosen, and a dimension (owns, claims, uses, works, is kin of). The same scope drives the ownership overlay, the store views and the family tree.
 - **A membership graph** links the entities: pawn to household, household to village, village to culture; families cut across households. Each view asks the graph for the tiles, stores or people in scope.
@@ -578,7 +417,344 @@ Land lies in three rings, as in the medieval village: the infield of houses, fie
 - **Cached overlay:** drawn per map chunk; when ownership or claims change, only the chunks they touch are redrawn.
 - **Cheap filtering:** changing the filter recolours from the cached data; nothing is recomputed from the simulation.
 
-## Starting scenarios
+### Rights (to be written: slice 5, VB-184)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| A bundle of rights | Land is held as a bundle of rights per holding (own, use, occupy, develop, graze, gather, fell, fish, pass), after Honoré (1961). A right may hang off another (a tenancy off the owner's right), so ownership can pass while tenancies stand; foreclosure usually changes who is owed, not who farms | Proposed (target-v2, section 4.3) |
+| Passage | The village grants passage for its own land; every other holder must agree, the Crown included. A practice says whether one may cross another's meadow and pasture or keep to ways; fields and yards are never crossed | Decided, 3 Nov (passage); Proposed (the practice) |
+
+## 7. Work: opportunities, plans and tasks
+
+Work is available, not posted (target-v2, section 4.5): what could be done is computed from rights and stores, a plan makes tasks of it,
+and those eligible take them. Slice 3's plan (backlog VB-164) writes this section in full. Until then the rules of v0.3 below stand as
+written, and those the decisions of 3 November change are marked **Under revision**.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Jobs | Available, not posted. A holder's plan makes concrete tasks that the farmer or a farmhand carries out; the yearly meeting may plan from the village work available, and its plan makes tasks for the village's pawns | Decided, 3 Nov |
+| Village routines | Decided afresh by the meeting each year; what follows when a meeting fails to decide them is Open | Decided, 3 Nov |
+| Acting without the plan | Any member may act on the household's opportunities without the plan, but prefers the plan's tasks; each holder plans daily or weekly, on staggered days | Decided, 3 Nov |
+| Attention | A pawn may hold one partial and one background task at once (minding the herd while spinning) | Decided, 3 Nov |
+| Who may take a task | Members and servants, debtors owing labour, helpers by custom and goodwill, the hired, or the pawn itself; the basis decides what the work books (a gift, hours against a debt, a wage) | Proposed (target-v2, section 4.5) |
+
+### Jobs, owners and roles
+
+Jobs come from things that need doing (a field, a meadow, a herd, a household, a fence), each with an owner that decides who may take it; pawns pick by role, matched best fit first. (v0.3; **Under revision** (slice 3, VB-164))
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Sources | Each field and meadow posts its stage's job; herds post herding, milking and feeding; households post firewood when low, water daily and cooking each afternoon; fences wear, faster in winter, and each stretch posts a mend job | Decided; **Under revision** (slice 3, VB-164) |
+| Owners | Each job is owned by a household (its fields, meadows, herds, cooking, cooking) or a village (common fields and meadows, the village fence, also a one-farm village's fence); city commons later | Decided; **Under revision** (slice 3, VB-164) |
+| Who may take a job | Members of the owning household, servants included, or adults of the owning village | Decided; **Under revision** (slice 3, VB-164) |
+| Help between households | Adults of another household in the same village may help with a household's work, and the help builds the relationship between them; it is a gift, nothing is owed. Starting values: field, threshing and fence work that has waited 2 hours, by helpers with no work of their own; near kin and friends first (backlog VB-106) | Decided (help, relationships), Agreed (rules), 30 Oct |
+| Commons | Village well, green, commons wood (*allmänning*), common fields and meadows, and the infield's roundpole fence (*gärdesgård*), kept by the village as medieval provincial laws such as Upplandslagen (1296) required | Decided (common land), Agreed (the rest) |
+| Role priorities | Each role ranks job kinds; farmers favour fields, firewood and fences; the mistress of the house and maids favour water, cooking and milking; children fetch water, weed, help at the harvest and herd | Decided (by role, children's work), Agreed (rankings) |
+| Types of work | Roles rank types of work (tilling, tending, harvest, threshing, wood, upkeep, household; more as kinds arrive) rather than each job kind, with exceptions for single kinds where a role differs; a new kind of an existing type needs no new rankings, and types are the natural unit for the player's steering later (backlog VB-116) | Agreed, 30 Oct |
+| Matching | Idle pawns and open jobs are matched best fit first; a poor fit only takes a job that has waited two hours | Agreed |
+| Work beats idling | A pawn takes any allowed job that suits its role rather than stand idle, however far or low in urgency, so every posted job gets done; firewood for the winter is laid in from summer (backlog VB-103) | Agreed, 30 Oct |
+| Several hands | The whole household can take part in field, land and threshing work at once (tilling, sowing, weeding, reaping, carrying sheaves, threshing, clearing, breaking), ordered by role priority, each hand at full rate; cooking, water, firewood and mending take one pawn each (backlog VB-102) | Decided, 30 Oct |
+| More urgent work | A pawn at work leaves its job, which keeps its progress, when another is much more urgent: checked each hour, at most one switch an hour, not while walking or carrying, never for a job finished within the hour; much more urgent is a bid above 1.5 times the current job's plus 1. So a farmer keeps hoeing when the woodpile runs low and a son or farmhand goes for wood. The cook's call after 14:00 stays its own rule (backlog VB-107; see Multi-day jobs) | Agreed, 30 Oct |
+| How busy | The village is busy at the peaks, sowing and harvest (75–90% of adults' work hours), and partly idle in the slack seasons (40–60%); the new jobs are tuned against this, and spare time goes to talk once pawns talk (backlog VB-061). Measured on 30 Oct: 55–79% idle across the year (`REVIEW.md`, Work and jobs, second pass) | Decided, 30 Oct |
+| Village work days | The meeting sets days on which the whole village works together: closing the infield fence before the animals go out, clearing the commons; a household that does not turn up loses standing (backlog VB-120) | Decided (work days), Proposed (rules) |
+| Winter crafts | In winter men make and mend tools and cut fence poles indoors and in the woods (*slöjd*); field work wears tools and worn tools slow it; fences are mended with poles (backlog VB-121) | Decided (crafts), Proposed (numbers) |
+| Player steering | The player can steer the job system, as part of influencing the world through all the systems; it comes after the player's role is settled | Decided (later), 30 Oct |
+| Sowing first | A hoed field is sown before the next field is hoed, so a small household brings in some crop | Decided, 30 Oct |
+| Multi-step jobs | Walk to the site, work, carry the load home (sheaves to the barn, hay to the hay barn, wood to the woodpile, water indoors) | Agreed |
+
+## 8. Goods, production and animals
+
+Goods, the farming year, processing and animals as v0.3 has them. Typed goods, recipes and facilities are written by slices 4 and 6 (backlog VB-183, VB-185).
+
+### Goods and the farming year
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Food | Grain counted in rations: one adult's food for one day; a child eats half; milk, butter and meat add to them (see Animals) | Agreed |
+| Fuel | Firewood in loads; winter use about five times summer (1.6 against 0.3 loads a day) | Agreed |
+| Built land | Fields and meadows have to be made by work before they produce; either can be private or common | Decided |
+| Making a field | Claim the tile, clear scrub and stones (many stones make it slow, and the stones become building material), then break the ground. A household starts one field at a time when it needs more (2–4 per farm); the people who till do the work; a typical meadow tile takes about 50 work hours (scrub 10, stones up to 20, breaking 30). A farm's fields lie together as one contiguous block within 4 steps of the house, not necessarily next to it, in every scenario; a new field joins the block where a free tile touches it (backlog VB-109). Balance review, 1 Nov: no fixed number of fields: a household wants fields for its food but no more than its hands can till (about 2 a working adult, 1.5 more with a team of oxen); households in every scenario make fields and meadows; heath, hills or marsh are broken only when no meadow is free (`docs/review-balance.md`) | Decided, Agreed (hours); Decided (block), 30 Oct; Decided (no fixed cap; by labour and household size), 1 Nov; Agreed (numbers, poorer land), 2 Nov |
+| Field cycle | Stubble, tilled over several days, sown, sprouting, growing with light upkeep, ripe, reaped into stooks, dried, threshed, grain stored | Decided (long work), Agreed (stages) |
+| Seed | Sowing costs a quarter of the expected harvest, a 4:1 yield ratio as Slicher van Bath (1963) reports for medieval Europe; a household keeps back seed for all its fields before it eats | Agreed |
+| Field yield | Before animals, a meadow field gives about 100 rations in an ordinary year, less 25 of seed, so 3 fields give about 218 and 4 about 290 and a family of 6 is fed from its own fields; populous households of 7 or more get a fourth field. Retuned when milk and meat arrive (backlog VB-080, VB-048) | Decided, 30 Oct |
+| Meals | A household keeps a store of rations, cooked from grain (later from flour); each afternoon the cook makes the next day's food, and may leave other work after 14:00 to do it; households start with 2 days of rations, so one missed cooking uses the buffer, not a hungry day | Decided, 30 Oct |
+| Food from the wild | Fishing in rivers, lakes and the sea from spring to autumn, and gathering berries, mushrooms and nuts in the woods in late summer and autumn. Both are always posted, with an urgency that is low while the household has food and high when it runs short, so they fill slack hours and answer a lean summer; each water or wood tile holds a stock that use lowers and time restores (backlog VB-117, VB-118) | Decided (by urgency), Proposed (numbers), 30 Oct |
+| Mixed meals | A day's meal drawn from 2 food sources needs 10% less food, from 3 or more 20% less; grain or flour, fish and gathered food are sources now, milk and meat with the animals. Fresh fish and gathered food are eaten first and spoil after 3 game days; drying and salting come later. Built with hand-quern milling (backlog VB-119, VB-009) | Decided, Agreed (numbers), 30 Oct |
+| Help in hunger | A hungry household asks its kin, then the village store. Each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households; loans come with money | Decided (the store), Agreed (rest), 30 Oct; **Under revision** (slice 1, VB-182): help becomes a gift booked as goodwill (see Exchange, goodwill and obligations) |
+| Soil | Each harvest wears a field down; manure from the byre restores it. Starting values: −0.08 a harvest to a floor of 0.75, +0.04 a load of manure to 1.15 (backlog VB-137). Balance review: the dung heap loses half of what lies on it in a year, and is carted before the hoe; +0.02 a load (so about 3 head of cattle, not 1.5, keep 3 fields) was tried and cost a quarter more hungry days, so +0.04 stays until herding (VB-136) and food from the wild (VB-117, VB-118) give farms more slack | Agreed; numbers Agreed, 31 Oct; Agreed (the heap rots; +0.04 for now), 2 Nov |
+| Risk | Frost destroys whatever is left in the field; each year has a weather factor | Agreed |
+| Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); the soil's cap (1.15 from manure) rises by 0.1 a century of a village's years of farming, so a well-dunged old farm out-yields a new one by about 10% after 100 years (backlog VB-160) | Decided (rise), 30 Oct; Agreed (rate), 2 Nov |
+| Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe | Agreed |
+
+### Long work and processing
+
+Farm work and building are slow and span several days; a game is about incremental progress, and a single run lasts 40–80 hours. (Decided)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Multi-day jobs | A job keeps its progress when pawns stop to sleep, eat or answer something more urgent; they go home at night and carry on next day, or someone else allowed to take it does | Decided |
+| Tilling | Several days of work per field, scaled to the internal time: about 20 work hours with a hoe | Decided, Agreed (hours) |
+| Sowing | Quicker than tilling | Decided |
+| Summer upkeep | Growing fields post a little work to keep them up; neglect lowers the yield. Weeding takes 2 work hours every 6 days per field; each round missed cuts the yield by 8%, at most 40% | Decided, Agreed (numbers) |
+| Harvest | Work-intensive: reap the ripe crop, dry it, then thresh to get the grain out. Sheaves wait unthreshed in the barn; threshing takes about 6 work hours per field's crop | Decided, Agreed (hours) |
+| Haymaking | Several days per meadow: mow, dry, carry to the hay barn | Agreed |
+| Milling at home | Grain is ground into flour in the house with a hand quern (*handkvarn*); slow, about 1 work hour per 4 units of grain. Flour goes further than grain: a daily household job makes rations from flour at 1:1, or from grain at 1.25 grain per ration | Decided, Agreed (numbers) |
+| Milling at a mill | Much faster; a water mill by a river, or a windmill, likely dearer to build; often owned by the village and built as a commons job | Decided |
+| Windmill | The first mill is a windmill, until rivers for water mills are generated: a village of 3 or more farms builds one at the moving round on a free open tile within 6 steps of the green, hills preferred; 140 work hours with 10 loads of stone and 20 of timber; it grinds 5 times as fast as the quern; households of other villages within 10 steps pay a toll of 1 in 16; wind is ignored at first (backlog VB-093) | Agreed, 30 Oct |
+| Miller and baker | In towns, milling becomes the miller's role, which supplies the baker | Decided |
+| Building | Slow: clear the site and prepare the foundation; fancier, more prestigious houses also need lumber prepared and stone hewn and carted | Decided |
+| Building jobs | Each key step is a job; a person or the village may prepare materials over a long time | Decided |
+| Run length | 40–80 hours for one run, comparable to Europa Universalis IV and Crusader Kings III | Decided |
+
+Water mills need rivers, which the world does not generate yet; what a more prestigious house brings its owner is not yet defined (both Open).
+
+### Known gaps
+
+- Grain still lacks outlets beyond feed and seed: storage losses, tithes or trade are needed. Balance review (Agreed, 2 Nov): grain in store spoils, 5% a year of the first year's need held, 20% of the second, 40% of the rest, and the village store 20% a year, so a good farm's store levels off at a year or two of need; tithes and trade stay open.
+- Hunger now has consequences (backlog VB-028): it can kill, mostly infants and the old, slows work, and postpones marriages and births; who eats first when food is short is a custom (Decided). Starting values: a year of hunger about doubles deaths, mostly infants and the old; work slows by up to 40%; marriages wait while hunger is at half or more (Agreed). Health (see People) adds a starving pawn's death within a season.
+- A grown family eats more than 3–4 fields give after seed; see Systems overview, Food balance (Proposed).
+- Money only makes sense once towns and markets exist.
+
+### Animals
+
+Hay sets how many animals a household can winter, and the animals give milk, meat, wool, draught and manure; the first version has cattle, sheep and one wild grazer, and a hard winter limit. (Decided: species, wild grazers only, hard limit. Mechanics: Agreed)
+
+The old Swedish saying *äng är åkers moder*, “the meadow is the mother of the field”, sums up the loop: meadow hay fed the animals through winter and their manure fed the fields. Myrdal's volume on medieval farming in *Det svenska jordbrukets historia* (1999) describes it, with the fenced infield of fields and meadows and the open outfield where animals grazed in summer.
+
+#### Herds
+
+| Herd | Made of | Gives | Needs | Status |
+| --- | --- | --- | --- | --- |
+| Cattle | Cows, a pair of oxen, young stock | Milk in summer (butter keeps for winter), calves in spring, meat at slaughter, manure, draught | Byre (*fähus*) space; about 1 hay unit per cow per stall day | Decided (species), Agreed (rest) |
+| Sheep | Ewes, rams, lambs | Wool, lambs, meat, manure | About 0.2 hay units per head per stall day; graze heath and hills that cattle do poorly on | Decided (species), Agreed (rest) |
+| Wild grazers | One species to start: roe deer, with elk perhaps later | Meat and hides when hunted | Forest edges and meadows; can damage crops | Decided (wild grazers only; roe deer, 30 Oct) |
+
+- **Ownership:** each household owns its cattle herd and its sheep flock as two herds. A herd is the one unit that moves, grazes and posts jobs; its cattle are a short list of named animals (sex, birth, kind: calf, heifer, cow, bull, steer, ox), so calving, gelding, oxen and culling work and the log can name them, while sheep are counts (Agreed, 31 Oct; backlog VB-131).
+- **The founders' herds:** not every farm keeps animals; at least one farm keeps a bull, since oxen are castrated, and at least one keeps a ram; a farm with sheep keeps 4 ewes (Decided, 30 Oct). Three of the four founders farms keep cattle (2 cows each, the first also a bull) and two keep sheep (4 ewes each, the first also a ram); one keeps neither. One pair of oxen in the group, at the bull's farm; the others hoe until they raise oxen from bull calves (Agreed, 30 Oct).
+- **Food from animals:** a cow in milk gives 0.5 rations a day in summer, part of it kept as butter for winter (Agreed). Slaughter gives meat, a cow 15 rations' worth, an ox 18 and a sheep 3, which a household job salts into food that keeps; stored food spoils after a year (Decided, 30 Oct; meat values lowered from 40 and 8 after the review, so a living cow is worth more than her carcass, Agreed 31 Oct).
+- **The byre** holds 6 cattle at first and is enlarged later by a building job (Agreed, 30 Oct).
+- **Numbers** are starting values to tune.
+
+#### The year
+
+- **Spring:** turn the herds out around spring day 6, cart the winter's manure to the fields, till with the oxen.
+- **Summer:** daily herding and milking; haymaking as the main work.
+- **Autumn:** after harvest, the household decides how many animals to keep against its stored hay; the rest are slaughtered for salted meat.
+- **Winter:** daily feeding and mucking out in the byre, from about autumn day 9 to spring day 6, 21 of 48 days.
+
+#### Hay and the hard winter limit
+
+- **Stored hay** is counted daily against the animals in the byre. (Decided)
+- **When hay runs out,** the household slaughters in an emergency for lean meat; if nobody acts, animals die and give nothing. (Decided)
+- **Hay comes from meadows** the household has made and claimed, and its share of common meadows (see Land and ecology). A meadow tile might yield about 30 hay units, enough for 1–1.5 cows over winter. A household rakes and mows only while its barn and the hay lying mown hold less than two winters' need of its animals; with no animals it mows nothing (balance review, Agreed 2 Nov). Hay in the barn spoils as grain does, by winters held: 5% a year of the hay up to one winter's need, 25% of the second winter's worth, 50% of the rest (Kim, 2 Nov; backlog VB-159).
+- **The first winter** of a new settlement needs a hay stock brought along, or the founders' animals die in their first season.
+
+#### Ties to existing systems
+
+| System | What animals add | Status |
+| --- | --- | --- |
+| Land and ecology | Herd grazing and haymaking keep land open under the forest-spread rule | Agreed |
+| Fields | Manure restores soil worn down by harvests; oxen speed up tilling | Agreed |
+| Jobs | Summer work: haymaking, herding, milking; autumn slaughter; spring manure | Agreed |
+| Fences | A broken stretch lets cattle or deer into the crops and costs yield | Agreed |
+| Roles | Children from about 8 herd; milking ranks high for the mistress of the house and maids | Agreed |
+| Customs | Candidates: grazing on the commons (limited per farm by land share, open to all, or set by the meeting); hunting rights; how hay from common meadows is shared | Proposed |
+| Inheritance | Livestock is the main movable wealth: siblings' shares can be paid partly in animals, and a cow and a few ewes give a new household its start | Agreed |
+| Buildings | A byre and hay barns join the building jobs; the byre's size caps the herd | Agreed |
+| Commands | A herd is a non-person entity acting through commands: move, graze, come home | Agreed |
+
+Limiting grazing per farm (“stinting”) was a common rule for village commons; Ostrom's *Governing the Commons* (1990) is the standard account of such rules, against Hardin's “tragedy of the commons” (1968). Vera's *Grazing Ecology and Forest History* (2000) argues that large grazers keep landscapes a mix of open land and forest.
+
+#### First version (Agreed, 31 October 2026)
+
+The review of 31 October (`docs/review-animals.md`) set starting values for the first version, to tune in backlog VB-048; its questions and answers are in `QUESTION_ARCHIVE.md`.
+
+| Point | Starting value | Task |
+| --- | --- | --- |
+| Hay a stall day | Cow, bull, ox 1; heifer, steer 0.6; calf 0.4; ewe, ram 0.2; lamb 0.1; 21 stall days, autumn day 9 to spring day 5 | VB-131, VB-134 |
+| Breeding | On spring day 3 a cow of 3 or more calves with chance 0.85 if a bull of 2 or more lives within 12 steps of her farm; a ewe lambs (0.3 chance of twins) with a ram within reach; 15% of calves and 20% of lambs die. Taking the cow to another farm's bull is remembered as a favour ("Lent us the bull") | VB-131 |
+| Meadows | 30 hay a tile × site (meadow 1, marsh 0.8, heath 0.6; × 1.3 by a river or water) × weather; claimed and cleared (4 h + stones), within 6 steps; households with animals want 1.2 times their winter need | VB-132 |
+| Haymaking | Rake 2 h in spring (unraked 80%); mow 16 h a tile from summer day 1 to autumn day 3 (men); dry a day; carry 4 h | VB-133 |
+| The byre | A daily fodder job (women's work); the autumn count on autumn day 8 keeps what the hay × 1.1 and the byre's 6 cattle allow, the least valuable going first, oxen last; meat is salted within 3 days or spoils | VB-134 |
+| Milk | 0.5 rations a cow in milk a day, half without a herder; 40% churned to butter | VB-135 |
+| Herding | One herder from 8 years for a household's herds, 9 hours a day to a pasture within 8 steps; an unherded herd may get into a crop through a broken fence, and the field's holder blames the fence's keeper, as the provincial laws did | VB-136 |
+| Soil | −0.08 a harvest to a floor of 0.75; a load of manure +0.04 to 1.15; 0.2 loads a head of cattle a stall day | VB-137 |
+| Oxen | A team works one tilling hand at 2.5 times | VB-138 |
+
+#### Cost
+
+About 440 domestic herds and up to 100 wild ones at full scale; only a few dozen sprites are drawn near the camera. Counting grazing where herds graze makes it a few hundred updates a day (Agreed, 31 Oct). A profile of 31 October puts the work and economy systems at under a tenth of the simulation's time and the social layer at two thirds; the animals' budget is 10 ms a game day at populous medium (`docs/review-animals.md`, Performance).
+
+#### Later
+
+Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*fäbod*), and leaf fodder from pollarded trees, which would tie trees per tile to the hay economy.
+
+### Goods, recipes and facilities (to be written: slices 4 and 6, VB-183 and VB-185)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Goods in subtypes | Goods are typed with subtypes (granite and marble are both stone; cow's and sheep's milk), each with the quantum that changes hands (one head, one sack) and how it perishes | Decided, 3 Nov (subtypes, Kim's description); Proposed (the rest, target-v2, section 4.3) |
+| Title and custody | Who owns a thing and where it is are apart: a cow in a neighbour's byre, grain at the mill, cargo aboard | Proposed (target-v2, section 2) |
+| Recipes | Human transformation of goods; a recipe may bind the subtype it was given (any stone hewn into blocks of the same stone); building is a recipe whose output is a stage of a facility | Proposed (target-v2, section 4.3) |
+| Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
+| Textiles | Spinning as background work and weaving as partial work: the missing labour sink of the slack seasons; cloth keeps its worth | Proposed (target-v2, section 5.6) |
+
+## 9. Exchange, goodwill and obligations
+
+Not built yet: help in hunger is today's only exchange (see Goods and the farming year). Slices 1, 4 and 5 write this section (backlog
+VB-182, VB-183, VB-184).
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Goodwill | An opinion that is also a currency, in discrete units (helped build a house, gave a cow): its own measure on the relation between two pawns, tightly coupled to opinion by culture. It makes parties accept unfavourable terms, short of starving themselves; an unfavourable deal changes it in turn | Decided, 3 Nov |
+| Value and acceptance | Customary worth decides what a deal was worth, possibly influenced by need; need decides whether it is accepted | Decided, 3 Nov |
+| Booking | A deal's residual is booked between the two acting pawns only; a household's allowance in a deal is likewise its agent's, toward the other agent | Decided, 3 Nov |
+| Goodwill at retirement | A share of the holder's goodwill passes to the new holder, set by custom | Decided, 3 Nov |
+| The floor | No pawn accepts a deal that takes its household below its floor (seed and some days of food); the player's pawn may, with a warning that names who goes hungry | Decided, 3 Nov |
+| Lumps | Goods change hands in whole quanta, so most deals leave a residual that goodwill absorbs; silver, divisible by weight, shrinks it | Proposed (target-v2, section 5.2) |
+| Obligations | Every explicit claim (deal, loan, share, rent, tithe, tax, toll, wage, dowry, fine, service) names a debtor, a creditor, what is owed, when, and who enforces it; the heirs' shares are the first | Proposed (target-v2, section 4.4) |
+| Money | Silver arrives from outside first, as payment by weight; minting comes later, by an established institution | Decided, 3 Nov |
+
+## 10. Customs and culture
+
+One culture holds a single set of customs with a default when generated; members' attitudes drift every game day, villages change their practice only at a yearly meeting, and remote villages can drift off into new cultures. (Decided)
+
+&#91;embedded content: customs cycle · daily drift, yearly round\]
+
+Daily contact moves attitudes; only the yearly round turns them into practice, customs and splits, and its moves, like marriages from courting, change who meets whom.
+
+### Two layers
+
+- **Attitudes, per pawn:** a preference over each custom's options, updated every game day (about weekly). Decided.
+- **Custom in force, per settlement:** a village applies the culture's custom unless its own practice differs. Practice changes only at the yearly village meeting (*bystämma*) after harvest. Decided.
+- **The culture's customs** change only at the yearly reckoning after all meetings. Decided.
+- **Every system reads customs** rather than hard-coded rules: succession, marriage, claims, who may speak. Agreed.
+
+### Custom dimensions
+
+Gender eligibility, number of heirs, timing of succession and claims on empty farms are customs (Decided). The full set, default “Old Nordic” positions and malleability (1 = easiest to change) are Agreed. Candidates from the animal design (grazing on the commons, hunting rights, sharing hay from common meadows) are Proposed and not yet in the table.
+
+| Custom | Options | Default | Malleability |
+| --- | --- | --- | --- |
+| Claims on empty farms | Kin of the old family first (*bördsrätt*); villagers first; anyone; the meeting assigns | Kin first | 1.0 |
+| Cleared land belongs to | The village allots it; whoever worked most; whoever it was cleared for | The village | 0.9 |
+| When the heir takes over | At the holder's death; when the heir marries, parents retiring on the farm; when the holder turns 60 | When the heir marries | 0.8 |
+| A daughter's share | Equal to a son's; half a son's (*systerlott*) | Half | 0.65 |
+| How many heirs | One heir takes all; one heir buys out the rest; land split between heirs | Buys out the rest | 0.55 |
+| The widow | Keeps the farm for life; keeps a right to her keep; inherits outright | For life | 0.45 |
+| Who can inherit | Sons only; sons first; any child; daughters first | Sons first | 0.35 |
+| Who speaks at the meeting | Landholders; all household heads; all adults | Landholders | 0.3 |
+| Which child inherits | The eldest; the youngest; chosen by the parent | The eldest | 0.25 |
+| Where a married couple lives | With whoever holds land; at the husband's home; at the wife's home | With the land | 0.2 |
+| Closest kin who may marry | Third cousins or further; second cousins or further; first cousins or further; uncle–niece or further (civil degree 8, 6, 4 or 3 and up; siblings never) | Second cousins or further | 0.12 |
+| Heir to their own parents' farm | Steps behind other relatives, so farms are not combined; keeps their place, so farms may be combined | Steps behind (Agreed) | 0.6 (Agreed) |
+| Who eats first when food is short | Equal shares; children first; those who work first | Equal shares (Agreed) | 0.5 (Agreed) |
+| Children born outside marriage | Inherit like other children; inherit after children born in marriage; do not inherit | After children born in marriage (Agreed) | 0.5 (Agreed) |
+| Disputed claims | The first claim stands; the strongest claim stands (the one most recently worked or renewed); kin of the tile's last owner first; the meeting decides by voice-weighted support | The first claim stands (Agreed) | 0.7 (Agreed) |
+
+### How attitudes move (Agreed)
+
+- **Anchored social influence:** a pull towards the weighted average of one's contacts, anchored to what was learned young (Friedkin and Johnsen 1990).
+- **Contacts:** weighted by time together at work, in the household and at the well or green, plus kin; ties fade with a half-life of about a year.
+- **Prestige:** landholders and elders weigh more (Boyd and Richerson 1985; Henrich and Gil-White 2001); traits later.
+- **Self-interest:** a pull towards options that would help one's position, such as a landless daughter towards equal shares, or parents of young children towards feeding children first when food is short.
+- **Scarcity:** when adults cannot find a spouse the marriage limit allows, attitudes shift towards letting closer kin marry; siblings never. When allowed spouses are plentiful, attitudes drift slowly back towards a stricter limit (Decided).
+- **Upbringing:** children start from their parents and the village norm (Cavalli-Sforza and Feldman 1981).
+- **Norm entrepreneurs:** now and then an adult takes up a cause for 5–15 years, usually one already in the air locally. Added in calibration.
+- **Persuasion:** advocates pull directly on their contacts, in proportion to their share of each contact's ties. Added in calibration.
+- **Advocacy input:** one slot used by entrepreneurs, events and influential pawns, and by any later player role.
+- **Legible customs:** each change in the meeting log shows the support for the old and new option and the margin needed, and customs within 5% of changing are noted; the pawn panel shows where a pawn leans and the cause it argues for; a cause taken up and a change of practice are announced (backlog VB-082; Agreed, 30 Oct).
+
+### Meetings, culture and splits
+
+- **Village meeting:** practice moves from one option to another only if voice-weighted support beats it by a margin, about 25%. The margin grows with the village's tie to the centre and below 10 voices; returning to the culture's custom is easier. Agreed.
+- **Culture reckoning:** support across settlements, weighted by size, tie and centrality. The margin grows with roughly the square root of the culture's size, with extra inertia below 40 people. Agreed.
+- **Tie to the centre:** travel distance, with sea crossings costing more, plus living kin across the gap. Distant villages drift more easily. Decided (principle), Agreed (measure).
+- **Fission:** automatic when a weakly tied settlement stays far from the culture's customs for 3 years; hard customs count most. The same split function can be called by events later. Decided.
+- **Cities:** will count more at the reckoning and change faster, through more contacts and newcomers. Decided (principle).
+
+### Pace
+
+All customs change on the scale of generations; concentrated effort can do it within one; villages are stable and larger cultures slower (Decided). Current calibration, one generation taken as 30 years:
+
+| Test | Easiest custom | Middle | Hardest |
+| --- | --- | --- | --- |
+| Natural drift, 300 people | About 3 generations | 4.6–5.7 generations | None within 200 years |
+| A coalition with 20% of the voice | 1.1 generations | 1.4–1.7 generations | 2.1 generations |
+
+A village with a 10% tie forms local practice after about 1.5 generations, against 2.1 for a 60% tie. Cultures of 100, 300 and 1,000 people first change in about 2.2, 2.8 and over 6.7 generations.
+
+### Practice, norm and doctrine (to be written with slices 4, 5 and 8)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Kinds of custom | Practice (a shared rule with options: today's customs), norm (a usual quantity learned from what people do, such as what a cow is worth), doctrine (an institution's rule on the keys it claims), and each culture's distribution of personal values | Proposed (target-v2, section 4.4) |
+| Who holds values | Individuals, institutions (the Church) and social bodies (a village, a city, a court) | Decided, 3 Nov (Kim's description) |
+| Doctrine against practice | A resolver tips practice to doctrine at some point; while a key is contested, attitudes change fast, and a splinter faction of the Church may form | Decided, 3 Nov |
+| New customs | About ten new practices and four norms arrive with the slices that need them, each read through one door | Proposed (target-v2, section 4.4) |
+
+## 11. Settlements, towns and regions
+
+### Settlements and look
+
+Villages are clusters of farmsteads around a green with a well sweep, fenced together; the buildings follow medieval Swedish practice rather than later Falu red farmhouses.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Village | Farmsteads around a green with a well sweep (*brunnsvinge*); the infield fenced by a roundpole fence; a commons wood nearby | Decided (look), Agreed (layout) |
+| Every farm in a village | Every farm belongs to a village; a lone farm is an ordinary village of one farm, with its own meeting and a generated village name, and its map label shows the farm name only; an empty farm is owned by its village. When a village gains a second farm, it can lay out a green and dig a well as village work; they are not made automatically | Decided |
+| Farmstead | Unpainted log cottage (*stuga*) with a turf roof on birch bark and a smoke hole (*ljore*) instead of a chimney; storehouse on posts (*härbre*); gapped barn (*lada*); yard; woodpile | Decided (look), Agreed (buildings) |
+| For animals | A byre (*fähus*) on the farm; small hay barns out in the meadows | Agreed |
+| Signs of life | The woodpile grows and shrinks with the stock; smoke thickens when cooking, in the evening and in winter; sheaf stooks (*skylar*) stand on reaped fields; herds graze near the farms | Agreed |
+| Seasons on the map | A tint per season over the painted land (fresh green in spring, full in summer, ochre and russet on broadleaf and meadow in autumn, bare broadleaf in winter; pine stays green), and snow from winter day 2 to spring day 3 with lakes iced over, until snow can follow temperature (backlog VB-083) | Agreed, 30 Oct |
+| Worn paths | Walking wears the ground: trodden, path and lane by crossings, fading over a year; lanes show as trodden snow. Drawn first (backlog VB-094); the faster walking decided under Land and ecology, Worn paths, follows (VB-110) | Agreed, 30 Oct |
+| Farm names | Village farms by compass direction from the green (Norrgården, Södergården); lone farms (one-farm villages) by surroundings (Strand, Lunden, Backa, Myra, Ängen) | Agreed |
+| Name generators | Names come from generators, several per kind of entity, and in the long run cultures prefer different generators. For farms, landmarks and owners' names combine with compass directions, so big villages need no numbers | Decided, 30 Oct |
+| Pawns | Wool kirtles in undyed or plant-dyed colours, hose and turnshoes; hoods for men, and for all men in winter; a linen headcloth for married women, braids and a band for unmarried ones | Decided (good-looking), Agreed (dress) |
+| Pawn size | Drawn about twice true size against buildings, so individuals read at play zoom; children smaller | Agreed |
+| Animation | Walking, hoeing, broadcast sowing along the rows, reaping with a sickle, chopping, drawing water, mending fences, carrying sheaves, firewood and water | Decided |
+| Empty farms | Buildings grey and decay into ruins; fields go to meadow and, near woodland (within 2 steps of forest, until forest spread exists), to scrub; full decay art comes with claims | Agreed |
+| Generated villages | The village generator makes more varied and realistic villages, which look like villages that have grown in play; once worn paths exist, generated villages have them | Decided, 30 Oct |
+
+#### Generated villages (Proposed)
+
+- **Grown, not stamped:** the generator grows each village farm by farm by the rules of play: a household builds where a household in play would, takes fields near its house, and the village lays out a green and digs a well once it has two farms. A generated village and one grown over a run then look alike.
+- **Worn in:** after the farms stand, the generator walks a few simulated years of daily trips (fields, well, wood, the neighbours) so the village starts with its paths and lanes.
+- **Varied forms:** irregular cluster villages (*klungbyar*), the most common form in medieval Sweden; row villages (*radbyar*) along a lane or a shore, as in the regulated villages of the plains (*solskifte*, in the provincial laws from the 13th century); and lone farms (*ensamgårdar*). Farms differ in age, size and number of buildings.
+- **Fitted to the land:** villages follow shores, slopes, rivers and the edge of the forest, and avoid stony and wet ground for houses.
+
+### Towns and regions (to be written: slice 9, VB-189)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Markets and towns | Markets arise between villages and can grow into towns; a region holds a town or city and its villages, about two cities a map, from geography rather than a quota; alehouses mix villages | Decided, 3 Nov (Kim's description) |
+| Settlement tier and regions | Derived from market potential (Harris 1954) with hysteresis, never stored; the cities review's phases are the road (`docs/review-cities.md`) | Proposed (target-v2, section 4.6) |
+
+## 12. Institutions and the world beyond
+
+Not built yet; slice 8 writes this section (backlog VB-188).
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Rank | Only outside institutions grant rank. Before contact there is an implicit Crown (the landed; a landed big man may act as arbiter) and an implicit Church (each pawn's spiritual life; an implicit priest in a town) | Decided, 3 Nov |
+| The outside world | Late in the game, limited contact with an abstract outside world: a port draws merchant ships that sell exotic goods and buy in bulk; diplomats and a few immigrants arrive | Decided, 3 Nov (Kim's description) |
+| Immigration | Very limited immigration by boat, in a later stage | Decided (v0.3) |
+| Pawns abroad | Keep their identity and ties and follow the same rules at a coarse cadence; a merchant who returns next summer is the same pawn | Proposed (target-v2, section 4.5) |
+| Disease | Ships bring sickness, and towns crowd it; the largest gap in the design (target-v2, section 10.3) | Open |
+
+## 13. Balance loops and targets
+
+Slices 0 and 9 write this section (backlog VB-181, VB-189); the loops and their probes are listed in target-v2, section 6.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Balance points | Many systems balance themselves, and tuning the game means tuning their balance points: peasant fertility is held in check by taxation and by higher death rates in crowded towns | Decided, 3 Nov (Kim's description) |
+| Population | About 1,000 living pawns on a medium map (see Vision and scope) | Decided, 3 Nov |
+| Strata | 600 farming, 325 in towns and specialised work, 75 elite, per 1,000, at the end game; open to challenge. Proposed reading: a band for a developed island, not a quota, with strata counted by relation to production, not residence | Decided (the target), Proposed (the reading) |
+| Bands | Full-simulation bands are reported nightly and never fail; reduced scenarios (a tiny map, a few years) are asserted and may fail outside their band | Decided, 3 Nov |
+| Loops | About twenty loops, each declared with its stock, probe, setpoints and bands, calibrated fast loops first | Proposed (target-v2, section 6) |
+
+## 14. Starting scenarios
 
 There are several starting scenarios; the base and default one is the 10 founders, and unless a scenario says otherwise it starts with as few fields and meadows already made as possible, so the first year goes to making them. (Decided)
 
@@ -615,7 +791,9 @@ All scenarios build their villages and households through the same generators; a
 - **Village B leans differently** on some customs: any child inherits, handover at death, looser claims, a wider voice.
 - **Debug tools:** skip one or ten years; hold the meetings now; run the moving round; speed up drift tenfold or a hundredfold; switch natural deaths; kill or retire someone; make someone argue for an option, or rally a fifth of a village's voice.
 
-## Commands, time steps and views
+## 15. The player, commands and views
+
+The player's role is in Vision and scope; what the player sees of its pawn is written by slice 2 (backlog VB-079).
 
 Every actor, pawn or not, acts through one command system, so the player or a debug tool can take direct control without changing the systems underneath. (Decided; close to implementation, kept here because it shapes the design)
 
@@ -642,7 +820,57 @@ The debug panel's actions (kill, retire, argue for a custom) would become comman
 - **Filter first:** a village's tree starts from its living members and reaches a set number of generations up and down.
 - **Cache kinship:** coefficients are kept per pair and recomputed only along new lines of descent.
 
-## Systems overview (Proposed, review of 30 October 2026)
+## 16. Open questions and proposals
+
+The player's role is the largest open question; most proposals concern growth, the economy and keeping views fast.
+
+### Open
+
+- [x] The player's role, and whether and how the player influences customs. Decided: the player follows a family line and argues at the meeting through its head (30 Oct; see Vision and scope).
+- [x] Births: fertility, child mortality, spacing of children. Decided: spacing by explicit pregnancy and nursing; starting targets for fertility and child mortality Agreed.
+- [x] Stats and traits, and whether children inherit them. Decided (3 Nov): twelve traits, partly inherited (see People, Traits, talk and stories).
+- [ ] A historical division of labour by sex, or free job assignment by role only.
+- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
+- [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped (backlog VB-084, VB-105).
+- [ ] Cities: how they arise and how much faster they change customs.
+- [ ] Trade and money.
+- [x] Seasons on the map, such as snow in winter. Seasons with temperature, a day and night cycle, and wind and rain are Decided (30 Oct). Agreed (30 Oct): seasonal tints and snow on fixed dates first (backlog VB-083), following temperature once a temperature model exists (see Weather, seasons and daylight).
+- [x] Rivers, which water mills need; the world does not generate them yet. Decided (30 Oct): the world has rivers; their courses are Proposed.
+- [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
+- [x] Whether rivers can be waded anywhere or only at fords, and when bridges come. Decided (30 Oct): only at fords or bridges; the rule is built (VB-112), building bridges is VB-115.
+- [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
+- [ ] What a more prestigious house brings its owner.
+- [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
+- [ ] How to keep the family tree fast at full scale.
+- [ ] Farm, village and population sizing revised for hay meadows. Partly covered: 2–4 fields per farm (VB-010), village size bands and population targets (VB-021); meadow area per farm still open.
+- [x] Whether the founders arrive to houses already standing or build them in the first year. Decided: houses already standing (backlog VB-010).
+- [x] Which wild grazer comes first. Decided: roe deer (30 Oct).
+- [ ] Courting and relationships between pawns, which births outside marriage depend on: whether they also drive ordinary marriages, and who knows who a child's father is. Decided: courting drives most marriages, and the yearly matchmaking stays for pawns who are not courting (30 Oct); the true father is recorded and, for now, known to all (30 Oct); courting rests on pawn interactions (talk first).
+
+### Proposed, not yet accepted
+
+- [x] Newcomers arriving by boat, for growth and for marriage partners beyond the founders' families. Decided: very limited immigration by boat, in a later stage.
+- [ ] Outlets for grain: storage losses, tithes, trade.
+- [ ] Farm names as surnames (*gårdsnamn*) in place of, or beside, patronymics.
+- [x] Next batch: claims on empty farms, clearing and building new plots, splitting land between heirs. Agreed on 30 October 2026; now backlog tasks VB-031 to VB-034.
+- [x] One scope model shared by the ownership overlay, the store views and the family tree. Agreed (30 Oct).
+- [x] Claims on empty farms and cleared plots as tile claims. New fields are claimed by tile (Decided, VB-010); empty farms with a birthright claim, Decided 1 Nov (VB-033).
+- [ ] The debug panel's actions as commands.
+- [ ] New customs: grazing on the commons, hunting rights, sharing hay from common meadows.
+- [ ] The founders' first year as sketched under Starting scenarios, with a year's food, seed and a winter's hay brought along. Standing houses, a year's food and seed, and making fields are Decided (VB-010); hay meadows, hay and animals are not yet tasks.
+
+### Added in v0.4 (3 November 2026)
+
+- [ ] What a pawn knows beyond all-know-all: knowledge with a source (news, rumour, prices heard at a fair) where it changes a choice; stories are its first content (slice 7).
+- [ ] Bodies: one membership graph with rules per kind, or a domain per kind (slice 5; Kim asked to iterate first).
+- [ ] What follows when a meeting fails to decide its yearly routines (slice 3).
+- [ ] Who mints, and when coin is taken (slice 8).
+- [ ] The reading of 600 / 325 / 75 (slice 9).
+- [ ] Gaps no design pass has covered (target-v2, section 10.3): disease and epidemics; childcare and the household's division of labour; crime and law beyond debt; the quality of goods; legibility, and save versions across the changes.
+
+## Appendix: Systems overview (Proposed, review of 30 October 2026)
+
+Kept as it stood in v0.3. Its cost figures are superseded by `docs/roadmap.md`, section 5, and its findings by the slices.
 
 The game's systems at four levels: the player's experience, the simulation, the presentation, and what cuts across them. For each it asks whether the game needs the system, whether it is fun, whether it is realistic, and what it costs at 1,000 pawns. Everything in this section is Proposed; it changes no Decided or Agreed point, and the questions it raises are in `QUESTIONS.md`. The state of each system in the game is from `REVIEW.md`.
 
@@ -720,49 +948,11 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 7. **Seasons on the map,** after the browser smoke test (VB-025) can catch drawing errors.
 8. **A populous start with adult children,** so marriage and inheritance begin in year 1, not year 6.
 
-## Open questions and proposals
-
-The player's role is the largest open question; most proposals concern growth, the economy and keeping views fast.
-
-### Open
-
-- [x] The player's role, and whether and how the player influences customs. Decided: the player follows a family line and argues at the meeting through its head (30 Oct; see Vision and scope).
-- [x] Births: fertility, child mortality, spacing of children. Decided: spacing by explicit pregnancy and nursing; starting targets for fertility and child mortality Agreed.
-- [ ] Stats and traits, and whether children inherit them.
-- [ ] A historical division of labour by sex, or free job assignment by role only.
-- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
-- [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped (backlog VB-084, VB-105).
-- [ ] Cities: how they arise and how much faster they change customs.
-- [ ] Trade and money.
-- [x] Seasons on the map, such as snow in winter. Seasons with temperature, a day and night cycle, and wind and rain are Decided (30 Oct). Agreed (30 Oct): seasonal tints and snow on fixed dates first (backlog VB-083), following temperature once a temperature model exists (see Weather, seasons and daylight).
-- [x] Rivers, which water mills need; the world does not generate them yet. Decided (30 Oct): the world has rivers; their courses are Proposed.
-- [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
-- [x] Whether rivers can be waded anywhere or only at fords, and when bridges come. Decided (30 Oct): only at fords or bridges; the rule is built (VB-112), building bridges is VB-115.
-- [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
-- [ ] What a more prestigious house brings its owner.
-- [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
-- [ ] How to keep the family tree fast at full scale.
-- [ ] Farm, village and population sizing revised for hay meadows. Partly covered: 2–4 fields per farm (VB-010), village size bands and population targets (VB-021); meadow area per farm still open.
-- [x] Whether the founders arrive to houses already standing or build them in the first year. Decided: houses already standing (backlog VB-010).
-- [x] Which wild grazer comes first. Decided: roe deer (30 Oct).
-- [ ] Courting and relationships between pawns, which births outside marriage depend on: whether they also drive ordinary marriages, and who knows who a child's father is. Decided: courting drives most marriages, and the yearly matchmaking stays for pawns who are not courting (30 Oct); the true father is recorded and, for now, known to all (30 Oct); courting rests on pawn interactions (talk first).
-
-### Proposed, not yet accepted
-
-- [x] Newcomers arriving by boat, for growth and for marriage partners beyond the founders' families. Decided: very limited immigration by boat, in a later stage.
-- [ ] Outlets for grain: storage losses, tithes, trade.
-- [ ] Farm names as surnames (*gårdsnamn*) in place of, or beside, patronymics.
-- [x] Next batch: claims on empty farms, clearing and building new plots, splitting land between heirs. Agreed on 30 October 2026; now backlog tasks VB-031 to VB-034.
-- [x] One scope model shared by the ownership overlay, the store views and the family tree. Agreed (30 Oct).
-- [x] Claims on empty farms and cleared plots as tile claims. New fields are claimed by tile (Decided, VB-010); empty farms with a birthright claim, Decided 1 Nov (VB-033).
-- [ ] The debug panel's actions as commands.
-- [ ] New customs: grazing on the commons, hunting rights, sharing hay from common meadows.
-- [ ] The founders' first year as sketched under Starting scenarios, with a year's food, seed and a winter's hay brought along. Standing houses, a year's food and seed, and making fields are Decided (VB-010); hay meadows, hay and animals are not yet tasks.
-
 ## Change log
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (skeleton) | 3 November 2026 | Version 0.4 begun as a skeleton (backlog VB-191): v0.3 kept unchanged in `docs/design-v0.3.md`; its points carried over with their status into 16 numbered sections ordered as the player meets the world; Kim's decisions of 3 November recorded: the player inhabits a pawn (replacing the family line of 30 October), the scale of society, about 1,000 living on a medium map, the 24 decisions of the architecture conversation (`docs/architecture/target-v2.md`, section 8) and Kim's description of the game; points they change marked Under revision with the slice that rewrites them; new sections for exchange, goodwill and obligations, institutions and the world beyond, and balance loops |
 | 0.3 (architecture) | 3 November 2026 | `docs/architecture/target-v2.md` made the architecture reference; a note in Status of this snapshot names the points it changes and the proposed version 0.4 (`docs/roadmap.md`); no Decided or Agreed point changed |
 | 0.3 (review, 2 Nov, second pass) | 2 November 2026 | Kim's answers on the stability review: the means to marry (1.5 years of food), service for the lone holder, and the spacing of villages and farms kept, now Agreed; late marriage left to service (VB-090) and courting (VB-036). Kim's answers on the balance review: fields by labour, grain spoiling in store, haymaking to need, +0.04 a load of manure for now, remarriage and meat 15 kept and Agreed; hay in the barn spoils by winters held as grain does (new, VB-159); the soil's cap rises 0.1 a century of farming (VB-160); ewes' milk and wool as proposed (VB-144). Kim's answers on moving to new land: settlers' provisions raised from 36 to 42 days; who leaves and when, joining before founding, and soil 1.4 on fresh land kept, now Agreed; lone settlers and the founders' slow growth left to courting, occasions and the expansion wrap-up (VB-035) |
 | 0.3 (review, 2 Nov) | 2 November 2026 | Review after the stability and expansion work (VB-146 to VB-154): the rules that keep households from dying out recorded in Inheritance and expansion (Households short of people); the profile report puts talk and contacts at 37% of a game day, so the tie cap (VB-127) is now a speed task; no Decided or Agreed point changed. See `REVIEW.md`, review of 2 November |
@@ -787,4 +977,4 @@ The player's role is the largest open question; most proposals concern growth, t
 | 0.2 | 29 October 2026 | Added long, multi-day work and processing, a 40–80 hour run length, Land and ecology, Claims, ownership and territory, and Commands, time steps and views. From this version on, each version is its own document |
 | 0.1 | 29 October 2026 | First snapshot: world, time, people, economy and jobs, look, customs, inheritance and expansion, debug scenario |
 
-Earlier versions: Village builder: game design snapshot v0.2, Village builder: game design snapshot v0.1.
+Earlier versions: Village builder: game design snapshot v0.3 (`docs/design-v0.3.md`), v0.2, v0.1.
