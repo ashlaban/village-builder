@@ -6,6 +6,7 @@ Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to
 the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 An external target architecture (ChatGPT, 3 November) is kept in `docs/architecture/`: a proposal, not design; what was taken from it, and Kim's adoption of its
 vision of a player who inhabits a pawn, are in `docs/review-architecture.md`.
+The project's own map of who writes each piece of state, the dependencies and the candidate boundaries is `docs/architecture/ownership.md` (VB-172).
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.

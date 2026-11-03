@@ -42,11 +42,11 @@ const HINTS = {
   'sim/saves': { v: 'local' }, 'sim/byre': { a: 'candidate' }, // byre: a candidate for slaughter {herd, head | sheep}
   'sim/rng': { r: 'st.rng' }, 'sim/records': { R: 'st', x: 'st.idx', l: 'st.idx' }, 'sim/people': { R: 'st' },
   'sim/layout': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' },
-  'sim/help': { from: 'household', to: 'household' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd' },
-  'sim/heirs': { from: 'household', to: 'household', old: 'household' }, 'sim/relations': { g: 'agent', s: 'agent.talk' },
+  'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd' },
+  'sim/heirs': { from: 'household', to: 'household', old: 'household' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
   'sim/commands': { q: 'pawn' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
-    R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead' },
+    R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };
 const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'case', 'delete', 'void', 'throw', 'await', 'yield', 'if', 'while',
   'for', 'switch', 'function', 'const', 'let', 'var', 'else', 'do', 'catch', 'export', 'default']);
@@ -94,6 +94,7 @@ function scan(file, mod, returns = {}) {
   const isWord = (i) => toks[i] && toks[i].t === 'word';
   const text = (a, b) => src.slice(toks[a].s, toks[b].e).replace(/\s+/g, ' ');
   const typeOfName = (n) => {
+    if (bind.get(n) === 'unknown') return hints[n] || null; // bound by array destructuring: the convention does not hold
     if (bind.get(n)) return bind.get(n);
     return hints[n] || CONV[n] || null;
   };
@@ -163,6 +164,7 @@ function scan(file, mod, returns = {}) {
       if (x.field) p = canon(p + '.' + x.field);
       else if (x.index) p = element(p);
       else if (x.call && ELEMENT.has(x.call)) p = element(p);
+      else if (x.call && COPY.has(x.call) && x.call !== 'map') p = '[]' + element(p); // a new array of the same records
       else if (x.call && KEEP.has(x.call)) { /* the same collection */ }
       else if (x.call === 'map') p = mapped(x.args);
       else return null;
@@ -206,6 +208,7 @@ function scan(file, mod, returns = {}) {
     if (parsed.length === 1 && !MUTATORS.has(how)) return; // a variable assigned
     if (MUTATORS.has(how) && (st[0].spread || st.some((x) => x.call && COPY.has(x.call)))) return; // sorting a copy: [...hh.larder].sort()
     const p = pathOf(st);
+    if (p && p.startsWith('[]') && MUTATORS.has(how)) return; // a copy: men.sort() where men = alive.filter(...)
     if (p && ENTITIES.has(p) && parsed.length > st.length && !last.field) { addWrite(k, p, '*', how, s); return; } // herd[k]--: a computed field
     addWrite(k, p, null, how, s);
     if (p === null) writes[writes.length - 1].name = st[0].root || null;
@@ -276,7 +279,8 @@ function scan(file, mod, returns = {}) {
             bind.set(as, from && from !== 'local' ? canon(from + '.' + name) : from);
             if (from && from !== 'local') reads.push({ path: from + '.' + name, line: lineOf(q) });
           }
-        } else if (v(k) === '[' && v(M[k] + 1) === '=') { for (let q = k + 1; q < M[k]; q++) if (isWord(q)) bind.delete(toks[q].v); }
+        } else if (v(k) === '[' && (v(M[k] + 1) === '=' || v(M[k] + 1) === 'of')) {
+          for (let q = k + 1; q < M[k]; q++) if (isWord(q)) bind.set(toks[q].v, 'unknown'); }
         let q = k; // the next declarator, if any
         while (q < toks.length && v(q) !== ',' && v(q) !== ';' && v(q) !== 'of' && v(q) !== ')' && v(q) !== '}') q = (v(q) === '(' || v(q) === '[' ||
           v(q) === '{') ? M[q] + 1 : q + 1;
