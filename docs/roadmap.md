@@ -454,7 +454,7 @@ determinism the lint already enforces makes them exact.
 
 **`design.md`.** v0.3 says each version is its own document, left unchanged once a newer one exists.
 - **Decided (Kim, 3 Nov):** keep v0.3 as `docs/design-v0.3.md`, unchanged. `design.md` becomes v0.4, written in two kinds of pass.
-- **The skeleton pass (one task, VB-191):**
+- **The skeleton pass (one task, VB-191; done 3 November):**
   - the vision and the scale of society, from `docs/review-architecture.md` section 3, once Kim approves it;
   - the new section list;
   - every v0.3 point carried over with its status;
