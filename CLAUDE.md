@@ -4,9 +4,11 @@ A village builder proof of concept on a generated hex archipelago: one `index.ht
 Design reference: `design.md`, "Village builder: game design snapshot v0.3"; read-only for implementing tasks (only design and review tasks change it).
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
 the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
-An external target architecture (ChatGPT, 3 November) is kept in `docs/architecture/`: a proposal, not design; what was taken from it, and Kim's adoption of its
-vision of a player who inhabits a pawn, are in `docs/review-architecture.md`.
-The project's own map of who writes each piece of state, the dependencies and the candidate boundaries is `docs/architecture/ownership.md` (VB-172).
+Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
+Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
+The order of work is `docs/roadmap.md`: vertical slices, the late-game budget and cheap measurement (Proposed until Kim answers its questions).
+`docs/architecture/ownership.md` (VB-172) maps who writes each piece of state today. The external proposal target-v2 grew from (ChatGPT) is kept in
+`docs/architecture/target-architecture.md`; the first response to it, with Kim's adoption of a player who inhabits a pawn, is `docs/review-architecture.md`.
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
@@ -80,6 +82,17 @@ The project's own map of who writes each piece of state, the dependencies and th
   It is posted from `refreshJobs` (`src/sim/jobs.js`); roles rank types of work (`work` in `ROLES`, with `except` for single kinds), so a kind of an existing
   type needs no role numbers. Its `anim` names an animation in the page script.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
+
+## Architecture work
+- Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find
+  its current owner in target-v2 section 4: both of its reflections found tensions where one thing had been given two owners.
+- Words: `own` is land ownership, `rank` legal standing, `estate` the body that holds a ranked person's lands. "Claims" already means land
+  claims, so debts and dues are "obligations".
+- Interface sketches in design documents are TypeScript-style types: shape and ownership, not code to build.
+- Hot paths to watch: the household's membership caches, the per-tile travel cost (compile it), the death roll; the rules registry's `value()`
+  must not allocate. A categorical derived view (class, tier) feeds a rule only through hysteresis.
+- Late-game cost (`docs/roadmap.md`, section 5): cost grows with history and with pairs before it grows with people. Measure a change that adds a
+  loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
 ## Working rules
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (see the golden rule in `BACKLOG.md`).
