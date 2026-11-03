@@ -19,14 +19,14 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 
 Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 3 November 2026, after `docs/roadmap.md`; the history of earlier orders is in git):
 
-**Feature freeze** (Kim, 2 November 2026, after the external review, `docs/review-external.md`): until VB-072, VB-073, VB-074 and VB-075 are done and the commands plan VB-076 has written its implement tasks, workers take only tasks of the `core` and `tooling` archs, refactors, and plan tasks (which write no code). Other `ready` tasks keep their status and wait. A review lifts it by striking this paragraph. (2 November: its condition is met. 3 November: the slices now set the order of work, and `tooling` is closed into `yardstick`, which the freeze treats as `tooling`; striking the freeze is question 7 of the architecture review in `QUESTIONS.md`.)
+The feature freeze of 2 November 2026 was lifted by Kim on 3 November: its foundations are in, and the slice order below, with the `blocked` tasks of later slices, now governs what runs.
 
 1. **The slices, in order** (Decided, Kim, 3 November; `docs/roadmap.md`, sections 3 and 4): 0 `yardstick`; 1 `kin-help` and 2 `life` side by side (they touch different files); then 3 `year`, 4 `fair`, 5 `debt`, 6 `mill`, 7 `talk`, 8 `ship`, 9 `town`, 10 `roads`. Each starts with its plan task: VB-181, VB-182, VB-079, VB-164, VB-183 to VB-186, VB-188 to VB-190. A later slice's plan is `blocked` until the slice before it has written its tasks; its implement tasks wait for its plan.
 2. **Beside the slices:**
    - The ownership refactors run in their order: VB-173 (the owners table and its check), VB-174 (food), VB-175 (membership and founding), VB-176 (the dependency rule), VB-177 (a pawn's movement, before VB-169), VB-178 (ties, before VB-127), VB-179 (the crop's life); VB-180 wraps up. VB-174 and VB-178 are what slice 1 builds on, so they go first among the simulation tasks. They touch the files of the food and growth code (`sim/hunger`, `sim/kinds`, `sim/help`, `sim/heirs`, `sim/cottage`, `sim/settle`), so run them one at a time.
    - VB-127 (ties from talk) runs early, since the late game already exceeds the budget (roadmap, section 5.1); it measures itself with `tests/perf.js` and one year from a late save (roadmap, section 6).
    - `design.md` v0.4's skeleton (VB-191): Kim approved the vision's text on 3 November.
-   - Small tasks that touch nothing above, once the freeze lifts: VB-159, VB-160, VB-084, VB-165, VB-139.
+   - Small tasks that touch nothing above: VB-159, VB-160, VB-084, VB-165, VB-139.
 
 ## Archs
 

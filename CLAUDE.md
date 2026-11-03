@@ -3,7 +3,7 @@
 A village builder proof of concept on a generated hex archipelago: one `index.html` (PixiJS 8), built from `src/`; self-contained but for PixiJS (jsDelivr) and the fonts (Google Fonts), so it needs a network connection.
 Design reference: `design.md`, "Village builder: game design snapshot v0.3"; read-only for implementing tasks (only design and review tasks change it).
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
-the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+the refactor and golden-file rules) and its pick order, which follows the vertical slices (the feature freeze of 2 November was lifted on 3 November). Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
 Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game

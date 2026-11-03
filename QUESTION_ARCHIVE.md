@@ -6,6 +6,18 @@ Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind t
 
 Answered by Kim in the session of 3 November; recorded in `docs/roadmap.md` and the slice archs of `BACKLOG.md`.
 
+## Architecture review: the vision and the first steps (raised 3 November 2026) (questions 5 and 7)
+From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173). Questions 1 to 4 were answered on 3 November (`QUESTION_ARCHIVE.md`): the vision's text approved as written.
+5. What a pawn knows. **P:** unchanged for now: all know all, fathers included (Decided 30 October), and an Open question in `design.md` as proposed. Knowledge with a source comes first where it changes a choice: prices at another fair, news brought by a ship.
+   **A (Kim, 3 Nov):** P: omniscient for now; slice 2 builds the actor view as a seam that filters nothing until stories (slice 7); an Open question in v0.4.
+7. The feature freeze. Its condition was met on 2 November, but the paragraph in `BACKLOG.md` still stands. **P:** strike it now. Its foundations are in, and the review asks only that refactors wait for Kim's review of the map, not features; until VB-173 lands, a feature task that writes household food or membership says so in its impact note. Keeping the freeze until the map is reviewed would spare the first refactor some merging, at the cost of a pause in the growth and animals tasks.
+   **A (Kim, 3 Nov):** P: lifted; the slice order governs.
+
+## Target architecture v2: decisions waiting (raised 3 November 2026) (question 3)
+From `docs/architecture/target-v2.md`, section 10.1. None blocks slice 0, 1 or 2; each is needed by the slice named.
+3. May the player accept a deal that takes its household below the floor that binds every pawn (needed in slice 2)? **P:** yes, with a warning that names who goes hungry; the floor is a rule of how pawns choose, not a law of the world, and the player choosing badly is no privilege.
+   **A (Kim, 3 Nov):** P: yes, with a warning that names who goes hungry.
+
 ## Roadmap: vertical slices, the late game and `design.md` v0.4 (questions 3, 5 and 6)
 From `docs/roadmap.md`; questions 1, 2 and 4 are below.
 3. The budget (roadmap, section 5.2). **P:** at a late reference (populous medium at year 60, a saved fixture): 160 ms a game day (30× at 10% of a core), no 6-minute step over 50 ms, cost per living pawn-day at year 60 at most 1.25 times year 5, save and load under 0.5 s each.
