@@ -2,6 +2,19 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 3 November 2026 (the roadmap)
+
+Answered by Kim in the session of 3 November; recorded in `docs/roadmap.md` and the slice archs of `BACKLOG.md`.
+
+## Roadmap: vertical slices, the late game and `design.md` v0.4 (raised 3 November 2026) (questions 1, 2 and 4)
+From `docs/roadmap.md`, written when Kim made `docs/architecture/target-v2.md` the architecture reference. The answers set the order of work and let the backlog be rewritten as slices, one arch per slice.
+1. The slices and their order (roadmap, sections 3 and 4): 0 the yardstick; 1 kin help, booked, beside 2 a life; then 3 the household's year, 4 the autumn fair, 5 debt and land, 6 the mill and the loom, 7 talk travels, 8 the ship, 9 the town, 10 roads, boats and ice. **P:** as proposed; slices 1 and 2 in parallel; the gossip experiment from slice 0 on.
+   **A (Kim, 3 Nov):** as proposed (P).
+2. The late game's size. `design.md` says "up to about 1,000 pawns simulated in full" (Decided), but populous medium starts at 807 and grows about 2% a year, so it passes 1,000 by about year 12 unless a loop holds it. **P:** about 1,000 living on medium is the budget's reference; a large map may reach 2,000 at half the speed.
+   **A (Kim, 3 Nov):** P: about 1,000 living on medium is the budget's reference; a large map may reach about 2,000 at half the speed.
+4. `design.md` v0.4 (roadmap, section 7). **P:** keep v0.3 unchanged as `docs/design-v0.3.md`; one skeleton pass now (the vision, the new section list, v0.3's points carried over, target-v2's changes marked "Under revision"); each slice's plan task then writes its own sections.
+   **A (Kim, 3 Nov):** P: v0.4 as a skeleton now, filled in by each slice's plan; v0.3 kept unchanged.
+
 # Archived 3 November 2026 (VB-172, the ownership map)
 
 Answered by Kim in the session of 3 November; the tasks are VB-173 to VB-180.

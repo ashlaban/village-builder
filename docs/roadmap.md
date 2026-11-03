@@ -6,13 +6,15 @@ measuring that cheap. Kim also noted that target-v2 is mostly a framework, and t
 designing. Read at `fc5c2fc`. The numbers in section 5 were measured that day in this repository's container (4 cores, Node), with
 `tools/sim.js` and a 40-year save. They are one run each, so treat them as accurate to about 10%.
 
-Everything here is **Proposed** until Kim rules on it. The questions are in section 8 and in `QUESTIONS.md`. No code changes.
+Kim decided three points on 3 November, marked **Decided**: the slices and their order, about 1,000 living pawns on a medium map as
+the late game's reference, and `design.md` v0.4 as a skeleton the slices fill in. The rest is **Proposed**; the open questions are
+in section 8 and in `QUESTIONS.md`. The slices are archs of `BACKLOG.md` (keys in section 7). No code changes.
 
 ## 1. In short
 
 - **A slice is one thing the player can do or see,** built through every layer it needs. Target-v2's framework pieces arrive with
   their first consumer, not before. There are ten slices, plus slice 0, the yardstick that measures the others.
-- **The order:** 0, the yardstick; then 1, kin help booked as goodwill (the walking skeleton), beside 2, a life (the player inhabits a
+- **The order** (Decided, Kim, 3 Nov): 0, the yardstick; then 1, kin help booked as goodwill (the walking skeleton), beside 2, a life (the player inhabits a
   pawn); 3, the household's year (opportunities, plans, tasks); 4, the autumn fair; 5, debt and land; 6, the mill and the loom;
   7, talk travels; 8, the ship; 9, the town; 10, roads, boats and ice. The gossip experiment runs beside them from slice 0 on.
 - **Why this order:** the riskiest framework bets go first: plans replacing posted jobs, and goodwill as a currency. After them comes
@@ -356,7 +358,8 @@ year 2), which is why late fixtures matter (section 6).
 
 ### 5.2 Budget (Proposed)
 
-The **late reference** is populous medium at year 60, saved as a fixture and regenerated nightly when behaviour changes, so it
+The **late reference** is populous medium at year 60, with about 1,000 living (Decided, Kim, 3 Nov: about 1,000 living on a medium map
+is the reference; a large map may reach about 2,000 at half the speed), saved as a fixture and regenerated nightly when behaviour changes, so it
 always carries the slices built so far. The **early reference** is populous medium at year 2 (`tests/perf.js` today).
 
 | Measure | Budget | Today |
@@ -450,8 +453,8 @@ determinism the lint already enforces makes them exact.
 ## 7. `design.md` v0.4, and the backlog
 
 **`design.md`.** v0.3 says each version is its own document, left unchanged once a newer one exists.
-- **Proposed:** keep v0.3 as `docs/design-v0.3.md`, unchanged. `design.md` becomes v0.4, written in two kinds of pass.
-- **The skeleton pass (one task):**
+- **Decided (Kim, 3 Nov):** keep v0.3 as `docs/design-v0.3.md`, unchanged. `design.md` becomes v0.4, written in two kinds of pass.
+- **The skeleton pass (one task, VB-191):**
   - the vision and the scale of society, from `docs/review-architecture.md` section 3, once Kim approves it;
   - the new section list;
   - every v0.3 point carried over with its status;
@@ -477,28 +480,29 @@ Proposed sections of v0.4, ordered as the player meets the world:
 15. Open questions
 16. Change log
 
-**The backlog.** Each slice becomes an arch, keyed by a name such as `yardstick`, `life` or `fair` (the backlog check allows
-lower-case letters and hyphens). The present archs fold into them as section 3 lists. Each slice's tasks are rewritten in a later
-batch, once Kim has answered section 8. Until then:
-- The ownership refactors VB-173 to VB-180 go on in their order: target-v2 (section 11.2) found that they fit it unchanged, and each
-  carries a note from it. In the slices' bookkeeping, VB-173 belongs to slice 0, VB-174 and VB-178 to slice 1, VB-177 to slice 2,
-  VB-179 to slice 3, and VB-175, VB-176 and VB-180 to slice 5.
-- VB-088, the performance budget, waits (`needs-review`): slice 0 rewrites it around counters and fixtures.
-- Feature tasks wait for the rewrite, as the feature freeze already has them wait, except the small tasks listed in section 4 as
-  running beside the slices, once the freeze lifts.
+**The backlog** (done 3 November). Each slice is an arch: `yardstick`, `kin-help`, `life`, `year`, `fair`, `debt`, `mill`, `talk`,
+`ship`, `town`, `roads`. Its plan task is VB-181, VB-182, VB-079, VB-164, VB-183 to VB-186, VB-188 to VB-190 in turn; the gossip
+experiment is VB-187 and the skeleton of `design.md` v0.4 is VB-191. The tasks of the earlier archs moved to the slices as section 3
+lists. Those of slices 3 to 10 are `blocked` until their slice's plan confirms, rewrites or closes them, so Kim need not answer their
+old questions now. Two earlier archs stay open beside the slices:
+- `ownership`: VB-173 to VB-180 run in their order (target-v2, section 11.2, found that they fit it unchanged); VB-174 and VB-178 go
+  first, since slice 1 builds on them;
+- `animals`: VB-159, VB-160, VB-139, VB-091, and the wrap-up VB-048 after slice 6.
+
+VB-127 (ties from talk) stays `ready` ahead of its slice, since the budget already binds (section 5.1).
 
 ## 8. Questions for Kim
 
-Also in `QUESTIONS.md`, Priority 1, with these proposals.
+Also in `QUESTIONS.md`, Priority 1, with these proposals. Questions 1, 2 and 4 were answered on 3 November (`QUESTION_ARCHIVE.md`).
 
-1. **The slices and their order** (sections 3 and 4). **P:** as proposed, with slices 1 and 2 in parallel.
+1. **The slices and their order** (sections 3 and 4). **P:** as proposed, with slices 1 and 2 in parallel. **Decided (Kim, 3 Nov):** P.
 2. **The late game's size.** `design.md` says "up to about 1,000 pawns simulated in full" (Decided). Populous medium starts at 807
    and grows about 2% a year (small grew 1.8% a year over 40 years), so it passes 1,000 by about year 12 unless a loop holds it.
    Is 1,000 living the target for medium, or a band for the late game, with large maps allowed more? **P:** about 1,000 living on
-   medium is the budget's reference; large may reach 2,000 at half the speed.
+   medium is the budget's reference; large may reach 2,000 at half the speed. **Decided (Kim, 3 Nov):** P.
 3. **The budget** (section 5.2). **P:** as proposed: 160 ms a game day at the late reference, steps under 50 ms, cost per living pawn
    flat in history, save under 0.5 s.
 4. **`design.md` v0.4** (section 7). **P:** keep v0.3 as `docs/design-v0.3.md`; a skeleton pass now; each slice's plan writes its
-   own sections.
+   own sections. **Decided (Kim, 3 Nov):** P.
 5. **Counters in `VB.count`** (section 6). **P:** yes, with one lint allowance; counters never feed the simulation.
 6. **The ten rules** (section 5.3) into `CLAUDE.md`'s working rules. **P:** yes, once Kim agrees with them.

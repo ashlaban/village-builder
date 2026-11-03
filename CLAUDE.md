@@ -6,7 +6,8 @@ Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to
 the refactor and golden-file rules) and its pick order, which holds a feature freeze (2 November) until the save and command foundations are in. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
 Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
-The order of work is `docs/roadmap.md`: vertical slices, the late-game budget and cheap measurement (Proposed until Kim answers its questions).
+The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game
+budget and cheap measurement.
 `docs/architecture/ownership.md` (VB-172) maps who writes each piece of state today. The external proposal target-v2 grew from (ChatGPT) is kept in
 `docs/architecture/target-architecture.md`; the first response to it, with Kim's adoption of a player who inhabits a pawn, is `docs/review-architecture.md`.
 
