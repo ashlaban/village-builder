@@ -2,6 +2,27 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 3 November 2026 (VB-172, the ownership map)
+
+Answered by Kim in the session of 3 November; the tasks are VB-173 to VB-180.
+
+## VB-172: the ownership map (raised 3 November 2026)
+VB-172 has mapped who writes each piece of state, the dependencies and the candidate boundaries: `docs/architecture/ownership.md` (rerun with `node tools/writes.js`). In short: tile owners have one writer; household food has ten writer modules and leaves no record of seed, meals, spoilage, shares or provisions; household membership has five, and three places found a household with copies of the same steps; four dependency cycles run through lookups of later modules. The refactors and VB-173 wait for these answers; the plan then writes the arch's tasks.
+1. Which boundaries first, and in which order? **P:** the ranking of the map, section 7: household and village food (7.1), then membership and founding (7.2), then agent movement (7.3) and ties (7.4), both small and wanted before VB-169 and VB-127, then the crop's life (7.5). The others (other stores, farm occupancy, land use, herds, the job store) wait until a task touches them. One refactor task per boundary, run one at a time and not beside the food and growth tasks, since they edit the same files.
+   **A (Kim, 3 Nov):** P: food (VB-174), membership and founding (VB-175), the dependency rule (VB-176), agent movement (VB-177), ties (VB-178), the crop's life (VB-179); the rest wait for a task that touches them.
+2. Who owns household and village food: a new module or an existing one? **P:** a new module, `sim/stores` (about 80 lines), loaded after `sim/records` and before `sim/hunger`. It holds the operations put, take, move, cook, sheaf and thresh, which check the amounts and say why. The rules stay where they are and call it: meals and the feed order in `sim/hunger`, gifts in `sim/help`, shares in `sim/heirs`, spoilage in `spoilGrain`. Neither hunger nor help is a natural owner, and Resources is the one domain with state and no home (the review, section 2).
+   **A (Kim, 3 Nov):** P: a new module, `sim/stores`.
+3. What does the first refactor leave unchanged? **P:** behaviour. `tests/golden.json` stays unchanged, the ledger records what it records today, and nothing is renamed (the refactor rules). A later task, which changes behaviour on purpose and re-records the golden file, adds a ledger entry for every movement of food (seed, meal, cooking, spoilage, share, handing on, provisions), so a household's balance can be read from its ledger (VB-092, `tools/balance.js`); it measures what the entries cost.
+   **A (Kim, 3 Nov):** record every movement now, in the food task itself (VB-174), which therefore changes behaviour on purpose and re-records the golden file; only the ledgers may change in it.
+4. How is an owner declared (for VB-173)? **P:** one table, `src/owners.json`, keyed by the fields as `tools/writes.js` names them (`household.grain`), with `signal` for page flags, the seeding modules as creators and the save codec exempt (the map, section 8). One `@state` line documents a whole record, so an owner per field does not fit there. VB-173's check is the scan plus a lookup in the table, with a baseline that only goes down. The alternative is one `@state ... (owner ...)` line per owned field.
+   **A (Kim, 3 Nov):** P: one table, `src/owners.json` (VB-173).
+5. The page flags (`st.visualDirty`, `biomeDirty`, `rigDirty`, `treeDirty`, `pathDirty`, `landDirty`; 16 writer modules). **P:** declare them as signals that any module may set and only the page clears; leave them out of the check. Nothing in the simulation decides on them.
+   **A (Kim, 3 Nov):** P: signals, outside the check.
+6. Dependencies. **P:** an import at load goes only to a module loaded earlier, and the only lookup into a later module is `issue` (and the verbs' own `later()`). Founding a household becomes one act reached by a command (the map, 7.2), and the round passes `startPlots` who may claim a farm; that ends the four cycles or turns them into calls through the command layer. `tools/writes.js` lists every lookup, so a check can follow once the refactors are in.
+   **A (Kim, 3 Nov):** P: only `issue` (and the verbs' `later()`) reaches a later module; a check follows (VB-176).
+7. The rules held in `sim/clock` (ripening, weeding, frost, decay of empty farms and fences, firewood use, the village store's spoilage). **P:** each moves out with the boundary that owns its state (crop's life to `sim/fields`, empty farms to `sim/farmclaims`, fences to `sim/kinds`, firewood and the store to `sim/stores`); no task of its own. The clock keeps the order of the day.
+   **A (Kim, 3 Nov):** P: each moves out with the boundary that owns its state; no task of its own.
+
 # Archived 2 November 2026 (review, second pass)
 
 Answered by Kim in the session of 2 November.

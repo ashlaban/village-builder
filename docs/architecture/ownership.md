@@ -5,6 +5,11 @@ review asked for before any refactor (`docs/review-architecture.md`). The other 
 measures the code against (`target-architecture.md`, `prompt.md`, `stress-tests.md`). Kim reviews this map and chooses the boundaries to
 make firm, and in which order (`QUESTIONS.md`). No code changes here.
 
+**Kim's answers of 3 November** (`QUESTION_ARCHIVE.md`, "VB-172: the ownership map"): the order of section 7 and the
+proposals of sections 4, 7 and 8, except that the food task records every movement at once (7.1, "Records"). The tasks are VB-173
+(the owners table and its check), VB-174 (food), VB-175 (membership and founding), VB-176 (the dependency rule), VB-177 (a pawn's
+movement), VB-178 (ties), VB-179 (the crop's life) and VB-180 (wrap-up).
+
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
@@ -657,8 +662,9 @@ behaviour (golden file unchanged), under the refactor rules of `BACKLOG.md`.
   a share (`sim/heirs`), what spoils (`spoilGrain`). They call the operations.
 - **Checks.** `n` is finite and at least 0; a take never leaves less than zero; the holder exists and is not dissolved; a move gives
   what it takes.
-- **Records.** In the refactor, exactly what is recorded today, since the ledger is part of the hashed state (`tests/golden.js` hashes
-  every household). A later task, which changes behaviour on purpose and re-records the golden file, writes a ledger entry for every
+- **Records.** Proposed: in the refactor, exactly what is recorded today, since the ledger is part of the hashed state
+  (`tests/golden.js` hashes every household), and a later task for the rest. Kim chose instead to record everything in the same
+  task (VB-174), which therefore changes behaviour on purpose and re-records the golden file: a ledger entry for every
   movement (seed, meal, cooking, spoilage, share, handing on, provisions), so that a household's food balance can be read from its
   ledger, as VB-092 and `tools/balance.js` need. Its cost (about 48 meal entries a household a year, pruned at three years) is to be
   measured.
