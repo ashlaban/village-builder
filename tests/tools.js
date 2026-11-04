@@ -48,5 +48,10 @@ check(fieldW('st.owner').join() === 'sim/ownership', `writes map: st.owner writt
 check(fieldW('household.grain').length > 1 && fieldW('household.members').includes('sim/heirs'), 'writes map: household grain or members not found');
 check(wr.loops.some((l) => l.from === 'sim/farmclaims' && l.via.includes('sim/heirs')), 'writes map: the farmclaims and heirs cycle not found');
 check(wr.unresolved.length < 20, `writes map: ${wr.unresolved.length} unresolved writes; the scan has lost track of names`);
+const counts = JSON.parse(run('--years', '1', '--report', 'counts', '--json'));
+check(counts.length === Object.keys(VB.COUNTERS).length && counts.every((r) =>
+  r.total >= 0 && Number.isFinite(r.perDay) && Number.isFinite(r.perLivingPawnDay)), 'counts report invalid');
+check(counts.find((r) => r.counter === 'walkStep').perDay > 0, 'counts report has no work');
+
 if (failed) process.exit(1);
 console.log(`tools ok: ${rows.length} households; balance: ${bal.rows.length} household-years`);

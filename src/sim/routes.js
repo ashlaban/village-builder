@@ -59,16 +59,19 @@ VB['sim/routes'] = (() => {
   // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
   function findRoute(w, from, to, maxCost = ROUTE.reach) {
+    VB.count.routeSearch++;
     if (from === to) return [from];
+    let expanded = 0;
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     const h = (i) => hexSteps(w, i, to) * lo;
     g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
     while (open.size) {
-      const i = open.pop();
+      const i = open.pop(); expanded++;
       if (shut[i] === run) continue;
       shut[i] = run;
       if (i === to) {
         const p = [to]; for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
+        VB.count.routeExpand += expanded;
         return p.reverse();
       }
       for (let d = 0; d < 6; d++) {
@@ -80,6 +83,7 @@ VB['sim/routes'] = (() => {
         open.push(gj + h(j), j);
       }
     }
+    VB.count.routeExpand += expanded;
     return null;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
@@ -93,9 +97,9 @@ VB['sim/routes'] = (() => {
   function route(st, from, to) {
     const N = st.w.N, k = from * N + to;
     let p = st.pathCache.get(k);
-    if (p) return p;
+    if (p) { VB.count.routeHit++; return p; }
     const back = st.pathCache.get(to * N + from);
-    if (back && back[0] === to) p = back.slice().reverse();
+    if (back && back[0] === to) { VB.count.routeHit++; p = back.slice().reverse(); }
     else {
       p = findRoute(st.w, from, to);
       if (!p) { p = [to]; st.routeFallbacks++; }
@@ -119,6 +123,7 @@ VB['sim/routes'] = (() => {
     let i = 0;
     for (const t of st.routeDirty) { const y = (t / C) | 0; dq[i] = (t % C) - ((y - (y & 1)) >> 1); dr[i] = y; i++; }
     const qOf = (t) => { const y = (t / C) | 0; return (t % C) - ((y - (y & 1)) >> 1); };
+    VB.count.routeRefresh += st.pathCache.size;
     for (const [k, p] of st.pathCache) {
       const to = k % N, from = (k - to) / N;
       if (p.length === 1 && from !== to) { st.pathCache.delete(k); continue; }

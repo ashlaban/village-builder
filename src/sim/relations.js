@@ -129,6 +129,7 @@ VB['sim/relations'] = (() => {
     const ag = st.agents, n = ag.length, start = Math.floor(rnd(st.rng.talk) * n);
     if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
     round++;
+    let weighed = 0;
     for (let k = 0; k < n; k++) {
       const a = ag[(start + k) % n];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
@@ -137,6 +138,7 @@ VB['sim/relations'] = (() => {
       partnersOf(st, a, near);
       for (const b of found) {
         if (!able(st, b)) continue;
+        weighed++;
         const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
@@ -145,6 +147,7 @@ VB['sim/relations'] = (() => {
       busy[a.id] = round; busy[cand[i].id] = round;
       talk(st, a, cand[i]);
     }
+    VB.count.talkWeighed += weighed;
   }
   // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
   // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble

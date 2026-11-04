@@ -134,12 +134,13 @@ VB['sim/society'] = (() => {
   // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
   const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
   function noteContacts(st) {
+    let pairs = 0;
     const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     const ins = [];
     for (const hh of st.households) {
       if (hh.dissolved) continue;
       ins.length = 0; for (const m of hh.members) if (st.agents[m].inside) ins.push(m);
-      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) add(ins[x], ins[y]);
+      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) { pairs++; add(ins[x], ins[y]); }
     }
     // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
     // so pairs are counted in the same order as by comparing every pair.
@@ -155,8 +156,9 @@ VB['sim/society'] = (() => {
         const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
       }
       if (cand.length > 1) cand.sort((p, q) => p - q);
-      for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
+      for (const y of cand) { pairs++; const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
+    VB.count.contactPairs += pairs;
     return { out, cells, cellOf, size: NEAR };
   }
   return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };

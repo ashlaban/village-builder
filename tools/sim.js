@@ -1,5 +1,5 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
-// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|hunger|perf|land] [--json]
+// node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|hunger|perf|counts|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
@@ -14,7 +14,7 @@ const mapOf = (d) => Object.keys(SIZES).find((k) => SIZES[k][0] === d.cols && SI
 const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'), seedNum = loaded ? loaded.seed : +opt('seed', 7), map = loaded ? mapOf(loaded) : opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
 if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'land'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {
@@ -40,6 +40,8 @@ say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${loaded ? `fr
 say('year  pop  births  deaths(by cause)  marriages  hungry-days  mean-grain  demand  ms/day');
 const idle = report === 'idle' ? require('./idle.js')(Sim, st) : null;
 let perfMs = 0;
+const countsFrom = st.t;
+if (report === 'counts') VB.resetCounts();
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
@@ -58,10 +60,16 @@ if (saveTo) {
   console.error(`saved year ${Math.floor(st.t / Sim.YEAR)} to ${saveTo}: ${(text.length / 1048576).toFixed(2)} MB of JSON, ${(zlib.gzipSync(text).length / 1048576).toFixed(2)} MB gzipped`);
 }
 
+// Integrate each lifetime over the measured interval, including births and deaths during it.
+const pawnDays = report === 'counts' ? st.pawns.reduce((sum, p) => sum + Math.max(0,
+  Math.min(p.died ?? st.t, st.t) - Math.max(p.born, countsFrom)) / Sim.DAY, 0) : 0;
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
 const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(h.grain), wood: Math.round(h.wood),
   hungryDays: h.hungryDays, dissolved: h.dissolved });
 const tables = {
+  counts: () => Object.keys(VB.COUNTERS).map((counter) => ({ counter, total: VB.count[counter],
+    perDay: (st.t > countsFrom) ? VB.count[counter] / ((st.t - countsFrom) / Sim.DAY) : 0,
+    perLivingPawnDay: pawnDays ? VB.count[counter] / pawnDays : 0 })),
   households: () => st.households.map(hhRow),
   pawns: () => st.pawns.filter((p) => p.alive).map(pawnRow),
   jobs: () => [...st.jobs.values()].map((j) => ({ id: j.id, key: j.key, kind: j.kind, owner: j.owner, site: j.site, claims: j.claims, done: j.done })),

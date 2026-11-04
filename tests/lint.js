@@ -2,7 +2,7 @@
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing violations are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
-const fs = require('fs'), path = require('path'), { clockUse, pageWrites } = require('./lint-rules.js');
+const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
 const MAX_LINES = 400, MAX_COLS = 160;
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
@@ -35,6 +35,11 @@ for (const f of ['src/body.html', ...pageFiles]) fs.readFileSync(path.join(root,
 const tagged = { w: new Set(), st: new Set() };
 for (const f of files) for (const line of fs.readFileSync(path.join(root, f), 'utf8').split('\n').filter((l) => l.includes('@state '))) for (const m of line.matchAll(/\b(w|st)\.([\w,]+)/g)) m[2].split(',').forEach((k) => tagged[m[1]].add(k));
 const VB = require('../src/load.js');
+for (const f of files.filter((f) => f !== 'src/vb.js')) {
+  fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((line, i) => {
+    for (const hit of counterUses(line, new Set(Object.keys(VB.COUNTERS)))) errors.push(`${f}:${i + 1} forbidden counter use: ${hit}`);
+  });
+}
 const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w = worldOf(7), states = [VB.sim.seed(worldOf(7), 7, 'founders'), VB.sim.seed(worldOf(7), 7, 'heirs')];
 for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: top-level key w.${k} has no @state tag`);

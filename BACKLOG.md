@@ -13,7 +13,8 @@ Refactor rules (every task titled "Refactor:"):
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
 - Depends on VB-011 to VB-015; if any is not done, mark the task blocked.
 
-Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR.
+Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR. An intentional change to work counters re-records `tests/counters.json` with
+`node tests/counters.js --update` and lists the changed counters in its PR.
 
 ## Pick order
 
@@ -143,7 +144,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-188 | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | plan | blocked | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. | [backlog/VB-188.md](backlog/VB-188.md) |
 | VB-189 | Plan: the town (slice 9) | town | plan | blocked | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. | [backlog/VB-189.md](backlog/VB-189.md) |
 | VB-190 | Plan: roads, boats and ice (slice 10) | roads | plan | blocked | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. | [backlog/VB-190.md](backlog/VB-190.md) |
-| VB-192 | Work counters in `VB.count`, asserted at tiny scale | yardstick | implement | ready | 1 | S | Counters of routes searched, pairs weighed, records walked and heirs ranked, outside `st`, linted, checked in `npm test` against a recorded file. | [backlog/VB-192.md](backlog/VB-192.md) |
 | VB-193 | Late-game fixtures, kept on the `fixtures` branch | yardstick | implement | ready | 1 | M | Saves of populous small at years 5 and 40 and medium at years 5 and 60, stamped, fetched by checks and remade nightly when stale. | [backlog/VB-193.md](backlog/VB-193.md) |
 | VB-194 | The bench history and the budget table, reported nightly | yardstick | implement | blocked | 1 | S | Nightly ms per game day, longest step, save and load on the medium fixtures, appended to `docs/bench/history.jsonl`; the budget table written from it. | [backlog/VB-194.md](backlog/VB-194.md) |
 | VB-195 | Indexes of the living: no step walks the dead | yardstick | implement | blocked | 1 | M | `st.living` and live households kept by their owners; the step, `dailyLife` and the other full loops walk them; golden unchanged. | [backlog/VB-195.md](backlog/VB-195.md) |
