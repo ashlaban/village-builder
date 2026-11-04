@@ -318,10 +318,42 @@ VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[n
 VB.resetCounts();
 </script>
 <script>
+// @sys gen/geometry: world-position lookup and point-to-segment distance
+VB['gen/geometry'] = (() => {
+  const SQ3 = Math.sqrt(3);
+
+  // Convert a map position to its nearest hex, or -1 outside the grid.
+  function tileIndexAt(w, px, py, out) {
+    const { R, COLS, ROWS, AP } = w;
+    const x = px - AP, y = py - R;
+    const qf = ((SQ3 / 3) * x - y / 3) / R, rf = ((2 / 3) * y) / R, sf = -qf - rf;
+    let q = Math.round(qf), r = Math.round(rf);
+    const s = Math.round(sf), dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - sf);
+    if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s;
+    const col = q + ((r - (r & 1)) >> 1);
+    if (!(r >= 0 && r < ROWS && col >= 0 && col < COLS)) return -1;
+    if (out) {
+      out[0] = px - (w.HW * (col + 0.5 * (r & 1)) + AP);
+      out[1] = py - (1.5 * R * r + R);
+    }
+    return r * COLS + col;
+  }
+
+  // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
+  function dist2(x, y, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+    const px = ax + t * dx - x, py = ay + t * dy - y;
+    return px * px + py * py;
+  }
+  return { tileIndexAt, dist2 };
+})();
+</script>
+<script>
 // @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['gen/paths'] = (() => {
+  const { dist2 } = VB['gen/geometry'];
   // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, the colours of its flattened edge and bare core,
   // and the coarsest level of detail (ArchGen.LV index) that still shows it: trodden ground only up close, paths and lanes at the middle
   // level too. The overview shows none, so a path that changes stage never repaints it (a full overview chunk takes about 60 ms).
@@ -386,12 +418,6 @@ VB['gen/paths'] = (() => {
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
-  // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
-  function dist2(x, y, ax, ay, bx, by) {
-    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
-    const px = ax + t * dx - x, py = ay + t * dy - y;
-    return px * px + py * py;
-  }
   // Drops, in place, the decoration items ({t, x, y, ...}) that stand on a path or lane (a tree by its foot), and returns the array.
   // Trodden ground keeps its grass, flowers and stones. loc: ArchGen.hexLocator(w).
   function thin(w, items, loc) {
@@ -424,6 +450,7 @@ VB['gen/paths'] = (() => {
 // ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea; their curves on the map =====
 // Listed before gen.js, which calls trace; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
 VB['gen/rivers'] = (() => {
+  const { dist2 } = VB['gen/geometry'];
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
   // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
@@ -764,12 +791,6 @@ VB['gen/rivers'] = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  // Squared distance from point (x, y) to the segment a-b.
-  function dist2(x, y, a, b) {
-    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
-    const t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0, px = a[0] + t * dx - x, py = a[1] + t * dy - y;
-    return px * px + py * py;
-  }
   // Drops the decoration items ({t, x, y, ...}) that stand in a river or on its bank, or whose crown (a tree's, 10 units above its foot)
   // would hide one, in place, and returns the array. loc: ArchGen.hexLocator(w).
   function thin(w, items, loc) {
@@ -781,8 +802,8 @@ VB['gen/rivers'] = (() => {
         if (i < 0 || !w.river[i]) continue;
         if (!cache.has(i)) cache.set(i, lines(w, i));
         for (const pts of cache.get(i)) for (let s = 1; s < pts.length; s++) {
-          const r = Math.max(pts[s - 1][2], pts[s][2]) / 2 + 5;
-          if (dist2(x, y, pts[s - 1], pts[s]) < r * r) return true;
+          const a = pts[s - 1], b = pts[s], r = Math.max(a[2], b[2]) / 2 + 5;
+          if (dist2(x, y, a[0], a[1], b[0], b[1]) < r * r) return true;
         }
       }
       return false;
@@ -800,6 +821,7 @@ VB['gen/rivers'] = (() => {
 // @sys gen: seeded terrain, hex tiles, regions and the painterly chunk bake
 // ===== Archipelago generator: seeded terrain, hex tiles, regions, chunked painterly bake =====
 const ArchGen = (() => {
+  const { tileIndexAt } = VB['gen/geometry'];
   const SQ3 = Math.sqrt(3);
 
   function mulberry32(a) {
@@ -1164,21 +1186,7 @@ const ArchGen = (() => {
     };
   }
 
-  function hexLocator(w) {
-    const { R, COLS, ROWS, HW, AP } = w;
-    return function (px, py, out) {
-      const x = px - AP, y = py - R;
-      const qf = ((SQ3 / 3) * x - y / 3) / R, rf = ((2 / 3) * y) / R, sf = -qf - rf;
-      let q = Math.round(qf), r = Math.round(rf), s = Math.round(sf);
-      const dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - sf);
-      if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s;
-      const row = r, col = q + ((r - (r & 1)) >> 1);
-      if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return -1;
-      out[0] = px - (HW * (col + 0.5 * (row & 1)) + AP);
-      out[1] = py - (1.5 * R * row + R);
-      return row * COLS + col;
-    };
-  }
+  const hexLocator = (w) => (px, py, out) => tileIndexAt(w, px, py, out);
 
   // Low-resolution water colour layer, one texel per coarse cell.
   function bakeWater(w, ctx) {
@@ -5160,6 +5168,7 @@ VB['sim/kinds'] = (() => {
 <script>
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
+  const { tileIndexAt } = VB['gen/geometry'];
   const { next: rnd } = VB['sim/rng'];
   const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
@@ -5176,15 +5185,7 @@ VB['sim/agents'] = (() => {
   function placeAtHome(st, a) {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
   }
-  function tileAt(st, x, y) {
-    const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
-    const px = x - AP, py = y - R, qf = ((Math.sqrt(3) / 3) * px - py / 3) / R, rf = ((2 / 3) * py) / R, sf = -qf - rf;
-    let q = Math.round(qf), r = Math.round(rf), s = Math.round(sf);
-    const dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - sf);
-    if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s;
-    const col = q + ((r - (r & 1)) >> 1);
-    return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
-  }
+  const tileAt = (st, x, y) => tileIndexAt(st.w, x, y);
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {
