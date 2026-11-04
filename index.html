@@ -299,6 +299,23 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 // and reads what it needs at the top of its IIFE: const { bfs } = VB['sim/hex'];
 // A module reads only modules listed before it in src/manifest.json. Grep a key to find the module and its users.
 var VB = globalThis.VB = globalThis.VB || {};
+// Work measurements only: never part of st or an input to a simulation decision.
+VB.COUNTERS = {
+  routeSearch: 'A* searches started',
+  routeExpand: 'Tiles removed from the A* heap (including duplicates)',
+  routeHit: 'Routes served from the cache, in either direction',
+  routeRefresh: 'Cached routes tested for invalidation',
+  talkWeighed: 'Eligible partners weighed in talkHour',
+  contactPairs: 'Indoor and outdoor pairs compared in noteContacts',
+  walkStep: 'Agent records walked by the six-minute step',
+  walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
+  walkTies: 'Ties decayed by dailyLife',
+  roundPairs: 'Candidate man/woman pairs visited in the moving round',
+  roundRank: 'Heir rankings requested directly by the moving round and its place caches',
+};
+VB.count = {};
+VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
+VB.resetCounts();
 </script>
 <script>
 // @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks
@@ -1599,15 +1616,17 @@ const Culture = (() => {
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, hooks, dt, rand) {
     const mul = env.driftMul || 1, byId = hooks.byId;
+    let walked = 0;
     const means = new Map();
     for (const s of env.settlements) {
       const m = new Float32Array(TOTAL); let n = 0;
-      for (const p of hooks.membersOf(s)) { if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
+      for (const p of hooks.membersOf(s)) { walked++; if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
       means.set(s.id, n ? m : null);
     }
     const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
     for (const p of env.people) {
+      walked++;
       if (!p.alive || p.age < 12) continue;
       const s = hooks.settlementOf(p), kind = s ? s.kind : 'village', M = s ? means.get(s.id) : null;
       // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
@@ -1643,6 +1662,7 @@ const Culture = (() => {
         for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
       }
     }
+    VB.count.walkDaily += walked;
   }
 
   // Norm entrepreneurs: now and then an adult takes up the cause of another option for some years. This is what
@@ -2251,16 +2271,19 @@ VB['sim/routes'] = (() => {
   // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
   function findRoute(w, from, to, maxCost = ROUTE.reach) {
+    VB.count.routeSearch++;
     if (from === to) return [from];
+    let expanded = 0;
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     const h = (i) => hexSteps(w, i, to) * lo;
     g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
     while (open.size) {
-      const i = open.pop();
+      const i = open.pop(); expanded++;
       if (shut[i] === run) continue;
       shut[i] = run;
       if (i === to) {
         const p = [to]; for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
+        VB.count.routeExpand += expanded;
         return p.reverse();
       }
       for (let d = 0; d < 6; d++) {
@@ -2272,6 +2295,7 @@ VB['sim/routes'] = (() => {
         open.push(gj + h(j), j);
       }
     }
+    VB.count.routeExpand += expanded;
     return null;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
@@ -2285,9 +2309,9 @@ VB['sim/routes'] = (() => {
   function route(st, from, to) {
     const N = st.w.N, k = from * N + to;
     let p = st.pathCache.get(k);
-    if (p) return p;
+    if (p) { VB.count.routeHit++; return p; }
     const back = st.pathCache.get(to * N + from);
-    if (back && back[0] === to) p = back.slice().reverse();
+    if (back && back[0] === to) { VB.count.routeHit++; p = back.slice().reverse(); }
     else {
       p = findRoute(st.w, from, to);
       if (!p) { p = [to]; st.routeFallbacks++; }
@@ -2311,6 +2335,7 @@ VB['sim/routes'] = (() => {
     let i = 0;
     for (const t of st.routeDirty) { const y = (t / C) | 0; dq[i] = (t % C) - ((y - (y & 1)) >> 1); dr[i] = y; i++; }
     const qOf = (t) => { const y = (t / C) | 0; return (t % C) - ((y - (y & 1)) >> 1); };
+    VB.count.routeRefresh += st.pathCache.size;
     for (const [k, p] of st.pathCache) {
       const to = k % N, from = (k - to) / N;
       if (p.length === 1 && from !== to) { st.pathCache.delete(k); continue; }
@@ -3028,6 +3053,7 @@ VB['sim/relations'] = (() => {
     const ag = st.agents, n = ag.length, start = Math.floor(rnd(st.rng.talk) * n);
     if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
     round++;
+    let weighed = 0;
     for (let k = 0; k < n; k++) {
       const a = ag[(start + k) % n];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
@@ -3036,6 +3062,7 @@ VB['sim/relations'] = (() => {
       partnersOf(st, a, near);
       for (const b of found) {
         if (!able(st, b)) continue;
+        weighed++;
         const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
@@ -3044,6 +3071,7 @@ VB['sim/relations'] = (() => {
       busy[a.id] = round; busy[cand[i].id] = round;
       talk(st, a, cand[i]);
     }
+    VB.count.talkWeighed += weighed;
   }
   // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
   // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble
@@ -5685,7 +5713,8 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, work = null) {
+    if (work) work.rank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
@@ -5729,7 +5758,7 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh, work);
     if (cu.ownHeir === 'keeps') {
       // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
       // parents') and drops the other claim, which passes to the next in that line
@@ -5745,9 +5774,9 @@ VB['sim/heirs'] = (() => {
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
   // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet.
-  function ownFirstOf(st, hh = null) {
+  function ownFirstOf(st, hh = null, work = null) {
     const out = [];
-    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
+    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true, null, work); if (r.length) out.push([r[0], o.id]); }
     return out;
   }
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
@@ -5958,11 +5987,11 @@ VB['sim/heirs'] = (() => {
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
   }
-  function placeIfMarried(st, id, own = null) {
+  function placeIfMarried(st, id, own = null, work = null) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
     if (!hh || hh.dissolved) return null;
     if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
+    return heirRanking(st, hh, null, false, own, work)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
   function firstHeirs(st, own = ownFirstOf(st)) {
@@ -6296,12 +6325,13 @@ VB['sim/society'] = (() => {
   // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
   const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
   function noteContacts(st) {
+    let pairs = 0;
     const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     const ins = [];
     for (const hh of st.households) {
       if (hh.dissolved) continue;
       ins.length = 0; for (const m of hh.members) if (st.agents[m].inside) ins.push(m);
-      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) add(ins[x], ins[y]);
+      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) { pairs++; add(ins[x], ins[y]); }
     }
     // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
     // so pairs are counted in the same order as by comparing every pair.
@@ -6317,8 +6347,9 @@ VB['sim/society'] = (() => {
         const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
       }
       if (cand.length > 1) cand.sort((p, q) => p - q);
-      for (const y of cand) { const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
+      for (const y of cand) { pairs++; const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
     }
+    VB.count.contactPairs += pairs;
     return { out, cells, cellOf, size: NEAR };
   }
   return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
@@ -6692,6 +6723,7 @@ VB['sim/lifecycle'] = (() => {
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
   function movingRound(st) {
+    const work = { rank: 0 }; let pairs = 0;
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
     for (const p of alive) p.age = age(st, p);
@@ -6706,8 +6738,8 @@ VB['sim/lifecycle'] = (() => {
     // heirs for every pair of candidates made the round cost about a second at populous medium.
     let own = null, places = new Map();
     const place = (id) => {
-      if (!own) own = ownFirstOf(st);
-      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own));
+      if (!own) own = ownFirstOf(st, null, work);
+      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own, work));
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
@@ -6720,7 +6752,7 @@ VB['sim/lifecycle'] = (() => {
     let handed = new Map();
     const handsOnWell = (h) => {
       if (!handed.has(h)) {
-        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh), hh.holder), v = st.farmsteads[hh.farmstead].village;
+        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh, null, false, null, work), hh.holder), v = st.farmsteads[hh.farmstead].village;
         const grown = heir !== null && (st.pawns[heir].age >= 18 || hh.members.some((id) => id !== hh.holder && st.pawns[id].age >= 18));
         handed.set(h, grown ? 2 : st.demand.some((id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v) ? 1 : 0);
       }
@@ -6754,6 +6786,7 @@ VB['sim/lifecycle'] = (() => {
       let best = null, bs = -Infinity;
       const pm = place(m.id);
       for (const f of women) {
+        pairs++;
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
         const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
@@ -6777,8 +6810,8 @@ VB['sim/lifecycle'] = (() => {
     own = null; // the first heirs of every farm, ranked again only after a handover
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      if (!own) own = ownFirstOf(st);
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
+      if (!own) own = ownFirstOf(st, null, work);
+      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own, work), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
       const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
         : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
@@ -6793,31 +6826,41 @@ VB['sim/lifecycle'] = (() => {
     takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
     payOwed(st);
     refreshPrestige(st);
+    VB.count.roundPairs += pairs;
+    VB.count.roundRank += work.rank;
     st.visualDirty = true;
   }
   function dailyLife(st, c) {
     const env = st.cenv;
+    VB.count.walkDaily += st.pawns.length;
+    let ties = 0;
     for (const p of st.pawns) if (p.alive) p.age = age(st, p);
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
     // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
     const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
+    VB.count.walkDaily += st.pawns.length;
     for (const p of st.pawns) {
       if (!p.alive) continue;
-      for (const [j, w0] of p.ties) { const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+      for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
     }
     for (const [k, hrs] of st.contacts) {
       const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
       const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
     }
+    VB.count.walkTies += ties;
     st.contacts.clear();
+    VB.count.walkDaily += st.pawns.length;
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
-    if (st.naturalDeaths) for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
+    if (st.naturalDeaths) {
+      VB.count.walkDaily += st.pawns.length;
+      for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
+    }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };
 })();
@@ -7314,6 +7357,7 @@ VB['sim/clock'] = (() => {
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
       const c = cal(st.t), idle = [];
+      VB.count.walkStep += st.agents.length;
       for (const a of st.agents) {
         if (st.pawns[a.id].died) continue;
         if (a.path) moveAgent(st, a, step);

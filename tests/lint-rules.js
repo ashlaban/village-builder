@@ -20,3 +20,12 @@ function pageWrites(line) {
   return out;
 }
 module.exports = { clockUse, pageWrites };
+
+// Only increments of declared counters are allowed; consuming their values would affect the run.
+function counterUses(line, names) {
+  const code = line.replace(/\/\/.*$/, '');
+  const allowed = code.replace(/(?:^|(?<=[;{}]))\s*VB\.count\.(\w+)\s*(?:\+\+|\+=\s*[^;{}]+)\s*;/g,
+    (text, name) => names.has(name) && !/VB\s*(?:\.|\[)/.test(text.slice(text.indexOf('VB.count.') + 'VB.count.'.length)) ? '' : text);
+  return [...allowed.matchAll(/\bVB\s*(?:\.\s*count\b|\[\s*['"]count['"]\s*\])/g)].map((m) => m[0]);
+}
+module.exports.counterUses = counterUses;

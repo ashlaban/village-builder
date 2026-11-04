@@ -19,10 +19,13 @@ budget and cheap measurement.
 - Verify: `npm run verify` runs those and the long runs, about 40 s (golden, populous, births, hunger, page smoke test in jsdom).
   `node tests/run.js verify --verbose` also prints the reported numbers.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
+- Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
+  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
+  `node tests/perf.js --counter-cost` compares paired runs with counter increments enabled and commented out.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
-  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
+  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf|counts`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
   `--save FILE` saves the run at the end and `--load FILE` goes on from a save (`.gz` files are gzipped), so a bug report can carry the run.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15` prints rations made by source (grain net of seed,
   milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
@@ -75,6 +78,7 @@ budget and cheap measurement.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions
+- A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
 - Determinism: all randomness comes from seeded streams (VB-072, `src/sim/rng.js`): in play each system draws from its own, `rnd(st.rng.<system>)`,
   and a new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.

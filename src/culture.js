@@ -143,15 +143,17 @@ const Culture = (() => {
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, hooks, dt, rand) {
     const mul = env.driftMul || 1, byId = hooks.byId;
+    let walked = 0;
     const means = new Map();
     for (const s of env.settlements) {
       const m = new Float32Array(TOTAL); let n = 0;
-      for (const p of hooks.membersOf(s)) { if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
+      for (const p of hooks.membersOf(s)) { walked++; if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
       means.set(s.id, n ? m : null);
     }
     const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
     for (const p of env.people) {
+      walked++;
       if (!p.alive || p.age < 12) continue;
       const s = hooks.settlementOf(p), kind = s ? s.kind : 'village', M = s ? means.get(s.id) : null;
       // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
@@ -187,6 +189,7 @@ const Culture = (() => {
         for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
       }
     }
+    VB.count.walkDaily += walked;
   }
 
   // Norm entrepreneurs: now and then an adult takes up the cause of another option for some years. This is what

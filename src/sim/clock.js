@@ -115,6 +115,7 @@ VB['sim/clock'] = (() => {
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
       const c = cal(st.t), idle = [];
+      VB.count.walkStep += st.agents.length;
       for (const a of st.agents) {
         if (st.pawns[a.id].died) continue;
         if (a.path) moveAgent(st, a, step);
