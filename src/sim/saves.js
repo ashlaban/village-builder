@@ -1,6 +1,7 @@
 // @sys sim/saves: saving and loading a run (VB-074): the state as JSON-compatible data, with shared objects, Maps, Sets and typed arrays kept
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
+  const { seal } = VB['sim/registry'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -111,6 +112,7 @@ VB['sim/saves'] = (() => {
     if (w.seed !== data.seed || w.COLS !== data.cols || w.ROWS !== data.rows) {
       throw new Error(`load: the save is of seed ${data.seed}, ${data.cols} by ${data.rows}; the world is seed ${w.seed}, ${w.COLS} by ${w.ROWS}`);
     }
+    seal();
     for (const k of WORLD) {
       if (!(k in data.world)) continue;
       const a = decode(data.world[k]);
