@@ -37,7 +37,7 @@ for (const f of files) for (const line of fs.readFileSync(path.join(root, f), 'u
 const VB = require('../src/load.js');
 for (const f of files.filter((f) => f !== 'src/vb.js')) {
   fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((line, i) => {
-    for (const hit of counterUses(line, new Set(Object.keys(VB.COUNTERS)))) errors.push(`${f}:${i + 1} forbidden counter use: ${hit}`);
+    for (const hit of counterUses(line, new Set(Object.keys(VB.COUNTERS)))) errors.push(`${f}:${i + 1} forbidden counter use: ${hit} (only standalone increments; use braces for conditional increments)`);
   });
 }
 const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r = it.next()).done); return r.value; };

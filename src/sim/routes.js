@@ -59,8 +59,8 @@ VB['sim/routes'] = (() => {
   // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
   function findRoute(w, from, to, maxCost = ROUTE.reach) {
-    VB.count.routeSearch++;
     if (from === to) return [from];
+    VB.count.routeSearch++;
     let expanded = 0;
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     const h = (i) => hexSteps(w, i, to) * lo;

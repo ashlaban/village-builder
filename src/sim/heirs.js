@@ -11,8 +11,8 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, work = null) {
-    if (work) work.rank++;
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
+    VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
@@ -56,7 +56,7 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh, work);
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
     if (cu.ownHeir === 'keeps') {
       // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
       // parents') and drops the other claim, which passes to the next in that line
@@ -72,9 +72,9 @@ VB['sim/heirs'] = (() => {
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
   // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet.
-  function ownFirstOf(st, hh = null, work = null) {
+  function ownFirstOf(st, hh = null) {
     const out = [];
-    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true, null, work); if (r.length) out.push([r[0], o.id]); }
+    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     return out;
   }
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
@@ -285,11 +285,11 @@ VB['sim/heirs'] = (() => {
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
   }
-  function placeIfMarried(st, id, own = null, work = null) {
+  function placeIfMarried(st, id, own = null) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
     if (!hh || hh.dissolved) return null;
     if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh, null, false, own, work)[0] === id ? hh.id : null;
+    return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
   function firstHeirs(st, own = ownFirstOf(st)) {

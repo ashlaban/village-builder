@@ -13,7 +13,9 @@ Refactor rules (every task titled "Refactor:"):
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
 - Depends on VB-011 to VB-015; if any is not done, mark the task blocked.
 
-Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with `node tests/golden.js --update` and lists the changed entries in its PR. An intentional change to work counters re-records `tests/counters.json` with
+Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with
+`node tests/golden.js --update` and lists the changed entries in its PR.
+An intentional change to work counters re-records `tests/counters.json` with
 `node tests/counters.js --update` and lists the changed counters in its PR.
 
 ## Pick order

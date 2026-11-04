@@ -14,10 +14,12 @@ assert.strictEqual(clockUse('const mulberry32 = (a) => a;'), null);
 
 const names = new Set(['walkStep']);
 for (const line of ['const n = VB.count.walkStep;', 'if (VB.count.walkStep) act();', 'VB.count.nope++;',
-  'VB.count.walkStep = 0;', 'const used = VB.count.walkStep++;', 'if (VB.count.walkStep++) act();', 'VB.count.walkStep += VB.count.walkStep;', "const counts = VB['count'];"]) {
+  'const { count } = VB;', 'const { count: C } = VB; if (C.walkStep > 9) act();',
+  'const { count: C } = globalThis.VB;', 'if (a) VB.count.walkStep++;', 'VB.count.walkStep = 0;', 'const used = VB.count.walkStep++;', 'if (VB.count.walkStep++) act();', 'VB.count.walkStep += VB.count.walkStep;', "const counts = VB['count'];"]) {
   assert(counterUses(line, names).length, `counter read not caught: ${line}`);
 }
-for (const line of ['VB.count.walkStep++;', 'VB.count.walkStep += agents.length;']) {
+for (const line of ['VB.count.walkStep++;', 'VB.count.walkStep += agents.length;', 'if (a) { VB.count.walkStep++; }',
+  "const { bfs } = VB['sim/hex'];"]) {
   assert.deepStrictEqual(counterUses(line, names), []);
 }
 console.log('lintrules ok');

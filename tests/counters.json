@@ -1,13 +1,14 @@
 {
-  "routeSearch": 0.36,
-  "routeExpand": 1.6555555555555554,
-  "routeHit": 5.221111111111111,
-  "routeRefresh": 1.0166666666666666,
-  "talkWeighed": 10.825555555555555,
-  "contactPairs": 61.776666666666664,
-  "walkStep": 240,
-  "walkDaily": 6,
-  "walkTies": 12.822222222222223,
-  "roundPairs": 0.0044444444444444444,
-  "roundRank": 0.024444444444444446
+  "routeSearch": 0.3599999999999533,
+  "routeExpand": 1.6555555555553407,
+  "routeHit": 5.221111111110433,
+  "routeRefresh": 1.0166666666665347,
+  "talkWeighed": 10.825555555554152,
+  "contactPairs": 61.776666666658656,
+  "walkStep": 239.99999999996888,
+  "walkDaily": 5.999999999999222,
+  "walkTies": 12.822222222220558,
+  "roundPairs": 0.004444444444443868,
+  "heirRank": 0.04666666666666061,
+  "roundRank": 0.04666666666666061
 }
