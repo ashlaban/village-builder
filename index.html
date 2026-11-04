@@ -312,6 +312,7 @@ VB.COUNTERS = {
   walkTies: 'Ties decayed by dailyLife',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
+  ruleValue: 'Rule values read (explanations excluded)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -2012,6 +2013,87 @@ VB['sim/rules'] = (() => {
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+})();
+</script>
+<script>
+// @sys sim/registry: load-time rules and ordered contributions; hot values and checked explanations
+VB['sim/registry'] = (() => {
+  // Code, never saved state. Nothing may register once a simulation has been seeded or loaded.
+  const rules = new Map();
+  let sealed = false;
+  function atLoad() { if (sealed) throw new Error('Rules may only be registered at load time'); }
+  function ruleOf(id) {
+    const rule = rules.get(id);
+    if (!rule) throw new Error('Unknown rule: ' + id);
+    return rule;
+  }
+  const text = (s) => typeof s === 'string' && s.length > 0;
+  const range = (r) => Array.isArray(r) && r.length === 2 && r.every(Number.isFinite) && r[0] <= r[1];
+  function declare(spec) {
+    atLoad();
+    if (!spec || !text(spec.id) || !text(spec.owner) || typeof spec.base !== 'function'
+      || !['product', 'sum'].includes(spec.combine) || (spec.clamp !== undefined && !range(spec.clamp))) {
+      throw new Error('Invalid rule specification');
+    }
+    if (rules.has(spec.id)) throw new Error('Duplicate rule: ' + spec.id);
+    const copy = Object.freeze({ ...spec, clamp: spec.clamp ? Object.freeze([...spec.clamp]) : undefined });
+    rules.set(spec.id, { spec: copy, contributions: [] });
+  }
+  function contribute(c) {
+    atLoad();
+    if (!c || !text(c.source) || !text(c.key) || !text(c.label) || typeof c.value !== 'function'
+      || !range(c.range) || !Array.isArray(c.tunables) || !c.tunables.every(text)
+      || (c.cause !== undefined && !text(c.cause))) throw new Error('Invalid rule contribution');
+    const rule = ruleOf(c.rule);
+    if (rule.contributions.some((p) => p.key === c.key)) throw new Error('Duplicate contribution: ' + c.key);
+    rule.contributions.push(Object.freeze({ ...c, range: Object.freeze([...c.range]), tunables: Object.freeze([...c.tunables]) }));
+  }
+  function seal() {
+    if (sealed) return;
+    for (const rule of rules.values()) Object.freeze(rule.contributions);
+    sealed = true;
+  }
+  const clamped = (n, bounds) => bounds ? Math.max(bounds[0], Math.min(bounds[1], n)) : n;
+  // Diagnostics validate callbacks without adding checks to the simulation's hot value path.
+  function checked(id, origin, n, bounds = null) {
+    if (!Number.isFinite(n)) throw new Error(`Rule ${id}: ${origin} returned a non-finite number (${String(n)})`);
+    if (bounds && (n < bounds[0] || n > bounds[1])) {
+      throw new Error(`Rule ${id}: ${origin} returned ${n} outside [${bounds}]`);
+    }
+    return n;
+  }
+  function value(st, id, ctx) {
+    VB.count.ruleValue++;
+    const { spec, contributions } = ruleOf(id);
+    let n = spec.base(st, ctx);
+    // Fixed load-time order preserves floating-point evaluation; no array, object or callback is made here.
+    if (spec.combine === 'product') {
+      for (let i = 0; i < contributions.length; i++) n *= contributions[i].value(st, ctx);
+    } else {
+      for (let i = 0; i < contributions.length; i++) n += contributions[i].value(st, ctx);
+    }
+    return clamped(n, spec.clamp);
+  }
+  function explain(st, id, ctx) {
+    const { spec, contributions } = ruleOf(id), parts = [];
+    const base = checked(id, 'base (' + spec.owner + ')', spec.base(st, ctx));
+    let n = base;
+    for (const c of contributions) {
+      const factor = checked(id, 'contribution ' + c.key + ' (' + c.source + ')', c.value(st, ctx), c.range);
+      n = checked(id, 'combined value after ' + c.key, spec.combine === 'product' ? n * factor : n + factor);
+      parts.push({ key: c.key, source: c.source, label: c.label, cause: c.cause, factor });
+    }
+    return { value: clamped(n, spec.clamp), base, parts, combine: spec.combine,
+      unclamped: n, clamp: spec.clamp ? [...spec.clamp] : null };
+  }
+  function list() {
+    return Object.freeze([...rules.values()].map(({ spec, contributions }) => Object.freeze({
+      rule: spec.id, owner: spec.owner, combine: spec.combine, clamp: spec.clamp || null,
+      contributions: Object.freeze(contributions.map(({ key, source, label, cause, range, tunables }) =>
+        Object.freeze({ key, source, label, cause, range, tunables }))),
+    })));
+  }
+  return { declare, contribute, value, explain, list, seal };
 })();
 </script>
 <script>
@@ -4061,10 +4143,19 @@ VB['sim/help'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/deaths: causes of death, with their texts, and the daily death roll
+// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+  const Rules = VB['sim/registry'];
+  Rules.declare({ id: 'death.hazard', owner: 'sim/deaths', combine: 'product',
+    base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS });
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'hunger', label: 'Hunger', cause: 'hunger',
+    range: [1, 2.5], tunables: ['HUNGER.k'],
+    value: (st, p) => 1 + HUNGER.k(Math.floor((st.t - p.born) / YEAR)) * p.hunger });
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'frailty', label: 'Poor health', cause: 'hunger',
+    range: [1, 3], tunables: ['HEALTH.riskBelow', 'HEALTH.riskSlope'],
+    value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
   const CAUSES = {
@@ -4080,11 +4171,10 @@ VB['sim/deaths'] = (() => {
   const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
   // One pawn's death roll for the day: null or a cause key; a roll that falls in the share added by hunger is 'hunger'. One random draw.
   function deathRoll(st, p) {
-    const a = (st.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = rnd(st.rng.deaths);
+    const a = (st.t - p.born) / YEAR, u = rnd(st.rng.deaths);
     if (p.health <= 0) return 'starvation';
-    const frail = p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1;
-    if (u >= base * (1 + HUNGER.k(Math.floor(a)) * p.hunger) * frail) return null;
-    return u >= base ? 'hunger' : baseCause(a);
+    if (u >= Rules.value(st, 'death.hazard', p)) return null;
+    return u >= hazard(a) / YEAR_DAYS ? 'hunger' : baseCause(a);
   }
   return { CAUSES, deathRoll };
 })();
@@ -6980,6 +7070,7 @@ VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
   const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
@@ -7130,6 +7221,7 @@ VB['sim/scenarios'] = (() => {
     splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
+    seal();
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
@@ -7373,6 +7465,7 @@ VB['sim/clock'] = (() => {
 // @sys sim/saves: saving and loading a run (VB-074): the state as JSON-compatible data, with shared objects, Maps, Sets and typed arrays kept
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
+  const { seal } = VB['sim/registry'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -7483,6 +7576,7 @@ VB['sim/saves'] = (() => {
     if (w.seed !== data.seed || w.COLS !== data.cols || w.ROWS !== data.rows) {
       throw new Error(`load: the save is of seed ${data.seed}, ${data.cols} by ${data.rows}; the world is seed ${w.seed}, ${w.COLS} by ${w.ROWS}`);
     }
+    seal();
     for (const k of WORLD) {
       if (!(k in data.world)) continue;
       const a = decode(data.world[k]);

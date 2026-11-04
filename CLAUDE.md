@@ -24,6 +24,7 @@ budget and cheap measurement.
   `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Ownership: `node tests/ownership.js`; fixed sites must be removed with `--update`, which refuses any new write past an owner.
+- Rules: `node tools/rules.js` lists owners and contributions; `--explain ID [--load FILE]` explains a pawn's death hazard.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
   `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf|counts`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
@@ -45,6 +46,10 @@ budget and cheap measurement.
 - Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
 
 ## Architecture
+- `VB['sim/registry']` combines load-time rule declarations and ordered contributions; `value` creates no per-call containers or closures.
+  `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
+  The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
+  Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
 - `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the painterly chunk bake.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
 - Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route

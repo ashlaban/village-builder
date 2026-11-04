@@ -18,6 +18,7 @@ VB.COUNTERS = {
   walkTies: 'Ties decayed by dailyLife',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
+  ruleValue: 'Rule values read (explanations excluded)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
