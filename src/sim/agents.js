@@ -1,5 +1,6 @@
 // @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
 VB['sim/agents'] = (() => {
+  const { tileIndexAt } = VB['gen/geometry'];
   const { next: rnd } = VB['sim/rng'];
   const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
@@ -16,15 +17,7 @@ VB['sim/agents'] = (() => {
   function placeAtHome(st, a) {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
   }
-  function tileAt(st, x, y) {
-    const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
-    const px = x - AP, py = y - R, qf = ((Math.sqrt(3) / 3) * px - py / 3) / R, rf = ((2 / 3) * py) / R, sf = -qf - rf;
-    let q = Math.round(qf), r = Math.round(rf), s = Math.round(sf);
-    const dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - sf);
-    if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s;
-    const col = q + ((r - (r & 1)) >> 1);
-    return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
-  }
+  const tileAt = (st, x, y) => tileIndexAt(st.w, x, y);
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {

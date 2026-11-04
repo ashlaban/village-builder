@@ -2,6 +2,7 @@
 // ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea; their curves on the map =====
 // Listed before gen.js, which calls trace; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
 VB['gen/rivers'] = (() => {
+  const { dist2 } = VB['gen/geometry'];
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
   // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
@@ -342,12 +343,6 @@ VB['gen/rivers'] = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  // Squared distance from point (x, y) to the segment a-b.
-  function dist2(x, y, a, b) {
-    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
-    const t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0, px = a[0] + t * dx - x, py = a[1] + t * dy - y;
-    return px * px + py * py;
-  }
   // Drops the decoration items ({t, x, y, ...}) that stand in a river or on its bank, or whose crown (a tree's, 10 units above its foot)
   // would hide one, in place, and returns the array. loc: ArchGen.hexLocator(w).
   function thin(w, items, loc) {
@@ -359,8 +354,8 @@ VB['gen/rivers'] = (() => {
         if (i < 0 || !w.river[i]) continue;
         if (!cache.has(i)) cache.set(i, lines(w, i));
         for (const pts of cache.get(i)) for (let s = 1; s < pts.length; s++) {
-          const r = Math.max(pts[s - 1][2], pts[s][2]) / 2 + 5;
-          if (dist2(x, y, pts[s - 1], pts[s]) < r * r) return true;
+          const a = pts[s - 1], b = pts[s], r = Math.max(a[2], b[2]) / 2 + 5;
+          if (dist2(x, y, a[0], a[1], b[0], b[1]) < r * r) return true;
         }
       }
       return false;

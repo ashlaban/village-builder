@@ -2,6 +2,7 @@
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['gen/paths'] = (() => {
+  const { dist2 } = VB['gen/geometry'];
   // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, the colours of its flattened edge and bare core,
   // and the coarsest level of detail (ArchGen.LV index) that still shows it: trodden ground only up close, paths and lanes at the middle
   // level too. The overview shows none, so a path that changes stage never repaints it (a full overview chunk takes about 60 ms).
@@ -65,12 +66,6 @@ VB['gen/paths'] = (() => {
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }
-  // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
-  function dist2(x, y, ax, ay, bx, by) {
-    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
-    const px = ax + t * dx - x, py = ay + t * dy - y;
-    return px * px + py * py;
   }
   // Drops, in place, the decoration items ({t, x, y, ...}) that stand on a path or lane (a tree by its foot), and returns the array.
   // Trodden ground keeps its grass, flowers and stones. loc: ArchGen.hexLocator(w).
