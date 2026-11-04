@@ -1,8 +1,10 @@
 // State invariants: checkState(st) returns a list of violations, each naming the record. A new state field or record gets its checks here.
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
+const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
+  bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   const from = checked.get(st.record) || 0;
   for (let i = from; i < (st.record || []).length; i++) {
@@ -91,10 +93,12 @@ function checkState(st) {
     const b = f.booth; // settlers' booth: cottage stages done (0..2) and hours on the open one (sim/settle)
     if (b !== null && !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
-    if (f.household !== null && st.owner) {
-      if (st.owner[f.house] === 0) bad.push(`farmsteads[${f.id}]: house tile ${f.house} has no owner`);
-      for (const fd of f.fields) if (st.owner[fd.tile] === 0) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} has no owner`);
-      for (const m of f.meadows || []) if (st.owner[m.tile] === 0 || !st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unowned or unused`);
+    if (st.owner) {
+      const want = f.household === null ? -f.village - 1 : f.household + 1;
+      for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)]) {
+        if (st.owner[tile] !== want) bad.push(`farmsteads[${f.id}]: owner cache on tile ${tile} is ${st.owner[tile]}, expected ${want}`);
+      }
+      for (const m of f.meadows || []) if (!st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unused`);
     }
     // a claim on an empty farm (VB-033): only on an empty, derelict farm, its hours in range, and the claimant's claim on its house
     if (f.claim) {

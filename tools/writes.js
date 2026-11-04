@@ -8,15 +8,24 @@
 // splice, set, delete, add, clear, pop, shift, unshift, sort, reverse and fill; `x.f = x.f.filter(...)` is reported as `filter`. An element
 // write (`w.trees[t] = 0`) is a write of the array field. Creating a record (`st.households.push({...})`) is a write of the collection only.
 //
-// What a receiver is comes from the variable's binding, the last one before the use in the module (a scope-blind approximation): a
-// declaration from a chain of the state (`const hh = st.households[id]`), a `for ... of` or a callback over a collection
+// Acorn supplies lexical scopes; receiver paths come from declarations and assignments from the state (`const hh = st.households[id]`),
+// a `for ... of` or a callback over a collection. Conditional/deferred alias assignments retain their possible state targets.
 // (`st.pawns.filter((p) => ...)`), destructuring (`const { owner } = st`), else the name's convention (hh, p, f, v, a, j, ...; CONV below).
 // Bindings to object or array literals and new Maps or Sets are local; writes to them are counted, not listed. Writes whose receiver is
 // neither are listed as unresolved, for a judgement by hand. Fields of nested records are reported by path (`farmstead.fields[].stage`);
 // a nested object with no record type of its own is reported as its parent field (`farmstead.booth`).
 const fs = require('fs'), path = require('path');
 const { tokenize } = require('./wrap.js');
+const { scopesOf } = require('./write-scopes.js');
+const { validateOwners } = require('./owner-policy.js');
 const ROOT = path.join(__dirname, '..');
+const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
+const OWNERS = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/owners.json'), 'utf8'));
+const ownerOf = (field) => typeof OWNERS.fields[field] === 'string' ? OWNERS.fields[field] : OWNERS.fields[field]?.owner;
+const categoryOf = (field) => OWNERS.fields[field]?.category || (ownerOf(field) === 'signal' ? 'signal' : 'field');
+const allowedWriter = (field, mod) => field.endsWith('.*') ?
+  Object.keys(OWNERS.fields).filter((f) => f.startsWith(field.slice(0, -1))).every((f) => allowedWriter(f, mod)) :
+  !ownerOf(field) || ownerOf(field) === 'signal' || ownerOf(field) === mod || OWNERS.creators.includes(mod) || OWNERS.exempt.includes(mod);
 
 // the collections of the state and what their elements are; a path here, once indexed, becomes the entity named
 const COLL = {
@@ -52,6 +61,8 @@ const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', '
   'for', 'switch', 'function', 'const', 'let', 'var', 'else', 'do', 'catch', 'export', 'default']);
 const SKIP_ROOTS = new Set(['VB', 'module', 'globalThis', 'exports']);
 const ENTITIES = new Set(['claim', 'st', 'w', 'cenv', ...Object.values(COLL)]);
+const policyErrors = validateOwners(OWNERS, { modules: new Set(manifest.map((f) => f.replace(/\.js$/, ''))), entities: ENTITIES });
+if (policyErrors.length) throw new Error(policyErrors.join('\n'));
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '**=', '||=', '&&=', '??=', '|=', '&=', '^=', '<<=', '>>=', '>>>=']);
 const MUTATORS = new Set(['push', 'splice', 'set', 'delete', 'add', 'clear', 'pop', 'shift', 'unshift', 'sort', 'reverse', 'fill']);
 const KEEP = new Set(['values', 'filter', 'slice', 'concat', 'flat', 'keys', 'entries']); // calls that return the same collection
@@ -61,11 +72,13 @@ const CALLBACK = new Set(['forEach', 'filter', 'find', 'some', 'every', 'map', '
 
 const canon = (p) => {
   if (p === null) return null;
+  if (p.includes('|')) return [...new Set(p.split('|').map(canon))].join('|');
   if (ALIAS[p]) return ALIAS[p];
   if (p.endsWith('[]') && COLL[p.slice(0, -2)]) return COLL[p.slice(0, -2)];
   return p;
 };
-const element = (p) => (p === null || p === 'local' ? p : p.startsWith('[]') ? p.slice(2) : canon(p + '[]'));
+const element = (p) => (p === null || p === 'local' ? p : p.includes('|') ? p.split('|').map(element).join('|') :
+  p.startsWith('[]') ? p.slice(2) : canon(p + '[]'));
 
 
 function matches(toks) {
@@ -79,23 +92,27 @@ function matches(toks) {
 }
 
 // One module. `returns` maps 'module:function' to the path the function returns (from the first pass over every module).
-function scan(file, mod, returns = {}) {
-  const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
-  const toks = tokenize(src).filter((t) => t.t !== 'com');
+function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, file), 'utf8')) {
+  const tokens = tokenize(src), toks = tokens.filter((t) => t.t !== 'com');
+  const allowed = new Set();
+  for (const t of tokens) if (t.t === 'com' && /^\/\/ lint-allow: owner \S/.test(src.slice(t.s, t.e))) {
+    allowed.add(src.slice(0, t.s).split('\n').length);
+  }
   const lines = []; for (let i = 0, l = 1, k = 0; k < toks.length; k++) { for (; i < toks[k].s; i++) if (src[i] === '\n') l++; lines.push(l); }
   const lineOf = (i) => lines[i];
   const M = matches(toks);
   const hints = HINTS[mod] || {};
-  const bind = new Map(); // name -> path; 'local' for literals; null for a binding the scan cannot place
+  let position = 0;
+  const scopes = scopesOf(src, { fragment: mod === 'page' }), bind = scopes.bindings(() => position);
   const imported = new Map(); // name -> module key, from `const { a, b: c } = VB['m']`
   const writes = [], reads = [], deps = [], rets = {};
   let locals = 0;
   const v = (i) => (toks[i] && (toks[i].t === 'punct' || toks[i].t === 'word') ? toks[i].v : null);
   const isWord = (i) => toks[i] && toks[i].t === 'word';
   const text = (a, b) => src.slice(toks[a].s, toks[b].e).replace(/\s+/g, ' ');
-  const typeOfName = (n) => {
-    if (bind.get(n) === 'unknown') return hints[n] || null; // bound by array destructuring: the convention does not hold
-    if (bind.get(n)) return bind.get(n);
+  const typeOfName = (n, pos) => {
+    if (bind.get(n, pos) === 'unknown') return hints[n] || null; // bound by array destructuring: the convention does not hold
+    if (bind.get(n, pos)) return bind.get(n, pos);
     return hints[n] || CONV[n] || null;
   };
   const returnOf = (n) => (rets[n] !== undefined ? rets[n] : imported.has(n) ? (returns[imported.get(n) + ':' + n] ?? null) : null);
@@ -129,14 +146,23 @@ function scan(file, mod, returns = {}) {
   // the steps of the chain from token s to token e: {root} | {spread} | {group}, then {field} | {index} | {call, args}
   function steps(s, e) {
     const out = []; let i = s;
-    if (isWord(i)) { out.push({ root: toks[i].v }); i++; }
+    if (isWord(i)) { out.push({ root: toks[i].v, at: toks[i].s }); i++; }
     else if (v(i) === '[' && v(i + 1) === '...' && chainEnd(i + 2) === M[i] - 1) { out.push({ spread: [i + 2, M[i] - 1] }); i = M[i] + 1; }
     else if (v(i) === '(' || v(i) === '[') { out.push({ group: true }); i = M[i] + 1; }
     else return null;
     while (i <= e) {
       if ((v(i) === '.' || v(i) === '?.') && isWord(i + 1)) {
         if (v(i + 2) === '(') { out.push({ call: toks[i + 1].v, args: i + 2 }); i = M[i + 2] + 1; } else { out.push({ field: toks[i + 1].v }); i += 2; }
-      } else if (v(i) === '[') { out.push({ index: true }); i = M[i] + 1; }
+      } else if (v(i) === '[') {
+        const prop = toks[i + 1];
+        if (prop.t === 'str' && M[i] === i + 2 && /^[A-Za-z_$][\w$]*$/.test(src.slice(prop.s + 1, prop.e - 1))) {
+          const name = src.slice(prop.s + 1, prop.e - 1), close = M[i];
+          if (v(close + 1) === '(') { out.push({ call: name, args: close + 1 }); i = M[close + 1] + 1; continue; }
+          out.push({ field: name });
+        }
+        else out.push({ index: true });
+        i = M[i] + 1;
+      }
       else if (v(i) === '(') { out.push({ call: null, args: i }); i = M[i] + 1; }
       else return null;
     }
@@ -156,9 +182,14 @@ function scan(file, mod, returns = {}) {
     if (!st || !st.length) return null;
     let p, rest = st.slice(1);
     if (st[0].root !== undefined) {
-      if (rest.length && rest[0].call === null) { p = returnOf(st[0].root); rest = rest.slice(1); } else p = typeOfName(st[0].root);
+      if (rest.length && rest[0].call === null) { p = returnOf(st[0].root); rest = rest.slice(1); }
+      else p = typeOfName(st[0].root, st[0].at);
     } else if (st[0].spread) { const [a, b] = st[0].spread; p = pathOf(steps(a, b)); }
     else return null;
+    return follow(p, rest);
+  }
+  function follow(p, rest) {
+    if (p && p.includes('|')) return [...new Set(p.split('|').map((v) => follow(v, rest)))].filter((v) => v && v !== 'local').join('|') || 'local';
     for (const x of rest) {
       if (p === null || p === 'local') return p;
       if (x.field) p = canon(p + '.' + x.field);
@@ -185,14 +216,20 @@ function scan(file, mod, returns = {}) {
     return ends ? pathOf(steps(s, e)) : null;
   }
   function addWrite(k, p, field, how, s) {
+    if (p && p.includes('|')) { for (const v of p.split('|')) addWrite(k, v, field, how, s); return; }
     if (p === 'local') { locals++; return; }
     if (p === null || p === undefined) { writes.push({ path: null, name: field, line: lineOf(k), how, text: text(s, k) }); return; }
-    writes.push({ path: field ? p + '.' + field : p, line: lineOf(k), how });
+    writes.push({ path: field ? p + '.' + field : p, line: lineOf(k), how,
+      site: toks.slice(s, k + 1).map((t) => src.slice(t.s, t.e)).join(' '), allowed: allowed.has(lineOf(k)) });
   }
   // a write whose lvalue chain ends at token k
   function lvalue(k, how) {
     const s = chainStart(k), parsed = steps(s, k);
     if (!parsed || (parsed[0].root && SKIP_ROOTS.has(parsed[0].root))) return;
+    if (parsed[parsed.length - 1].index) {
+      const receiver = pathOf(parsed.slice(0, -1));
+      if (receiver && receiver.split('|').some((p) => ENTITIES.has(p))) { addWrite(k, receiver, '*', how, s); return; }
+    }
     let st = parsed;
     while (st.length > 1 && st[st.length - 1].index) st = st.slice(0, -1); // an element write is a write of the array
     // a local record put into a collection of the state is that collection's record from here on: st.herds.push(herd)
@@ -215,9 +252,41 @@ function scan(file, mod, returns = {}) {
   }
   // the function each token is in: a stack of {name, end}
   const fstack = [];
+  const starts = new Map(toks.map((t, i) => [t.s, i])), ends = new Map(toks.map((t, i) => [t.e, i]));
+  const patterns = new Map(scopes.patterns.map((n) => [toks[ends.get(n.left.end) + 1].s, n]));
+  const mutations = new Map(scopes.mutations.map((m) => [m.node.start, m]));
+  const property = (p) => p.computed ? p.key.value : p.key.name ?? p.key.value;
+  function patternWrite(node, from) {
+    if (!node) return;
+    if (node.type === 'MemberExpression') lvalue(ends.get(node.end), '=');
+    else if (node.type === 'Identifier') bind.set(node.name, from);
+    else if (node.type === 'AssignmentPattern') patternWrite(node.left, from);
+    else if (node.type === 'RestElement') patternWrite(node.argument, 'local');
+    else if (node.type === 'ArrayPattern') node.elements.forEach((n) => patternWrite(n, element(from)));
+    else if (node.type === 'ObjectPattern') for (const p of node.properties) {
+      if (p.type === 'RestElement') patternWrite(p, 'local');
+      else patternWrite(p.value, !from || from === 'local' ? from : canon(from + '.' + (property(p) ?? '*')));
+    }
+  }
+  function builtInWrite({ node, name }) {
+    const target = node.arguments[0]; if (!target) return;
+    const s = starts.get(target.start), k = ends.get(target.end), paths = pathOfRange(s, k);
+    if (name === 'defineProperty' || name === 'set') {
+      const key = node.arguments[1]; addWrite(k, paths, key?.type === 'Literal' ? String(key.value) : '*', name, s); return;
+    }
+    for (const p of paths ? paths.split('|') : [paths]) for (const source of node.arguments.slice(1)) {
+      if (!ENTITIES.has(p)) { addWrite(k, p, null, name, s); continue; }
+      if (source.type !== 'ObjectExpression') { addWrite(k, p, '*', name, s); continue; }
+      for (const prop of source.properties) addWrite(k, p, prop.type === 'SpreadElement' ? '*' : property(prop) ?? '*', name, s);
+    }
+  }
 
   for (let i = 0; i < toks.length; i++) {
-    const t = toks[i];
+    const t = toks[i]; position = t.s;
+    if (mutations.has(t.s)) builtInWrite(mutations.get(t.s));
+    if (patterns.has(t.s)) {
+      const n = patterns.get(t.s); patternWrite(n.left, exprPath(starts.get(n.right.start), true));
+    }
     while (fstack.length && i > fstack[fstack.length - 1].end) fstack.pop();
     // dependencies: VB['x'] or VB.x, at load (a declaration at the top of the module) or inside a function
     if (t.t === 'word' && t.v === 'VB' && v(i - 1) !== '.') {
@@ -291,6 +360,7 @@ function scan(file, mod, returns = {}) {
     // writes
     if (t.t === 'punct' && ASSIGN.has(t.v) && (v(i - 1) === ']' || isWord(i - 1))) {
       const s = chainStart(i - 1), before = v(s - 1);
+      if (t.v === '=' && s === i - 1 && isWord(s)) bind.set(toks[s].v, exprPath(i + 1, true));
       const declared = /^(const|let|var)$/.test(before || '') || (s === i - 1 && (before === ',' || before === '(' || before === '{'));
       if (!declared) {
         let how = t.v;
@@ -300,22 +370,25 @@ function scan(file, mod, returns = {}) {
       }
     }
     if (t.t === 'punct' && (t.v === '++' || t.v === '--')) {
-      if (v(i - 1) === ']' || isWord(i - 1)) lvalue(i - 1, t.v); else if (isWord(i + 1)) lvalue(chainEnd(i + 1), t.v);
+      if (v(i - 1) === ']' || (isWord(i - 1) && !KEYWORDS.has(v(i - 1)))) lvalue(i - 1, t.v);
+      else if (isWord(i + 1)) lvalue(chainEnd(i + 1), t.v);
     }
     if (t.t === 'word' && t.v === 'delete' && v(i - 1) !== '.' && isWord(i + 1)) lvalue(chainEnd(i + 1), 'delete');
     if (t.t === 'word' && MUTATORS.has(t.v) && v(i - 1) === '.' && v(i + 1) === '(' && (isWord(i - 2) || v(i - 2) === ']' || v(i - 2) === ')')) lvalue(i - 2,
       t.v);
+    if (t.t === 'str' && MUTATORS.has(src.slice(t.s + 1, t.e - 1)) && v(i - 1) === '[' && v(i + 1) === ']' && v(i + 2) === '(') {
+      lvalue(i - 2, src.slice(t.s + 1, t.e - 1));
+    }
     // reads: a field on a receiver that resolves
     if (t.t === 'word' && (v(i - 1) === '.' || v(i - 1) === '?.') && v(i + 1) !== '(') {
       const p = pathOfRange(chainStart(i - 2), i - 2);
-      if (p && p !== 'local') reads.push({ path: canon(p + '.' + t.v), line: lineOf(i) });
+      if (p && p !== 'local') for (const path of follow(p, [{ field: t.v }]).split('|')) reads.push({ path, line: lineOf(i) });
     }
   }
   return { file, mod, writes, reads, locals, deps, rets };
 }
 
 // ---- assembling the report ----
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
 const keyOf = (f) => f.replace(/\.js$/, '');
 const order = manifest.map(keyOf);
 const GEN = new Set(['gen', 'gen/rivers', 'gen/paths']); // the world generator: runs before the state exists
@@ -323,24 +396,30 @@ const GEN = new Set(['gen', 'gen/rivers', 'gen/paths']); // the world generator:
 const fieldOf = (p) => { const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)/); return m ? `${m[1]}.${m[2]}` : p; };
 const entityOf = (p) => p.split('.')[0];
 
-function build() {
-  const first = manifest.map((f) => scan('src/' + f, keyOf(f)));
+// The ownership check needs only the simulation modules, without generator writes or page reads.
+function build(sources = {}, { stateOnly = false } = {}) {
+  const files = stateOnly ? manifest.filter((f) => f === 'culture.js' || f.startsWith('sim/')) : manifest;
+  const first = files.map((f) => scan('src/' + f, keyOf(f), {}, sources['src/' + f]));
   const returns = {};
   for (const m of first) for (const [n, p] of Object.entries(m.rets)) returns[m.mod + ':' + n] = p;
-  const mods = manifest.map((f) => scan('src/' + f, keyOf(f), returns));
-  const pageFiles = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/page.json'), 'utf8'));
+  const mods = files.map((f) => scan('src/' + f, keyOf(f), returns, sources['src/' + f]));
+  const pageFiles = stateOnly ? [] : JSON.parse(fs.readFileSync(path.join(ROOT, 'src/page.json'), 'utf8'));
   const pages = pageFiles.map((f) => scan('src/' + f, 'page', returns));
   const fields = new Map();
   const get = (f) => { if (!fields.has(f)) fields.set(f, { field: f, entity: entityOf(f), writes: [], readers: new Set() }); return fields.get(f); };
   const isState = (p) => p && p.includes('.') && ENTITIES.has(entityOf(p));
   for (const m of mods) {
-    for (const w of m.writes) if (isState(w.path)) get(fieldOf(w.path)).writes.push({ mod: m.mod, file: m.file, line: w.line, how: w.how, path: w.path });
+    for (const w of m.writes) if (isState(w.path)) {
+      const field = fieldOf(w.path);
+      get(field).writes.push({ ...w, mod: m.mod, file: m.file, outsideOwner: !allowedWriter(field, m.mod) && !w.allowed });
+    }
     for (const r of m.reads) if (isState(r.path)) get(fieldOf(r.path)).readers.add(m.mod);
   }
   for (const pg of pages) for (const r of pg.reads) if (isState(r.path)) get(fieldOf(r.path)).readers.add('page');
   const byOrder = (a, b) => (a === 'page') - (b === 'page') || order.indexOf(a) - order.indexOf(b);
   const list = [...fields.values()].map((f) =>
-    ({ ...f, writers: [...new Set(f.writes.map((w) => w.mod))].sort(byOrder), readers: [...f.readers].sort(byOrder) }));
+    ({ ...f, owner: ownerOf(f.field) || null, category: categoryOf(f.field),
+      writers: [...new Set(f.writes.map((w) => w.mod))].sort(byOrder), readers: [...f.readers].sort(byOrder) }));
   // unresolved writes: listed when the name written is the name of a field of the state (else counted), outside the world generator
   const names = new Set(list.map((f) => f.field.split('.')[1]));
   for (const f of list) for (const w of f.writes) for (const n of w.path.split('.').slice(1)) names.add(n.replace('[]', ''));
@@ -399,12 +478,13 @@ function markdown(r) {
   for (const e of ENT_ORDER) {
     const fs0 = written.filter((f) => f.entity === e).sort((a, b) => b.writers.length - a.writers.length || a.field.localeCompare(b.field));
     if (!fs0.length) continue;
-    out.push(`#### ${e}`, '', '| Field | Writers: lines | Other readers |', '| --- | --- | --- |');
+    out.push(`#### ${e}`, '', '| Field | Owner | Writers: lines (! past owner) | Other readers |', '| --- | --- | --- | --- |');
     for (const f of fs0) {
       const sites = f.writers.map((m) =>
-        `${short(m)} ${f.writes.filter((w) => w.mod === m).map((w) => w.line).filter((x, k, a) => a.indexOf(x) === k).join(',')}`).join('; ');
+        `${short(m)} ${[...new Set(f.writes.filter((w) => w.mod === m).map((w) => `${w.line}${w.outsideOwner ? '!' : ''}`))].join(',')}`).join('; ');
       const others = f.readers.filter((x) => !f.writers.includes(x)).map(short).join(', ') || '-';
-      out.push(`| \`${f.field}\`${f.writers.length > 1 ? ` **${f.writers.length}**` : ''} | ${sites} | ${others} |`);
+      const owner = f.owner ? short(f.owner) + (f.category === 'cache' ? ' (cache)' : '') : '-';
+      out.push(`| \`${f.field}\`${f.writers.length > 1 ? ` **${f.writers.length}**` : ''} | ${owner} | ${sites} | ${others} |`);
     }
     out.push('');
   }
@@ -425,8 +505,10 @@ if (require.main === module) {
   const fi = args.indexOf('--field');
   if (fi >= 0) {
     const want = args[fi + 1];
-    for (const f of r.fields) if (f.field === want || f.entity === want) for (const w of f.writes) console.log(`${w.file}:${w.line}\t${w.how}\t${w.path}`);
+    for (const f of r.fields) if (f.field === want || f.entity === want) for (const w of f.writes) {
+      console.log(`${w.file}:${w.line}\t${w.how}\t${w.path}\towner: ${f.owner || '-'}${w.outsideOwner ? ' ! past owner' : ''}`);
+    }
   } else if (args.includes('--json')) console.log(JSON.stringify(r, null, 1));
   else console.log(markdown(r));
 }
-module.exports = { build, markdown };
+module.exports = { build, markdown, scan, fieldOf, OWNERS, ownerOf, allowedWriter };

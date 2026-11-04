@@ -1,0 +1,159 @@
+{
+  "agent.anim": {
+    "sim/relations = g . anim": 1
+  },
+  "agent.idleUntil": {
+    "sim/commands = st . agents [ c . actor ] . idleUntil": 1,
+    "sim/relations = g . idleUntil": 1
+  },
+  "agent.inside": {
+    "sim/lifecycle = a . inside": 1
+  },
+  "agent.path": {
+    "sim/lifecycle = a . path": 1,
+    "sim/relations = g . path": 1
+  },
+  "agent.phase": {
+    "sim/commands = a . phase": 1
+  },
+  "agent.x": {
+    "sim/clock = a . x": 1
+  },
+  "agent.y": {
+    "sim/clock = a . y": 1
+  },
+  "farmstead.fields": {
+    "sim/clock ++ fd . weedMiss": 1,
+    "sim/clock = fd . held": 1,
+    "sim/clock = fd . sown": 1,
+    "sim/clock = fd . stage": 4,
+    "sim/clock = fd . weedOpen": 1,
+    "sim/clock = fd . weedPosted": 1,
+    "sim/heirs = fd . held": 1,
+    "sim/heirs = fd . sown": 1,
+    "sim/heirs = fd . stage": 1,
+    "sim/kinds = fd . held": 1,
+    "sim/kinds = fd . reaped": 1,
+    "sim/kinds = fd . stage": 1,
+    "sim/kinds = fd . weedMiss": 1,
+    "sim/kinds = fd . weedOpen": 1,
+    "sim/kinds = fd . weedPosted": 1,
+    "sim/kinds = j . field . held": 1,
+    "sim/kinds = j . field . sown": 2,
+    "sim/kinds = j . field . stage": 4,
+    "sim/kinds = j . field . weedMiss": 1,
+    "sim/kinds = j . field . weedOpen": 2,
+    "sim/kinds = j . field . weedPosted": 1
+  },
+  "household.grain": {
+    "sim/cottage -= hh . grain": 1,
+    "sim/cottage += st . households [ p . household ] . grain": 1,
+    "sim/farmclaims -= hh . grain": 1,
+    "sim/heirs -= hh . grain": 1,
+    "sim/heirs += to . grain": 1,
+    "sim/heirs = hh . grain": 1,
+    "sim/help -= from . grain": 1,
+    "sim/help -= hh . grain": 1,
+    "sim/help += to . grain": 1,
+    "sim/hunger -= hh . grain": 3,
+    "sim/kinds -= hh . grain": 2,
+    "sim/kinds += hh . grain": 1,
+    "sim/settle -= st . households [ h ] . grain": 1
+  },
+  "household.ledger": {
+    "sim/byre push hh . ledger": 2,
+    "sim/clock filter hh . ledger": 1,
+    "sim/help push from . ledger": 1,
+    "sim/help push hh . ledger": 1,
+    "sim/help push to . ledger": 1,
+    "sim/kinds push hh . ledger": 1
+  },
+  "household.members": {
+    "sim/births push hh . members": 1,
+    "sim/cottage push hh . members": 1,
+    "sim/heirs = hh . members": 1,
+    "sim/heirs filter old . members": 1,
+    "sim/heirs push hh . members": 1,
+    "sim/lifecycle filter hh . members": 1
+  },
+  "household.rations": {
+    "sim/cottage = hh . rations": 1,
+    "sim/farmclaims = hh . rations": 1,
+    "sim/hunger -= hh . rations": 1,
+    "sim/hunger = hh . rations": 1,
+    "sim/kinds += hh . rations": 1
+  },
+  "household.spoilt": {
+    "sim/hunger = hh . spoilt": 1
+  },
+  "household.unthreshed": {
+    "sim/kinds push hh . unthreshed": 1,
+    "sim/kinds shift hh . unthreshed": 1
+  },
+  "pawn.advocate": {
+    "sim/births = p . advocate": 1,
+    "sim/commands = st . pawns [ c . actor ] . advocate": 1,
+    "sim/society = p . advocate": 1
+  },
+  "pawn.anc": {
+    "sim/births = p . anc": 1,
+    "sim/society = p . anc": 1
+  },
+  "pawn.att": {
+    "sim/births = p . att": 1,
+    "sim/society = p . att": 1
+  },
+  "pawn.household": {
+    "sim/births = p . household": 1,
+    "sim/cottage = st . pawns [ id ] . household": 1,
+    "sim/heirs = p . household": 1
+  },
+  "pawn.owed": {
+    "sim/cottage -= p . owed": 1,
+    "sim/heirs = st . pawns [ q ] . owed": 1
+  },
+  "pawn.owedFrom": {
+    "sim/heirs = st . pawns [ q ] . owedFrom": 1
+  },
+  "pawn.rel": {
+    "sim/births = p . rel": 1,
+    "sim/society = p . rel": 1
+  },
+  "pawn.role": {
+    "sim/heirs = p . role": 7
+  },
+  "pawn.servant": {
+    "sim/heirs = p . servant": 1,
+    "sim/heirs = st . pawns [ id ] . servant": 1,
+    "sim/service = best . servant": 1,
+    "sim/settle = st . pawns [ id ] . servant": 1
+  },
+  "pawn.stake": {
+    "sim/cottage = p . stake": 1,
+    "sim/cottage = st . pawns [ id ] . stake": 1,
+    "sim/farmclaims = st . pawns [ id ] . stake": 1,
+    "sim/heirs = st . pawns [ q ] . stake": 1,
+    "sim/settle = st . pawns [ id ] . stake": 1
+  },
+  "pawn.ties": {
+    "sim/births = p . ties": 1,
+    "sim/births set p . ties": 1,
+    "sim/births set st . pawns [ j ] . ties": 1,
+    "sim/help set a . ties": 1,
+    "sim/lifecycle delete q . ties": 1,
+    "sim/lifecycle set f . ties": 1,
+    "sim/lifecycle set m . ties": 1,
+    "sim/lifecycle set p . ties": 2,
+    "sim/lifecycle set pi . ties": 1,
+    "sim/lifecycle set pj . ties": 1,
+    "sim/society = p . ties": 1,
+    "sim/society set p . ties": 1,
+    "sim/society set st . pawns [ i ] . ties": 1,
+    "sim/society set st . pawns [ q ] . ties": 1
+  },
+  "village.grain": {
+    "sim/clock *= v . grain": 1,
+    "sim/help -= v . grain": 1,
+    "sim/help += st . villages [ st . farmsteads [ hh . farmstead ] . village ] . grain": 1
+  }
+}

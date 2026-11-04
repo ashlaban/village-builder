@@ -1,5 +1,6 @@
 // State invariants (tests/lib/invariants.js) hold after every game day of long runs; a hand-broken state is reported.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { checkState } = require('./lib/invariants.js');
+const VB = require('./lib/owner-caches.js').loadWithRoleChecks(), G = VB.gen, Sim = VB.sim;
+const { checkState } = require('./lib/invariants.js');
 const RUNS = [['founders', 7, 20], ['founders', 42, 20], ['heirs', 7, 20], ['heirs', 42, 20], ['populous', 7, 5]];
 function seed(scenario, sd) {
   const it = G.generate(sd, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
