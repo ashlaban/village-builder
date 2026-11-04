@@ -311,7 +311,7 @@ VB.COUNTERS = {
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies: 'Ties decayed by dailyLife',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
-  roundRank: 'Heir rankings requested directly by the moving round and its place caches',
+  heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -2271,8 +2271,8 @@ VB['sim/routes'] = (() => {
   // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
   function findRoute(w, from, to, maxCost = ROUTE.reach) {
-    VB.count.routeSearch++;
     if (from === to) return [from];
+    VB.count.routeSearch++;
     let expanded = 0;
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     const h = (i) => hexSteps(w, i, to) * lo;
@@ -5713,8 +5713,8 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, work = null) {
-    if (work) work.rank++;
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
+    VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
     const sexRank = (p) => cu.heirSex === 'sonsFirst' ? (p.sex === 'm' ? 0 : 1) : cu.heirSex === 'daughtersFirst' ? (p.sex === 'f' ? 0 : 1) : 0;
@@ -5758,7 +5758,7 @@ VB['sim/heirs'] = (() => {
     if (nested) return ok.filter((id) => direct.has(id));
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh, work);
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
     if (cu.ownHeir === 'keeps') {
       // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
       // parents') and drops the other claim, which passes to the next in that line
@@ -5774,9 +5774,9 @@ VB['sim/heirs'] = (() => {
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
   // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet.
-  function ownFirstOf(st, hh = null, work = null) {
+  function ownFirstOf(st, hh = null) {
     const out = [];
-    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true, null, work); if (r.length) out.push([r[0], o.id]); }
+    for (const o of st.households) if (!o.dissolved && o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     return out;
   }
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
@@ -5987,11 +5987,11 @@ VB['sim/heirs'] = (() => {
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
   }
-  function placeIfMarried(st, id, own = null, work = null) {
+  function placeIfMarried(st, id, own = null) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
     if (!hh || hh.dissolved) return null;
     if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh, null, false, own, work)[0] === id ? hh.id : null;
+    return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
   function firstHeirs(st, own = ownFirstOf(st)) {
@@ -6723,7 +6723,7 @@ VB['sim/lifecycle'] = (() => {
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
   function movingRound(st) {
-    const work = { rank: 0 }; let pairs = 0;
+    let pairs = 0;
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.pawns.filter((p) => p.alive);
     for (const p of alive) p.age = age(st, p);
@@ -6738,8 +6738,8 @@ VB['sim/lifecycle'] = (() => {
     // heirs for every pair of candidates made the round cost about a second at populous medium.
     let own = null, places = new Map();
     const place = (id) => {
-      if (!own) own = ownFirstOf(st, null, work);
-      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own, work));
+      if (!own) own = ownFirstOf(st);
+      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own));
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
@@ -6752,7 +6752,7 @@ VB['sim/lifecycle'] = (() => {
     let handed = new Map();
     const handsOnWell = (h) => {
       if (!handed.has(h)) {
-        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh, null, false, null, work), hh.holder), v = st.farmsteads[hh.farmstead].village;
+        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh), hh.holder), v = st.farmsteads[hh.farmstead].village;
         const grown = heir !== null && (st.pawns[heir].age >= 18 || hh.members.some((id) => id !== hh.holder && st.pawns[id].age >= 18));
         handed.set(h, grown ? 2 : st.demand.some((id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v) ? 1 : 0);
       }
@@ -6810,8 +6810,8 @@ VB['sim/lifecycle'] = (() => {
     own = null; // the first heirs of every farm, ranked again only after a handover
     for (const hh of st.households) {
       if (hh.dissolved) continue;
-      if (!own) own = ownFirstOf(st, null, work);
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own, work), heir = r[0];
+      if (!own) own = ownFirstOf(st);
+      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
       const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
         : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
@@ -6827,7 +6827,6 @@ VB['sim/lifecycle'] = (() => {
     payOwed(st);
     refreshPrestige(st);
     VB.count.roundPairs += pairs;
-    VB.count.roundRank += work.rank;
     st.visualDirty = true;
   }
   function dailyLife(st, c) {

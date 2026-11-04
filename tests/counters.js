@@ -1,17 +1,21 @@
 // VB-192: exact work on two tiny villages, normalized by living pawn-days.
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), { tinyWorld, tinyState } = require('./lib/tiny.js'), Sim = VB.sim;
+const { livingPawnDays } = require('../tools/counts.js');
 const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
   [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], { seed: 7, herds: true });
 assert.strictEqual(st.villages.length, 2);
 VB.resetCounts();
-let pawnDays = 0;
+const from = st.t;
 for (let d = 0; d < 30; d++) {
-  pawnDays += st.pawns.filter((p) => p.alive).length;
   Sim.advance(st, Sim.DAY);
 }
+const rankBeforeRound = VB.count.heirRank;
 Sim.movingRound(st);
+const roundRank = VB.count.heirRank - rankBeforeRound, pawnDays = livingPawnDays(st, from, st.t, Sim.DAY);
+assert(roundRank > 0, 'round must compute heir rankings');
 const values = Object.fromEntries(Object.keys(VB.COUNTERS).map((k) => [k, VB.count[k] / pawnDays]));
+values.roundRank = roundRank / pawnDays;
 assert(Object.values(VB.count).every((v) => Number.isFinite(v) && v > 0), 'fixture must exercise every counter');
 const file = path.join(__dirname, 'counters.json');
 if (process.argv.includes('--update')) fs.writeFileSync(file, JSON.stringify(values, null, 2) + '\n');
@@ -24,4 +28,30 @@ const saved = JSON.stringify(Sim.save(st));
 VB.resetCounts();
 assert.deepStrictEqual(Object.values(VB.count), Object.keys(VB.COUNTERS).map(() => 0));
 assert.strictEqual(JSON.stringify(Sim.save(st)), saved, 'counts must stay out of saves');
-console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays} living pawn-days`);
+// Indirect ranking paths must increment the same counter, with no optional tally argument.
+VB['sim/heirs'].countDemand(st);
+assert(VB.count.heirRank > 0, 'countDemand rankings must be counted');
+VB.resetCounts();
+VB['sim/heirs'].heirRanking(st, st.households[0]);
+assert(VB.count.heirRank > 1, 'nested ownFirstOf rankings must be counted');
+// A second tiny fixture exercises many pair comparisons without advancing into hunger first.
+const probe = tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
+  [{ at: [10, 15], farms: 3, sizes: [7, 7, 7] }, { at: [38, 15], farms: 3, sizes: [7, 7, 7] }], { seed: 7 });
+VB.resetCounts(); Sim.movingRound(probe);
+const probePairs = VB.count.roundPairs;
+assert(probePairs >= 30, 'round probe must exercise at least 30 candidate pairs');
+// A same-tile request does no A* work; a nontrivial route starts a search.
+const routeWorld = tinyWorld(['...']); VB.resetCounts();
+assert.deepStrictEqual(VB['sim/routes'].findRoute(routeWorld, 1, 1), [1]);
+assert.strictEqual(VB.count.routeSearch, 0);
+assert.strictEqual(VB.count.routeExpand, 0);
+VB['sim/routes'].findRoute(routeWorld, 0, 2);
+assert.strictEqual(VB.count.routeSearch, 1);
+assert(VB.count.routeExpand > 0);
+// Births, partial days, deaths at hour zero, and a measurement resumed from a loaded time.
+const lifetimes = { t: 48, pawns: [{ born: -48, died: null }, { born: 12, died: null },
+  { born: -48, died: 0 }, { born: 0, died: 12 }, { born: 60, died: null }, { born: 12, died: 36 }] };
+assert.strictEqual(livingPawnDays(lifetimes, 0), 5);
+assert.strictEqual(livingPawnDays(lifetimes, 24), 2.5);
+assert.strictEqual(livingPawnDays(lifetimes, 0, 0), 0);
+console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(0)} living pawn-days; ${probePairs}-pair round probe`);

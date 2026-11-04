@@ -1,36 +1,27 @@
 // Speed of a populous medium map (seed 7) after 2 years: ms per game day, the moving round and the meetings. Not part of either suite.
-// --without-counters loads the same sources with counter increments commented out, for paired overhead measurements.
-const fs = require('fs'), path = require('path');
-function loadMeasured(disabled = process.argv.includes('--without-counters')) {
-  const sources = [];
-  for (const file of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest.json'), 'utf8'))) {
-    let source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
-    if (file !== 'vb.js' && disabled) {
-      source = source.replace(/VB\.count\.\w+\s*(?:\+\+|\+=\s*[^;]+);/g, '/* counter disabled */');
-    }
-    sources.push(source);
-  }
-  // The built page also concatenates these sources into one closure. Keep each variant's globals private.
-  return new Function('globalThis', sources.join('\n') + '\nreturn VB;')({});
-}
-const VB = process.argv.includes('--counter-cost') || process.argv.includes('--without-counters') ? loadMeasured() : require('../src/load.js');
+const VB = require('../src/load.js');
 const G = VB.gen, Sim = VB.sim;
 const it = G.generate(7, { cols: 280, rows: 200 }); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'populous'), ms = (f) => { const t = Date.now(); f(); return Date.now() - t; };
 if (process.argv.includes('--counter-cost')) {
-  const bare = loadMeasured(true), it2 = bare.gen.generate(7, { cols: 280, rows: 200 });
-  let r2; while (!(r2 = it2.next()).done);
-  const baseline = bare.sim.seed(r2.value, 7, 'populous');
-  Sim.advance(st, Sim.YEAR); bare.sim.advance(baseline, bare.sim.YEAR);
-  const withCounts = [], withoutCounts = [];
-  for (let i = 0; i < 6; i++) {
-    const measured = () => withCounts.push(ms(() => Sim.advance(st, 30 * Sim.DAY)) / 30);
-    const plain = () => withoutCounts.push(ms(() => bare.sim.advance(baseline, 30 * bare.sim.DAY)) / 30);
-    if (i % 2) { plain(); measured(); } else { measured(); plain(); }
-  }
-  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
-  console.log(JSON.stringify({ withCounts, withoutCounts, withMsPerDay: mean(withCounts), withoutMsPerDay: mean(withoutCounts),
-    overheadPercent: 100 * (mean(withCounts) / mean(withoutCounts) - 1) }));
+  Sim.advance(st, Sim.YEAR);
+  VB.resetCounts();
+  Sim.advance(st, Sim.YEAR);
+  const perDay = Object.fromEntries(Object.entries(VB.count).map(([k, n]) => [k, n / Sim.YEAR_DAYS]));
+  // These are exactly the counters fed by per-iteration local tallies. walkDaily includes bulk pawn walks too,
+  // so treating all its work as local increments is conservative.
+  const localNames = ['routeExpand', 'talkWeighed', 'contactPairs', 'walkDaily', 'walkTies', 'roundPairs'];
+  const localIncrementsPerDayBound = localNames.reduce((n, k) => n + perDay[k], 0);
+  // Direct increments + one routeExpand publication per search; hourly contacts/talk, 240 six-minute steps,
+  // at most eight daily publications and two round publications (overestimated as daily).
+  const publicationsPerDayBound = perDay.routeSearch * 2 + perDay.routeHit + perDay.heirRank + 24 * 2 + 240 + 8 + 2;
+  const additionsPerDayBound = localIncrementsPerDayBound + publicationsPerDayBound;
+  const assumedNsPerAddition = 5, referenceMsPerDay = 120;
+  const estimatedMsPerDayBound = additionsPerDayBound * assumedNsPerAddition / 1e6;
+  console.log(JSON.stringify({ perDay, localIncrementsPerDayBound, publicationsPerDayBound, additionsPerDayBound,
+    assumedNsPerAddition, referenceMsPerDay, estimatedMsPerDayBound,
+    estimatedPercentBound: 100 * estimatedMsPerDayBound / referenceMsPerDay,
+    note: 'Operation counts are deterministic; time bound assumes 5 ns per addition, not a measured timing guarantee.' }));
   return;
 }
 const adv = ms(() => Sim.advance(st, 2 * Sim.YEAR));

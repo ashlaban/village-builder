@@ -17,7 +17,7 @@ VB.COUNTERS = {
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies: 'Ties decayed by dailyLife',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
-  roundRank: 'Heir rankings requested directly by the moving round and its place caches',
+  heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };

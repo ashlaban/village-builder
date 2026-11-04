@@ -21,7 +21,7 @@ budget and cheap measurement.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
-  `node tests/perf.js --counter-cost` compares paired runs with counter increments enabled and commented out.
+  `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;

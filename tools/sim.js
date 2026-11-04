@@ -60,9 +60,7 @@ if (saveTo) {
   console.error(`saved year ${Math.floor(st.t / Sim.YEAR)} to ${saveTo}: ${(text.length / 1048576).toFixed(2)} MB of JSON, ${(zlib.gzipSync(text).length / 1048576).toFixed(2)} MB gzipped`);
 }
 
-// Integrate each lifetime over the measured interval, including births and deaths during it.
-const pawnDays = report === 'counts' ? st.pawns.reduce((sum, p) => sum + Math.max(0,
-  Math.min(p.died ?? st.t, st.t) - Math.max(p.born, countsFrom)) / Sim.DAY, 0) : 0;
+const pawnDays = report === 'counts' ? require('./counts.js').livingPawnDays(st, countsFrom, st.t, Sim.DAY) : 0;
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
 const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(h.grain), wood: Math.round(h.wood),
   hungryDays: h.hungryDays, dissolved: h.dissolved });
