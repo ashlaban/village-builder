@@ -23,6 +23,7 @@ budget and cheap measurement.
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
   `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
+- Ownership: `node tests/ownership.js`; fixed sites must be removed with `--update`, which refuses any new write past an owner.
 - Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
   `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf|counts`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
@@ -78,6 +79,9 @@ budget and cheap measurement.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
 ## Conventions
+- Read owned fields freely; write through the module in `src/owners.json` (caches follow the same rule; page flags are signals).
+  `tests/ownership.js` checks this in `npm test`; `// lint-allow: owner <reason>` exempts one line. The table lists creators and the save codec exemption.
+  Its schema validates owners against the manifest and explicit `plannedOwners`; remove a planned name when its module lands.
 - A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
 - Determinism: all randomness comes from seeded streams (VB-072, `src/sim/rng.js`): in play each system draws from its own, `rnd(st.rng.<system>)`,
   and a new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.

@@ -10,6 +10,31 @@ proposals of sections 4, 7 and 8, except that the food task records every moveme
 (the owners table and its check), VB-174 (food), VB-175 (membership and founding), VB-176 (the dependency rule), VB-177 (a pawn's
 movement), VB-178 (ties), VB-179 (the crop's life) and VB-180 (wrap-up).
 
+VB-173 (4 November 2026) declares those first boundaries in `src/owners.json`. `fields` maps each field to its owner (or `signal`);
+an object with `owner` and `category: "cache"` declares a derived cache, enforced by the same rule. `creators` names the seeding
+modules and `exempt` names the save codec. `plannedOwners` declares modules not yet implemented (`sim/stores` until VB-174);
+all other module names must exist in the manifest. Invalid fields, owner values, categories, keys and exemptions fail validation.
+`node tests/ownership.js` checks the table with this document's scanner; normal checks reject stale allowances and require `--update`
+to remove fixed sites from `tests/ownership-baseline.json`. Updates refuse new sites or increases. Baseline entries group tokenized receivers and operations by field
+and module, count repeated sites, and survive changes in line numbers or whitespace. A new site or an additional copy fails with
+its file, line, field and owner. `// lint-allow: owner <reason>` exempts just that line. Creation before a record enters a state
+collection is excluded; writes after insertion are checked. The report now reads its Owner column from the table and marks writes
+past the owner with `!` (also `outsideOwner` in `--json`). The historical tables below retain the original proposals.
+
+The scanner now uses Acorn for lexical scope boundaries (a development dependency, absent from the built page), tracks reassigned
+aliases, and keeps possible state targets across conditional/deferred assignments. It recognizes bracketed mutator calls,
+destructuring assignments, `Object.assign`, property definitions and `Reflect.set`. A write through a dynamic property or an unknown
+object source checks all declared fields it might affect. Receiver inference still uses the documented conventions and return hints;
+this is not interprocedural type analysis, and unresolved receivers remain visible in the writes report.
+
+Cache checks: `tests/lib/invariants.js` checks both directions of membership, exact owners of farm houses, fields and meadows,
+and roles derived independently from member lists and union records. Existing gameplay may keep a child's role through its fourteenth
+birthday until the next social refresh; the daily check permits that bounded lag. In the five long invariant runs, a test-only loader
+checks roles strictly immediately after every `refreshRoles`, before any importer can bypass the wrapper. `tests/cacheowners.js`
+proves that wrong nonzero owners, wrong roles and membership corruption are detected before repair, and tests the birthday boundary.
+`tests/owners.js` retains the full seeded ownership map and extinction checks. Roles remain written by `sim/heirs` in the baseline
+until VB-175 moves membership to `sim/records`.
+
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 

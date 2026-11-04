@@ -7,7 +7,8 @@ const { CLAIMS, YEAR, DAY, cal, SOCIAL } = VB['sim/rules'], { setOwner } = VB['s
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('STAKES FAIL:', m); } };
-const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
+// Fixtures jump time and call low-level acts directly; finish the coordinator's role refresh before checking a completed state.
+const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
 const H = (id) => ({ type: 'household', id });
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms at 10:00 on the first day: household 0 (8 people) and 2 (6) want a fourth field, household 1 (3) does not.

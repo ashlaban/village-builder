@@ -4,7 +4,8 @@ const VB = require('../src/load.js'), Sim = VB.sim, FC = VB['sim/farmclaims'], C
 const { CLAIMS, YEAR } = VB['sim/rules'], { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FARMCLAIMS FAIL:', m); } };
-const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
+// Fixtures jump time and call low-level acts directly; finish the coordinator's role refresh before checking a completed state.
+const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
 const out = [];
 
 // ---- restoration hours: straight lines through 0 h at 100%, 20 h at 40%, 60 h at 15% and 120 h at 0% (Kim, 30 Oct) ----
