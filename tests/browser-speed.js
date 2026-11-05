@@ -1,17 +1,20 @@
 // VB-084: functional speed, clock, keyboard and focus checks; no presentation timing budget.
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
+const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
+const rawHTML = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
   'let st = null, speed = 1, selPawn = -1; window.__speedTest = { get st() { return st; }, get speed() { return speed; }, '
-  + 'get rigs() { return rigs; }, village() { stopIntro(); const tile = st.villages[0].center; '
+  + 'get rigs() { return rigs; }, village() { app.ticker.maxFPS = 12; stopIntro(); const tile = st.villages[0].center; '
   + 'cam.x = w.hx[tile]; cam.y = w.hy[tile]; cam.z = zt = 0.8; vel.x = vel.y = 0; } };');
+const html = browserHTML(rawHTML);
 assert(html.includes('window.__speedTest'), 'page hook exists');
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), errors = [];
+    page.setDefaultTimeout(60000);
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
     await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: html }));

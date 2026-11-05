@@ -116,25 +116,40 @@
   }
   function openTree() {
     if (!st) return;
-    $('tree').hidden = false; $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    openPanel(null);
+    $('tree').hidden = false;
+    for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = true;
+    $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
     const L2 = layoutTree(st), living = st.pawns.filter((p) => p.died === null).length;
     $('treeSub').textContent = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages, ${L2.rows.length} ${L2.rows.length === 1 ?
       'generation' : 'generations'}`;
     if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
     renderTree(); renderTreeInfo(); $('treeClose').focus();
   }
-  const closeTree = () => { $('tree').hidden = true; $('treeBtn').focus(); };
+  const closeTree = () => {
+    $('tree').hidden = true;
+    for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = false;
+    closeSpeedOptions(); $('minimap').inert = $('minimapBtn').getAttribute('aria-pressed') !== 'true';
+    $('treeBtn').focus();
+  };
   $('treeBtn').addEventListener('click', openTree);
   $('treeClose').addEventListener('click', closeTree);
   $('tree').addEventListener('click', (e) => {
     if (e.target === $('tree')) { closeTree(); return; }
     if (e.target.id === 'treeShow') { closeTree(); focusPawn(treeSel); return; }
     const n = e.target.closest('[data-pawn]');
-    if (n) { treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+    if (n) { treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); focusTreePerson(); }
   });
+  const focusTreePerson = () => { const node = $('treeSvg').querySelector(`[data-pawn="${treeSel}"]`); if (node) node.focus(); };
   $('tree').addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeTree();
+    if (e.key === 'Escape') { e.preventDefault(); closeTree(); return; }
+    if (e.key === 'Tab') {
+      const focusable = [...$('tree').querySelectorAll('button, [tabindex="0"]')].filter((el) => !el.hidden && el.getClientRects().length);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
     const n = e.target.closest && e.target.closest('g[data-pawn]');
-    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); focusTreePerson(); }
   });
 

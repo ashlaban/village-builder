@@ -1,0 +1,135 @@
+// Mobile interaction regression: panels, folds, search, UI restoration and map gestures in real Chromium.
+const assert = require('assert'), fs = require('fs'), path = require('path');
+const { chromium } = require('playwright');
+const { browserHTML } = require('./lib/browser');
+const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
+const rawHTML = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
+  'let st = null, speed = 1, selPawn = -1; window.__mobile = { get st() { return st; }, get speed() { return speed; }, '
+  + 'get cam() { return { ...cam }; }, get selected() { return selPawn; }, card, selectPawn, '
+  + 'village() { app.ticker.maxFPS = 12; stopIntro(); const i = st.villages[0].center; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 0.8; vel.x = vel.y = 0; } };');
+const html = browserHTML(rawHTML);
+assert(html.includes('window.__mobile'), 'page hook exists');
+(async () => {
+  const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined });
+  try {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+    page.setDefaultTimeout(60000);
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') console.error('PAGE:', m.text()); });
+    page.on('pageerror', (e) => errors.push(e.stack));
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: html }));
+    await page.route(/https:\/\/(cdn\.jsdelivr\.net|fonts\.)/, (r) => /pixi(\.min)?\.js/.test(r.request().url())
+      ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
+    await page.goto('https://village.test/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForFunction(() => !document.getElementById('genScreen').hidden);
+    await page.selectOption('#genSize', 't'); await page.selectOption('#genScenario', 'founders'); await page.fill('#genSeed', '7');
+    await page.click('#genGo');
+    await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 120000 });
+    await page.click('#pauseBtn');
+    await page.evaluate(() => window.__mobile.village());
+    const fits = async (selector) => {
+      const rect = await page.locator(selector).boundingBox(), size = page.viewportSize();
+      assert(rect && rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= size.width + 1 && rect.y + rect.height <= size.height + 1,
+        `${selector} fits ${size.width}×${size.height}: ${JSON.stringify(rect)}`);
+    };
+    const oneSheet = async () => assert(await page.locator('.sheet:visible, .world-menu:visible').count() <= 1, 'one content panel at a time');
+    const capture = async (name) => {
+      if (!process.env.VB_SCREENSHOTS) return;
+      fs.mkdirSync(process.env.VB_SCREENSHOTS, { recursive: true });
+      await page.screenshot({ path: path.join(process.env.VB_SCREENSHOTS, name + '.png') });
+    };
+    assert((await page.locator('#clock').boundingBox()).y + (await page.locator('#clock').boundingBox()).height < 115, 'compact mobile header');
+    await fits('.navigation'); await capture('mobile-map');
+    console.log('mobile: people'); await page.click('#settlersBtn'); await oneSheet();
+    await page.locator('.village-block > summary').first().click(); console.log('mobile: village opened');
+    await page.locator('.household-block > summary').first().click(); console.log('mobile: household opened');
+    await page.locator('[data-fold^="supplies-"] > summary').first().click();
+    await page.locator('[data-fold^="fields-"] > summary').first().click();
+    await page.locator('[data-fold^="fields-"][open] .jobs').first().waitFor({ state: 'visible' });
+    const key = await page.locator('.household-block').first().getAttribute('data-fold');
+    await page.locator('#peopleContent').evaluate((el) => { el.scrollTop = 80; });
+    const scroll = await page.locator('#peopleContent').evaluate((el) => el.scrollTop);
+    await page.waitForTimeout(600);
+    assert.strictEqual(await page.locator('#peopleContent').evaluate((el) => el.scrollTop), scroll, 'live refresh keeps scroll');
+    assert(await page.locator(`[data-fold="${key}"]`).evaluate((el) => el.open), 'live refresh keeps household open');
+    const name = await page.locator('.household-block button[data-pawn]').first().textContent();
+    console.log('mobile: search'); await page.fill('#peopleSearch', 'no-such-person'); assert(await page.locator('#settlers').textContent().then((t) => t.includes('No matching')));
+    await page.fill('#peopleSearch', name); assert(await page.locator('.household-block button[data-pawn]').count() > 0, 'search finds person');
+    await page.fill('#peopleSearch', '');
+    assert(await page.locator(`[data-fold="${key}"]`).evaluate((el) => el.open), 'clearing search restores folds');
+    await page.locator('.household-block button[data-pawn]').first().click();
+    await oneSheet(); assert(await page.locator('#tile').isVisible());
+    assert(await page.locator('#peopleSheet').isHidden(), 'selecting a person clears the list');
+    assert(await page.locator('#tileActivity').textContent(), 'current activity remains visible while collapsed');
+    const selected = await page.evaluate(() => window.__mobile.selected);
+    await page.click('#tile .sheet-expand'); await fits('#tile'); await capture('mobile-person');
+    // The shared card used to discard every detail after the fourth line.
+    await page.evaluate(() => window.__mobile.card('Full details', ['one', 'two', 'three', 'four', 'five', 'six']));
+    assert.strictEqual(await page.locator('#tileRest').textContent(), 'fivesix');
+    await page.evaluate((id) => window.__mobile.selectPawn(id), selected);
+    await page.click('#speedBtn'); await page.click('[data-speed="3"]');
+    await page.click('#uiToggle');
+    assert(await page.locator('#tile').isHidden()); assert(await page.locator('.navigation').isHidden()); assert(await page.locator('#clock').isHidden());
+    const time = await page.evaluate(() => window.__mobile.st.t);
+    await page.waitForFunction((t) => window.__mobile.st.t > t, time);
+    await page.click('#uiToggle'); assert(await page.locator('#tile').isVisible(), 'UI restores selected panel');
+    assert.strictEqual(await page.evaluate(() => window.__mobile.selected), selected);
+    assert.strictEqual(await page.evaluate(() => window.__mobile.speed), 3, 'UI toggle preserves speed');
+    await page.click('#pauseBtn');
+    console.log('mobile: customs'); await page.click('#customsBtn'); await oneSheet(); await fits('#drawer');
+    assert(await page.locator('.custom-card').count() > 0, 'village customs shown as cards');
+    if (await page.locator('#customVillage option').count() > 1) await page.selectOption('#customVillage', { index: 1 });
+    await page.locator('#customComparison > summary').click();
+    await page.locator('.cust tbody tr').first().waitFor({ state: 'visible' });
+    await page.focus('#customTable');
+    await page.locator('#customTable').evaluate((el) => { el.scrollLeft = 0; });
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => document.getElementById('customTable').scrollLeft > 0);
+    await page.click('#drawer .sheet-expand');
+    assert(await page.locator('#drawerBody').isHidden());
+    await page.click('#drawer .sheet-expand');
+    assert(await page.locator('#drawerBody').isVisible());
+    console.log('mobile: family'); await page.click('#treeBtn');
+    assert(await page.locator('#tree').isVisible()); await fits('.tree-card');
+    await page.locator('#treeSvg .tn').first().click();
+    assert(await page.locator('#treeInfo h3').textContent());
+    await page.keyboard.press('Escape'); assert(await page.locator('#tree').isHidden()); console.log('mobile: family closed');
+    await page.click('#menuBtn'); await oneSheet(); await page.click('#landBtn');
+    assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
+    await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible());
+    assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'collapsed minimap has a painted canvas');
+    console.log('mobile: minimap'); await page.click('#minimapClose'); assert(await page.locator('#minimap').isHidden());
+    await page.click('#menuBtn'); await page.click('#regen'); await page.click('#genCancel');
+    assert(await page.locator('#genScreen').isHidden(), 'new-world screen can be cancelled');
+    // Real pointer events keep map dragging and pinch zoom independent of the UI.
+    const before = await page.evaluate(() => window.__mobile.cam);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 170, y: 240 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 230, y: 280 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert.notStrictEqual((await page.evaluate(() => window.__mobile.cam)).x, before.x, 'drag pans the map');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 150, y: 260, id: 1 }, { x: 230, y: 260, id: 2 }] });
+    const zoom = await page.evaluate(() => window.__mobile.cam.z);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 120, y: 260, id: 1 }, { x: 260, y: 260, id: 2 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert((await page.evaluate(() => window.__mobile.cam.z)) > zoom, 'pinch zooms the map');
+    console.log('mobile: gestures passed');
+    for (const [width, height] of [[320, 568], [844, 390], [768, 1024], [1024, 768], [1440, 900]]) {
+      console.log(`mobile: viewport ${width}×${height}`);
+      await page.setViewportSize({ width, height });
+      await fits('#clock'); await fits('.navigation');
+      if (width <= 1024) { await page.click('#menuBtn'); await fits('#worldMenu'); await page.click('#menuClose'); }
+      await page.click('#settlersBtn'); await fits('#peopleSheet'); await page.click('#peopleClose');
+      await page.click('#customsBtn'); await fits('#drawer'); await page.click('#drawerClose');
+      await page.click('#treeBtn'); await fits('.tree-card'); await page.click('#treeClose');
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => window.__mobile.village()); await capture('mobile-map');
+    await page.click('#settlersBtn'); await capture('mobile-people');
+    await page.click('#customsBtn'); await capture('mobile-customs');
+    await page.click('#uiToggle'); await capture('mobile-hidden'); await page.click('#uiToggle');
+    assert.deepStrictEqual(errors, [], 'no console or page errors');
+    console.log('browser-mobile: panels, folds, search, details, hide/restore, running clock, customs, family, minimap, drag/pinch and responsive fit');
+  } finally { await browser.close(); }
+})().catch((e) => { console.error(e); process.exitCode = 1; });

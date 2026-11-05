@@ -16,7 +16,7 @@ const TEST = [
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'],
+  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
 ];
@@ -26,7 +26,7 @@ if (!cmds) { console.error('usage: node tests/run.js test|verify [--verbose]'); 
 // longest first, so the slow scripts do not start last
 const SLOW = ['populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
 const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
-const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed)?\.js$/.test(a));
+const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile)?\.js$/.test(a));
 const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
 const t0 = Date.now(), failed = [];
 function run(cmd) {
@@ -41,7 +41,8 @@ function run(cmd) {
     });
   });
 }
-const lanes = Math.max(1, Math.min(os.cpus().length, queue.length));
+const jobs = Number(process.env.VB_TEST_JOBS) || os.cpus().length;
+const lanes = Math.max(1, Math.min(jobs, queue.length));
 (async () => {
   for (const cmd of browsers) await run(cmd);
   await Promise.all(Array.from({ length: lanes }, async () => { while (queue.length) await run(queue.shift()); }));

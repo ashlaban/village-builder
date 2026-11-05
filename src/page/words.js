@@ -23,74 +23,136 @@
     return Object.entries(n).map(([k, v]) => `${v} ${word[k]}`).join(', ');
   }
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
-  let settlersHTML = '';
+  let settlersHTML = '', peopleQuery = '';
+  const peopleFolds = new Set();
+  const foldOpen = (key) => peopleFolds.has(key);
+  function fold(key, title, body, cls = 'fold-section') {
+    return `<details class="${cls}" data-fold="${key}"${foldOpen(key) ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
+  }
+  function updatePanelHTML(box, html) {
+    const scroll = box.closest('.sheet-content'), top = scroll ? scroll.scrollTop : 0;
+    const focused = box.contains(document.activeElement) ? document.activeElement : null;
+    const focusKey = focused && (focused.closest('[data-pawn]') ? `[data-pawn="${focused.closest('[data-pawn]').dataset.pawn}"]`
+      : focused.closest('[data-fold]') ? `[data-fold="${focused.closest('[data-fold]').dataset.fold}"] > summary` : null);
+    box.innerHTML = html;
+    if (focusKey) { const next = box.querySelector(focusKey); if (next) next.focus({ preventScroll: true }); }
+    if (scroll) scroll.scrollTop = top;
+  }
   function renderSettlers() {
-    let h = '';
-    const jobs = [...st.jobs.values()];
+    if (!st || document.body.classList.contains('ui-hidden') || $('peopleSheet').classList.contains('collapsed')) return;
+    const query = peopleQuery.trim().toLocaleLowerCase(), groups = new Map();
+    let matches = 0, total = 0, jobsIndex = null;
     const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
-    for (const v of st.villages) {
-      const vj = jobs.filter((j) => j.owner.type === 'village' && j.owner.id === v.id);
-      const worst = Math.min(...v.fence.map((s) => s.cond));
-      const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
-      const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
-      const fenceText = v.fence.length ? `Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair.` : 'No fence yet.';
-      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>${fenceText} ${v.well ? 'Shared well and woods.' :
-        'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
-      // moving to new land (VB-148): where the village came from, the villages it gave rise to, and whether it is crowded
-      if (v.founded) h += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) +
-        1} from ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
-      const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
-      if (daughters.length) h += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
-      if (v.crowded > 0) h += `<p>Crowded: ${v.crowded === 1 ? '1 adult waits' : `${v.crowded} adults wait`} for land, and there is no room to clear.</p>`;
-      h += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}</p>`;
-      for (const plot of v.plots.filter((q) => !q.done)) {
-        h += `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done</p>`;
+    const jobsFor = (type, id) => {
+      if (!jobsIndex) {
+        jobsIndex = new Map();
+        for (const job of st.jobs.values()) {
+          const key = `${job.owner.type}:${job.owner.id}`;
+          if (!jobsIndex.has(key)) jobsIndex.set(key, []);
+          jobsIndex.get(key).push(job);
+        }
       }
-      for (const plot of v.plots.filter((q) => q.done)) {
-        h += `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage &&
-          !plot.built ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
-      }
-      for (const f of empties) h += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at ${Math.round(
-        f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
-      h += '</div>';
-    }
+      return jobsLine(jobsIndex.get(`${type}:${id}`) || []);
+    };
     for (const hh of st.households) {
       if (hh.dissolved) continue;
+      total += hh.members.length;
       const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
-      const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
-      h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
-      if (f.booth) h += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
-      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined &&
-        hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st,
-        hh) ? ` (${Sim.seedReserve(st,
-        hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n,
-        0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` :
-        ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100,
-        ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
-      const herdText = Sim.describeHerds(st, hh);
-      const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
-        .map(([k, word]) => [Sim.larderOf(hh, k), word]).filter(([n]) => n >= 0.5);
-      const larder = lots.length ? `; larder ${lots.map(([n, word]) => `${Math.round(n)} ${word}`).join(', ')}` : '';
-      if (herdText || hh.hay > 0 ||
-        larder) h += `<p>${esc(herdText ||
-        'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}${larder}</p>`;
-      h += `<p>Fields: ${fieldSummary(f) ||
-        'none'}${f.project ? (f.project.stage === 'meadow' ? '; clearing a new hay meadow' :
-        `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}`) : ''}${f.meadows.length ?
-        `; ${f.meadows.length === 1 ? 'a hay meadow' : `${f.meadows.length} hay meadows`}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
-      for (const id of hh.members) {
-        const p = st.pawns[id];
-        h += `<li>${nm(id)} ${p.age}, ${esc(Sim.ROLES[p.role] ? (p.role === 'farmer' &&
-          p.sex === 'f' ? (isWidow(p) ? 'widow' : 'holder') : Sim.ROLES[p.role].title.toLowerCase()) : p.role)}<br><span class="doing">${esc(Sim.describe(st,
-          id))}</span></li>`;
-      }
-      h += '</ul></div>';
+      const whole = !query || `${f.name} ${v.name}`.toLocaleLowerCase().includes(query);
+      const members = whole ? hh.members : hh.members.filter((id) => Sim.fullName(st.pawns[id]).toLocaleLowerCase().includes(query));
+      if (!members.length) continue;
+      matches += members.length;
+      if (!groups.has(v.id)) groups.set(v.id, []);
+      groups.get(v.id).push({ hh, f, members });
     }
-    h += '<div class="log"><h2>Recent</h2>' + st.events.slice(0, 6).map((e) => {
-      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`; }).join('') + '</div>';
-    if (h !== settlersHTML) { settlersHTML = h; $('settlers').innerHTML = h; }
+    const household = ({ hh, f, members }) => {
+      const key = `household-${hh.id}`, expanded = !!query || foldOpen(key);
+      const state = hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving';
+      let body = '';
+      if (expanded) {
+        const heirs = Sim.heirRanking(st, hh).slice(0, 2);
+        body += `<div class="farm"><p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+        if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
+        if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
+        body += `<ul>${members.map((id) => {
+          const pawn = st.pawns[id];
+          return `<li>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
+        }).join('')}</ul>`;
+        const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
+        body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
+          `<p>Grain ${Math.round(hh.grain)} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
+          <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
+          <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
+          <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
+        body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
+          `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
+          ${f.project ? `<p>New ${f.project.stage === 'meadow' ? 'hay meadow' : 'field'} in progress: ${esc(f.project.stage)}.</p>` : ''}
+          <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
+        let animals = '';
+        if (foldOpen(animalsKey)) {
+          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
+            .map(([kind, label]) => [Sim.larderOf(hh, kind), label]).filter(([n]) => n >= .5);
+          animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
+            <p>Hay ${Math.round(hh.hay)}; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
+            <p>Larder: ${lots.length ? lots.map(([n, label]) => `${Math.round(n)} ${label}`).join(', ') : 'empty'}.</p>`;
+        }
+        body += fold(animalsKey, 'Animals & larder', animals) + '</div>';
+      }
+      return `<details class="household-block" data-fold="${key}"${expanded ? ' open' : ''}>
+        <summary>${esc(f.name)}<span class="summary-meta">${hh.members.length} people · ${state}</span></summary>${body}</details>`;
+    };
+    let h = '';
+    for (const v of st.villages) {
+      const households = groups.get(v.id) || [];
+      if (!households.length && query) continue;
+      const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
+      let body = '';
+      if (expanded) {
+        body = households.map(household).join('');
+        const commonsKey = `commons-${v.id}`;
+        let commons = '';
+        if (foldOpen(commonsKey)) {
+          const worst = Math.min(...v.fence.map((fence) => fence.cond));
+          const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
+          const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
+          commons = `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2>
+            <p>${v.fence.length ? `Fence in ${worst < .45 ? 'poor' : worst < .65 ? 'fair' : 'good'} repair.` : 'No fence yet.'}
+            ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsFor('village', v.id))}</p>`;
+          if (v.founded) commons += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from
+            ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
+          const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
+          if (daughters.length) commons += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
+          if (v.crowded > 0) commons += `<p>Crowded: ${v.crowded} adults wait for land, and there is no room to clear.</p>`;
+          commons += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}.</p>`;
+          for (const plot of v.plots) {
+            commons += !plot.done ? `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done.</p>`
+              : `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage && !plot.built
+                ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
+          }
+          for (const f of empties) commons += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at
+            ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
+          commons += '</div>';
+        }
+        body += fold(commonsKey, 'Village commons & expansion', commons);
+      }
+      const population = households.reduce((sum, item) => sum + item.members.length, 0);
+      h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
+        <summary>${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+    }
+    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
+      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
+    }).join('') + '</div>' : '');
+    if (!h) h = '<p>No matching people or households. Try another name.</p>';
+    $('peopleCount').textContent = query ? `${matches} of ${total} people match` : `${total} people across ${st.villages.length} villages`;
+    if (h !== settlersHTML) { settlersHTML = h; updatePanelHTML($('settlers'), h); }
   }
+  $('peopleSearch').addEventListener('input', (e) => { peopleQuery = e.target.value; renderSettlers(); });
+  $('settlers').addEventListener('toggle', (e) => {
+    const key = e.target.dataset.fold;
+    if (!key || (peopleQuery.trim() && /^(village|household)-/.test(key)) || foldOpen(key) === e.target.open) return;
+    if (e.target.open) peopleFolds.add(key); else peopleFolds.delete(key);
+    renderSettlers();
+  }, true);
   function focusPawn(id) {
     const p = st.pawns[id]; if (p.died !== null) { treeSel = id; openTree(); return; }
     const a = st.agents[id], f = farmOf(p);
@@ -100,8 +162,9 @@
     selectPawn(id);
   }
   $('settlers').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function selectPawn(id) { selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
+  function selectPawn(id, pinned = true) { selectionPinned = pinned; openPanel('tile'); selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
   function showPawn(id) {
+    $('personFamily').hidden = false;
     const p = st.pawns[id], f = farmOf(p);
     if (p.died !== null || !f) { card(Sim.fullName(p), ['Died']); return; }
     const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
@@ -115,8 +178,8 @@
       [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` :
-      (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id),
-      Sim.idleLine(st, id)].filter(Boolean));
+      (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''),
+      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id));
     showRelations(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
@@ -134,13 +197,20 @@
     }).join('');
     const h = rows ? `<h3>Knows best</h3>${rows}` : '';
     if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
-    $('tileRel').hidden = !h;
+    $('tileRel').hidden = !h; $('relationsDetails').hidden = !h;
   }
   $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function card(title, lines) {
+  function card(title, lines, activity = '') {
     $('tileName').textContent = title;
-    ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => { const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k]; });
-    $('tileRel').hidden = true; $('tile').hidden = false;
+    $('tileActivity').textContent = activity; $('tileActivity').hidden = !activity;
+    ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => {
+      const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k];
+    });
+    const rest = lines.slice(4).map((line) => `<span>${esc(line)}</span>`).join('');
+    if ($('tileRest').innerHTML !== rest) $('tileRest').innerHTML = rest;
+    $('personFamily').hidden = selPawn < 0;
+    $('tileRel').hidden = true; $('relationsDetails').hidden = true;
+    $('tile').hidden = activePanel !== 'tile';
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;
@@ -148,7 +218,8 @@
     for (const a of st.agents) {
       if (a.inside || st.pawns[a.id].died !== null) continue;
       const dx = x - a.x, dy = y - (a.y - 9);
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 10) { const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = a.id; } }
+      if (Math.abs(dx) < (coarse ? Math.max(6, 22 / cam.z) : 6) && Math.abs(dy) < (coarse ? Math.max(10, 22 / cam.z) : 10)) {
+        const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = a.id; } }
     }
     return best;
   }

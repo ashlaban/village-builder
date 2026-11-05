@@ -61,9 +61,13 @@ const iv = setInterval(async () => {
   q('[data-speed="1"]').click();
   doc.getElementById('landBtn').click(); tick(5); doc.getElementById('landBtn').click(); tick(2); // the Land overlay on and off (VB-004)
   doc.getElementById('settlersBtn').click(); tick(20);
+  const expand = (selector) => qa(selector).forEach((el) => {
+    el.open = true; el.dispatchEvent(new win.Event('toggle'));
+  });
+  expand('.village-block'); expand('.household-block'); expand('[data-fold^="commons-"]');
   console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
-  doc.getElementById('customsBtn').click(); tick(20);
+  doc.getElementById('customsBtn').click(); expand('#customComparison'); tick(20);
   if (qa('#settlers .farm h2').length === 0) fail('settlers list is empty');
   const nDims = require('../src/load.js').culture.DIMS.length;
   if (qa('.cust tbody tr').length !== nDims) fail('customs table has ' + qa('.cust tbody tr').length + ' rows, expected ' + nDims);
@@ -77,7 +81,7 @@ const iv = setInterval(async () => {
   // world were matched here once, so the step had stopped running
   const sb = qa('#settlers button[data-pawn]')[0];
   if (!sb) fail('no settler to select');
-  sb.click(); tick(3); console.log('selected:', doc.getElementById('dbgSel').textContent);
+  sb.click(); doc.getElementById('debugBtn').click(); tick(3); console.log('selected:', doc.getElementById('dbgSel').textContent);
   q('[data-act="kill"]').click(); const killed = doc.getElementById('dbgMsg').textContent; console.log('kill:', killed);
   if (!/has died/.test(killed)) fail(`the debug kill did not report a death: ${killed}`);
   tick(30);
@@ -100,7 +104,7 @@ const iv = setInterval(async () => {
   if (doc.getElementById('genScreen').hidden || doc.getElementById('genSeed').value !== '7' || doc.getElementById('genScenario').value !== 'heirs') fail('the generation screen did not keep the last choices');
   generate('populous', 't', '7');
   const iv2 = setInterval(() => { if (!doc.getElementById('regen').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('regen').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
-    const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); if (!doc.querySelectorAll('#settlers .farm h2').length) fail('settlers list is empty after regenerating');
+    const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
     console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); process.exit(failed ? 1 : 0); } }, 50);
 }, 50);

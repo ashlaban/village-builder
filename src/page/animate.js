@@ -144,8 +144,11 @@
     if (tAcc > 0.25) {
       tAcc = 0;
       if (!$('settlers').hidden) renderSettlers();
-      if (selPawn >= 0) showPawn(selPawn);
-      else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+      if (drawerTab) renderDrawer();
+      if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
+        if (selPawn >= 0) showPawn(selPawn);
+        else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+      }
     }
   }
 

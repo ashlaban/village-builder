@@ -7,23 +7,30 @@
 <div class="hud top">
   <header class="chart panel">
     <h1 id="name">Archipelago</h1>
-    <p class="meta" id="meta"></p>
-    <p class="hint" id="hint"></p>
-    <div class="actions">
-      <button class="primary" id="regen" type="button">New archipelago</button>
-      <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
-      <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
-      <button id="landBtn" type="button" aria-pressed="false">Land</button>
-      <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
-      <button id="treeBtn" type="button">Family tree</button>
-      <button id="customsBtn" type="button" aria-pressed="false">Customs</button>
-      <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
+    <div id="worldMenu" class="world-menu">
+      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
+      <p class="meta" id="meta"></p>
+      <p class="hint" id="hint"></p>
+      <h2 class="menu-label">Map &amp; layers</h2>
+      <div class="actions">
+        <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
+        <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
+        <button id="landBtn" type="button" aria-pressed="false">Land</button>
+        <button id="minimapBtn" type="button" aria-pressed="false">Minimap</button>
+      </div>
+      <h2 class="menu-label">Game</h2>
+      <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
+      <div class="actions">
+        <button class="primary" id="regen" type="button">New archipelago</button>
+        <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
+      </div>
     </div>
-    <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
   </header>
   <div class="clock panel" id="clock">
-    <div><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
-    <div class="speed" role="group" aria-label="Game speed">
+    <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
+    <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
+    <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
+    <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
       <button type="button" data-speed="0" aria-pressed="false">Pause</button>
       <button type="button" data-speed="1" aria-pressed="true">1×</button>
       <button type="button" data-speed="3" aria-pressed="false">3×</button>
@@ -31,27 +38,59 @@
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
-    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
   </div>
 </div>
+<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
-<aside class="drawer panel" id="drawer" hidden aria-label="Customs and debug tools">
-  <button class="dclose" id="drawerClose" type="button">Close</button>
-  <div id="drawerBody"></div>
+<nav class="navigation panel" aria-label="Game panels">
+  <button id="settlersBtn" type="button" aria-pressed="false" aria-controls="peopleSheet">People</button>
+  <button id="treeBtn" type="button" aria-haspopup="dialog">Family</button>
+  <button id="customsBtn" type="button" aria-pressed="false" aria-controls="drawer">Customs</button>
+  <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
+</nav>
+<aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
+  <div class="sheet-head">
+    <h2 id="peopleTitle">People &amp; households</h2>
+    <button type="button" class="sheet-expand" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent">Collapse</button>
+    <button id="peopleClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="peopleContent">
+    <label class="search-label" for="peopleSearch">Find a person, farm or village</label>
+    <input id="peopleSearch" type="search" placeholder="Search names…" autocomplete="off">
+    <p id="peopleCount" class="dm" role="status"></p>
+    <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
+  </div>
+</aside>
+<aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
+  <div class="sheet-head">
+    <h2 id="drawerTitle">Customs</h2>
+    <button type="button" class="sheet-expand" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody">Collapse</button>
+    <button id="drawerClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="drawerBody"></div>
 </aside>
 
 <div class="hud bottom">
-  <aside class="tile panel" id="tile" hidden aria-live="polite">
-    <strong id="tileName"></strong>
-    <span id="tileElev"></span>
-    <span id="tileCoord"></span>
-    <span id="tileExtra" hidden></span>
-    <span id="tileMore" hidden></span>
-    <div class="rel" id="tileRel" hidden></div>
+  <aside class="tile sheet panel collapsed" id="tile" hidden aria-labelledby="tileName">
+    <div class="sheet-head">
+      <strong id="tileName"></strong>
+      <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
+      <button id="tileClose" type="button" aria-label="Close selection">Close</button>
+    </div>
+    <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
+    <div class="sheet-content" id="tileDetails">
+      <span id="tileCoord"></span>
+      <span id="tileExtra" hidden></span>
+      <span id="tileMore" hidden></span>
+      <div id="tileRest"></div>
+      <button type="button" id="personFamily" hidden>View family records</button>
+      <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
+    </div>
   </aside>
-  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump">
+  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
     <canvas id="mmBase"></canvas>
     <canvas id="mmView"></canvas>
+    <button id="minimapClose" type="button" aria-label="Close minimap">Close</button>
   </div>
 </div>
 
@@ -59,7 +98,7 @@
   <div class="tree-card panel">
     <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
     <div class="tree-body">
-      <div class="tree-scroll"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
+      <div class="tree-scroll" tabindex="0" aria-label="Scroll family tree"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
     </div>
   </div>
@@ -68,6 +107,7 @@
 <div class="genscreen" id="genScreen" hidden>
   <form class="panel" id="genForm" autocomplete="off">
     <h1>New archipelago</h1>
+    <button id="genCancel" type="button" hidden>Back to game</button>
     <label>Map size
       <select id="genSize">
         <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
