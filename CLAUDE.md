@@ -18,6 +18,7 @@ budget and cheap measurement.
 - Test: `npm install && npm test` runs the cheap checks in parallel, about 10 s (build check, lint, backlog, regress, trees, stones, weeding, heirs, owners, kinlimit).
 - Verify: `npm run verify` runs those and the long runs, about 40 s (golden, populous, births, hunger, page smoke test in jsdom).
   `node tests/run.js verify --verbose` also prints the reported numbers.
+  Presentation timing budgets are deferred by Kim (4 November 2026, VB-166); browser checks cover functionality, not rendering speed.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.

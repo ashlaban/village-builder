@@ -56,12 +56,13 @@
 
   const keys = new Set();
   window.addEventListener('keydown', (e) => {
-    if (e.target.closest && e.target.closest('button')) return;
+    if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea')) return;
     if (!$('tree').hidden) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
-    if (k === '1' || k === '2' || k === '3') setSpeed({ 1: 1, 2: 3, 3: 10 }[k]);
+    if (/^[1-5]$/.test(k)) setSpeed({ 1: 1, 2: 3, 3: 10, 4: 30, 5: Infinity }[k]);
     if (k === '+' || k === '=' || k === '-') {
       stopIntro();
       const r = stage.getBoundingClientRect();
@@ -93,6 +94,7 @@
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
+    resetSpeedSample();
     document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
   }
   document.querySelectorAll('.speed button').forEach((bt) => bt.addEventListener('click', () => setSpeed(+bt.dataset.speed)));
