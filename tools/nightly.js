@@ -1,4 +1,4 @@
-// Fixture preparation runs first; later yardstick tasks add bench and band reporting here.
+// Fixture preparation runs first, followed by diagnostic bench history and the generated budget table.
 const F = require('../tests/lib/fixtures.js'), { make, publish } = require('./fixtures.js');
 async function nightly() {
   F.fetchFixtures();
@@ -9,5 +9,8 @@ async function nightly() {
   } else console.log('nightly: all fixtures fresh; no simulation needed');
   publish();
   console.log('nightly: fixture preparation complete');
+  try { await require('./bench.js').runBench(); }
+  catch (e) { console.error('nightly: bench UNAVAILABLE ' + e.message); }
+  console.log('nightly: include docs/bench/history.jsonl and docs/bench/budget.md in the nightly PR');
 }
 nightly().catch((e) => { console.error('nightly: ' + e.message); process.exitCode = 1; });
