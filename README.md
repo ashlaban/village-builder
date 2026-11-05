@@ -5,4 +5,6 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
 - **Play online:** <https://ashlaban.github.io/village-builder/>
 - **Play locally:** open `index.html` in a browser.
 - **Build:** `python3 build.py` inlines `src/` into `index.html`.
-- **Test:** `npm install && npm test` (cheap checks, about 10 s, Node 20+); `npm run verify` adds the long runs, the golden file and the page smoke test.
+- **Test:** `npm install && npm test` (cheap headless checks, Node 20+); `npm run verify` adds long runs, golden states, saved fixtures and browser checks.
+- **Late-game fixtures:** `node tools/fixtures.js fetch` downloads reference saves; `status` checks freshness and `make` regenerates them.
+  `npm run nightly` prepares and publishes them on the dedicated `fixtures` branch.

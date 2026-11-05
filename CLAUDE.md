@@ -15,10 +15,16 @@ budget and cheap measurement.
 
 ## Commands
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
-- Test: `npm install && npm test` runs the cheap checks in parallel, about 10 s (build check, lint, backlog, regress, trees, stones, weeding, heirs, owners, kinlimit).
-- Verify: `npm run verify` runs those and the long runs, about 40 s (golden, populous, births, hunger, page smoke test in jsdom).
+- Test: `npm install && npm test` runs the cheap headless checks in parallel (including build, lint, ownership, backlog and regressions).
+- Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and page checks in jsdom and real Chromium.
   `node tests/run.js verify --verbose` also prints the reported numbers.
   Presentation timing budgets are deferred by Kim (4 November 2026, VB-166); browser checks cover functionality, not rendering speed.
+  Real Chromium checks run individually before the parallel headless checks to avoid software-GPU contention.
+- Fixtures: `node tools/fixtures.js status|fetch|publish`; `make [small-y5 small-y40 medium-y5 medium-y60]` makes all by default.
+  Saves and stamps live in gitignored `tests/fixtures/`, distributed on the orphan `fixtures` branch. A check or task needing a late
+  state uses `require('./lib/fixtures.js').loadFixture(name)` from tests (or `../tests/lib/fixtures.js` from tools): `{st, stamp, stale}`
+  or `null` with a missing/offline notice. A stale golden hash is usable; incompatible save formats require a remake.
+  `npm run nightly` fetches, remakes stale/missing fixtures in worker processes, and publishes a single replacement orphan commit.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
 - Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
