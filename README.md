@@ -8,6 +8,10 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
 - **Test:** `npm install && npm test` (cheap headless checks, Node 20+); `npm run verify` adds long runs, golden states, saved fixtures and browser checks.
 - **Late-game fixtures:** `node tools/fixtures.js fetch` downloads reference saves; `status` checks freshness and `make` regenerates them.
   `npm run nightly` prepares and publishes them on the dedicated `fixtures` branch.
+- **Bench:** `node tools/bench.js` reports 30 days on each medium fixture, codec costs, systems, A* and rules;
+  appends machine-labelled results to `docs/bench/history.jsonl` and regenerates `docs/bench/budget.md`.
+  `node tools/bench.js --budget` regenerates the table alone. Nightly runs it after fixture preparation;
+  include both bench files in the nightly PR. Measurements and 20% regression flags are diagnostic and never fail the run.
 
 On phones and tablets, the bottom bar opens People, Family records, Customs, or the Menu. People can be searched by person, farm, or village; expand a village and household to inspect its members and supplies. Select a person to find them on the map. Panels have collapse and close controls. Map layers, the minimap, and background-running settings are in Menu. Tap the current speed to choose another speed.
 

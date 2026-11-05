@@ -46,6 +46,7 @@ function load() {
 }
 // timeAdvance(Sim, st, hours): advances while timing; returns the wall time of the call in ms.
 function timeAdvance(Sim, st, hours) { active = true; const t0 = now(); try { Sim.advance(st, hours); } finally { active = false; } return now() - t0; }
+function reset() { for (const a of Object.values(acc)) Object.assign(a, { ms: 0, calls: 0, longest: 0, longestName: '' }); }
 function result(totalMs, days) {
   const rows = Object.entries(acc).map(([system, a]) => ({ system, ms: +a.ms.toFixed(1), msPerDay: +(a.ms / days).toFixed(2), share: 0, calls: a.calls,
     longestMs: +a.longest.toFixed(2), longestCall: a.longestName }));
@@ -56,4 +57,4 @@ function result(totalMs, days) {
   rows.sort((a, b) => b.ms - a.ms);
   return { totalMs: +totalMs.toFixed(1), days, msPerDay: +(totalMs / days).toFixed(2), systems: rows };
 }
-module.exports = { load, timeAdvance, result };
+module.exports = { load, timeAdvance, result, reset };

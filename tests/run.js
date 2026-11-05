@@ -7,6 +7,7 @@ const root = path.join(__dirname, '..');
 const TEST = [
   ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
   ['node', 'tests/fixture-tools.js'],
+  ['node', 'tests/bench.js'],
   ['node', 'tests/speed.js'],
   ['node', '--expose-gc', 'tests/registry.js'],
   ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
