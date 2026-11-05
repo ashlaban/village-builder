@@ -1,14 +1,20 @@
 // Browser smoke test: loads index.html in real Chromium (Playwright), PixiJS served from node_modules in place of the CDN.
 // Generates a Tiny Populous Villages map, skips a year, opens each panel, and fails on any console or page error. Runs in verify only.
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
+const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:', m); };
 (async () => {
-  const browser = await chromium.launch(), page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }), page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.setDefaultTimeout(60000);
   page.on('console', (m) => { if (m.type() === 'error') fail('console.error: ' + m.text()); });
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
-  await page.goto('file://' + path.join(root, 'index.html'));
+  await page.route('https://village.test/', (r) => r.fulfill({
+    contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+      .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')),
+  }));
+  await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('genScreen').hidden, null, { timeout: 60000 });
   await page.evaluate(() => {
     document.getElementById('genScenario').value = 'populous'; document.getElementById('genSize').value = 't'; document.getElementById('genSeed').value = '7';

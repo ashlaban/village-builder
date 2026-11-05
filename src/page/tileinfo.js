@@ -42,11 +42,14 @@
     if (cairn) out.push(`A cairn between ${st.villages[cairn.a].name} and ${st.villages[cairn.b].name}, set in year ${Math.floor(cairn.t / Sim.YEAR) + 1}`);
     return out;
   }
-  function pick(sx, sy) {
-    if (!w) return;
+  function pick(sx, sy, inspect = true) {
+    if (!w || document.body.classList.contains('ui-hidden')) return;
+    if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
+    if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
-    if (pw >= 0) { if (pw !== selPawn) selectPawn(pw); return; }
+    if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
     const i = loc(x, y, [0, 0]);
+    if (inspect || !activePanel) openPanel('tile');
     if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
   }
   function drawHover() {

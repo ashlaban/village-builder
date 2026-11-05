@@ -51,10 +51,17 @@ ctx.document.hidden = false; listeners['document:visibilitychange'](); assert.st
 listeners['window:blur'](); assert.strictEqual(timers.size, 1);
 checkbox.checked = false; listeners['checkbox:change'](); assert.strictEqual(timers.size, 0);
 // Load the actual input script too: browser shortcuts and text editing must not select a speed.
-const keyHandlers = {}, controls = { hidden: true, addEventListener() {} };
+const keyHandlers = {}, controls = { hidden: true, addEventListener() {} }, elements = new Map();
+const control = (id) => {
+  if (!elements.has(id)) elements.set(id, {
+    hidden: true, style: {}, classList: { remove() {} }, addEventListener() {}, setAttribute() {},
+  });
+  return elements.get(id);
+};
 const input = {
   stage: { addEventListener() {} }, window: { addEventListener: (event, fn) => { keyHandlers[event] = fn; } },
-  document: { querySelectorAll: () => [] }, $: () => controls, speed: 0, resetSpeedSample() {},
+  document: { querySelectorAll: () => [], addEventListener() {}, body: { classList: { toggle() {} } } },
+  matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {},
 };
 vm.createContext(input);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/input.js'), 'utf8'), input);

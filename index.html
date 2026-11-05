@@ -145,9 +145,6 @@ body {
 .dbg-row button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
 .dchk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; }
-@media (max-width: 640px) { .drawer { left: 8px; right: 8px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 62vh; } }
-@media (max-width: 760px) { .tree { padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px calc(env(safe-area-inset-bottom, 0px) + 8px); } .tree-body { grid-template-columns: 1fr; } .tree-info { border-left: 0; border-top: 1px solid var(--edge); max-height: 46vh; } .tree-head h2 { font-size: 21px; } }
-@media (max-width: 640px) { .lod { display: none; } }
 button {
   font: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink);
   background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 7px 14px; cursor: pointer;
@@ -184,21 +181,134 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
 .loader .bar i { display: block; height: 100%; width: 0; background: #9fd6c6; }
 .err { max-width: 34ch; font-family: 'Alegreya Sans', system-ui, sans-serif !important; font-style: normal !important; font-size: 16px !important; line-height: 1.4; }
-@media (max-width: 640px) {
-  .hud { padding: 10px; }
-  .clock strong { font-size: 16px; }
-  .speed button { padding: 5px 8px; }
-  .hud.top { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
-  .hud.bottom { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
-  .chart { max-width: 64vw; padding: 10px 12px 12px; border-radius: 14px; }
-  .chart h1 { font-size: 25px; }
-  .chart .hint { font-size: 13px; margin-bottom: 9px; }
-  button { font-size: 14px; padding: 6px 11px; }
-  .minimap { width: 128px; }
-  .tile { min-width: 0; padding: 8px 11px; }
-  .tile strong { font-size: 18px; }
-}
 @media (prefers-reduced-motion: reduce) { .loader, .tile { transition: none; } }
+
+/* The map stays central; panels share a predictable header and scroll area. */
+[hidden] { display: none !important; }
+.mobile-only { display: none; }
+:root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+button, select, input[type="search"], summary { min-height: 44px; }
+button { touch-action: manipulation; }
+summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, select { font: inherit; color: var(--ink); }
+.chart { width: 310px; }
+.chart .hint { margin-bottom: 8px; }
+.menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
+.background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
+.background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
+.clock { margin-right: 100px; max-width: 590px; }
+.speed button { min-width: 44px; }
+.ui-toggle { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); z-index: 8; }
+.navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
+  padding: 5px; border-radius: 18px; }
+.navigation button { min-width: 90px; border: 0; border-radius: 12px; }
+.navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
+.people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
+  max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
+.people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
+.drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
+.sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
+.sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
+  overflow-wrap: anywhere; }
+.sheet-head button { padding: 6px 10px; flex-shrink: 0; }
+.sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
+.sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
+.collapsed .sheet-content { display: none; }
+.collapsed .sheet-head { border-bottom: 0; }
+.settlers { max-height: none; overflow: visible; border-top: 0; margin: 0; padding: 0; }
+.search-label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: 12px; background: var(--node); padding: 10px 12px; font-size: 16px; }
+#peopleCount { margin: 8px 0; }
+.village-block, .household-block, .fold-section { border-top: 1px solid var(--edge); }
+.village-block > summary { font: italic 700 22px/1.3 'Alegreya', Georgia, serif; }
+.summary-meta { display: block; margin: 2px 0 0 18px; font: 400 14px/1.4 'Alegreya Sans', sans-serif; color: var(--muted); }
+.household-block { margin: 4px 0 8px 10px; padding-left: 8px; }
+.household-block > summary { font-size: 17px; font-weight: 700; }
+.household-block ul { margin: 8px 0; }
+.settlers li { padding: 5px 0; border-bottom: 1px solid var(--edge); }
+.settlers li button { min-height: 44px; padding: 8px 0; text-align: left; }
+.settlers .farm h2 { margin-top: 4px; }
+.settlers .farm p { margin: 4px 0; }
+.fold-section { margin-top: 8px; }
+.fold-section > summary { font-size: 15px; color: var(--ink); }
+.selection-summary { padding: 0 16px 12px; }
+.tile { min-width: 0; transition: none; }
+.tile span { font-size: 15px; line-height: 1.4; }
+#tileActivity { color: var(--ink); }
+.tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
+.tile .rel button i { flex-basis: 45%; }
+#personFamily { margin: 12px 0; }
+.minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
+#minimapClose { position: absolute; top: 3px; right: 3px; background: var(--panel); }
+.lod { bottom: calc(var(--dock-bottom) + 60px); }
+.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
+.custom-picker select { width: 100%; font-size: 16px; }
+.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
+.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
+.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
+.custom-card .different { color: var(--accent); }
+.custom-card .support { font-size: 13px; color: var(--muted); }
+.custom-card .sbar { height: 8px; margin: 8px 0; }
+.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
+.cust { min-width: 500px; }
+body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod { visibility: hidden; pointer-events: none; }
+body.ui-hidden .hud * { pointer-events: none; }
+.genscreen { overflow-y: auto; }
+.genscreen form { margin: auto; }
+.genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
+@media (max-width: 1024px) {
+  :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
+  .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
+  .chart { width: calc(100% - 90px); max-width: none; border: 0; box-shadow: none; background: transparent; backdrop-filter: none;
+    padding: 6px 8px 0; height: 38px; }
+  .chart h1 { color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; font-size: 23px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ui-toggle { top: calc(env(safe-area-inset-top, 0px) + 8px); right: max(8px, env(safe-area-inset-right, 0px));
+    min-height: 44px; padding: 8px 12px; font-size: 13px; }
+  .clock { position: relative; width: 100%; max-width: none; margin: 6px 0 0; padding: 6px 8px 6px 12px; gap: 6px;
+    flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
+  .calendar { flex: 1; min-width: 0; }
+  .clock strong { font-size: 17px; }
+  .clock span { font-size: 13px; }
+  #pauseBtn { padding: 7px 10px; min-width: 60px; }
+  #speedBtn { padding: 7px 10px; min-width: 52px; color: var(--accent); font-weight: 700; }
+  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; width: min(300px, calc(100vw - 16px));
+    padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
+  .speed-open .speed { display: flex; }
+  .speed button { flex: 1 0 26%; padding: 8px; }
+  .speed button[data-speed="Infinity"] { min-width: 145px; }
+  .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
+    border-radius: 16px; gap: 0; padding: 4px; }
+  .navigation button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 15px; }
+  .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
+  .world-menu { position: fixed; z-index: 6; overflow: auto; padding: 0 16px 16px; border: 1px solid var(--edge); border-radius: 18px;
+    background: var(--node); box-shadow: 0 10px 30px #03101a47; color: var(--ink); pointer-events: auto; }
+  .world-menu .sheet-head { display: flex; position: sticky; top: 0; background: var(--node); padding-left: 0; padding-right: 0; z-index: 1; }
+  .sheet-head { padding: 8px 10px; }
+  .sheet-head h2, .sheet-head strong { font-size: 19px; }
+  .sheet-head button { font-size: 13px; padding: 6px 8px; }
+  .sheet-content { padding: 10px 14px 14px; }
+  .minimap { width: 180px; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px);
+    visibility: hidden; pointer-events: none; }
+  body.minimap-open .minimap { visibility: visible; pointer-events: auto; }
+  body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
+  .lod { display: none; }
+  .tree { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  .tree-card { width: 100%; height: 100%; max-height: 100dvh; border-radius: 0; }
+  .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }
+  .tree-head h2 { font-size: 22px; flex: 1; }
+  .tree-head p { flex-basis: 100%; order: 3; }
+  .tree-body { display: flex; flex-direction: column; overflow: hidden; }
+  .tree-scroll { flex: 1; min-height: 90px; overscroll-behavior: contain; }
+  .tree-info { border-left: 0; border-top: 1px solid var(--edge); flex: 0 1 auto; max-height: 42dvh; padding: 12px 16px; }
+  .tree-info dd button { min-height: 44px; padding: 6px 0; }
+  .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+}
 </style>
 </head>
 <body>
@@ -208,23 +318,30 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 <div class="hud top">
   <header class="chart panel">
     <h1 id="name">Archipelago</h1>
-    <p class="meta" id="meta"></p>
-    <p class="hint" id="hint"></p>
-    <div class="actions">
-      <button class="primary" id="regen" type="button">New archipelago</button>
-      <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
-      <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
-      <button id="landBtn" type="button" aria-pressed="false">Land</button>
-      <button id="settlersBtn" type="button" aria-pressed="false">Settlers</button>
-      <button id="treeBtn" type="button">Family tree</button>
-      <button id="customsBtn" type="button" aria-pressed="false">Customs</button>
-      <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
+    <div id="worldMenu" class="world-menu">
+      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
+      <p class="meta" id="meta"></p>
+      <p class="hint" id="hint"></p>
+      <h2 class="menu-label">Map &amp; layers</h2>
+      <div class="actions">
+        <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
+        <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
+        <button id="landBtn" type="button" aria-pressed="false">Land</button>
+        <button id="minimapBtn" type="button" aria-pressed="false">Minimap</button>
+      </div>
+      <h2 class="menu-label">Game</h2>
+      <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
+      <div class="actions">
+        <button class="primary" id="regen" type="button">New archipelago</button>
+        <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
+      </div>
     </div>
-    <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
   </header>
   <div class="clock panel" id="clock">
-    <div><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
-    <div class="speed" role="group" aria-label="Game speed">
+    <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
+    <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
+    <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
+    <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
       <button type="button" data-speed="0" aria-pressed="false">Pause</button>
       <button type="button" data-speed="1" aria-pressed="true">1×</button>
       <button type="button" data-speed="3" aria-pressed="false">3×</button>
@@ -232,27 +349,59 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
-    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
   </div>
 </div>
+<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
-<aside class="drawer panel" id="drawer" hidden aria-label="Customs and debug tools">
-  <button class="dclose" id="drawerClose" type="button">Close</button>
-  <div id="drawerBody"></div>
+<nav class="navigation panel" aria-label="Game panels">
+  <button id="settlersBtn" type="button" aria-pressed="false" aria-controls="peopleSheet">People</button>
+  <button id="treeBtn" type="button" aria-haspopup="dialog">Family</button>
+  <button id="customsBtn" type="button" aria-pressed="false" aria-controls="drawer">Customs</button>
+  <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
+</nav>
+<aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
+  <div class="sheet-head">
+    <h2 id="peopleTitle">People &amp; households</h2>
+    <button type="button" class="sheet-expand" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent">Collapse</button>
+    <button id="peopleClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="peopleContent">
+    <label class="search-label" for="peopleSearch">Find a person, farm or village</label>
+    <input id="peopleSearch" type="search" placeholder="Search names…" autocomplete="off">
+    <p id="peopleCount" class="dm" role="status"></p>
+    <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
+  </div>
+</aside>
+<aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
+  <div class="sheet-head">
+    <h2 id="drawerTitle">Customs</h2>
+    <button type="button" class="sheet-expand" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody">Collapse</button>
+    <button id="drawerClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="drawerBody"></div>
 </aside>
 
 <div class="hud bottom">
-  <aside class="tile panel" id="tile" hidden aria-live="polite">
-    <strong id="tileName"></strong>
-    <span id="tileElev"></span>
-    <span id="tileCoord"></span>
-    <span id="tileExtra" hidden></span>
-    <span id="tileMore" hidden></span>
-    <div class="rel" id="tileRel" hidden></div>
+  <aside class="tile sheet panel collapsed" id="tile" hidden aria-labelledby="tileName">
+    <div class="sheet-head">
+      <strong id="tileName"></strong>
+      <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
+      <button id="tileClose" type="button" aria-label="Close selection">Close</button>
+    </div>
+    <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
+    <div class="sheet-content" id="tileDetails">
+      <span id="tileCoord"></span>
+      <span id="tileExtra" hidden></span>
+      <span id="tileMore" hidden></span>
+      <div id="tileRest"></div>
+      <button type="button" id="personFamily" hidden>View family records</button>
+      <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
+    </div>
   </aside>
-  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump">
+  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
     <canvas id="mmBase"></canvas>
     <canvas id="mmView"></canvas>
+    <button id="minimapClose" type="button" aria-label="Close minimap">Close</button>
   </div>
 </div>
 
@@ -260,7 +409,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   <div class="tree-card panel">
     <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
     <div class="tree-body">
-      <div class="tree-scroll"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
+      <div class="tree-scroll" tabindex="0" aria-label="Scroll family tree"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
     </div>
   </div>
@@ -269,6 +418,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 <div class="genscreen" id="genScreen" hidden>
   <form class="panel" id="genForm" autocomplete="off">
     <h1>New archipelago</h1>
+    <button id="genCancel" type="button" hidden>Back to game</button>
     <label>Map size
       <select id="genSize">
         <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -8037,6 +8187,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
+    $('genCancel').hidden = !w;
     $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
   async function build(seed, scenario, size) {
@@ -8055,7 +8206,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
-    treeSel = -1; selPawn = -1;
+    treeSel = -1; selPawn = -1; selectionPinned = false;
+    openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
+    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const wc = makeCanvas(wd.CW, wd.CH);
     G.bakeWater(wd, wc.getContext('2d'));
@@ -8134,7 +8287,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const mmBase = $('mmBase'), mmView = $('mmView'), mmBox = $('minimap');
   let mmLast = '';
   function drawMinimap(wd, wc, over) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round(mmBox.clientWidth * dpr), ch = Math.round((cw * wd.H) / wd.W);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round((mmBox.clientWidth || 200) * dpr), ch = Math.round((cw * wd.H) / wd.W);
     for (const c of [mmBase, mmView]) { c.width = cw; c.height = ch; }
     const g = mmBase.getContext('2d'), k = cw / wd.W, s = LV[2].size;
     g.imageSmoothingQuality = 'high';
@@ -8161,8 +8314,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     stopIntro(); vel.x = vel.y = 0;
     cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
   }
-  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
-  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
+  mmBox.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    mmBox.setPointerCapture(e.pointerId); mmJump(e);
+  });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons && !e.target.closest('button')) mmJump(e); });
 
   // ---- tile info ----
   function showTile(i) {
@@ -8207,11 +8363,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (cairn) out.push(`A cairn between ${st.villages[cairn.a].name} and ${st.villages[cairn.b].name}, set in year ${Math.floor(cairn.t / Sim.YEAR) + 1}`);
     return out;
   }
-  function pick(sx, sy) {
-    if (!w) return;
+  function pick(sx, sy, inspect = true) {
+    if (!w || document.body.classList.contains('ui-hidden')) return;
+    if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
+    if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
-    if (pw >= 0) { if (pw !== selPawn) selectPawn(pw); return; }
+    if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
     const i = loc(x, y, [0, 0]);
+    if (inspect || !activePanel) openPanel('tile');
     if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
   }
   function drawHover() {
@@ -8238,7 +8397,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   });
   stage.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId);
-    if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY); return; }
+    if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY, false); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     if (pinch && pointers.size >= 2) {
@@ -8269,7 +8428,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   stage.addEventListener('pointerup', endPointer);
   stage.addEventListener('pointercancel', endPointer);
   stage.addEventListener('pointerleave', (e) => {
-    if (e.pointerType === 'mouse' && !pointers.size) { sel = -1; selPawn = -1; hoverDirty = true; showTile(-1); } });
+    if (e.pointerType === 'mouse' && !pointers.size && !selectionPinned) {
+      sel = -1; selPawn = -1; hoverDirty = true; showTile(-1);
+    } });
   stage.addEventListener('wheel', (e) => {
     e.preventDefault(); stopIntro();
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
@@ -8280,8 +8441,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const keys = new Set();
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.target.closest && e.target.closest('button, input, select, textarea')) return;
-    if (!$('tree').hidden) return;
+    if (!$('tree').hidden) {
+      if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
+      return;
+    }
+    if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
+      closeSpeedOptions(); openPanel(null); return;
+    }
+    if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
+    if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
@@ -8296,7 +8464,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) showGenScreen(); });
+  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showGenScreen(); } });
+  $('genCancel').addEventListener('click', () => { $('genScreen').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
@@ -8312,15 +8481,91 @@ if (typeof module !== 'undefined') module.exports = Sim;
   toggle($('gridBtn'), (on) => { gridOn = on; });
   toggle($('regionBtn'), (on) => { L.regions.visible = on; });
   toggle($('landBtn'), (on) => { landOn = on; L.land.visible = on; if (on) drawLand(); });
-  toggle($('settlersBtn'), (on) => { $('settlers').hidden = !on; if (on && st) { settlersHTML = ''; renderSettlers(); } });
+  // Panel choices and folds belong to the page, never to saved simulation state.
+  const mobileUI = matchMedia('(max-width: 1024px)');
+  let activePanel = null, selectionPinned = false;
+  function closeSpeedOptions() {
+    $('clock').classList.remove('speed-open'); $('speedBtn').setAttribute('aria-expanded', 'false');
+    $('speedOptions').inert = mobileUI.matches;
+  }
+  function openPanel(panel) {
+    activePanel = panel; closeSpeedOptions();
+    $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
+    $('tile').hidden = panel !== 'tile';
+    $('drawer').hidden = !['customs', 'debug'].includes(panel);
+    drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
+    $('worldMenu').hidden = mobileUI.matches && panel !== 'menu';
+    $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
+    $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
+    $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
+    $('menuBtn').setAttribute('aria-pressed', String(panel === 'menu'));
+    if (mobileUI.matches && panel) setMinimap(false);
+    if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
+    if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
+  }
+  function toggleUI() {
+    const hidden = document.body.classList.toggle('ui-hidden');
+    $('uiToggle').textContent = hidden ? 'Show UI' : 'Hide UI';
+    $('uiToggle').setAttribute('aria-pressed', String(hidden));
+    for (const el of document.querySelectorAll('.hud, .navigation, .sheet')) el.inert = hidden;
+    closeSpeedOptions(); $('uiToggle').focus();
+  }
+  function setMinimap(on) {
+    document.body.classList.toggle('minimap-open', on);
+    $('minimapBtn').setAttribute('aria-pressed', String(on));
+    $('minimap').inert = !on;
+    if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
+  }
+  function adaptUI() {
+    $('worldMenu').hidden = mobileUI.matches && activePanel !== 'menu';
+    $('minimap').style.visibility = '';
+    setMinimap(!mobileUI.matches); closeSpeedOptions();
+  }
+  if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
+  $('uiToggle').addEventListener('click', toggleUI);
+  $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
+  $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
+  $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
+  $('peopleClose').addEventListener('click', () => { openPanel(null); $('settlersBtn').focus(); });
+  $('tileClose').addEventListener('click', () => {
+    selPawn = -1; sel = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();
+  });
+  $('personFamily').addEventListener('click', () => { treeSel = selPawn; openTree(); });
+  $('minimapBtn').addEventListener('click', () => {
+    const on = $('minimapBtn').getAttribute('aria-pressed') !== 'true';
+    if (mobileUI.matches) openPanel(null);
+    setMinimap(on);
+  });
+  $('minimapClose').addEventListener('click', () => {
+    setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
+  });
+  document.querySelectorAll('.sheet-expand').forEach((button) => button.addEventListener('click', () => {
+    const collapsed = $(button.dataset.sheet).classList.toggle('collapsed');
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.textContent = collapsed ? (button.dataset.sheet === 'tile' ? 'Details' : 'Expand') : 'Collapse';
+    if (!collapsed && button.dataset.sheet === 'peopleSheet') renderSettlers();
+    if (!collapsed && button.dataset.sheet === 'drawer') renderDrawer();
+  }));
+  $('speedBtn').addEventListener('click', () => {
+    const open = $('clock').classList.toggle('speed-open');
+    $('speedBtn').setAttribute('aria-expanded', String(open)); $('speedOptions').inert = !open;
+  });
+  document.addEventListener('pointerdown', (e) => { if (!$('clock').contains(e.target)) closeSpeedOptions(); });
+  $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
+  adaptUI();
   let lastSpeed = 1;
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
     resetSpeedSample();
+    $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
+    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
+    const chosen = v === 0 ? lastSpeed : v;
+    $('speedBtn').textContent = chosen === Infinity ? 'Max' : `${chosen}×`;
     document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
   }
-  document.querySelectorAll('.speed button').forEach((bt) => bt.addEventListener('click', () => setSpeed(+bt.dataset.speed)));
+  document.querySelectorAll('.speed button').forEach((bt) =>
+    bt.addEventListener('click', () => { setSpeed(+bt.dataset.speed); closeSpeedOptions(); if (mobileUI.matches) $('speedBtn').focus(); }));
 
   // ======== pawns: a jointed rig of tintable parts from one atlas, so a thousand pawns still batch ========
   // Parts are painted in greys (white = full colour) and tinted per pawn. 4 texels per world unit.
@@ -9343,8 +9588,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (tAcc > 0.25) {
       tAcc = 0;
       if (!$('settlers').hidden) renderSettlers();
-      if (selPawn >= 0) showPawn(selPawn);
-      else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+      if (drawerTab) renderDrawer();
+      if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
+        if (selPawn >= 0) showPawn(selPawn);
+        else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+      }
     }
   }
 
@@ -9372,74 +9620,136 @@ if (typeof module !== 'undefined') module.exports = Sim;
     return Object.entries(n).map(([k, v]) => `${v} ${word[k]}`).join(', ');
   }
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
-  let settlersHTML = '';
+  let settlersHTML = '', peopleQuery = '';
+  const peopleFolds = new Set();
+  const foldOpen = (key) => peopleFolds.has(key);
+  function fold(key, title, body, cls = 'fold-section') {
+    return `<details class="${cls}" data-fold="${key}"${foldOpen(key) ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
+  }
+  function updatePanelHTML(box, html) {
+    const scroll = box.closest('.sheet-content'), top = scroll ? scroll.scrollTop : 0;
+    const focused = box.contains(document.activeElement) ? document.activeElement : null;
+    const focusKey = focused && (focused.closest('[data-pawn]') ? `[data-pawn="${focused.closest('[data-pawn]').dataset.pawn}"]`
+      : focused.closest('[data-fold]') ? `[data-fold="${focused.closest('[data-fold]').dataset.fold}"] > summary` : null);
+    box.innerHTML = html;
+    if (focusKey) { const next = box.querySelector(focusKey); if (next) next.focus({ preventScroll: true }); }
+    if (scroll) scroll.scrollTop = top;
+  }
   function renderSettlers() {
-    let h = '';
-    const jobs = [...st.jobs.values()];
+    if (!st || document.body.classList.contains('ui-hidden') || $('peopleSheet').classList.contains('collapsed')) return;
+    const query = peopleQuery.trim().toLocaleLowerCase(), groups = new Map();
+    let matches = 0, total = 0, jobsIndex = null;
     const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
-    for (const v of st.villages) {
-      const vj = jobs.filter((j) => j.owner.type === 'village' && j.owner.id === v.id);
-      const worst = Math.min(...v.fence.map((s) => s.cond));
-      const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
-      const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
-      const fenceText = v.fence.length ? `Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair.` : 'No fence yet.';
-      h += `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2><p>${fenceText} ${v.well ? 'Shared well and woods.' :
-        'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsLine(vj))}</p>`;
-      // moving to new land (VB-148): where the village came from, the villages it gave rise to, and whether it is crowded
-      if (v.founded) h += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) +
-        1} from ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
-      const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
-      if (daughters.length) h += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
-      if (v.crowded > 0) h += `<p>Crowded: ${v.crowded === 1 ? '1 adult waits' : `${v.crowded} adults wait`} for land, and there is no room to clear.</p>`;
-      h += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}</p>`;
-      for (const plot of v.plots.filter((q) => !q.done)) {
-        h += `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done</p>`;
+    const jobsFor = (type, id) => {
+      if (!jobsIndex) {
+        jobsIndex = new Map();
+        for (const job of st.jobs.values()) {
+          const key = `${job.owner.type}:${job.owner.id}`;
+          if (!jobsIndex.has(key)) jobsIndex.set(key, []);
+          jobsIndex.get(key).push(job);
+        }
       }
-      for (const plot of v.plots.filter((q) => q.done)) {
-        h += `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage &&
-          !plot.built ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
-      }
-      for (const f of empties) h += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at ${Math.round(
-        f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
-      h += '</div>';
-    }
+      return jobsLine(jobsIndex.get(`${type}:${id}`) || []);
+    };
     for (const hh of st.households) {
       if (hh.dissolved) continue;
+      total += hh.members.length;
       const f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
-      const hj = jobs.filter((j) => j.owner.type === 'household' && j.owner.id === hh.id), heirs = Sim.heirRanking(st, hh).slice(0, 2);
-      h += `<div class="farm"><h2>${esc(f.name)} <span>in ${esc(v.name)}</span></h2>`;
-      if (f.booth) h += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
-      h += `<p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>${hh.guardian !== undefined &&
-        hh.guardian !== null ? `<p>Guardian: ${nm(hh.guardian)}</p>` : ''}`;
-      h += `<p>Grain ${Math.round(hh.grain)} rations${Sim.seedReserve(st,
-        hh) ? ` (${Sim.seedReserve(st,
-        hh)} set aside as seed)` : ''}${hh.unthreshed.length ? `, ${Math.round(hh.unthreshed.reduce((s, n) => s + n,
-        0))} unthreshed in sheaves` : ''}, firewood ${Math.round(hh.wood)} loads, stone ${hh.stone} loads${hh.hungryDays ? `, ${hh.hungryDays} hungry days` :
-        ''}, ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : hh.hunger < 0.6 ? 'hungry' : 'starving'}, lowest health ${Math.round(Math.min(100,
-        ...hh.members.map((m) => st.pawns[m].health)))}</p>`;
-      const herdText = Sim.describeHerds(st, hh);
-      const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
-        .map(([k, word]) => [Sim.larderOf(hh, k), word]).filter(([n]) => n >= 0.5);
-      const larder = lots.length ? `; larder ${lots.map(([n, word]) => `${Math.round(n)} ${word}`).join(', ')}` : '';
-      if (herdText || hh.hay > 0 ||
-        larder) h += `<p>${esc(herdText ||
-        'No animals')}. Hay ${Math.round(hh.hay)}${herdText ? `, a winter needs ${Math.round(Sim.winterNeed(st, hh))}` : ''}${larder}</p>`;
-      h += `<p>Fields: ${fieldSummary(f) ||
-        'none'}${f.project ? (f.project.stage === 'meadow' ? '; clearing a new hay meadow' :
-        `; new field in progress: ${f.project.stage === 'clear' ? 'clearing the ground' : 'breaking the ground'}`) : ''}${f.meadows.length ?
-        `; ${f.meadows.length === 1 ? 'a hay meadow' : `${f.meadows.length} hay meadows`}` : ''}</p><p class="jobs">Jobs: ${esc(jobsLine(hj))}</p><ul>`;
-      for (const id of hh.members) {
-        const p = st.pawns[id];
-        h += `<li>${nm(id)} ${p.age}, ${esc(Sim.ROLES[p.role] ? (p.role === 'farmer' &&
-          p.sex === 'f' ? (isWidow(p) ? 'widow' : 'holder') : Sim.ROLES[p.role].title.toLowerCase()) : p.role)}<br><span class="doing">${esc(Sim.describe(st,
-          id))}</span></li>`;
-      }
-      h += '</ul></div>';
+      const whole = !query || `${f.name} ${v.name}`.toLocaleLowerCase().includes(query);
+      const members = whole ? hh.members : hh.members.filter((id) => Sim.fullName(st.pawns[id]).toLocaleLowerCase().includes(query));
+      if (!members.length) continue;
+      matches += members.length;
+      if (!groups.has(v.id)) groups.set(v.id, []);
+      groups.get(v.id).push({ hh, f, members });
     }
-    h += '<div class="log"><h2>Recent</h2>' + st.events.slice(0, 6).map((e) => {
-      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`; }).join('') + '</div>';
-    if (h !== settlersHTML) { settlersHTML = h; $('settlers').innerHTML = h; }
+    const household = ({ hh, f, members }) => {
+      const key = `household-${hh.id}`, expanded = !!query || foldOpen(key);
+      const state = hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving';
+      let body = '';
+      if (expanded) {
+        const heirs = Sim.heirRanking(st, hh).slice(0, 2);
+        body += `<div class="farm"><p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+        if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
+        if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
+        body += `<ul>${members.map((id) => {
+          const pawn = st.pawns[id];
+          return `<li>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
+        }).join('')}</ul>`;
+        const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
+        body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
+          `<p>Grain ${Math.round(hh.grain)} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
+          <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
+          <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
+          <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
+        body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
+          `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
+          ${f.project ? `<p>New ${f.project.stage === 'meadow' ? 'hay meadow' : 'field'} in progress: ${esc(f.project.stage)}.</p>` : ''}
+          <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
+        let animals = '';
+        if (foldOpen(animalsKey)) {
+          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
+            .map(([kind, label]) => [Sim.larderOf(hh, kind), label]).filter(([n]) => n >= .5);
+          animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
+            <p>Hay ${Math.round(hh.hay)}; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
+            <p>Larder: ${lots.length ? lots.map(([n, label]) => `${Math.round(n)} ${label}`).join(', ') : 'empty'}.</p>`;
+        }
+        body += fold(animalsKey, 'Animals & larder', animals) + '</div>';
+      }
+      return `<details class="household-block" data-fold="${key}"${expanded ? ' open' : ''}>
+        <summary>${esc(f.name)}<span class="summary-meta">${hh.members.length} people · ${state}</span></summary>${body}</details>`;
+    };
+    let h = '';
+    for (const v of st.villages) {
+      const households = groups.get(v.id) || [];
+      if (!households.length && query) continue;
+      const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
+      let body = '';
+      if (expanded) {
+        body = households.map(household).join('');
+        const commonsKey = `commons-${v.id}`;
+        let commons = '';
+        if (foldOpen(commonsKey)) {
+          const worst = Math.min(...v.fence.map((fence) => fence.cond));
+          const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
+          const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
+          commons = `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2>
+            <p>${v.fence.length ? `Fence in ${worst < .45 ? 'poor' : worst < .65 ? 'fair' : 'good'} repair.` : 'No fence yet.'}
+            ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsFor('village', v.id))}</p>`;
+          if (v.founded) commons += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from
+            ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
+          const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
+          if (daughters.length) commons += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
+          if (v.crowded > 0) commons += `<p>Crowded: ${v.crowded} adults wait for land, and there is no room to clear.</p>`;
+          commons += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}.</p>`;
+          for (const plot of v.plots) {
+            commons += !plot.done ? `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done.</p>`
+              : `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage && !plot.built
+                ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
+          }
+          for (const f of empties) commons += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at
+            ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
+          commons += '</div>';
+        }
+        body += fold(commonsKey, 'Village commons & expansion', commons);
+      }
+      const population = households.reduce((sum, item) => sum + item.members.length, 0);
+      h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
+        <summary>${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+    }
+    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
+      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
+    }).join('') + '</div>' : '');
+    if (!h) h = '<p>No matching people or households. Try another name.</p>';
+    $('peopleCount').textContent = query ? `${matches} of ${total} people match` : `${total} people across ${st.villages.length} villages`;
+    if (h !== settlersHTML) { settlersHTML = h; updatePanelHTML($('settlers'), h); }
   }
+  $('peopleSearch').addEventListener('input', (e) => { peopleQuery = e.target.value; renderSettlers(); });
+  $('settlers').addEventListener('toggle', (e) => {
+    const key = e.target.dataset.fold;
+    if (!key || (peopleQuery.trim() && /^(village|household)-/.test(key)) || foldOpen(key) === e.target.open) return;
+    if (e.target.open) peopleFolds.add(key); else peopleFolds.delete(key);
+    renderSettlers();
+  }, true);
   function focusPawn(id) {
     const p = st.pawns[id]; if (p.died !== null) { treeSel = id; openTree(); return; }
     const a = st.agents[id], f = farmOf(p);
@@ -9449,8 +9759,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     selectPawn(id);
   }
   $('settlers').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function selectPawn(id) { selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
+  function selectPawn(id, pinned = true) { selectionPinned = pinned; openPanel('tile'); selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
   function showPawn(id) {
+    $('personFamily').hidden = false;
     const p = st.pawns[id], f = farmOf(p);
     if (p.died !== null || !f) { card(Sim.fullName(p), ['Died']); return; }
     const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
@@ -9464,8 +9775,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` :
-      (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''), Sim.describe(st, id),
-      Sim.idleLine(st, id)].filter(Boolean));
+      (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''),
+      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id));
     showRelations(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
@@ -9483,13 +9794,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }).join('');
     const h = rows ? `<h3>Knows best</h3>${rows}` : '';
     if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
-    $('tileRel').hidden = !h;
+    $('tileRel').hidden = !h; $('relationsDetails').hidden = !h;
   }
   $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function card(title, lines) {
+  function card(title, lines, activity = '') {
     $('tileName').textContent = title;
-    ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => { const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k]; });
-    $('tileRel').hidden = true; $('tile').hidden = false;
+    $('tileActivity').textContent = activity; $('tileActivity').hidden = !activity;
+    ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => {
+      const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k];
+    });
+    const rest = lines.slice(4).map((line) => `<span>${esc(line)}</span>`).join('');
+    if ($('tileRest').innerHTML !== rest) $('tileRest').innerHTML = rest;
+    $('personFamily').hidden = selPawn < 0;
+    $('tileRel').hidden = true; $('relationsDetails').hidden = true;
+    $('tile').hidden = activePanel !== 'tile';
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;
@@ -9497,7 +9815,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const a of st.agents) {
       if (a.inside || st.pawns[a.id].died !== null) continue;
       const dx = x - a.x, dy = y - (a.y - 9);
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 10) { const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = a.id; } }
+      if (Math.abs(dx) < (coarse ? Math.max(6, 22 / cam.z) : 6) && Math.abs(dy) < (coarse ? Math.max(10, 22 / cam.z) : 10)) {
+        const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = a.id; } }
     }
     return best;
   }
@@ -9656,83 +9975,123 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function openTree() {
     if (!st) return;
-    $('tree').hidden = false; $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    openPanel(null);
+    $('tree').hidden = false;
+    for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = true;
+    $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
     const L2 = layoutTree(st), living = st.pawns.filter((p) => p.died === null).length;
     $('treeSub').textContent = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages, ${L2.rows.length} ${L2.rows.length === 1 ?
       'generation' : 'generations'}`;
     if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
     renderTree(); renderTreeInfo(); $('treeClose').focus();
   }
-  const closeTree = () => { $('tree').hidden = true; $('treeBtn').focus(); };
+  const closeTree = () => {
+    $('tree').hidden = true;
+    for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = false;
+    closeSpeedOptions(); $('minimap').inert = $('minimapBtn').getAttribute('aria-pressed') !== 'true';
+    $('treeBtn').focus();
+  };
   $('treeBtn').addEventListener('click', openTree);
   $('treeClose').addEventListener('click', closeTree);
   $('tree').addEventListener('click', (e) => {
     if (e.target === $('tree')) { closeTree(); return; }
     if (e.target.id === 'treeShow') { closeTree(); focusPawn(treeSel); return; }
     const n = e.target.closest('[data-pawn]');
-    if (n) { treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+    if (n) { treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); focusTreePerson(); }
   });
+  const focusTreePerson = () => { const node = $('treeSvg').querySelector(`[data-pawn="${treeSel}"]`); if (node) node.focus(); };
   $('tree').addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeTree();
+    if (e.key === 'Escape') { e.preventDefault(); closeTree(); return; }
+    if (e.key === 'Tab') {
+      const focusable = [...$('tree').querySelectorAll('button, [tabindex="0"]')].filter((el) => !el.hidden && el.getClientRects().length);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
     const n = e.target.closest && e.target.closest('g[data-pawn]');
-    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); }
+    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); treeSel = +n.dataset.pawn; renderTree(); renderTreeInfo(); focusTreePerson(); }
   });
 
   // ======== customs and debug drawer ========
-  let drawerTab = null, skipping = false, drawerHTML = '';
+  let drawerTab = null, skipping = false;
   const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
   function openDrawer(tab) {
-    drawerTab = drawerTab === tab ? null : tab;
-    drawer.hidden = !drawerTab;
-    $('customsBtn').setAttribute('aria-pressed', String(drawerTab === 'customs'));
-    $('debugBtn').setAttribute('aria-pressed', String(drawerTab === 'debug'));
-    drawerHTML = ''; if (drawerTab === 'debug') buildDebug(); renderDrawer();
+    openPanel(activePanel === tab ? null : tab);
+    $('drawerTitle').textContent = tab === 'debug' ? 'Debug' : 'Customs';
+    if (drawerTab === 'debug') buildDebug();
+    if (drawerTab === 'customs') buildCustoms();
+    renderDrawer();
   }
   $('customsBtn').addEventListener('click', () => openDrawer('customs'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
-  $('drawerClose').addEventListener('click', () => openDrawer(drawerTab));
+  $('drawerClose').addEventListener('click', () => {
+    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
+  });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
     return days; };
+  let customVillage = 0, customsStamp = '', comparisonOpen = false;
+  function buildCustoms() {
+    const setts = st.cenv.settlements;
+    if (!setts[customVillage]) customVillage = 0;
+    $('drawerBody').innerHTML = `<label class="custom-picker">Village<select id="customVillage">${setts.map((s) =>
+      `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><div id="customContent"></div>
+      <details id="customComparison"><summary>Compare all villages</summary><div id="customTable" class="table-scroll" tabindex="0"
+      role="region" aria-label="Village customs comparison, scroll horizontally"></div></details>`;
+    $('customVillage').value = String(customVillage);
+    $('customVillage').addEventListener('change', (e) => { customVillage = +e.target.value; customsStamp = ''; renderDrawer(); });
+    $('customComparison').open = comparisonOpen;
+    $('customComparison').addEventListener('toggle', (e) => {
+      comparisonOpen = e.target.open; customsStamp = ''; renderDrawer();
+    });
+    customsStamp = '';
+  }
   function renderDrawer() {
-    if (!drawerTab || !st) return;
-    if (drawerTab === 'customs') {
-      const env = st.cenv; let h = '<h2 class="dh">Customs</h2>';
-      const days = nextMeeting();
-      h += `<p class="dm">Attitudes drift every day; a village’s practice changes only at its meeting after harvest (next in ${days} ${days === 1 ? 'day' :
-        'days'}), the culture’s customs only at the reckoning that follows.</p>`;
-      for (const c of env.cultures) h += `<p class="dm"><strong>${esc(c.name)} culture</strong>, centred on ${esc(
-        env.settlements[c.centres[0]].name)}${c.parent !== null ? `, split from ${esc(env.cultures[c.parent].name)}` : ''}.</p>`;
-      const setts = env.settlements;
-      for (const s of setts) {
-        const voices = Sim.membersOf(st, s.id).filter((p) => Sim.voiceOf(st, p, s) > 0).length;
-        h += `<p class="dm">${esc(s.name)}: ${Sim.membersOf(st, s.id).length} people, ${voices} with a voice; tie to the centre ${Math.round(
-          s.tie * 100)}%${s.id !== env.cultures[s.culture].centres[0] ? `, ${Math.round((s.divergence ||
-          0) * 100)}% apart in practice${s.fissionYears ? `, ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}` : ''}.</p>`;
-      }
-      h += `<table class="cust"><thead><tr><th scope="col">Custom</th><th scope="col">Culture</th>${setts.map((s) =>
-        `<th scope="col">${esc(s.name)}</th>`).join('')}</tr></thead><tbody>`;
-      const sup = setts.map((s) => Culture.support(env, Sim.membersOf(st, s.id), (p) => Sim.voiceOf(st, p, s)).S);
+    if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
+    if (drawerTab !== 'customs') { updateDebug(); return; }
+    if (!$('customContent')) buildCustoms();
+    const env = st.cenv, setts = env.settlements;
+    // Rebuild the selector when villages change, not every animation tick.
+    if ($('customVillage').options.length !== setts.length) buildCustoms();
+    const stamp = `${Math.floor(st.t / Sim.DAY)}:${customVillage}:${comparisonOpen}:${setts.map((s) => s.practice.join(',')).join(';')}`;
+    if (stamp === customsStamp) return;
+    customsStamp = stamp;
+    const s = setts[customVillage], culture = env.cultures[s.culture], members = Sim.membersOf(st, s.id);
+    const voices = members.filter((p) => Sim.voiceOf(st, p, s) > 0).length;
+    const support = Culture.support(env, members, (p) => Sim.voiceOf(st, p, s)).S, days = nextMeeting();
+    let h = `<p class="dm">${members.length} people · ${voices} with a voice · ${Math.round(s.tie * 100)}% tie to the culture’s centre.</p>
+      <p class="dm"><strong>${esc(culture.name)} culture</strong>, centred on ${esc(setts[culture.centres[0]].name)}${culture.parent !== null
+        ? `, split from ${esc(env.cultures[culture.parent].name)}` : ''}.</p>
+      <p class="dm">Next village meetings in ${days} ${days === 1 ? 'day' : 'days'}. Attitudes drift daily; practice changes at the meeting after harvest.</p>`;
+    if (s.id !== culture.centres[0]) h += `<p class="dm">${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears
+      ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
+    Culture.DIMS.forEach((d, k) => {
+      const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
+      h += `<section class="custom-card"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
+        optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
+        <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
+          `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
+        <p class="support">${d.opts.map((option, j) => `<span class="sw" style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(
+          support[offset + j] * 100)}%`).join(' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
+    });
+    h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
+      `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
+    updatePanelHTML($('customContent'), h);
+    if (comparisonOpen) {
+      const sup = setts.map((v) => Culture.support(env, Sim.membersOf(st, v.id), (p) => Sim.voiceOf(st, p, v)).S);
+      let table = `<table class="cust"><thead><tr><th scope="col">Custom</th>${setts.map((v) =>
+        `<th scope="col">${esc(v.name)}<br>${esc(env.cultures[v.culture].name)} culture</th>`).join('')}</tr></thead><tbody>`;
       Culture.DIMS.forEach((d, k) => {
-        const c = env.cultures[setts[0].culture], dots = Math.max(1, Math.round(d.m * 5));
-        h += `<tr><th scope="row">${esc(d.label)}<br><span class="mall" title="How easily it changes">${'●'.repeat(dots)}${'○'.repeat(
-          5 - dots)}</span></th><td>${esc(optLabel(k, c.customs[k]))}</td>`;
-        setts.forEach((s, si) => {
-          const cc = env.cultures[s.culture], dev = s.practice[k] !== cc.customs[k], o = Culture.OFF[k];
-          const segs = d.opts.map((op, j) =>
-            `<i style="width:${(sup[si][o + j] * 100).toFixed(1)}%;background:${BAR[j]}" title="${esc(op[1])}: ${Math.round(
-            sup[si][o + j] * 100)}%"></i>`).join('');
-          h += `<td class="${dev ? 'dev' : ''}">${esc(optLabel(k, s.practice[k]))}<div class="sbar" aria-hidden="true">${segs}</div></td>`;
-        });
-        h += '</tr>';
+        table += `<tr><th scope="row">${esc(d.label)}</th>${setts.map((v, i) => {
+          const c = env.cultures[v.culture], different = v.practice[k] !== c.customs[k];
+          return `<td class="${different ? 'dev' : ''}">${esc(optLabel(k, v.practice[k]))}<br>Culture: ${esc(optLabel(k, c.customs[k]))}
+            <div class="sbar" aria-hidden="true">${d.opts.map((option, j) => `<i style="width:${(sup[i][Culture.OFF[k] + j] * 100).toFixed(1)}%;
+              background:${BAR[j]}"></i>`).join('')}</div></td>`;
+        }).join('')}</tr>`;
       });
-      h += '</tbody></table><p class="dm">Bars show voice-weighted support for each option today, in the order: ' + ['first', 'second', 'third',
-        'fourth'].map((n, j) => `<span class="sw" style="background:${BAR[j]}"></span>${n}`).join(' ') + ' option.</p>';
-      h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
-        `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
-      if (h !== drawerHTML) { drawerHTML = h; $('drawerBody').innerHTML = h; }
-    } else updateDebug();
+      $('customTable').innerHTML = table + '</tbody></table>';
+    }
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');

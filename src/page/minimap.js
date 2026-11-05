@@ -3,7 +3,7 @@
   const mmBase = $('mmBase'), mmView = $('mmView'), mmBox = $('minimap');
   let mmLast = '';
   function drawMinimap(wd, wc, over) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round(mmBox.clientWidth * dpr), ch = Math.round((cw * wd.H) / wd.W);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round((mmBox.clientWidth || 200) * dpr), ch = Math.round((cw * wd.H) / wd.W);
     for (const c of [mmBase, mmView]) { c.width = cw; c.height = ch; }
     const g = mmBase.getContext('2d'), k = cw / wd.W, s = LV[2].size;
     g.imageSmoothingQuality = 'high';
@@ -30,6 +30,9 @@
     stopIntro(); vel.x = vel.y = 0;
     cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
   }
-  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
-  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
+  mmBox.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    mmBox.setPointerCapture(e.pointerId); mmJump(e);
+  });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons && !e.target.closest('button')) mmJump(e); });
 

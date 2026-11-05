@@ -145,9 +145,6 @@ body {
 .dbg-row button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
 .dchk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; }
-@media (max-width: 640px) { .drawer { left: 8px; right: 8px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 62vh; } }
-@media (max-width: 760px) { .tree { padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px calc(env(safe-area-inset-bottom, 0px) + 8px); } .tree-body { grid-template-columns: 1fr; } .tree-info { border-left: 0; border-top: 1px solid var(--edge); max-height: 46vh; } .tree-head h2 { font-size: 21px; } }
-@media (max-width: 640px) { .lod { display: none; } }
 button {
   font: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink);
   background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 7px 14px; cursor: pointer;
@@ -184,18 +181,131 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
 .loader .bar i { display: block; height: 100%; width: 0; background: #9fd6c6; }
 .err { max-width: 34ch; font-family: 'Alegreya Sans', system-ui, sans-serif !important; font-style: normal !important; font-size: 16px !important; line-height: 1.4; }
-@media (max-width: 640px) {
-  .hud { padding: 10px; }
-  .clock strong { font-size: 16px; }
-  .speed button { padding: 5px 8px; }
-  .hud.top { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
-  .hud.bottom { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
-  .chart { max-width: 64vw; padding: 10px 12px 12px; border-radius: 14px; }
-  .chart h1 { font-size: 25px; }
-  .chart .hint { font-size: 13px; margin-bottom: 9px; }
-  button { font-size: 14px; padding: 6px 11px; }
-  .minimap { width: 128px; }
-  .tile { min-width: 0; padding: 8px 11px; }
-  .tile strong { font-size: 18px; }
-}
 @media (prefers-reduced-motion: reduce) { .loader, .tile { transition: none; } }
+
+/* The map stays central; panels share a predictable header and scroll area. */
+[hidden] { display: none !important; }
+.mobile-only { display: none; }
+:root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+button, select, input[type="search"], summary { min-height: 44px; }
+button { touch-action: manipulation; }
+summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, select { font: inherit; color: var(--ink); }
+.chart { width: 310px; }
+.chart .hint { margin-bottom: 8px; }
+.menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
+.background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
+.background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
+.clock { margin-right: 100px; max-width: 590px; }
+.speed button { min-width: 44px; }
+.ui-toggle { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); z-index: 8; }
+.navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
+  padding: 5px; border-radius: 18px; }
+.navigation button { min-width: 90px; border: 0; border-radius: 12px; }
+.navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
+.people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
+  max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
+.people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
+.drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
+.sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
+.sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
+  overflow-wrap: anywhere; }
+.sheet-head button { padding: 6px 10px; flex-shrink: 0; }
+.sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
+.sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
+.collapsed .sheet-content { display: none; }
+.collapsed .sheet-head { border-bottom: 0; }
+.settlers { max-height: none; overflow: visible; border-top: 0; margin: 0; padding: 0; }
+.search-label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: 12px; background: var(--node); padding: 10px 12px; font-size: 16px; }
+#peopleCount { margin: 8px 0; }
+.village-block, .household-block, .fold-section { border-top: 1px solid var(--edge); }
+.village-block > summary { font: italic 700 22px/1.3 'Alegreya', Georgia, serif; }
+.summary-meta { display: block; margin: 2px 0 0 18px; font: 400 14px/1.4 'Alegreya Sans', sans-serif; color: var(--muted); }
+.household-block { margin: 4px 0 8px 10px; padding-left: 8px; }
+.household-block > summary { font-size: 17px; font-weight: 700; }
+.household-block ul { margin: 8px 0; }
+.settlers li { padding: 5px 0; border-bottom: 1px solid var(--edge); }
+.settlers li button { min-height: 44px; padding: 8px 0; text-align: left; }
+.settlers .farm h2 { margin-top: 4px; }
+.settlers .farm p { margin: 4px 0; }
+.fold-section { margin-top: 8px; }
+.fold-section > summary { font-size: 15px; color: var(--ink); }
+.selection-summary { padding: 0 16px 12px; }
+.tile { min-width: 0; transition: none; }
+.tile span { font-size: 15px; line-height: 1.4; }
+#tileActivity { color: var(--ink); }
+.tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
+.tile .rel button i { flex-basis: 45%; }
+#personFamily { margin: 12px 0; }
+.minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
+#minimapClose { position: absolute; top: 3px; right: 3px; background: var(--panel); }
+.lod { bottom: calc(var(--dock-bottom) + 60px); }
+.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
+.custom-picker select { width: 100%; font-size: 16px; }
+.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
+.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
+.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
+.custom-card .different { color: var(--accent); }
+.custom-card .support { font-size: 13px; color: var(--muted); }
+.custom-card .sbar { height: 8px; margin: 8px 0; }
+.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
+.cust { min-width: 500px; }
+body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod { visibility: hidden; pointer-events: none; }
+body.ui-hidden .hud * { pointer-events: none; }
+.genscreen { overflow-y: auto; }
+.genscreen form { margin: auto; }
+.genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
+@media (max-width: 1024px) {
+  :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
+  .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
+  .chart { width: calc(100% - 90px); max-width: none; border: 0; box-shadow: none; background: transparent; backdrop-filter: none;
+    padding: 6px 8px 0; height: 38px; }
+  .chart h1 { color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; font-size: 23px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ui-toggle { top: calc(env(safe-area-inset-top, 0px) + 8px); right: max(8px, env(safe-area-inset-right, 0px));
+    min-height: 44px; padding: 8px 12px; font-size: 13px; }
+  .clock { position: relative; width: 100%; max-width: none; margin: 6px 0 0; padding: 6px 8px 6px 12px; gap: 6px;
+    flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
+  .calendar { flex: 1; min-width: 0; }
+  .clock strong { font-size: 17px; }
+  .clock span { font-size: 13px; }
+  #pauseBtn { padding: 7px 10px; min-width: 60px; }
+  #speedBtn { padding: 7px 10px; min-width: 52px; color: var(--accent); font-weight: 700; }
+  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; width: min(300px, calc(100vw - 16px));
+    padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
+  .speed-open .speed { display: flex; }
+  .speed button { flex: 1 0 26%; padding: 8px; }
+  .speed button[data-speed="Infinity"] { min-width: 145px; }
+  .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
+    border-radius: 16px; gap: 0; padding: 4px; }
+  .navigation button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 15px; }
+  .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
+  .world-menu { position: fixed; z-index: 6; overflow: auto; padding: 0 16px 16px; border: 1px solid var(--edge); border-radius: 18px;
+    background: var(--node); box-shadow: 0 10px 30px #03101a47; color: var(--ink); pointer-events: auto; }
+  .world-menu .sheet-head { display: flex; position: sticky; top: 0; background: var(--node); padding-left: 0; padding-right: 0; z-index: 1; }
+  .sheet-head { padding: 8px 10px; }
+  .sheet-head h2, .sheet-head strong { font-size: 19px; }
+  .sheet-head button { font-size: 13px; padding: 6px 8px; }
+  .sheet-content { padding: 10px 14px 14px; }
+  .minimap { width: 180px; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px);
+    visibility: hidden; pointer-events: none; }
+  body.minimap-open .minimap { visibility: visible; pointer-events: auto; }
+  body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
+  .lod { display: none; }
+  .tree { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  .tree-card { width: 100%; height: 100%; max-height: 100dvh; border-radius: 0; }
+  .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }
+  .tree-head h2 { font-size: 22px; flex: 1; }
+  .tree-head p { flex-basis: 100%; order: 3; }
+  .tree-body { display: flex; flex-direction: column; overflow: hidden; }
+  .tree-scroll { flex: 1; min-height: 90px; overscroll-behavior: contain; }
+  .tree-info { border-left: 0; border-top: 1px solid var(--edge); flex: 0 1 auto; max-height: 42dvh; padding: 12px 16px; }
+  .tree-info dd button { min-height: 44px; padding: 6px 0; }
+  .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+}

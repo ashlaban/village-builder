@@ -17,6 +17,7 @@
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
+    $('genCancel').hidden = !w;
     $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
   async function build(seed, scenario, size) {
@@ -35,7 +36,9 @@
       showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
-    treeSel = -1; selPawn = -1;
+    treeSel = -1; selPawn = -1; selectionPinned = false;
+    openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
+    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const wc = makeCanvas(wd.CW, wd.CH);
     G.bakeWater(wd, wc.getContext('2d'));
