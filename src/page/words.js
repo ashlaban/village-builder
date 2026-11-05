@@ -93,7 +93,7 @@
           const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
             .map(([kind, label]) => [Sim.larderOf(hh, kind), label]).filter(([n]) => n >= .5);
           animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
-            <p>Hay ${Math.round(hh.hay)}; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
+            <p>Hay ${Math.round(hh.hay)}, ${Math.round(hh.haySpoilt || 0)} spoilt; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
             <p>Larder: ${lots.length ? lots.map(([n, label]) => `${Math.round(n)} ${label}`).join(', ') : 'empty'}.</p>`;
         }
         body += fold(animalsKey, 'Animals & larder', animals) + '</div>';

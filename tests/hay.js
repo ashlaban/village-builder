@@ -7,7 +7,44 @@ const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); 
 const at = (st, doy) => Sim.advance(st, doy * Sim.DAY + 6 - st.t); // to 6:00 on that day of year 1
 const meadows = (st) => st.farmsteads.flatMap((f) => f.meadows);
 
+// Constructed barns isolate spoilage from feeding, breeding, and haymaking.
+const { spoilHay, byreDay } = VB['sim/byre'];
+const barnState = { herds: [{ species: 'sheep', ewes: 5, rams: 0, lambs: 0 }] };
+const winter = Sim.winterNeed(barnState, { herds: [0] });
+const barn = (n, herds = [0]) => ({ hay: n, haySpoilt: 0, herds });
+const yearLoss = (hh) => { for (let d = 0; d < Sim.YEAR_DAYS; d++) spoilHay(barnState, hh); return hh.haySpoilt; };
+let hh = barn(winter);
+check(Math.abs(yearLoss(hh) - winter * 0.05) < 1e-9, 'one winter loses 5% in a year');
+hh = barn(4 * winter);
+spoilHay(barnState, hh);
+const daily = (rate) => 1 - Math.pow(1 - rate, 1 / Sim.YEAR_DAYS);
+check(Math.abs(hh.haySpoilt - winter * (daily(0.05) + daily(0.25) + 2 * daily(0.5))) < 1e-9, 'daily loss uses all three tiers');
+hh = barn(4 * winter);
+// The tiers are reassessed daily as the barn empties, just as grain is: roughly 1.3 winters lost, slightly less as stocks fall.
+check(Math.abs(yearLoss(hh) / winter - 1.3) < 0.1, 'four winters lose about 5% + 25% + twice 50% of a winter');
+check(Math.abs(hh.hay + hh.haySpoilt - 4 * winter) < 1e-9, 'hay plus cumulative loss is conserved');
+hh = barn(100, []);
+check(Math.abs(yearLoss(hh) - 50) < 1e-9, 'without animals, stored hay halves in a year');
+hh = barn(0); spoilHay(barnState, hh);
+check(hh.hay === 0 && hh.haySpoilt === 0, 'empty barn stays empty');
+// The daily hook must also spoil barns without a herd; it never touches mown hay outside.
+hh = { ...barn(100, []), larder: [], manure: 0 };
+const lying = { stage: 'mown', held: 25 };
+byreDay({ ...barnState, households: [hh], farmsteads: [{ meadows: [lying] }] }, { doy: 10 });
+check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
+check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
+
 let st = Sim.seed(world(7), 7, 'populous');
+// Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
+const savedLoss = st.households[0].haySpoilt;
+for (const invalid of [NaN, Infinity, -1]) {
+  st.households[0].haySpoilt = invalid;
+  check(checkState(st).some((e) => e.includes('haySpoilt')), `invariant rejects haySpoilt ${invalid}`);
+}
+st.households[0].haySpoilt = savedLoss;
+const oldState = { ...st, households: st.households.map(({ haySpoilt, ...h }) => h) };
+const loaded = Sim.load(st.w, Sim.save(oldState));
+check(loaded.households.every((h) => h.haySpoilt === 0), 'older saves initialize haySpoilt');
 const start = new Map(st.households.map((h) => [h.id, h.hay]));
 at(st, 11);
 const raked = meadows(st).filter((m) => m.raked).length / meadows(st).length;

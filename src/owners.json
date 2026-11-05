@@ -9,6 +9,7 @@
     "household.rations": "sim/stores",
     "household.unthreshed": "sim/stores",
     "household.ledger": "sim/stores",
+    "household.haySpoilt": "sim/byre",
     "household.spoilt": "sim/stores",
     "village.grain": "sim/stores",
     "pawn.stake": "sim/stores",
