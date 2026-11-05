@@ -6,7 +6,8 @@ VB['sim/lifecycle'] = (() => {
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd, holdingOf, atHousehold,
+    unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
+      holdingOf, atHousehold,
   } = VB['sim/records'];
   const { release } = VB['sim/agents'];
   const {
@@ -23,10 +24,10 @@ VB['sim/lifecycle'] = (() => {
   const { fadeRelations, forget } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
-    p.died = st.t; p.alive = false;
+    p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
-    for (const u of st.unions) if ((u.a === id || u.b === id) && u.end === null) { u.end = st.t; noteUnionEnd(st, u); }
+    const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
     if (p.rel) forget(st, id);
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
@@ -79,8 +80,13 @@ VB['sim/lifecycle'] = (() => {
   // option pulls towards it; one who married a partner also allowed under the next stricter option pulls back, at half the weight.
   function kinPressure(st, men, women, taken, homeFor) {
     const env = st.cenv, blocked = new Map(), at = (cu) => kinOpts.indexOf(cu.kinLimit);
+    // Annual historical cleanup also clears the last pressure recorded on people who have since died.
     for (const p of st.pawns) p.kinPush = null;
-    const wed = new Map(); for (const u of st.unions) if (u.start === st.t && u.end === null) { wed.set(u.a, u.b); wed.set(u.b, u.a); }
+    const wed = new Map();
+    for (const id of st.living) { const u = unionOf(st, id); if (u && u.start === st.t) wed.set(u.id, u); }
+    // Unions were visited in record order; retain that order for equal-time remarriages too.
+    const pairs = [...wed.values()].sort((a, b) => a.id - b.id); wed.clear();
+    for (const u of pairs) { wed.set(u.a, u.b); wed.set(u.b, u.a); }
     for (const [x, y] of wed) {
       const cu = practice(st, settlementIdOf(st, st.pawns[x])), k = at(cu);
       if (k > 0 && kinOk(st, x, y, cu, kinOpts[k - 1])) st.pawns[x].kinPush = { to: kinOpts[k - 1], w: MARRIAGE.plentyPush };
@@ -120,13 +126,13 @@ VB['sim/lifecycle'] = (() => {
   function movingRound(st) {
     let pairs = 0;
     const env = st.cenv; refreshRoles(st); fillStores(st);
-    const alive = st.pawns.filter((p) => p.alive);
+    const alive = st.living.map((id) => st.pawns[id]);
     for (const p of alive) p.age = age(st, p);
     const single = (p) => spouseOf(st, p.id) === null && p.died === null;
     // marriages: a couple needs a place to live, as the customs define it
     const fed = (p) => p.hunger < HUNGER.marryBelow;
     const widowed = new Set(); // the single who have been married: their marriage ended by a death (balance review)
-    for (const u of st.unions) if (u.end !== null) { widowed.add(u.a); widowed.add(u.b); }
+    for (const p of alive) if (wasWidowed(st, p.id)) widowed.add(p.id);
     const men = alive.filter((p) => p.sex === 'm' && p.age >= MARRIAGE.menFrom && single(p) && !p.retired && fed(p)),
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
@@ -203,7 +209,8 @@ VB['sim/lifecycle'] = (() => {
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
     own = null; // the first heirs of every farm, ranked again only after a handover
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       if (!own) own = ownFirstOf(st);
       const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
@@ -226,16 +233,17 @@ VB['sim/lifecycle'] = (() => {
   }
   function dailyLife(st, c) {
     const env = st.cenv;
-    VB.count.walkDaily += st.pawns.length;
+    VB.count.walkDaily += st.living.length;
     let ties = 0;
-    for (const p of st.pawns) if (p.alive) p.age = age(st, p);
+    for (const id of st.living) { const p = st.pawns[id]; p.age = age(st, p); }
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
     // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
     const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
-    VB.count.walkDaily += st.pawns.length;
-    for (const p of st.pawns) {
+    VB.count.walkDaily += st.living.length;
+    for (const liveId of st.living) {
+      const p = st.pawns[liveId];
       if (!p.alive) continue;
       for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
     }
@@ -245,15 +253,22 @@ VB['sim/lifecycle'] = (() => {
     }
     VB.count.walkTies += ties;
     st.contacts.clear();
-    VB.count.walkDaily += st.pawns.length;
-    for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
+    VB.count.walkDaily += st.living.length;
+    for (const id of st.living) {
+      const p = st.pawns[id];
+      for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
+    }
     for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) {
-      VB.count.walkDaily += st.pawns.length;
-      for (const p of st.pawns) if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
+      VB.count.walkDaily += st.living.length;
+      // Death splices the live index; visit the original ids once, in the original order.
+      for (const id of st.living.slice()) {
+        const p = st.pawns[id];
+        if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
+      }
     }
   }
   return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };

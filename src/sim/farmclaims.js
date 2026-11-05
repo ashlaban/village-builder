@@ -38,7 +38,7 @@ VB['sim/farmclaims'] = (() => {
   const claimable = (f) => f.household === null && f.state === 'derelict' && !f.claim;
   // ---- who may claim, and in what order ----
   const landed = (st, id) => { const sp = spouseOf(st, id); return isHolder(st, id) || (sp !== null && isHolder(st, sp)); };
-  const guardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
+  const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // A pawn of `ids` (st.demand: landless adults who want out) who may claim a farm at all: alive and grown, with no farm, no claim under way,
   // no plot coming (sim/expansion) and no ward to keep.
   const free = (st, id) => {
@@ -187,7 +187,7 @@ VB['sim/farmclaims'] = (() => {
       if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
     }
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
-    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);
+    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
     hh.grain = grain; st.households.push(hh);
     for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
     hh.rations = 2 * dailyNeed(st, hh);

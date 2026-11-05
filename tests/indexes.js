@@ -10,6 +10,10 @@ function compare(st, label) {
       && ((p.father !== null && q.father === p.father) || (p.mother !== null && q.mother === p.mother))).map((q) => q.id)), `${label}: siblings of ${id}`);
     const u = st.unions.find((u) => (u.a === id || u.b === id) && u.start <= st.t && (u.end === null || u.end > st.t));
     check(Sim.spouseOf(st, id) === (u ? (u.a === id ? u.b : u.a) : null), `${label}: spouse of ${id}`);
+    const current = st.unions.find((u) => (u.a === id || u.b === id) && u.start <= st.t && u.end === null) || null;
+    check(VB['sim/records'].unionOf(st, id) === current, `${label}: current union of ${id}`);
+    check(VB['sim/records'].wasWidowed(st, id) === st.unions.some((u) => (u.a === id || u.b === id) && u.end !== null),
+      `${label}: widow history of ${id}`);
     const h = st.households.find((h) => !h.dissolved && h.holder === id) || null;
     check(Sim.holdingOf(st, id) === h && Sim.isHolder(st, id) === !!h, `${label}: holding of ${id}`);
   }

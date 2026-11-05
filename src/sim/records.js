@@ -1,4 +1,4 @@
-// @sys sim/records: person and household records, family-record queries, culture lookups per person
+// @sys sim/records: person and household records, live indexes, family-record queries, culture lookups per person
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -31,6 +31,15 @@ VB['sim/records'] = (() => {
     st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop();
     if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
   };
+  // @state st.living: sorted ids of living pawns; a cache owned here.
+  // @state st.liveHouseholds: sorted ids of undissolved households; a cache owned here.
+  // Rebuilt once at seed/load, including older format-1 saves. In play only creation and ending a record change them.
+  function rebuildLiving(st) {
+    st.living = st.pawns.filter((p) => p.died === null).map((p) => p.id);
+    st.liveHouseholds = st.households.filter((h) => !h.dissolved).map((h) => h.id);
+  }
+  function noteDeath(st, id) { const i = st.living.indexOf(id); if (i >= 0) st.living.splice(i, 1); }
+  function noteDissolved(st, hh) { const i = st.liveHouseholds.indexOf(hh.id); if (i >= 0) st.liveHouseholds.splice(i, 1); }
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
     const father = o.father !== undefined && o.father !== null ? R.pawns[o.father] : null;
@@ -46,6 +55,7 @@ VB['sim/records'] = (() => {
     };
     if (p.died !== null) { p.born = p.died - o.age * YEAR; }
     R.pawns.push(p);
+    if (R.living && p.died === null) R.living.push(p.id);
     return p.id;
   }
   function marry(R, a, b, yearsAgo, endYearsAgo) {
@@ -63,6 +73,7 @@ VB['sim/records'] = (() => {
       ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, haySpoilt: 0,
       larder: [], fodderDay: -1,
       milkDay: -1, manure: 0, spoilt: 0 };
+    if (R.liveHouseholds) R.liveHouseholds.push(id);
     f.household = id; f.line = holder; f.state = 'occupied';
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
@@ -82,9 +93,11 @@ VB['sim/records'] = (() => {
   // Indexes over the records, built on first use and caught up with new pawns, unions and households on each read (records are only
   // appended); the places that end a union or change a holder call noteUnionEnd and noteHolder. Not enumerable: they are derived data.
   // @state st.idx: {children: Map of pawn id to child ids, spouse: Map of pawn id to current spouse id, holds: Map of pawn id to the ids of
-  //   households it holds, seen: counts of pawns, unions and households already indexed}; derived from the records, see sim/records
+  //   households it holds, union: Map of pawn id to active union id, widowed: Set of pawn ids with an ended union;
+  //   seen: counts of pawns, unions and households already indexed}; derived from the records, see sim/records
   function index(st) {
-    if (!st.idx) Object.defineProperty(st, 'idx', { value: { children: new Map(), spouse: new Map(), holds: new Map(), np: 0, nu: 0, nh: 0 }, writable: true });
+    if (!st.idx) Object.defineProperty(st, 'idx', {
+      value: { children: new Map(), spouse: new Map(), union: new Map(), widowed: new Set(), holds: new Map(), np: 0, nu: 0, nh: 0 }, writable: true });
     const x = st.idx;
     for (; x.np < st.pawns.length; x.np++) {
       const p = st.pawns[x.np];
@@ -95,7 +108,11 @@ VB['sim/records'] = (() => {
     }
     for (; x.nu < st.unions.length; x.nu++) {
       const u = st.unions[x.nu];
-      if (u.end === null && u.start <= st.t) { if (!x.spouse.has(u.a)) x.spouse.set(u.a, u.b); if (!x.spouse.has(u.b)) x.spouse.set(u.b, u.a); }
+      if (u.end !== null) { x.widowed.add(u.a); x.widowed.add(u.b); }
+      if (u.end === null && u.start <= st.t) {
+        if (!x.spouse.has(u.a)) { x.spouse.set(u.a, u.b); x.union.set(u.a, u.id); }
+        if (!x.spouse.has(u.b)) { x.spouse.set(u.b, u.a); x.union.set(u.b, u.id); }
+      }
     }
     while (x.nh < st.households.length) addHolder(x, st.households[x.nh++]);
     return x;
@@ -108,9 +125,12 @@ VB['sim/records'] = (() => {
   }
   function noteUnionEnd(st, u) {
     const x = st.idx; if (!x) return;
-    if (x.spouse.get(u.a) === u.b) x.spouse.delete(u.a);
-    if (x.spouse.get(u.b) === u.a) x.spouse.delete(u.b);
+    x.widowed.add(u.a); x.widowed.add(u.b);
+    if (x.spouse.get(u.a) === u.b) { x.spouse.delete(u.a); x.union.delete(u.a); }
+    if (x.spouse.get(u.b) === u.a) { x.spouse.delete(u.b); x.union.delete(u.b); }
   }
+  const unionOf = (st, id) => { const uid = index(st).union.get(id); return uid === undefined ? null : st.unions[uid]; };
+  const wasWidowed = (st, id) => index(st).widowed.has(id);
   const holdingOf = (st, id) => {
     for (const k of index(st).holds.get(id) || []) { const h = st.households[k]; if (!h.dissolved && h.holder === id) return h; }
     return null;
@@ -181,8 +201,11 @@ VB['sim/records'] = (() => {
   // The living pawns of settlement sid (a village and its households), in id order.
   function membersOf(st, sid) {
     const out = [];
-    for (const hh of st.households) if (st.farmsteads[hh.farmstead].village === sid) for (const m of hh.members) {
-      const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+    for (const id of st.liveHouseholds) {
+      const hh = st.households[id];
+      if (st.farmsteads[hh.farmstead].village === sid) for (const m of hh.members) {
+        const p = st.pawns[m]; if (p.alive && p.household === hh.id) out.push(p);
+      }
     }
     return out.sort((a, b) => a.id - b.id);
   }
@@ -197,8 +220,9 @@ VB['sim/records'] = (() => {
     return 0;
   }
   return {
-    person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, record, recordOf, atHousehold, atFarm, age, birthYear, fullName, spouseOf,
+    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, record, recordOf, atHousehold, atFarm, age,
+      birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
-    kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, index, practice, farmPractice,
+    kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
   };
 })();

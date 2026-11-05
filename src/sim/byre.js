@@ -162,7 +162,8 @@ VB['sim/byre'] = (() => {
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
   // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
   function byreDay(st, c) {
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       const spoilt = hh.larder.filter((l) => l.until <= st.t);
       if (spoilt.length) {

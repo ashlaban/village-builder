@@ -34,7 +34,7 @@ VB['sim/cottage'] = (() => {
         if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
-    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], holder.id);
+    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
     hh.grain = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0); hh.rations = 0;
     for (const id of members) st.pawns[id].stake = 0;
     st.households.push(hh);
@@ -53,7 +53,8 @@ VB['sim/cottage'] = (() => {
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
   // The payment goes to the pawn's household, or to its stake while it has none.
   function payOwed(st) {
-    for (const p of st.pawns) {
+    for (const liveId of st.living) {
+      const p = st.pawns[liveId];
       if (!p.alive || !(p.owed > 0) || p.owedFrom === undefined || p.owedFrom === null) continue;
       const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;

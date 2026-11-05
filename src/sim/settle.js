@@ -19,7 +19,7 @@ VB['sim/settle'] = (() => {
   const { addSettlement } = VB['sim/society'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
-  const guardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
+  const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // ---- who waits, and which villages are crowded ----
   // The adults of each village who want out (st.demand) and have no plot coming: village id -> pawn ids, in demand order.
   function waitingByVillage(st) {
@@ -39,7 +39,7 @@ VB['sim/settle'] = (() => {
       v.crowded = ids.length && findSite(st, v) === null ? ids.length : 0;
       if (v.crowded) for (const id of ids) crowded.add(id);
     }
-    for (const p of st.pawns) if (p.alive) p.landWait = crowded.has(p.id) ? (p.landWait || 0) + 1 : 0;
+    for (const id of st.living) { const p = st.pawns[id]; p.landWait = crowded.has(p.id) ? (p.landWait || 0) + 1 : 0; }
     return waiting;
   }
   // ---- the party and its provisions ----
@@ -169,7 +169,7 @@ VB['sim/settle'] = (() => {
     st.farmsteads.push(f); v.farmsteads.push(f.id);
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
-    const hh = makeHousehold({ pawns: st.pawns }, st.households.length, f, [], settler.id);
+    const hh = makeHousehold(st, st.households.length, f, [], settler.id);
     hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
     for (const id of party.all) st.pawns[id].stake = 0;
     for (const [h, n] of prov.gifts) st.households[h].grain -= n;

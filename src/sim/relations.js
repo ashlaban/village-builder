@@ -71,7 +71,8 @@ VB['sim/relations'] = (() => {
   // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
   // (A faded memory counts 0 until then.)
   function fadeRelations(st) {
-    for (const p of st.pawns) {
+    for (const liveId of st.living) {
+      const p = st.pawns[liveId];
       if (!p.alive) continue;
       for (const [j, r] of p.rel) {
         if (!st.pawns[j].alive) { p.rel.delete(j); continue; }
@@ -126,12 +127,15 @@ VB['sim/relations'] = (() => {
   const cand = [], wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
-    const ag = st.agents, n = ag.length, start = Math.floor(rnd(st.rng.talk) * n);
-    if (busy.length < n) { busy = new Int32Array(2 * n); seen = new Int32Array(2 * n); }
+    const ag = st.agents, ids = st.living, n = ids.length, start = Math.floor(rnd(st.rng.talk) * ag.length);
+    if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
+    // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
+    let lo = 0, hi = n;
+    while (lo < hi) { const mid = (lo + hi) >>> 1; if (ids[mid] < start) lo = mid + 1; else hi = mid; }
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
-      const a = ag[(start + k) % n];
+      const a = ag[ids[(lo + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
@@ -178,7 +182,8 @@ VB['sim/relations'] = (() => {
     const hour = Math.floor(st.t);
     if (!c || c.hour !== hour) {
       c = { hour, by: new Map() };
-      for (const b of st.agents) {
+      for (const liveId of st.living) {
+        const b = st.agents[liveId];
         if (!idles(st, b)) continue;
         const v = settlementIdOf(st, st.pawns[b.id]); if (v === null) continue;
         const l = c.by.get(v); if (l) l.push(b); else c.by.set(v, [b]);
