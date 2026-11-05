@@ -1,0 +1,70 @@
+// VB-084: pacing contracts with a controlled wall clock, focus and background timers.
+const assert = require('assert'), fs = require('fs'), vm = require('vm'), path = require('path');
+const listeners = {}, timers = new Map();
+const listen = (target) => (event, fn) => { listeners[target + ':' + event] = fn; };
+const button = { textContent: '' }, checkbox = { checked: false, addEventListener: listen('checkbox') };
+const screen = { hidden: true };
+let now = 0, calls = 0, clocks = 0, cost = 3, nextTimer = 0;
+const ctx = {
+  document: { hidden: false, hasFocus: () => true, querySelector: () => button, addEventListener: listen('document') },
+  window: { addEventListener: listen('window') }, performance: { now: () => now },
+  $: (id) => id === 'backgroundRun' ? checkbox : screen,
+  st: { t: 6 }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2,
+  Sim: { advance(st, hours) { calls++; st.t += hours; now += cost; } },
+  setInterval: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; }, clearInterval: (id) => timers.delete(id),
+  updateClock: () => clocks++,
+};
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/speed.js'), 'utf8'), ctx);
+const tick = () => { now += 100; for (const fn of timers.values()) fn(); };
+for (const speed of [1, 3, 10, 30]) {
+  ctx.speed = speed; const before = ctx.st.t;
+  ctx.advanceSimulation(0.016);
+  assert(Math.abs(ctx.st.t - before - 0.016 * speed / 2) < 1e-9, 'fixed speed uses elapsed time');
+}
+ctx.speed = Infinity; ctx.resetSpeedSample(); calls = 0;
+const before = now; ctx.advanceSimulation(0.016);
+assert.strictEqual(calls, 4, 'yield at the 12 ms budget');
+assert.strictEqual(now - before, 12);
+cost = 20; calls = 0; ctx.advanceSimulation(0.016);
+assert.strictEqual(calls, 1, 'a costly step must not start a second step'); cost = 3;
+ctx.resetSpeedSample(); const sampleAt = now, sampleT = ctx.st.t;
+for (let k = 0; k < 40; k++) { now += 5; ctx.advanceSimulation(0.016); }
+assert.strictEqual(button.textContent, `Uncapped (${Math.round((ctx.st.t - sampleT) * 2 / ((now - sampleAt) / 1000))}×)`);
+for (const flag of ['building', 'skipping']) {
+  ctx[flag] = true; const t = ctx.st.t; ctx.advanceSimulation(1); assert.strictEqual(ctx.st.t, t); ctx[flag] = false;
+}
+screen.hidden = false; const t = ctx.st.t; ctx.advanceSimulation(1); assert.strictEqual(ctx.st.t, t); screen.hidden = true;
+const state = ctx.st; ctx.st = null; ctx.advanceSimulation(1); ctx.st = state;
+listeners['window:blur'](); assert(vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 0, 'background is opt in');
+checkbox.checked = true; listeners['checkbox:change'](); assert.strictEqual(timers.size, 1);
+for (let i = 0; i < 3; i++) { listeners['window:blur'](); listeners['document:visibilitychange'](); }
+assert.strictEqual(timers.size, 1, 'repeated focus/visibility notifications never stack timers');
+ctx.speed = 30; const t0 = ctx.st.t; tick(); assert(Math.abs(ctx.st.t - t0 - 1.5) < 1e-9); assert(clocks > 0);
+now += 60000; const t1 = ctx.st.t; tick(); assert(Math.abs(ctx.st.t - t1 - 3.75) < 1e-9, 'no accumulated catch-up');
+ctx.speed = 0; const t2 = ctx.st.t; tick(); assert.strictEqual(ctx.st.t, t2, 'pause also stops background progress');
+listeners['window:focus'](); assert(!vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 0, 'one driver at a time');
+ctx.document.hidden = true; listeners['document:visibilitychange'](); assert(vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 1);
+ctx.speed = Infinity; const hidden = ctx.st.t; tick(); assert(ctx.st.t > hidden, 'uncapped also runs in the background');
+listeners['window:focus'](); assert.strictEqual(timers.size, 1, 'hidden document still uses the background driver');
+ctx.document.hidden = false; listeners['document:visibilitychange'](); assert.strictEqual(timers.size, 0);
+listeners['window:blur'](); assert.strictEqual(timers.size, 1);
+checkbox.checked = false; listeners['checkbox:change'](); assert.strictEqual(timers.size, 0);
+// Load the actual input script too: browser shortcuts and text editing must not select a speed.
+const keyHandlers = {}, controls = { hidden: true, addEventListener() {} };
+const input = {
+  stage: { addEventListener() {} }, window: { addEventListener: (event, fn) => { keyHandlers[event] = fn; } },
+  document: { querySelectorAll: () => [] }, $: () => controls, speed: 0, resetSpeedSample() {},
+};
+vm.createContext(input);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/input.js'), 'utf8'), input);
+const key = (key, flags = {}) => keyHandlers.keydown({ key, target: { closest: () => null }, preventDefault() {}, ...flags });
+for (const modifier of ['ctrlKey', 'metaKey', 'altKey', 'defaultPrevented', 'isComposing']) {
+  key('4', { [modifier]: true }); assert.strictEqual(input.speed, 0, 'modified number keys leave speed unchanged');
+}
+key('5', { target: { closest: () => controls } }); assert.strictEqual(input.speed, 0, 'editing a form leaves speed unchanged');
+key('4'); assert.strictEqual(input.speed, 30);
+key('5'); assert.strictEqual(input.speed, Infinity);
+key(' '); assert.strictEqual(input.speed, 0);
+key(' '); assert.strictEqual(input.speed, Infinity);
+console.log('speed: fixed rates, 12 ms budget, measured speed, keyboard, pause, focus and bounded background progress');

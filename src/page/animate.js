@@ -76,7 +76,7 @@
   }
   function updateSettlement(dt) {
     if (!st) return;
-    if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    if (!simulationAway()) advanceSimulation(dt);
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();

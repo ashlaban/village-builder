@@ -75,11 +75,14 @@ body {
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
-.clock { border-radius: 14px; padding: 8px 10px 8px 14px; display: flex; align-items: center; gap: 12px; }
+.clock { border-radius: 14px; padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.speed { display: flex; gap: 4px; }
+.speed { display: flex; flex-wrap: wrap; gap: 4px; }
 .speed button { padding: 5px 10px; font-size: 14px; }
+.speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
+.background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
+.background-run input { margin: 0; accent-color: var(--accent); }
 .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
@@ -226,7 +229,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <button type="button" data-speed="1" aria-pressed="true">1×</button>
       <button type="button" data-speed="3" aria-pressed="false">3×</button>
       <button type="button" data-speed="10" aria-pressed="false">10×</button>
+      <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
+      <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
+    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
   </div>
 </div>
 <div class="lod" id="lod" hidden></div>
@@ -8273,12 +8279,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
 
   const keys = new Set();
   window.addEventListener('keydown', (e) => {
-    if (e.target.closest && e.target.closest('button')) return;
+    if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea')) return;
     if (!$('tree').hidden) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
-    if (k === '1' || k === '2' || k === '3') setSpeed({ 1: 1, 2: 3, 3: 10 }[k]);
+    if (/^[1-5]$/.test(k)) setSpeed({ 1: 1, 2: 3, 3: 10, 4: 30, 5: Infinity }[k]);
     if (k === '+' || k === '=' || k === '-') {
       stopIntro();
       const r = stage.getBoundingClientRect();
@@ -8310,6 +8317,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
+    resetSpeedSample();
     document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
   }
   document.querySelectorAll('.speed button').forEach((bt) => bt.addEventListener('click', () => setSpeed(+bt.dataset.speed)));
@@ -9148,6 +9156,48 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     return out;
   }
+  const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
+  const uncappedButton = document.querySelector('[data-speed="Infinity"]');
+  const backgroundRun = $('backgroundRun');
+  let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
+  let speedSampleAt = 0, speedSampleHours = 0;
+  const simulationAway = () => document.hidden || !windowFocused;
+  function resetSpeedSample() {
+    speedSampleAt = performance.now(); speedSampleHours = 0;
+    if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
+  }
+  function advanceSimulation(dt) {
+    if (!st || speed === 0 || building || skipping || !$('genScreen').hidden) { resetSpeedSample(); return; }
+    const before = st.t;
+    if (speed === Infinity) {
+      const deadline = performance.now() + SIM_BUDGET_MS;
+      // Yield between ordinary six-minute steps; one indivisible step can exceed the budget.
+      do { Sim.advance(st, SIM_SLICE_HOURS); } while (performance.now() < deadline);
+      speedSampleHours += st.t - before;
+      const now = performance.now(), elapsed = (now - speedSampleAt) / 1000;
+      if (elapsed >= 0.5) {
+        uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
+        speedSampleAt = now; speedSampleHours = 0;
+      }
+    } else Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+  }
+  function syncBackgroundRun() {
+    if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }
+    resetSpeedSample();
+    if (!simulationAway() || !backgroundRun.checked) return;
+    backgroundAt = performance.now();
+    // Browsers may throttle hidden timers. Advance only a bounded interval, never a backlog on return.
+    backgroundTimer = setInterval(() => {
+      const now = performance.now(), dt = Math.min(0.25, (now - backgroundAt) / 1000);
+      backgroundAt = now;
+      advanceSimulation(dt);
+      if (st) updateClock();
+    }, 100);
+  }
+  backgroundRun.addEventListener('change', syncBackgroundRun);
+  document.addEventListener('visibilitychange', syncBackgroundRun);
+  window.addEventListener('focus', () => { windowFocused = true; syncBackgroundRun(); });
+  window.addEventListener('blur', () => { windowFocused = false; syncBackgroundRun(); });
   // ---- oxen at the plough (VB-138): the team walks ahead of its driver along the furrow, the ard's beam between them; and the cow being
   // milked (VB-135) stands by the milker at the byre ----
   function drawTeams(show) {
@@ -9225,7 +9275,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function updateSettlement(dt) {
     if (!st) return;
-    if (speed > 0 && !building && !skipping) Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    if (!simulationAway()) advanceSimulation(dt);
     updateClock();
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
