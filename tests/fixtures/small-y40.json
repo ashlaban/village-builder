@@ -1,0 +1,14 @@
+{
+  "name": "small-y40",
+  "commit": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+  "format": 1,
+  "goldenHash": "d22c1855f83228c6bd4a7be69adefe169d249e097f9f7da821bfdc0433769c54",
+  "year": 40,
+  "living": 725,
+  "pawnRecords": 1274,
+  "events": 110278,
+  "minutes": 15.7353,
+  "jsonBytes": 30477075,
+  "gzipBytes": 5462813,
+  "saveHash": "1989e30730ddc8d3fb71732d2162f3721de2072620a10c3b294ef8e3e81cd545"
+}

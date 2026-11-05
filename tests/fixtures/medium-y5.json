@@ -1,0 +1,14 @@
+{
+  "name": "medium-y5",
+  "commit": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+  "format": 1,
+  "goldenHash": "d22c1855f83228c6bd4a7be69adefe169d249e097f9f7da821bfdc0433769c54",
+  "year": 5,
+  "living": 880,
+  "pawnRecords": 975,
+  "events": 32698,
+  "minutes": 3.7748333333333335,
+  "jsonBytes": 18212168,
+  "gzipBytes": 3634501,
+  "saveHash": "25a0a699d3270c0f031db3b02d4afd86ed14dcd6bbb9ea8e8a99e518a3bc5582"
+}

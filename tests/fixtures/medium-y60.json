@@ -1,0 +1,14 @@
+{
+  "name": "medium-y60",
+  "commit": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+  "format": 1,
+  "goldenHash": "d22c1855f83228c6bd4a7be69adefe169d249e097f9f7da821bfdc0433769c54",
+  "year": 60,
+  "living": 2492,
+  "pawnRecords": 4814,
+  "events": 505530,
+  "minutes": 59.23936666666667,
+  "jsonBytes": 133615488,
+  "gzipBytes": 23944308,
+  "saveHash": "9f4ec9dba0d5cda41bca4026ca0e4690ae37ab2b14e49384788491836234f07f"
+}

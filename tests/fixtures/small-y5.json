@@ -1,0 +1,14 @@
+{
+  "name": "small-y5",
+  "commit": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+  "format": 1,
+  "goldenHash": "d22c1855f83228c6bd4a7be69adefe169d249e097f9f7da821bfdc0433769c54",
+  "year": 5,
+  "living": 388,
+  "pawnRecords": 430,
+  "events": 13652,
+  "minutes": 1.1468,
+  "jsonBytes": 7216210,
+  "gzipBytes": 1387493,
+  "saveHash": "28089aecc8618a751599c747ab90a9574962e7690a2c7d19bab5e9fd09d06805"
+}
