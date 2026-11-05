@@ -8,7 +8,7 @@ VB['sim/scenarios'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
-  const { person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
+  const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
@@ -241,6 +241,7 @@ VB['sim/scenarios'] = (() => {
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
     };
+    rebuildLiving(st);
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);

@@ -38,6 +38,13 @@ until VB-175 moves membership to `sim/records`.
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
+VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` caches, sorted by record id.
+Creation appends through `person` and `makeHousehold`; `killPawn` and `extinct` call the owner's removal operations.
+Seed/load rebuild them from source records, so format-1 saves need no migration. Daily invariants compare both arrays
+with independent full scans, and `tests/living.js` probes missing, duplicate and reordered ids, mutation during walks
+and old saves. The existing non-enumerable `st.idx` also indexes active unions and whether a person has an ended union;
+`tests/indexes.js` compares these lookups with the union records after long runs. Historical queries retain the full records.
+
 ## 1. In short
 
 - **174 fields are written in play or at seeding, 71 of them by more than one module, at 618 writes.** Fields written only when a

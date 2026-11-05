@@ -23,7 +23,8 @@ VB['sim/births'] = (() => {
     if (!hh || hh.dissolved) return;
     const sex = rnd(st.rng.births) < BIRTH.boys ? 'm' : 'f', taken = new Set(hh.members.map((id) => st.pawns[id].given)), names = sex === 'm' ? MALE : FEMALE;
     const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(rnd(st.rng.people) * pool.length) | 0];
-    const id = person({ pawns: st.pawns, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }), p = st.pawns[id];
+    const id = person({ pawns: st.pawns, living: st.living, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }),
+      p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
     p.att = Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2); p.anc = Float32Array.from(p.att);
     p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
@@ -42,7 +43,9 @@ VB['sim/births'] = (() => {
     if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }
   function dailyBirths(st) {
-    for (const m of st.pawns) {
+    // Childbirth may remove the mother; newborns have no spouse to consider today.
+    for (const liveId of st.living.slice()) {
+      const m = st.pawns[liveId];
       if (!m.alive || m.sex !== 'f') continue;
       if (m.pregnantUntil !== null) { if (st.t >= m.pregnantUntil) giveBirth(st, m); continue; }
       if (m.nursingUntil !== null && st.t < m.nursingUntil) continue;

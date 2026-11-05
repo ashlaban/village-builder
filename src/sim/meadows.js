@@ -70,7 +70,8 @@ VB['sim/meadows'] = (() => {
   }
   // Generated farms (populous, heirs) have stood a while: each with animals has its meadows already, at most START_MAX.
   function placeMeadows(st) {
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       const f = st.farmsteads[hh.farmstead];
       while (f.meadows.length < START_MAX && wantsMeadow(st, f, hh)) {

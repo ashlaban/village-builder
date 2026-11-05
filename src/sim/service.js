@@ -12,7 +12,7 @@ VB['sim/service'] = (() => {
   const farmOf = (st, hh) => st.farmsteads[hh.farmstead];
   // a farm by name, with its village's name when it lies in another village than `here` (farm names repeat between villages)
   const farmIn = (st, hh, here = null) => { const f = farmOf(st, hh); return f.village === here ? f.name : `${f.name} in ${st.villages[f.village].name}`; };
-  const isGuardian = (st, id) => st.households.some((h) => !h.dissolved && h.guardian === id);
+  const isGuardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // Working hands of a household: members of 14 to 59 who have not retired (as VB-090 counts them).
   const hands = (st, hh) => hh.members.filter((id) => { const p = st.pawns[id]; return p.alive && p.age >= 14 && p.age < 60 && !p.retired; }).length;
   // An adult who wants land (st.demand, refreshed at each moving round) and can move: alive, landless still, with no plot coming, not a guardian.
@@ -34,7 +34,9 @@ VB['sim/service'] = (() => {
     return out;
   }
   function careForOrphans(st) {
-    for (const hh of st.households) {
+    // Extinction may splice the live index while this round is in progress.
+    for (const liveId of st.liveHouseholds.slice()) {
+      const hh = st.households[liveId];
       if (hh.dissolved || !hh.members.length || hh.members.some((id) => adult(st.pawns[id]))) continue;
       const ward = st.pawns[hh.holder], f = farmOf(st, hh), memo = new Map();
       let best = null, bk = 0;
@@ -69,7 +71,7 @@ VB['sim/service'] = (() => {
       kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
   }
   function takeServants(st) {
-    const lone = st.households.filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
+    const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
     const village = (hh) => farmOf(st, hh).village;
     for (const hh of lone) {

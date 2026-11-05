@@ -128,7 +128,8 @@ VB['sim/jobs'] = (() => {
   // job it may take bids, without noise, above switchRatio × its own job's bid + switchMargin, it leaves its job, which keeps its progress,
   // and starts the other. A job it would finish within the hour at its own rate is not left. Draws no random numbers.
   function lookUp(st, c) {
-    for (const a of st.agents) {
+    for (const liveId of st.living) {
+      const a = st.agents[liveId];
       const p = st.pawns[a.id], j = a.job;
       if (a.phase !== 'work' || !j || p.died !== null) continue;
       if (((j.hours ?? KINDS[j.kind].hours) - j.done) <= rateOf(st, p)) continue;

@@ -142,61 +142,70 @@ const Culture = (() => {
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, hooks, dt, rand) {
-    const mul = env.driftMul || 1, byId = hooks.byId;
+    const mul = env.driftMul || 1;
     let walked = 0;
     const means = new Map();
     for (const s of env.settlements) {
       const m = new Float32Array(TOTAL); let n = 0;
       for (const p of hooks.membersOf(s)) { walked++; if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
-      means.set(s.id, n ? m : null);
+      // Resolve settlement factors once per day, outside the per-person numerical loops.
+      means.set(s.id, { mean: n ? m : null, anchor: P.anchor[s.kind] || P.anchor.village, rate: P.kind[s.kind] });
     }
     const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
-    for (const p of env.people) {
+    for (const id of hooks.living || env.people.map((p) => p.id)) {
       walked++;
-      if (!p.alive || p.age < 12) continue;
-      const s = hooks.settlementOf(p), kind = s ? s.kind : 'village', M = s ? means.get(s.id) : null;
-      // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
-      tgt.fill(0); let wsum = 0; press.fill(0);
-      for (const [j, w0] of p.ties) {
-        const q = byId(j); if (!q || !q.alive || q.age < 12) continue;
-        const wq = w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1);
-        for (let k = 0; k < TOTAL; k++) tgt[k] += wq * q.att[k];
-        wsum += wq;
-        if (q.advocate) press[OFF[q.advocate.dim] + q.advocate.opt] += wq; // advocates argue, not just exist
-      }
-      if (wsum > 0) for (let k = 0; k < TOTAL; k++) press[k] /= wsum;
-      if (wsum > 0) for (let k = 0; k < TOTAL; k++) tgt[k] /= wsum;
-      if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? (1 - P.oblique) * tgt[k] + P.oblique * M[k] : M[k];
-      else if (wsum === 0) tgt.set(p.att);
-      const ageF = p.age < 25 ? 1.5 : p.age < 50 ? 1 : 0.6, anchorR = P.anchor[kind] || P.anchor.village;
-      for (let d = 0; d < DIMS.length; d++) {
-        const o = OFF[d], n = NOPT[d], m = DIMS[d].m;
-        const rs = m * P.social * P.kind[kind] * ageF, ru = m * P.selfInterest, sig = m * P.noise;
-        const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
-        let nz = 0; const xi = XI; for (let j = 0; j < n; j++) { xi[j] = gauss(rand); nz += xi[j]; } nz /= n;
-        let pr = 0; for (let j = 0; j < n; j++) pr += press[o + j];
-        const rp = P.persuasion * Math.pow(m, 0.75) * P.kind[kind] * ageF;
-        for (let j = 0; j < n; j++) {
-          const a = p.att[o + j];
-          let da = rs * (tgt[o + j] - a) + anchorR * (p.anc[o + j] - a) + rp * (press[o + j] - pr * a);
-          if (p.interest) da += ru * (p.interest[o + j] - a);
-          if (adv) da += P.advocacyPull * ((j === adv.opt ? 1 : 0) - a);
-          p.att[o + j] = a + da * dt * mul + sig * (xi[j] - nz) * sq * 0.5;
-        }
-        normBlock(p.att, o, n);
-        const ad = (p.age < 20 ? P.youthAnchorDrift : P.adultAnchorDrift) * dt * mul;
-        for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
-      }
+      driftPerson(hooks.byId(id), hooks, dt, rand, mul, means, tgt, press, sq);
     }
     VB.count.walkDaily += walked;
+  }
+
+  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
+  function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
+    const byId = hooks.byId;
+    if (!p.alive || p.age < 12) return;
+    const s = hooks.settlementOf(p), local = s ? means.get(s.id) : null, M = local ? local.mean : null;
+    const kind = s ? s.kind : 'village', kindRate = local ? local.rate : P.kind[kind];
+    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
+    tgt.fill(0); let wsum = 0; press.fill(0);
+    for (const [j, w0] of p.ties) {
+      const q = byId(j); if (!q || !q.alive || q.age < 12) continue;
+      const wq = w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1);
+      for (let k = 0; k < TOTAL; k++) tgt[k] += wq * q.att[k];
+      wsum += wq;
+      if (q.advocate) press[OFF[q.advocate.dim] + q.advocate.opt] += wq; // advocates argue, not just exist
+    }
+    if (wsum > 0) for (let k = 0; k < TOTAL; k++) press[k] /= wsum;
+    if (wsum > 0) for (let k = 0; k < TOTAL; k++) tgt[k] /= wsum;
+    if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? (1 - P.oblique) * tgt[k] + P.oblique * M[k] : M[k];
+    else if (wsum === 0) tgt.set(p.att);
+    const ageF = p.age < 25 ? 1.5 : p.age < 50 ? 1 : 0.6, anchorR = local ? local.anchor : P.anchor[kind] || P.anchor.village;
+    for (let d = 0; d < DIMS.length; d++) {
+      const o = OFF[d], n = NOPT[d], m = DIMS[d].m;
+      const rs = m * P.social * kindRate * ageF, ru = m * P.selfInterest, sig = m * P.noise;
+      const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
+      let nz = 0; const xi = XI; for (let j = 0; j < n; j++) { xi[j] = gauss(rand); nz += xi[j]; } nz /= n;
+      let pr = 0; for (let j = 0; j < n; j++) pr += press[o + j];
+      const rp = P.persuasion * Math.pow(m, 0.75) * kindRate * ageF;
+      for (let j = 0; j < n; j++) {
+        const a = p.att[o + j];
+        let da = rs * (tgt[o + j] - a) + anchorR * (p.anc[o + j] - a) + rp * (press[o + j] - pr * a);
+        if (p.interest) da += ru * (p.interest[o + j] - a);
+        if (adv) da += P.advocacyPull * ((j === adv.opt ? 1 : 0) - a);
+        p.att[o + j] = a + da * dt * mul + sig * (xi[j] - nz) * sq * 0.5;
+      }
+      normBlock(p.att, o, n);
+      const ad = (p.age < 20 ? P.youthAnchorDrift : P.adultAnchorDrift) * dt * mul;
+      for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
+    }
   }
 
   // Norm entrepreneurs: now and then an adult takes up the cause of another option for some years. This is what
   // breaks the symmetry of drift; concentrated effort (events, influential pawns, later perhaps the player) uses the same slot.
   function entrepreneurs(env, hooks, rand) {
     const out = [];
-    for (const p of env.people) {
+    for (const id of hooks.living || env.people.map((p) => p.id)) {
+      const p = hooks.byId(id);
       if (!p.alive || p.age < 18) continue;
       if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
       if (p.advocate) continue;

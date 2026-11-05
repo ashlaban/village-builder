@@ -5,6 +5,14 @@ const checked = new WeakMap(); // the record's length at the last check, by reco
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
+  for (const [key, expected] of [
+    ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
+    ['liveHouseholds', st.households.filter((h) => !h.dissolved).map((h) => h.id)],
+  ]) {
+    if (!Array.isArray(st[key]) || st[key].length !== expected.length || st[key].some((id, i) => id !== expected[i])) {
+      bad.push(`${key}: live index differs from its source records`);
+    }
+  }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   const from = checked.get(st.record) || 0;
   for (let i = from; i < (st.record || []).length; i++) {

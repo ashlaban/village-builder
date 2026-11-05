@@ -30,7 +30,7 @@ check(hh.hay === 0 && hh.haySpoilt === 0, 'empty barn stays empty');
 // The daily hook must also spoil barns without a herd; it never touches mown hay outside.
 hh = { ...barn(100, []), larder: [], manure: 0 };
 const lying = { stage: 'mown', held: 25 };
-byreDay({ ...barnState, households: [hh], farmsteads: [{ meadows: [lying] }] }, { doy: 10 });
+byreDay({ ...barnState, liveHouseholds: [0], households: [hh], farmsteads: [{ meadows: [lying] }] }, { doy: 10 });
 check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 

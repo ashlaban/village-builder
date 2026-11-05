@@ -34,12 +34,16 @@ VB['sim/clock'] = (() => {
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
-      for (const a of st.agents) if (a.inside && !a.job && st.pawns[a.id].alive) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+      for (const id of st.living) {
+        const a = st.agents[id];
+        if (a.inside && !a.job) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+      }
     }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
-    if (h === WORK[1]) for (const a of st.agents) {
+    if (h === WORK[1]) for (const liveId of st.living) {
+      const a = st.agents[liveId];
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
       release(st, a);
@@ -54,7 +58,8 @@ VB['sim/clock'] = (() => {
   function endOfDay(st, c) {
     const E = st.ECON;
     shareFood(st);
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       feedHousehold(st, hh); spoilGrain(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
@@ -104,6 +109,7 @@ VB['sim/clock'] = (() => {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
     log(st, `Year ${c.year} begins. The weather ${word}.`, { kind: 'year', n: c.year });
+    // Historical ledgers of dissolved households still expire at the new year.
     for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
   }
   function advance(st, hours) {
@@ -115,8 +121,9 @@ VB['sim/clock'] = (() => {
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
       const c = cal(st.t), idle = [];
-      VB.count.walkStep += st.agents.length;
-      for (const a of st.agents) {
+      VB.count.walkStep += st.living.length;
+      for (const liveId of st.living) {
+        const a = st.agents[liveId];
         if (st.pawns[a.id].died) continue;
         if (a.path) moveAgent(st, a, step);
         else if (a.phase === 'work') stepWork(st, a, step);

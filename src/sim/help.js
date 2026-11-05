@@ -39,7 +39,8 @@ VB['sim/help'] = (() => {
   }
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days asks kin, then the village store, for HELP.askDays days of food.
   function shareFood(st) {
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       const need = dailyNeed(st, hh); if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let want = HELP.askDays * need - spare(st, hh);
@@ -54,7 +55,8 @@ VB['sim/help'] = (() => {
   }
   // At the moving round every household gives a share of its surplus to its village's store.
   function fillStores(st) {
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       const give = surplus(st, hh) * HELP.storeShare; if (give <= 1e-9) continue;
       hh.grain -= give; hh.ledger.push({ t: st.t, kind: 'gift', n: -give, to: 'the village store' });

@@ -12,6 +12,7 @@ VB['sim/society'] = (() => {
   function hooks(st) {
     const env = st.cenv;
     return {
+      living: st.living,
       byId: (id) => st.pawns[id],
       settlementOf: (p) => { const s = settlementIdOf(st, p); return s === null ? null : env.settlements[s]; },
       voiceOf: (p, s) => voiceOf(st, p, s),
@@ -51,7 +52,8 @@ VB['sim/society'] = (() => {
   // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
   function updateTies(st) {
     const env = st.cenv, sid = new Map(), by = new Map(); // each living pawn's settlement, and the pawns of each, in id order
-    for (const p of st.pawns) if (p.alive) {
+    for (const id of st.living) {
+      const p = st.pawns[id];
       const v = settlementIdOf(st, p); sid.set(p.id, v);
       const l = by.get(v); if (l) l.push(p); else by.set(v, [p]);
     }
@@ -70,8 +72,8 @@ VB['sim/society'] = (() => {
     }
   }
   function refreshPrestige(st) {
-    for (const p of st.pawns) {
-      if (!p.alive) continue;
+    for (const id of st.living) {
+      const p = st.pawns[id];
       const sp = spouseOf(st, p.id);
       p.prestige = isHolder(st, p.id) ? 1.6 : sp !== null && isHolder(st, sp) ? 1.3 : 1;
       if (p.age >= 55) p.prestige += 0.2;
@@ -80,6 +82,7 @@ VB['sim/society'] = (() => {
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
     const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF, own = ownFirstOf(st);
+    // Annual historical cleanup clears dead people's saved interests too; live-only work uses the indexes.
     for (const p of st.pawns) {
       if (!p.alive || p.age < 12) { p.interest = null; continue; }
       const it = Float32Array.from(p.att);
@@ -137,14 +140,15 @@ VB['sim/society'] = (() => {
     let pairs = 0;
     const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
     const ins = [];
-    for (const hh of st.households) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
       if (hh.dissolved) continue;
       ins.length = 0; for (const m of hh.members) if (st.agents[m].inside) ins.push(m);
       for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) { pairs++; add(ins[x], ins[y]); }
     }
     // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
     // so pairs are counted in the same order as by comparing every pair.
-    const out = []; for (const a of st.agents) if (!a.inside && st.pawns[a.id].alive) out.push(a);
+    const out = []; for (const id of st.living) { const a = st.agents[id]; if (!a.inside) out.push(a); }
     const cells = new Map(), cand = [];
     out.forEach((a, n) => {
       const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
