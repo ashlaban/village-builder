@@ -53,6 +53,11 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForTimeout(600);
     assert.strictEqual(await page.locator('#peopleContent').evaluate((el) => el.scrollTop), scroll, 'live refresh keeps scroll');
     assert(await page.locator(`[data-fold="${key}"]`).evaluate((el) => el.open), 'live refresh keeps household open');
+    const animals = page.locator('.household-block[open] [data-fold^="animals-"]').first();
+    await animals.locator('summary').click();
+    await page.waitForFunction(() => /Hay \d+, \d+ spoilt/.test(
+      document.querySelector('.household-block[open] [data-fold^="animals-"]').textContent));
+    assert.match(await animals.textContent(), /Hay \d+, \d+ spoilt/, 'household shows cumulative hay spoilage');
     const name = await page.locator('.household-block button[data-pawn]').first().textContent();
     console.log('mobile: search'); await page.fill('#peopleSearch', 'no-such-person'); assert(await page.locator('#settlers').textContent().then((t) => t.includes('No matching')));
     await page.fill('#peopleSearch', name); assert(await page.locator('.household-block button[data-pawn]').count() > 0, 'search finds person');
