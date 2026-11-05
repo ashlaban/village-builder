@@ -1,9 +1,11 @@
-// Test runner: runs a suite's scripts in parallel, one per core, and prints each script's last line, or its full output if it fails.
+// Test runner: scripts in parallel, one per core; real browsers run alone to avoid software-GPU contention on small runners.
+// Prints each script's last line, or its full output if it fails.
 // `node tests/run.js test` runs the cheap checks; `node tests/run.js verify` runs those and the long verification runs.
 // `--verbose` prints every script's full output (the reported, not asserted, numbers of births.js and hunger.js, for example).
 const { spawn } = require('child_process'), os = require('os'), path = require('path');
 const root = path.join(__dirname, '..');
 const TEST = [
+  ['node', 'tests/fixture-tools.js'],
   ['node', 'tests/speed.js'],
   ['node', '--expose-gc', 'tests/registry.js'],
   ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
@@ -14,6 +16,7 @@ const TEST = [
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
   ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'],
+  ['node', 'tests/fixtures.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose');
 const cmds = { test: TEST, verify: VERIFY }[suite];
@@ -21,7 +24,9 @@ if (!cmds) { console.error('usage: node tests/run.js test|verify [--verbose]'); 
 // longest first, so the slow scripts do not start last
 const SLOW = ['populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
 const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
-const queue = [...cmds].sort((a, b) => rank(a) - rank(b)), t0 = Date.now(), failed = [];
+const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed)?\.js$/.test(a));
+const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
+const t0 = Date.now(), failed = [];
 function run(cmd) {
   return new Promise((done) => {
     const t = Date.now(), p = spawn(cmd[0], cmd.slice(1), { cwd: root }); let out = '';
@@ -35,8 +40,10 @@ function run(cmd) {
   });
 }
 const lanes = Math.max(1, Math.min(os.cpus().length, queue.length));
-Promise.all(Array.from({ length: lanes }, async () => { while (queue.length) await run(queue.shift()); })).then(() => {
+(async () => {
+  for (const cmd of browsers) await run(cmd);
+  await Promise.all(Array.from({ length: lanes }, async () => { while (queue.length) await run(queue.shift()); }));
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   if (failed.length) { console.log(`${suite}: ${failed.length} failed (${failed.join(', ')}) in ${secs} s`); process.exit(1); }
   console.log(`${suite}: ${cmds.length} scripts passed in ${secs} s`);
-});
+})();

@@ -4,6 +4,7 @@
   "scripts": {
     "test": "node tests/run.js test",
     "verify": "node tests/run.js verify",
+    "nightly": "node tools/nightly.js",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },
   "devDependencies": {
