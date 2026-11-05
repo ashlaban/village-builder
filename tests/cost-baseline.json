@@ -1,0 +1,15 @@
+{
+  "scaling": {
+    "routeExpand": 1.1839791203867642,
+    "routeRefresh": 1.740393239021334,
+    "roundPairs": 2
+  },
+  "history": {
+    "routeRefresh": 1.8209499765078658,
+    "walkStep": 1.5836760713658715,
+    "walkDaily": 1.4951019496318463,
+    "roundPairs": 2.619688604794906,
+    "heirRank": 2.3174582554668652,
+    "roundRank": 2.2871441124539675
+  }
+}

@@ -21,6 +21,9 @@ Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-re
 `node tests/golden.js --update` and lists the changed entries in its PR.
 An intentional change to work counters re-records `tests/counters.json` with
 `node tests/counters.js --update` and lists the changed counters in its PR.
+Cost growth is checked by `tests/scaling.js` (population exponent at most 1.15) and `tests/history.js`
+(work per living pawn-day at year 40 / year 5 at most 1.25). Known excesses live in `tests/cost-baseline.json`;
+`--update` on either check only lowers its existing entries or removes fixed ones, and refuses regressions.
 
 ## Pick order
 
@@ -98,7 +101,6 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-079 | Plan: a life, the player inhabits a pawn (slice 2) | life | plan | ready | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. | [backlog/VB-079.md](backlog/VB-079.md) |
 | VB-082 | Customs made legible: votes, leanings and causes | debt | implement | blocked | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
 | VB-083 | Seasons on the map | roads | implement | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
-| VB-088 | A cost budget in the test runs: scaling and history checks | yardstick | implement | ready | 1 | S | Work from the counters against the living at two sizes (exponent over 1.15 fails) and at year 5 against year 40 (over 1.25 fails), with a baseline that only goes down. | [backlog/VB-088.md](backlog/VB-088.md) |
 | VB-090 | Landless adults take service where labour is short | year | implement | blocked | 2 | M | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. | [backlog/VB-090.md](backlog/VB-090.md) |
 | VB-091 | Forest spread into open land | animals | implement | blocked | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. | [backlog/VB-091.md](backlog/VB-091.md) |
 | VB-092 | Store views for households and villages | debt | implement | blocked | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. | [backlog/VB-092.md](backlog/VB-092.md) |
@@ -149,7 +151,7 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-189 | Plan: the town (slice 9) | town | plan | blocked | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. | [backlog/VB-189.md](backlog/VB-189.md) |
 | VB-190 | Plan: roads, boats and ice (slice 10) | roads | plan | blocked | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. | [backlog/VB-190.md](backlog/VB-190.md) |
 | VB-194 | The bench history and the budget table, reported nightly | yardstick | implement | ready | 1 | S | Nightly ms per game day, longest step, save and load on the medium fixtures, appended to `docs/bench/history.jsonl`; the budget table written from it. | [backlog/VB-194.md](backlog/VB-194.md) |
-| VB-195 | Indexes of the living: no step walks the dead | yardstick | implement | blocked | 1 | M | `st.living` and live households kept by their owners; the step, `dailyLife` and the other full loops walk them; golden unchanged. | [backlog/VB-195.md](backlog/VB-195.md) |
+| VB-195 | Indexes of the living: no step walks the dead | yardstick | implement | ready | 1 | M | `st.living` and live households kept by their owners; the step, `dailyLife` and the other full loops walk them; golden unchanged. | [backlog/VB-195.md](backlog/VB-195.md) |
 | VB-196 | The moving round under 50 ms a step on the late fixtures | yardstick | implement | ready | 1 | M | Heir rankings refreshed only where a marriage changes them (444 of 511 ms at year 40); spread over villages only if still over. | [backlog/VB-196.md](backlog/VB-196.md) |
 | VB-198 | The route cache bounded | yardstick | implement | ready | 2 | S | `st.pathCache` (25,723 routes at year 40) bounded at 20,000, least recently used first; hit rate and save size before and after. | [backlog/VB-198.md](backlog/VB-198.md) |
 | VB-199 | Bounded history: a pawn's events as an index, routine events folded | yardstick | implement | needs-review | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. | [backlog/VB-199.md](backlog/VB-199.md) |

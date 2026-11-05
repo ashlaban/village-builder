@@ -29,6 +29,10 @@ budget and cheap measurement.
 - Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
   `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
+- Cost growth: `node tests/scaling.js` checks two/four repeated tiny villages in `npm test`;
+  `node tests/history.js` checks 30 days and one moving round from `small-y5` and `small-y40` in verify.
+  Both print all work counters; history also reports six-minute step timings, never asserting wall-clock time.
+  `--update` only lowers existing excesses in `tests/cost-baseline.json` and removes fixed ones; it refuses new regressions.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
 - Ownership: `node tests/ownership.js`; fixed sites must be removed with `--update`, which refuses any new write past an owner.
 - Rules: `node tools/rules.js` lists owners and contributions; `--explain ID [--load FILE]` explains a pawn's death hazard.
