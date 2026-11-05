@@ -122,6 +122,8 @@ VB['sim/saves'] = (() => {
     }
     const st = decode(data.state);
     st.w = w;
+    // VB-159: older format-1 saves predate the cumulative barn-hay loss.
+    for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;
   }
   return { encode, decode, save, load, FORMAT };

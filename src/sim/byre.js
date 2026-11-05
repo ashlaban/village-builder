@@ -1,10 +1,10 @@
-// @sys sim/byre: the stall period: daily hay and fodder, the autumn count and what goes to slaughter, emergency slaughter, hunger in the byre
+// @sys sim/byre: daily barn hay and spoilage, fodder, autumn counts, slaughter, milk and hunger in the byre
 VB['sim/byre'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
-  const { herdsOf, dailyHay, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
+  const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
   const { hexSteps } = VB['sim/hex'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
@@ -148,6 +148,17 @@ VB['sim/byre'] = (() => {
     hh.larder = hh.larder.filter((l) => l.kind !== 'meat');
     addFood(st, hh, 'salt meat', n, HERD.saltDays);
   }
+  // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159).
+  function spoilHay(st, hh) {
+    const hay = hh.hay;
+    if (!(hay > 0)) return;
+    const winter = winterNeed(st, hh), L = HERD.hayLoss;
+    const first = Math.min(hay, winter), second = Math.min(Math.max(0, hay - winter), winter);
+    const lost = first * (1 - Math.pow(1 - L[0], 1 / YEAR_DAYS))
+      + second * (1 - Math.pow(1 - L[1], 1 / YEAR_DAYS))
+      + Math.max(0, hay - 2 * winter) * (1 - Math.pow(1 - L[2], 1 / YEAR_DAYS));
+    hh.hay -= lost; hh.haySpoilt = (hh.haySpoilt || 0) + lost;
+  }
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
   // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
   function byreDay(st, c) {
@@ -161,6 +172,7 @@ VB['sim/byre'] = (() => {
           kind: 'spoiled', n: Math.round(meat), ...atHousehold(st, hh) });
       }
       if (hh.manure > 0) hh.manure *= Math.pow(1 - SOIL.rot, 1 / YEAR_DAYS); // the heap rots and washes away (balance review)
+      spoilHay(st, hh);
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
@@ -210,5 +222,5 @@ VB['sim/byre'] = (() => {
     }
     return out;
   }
-  return { stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
+  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
 })();

@@ -177,7 +177,8 @@ VB['sim/scenarios'] = (() => {
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n}; kind 'harvest', 'gift' (n signed, from or to; sim/help), 'meat', 'milk' (drunk fresh), 'butter' (rations made;
     //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
-    //   herds[] (ids into st.herds), hay (units in the barn), larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
+    //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
+    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}

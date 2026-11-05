@@ -139,6 +139,7 @@ VB['sim/rules'] = (() => {
   // turn-out on spring day 6 (doy 5), 21 days; breeding on spring day 3 (doy 2) with a bull of bullAge or more, or a ram, within reach steps of
   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
   const HERD = {
+    hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
     stall: [32, 5], stallDays: 21, springDay: 2, reach: 12,
     calve: 0.85, calfDeath: 0.15, lamb: 0.9, twins: 0.3, lambDeath: 0.2, death: { cattle: 0.03, sheep: 0.05 },
