@@ -5,6 +5,7 @@
 const { spawn } = require('child_process'), os = require('os'), path = require('path');
 const root = path.join(__dirname, '..');
 const TEST = [
+  ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
   ['node', 'tests/fixture-tools.js'],
   ['node', 'tests/speed.js'],
   ['node', '--expose-gc', 'tests/registry.js'],
@@ -17,6 +18,7 @@ const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
   ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'],
   ['node', 'tests/fixtures.js'],
+  ['node', 'tests/history.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose');
 const cmds = { test: TEST, verify: VERIFY }[suite];
