@@ -27,7 +27,7 @@ game's reference, `design.md` v0.4 as a skeleton the slices fill in, the budget,
   in section 5.3.
 - **Proposed budget at a late reference state:**
   - 160 ms per game day (30× at 10% of a core);
-  - no step over 60 ms;
+  - no step over 60 ms (medium-y60 temporarily 400 ms until VB-201);
   - the cost per living pawn flat in history (year 60 at most 1.25 times year 5);
   - a save under 0.5 s.
 - **Measure work, not time.** Deterministic counters of work done, asserted in `npm test` at tiny scale, need no baseline machine and
@@ -365,7 +365,7 @@ always carries the slices built so far. The **early reference** is populous medi
 | Measure | Budget | Today |
 |---|---|---|
 | Mean per game day, late reference | 160 ms (30× at 10% of a core); ceiling 400 ms (25%) | not measured on medium; 227 ms on small at year 41 |
-| Longest single 6-minute step | 60 ms | 899 ms (the moving round, small, year 41) |
+| Longest single 6-minute step | 60 ms; medium-y60 temporarily 400 ms until VB-201 | 899 ms (the moving round, small, year 41) |
 | Cost per living pawn-day, year 60 against year 5 | at most 1.25× | 1.6× (year 41 against year 5, small) |
 | Save and load, late reference | 0.5 s each; 10 MB gzipped | 2.7 s and 0.27 s; 5.2 MB at year 40 on small |
 | Page frames | VB-166's baseline, 95th percentile | not measured |
@@ -373,7 +373,7 @@ always carries the slices built so far. The **early reference** is populous medi
 Each slice adds lines to a budget table by system, kept in `docs/bench/budget.md` with the bench (section 6). A slice's plan states
 its line; its wrap-up measures it.
 
-**6 November update (user decision):** the single-step gate increases from 50 to 60 ms. Other budgets and demographic tolerances are unchanged.
+**6 November update (user decision):** the single-step gate increases from 50 to 60 ms. Other budgets and demographic tolerances are unchanged. The subsequent user decision temporarily allows 400 ms on medium-y60; VB-201 must restore its 60 ms gate, including the moving-round day and midnight. Small-y40 stays at 60 ms.
 
 ### 5.3 Ten rules for systems
 

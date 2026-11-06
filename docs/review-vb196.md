@@ -1,9 +1,10 @@
 # VB-196: moving-round cache work, 6 November 2026
 
-**Partial implementation. VB-196 remains open:** the current single-step gate is **60 ms**, raised from 50 ms by the user on
-6 November. The behavior-preserving cache work is retained: small-y40 passes the revised gate in the measured run; medium-y60 does not.
-Earlier measurements and rejected experiments below retain their original 50 ms threshold.
-The village scheduling experiment was removed because it failed the required demographic comparison. The golden file is unchanged.
+**Accepted against the revised temporary gates (6 November).** VB-196 is complete at **60 ms for small-y40** and temporarily
+**400 ms for medium-y60**: measured round-day maxima are 53.713 and 333.546 ms. The strict 60 ms medium target, including moving-round
+scheduling and midnight work, is explicitly deferred to VB-201. This allowance changes acceptance, not measured performance.
+Earlier sections retain their historical 50/60 ms assessments and rejected experiments; the latest decision supersedes their status.
+The golden file is unchanged.
 
 Impact: `sim/lifecycle` coordinates the same marriage and handover commands, in the same order and with the same random draws.
 `sim/heirs` owns a transient ranking view that reads kinship, household membership, holdings and village practice. It keeps reverse
@@ -252,3 +253,15 @@ requires VB-201 to reduce the independent 215.856 ms midnight step. Raising the 
 Gate-update validation: the bench regression checks the 60 ms limit on longest-step, moving-round and meeting rows. Backlog consistency,
 bench reporting, build freshness and whitespace checks pass after updating the gate. Simulation sources are unchanged since the full
 82-script verification above. Deterministic cost ceilings and demographic tolerances are not relaxed.
+
+### Temporary medium allowance and VB-201 handoff (latest user decision, 6 November)
+
+Accept 400 ms for the medium-y60 direct round and longest six-minute step, retaining 60 ms for small-y40. Current measurements
+(329.952 ms direct, 333.546 ms round-day maximum, 215.856 ms midnight) are below the medium allowance. VB-196 is archived as done
+against these revised gates. VB-201 explicitly owns returning medium to 60 ms, batching moving-round work and reducing midnight,
+with plain-data progress, deterministic save/load, exactly-once decisions and the original 30-year demographic safeguards before
+any golden changes. Other budgets and deterministic counter ceilings remain unchanged. Benchmark labels show the temporary
+medium-y60 exception, its 60 ms destination and VB-201 ownership; early medium-y5 and small-y40 retain 60 ms.
+
+Validation after the temporary allowance: bench reporting regression, backlog consistency, build freshness and whitespace checks.
+Simulation sources are unchanged since the full 82-script verification. Timing results remain diagnostic, not wall-clock assertions.

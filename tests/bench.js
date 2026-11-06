@@ -26,9 +26,9 @@ assert.strictEqual(B.flags(run(120), [run(999), ...history]).length, flags.lengt
 const failed = { ...run(200), fixtures: { 'medium-y5': { error: 'offline' }, 'medium-y60': { error: 'offline' } } };
 assert.deepStrictEqual(B.flags(failed, history), []);
 const table = B.budget(run(100));
-assert(table.includes('| Longest 6-minute step (ms) | 60 |'));
-assert(table.includes('| Moving round, one call (ms) | 60 step limit |'));
-assert(table.includes('| Meetings, one call (ms) | 60 step limit |'));
+assert(table.includes('| Longest 6-minute step (ms) | 60; medium-y60 400 until VB-201 |'));
+assert(table.includes('| Moving round, one call (ms) | 60; medium-y60 400 step limit until VB-201 |'));
+assert(table.includes('| Meetings, one call (ms) | 60; medium-y60 400 step limit until VB-201 |'));
 assert(table.includes('| Cost per living pawn-day / year 5 | ≤1.25× | 1.000 | 1.250 |'));
 assert(table.includes('| trees (ms/day) |  | 50.000 | 50.000 |'));
 assert(B.budget(failed).includes('unavailable'));
