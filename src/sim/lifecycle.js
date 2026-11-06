@@ -6,7 +6,7 @@ VB['sim/lifecycle'] = (() => {
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
       holdingOf, atHousehold,
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
@@ -19,16 +19,16 @@ VB['sim/lifecycle'] = (() => {
   const { careForOrphans, takeServants } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
-  const { updateTies, refreshPrestige, refreshInterests, pairOf, hooks } = VB['sim/society'];
+  const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { fadeRelations, forget } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, setTie, dailyTies } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; stillAtDeath(st, a);
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
-    for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+    dropTies(st, id);
     if (p.rel) forget(st, id);
     log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
       + `${CAUSES[cause].log}, aged ${p.age}.`, {
@@ -120,7 +120,7 @@ VB['sim/lifecycle'] = (() => {
     const fm = st.farmsteads[st.households[home].farmstead];
     log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
       kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
-    m.ties.set(fId, 2); f.ties.set(mId, 2);
+    setTie(st, mId, fId, 2); setTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
   function movingRound(st) {
@@ -234,31 +234,10 @@ VB['sim/lifecycle'] = (() => {
   function dailyLife(st, c) {
     const env = st.cenv;
     VB.count.walkDaily += st.living.length;
-    let ties = 0;
     for (const id of st.living) { const p = st.pawns[id]; p.age = age(st, p); }
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
-    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
-    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
-    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
-    VB.count.walkDaily += st.living.length;
-    for (const liveId of st.living) {
-      const p = st.pawns[liveId];
-      if (!p.alive) continue;
-      for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
-    }
-    for (const [k, hrs] of st.contacts) {
-      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
-      const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
-    }
-    VB.count.walkTies += ties;
-    st.contacts.clear();
-    VB.count.walkDaily += st.living.length;
-    for (const id of st.living) {
-      const p = st.pawns[id];
-      for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
-    }
-    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
+    dailyTies(st);
     if (c.sday === 0) fadeRelations(st);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));

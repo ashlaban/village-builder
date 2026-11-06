@@ -1,0 +1,37 @@
+{
+ "W": 5844,
+ "H": 3584,
+ "t": 6.2500000000000036,
+ "pop": 18,
+ "claims": 2,
+ "villages": [
+  {
+   "id": 0,
+   "name": "Skognes",
+   "x": 3443.31689453125,
+   "y": 2758,
+   "farms": 4,
+   "land": {
+    "green": 1,
+    "farms": 4,
+    "plots": 0,
+    "outland": 24,
+    "claims": 0
+   }
+  },
+  {
+   "id": 1,
+   "name": "Vallsta",
+   "x": 1721.658447265625,
+   "y": 2548,
+   "farms": 3,
+   "land": {
+    "green": 1,
+    "farms": 4,
+    "plots": 0,
+    "outland": 16,
+    "claims": 0
+   }
+  }
+ ]
+}

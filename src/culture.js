@@ -1,4 +1,4 @@
-// @sys culture: customs, per-settlement practice and day-by-day attitude drift
+// @sys culture: customs, per-settlement practice, pawn culture initialization, advocacy and day-by-day attitude drift
 // ===== Customs: one culture-wide set, local practice per settlement, attitudes that drift day by day =====
 // Two layers. Attitudes: every person holds a preference over the options of each custom, updated each game day
 // (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly
@@ -137,6 +137,13 @@ const Culture = (() => {
     });
     return a;
   }
+
+  // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
+  function initPerson(p, att) {
+    p.att = att; p.anc = Float32Array.from(p.att);
+    p.prestige = 1; p.interest = null; p.advocate = null;
+  }
+  function advocate(p, dim, opt, until) { p.advocate = { dim, opt, until }; }
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
@@ -306,10 +313,13 @@ const Culture = (() => {
     return nc;
   }
 
-  return {
+  const api = {
     DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
+  // Simulation wiring operations; keep the enumerable public Culture API unchanged.
+  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate } });
+  return api;
 })();
 VB['culture'] = Culture;
 if (typeof module !== 'undefined') module.exports = Culture;

@@ -828,3 +828,21 @@ nothing. Proposed: declare them as signals, which any module may set, and leave 
   boundaries are in.
 - **Reads.** Reads stay free (`docs/review-architecture.md`, section 2, point 1). The readers column is here so a refactor knows whom a
   change of representation touches, not so reads get an owner.
+
+## VB-178: ties and culture fields (6 November 2026)
+
+`sim/relations` now initializes `pawn.ties` and `pawn.rel` and owns every write to
+both. Its `setTie`, `strengthenTie` and `dropTies` operations serve seeding,
+births, gifts, marriage and death. `dailyTies` contains the unchanged daily
+contact/decay/kin-floor/weak-tie update previously inside `dailyLife`. Pair
+encoding moved beside it; Society re-exports `pairKey` and `pairOf` unchanged.
+Death still retains the dead pawn's historical ties and removes reciprocal
+entries from contacts, matching the prior behavior.
+
+Culture's `initPerson` sets attitude, its independent anchor copy, prestige,
+interest and advocacy for both seeded and newborn pawns. `advocate` handles
+argue/rally command writes. These two simulation wiring operations are
+non-enumerable so the existing enumerable public Culture API stays unchanged.
+`tools/writes.js --field` reports only Relations for ties/relationship records,
+and only Culture for attitudes, anchors and advocacy. The ownership baseline
+fell from 124 to 91 write sites, with no new exemptions or saved fields.

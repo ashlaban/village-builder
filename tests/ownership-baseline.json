@@ -67,19 +67,6 @@
     "sim/kinds push hh . unthreshed": 1,
     "sim/kinds shift hh . unthreshed": 1
   },
-  "pawn.advocate": {
-    "sim/births = p . advocate": 1,
-    "sim/commands = st . pawns [ c . actor ] . advocate": 1,
-    "sim/society = p . advocate": 1
-  },
-  "pawn.anc": {
-    "sim/births = p . anc": 1,
-    "sim/society = p . anc": 1
-  },
-  "pawn.att": {
-    "sim/births = p . att": 1,
-    "sim/society = p . att": 1
-  },
   "pawn.household": {
     "sim/births = p . household": 1,
     "sim/cottage = st . pawns [ id ] . household": 1,
@@ -91,10 +78,6 @@
   },
   "pawn.owedFrom": {
     "sim/heirs = st . pawns [ q ] . owedFrom": 1
-  },
-  "pawn.rel": {
-    "sim/births = p . rel": 1,
-    "sim/society = p . rel": 1
   },
   "pawn.role": {
     "sim/heirs = p . role": 7
@@ -111,22 +94,6 @@
     "sim/farmclaims = st . pawns [ id ] . stake": 1,
     "sim/heirs = st . pawns [ q ] . stake": 1,
     "sim/settle = st . pawns [ id ] . stake": 1
-  },
-  "pawn.ties": {
-    "sim/births = p . ties": 1,
-    "sim/births set p . ties": 1,
-    "sim/births set st . pawns [ j ] . ties": 1,
-    "sim/help set a . ties": 1,
-    "sim/lifecycle delete q . ties": 1,
-    "sim/lifecycle set f . ties": 1,
-    "sim/lifecycle set m . ties": 1,
-    "sim/lifecycle set p . ties": 2,
-    "sim/lifecycle set pi . ties": 1,
-    "sim/lifecycle set pj . ties": 1,
-    "sim/society = p . ties": 1,
-    "sim/society set p . ties": 1,
-    "sim/society set st . pawns [ i ] . ties": 1,
-    "sim/society set st . pawns [ q ] . ties": 1
   },
   "village.grain": {
     "sim/clock *= v . grain": 1,

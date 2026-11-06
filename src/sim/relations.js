@@ -1,11 +1,51 @@
 // @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
-// people a pawn knows
+// people a pawn knows; owns familiarity, its daily update and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
+  const { DAY, YEAR, YEAR_DAYS, SOCIAL } = VB['sim/rules'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
+
+  // A pair of pawns as one number, the smaller id first, and back.
+  const PAIR = 2 ** 21;
+  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
+  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
+  // @state pawn.ties: directed familiarity weights, initialized and changed only here.
+  function initRelations(p) { p.ties = new Map(); p.rel = new Map(); }
+  function setTie(st, a, b, value) { st.pawns[a].ties.set(b, value); }
+  function strengthenTie(st, a, b, value) {
+    const p = st.pawns[a]; p.ties.set(b, (p.ties.get(b) || 0) + value);
+  }
+  // Keep the dead pawn's historical ties, but remove it from its contacts' ties.
+  function dropTies(st, id) {
+    const p = st.pawns[id];
+    for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+  }
+  function dailyTies(st) {
+    let ties = 0;
+    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
+    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
+    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
+    VB.count.walkDaily += st.living.length;
+    for (const liveId of st.living) {
+      const p = st.pawns[liveId];
+      if (!p.alive) continue;
+      for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+    }
+    for (const [k, hrs] of st.contacts) {
+      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
+      const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
+    }
+    VB.count.walkTies += ties;
+    st.contacts.clear();
+    VB.count.walkDaily += st.living.length;
+    for (const id of st.living) {
+      const p = st.pawns[id];
+      for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
+    }
+    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
+  }
 
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
   const mix = (h) => {
@@ -233,6 +273,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
+    initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf,
   };
