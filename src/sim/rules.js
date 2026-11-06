@@ -180,8 +180,8 @@ VB['sim/rules'] = (() => {
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
     wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow.
-  const ROUTE = { reach: 200, minStep: 1 / PATHS.speed[3] };
+  // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
+  const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };

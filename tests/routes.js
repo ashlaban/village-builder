@@ -80,5 +80,54 @@ const grid = (COLS, ROWS) => {
   w.worn[at(20, 20)] = 2; const c2 = VB['sim/routes'].tileCost(w, at(20, 20));
   check(Math.abs(c0 / c1 - 1.05) < 1e-9 && Math.abs(c0 / c2 - 1.15) < 1e-9, `stage speeds: ${c0 / c1}, ${c0 / c2}`);
 }
+// VB-198: use a tiny bound to exercise real hits, searches, saves and legacy trimming without a large fixture.
+{
+  const assert = require('assert'), { ROUTE } = VB['sim/rules'];
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
+  const rows = Array(20).fill('.'.repeat(30)), w = tinyWorld(rows);
+  const st = tinyState(w, [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 7 });
+  const key = (a, b) => a * w.N + b, keys = (s) => [...s.pathCache.keys()];
+  const savedMax = ROUTE.cacheMax;
+  assert.strictEqual(savedMax, 60000, 'the measured production cache bound is 60,000');
+  try {
+    ROUTE.cacheMax = 3;
+    const first = route(st, 0, 1);
+    route(st, 2, 3); route(st, 4, 5);
+    assert.strictEqual(route(st, 0, 1), first, 'a direct hit returns the same path');
+    assert.deepStrictEqual(keys(st), [key(2, 3), key(4, 5), key(0, 1)], 'a direct hit becomes most recent');
+    const evictions = VB.count.routeEvict;
+    route(st, 6, 7);
+    assert.strictEqual(VB.count.routeEvict, evictions + 1, 'each eviction is counted at its owner');
+    assert.deepStrictEqual(keys(st), [key(4, 5), key(0, 1), key(6, 7)], 'insertion evicts the least recent, not the most recent');
+    const searches = VB.count.routeSearch;
+    const reverse = route(st, 5, 4);
+    assert.deepStrictEqual(reverse, [5, 4]);
+    assert.strictEqual(VB.count.routeSearch, searches, 'a reverse hit does not search');
+    assert.deepStrictEqual(keys(st), [key(6, 7), key(4, 5), key(5, 4)], 'reverse reuse touches its source as well as inserting its result');
+    route(st, 2, 3);
+    assert.strictEqual(VB.count.routeSearch, searches + 1, 'an evicted route can be searched again');
+    assert.strictEqual(st.pathCache.size, ROUTE.cacheMax);
+    assert.deepStrictEqual(checkState(st), [], 'a bounded cache passes the state invariant');
+
+    const load = () => VB.sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(VB.sim.save(st))));
+    const back = load();
+    assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'save/load preserves paths and their LRU order');
+    route(st, 8, 9); route(back, 8, 9);
+    assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'the next eviction is identical after a save/load');
+    // A pre-bound save's Map order is the only recency information available: retain its newest entries.
+    st.pathCache.set(key(10, 11), [10, 11]);
+    assert(checkState(st).some((m) => m.includes('pathCache')), 'an oversized legacy cache violates the bound');
+    const legacy = load();
+    assert.deepStrictEqual(keys(legacy), keys(st).slice(-ROUTE.cacheMax), 'loading trims a legacy cache oldest first');
+    assert.deepStrictEqual(checkState(legacy), [], 'the bound holds immediately after loading a legacy save');
+    // A failed reverse lookup must stay a counted search, rather than reversing a straight-walk fallback.
+    st.pathCache.clear(); w.water.fill(1); w.water[0] = 0;
+    assert.deepStrictEqual(route(st, 0, 15), [15]);
+    const fallbacks = st.routeFallbacks, misses = VB.count.routeSearch;
+    assert.deepStrictEqual(route(st, 15, 0), [0]);
+    assert.strictEqual(st.routeFallbacks, fallbacks + 1);
+    assert.strictEqual(VB.count.routeSearch, misses + 1);
+  } finally { ROUTE.cacheMax = savedMax; }
+}
 if (failed) process.exit(1);
 console.log('routes ok');

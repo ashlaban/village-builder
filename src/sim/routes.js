@@ -93,18 +93,29 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
-  // ---- the cache: one route per pair of tiles; the way back is the way there, reversed ----
+  // ---- the cache: bounded LRU in Map order (oldest first); the way back is the way there, reversed ----
+  // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
+  function trimRoutes(st) {
+    while (st.pathCache.size > ROUTE.cacheMax) {
+      st.pathCache.delete(st.pathCache.keys().next().value); VB.count.routeEvict++;
+    }
+  }
   function route(st, from, to) {
     const N = st.w.N, k = from * N + to;
     let p = st.pathCache.get(k);
-    if (p) { VB.count.routeHit++; return p; }
-    const back = st.pathCache.get(to * N + from);
-    if (back && back[0] === to) { VB.count.routeHit++; p = back.slice().reverse(); }
-    else {
+    if (p) {
+      VB.count.routeHit++; st.pathCache.delete(k); st.pathCache.set(k, p);
+      return p;
+    }
+    const bk = to * N + from, back = st.pathCache.get(bk);
+    if (back && back[0] === to) {
+      VB.count.routeHit++; st.pathCache.delete(bk); st.pathCache.set(bk, back);
+      p = back.slice().reverse();
+    } else {
       p = findRoute(st.w, from, to);
       if (!p) { p = [to]; st.routeFallbacks++; }
     }
-    st.pathCache.set(k, p);
+    st.pathCache.set(k, p); trimRoutes(st);
     return p;
   }
   // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
@@ -140,5 +151,5 @@ VB['sim/routes'] = (() => {
     }
     st.routeDirty.clear();
   }
-  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
+  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes, trimRoutes };
 })();

@@ -46,7 +46,11 @@ function villageWorld(n) {
 
 function main() {
   const early = measure(villageWorld(2)), late = measure(villageWorld(4));
-  for (const name of NAMES) assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
+  for (const name of NAMES) {
+    // These small working sets fit in the cache; routes.js separately exercises the eviction counter.
+    if (name === 'routeEvict') assert(early.work[name] === 0 && late.work[name] === 0, 'tiny caches should not evict');
+    else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
+  }
   console.log(`scaling: 2/4 villages, 30 days and one round each; ${early.living.toFixed(3)}/${late.living.toFixed(3)} mean living`);
   check('scaling', growth(early, late, true), { update: process.argv.includes('--update') });
   console.log(`scaling: ${NAMES.length} counters pass (including known excesses); ${(early.ms + late.ms).toFixed(0)} ms simulation`);

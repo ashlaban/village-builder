@@ -14,7 +14,7 @@ if (process.argv.includes('--counter-cost')) {
   const localIncrementsPerDayBound = localNames.reduce((n, k) => n + perDay[k], 0);
   // Direct increments + one routeExpand publication per search; hourly contacts/talk, 240 six-minute steps,
   // at most eight daily publications and two round publications (overestimated as daily).
-  const publicationsPerDayBound = perDay.routeSearch * 2 + perDay.routeHit + perDay.heirRank + perDay.ruleValue + 24 * 2 + 240 + 8 + 2;
+  const publicationsPerDayBound = perDay.routeSearch * 2 + perDay.routeHit + perDay.routeEvict + perDay.heirRank + perDay.ruleValue + 24 * 2 + 240 + 8 + 2;
   const additionsPerDayBound = localIncrementsPerDayBound + publicationsPerDayBound;
   const assumedNsPerAddition = 5, referenceMsPerDay = 120;
   const estimatedMsPerDayBound = additionsPerDayBound * assumedNsPerAddition / 1e6;

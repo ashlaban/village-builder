@@ -13,6 +13,9 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
   `node tools/bench.js --budget` regenerates the table alone. Nightly runs it after fixture preparation;
   include both bench files in the nightly PR. Measurements and 20% regression flags are diagnostic and never fail the run.
 
+- **Route cache:** `node tools/route-bench.js small-y40` (or `medium-y60`) reports 30 days of cache work, hit rate and save size.
+  The cache retains at most 60,000 routes in least-recently-used order, including in saves.
+
 On phones and tablets, the bottom bar opens People, Family records, Customs, or the Menu. People can be searched by person, farm, or village; expand a village and household to inspect its members and supplies. Select a person to find them on the map. Panels have collapse and close controls. Map layers, the minimap, and background-running settings are in Menu. Tap the current speed to choose another speed.
 
 **Hide UI** leaves the map visible and keeps time running at the chosen speed; **Show UI** restores the previous panel and selection. On a keyboard, H toggles the UI, Space pauses/resumes, and 1–5 choose speeds.

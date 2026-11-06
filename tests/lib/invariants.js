@@ -13,6 +13,9 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
+    bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
+  }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   const from = checked.get(st.record) || 0;
   for (let i = from; i < (st.record || []).length; i++) {

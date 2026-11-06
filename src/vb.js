@@ -11,6 +11,7 @@ VB.COUNTERS = {
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
+  routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   contactPairs: 'Indoor and outdoor pairs compared in noteContacts',
   walkStep: 'Agent records walked by the six-minute step',
