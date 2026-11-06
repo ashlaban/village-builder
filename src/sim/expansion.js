@@ -1,5 +1,6 @@
 // @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -170,7 +171,8 @@ VB['sim/expansion'] = (() => {
   // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
   function finishCottageStage(st, j) {
     const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
-    if (plot.cottage.i >= COTTAGE.length) VB['sim/cottage'].finishCottage(st, plot);
+    if (plot.cottage.i >= COTTAGE.length) issue(st, {
+      actor: null, verb: 'finishCottage', target: st.villages[plot.village].plots.indexOf(plot), args: { village: plot.village }, source: 'construction' });
   }
   // ---- the cottage of a household living in a booth (settlers, sim/settle): the same stages, as the household's own work ----
   // The open stage of farm f's cottage while f.booth stands: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.

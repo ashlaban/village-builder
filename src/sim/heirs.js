@@ -1,7 +1,9 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
+    joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
+      kinNear,
+      isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
       atHousehold,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
@@ -144,9 +146,8 @@ VB['sim/heirs'] = (() => {
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
   function moveTo(st, id, hhId, text = null) {
     const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
-    if (old) old.members = old.members.filter((m) => m !== id);
-    const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
-    p.household = hhId; p.servant = false;
+    leaveHousehold(st, id);
+    const hh = st.households[hhId]; joinHousehold(st, hh, id, false);
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
     if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, atHousehold(st, hh));
   }
@@ -238,7 +239,7 @@ VB['sim/heirs'] = (() => {
       if (target !== null) {
         moveTo(st, id, target);
         if (kinHome === null) {
-          st.pawns[id].servant = true;
+          setServant(st, id, true);
           personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`, false); // recorded below
           log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`, {
             kind: 'service', pawn: id, ...atHousehold(st, st.households[target]) });
@@ -248,7 +249,7 @@ VB['sim/heirs'] = (() => {
     // the animals go with the first of its people to find a new home
     const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
-    hh.members = [];
+    clearMembers(st, hh);
     log(st, `${f.name} stands empty: ${why}.`, { kind: 'empty', ...atHousehold(st, hh) });
     st.visualDirty = true;
   }
@@ -384,7 +385,8 @@ VB['sim/heirs'] = (() => {
     st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own, rank));
   }
   return {
-    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf, setGuardian,
+    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf,
+      setGuardian,
       handOn,
     heirFor, roundHeirs,
   };

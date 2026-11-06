@@ -2989,7 +2989,7 @@ VB['sim/ownership'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/records: person and household records, live indexes, family-record queries, culture lookups per person
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -3070,7 +3070,19 @@ VB['sim/records'] = (() => {
     if (f.fence) for (const s of f.fence) s.owner.id = id;
     return hh;
   }
-  function joinHousehold(R, hh, id) { hh.members.push(id); R.pawns[id].household = hh.id; }
+  // @state pawn.household, pawn.servant, household.members: membership and service, written only here.
+  function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
+    if (!hh.members.includes(id)) hh.members.push(id);
+    R.pawns[id].household = hh.id; setServant(R, id, servant);
+  }
+  // Death keeps the last household and service on the historical person record.
+  function leaveHousehold(st, id, historical = false) {
+    const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
+    if (hh) hh.members = hh.members.filter((m) => m !== id);
+    if (!historical) p.household = null;
+  }
+  function clearMembers(st, hh) { hh.members = []; }
+  function setServant(st, id, servant) { st.pawns[id].servant = servant; }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
     if (!hh) return null;
@@ -3211,7 +3223,9 @@ VB['sim/records'] = (() => {
     return 0;
   }
   return {
-    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, record, recordOf, atHousehold, atFarm, age,
+    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
+      record,
+      recordOf, atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
@@ -5063,6 +5077,7 @@ VB['sim/byre'] = (() => {
 <script>
 // @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it
 VB['sim/expansion'] = (() => {
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -5233,7 +5248,8 @@ VB['sim/expansion'] = (() => {
   // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
   function finishCottageStage(st, j) {
     const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
-    if (plot.cottage.i >= COTTAGE.length) VB['sim/cottage'].finishCottage(st, plot);
+    if (plot.cottage.i >= COTTAGE.length) issue(st, {
+      actor: null, verb: 'finishCottage', target: st.villages[plot.village].plots.indexOf(plot), args: { village: plot.village }, source: 'construction' });
   }
   // ---- the cottage of a household living in a booth (settlers, sim/settle): the same stages, as the household's own work ----
   // The open stage of farm f's cottage while f.booth stands: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.
@@ -5266,10 +5282,9 @@ VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold, atFarm,
+  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
     atHousehold } = VB['sim/records'];
   const CL = VB['sim/claims'];
-  const { setOwner } = VB['sim/ownership'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
   // @state farmstead.claim: {by (pawn id), since (game hours), hours (to restore, by the condition when claimed), done (hours worked)} or
@@ -5441,7 +5456,7 @@ VB['sim/farmclaims'] = (() => {
   // old family's birthright are spent.
   function moveIn(st, f) {
     if (!valid(st, f)) { ended(st, f); return; }
-    const { moveTo, refreshRoles } = VB['sim/heirs'], holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
+    const holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
     const from = new Set(members.map((id) => st.pawns[id].household));
@@ -5450,18 +5465,15 @@ VB['sim/farmclaims'] = (() => {
       if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
     }
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
-    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
-    Stores.start(st, hh, grain); st.households.push(hh);
-    for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
+    issue(st, { actor: holder.id, verb: 'foundHousehold', target: f.id, args: { members, grain }, source: 'restoration' });
+    const hh = st.households[f.household];
     Stores.put(st, hh, 'rations', 2 * dailyNeed(st, hh), 'provisions');
     f.claim = null; f.condition = 1; f.emptySince = null;
     CL.clearClaims(st, f.house);
-    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));
     st.demand = st.demand.filter((id) => !members.includes(id));
     personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`, false); // recorded below
     log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`, {
       kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
-    refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
   }
   return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
     restored,
@@ -5963,6 +5975,26 @@ VB['sim/commands'] = (() => {
         else S.found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field, wood: a.wood }, prov);
       },
     },
+    // A restored farm gains its household; construction keeps plot/farm-specific steps in their owners.
+    foundHousehold: {
+      check: (st, c) => {
+        const f = st.farmsteads[c.target], a = c.args || {};
+        if (!f || f.household !== null) return 'there is no empty farm';
+        if (!Array.isArray(a.members) || !a.members.includes(c.actor) || new Set(a.members).size !== a.members.length) {
+          return 'the household must include its holder and unique members';
+        }
+        for (const id of a.members) { const dead = living(st, id); if (dead) return dead; }
+        return Number.isFinite(a.grain) && a.grain >= 0 ? null : 'invalid provisions';
+      },
+      run: (st, c) => later('sim/membership').foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, { grain: c.args.grain }),
+    },
+    finishCottage: {
+      check: (st, c) => {
+        const v = st.villages[c.args && c.args.village], plot = v && v.plots[c.target];
+        return plot && plot.cottage && plot.cottage.i >= 3 && !plot.built ? null : 'there is no finished cottage';
+      },
+      run: (st, c) => later('sim/cottage').finishCottage(st, st.villages[c.args.village].plots[c.target]),
+    },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
     // retire: a holder hands the farm to the first heir
@@ -6236,7 +6268,9 @@ VB['sim/jobs'] = (() => {
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const {
-    noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf, kinNear, isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
+    joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
+      kinNear,
+      isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
       atHousehold,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
@@ -6379,9 +6413,8 @@ VB['sim/heirs'] = (() => {
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
   function moveTo(st, id, hhId, text = null) {
     const p = st.pawns[id], old = p.household !== null ? st.households[p.household] : null;
-    if (old) old.members = old.members.filter((m) => m !== id);
-    const hh = st.households[hhId]; if (!hh.members.includes(id)) hh.members.push(id);
-    p.household = hhId; p.servant = false;
+    leaveHousehold(st, id);
+    const hh = st.households[hhId]; joinHousehold(st, hh, id, false);
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
     if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, atHousehold(st, hh));
   }
@@ -6473,7 +6506,7 @@ VB['sim/heirs'] = (() => {
       if (target !== null) {
         moveTo(st, id, target);
         if (kinHome === null) {
-          st.pawns[id].servant = true;
+          setServant(st, id, true);
           personEvent(st, id, 'service', `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`, false); // recorded below
           log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`, {
             kind: 'service', pawn: id, ...atHousehold(st, st.households[target]) });
@@ -6483,7 +6516,7 @@ VB['sim/heirs'] = (() => {
     // the animals go with the first of its people to find a new home
     const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
-    hh.members = [];
+    clearMembers(st, hh);
     log(st, `${f.name} stands empty: ${why}.`, { kind: 'empty', ...atHousehold(st, hh) });
     st.visualDirty = true;
   }
@@ -6619,15 +6652,46 @@ VB['sim/heirs'] = (() => {
     st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own, rank));
   }
   return {
-    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf, setGuardian,
+    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf,
+      setGuardian,
       handOn,
     heirFor, roundHeirs,
   };
 })();
 </script>
 <script>
+// @sys sim/membership: founding a household on a farm, coordinating records, supplies, land and moving
+VB['sim/membership'] = (() => {
+  const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
+  const { setOwner } = VB['sim/ownership'];
+  const Stores = VB['sim/stores'];
+  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
+  function foundHousehold(st, f, members, holder, { grain = 0, stakes = false, text = null, followers = [], unhomed = false } = {}) {
+    const hh = makeHousehold(st, st.households.length, f, [], holder);
+    Stores.start(st, hh, grain);
+    if (stakes) for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0,
+      { kind: 'provisions', pawn: id });
+    st.households.push(hh);
+    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
+      setOwner(st, t, { type: 'household', id: hh.id });
+    }
+    for (const id of members) {
+      if (unhomed && st.pawns[id].household === null) joinHousehold(st, hh, id);
+      else moveTo(st, id, hh.id, text);
+      st.rigDirty.add(id);
+    }
+    for (const id of followers) setServant(st, id, true);
+    refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
+    return hh;
+  }
+  return { foundHousehold };
+})();
+</script>
+<script>
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
+  const { setServant } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
@@ -6693,7 +6757,7 @@ VB['sim/service'] = (() => {
   function enterService(st, id, hhId) {
     const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
     const from = farmIn(st, st.households[best.household], v);
-    moveTo(st, best.id, hh.id); best.servant = true;
+    moveTo(st, best.id, hh.id); setServant(st, best.id, true);
     personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
     log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
       kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
@@ -6733,11 +6797,9 @@ VB['sim/service'] = (() => {
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
-  const { makeHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
-  const { setOwner } = VB['sim/ownership'];
   const { SHARES, SOIL } = VB['sim/rules'];
-  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { foundHousehold } = VB['sim/membership'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
@@ -6767,20 +6829,9 @@ VB['sim/cottage'] = (() => {
         if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
-    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
-    Stores.start(st, hh, 0);
-    for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0, { kind: 'provisions', pawn: id });
-    st.households.push(hh);
-    setOwner(st, house, { type: 'household', id: hh.id }); setOwner(st, field, { type: 'household', id: hh.id });
-    for (const id of members) {
-      const was = st.pawns[id].household;
-      if (was !== null) moveTo(st, id, hh.id);
-      else { hh.members.push(id); st.pawns[id].household = hh.id; }
-      st.rigDirty.add(id);
-    }
+    const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
     log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
-    refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
   // The payment goes to the pawn's household, or to its stake while it has none.
@@ -6979,14 +7030,13 @@ VB['sim/settle'] = (() => {
   const { seedReserve } = VB['sim/hunger'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
-  const { setOwner } = VB['sim/ownership'];
+  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
-  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
@@ -7155,16 +7205,12 @@ VB['sim/settle'] = (() => {
     st.farmsteads.push(f); v.farmsteads.push(f.id);
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
-    const hh = makeHousehold(st, st.households.length, f, [], settler.id);
-    Stores.start(st, hh, prov.grain); st.households.push(hh);
     for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
     for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions');
-    setOwner(st, house, { type: 'household', id: hh.id }); stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
-    for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
-    for (const id of party.followers) st.pawns[id].servant = true;
-    refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
+    const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers });
+    stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
+    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
@@ -7239,7 +7285,7 @@ VB['sim/lifecycle'] = (() => {
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
       holdingOf, atHousehold,
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
@@ -7267,7 +7313,7 @@ VB['sim/lifecycle'] = (() => {
       + `${CAUSES[cause].log}, aged ${p.age}.`, {
         kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
     const hh = p.household !== null ? st.households[p.household] : null;
-    if (hh) { hh.members = hh.members.filter((m) => m !== id); if (hh.holder === id) succession(st, hh, 'death'); }
+    if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
   }
   function retireHolder(st, hhId) {
@@ -7526,7 +7572,7 @@ VB['sim/lifecycle'] = (() => {
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
+  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, setTie } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
@@ -7551,7 +7597,7 @@ VB['sim/births'] = (() => {
     const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(rnd(st.rng.people) * pool.length) | 0];
     const id = person({ pawns: st.pawns, living: st.living, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }),
       p = st.pawns[id];
-    p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
+    p.born = st.t; p.alive = true; p.age = 0; joinHousehold(st, hh, id);
     Culture.initPerson(p, Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2));
     initRelations(p);
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { setTie(st, id, j, 1); setTie(st, j, id, 1); }

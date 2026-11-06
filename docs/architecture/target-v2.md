@@ -919,4 +919,4 @@ Unnumbered here; each would be written up under the task rules in `BACKLOG.md`, 
 ### 11.4 This folder
 
 `target-architecture.md`, `prompt.md` and `stress-tests.md` stay as the external proposal and its brief; `ownership.md` stays as the
-map of today. This file is the target. `CLAUDE.md` and `docs/review-architecture.md` can point here.
+map of today. This file is the target. `AGENTS.md` and `docs/review-architecture.md` can point here.

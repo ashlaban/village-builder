@@ -39,8 +39,8 @@ Read from the source at `4ef37fa`. The counts are of assignment sites found with
 | The player acts through the same rules (Principle 10) | Decided in `design.md` (Commands): the player is one more source of commands; VB-169 builds it |
 | The work coordinator owns no production rule (section 4.3) | A job kind is one record in `KINDS` (`src/sim/kinds.js`) with its own finishing and delivering; matching (`src/sim/jobs.js`) ranks and assigns only. A new kind needs no change to the matcher |
 | No event bus, no central manager (prompt, section 9) | There is none. `sim/clock` runs the systems in a fixed daily order and holds no rules of its own |
-| Do not over-decompose; complexity is earned (Rule 12; Principle 14) | The refactor rules in `BACKLOG.md`, and the working rules of `CLAUDE.md`: a general rule at the third special case, a refactor says what fell |
-| Questions for every change (stress tests, section 15) | Largely the impact note of `CLAUDE.md`: the modules and state a change reads and writes, new coupling, why an existing abstraction does not fit |
+| Do not over-decompose; complexity is earned (Rule 12; Principle 14) | The refactor rules in `BACKLOG.md`, and the working rules of `AGENTS.md`: a general rule at the third special case, a refactor says what fell |
+| Questions for every change (stress tests, section 15) | Largely the impact note of `AGENTS.md`: the modules and state a change reads and writes, new coupling, why an existing abstraction does not fit |
 
 ### Partly met: one owner per piece of state (Rules 1 and 3)
 
@@ -102,7 +102,7 @@ round the order: `farmclaims.js:181` calls `sim/heirs`, which imports `sim/farmc
    threshing), so Production writes Resources directly.
 4. **Obligations wait for their second kind.** The shares are the first. Tithe, tax, rent and grain loans (cities review, phases 2 and 5) bring more;
    with the second, an obligation record (debtor, beneficiary, basis, amount, due, status, paid through the owner of food) has earned its place,
-   by the `CLAUDE.md` rule on special cases. Not now.
+   by the `AGENTS.md` rule on special cases. Not now.
 5. **Rights and ownership are half separate.** The claims arch keeps owner, claim and stake apart, and VB-043's scope has the dimensions owns,
    claims, uses, works and is kin of. Missing: use by someone who is not the owner (tenancy, cities phase 2), and land held by a pawn.
 6. **Multi-membership belongs in VB-043.** Its draft links pawn to household to village to culture as a chain. If links are typed edges a pawn may
@@ -179,8 +179,8 @@ the first step of either role and is unaffected.
 | The assessment: ownership map, dependency graph, workflow traces, gap table (prompt, section 2; stages 1 and 2) | VB-172, plan task of a new arch `ownership` |
 | Only the owner writes a field: a static check (Rules 1 and 3; layer 6) | VB-173, `blocked` on VB-172 and Kim's review of its map |
 | The vision in `design.md` | Proposed text in section 3; questions in `QUESTIONS.md` |
-| Reads free, writes through the owner | A question in `QUESTIONS.md`; the rule goes into `CLAUDE.md` once VB-172 has named the owners |
-| `docs/architecture/` as a reference for agents | A line in `CLAUDE.md` that names it as a proposal and points here |
+| Reads free, writes through the owner | A question in `QUESTIONS.md`; the rule goes into `AGENTS.md` once VB-172 has named the owners |
+| `docs/architecture/` as a reference for agents | A line in `AGENTS.md` that names it as a proposal and points here |
 
 ### Kept for later, no task
 

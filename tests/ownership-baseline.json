@@ -1,24 +1,5 @@
 {
-  "household.members": {
-    "sim/births push hh . members": 1,
-    "sim/cottage push hh . members": 1,
-    "sim/heirs = hh . members": 1,
-    "sim/heirs filter old . members": 1,
-    "sim/heirs push hh . members": 1,
-    "sim/lifecycle filter hh . members": 1
-  },
-  "pawn.household": {
-    "sim/births = p . household": 1,
-    "sim/cottage = st . pawns [ id ] . household": 1,
-    "sim/heirs = p . household": 1
-  },
   "pawn.role": {
     "sim/heirs = p . role": 7
-  },
-  "pawn.servant": {
-    "sim/heirs = p . servant": 1,
-    "sim/heirs = st . pawns [ id ] . servant": 1,
-    "sim/service = best . servant": 1,
-    "sim/settle = st . pawns [ id ] . servant": 1
   }
 }

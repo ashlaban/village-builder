@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found'], calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -163,8 +163,25 @@ if (site3) {
   assert.strictEqual(st3.households[settler.household].farmstead, nf, 'the settler lives on the new farm');
   R3.push(['leave', 1]);
 }
+// Membership's owner keeps death's historical address, and ordinary moves detach before joining.
+const R = VB['sim/records'], membership = {
+  pawns: [{ household: 0, servant: true }], households: [{ id: 0, members: [0] }, { id: 1, members: [] }],
+};
+R.leaveHousehold(membership, 0, true);
+assert.deepStrictEqual(membership.households[0].members, []);
+assert.strictEqual(membership.pawns[0].household, 0, 'death preserves the last household');
+assert.strictEqual(membership.pawns[0].servant, true, 'death preserves service');
+R.leaveHousehold(membership, 0);
+assert.strictEqual(membership.pawns[0].household, null);
+R.joinHousehold(membership, membership.households[1], 0, false);
+assert.deepStrictEqual(membership.households[1].members, [0]);
+assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false });
+R.setServant(membership, 0, true);
+assert.strictEqual(membership.pawns[0].servant, true);
 const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >= 18);
 for (const [cmd, why] of [
+  [{ actor: lead.id, verb: 'foundHousehold', target: 99999, args: { members: [lead.id], grain: 0 } }, /empty farm/],
+  [{ actor: null, verb: 'finishCottage', target: 99999, args: { village: 0 } }, /finished cottage/],
   [{ actor: lead.id, verb: 'leave', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
   [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
   [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],

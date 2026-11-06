@@ -489,6 +489,18 @@ What each cycle is, and a proposal to break it:
 with the verbs' own `later()` in `sim/commands`. All four cycles then go through the command layer. The script lists every lookup, so the
 rule can be checked once Kim agrees to it.
 
+### VB-175 update (6 November 2026)
+
+The table and diagram above record the original audit. Household membership and service now have one writer, `sim/records`:
+`joinHousehold`, `leaveHousehold`, `clearMembers` and `setServant`. `moveTo` keeps agent release, placement and the move event.
+Death uses `leaveHousehold` with its historical-record option, preserving the deceased's last household and service.
+`sim/membership.foundHousehold` replaces the three copies of household creation, supply initialization, ownership, moving and marking.
+
+The direct expansion → cottage and farmclaims → heirs edges are gone. `finishCottage` and `foundHousehold` commands carry those
+requests. `tools/writes.js` reports the strongly connected component without heirs or cottage. Its cycle witnesses fall from five
+to four: two direct cycles removed, one permitted expansion → commands cycle added. The expansion → farmclaims filter lookup is
+still the work of VB-176. The seven remaining ownership allowances are all role writes, outside this task.
+
 ## 5. Workflow traces
 
 One row for each change of state, with its writer. *Past the owner* marks a write by a module other than the field's proposed owner
@@ -719,7 +731,7 @@ behaviour (golden file unchanged), under the refactor rules of `BACKLOG.md`.
   agent and places it at home, and calls them. `refreshRoles` derives `pawn.role` from membership and stays beside `moveTo`.
 - **One founding act.** `foundHousehold(st, f, members, grain)` replaces the three copies (`farmclaims.moveIn`,
   `cottage.finishCottage`, `settle.settleFarm`): make the household, push it, own the house (and the fields of an empty farm), move each
-  member, refresh the roles. This is the third case of one pattern, so the `CLAUDE.md` rule asks for the general one. farmclaims and
+  member, refresh the roles. This is the third case of one pattern, so the `AGENTS.md` rule asks for the general one. farmclaims and
   expansion reach it through the command layer (a `moveIn` verb), which removes the lookups at `farmclaims.js:181` and `expansion.js:172`
   and two of the four cycles.
 - **Checks.** The pawn is alive, or a newborn; the household exists and is not dissolved; the pawn is not already a member. The
