@@ -10,7 +10,7 @@ VB['sim/clock'] = (() => {
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const { shareFood } = VB['sim/help'];
-  const { homeSpot, release, wantsWork, stepWork, moveAgent } = VB['sim/agents'];
+  const { placeByDoor, release, wantsWork, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
   const { issue } = VB['sim/commands'];
   const { noteContacts } = VB['sim/society'];
@@ -36,7 +36,7 @@ VB['sim/clock'] = (() => {
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const id of st.living) {
         const a = st.agents[id];
-        if (a.inside && !a.job) { const [x, y] = homeSpot(st, a); a.x = x; a.y = y; }
+        if (a.inside && !a.job) placeByDoor(st, a);
       }
     }
     if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);

@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found'], calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -59,11 +59,32 @@ assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'test' }), t
 assert.strictEqual(b.phase, 'home'); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
 assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'test' }), true);
 assert.strictEqual(b.idleUntil, st.t + 2);
+// Talk pauses cannot interrupt work, entering home, or an indoor pawn, and cannot shorten an idle pause (VB-177).
+const talking = (until) => issue(st, { actor: b.id, verb: 'haltForTalk', args: { until }, source: 'talk' });
+const entering = snap();
+assert.strictEqual(talking(st.t + 3), true);
+assert.strictEqual(snap(), entering, 'a pawn entering home keeps its walk');
+VB['sim/agents'].release(st, b);
+b.inside = true;
+const indoors = snap(); talking(st.t + 3);
+assert.strictEqual(snap(), indoors, 'talk does not halt an indoor pawn');
+b.inside = false;
+b.job = j;
+const working = snap(); talking(st.t + 3);
+assert.strictEqual(snap(), working, 'talk does not interrupt a job');
+b.job = null;
+assert.strictEqual(talking(st.t + 1), true);
+assert.strictEqual(b.path, null); assert.strictEqual(b.anim, 'idle');
+assert.strictEqual(b.idleUntil, st.t + 2, 'talk cannot shorten an existing pause');
+talking(st.t + 3); assert.strictEqual(b.idleUntil, st.t + 3);
 const before2 = snap();
 for (const [cmd, why] of [
   [{ actor: b.id, verb: 'walkTo', target: -1 }, /there is no tile/], [{ actor: b.id, verb: 'walkTo', target: st.w.N }, /there is no tile/],
   [{ actor: dead.id, verb: 'goHome' }, /not a living pawn/], [{ actor: b.id, verb: 'idle', args: { until: st.t - 1 } }, /past/],
   [{ actor: b.id, verb: 'idle' }, /past/],
+  [{ actor: b.id, verb: 'haltForTalk' }, /past/],
+  [{ actor: b.id, verb: 'haltForTalk', args: { until: st.t - 1 } }, /past/],
+  [{ actor: dead.id, verb: 'haltForTalk', args: { until: st.t + 1 } }, /not a living pawn/],
 ]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
 // the meeting's decide and the debug verbs (VB-170), on the heirs scenario, which has farms with heirs
@@ -149,4 +170,4 @@ for (const [cmd, why] of [
   [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
 ]) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
 assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
-console.log(`commands ok: work, walkTo, goHome and idle carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 13 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);
+console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 16 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);

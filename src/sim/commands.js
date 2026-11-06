@@ -1,6 +1,6 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out (VB-167)
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome } = VB['sim/agents'];
+  const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
@@ -37,12 +37,17 @@ VB['sim/commands'] = (() => {
     // goHome: walk home and go in (phase 'home')
     goHome: {
       check: (st, c) => living(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
-      run: (st, c) => { const a = st.agents[c.actor]; goHome(st, a); a.phase = 'home'; },
+      run: (st, c) => goHome(st, st.agents[c.actor]),
     },
     // idle(until): look for nothing to do until game time args.until
     idle: {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
-      run: (st, c) => { st.agents[c.actor].idleUntil = c.args.until; },
+      run: (st, c) => idle(st, st.agents[c.actor], c.args.until),
+    },
+    // haltForTalk(until): pause an idle outdoor pawn until the talk ends, leaving work and indoor pawns alone
+    haltForTalk: {
+      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
+      run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
     },
     // ---- a settlement's meeting (source 'meeting') ----
     // decide({dim, option}): the settlement's practice of the custom becomes the option
