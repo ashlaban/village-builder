@@ -1,27 +1,4 @@
 {
-  "farmstead.fields": {
-    "sim/clock ++ fd . weedMiss": 1,
-    "sim/clock = fd . held": 1,
-    "sim/clock = fd . sown": 1,
-    "sim/clock = fd . stage": 4,
-    "sim/clock = fd . weedOpen": 1,
-    "sim/clock = fd . weedPosted": 1,
-    "sim/heirs = fd . held": 1,
-    "sim/heirs = fd . sown": 1,
-    "sim/heirs = fd . stage": 1,
-    "sim/kinds = fd . held": 1,
-    "sim/kinds = fd . reaped": 1,
-    "sim/kinds = fd . stage": 1,
-    "sim/kinds = fd . weedMiss": 1,
-    "sim/kinds = fd . weedOpen": 1,
-    "sim/kinds = fd . weedPosted": 1,
-    "sim/kinds = j . field . held": 1,
-    "sim/kinds = j . field . sown": 2,
-    "sim/kinds = j . field . stage": 4,
-    "sim/kinds = j . field . weedMiss": 1,
-    "sim/kinds = j . field . weedOpen": 2,
-    "sim/kinds = j . field . weedPosted": 1
-  },
   "household.grain": {
     "sim/cottage -= hh . grain": 1,
     "sim/cottage += st . households [ p . household ] . grain": 1,

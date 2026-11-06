@@ -45,6 +45,14 @@ with independent full scans, and `tests/living.js` probes missing, duplicate and
 and old saves. The existing non-enumerable `st.idx` also indexes active unions and whether a person has an ended union;
 `tests/indexes.js` compares these lookups with the union records after long runs. Historical queries retain the full records.
 
+VB-179 (6 November): `sim/fields` now owns every crop change in play. Job kinds call `hoed`, `sown`, `reaped`,
+`hauled`, `reclaimed` and `weeded`; `sim/heirs.extinct` calls `abandoned`. `sim/clock.endOfDay` calls `fieldsDay`
+after route updates, before building and fence decay. It handles ripening, the weeding schedule, frost and abandoned-field
+overgrowth; building decay stays in the clock. Harvest yield still draws from `st.rng.fields` at reaping, in the same order.
+`node tools/writes.js --field farmstead.fields` reports only `sim/fields`, plus seeding in `sim/layout` and `sim/scenarios`.
+All 29 crop writes formerly allowed outside their owner were removed from `tests/ownership-baseline.json`; new violations fail.
+The tables below remain the historical pre-refactor survey.
+
 ## 1. In short
 
 - **174 fields are written in play or at seeding, 71 of them by more than one module, at 618 writes.** Fields written only when a

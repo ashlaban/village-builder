@@ -1,11 +1,10 @@
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
-  const { log, age, atFarm } = VB['sim/records'];
+  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
+  const { log } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
-  const { B } = VB['gen'];
-  const { bfs } = VB['sim/hex'];
+  const { fieldsDay } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
@@ -24,11 +23,6 @@ VB['sim/clock'] = (() => {
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { landMeeting } = VB['sim/territory'];
-  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
-  function nearForest(w, tile) {
-    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
-    return false;
-  }
   function onHour(st, h, c) {
     if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
@@ -70,36 +64,13 @@ VB['sim/clock'] = (() => {
     lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
-    const day = Math.floor(st.t / DAY);
-    for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
-      const g = day - fd.sown;
-      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
-      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
-    }
-    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
-    for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household === null || fd.stage !== 'growing') continue;
-      if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
-      if (fd.weedOpen) fd.weedMiss++;
-      fd.weedOpen = true; fd.weedPosted = day;
-    }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-      }
-    }
+    fieldsDay(st, c);
     const decay = E.fenceDecay[c.season];
     const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
-    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub; not while a claimant mends it (VB-033)
+    // Empty buildings lose about 8% a year; not while a claimant mends the farm (VB-033).
     for (const f of st.farmsteads) if (f.household === null && !f.claim) {
       f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
-      const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
-      for (const fd of f.fields) {
-        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
-        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
-      }
     }
     for (const s of all) {
       const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;

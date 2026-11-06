@@ -1,11 +1,10 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
-  const { next: rnd } = VB['sim/rng'];
   const { ROLES, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
-  const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
+  const { finishClear, finishBreak, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
@@ -42,7 +41,7 @@ VB['sim/kinds'] = (() => {
   const KINDS = {
     plow: {
       verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
-      field: true, spot: onField, urgency: inWindow, done: (st, j) => { j.field.stage = 'plowed'; },
+      field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
     },
     sow: {
       verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
@@ -51,22 +50,14 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON;
         if (hh.grain < E.seedPerField) return;
-        hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day;
-        j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0;
+        hh.grain -= E.seedPerField; sown(j.field, c);
       },
     },
     reap: {
       verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
       field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
-      done: (st, j, hh, c) => {
-        const E = st.ECON, fd = j.field;
-        fd.stage = 'stooks'; fd.reaped = c.day;
-        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
-          * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
-        wearSoil(fd); // the crop takes from the soil (VB-137)
-        fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
-      },
+      done: (st, j, hh, c) => reaped(st, j.field, c),
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
@@ -76,7 +67,7 @@ VB['sim/kinds'] = (() => {
         hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
         if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
           kind: 'harvest', ...atFarm(f) });
-        j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
+        hauled(j.field);
       },
     },
     wood: {
@@ -112,7 +103,7 @@ VB['sim/kinds'] = (() => {
     },
     weed: {
       verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
-      field: true, spot: onField, done: (st, j) => { j.field.weedOpen = false; },
+      field: true, spot: onField, done: (st, j) => weeded(j.field),
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
@@ -133,7 +124,7 @@ VB['sim/kinds'] = (() => {
     reclaim: {
       verb: 'Clearing an overgrown field', go: 'Going to clear an overgrown field', name: 'Clear an overgrown field', label: 'Reclaim', anim: 'hoe',
       hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
-      done: (st, j) => { if (j.field.stage === 'fallow' || j.field.stage === 'scrub') { j.field.stage = 'stubble'; st.visualDirty = true; } },
+      done: (st, j) => reclaimed(st, j.field),
     },
     restore: { // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
       verb: 'Mending an empty farm', go: 'Going to mend an empty farm', name: 'Mend an empty farm', label: 'Mending a farm', anim: 'mallet', hours: 20,

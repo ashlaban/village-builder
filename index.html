@@ -4443,10 +4443,11 @@ VB['sim/deaths'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/fields: making new fields: how many a household wants, choosing a tile, clearing it and breaking the ground; soil and manure
+// @sys sim/fields: new fields, crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { next: rnd } = VB['sim/rng'];
+  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -4542,7 +4543,66 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n; fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+  // @state farmstead.fields[]: crop stage, sown/reaped days, held sheaves and weeding progress; changed only here after seeding.
+  const hoed = (fd) => { fd.stage = 'plowed'; };
+  function sown(fd, c) {
+    fd.stage = 'sown'; fd.sown = c.day;
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+  }
+  function reaped(st, fd, c) {
+    const E = st.ECON;
+    fd.stage = 'stooks'; fd.reaped = c.day;
+    fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
+      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+    wearSoil(fd); // the crop takes from the soil (VB-137)
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+  }
+  const hauled = (fd) => { fd.held = 0; fd.stage = 'stubble'; fd.sown = null; };
+  function reclaimed(st, fd) {
+    if (fd.stage === 'fallow' || fd.stage === 'scrub') { fd.stage = 'stubble'; st.visualDirty = true; }
+  }
+  const weeded = (fd) => { fd.weedOpen = false; };
+  function abandoned(f) {
+    for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
+  }
+  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
+  function nearForest(w, tile) {
+    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
+    return false;
+  }
+  // Daily crop rules, after routes and before buildings and fences decay. No random draws.
+  function fieldsDay(st, c) {
+    const E = st.ECON;
+    const day = Math.floor(st.t / DAY);
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
+      const g = day - fd.sown;
+      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
+      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
+    }
+    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household === null || fd.stage !== 'growing') continue;
+      if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
+      if (fd.weedOpen) fd.weedMiss++;
+      fd.weedOpen = true; fd.weedPosted = day;
+    }
+    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
+      }
+    }
+    // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
+    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+      const yrs = (st.t - f.emptySince) / YEAR;
+      for (const fd of f.fields) {
+        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
+        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
+      }
+    }
+  }
+  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
+    builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();
 </script>
@@ -5319,12 +5379,11 @@ VB['sim/farmclaims'] = (() => {
 <script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
-  const { next: rnd } = VB['sim/rng'];
   const { ROLES, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
-  const { finishClear, finishBreak, wearSoil, manureDone } = VB['sim/fields'];
+  const { finishClear, finishBreak, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
   const { finishBoothStage } = VB['sim/expansion'];
@@ -5361,7 +5420,7 @@ VB['sim/kinds'] = (() => {
   const KINDS = {
     plow: {
       verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
-      field: true, spot: onField, urgency: inWindow, done: (st, j) => { j.field.stage = 'plowed'; },
+      field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
     },
     sow: {
       verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
@@ -5370,22 +5429,14 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON;
         if (hh.grain < E.seedPerField) return;
-        hh.grain -= E.seedPerField; j.field.stage = 'sown'; j.field.sown = c.day;
-        j.field.weedOpen = false; j.field.weedPosted = null; j.field.weedMiss = 0;
+        hh.grain -= E.seedPerField; sown(j.field, c);
       },
     },
     reap: {
       verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
       field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
-      done: (st, j, hh, c) => {
-        const E = st.ECON, fd = j.field;
-        fd.stage = 'stooks'; fd.reaped = c.day;
-        fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
-          * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
-        wearSoil(fd); // the crop takes from the soil (VB-137)
-        fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
-      },
+      done: (st, j, hh, c) => reaped(st, j.field, c),
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
@@ -5395,7 +5446,7 @@ VB['sim/kinds'] = (() => {
         hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
         if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
           kind: 'harvest', ...atFarm(f) });
-        j.field.held = 0; j.field.stage = 'stubble'; j.field.sown = null;
+        hauled(j.field);
       },
     },
     wood: {
@@ -5431,7 +5482,7 @@ VB['sim/kinds'] = (() => {
     },
     weed: {
       verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
-      field: true, spot: onField, done: (st, j) => { j.field.weedOpen = false; },
+      field: true, spot: onField, done: (st, j) => weeded(j.field),
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
@@ -5452,7 +5503,7 @@ VB['sim/kinds'] = (() => {
     reclaim: {
       verb: 'Clearing an overgrown field', go: 'Going to clear an overgrown field', name: 'Clear an overgrown field', label: 'Reclaim', anim: 'hoe',
       hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
-      done: (st, j) => { if (j.field.stage === 'fallow' || j.field.stage === 'scrub') { j.field.stage = 'stubble'; st.visualDirty = true; } },
+      done: (st, j) => reclaimed(st, j.field),
     },
     restore: { // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
       verb: 'Mending an empty farm', go: 'Going to mend an empty farm', name: 'Mend an empty farm', label: 'Mending a farm', anim: 'mallet', hours: 20,
@@ -6102,6 +6153,7 @@ VB['sim/heirs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
+  const { abandoned } = VB['sim/fields'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
@@ -6313,7 +6365,7 @@ VB['sim/heirs'] = (() => {
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
-    for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
+    abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
@@ -7760,11 +7812,10 @@ VB['sim/scenarios'] = (() => {
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
-  const { log, age, atFarm } = VB['sim/records'];
+  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
+  const { log } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
-  const { B } = VB['gen'];
-  const { bfs } = VB['sim/hex'];
+  const { fieldsDay } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
@@ -7783,11 +7834,6 @@ VB['sim/clock'] = (() => {
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { landMeeting } = VB['sim/territory'];
-  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
-  function nearForest(w, tile) {
-    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
-    return false;
-  }
   function onHour(st, h, c) {
     if (st.cenv) talkHour(st, h, noteContacts(st));
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
@@ -7829,36 +7875,13 @@ VB['sim/clock'] = (() => {
     lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
     fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
     refreshRoutes(st);
-    const day = Math.floor(st.t / DAY);
-    for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
-      const g = day - fd.sown;
-      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
-      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
-    }
-    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
-    for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household === null || fd.stage !== 'growing') continue;
-      if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
-      if (fd.weedOpen) fd.weedMiss++;
-      fd.weedOpen = true; fd.weedPosted = day;
-    }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-      }
-    }
+    fieldsDay(st, c);
     const decay = E.fenceDecay[c.season];
     const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
-    // empty farms decay: buildings lose about 8% a year, untended fields go to grass and then scrub; not while a claimant mends it (VB-033)
+    // Empty buildings lose about 8% a year; not while a claimant mends the farm (VB-033).
     for (const f of st.farmsteads) if (f.household === null && !f.claim) {
       f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
-      const yrs = (st.t - f.emptySince) / YEAR;
       if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
-      for (const fd of f.fields) {
-        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
-        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
-      }
     }
     for (const s of all) {
       const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
