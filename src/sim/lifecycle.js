@@ -9,7 +9,7 @@ VB['sim/lifecycle'] = (() => {
     unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, kinNear, settlementIdOf, practice, farmPractice, noteUnionEnd,
       holdingOf, atHousehold,
   } = VB['sim/records'];
-  const { release } = VB['sim/agents'];
+  const { stillAtDeath } = VB['sim/agents'];
   const {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, countDemand, ownFirstOf, handOn, heirFor,
   } = VB['sim/heirs'];
@@ -26,7 +26,7 @@ VB['sim/lifecycle'] = (() => {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
-    const a = st.agents[id]; release(st, a); a.path = null; a.inside = true;
+    const a = st.agents[id]; stillAtDeath(st, a);
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
     if (p.rel) forget(st, id);

@@ -4,6 +4,7 @@ VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf } = VB['sim/records'];
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
 
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
@@ -166,7 +167,7 @@ VB['sim/relations'] = (() => {
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
     // an idle pawn outdoors stops where it is until the talk is over
-    const halt = (g) => { if (!g.inside && !g.job && g.phase === null) { g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until); } };
+    const halt = (g) => issue(st, { actor: g.id, verb: 'haltForTalk', args: { until }, source: 'talk' });
     halt(a); halt(b);
     st.talks++;
   }

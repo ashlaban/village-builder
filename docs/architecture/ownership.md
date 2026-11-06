@@ -733,6 +733,14 @@ behaviour (golden file unchanged), under the refactor rules of `BACKLOG.md`.
   writes its agent directly.
 - **Size.** S.
 
+VB-177 (6 November 2026): movement writes now belong exclusively to `sim/agents` (seeding and save codec
+exemptions remain). `placeByDoor` moves an indoor pawn at dawn without resetting its other state;
+`stillAtDeath` releases work and stops movement; `goHome` owns the home phase; `idle` owns the idle deadline.
+Talks reach `haltForTalk` through `issue`, the existing permitted upward command boundary, rather than
+adding a direct dependency from the earlier `sim/relations` to `sim/agents`. Its guard preserves indoor
+and working pawns and never shortens a pause. Nine baseline allowances across seven fields and four
+caller modules were removed. No new state, module, random draw, growing loop or gameplay rule is added.
+
 ### 7.4 Ties and attitudes
 
 - **Owner.** `sim/relations` for `pawn.ties` and `pawn.rel`; `culture` for `att`, `anc` and `advocate`, with `sim/society` as its

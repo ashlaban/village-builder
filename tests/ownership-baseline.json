@@ -1,27 +1,4 @@
 {
-  "agent.anim": {
-    "sim/relations = g . anim": 1
-  },
-  "agent.idleUntil": {
-    "sim/commands = st . agents [ c . actor ] . idleUntil": 1,
-    "sim/relations = g . idleUntil": 1
-  },
-  "agent.inside": {
-    "sim/lifecycle = a . inside": 1
-  },
-  "agent.path": {
-    "sim/lifecycle = a . path": 1,
-    "sim/relations = g . path": 1
-  },
-  "agent.phase": {
-    "sim/commands = a . phase": 1
-  },
-  "agent.x": {
-    "sim/clock = a . x": 1
-  },
-  "agent.y": {
-    "sim/clock = a . y": 1
-  },
   "farmstead.fields": {
     "sim/clock ++ fd . weedMiss": 1,
     "sim/clock = fd . held": 1,

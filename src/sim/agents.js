@@ -1,4 +1,4 @@
-// @sys sim/agents: pawn movement and work: routes, walking, starting and finishing jobs
+// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
@@ -15,6 +15,20 @@ VB['sim/agents'] = (() => {
   }
   function placeAtHome(st, a) {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
+  }
+  // Dawn repositions an indoor pawn without clearing its movement or work state.
+  function placeByDoor(st, a) {
+    const [x, y] = homeSpot(st, a); a.x = x; a.y = y;
+  }
+  function idle(st, a, until) { a.idleUntil = until; }
+  // A talk stops only an idle pawn outdoors, and never shortens an existing pause.
+  function haltForTalk(st, g, until) {
+    if (!g.inside && !g.job && g.phase === null) {
+      g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until);
+    }
+  }
+  function stillAtDeath(st, a) {
+    release(st, a); a.path = null; a.inside = true;
   }
   function tileAt(st, x, y) {
     const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
@@ -93,7 +107,7 @@ VB['sim/agents'] = (() => {
   }
   function goHome(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], [x, y] = homeSpot(st, a);
-    walkTo(st, a, f.house, x, y);
+    walkTo(st, a, f.house, x, y); a.phase = 'home';
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
   const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
@@ -166,7 +180,8 @@ VB['sim/agents'] = (() => {
   }
   return {
     ownerKey, dropJob,
-    homeSpot, placeAtHome, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit, wantsWork, arrived, goHome, rateOf,
+    homeSpot, placeAtHome, placeByDoor, idle, haltForTalk, stillAtDeath, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit,
+      wantsWork, arrived, goHome, rateOf,
     withOxen, stepWork,
     moveAgent, describe,
   };
