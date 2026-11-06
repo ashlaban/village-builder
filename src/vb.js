@@ -19,6 +19,7 @@ VB.COUNTERS = {
   walkTies: 'Ties decayed by dailyLife',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
+  storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   ruleValue: 'Rule values read (explanations excluded)',
 };
 VB.count = {};

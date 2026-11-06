@@ -1,27 +1,4 @@
 {
-  "household.grain": {
-    "sim/cottage -= hh . grain": 1,
-    "sim/cottage += st . households [ p . household ] . grain": 1,
-    "sim/farmclaims -= hh . grain": 1,
-    "sim/heirs -= hh . grain": 1,
-    "sim/heirs += to . grain": 1,
-    "sim/heirs = hh . grain": 1,
-    "sim/help -= from . grain": 1,
-    "sim/help -= hh . grain": 1,
-    "sim/help += to . grain": 1,
-    "sim/hunger -= hh . grain": 3,
-    "sim/kinds -= hh . grain": 2,
-    "sim/kinds += hh . grain": 1,
-    "sim/settle -= st . households [ h ] . grain": 1
-  },
-  "household.ledger": {
-    "sim/byre push hh . ledger": 2,
-    "sim/clock filter hh . ledger": 1,
-    "sim/help push from . ledger": 1,
-    "sim/help push hh . ledger": 1,
-    "sim/help push to . ledger": 1,
-    "sim/kinds push hh . ledger": 1
-  },
   "household.members": {
     "sim/births push hh . members": 1,
     "sim/cottage push hh . members": 1,
@@ -30,31 +7,10 @@
     "sim/heirs push hh . members": 1,
     "sim/lifecycle filter hh . members": 1
   },
-  "household.rations": {
-    "sim/cottage = hh . rations": 1,
-    "sim/farmclaims = hh . rations": 1,
-    "sim/hunger -= hh . rations": 1,
-    "sim/hunger = hh . rations": 1,
-    "sim/kinds += hh . rations": 1
-  },
-  "household.spoilt": {
-    "sim/hunger = hh . spoilt": 1
-  },
-  "household.unthreshed": {
-    "sim/kinds push hh . unthreshed": 1,
-    "sim/kinds shift hh . unthreshed": 1
-  },
   "pawn.household": {
     "sim/births = p . household": 1,
     "sim/cottage = st . pawns [ id ] . household": 1,
     "sim/heirs = p . household": 1
-  },
-  "pawn.owed": {
-    "sim/cottage -= p . owed": 1,
-    "sim/heirs = st . pawns [ q ] . owed": 1
-  },
-  "pawn.owedFrom": {
-    "sim/heirs = st . pawns [ q ] . owedFrom": 1
   },
   "pawn.role": {
     "sim/heirs = p . role": 7
@@ -64,17 +20,5 @@
     "sim/heirs = st . pawns [ id ] . servant": 1,
     "sim/service = best . servant": 1,
     "sim/settle = st . pawns [ id ] . servant": 1
-  },
-  "pawn.stake": {
-    "sim/cottage = p . stake": 1,
-    "sim/cottage = st . pawns [ id ] . stake": 1,
-    "sim/farmclaims = st . pawns [ id ] . stake": 1,
-    "sim/heirs = st . pawns [ q ] . stake": 1,
-    "sim/settle = st . pawns [ id ] . stake": 1
-  },
-  "village.grain": {
-    "sim/clock *= v . grain": 1,
-    "sim/help -= v . grain": 1,
-    "sim/help += st . villages [ st . farmsteads [ hh . farmstead ] . village ] . grain": 1
   }
 }

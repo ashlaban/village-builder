@@ -8,6 +8,7 @@ VB['sim/clock'] = (() => {
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
+  const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, wantsWork, stepWork, moveAgent } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
@@ -58,7 +59,7 @@ VB['sim/clock'] = (() => {
       feedHousehold(st, hh); spoilGrain(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
-    for (const v of st.villages) if (v.grain > 0) v.grain *= Math.pow(1 - E.villageStoreLoss, 1 / YEAR_DAYS); // it spoils too (balance review)
+    Stores.villageDay(st); // it spoils too (balance review)
     growTrees(st);
     const lapsed = lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
     lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
@@ -81,7 +82,7 @@ VB['sim/clock'] = (() => {
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
     log(st, `Year ${c.year} begins. The weather ${word}.`, { kind: 'year', n: c.year });
     // Historical ledgers of dissolved households still expire at the new year.
-    for (const hh of st.households) hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
+    Stores.prune(st);
   }
   function advance(st, hours) {
     let left = hours;

@@ -1,7 +1,7 @@
 {
   "creators": ["sim/scenarios", "sim/layout", "sim/people"],
   "exempt": ["sim/saves"],
-  "plannedOwners": ["sim/stores"],
+  "plannedOwners": [],
   "fields": {
     "st.owner": {"owner": "sim/ownership", "category": "cache"},
     "st.living": {"owner": "sim/records", "category": "cache"},
@@ -14,9 +14,8 @@
     "household.haySpoilt": "sim/byre",
     "household.spoilt": "sim/stores",
     "village.grain": "sim/stores",
+    "village.ledger": "sim/stores",
     "pawn.stake": "sim/stores",
-    "pawn.owed": "sim/stores",
-    "pawn.owedFrom": "sim/stores",
     "pawn.household": {"owner": "sim/records", "category": "cache"},
     "household.members": {"owner": "sim/records", "category": "cache"},
     "pawn.role": {"owner": "sim/records", "category": "cache"},

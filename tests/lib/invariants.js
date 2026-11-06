@@ -55,6 +55,15 @@ function checkState(st) {
     const f = st.farmsteads[h.farmstead];
     if (!f || f.household !== h.id) bad.push(`households[${h.id}]: farmstead ${h.farmstead} does not name it`);
   }
+  const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
+  for (const holder of [...st.households, ...st.villages]) {
+    if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
+    for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
+        || e.good !== undefined && !['grain', 'rations', 'sheaves', 'meat', 'milk', 'butter'].includes(e.good)
+        || e.stake && !st.pawns[e.pawn]) {
+      bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
+    }
+  }
   for (const v of st.villages) {
     if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
     // every village has the Culture settlement of the same id (sim/society, addSettlement); moving to new land (sim/settle)

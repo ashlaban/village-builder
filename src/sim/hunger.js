@@ -2,6 +2,7 @@
 VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH, HERD, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
+  const Stores = VB['sim/stores'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
     const f = st.farmsteads[hh.farmstead];
@@ -35,7 +36,9 @@ VB['sim/hunger'] = (() => {
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
     const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
-    if (avail >= rest - late) { const cooked = Math.min(hh.rations, rest - late); hh.rations -= cooked; hh.grain -= rest - late - cooked; }
+    if (avail >= rest - late) {
+      const cooked = Math.min(hh.rations, rest - late); Stores.take(st, hh, 'rations', cooked, 'meal');
+      Stores.take(st, hh, 'grain', rest - late - cooked, 'meal'); }
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
@@ -46,7 +49,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      hh.rations = 0; hh.grain -= spare; hh.hungryDays++;
+      Stores.take(st, hh, 'rations', hh.rations, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -70,7 +73,7 @@ VB['sim/hunger'] = (() => {
     if (!(g > 0)) return;
     const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
-    hh.grain -= lost; hh.spoilt = (hh.spoilt || 0) + lost;
+    Stores.spoil(st, hh, lost);
   }
   return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
