@@ -126,6 +126,7 @@ VB['sim/saves'] = (() => {
     st.w = w;
     rebuildLiving(st);
     trimRoutes(st);
+    for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;

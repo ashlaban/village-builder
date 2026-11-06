@@ -65,6 +65,7 @@ VB['sim/settle'] = (() => {
   // households' grain, the settler's household first. An old household keeps its seed and the food of those who stay for its holder's buffer
   // (HELP) or until the harvest, whichever is longer, as kin keep theirs before giving (sim/help). {grain, gifts: [[household, grain]]}, or
   // null when it is not enough (and nothing is taken).
+  const Stores = VB['sim/stores'];
   const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? ECON.ration.adult : ECON.ration.child), 0);
   function provisions(st, all) {
     const need = Math.ceil(SETTLE.provisionDays * rationsOf(st, all)) + ECON.seedPerField, gifts = [];
@@ -183,9 +184,9 @@ VB['sim/settle'] = (() => {
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
     const hh = makeHousehold(st, st.households.length, f, [], settler.id);
-    hh.grain = prov.grain; hh.rations = 0; st.households.push(hh);
-    for (const id of party.all) st.pawns[id].stake = 0;
-    for (const [h, n] of prov.gifts) st.households[h].grain -= n;
+    Stores.start(st, hh, prov.grain); st.households.push(hh);
+    for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
+    for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions');
     setOwner(st, house, { type: 'household', id: hh.id }); stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
@@ -197,7 +198,7 @@ VB['sim/settle'] = (() => {
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
   function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
-    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
+    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0, ledger: [],
       green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);

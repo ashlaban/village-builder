@@ -137,3 +137,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-196 | The moving round within the late-fixture step gates | yardstick | implement | done | 1 | M | Heir rankings refreshed only where a marriage changes them (444 of 511 ms at year 40); spread over villages only if still over. | [backlog/VB-196.md](backlog/VB-196.md) |
 
 | VB-179 | Refactor: the crop's life only through `sim/fields` | ownership | implement | done | 2 | M | The kinds, the clock and a farm emptying change a crop through `sim/fields`; its daily rules leave the clock. | [backlog/VB-179.md](backlog/VB-179.md) |
+| VB-174 | Household and village food in `sim/stores`, every movement recorded | ownership | implement | done | 2 | M | One owner for household and village food and the heirs' shares; every movement a ledger entry; golden re-recorded for the ledgers only. | [backlog/VB-174.md](backlog/VB-174.md) |

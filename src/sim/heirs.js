@@ -6,6 +6,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
+  const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
@@ -174,7 +175,7 @@ VB['sim/heirs'] = (() => {
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
-        hh.grain -= paid; st.pawns[q].stake = (st.pawns[q].stake || 0) + paid; st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
+        Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q }); st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
         if (due > paid) st.pawns[q].owedFrom = hh.id; // the farm the debt is paid from (sim/cottage)
         if (due) {
           personEvent(st, q, 'share',
@@ -333,7 +334,7 @@ VB['sim/heirs'] = (() => {
       return;
     }
     const to = st.households[home];
-    to.grain += hh.grain; hh.grain = 0; passHerds(st, hh, home);
+    Stores.move(st, hh, to, 'grain', hh.grain, 'handingOn'); passHerds(st, hh, home);
     extinct(st, hh, `${fullName(st.pawns[giver])} married away, and nobody would take it`);
   }
   function refreshRoles(st) {

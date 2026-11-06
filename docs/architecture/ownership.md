@@ -854,3 +854,15 @@ non-enumerable so the existing enumerable public Culture API stays unchanged.
 `tools/writes.js --field` reports only Relations for ties/relationship records,
 and only Culture for attitudes, anchors and advocacy. The ownership baseline
 fell from 124 to 91 write sites, with no new exemptions or saved fields.
+
+## VB-174: food quantities and ledgers (6 November 2026)
+
+`sim/stores` now owns grain, cooked rations, sheaves, paid pawn stakes and the
+household/village food ledgers. Meals, help, job kinds, shares and provisions
+retain their rules and call Stores with a good and a reason. Village spoilage
+and annual three-year ledger pruning leave the clock. Village ledgers are new;
+format-1 saves initialize missing village ledgers on load. Owed shares and their
+debtor remain with heirs/cottage as obligations under target-v2's later decision.
+The allowance falls from 62 to 20 sites: 39 food writes are fixed and three
+owed-share writes leave the goods boundary. No exemption is added. Golden dumps
+change only ledger lines; full evidence and storage costs: `docs/review-vb174.md`.

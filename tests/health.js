@@ -44,7 +44,7 @@ for (const health of [100, 50, 0]) {
 {
   const st = fresh(), hh = st.households[0], ids = hh.members.filter((m) => st.pawns[m].alive); hh.grain = 0;
   for (const f of st.farmsteads[hh.farmstead].fields) f.stage = 'growing';
-  for (let d = 0; d < 36; d++) { st.t += 24; feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
+  for (let d = 0; d < 36; d++) { st.t += 24; if (!hh.dissolved) feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
   assert(ids.every((m) => !st.pawns[m].alive), 'nobody survives 36 days without food');
 }
 for (const seed of [7, 42]) {

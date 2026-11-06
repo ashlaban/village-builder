@@ -157,6 +157,7 @@ VB['sim/farmclaims'] = (() => {
     }
   }
   // ---- moving in (the roof mended): a new household, as a new plot's (Kim, 1 Nov) ----
+  const Stores = VB['sim/stores'];
   const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0);
   // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
   // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes.
@@ -168,9 +169,9 @@ VB['sim/farmclaims'] = (() => {
       const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
       const keep = seedReserve(st, hh) + st.pawns[hh.holder].buffer * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
-      if (give > 0) { hh.grain -= give; have += give; }
+      if (give > 0) { Stores.take(st, hh, 'grain', give, 'provisions'); have += give; }
     }
-    for (const id of members) st.pawns[id].stake = 0;
+    for (const id of members) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
     return have;
   }
   // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
@@ -188,9 +189,9 @@ VB['sim/farmclaims'] = (() => {
     }
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
     const hh = makeHousehold(st, st.households.length, f, [], holder.id);
-    hh.grain = grain; st.households.push(hh);
+    Stores.start(st, hh, grain); st.households.push(hh);
     for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
-    hh.rations = 2 * dailyNeed(st, hh);
+    Stores.put(st, hh, 'rations', 2 * dailyNeed(st, hh), 'provisions');
     f.claim = null; f.condition = 1; f.emptySince = null;
     CL.clearClaims(st, f.house);
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));

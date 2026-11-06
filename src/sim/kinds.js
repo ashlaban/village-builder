@@ -1,5 +1,6 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
+  const Stores = VB['sim/stores'];
   const { ROLES, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
@@ -50,7 +51,7 @@ VB['sim/kinds'] = (() => {
       done: (st, j, hh, c) => {
         const E = st.ECON;
         if (hh.grain < E.seedPerField) return;
-        hh.grain -= E.seedPerField; sown(j.field, c);
+        Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
       },
     },
     reap: {
@@ -64,7 +65,7 @@ VB['sim/kinds'] = (() => {
       anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => {
-        hh.unthreshed.push(j.field.held); hh.ledger.push({ t: st.t, kind: 'harvest', n: j.field.held });
+        Stores.sheaf(st, hh, j.field.held);
         if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
           kind: 'harvest', ...atFarm(f) });
         hauled(j.field);
@@ -98,7 +99,7 @@ VB['sim/kinds'] = (() => {
       // grain above the seed reserve becomes the rations still missing for the coming meal
       done: (st, j, hh, c) => {
         const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
-        hh.grain -= make; hh.rations += make; hh.cookDay = c.day;
+        Stores.cook(st, hh, make); hh.cookDay = c.day;
       },
     },
     weed: {
@@ -107,7 +108,7 @@ VB['sim/kinds'] = (() => {
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
-      hands: Infinity, type: 'threshing', inside: true, done: (st, j, hh) => { hh.grain += hh.unthreshed.shift() || 0; },
+      hands: Infinity, type: 'threshing', inside: true, done: (st, j, hh) => { Stores.thresh(st, hh); },
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,

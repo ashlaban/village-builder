@@ -1,5 +1,6 @@
 // @sys sim/byre: daily barn hay and spoilage, fodder, autumn counts, slaughter, milk and hunger in the byre
 VB['sim/byre'] = (() => {
+  const Stores = VB['sim/stores'];
   const { next: rnd } = VB['sim/rng'];
   const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
@@ -129,7 +130,7 @@ VB['sim/byre'] = (() => {
     if (i < 0) return;
     herd.cull.splice(i, 1);
     const kind = remove(herd, entry), n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
-    if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); hh.ledger.push({ t: st.t, kind: 'meat', n }); }
+    if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); Stores.record(st, hh, 'meat', n, 'meat'); }
   }
   // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter; part is churned to butter that keeps,
   // the rest is drunk fresh within the day.
@@ -140,7 +141,7 @@ VB['sim/byre'] = (() => {
     const r = cows * HERD.milk, butter = r * HERD.butter;
     if (r <= 0) return;
     addFood(st, hh, 'milk', r - butter, 1); addFood(st, hh, 'butter', butter, HERD.butterDays);
-    hh.ledger.push({ t: st.t, kind: 'milk', n: r - butter }, { t: st.t, kind: 'butter', n: butter });
+    Stores.record(st, hh, 'milk', r - butter, 'milk'); Stores.record(st, hh, 'butter', butter, 'butter');
   }
   // Salted: the fresh meat keeps a year.
   function saltDone(st, hh) {
