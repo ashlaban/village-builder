@@ -15,6 +15,10 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
 
 - **Route cache:** `node tools/route-bench.js small-y40` (or `medium-y60`) reports 30 days of cache work, hit rate and save size.
   The cache retains at most 60,000 routes in least-recently-used order, including in saves.
+- **Moving round:** `node tools/moving-bench.js` reports late-fixture time, ranking and pair counts, and complete post-round save hashes.
+  Add `--day` for six-minute round-day step timings or `--source DIR` to measure another checkout against its fixtures.
+  `node tools/moving-profile.js` reports stage costs and cache misses; `node tools/marriage-demography.js [7 42]` reports the 30-year
+  marriage acceptance measures and exact cohort counts (`--source DIR` selects a baseline checkout).
 
 On phones and tablets, the bottom bar opens People, Family records, Customs, or the Menu. People can be searched by person, farm, or village; expand a village and household to inspect its members and supplies. Select a person to find them on the map. Panels have collapse and close controls. Map layers, the minimap, and background-running settings are in Menu. Tap the current speed to choose another speed.
 

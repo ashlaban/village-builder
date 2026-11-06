@@ -3,6 +3,7 @@
 // and a couple marries only when the farm it will live on holds food above its seed for MARRIAGE.means years of its people and one more.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], { movingRound, killPawn } = VB['sim/lifecycle'];
 const { checkState } = require('./lib/invariants.js');
+const assert = require('assert');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MARRIAGE FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
@@ -86,6 +87,44 @@ for (const grain of [0, 5000]) {
   roll(st, () => movingRound(st));
   check(R.spouseOf(st, man.id) === woman.id && man.household === b.id && b.holder === woman.id, `they live on her farm (${st.farmsteads[b.farmstead].name})`);
   check(H.heirRanking(st, c)[0] !== man.id, 'he is no longer first heir of his own family\'s farm');
+}
+// Compare the round's dependency cache with independent, uncached rankings across real commands.
+// Chosen birth order reads residence, and 'keeps' reads competing farms' holders and first heirs.
+for (const order of ['eldest', 'chosen']) for (const ownHeir of ['behind', 'keeps']) {
+  const st = require('./scaling.js').villageWorld(4), C = VB.culture;
+  for (const [key, value] of [['birthOrder', order], ['ownHeir', ownHeir]]) {
+    const dim = C.IDX[key], option = C.DIMS[dim].opts.findIndex((o) => o[0] === value);
+    assert(option >= 0, `${key}.${value} must exist`);
+    for (const v of st.villages) if (st.cenv.settlements[v.id].practice[dim] !== option) {
+      assert.strictEqual(Sim.command(st, { actor: { settlement: v.id }, verb: 'decide', args: { dim, option }, source: 'round' }), true);
+    }
+  }
+  const view = H.roundHeirs(st);
+  const compare = () => {
+    for (const h of st.liveHouseholds) assert.deepStrictEqual(view.rank(h), H.heirRanking(st, st.households[h]),
+      `cached heirs differ at household ${h}, ${order}/${ownHeir}`);
+  };
+  compare();
+  const change = (cmd) => {
+    const before = st.pawns.map((p) => [p.household, R.spouseOf(st, p.id), R.holdingOf(st, p.id)?.id]);
+    const houses = st.households.map((h) => [h.members, h.holder, h.dissolved]);
+    assert.strictEqual(Sim.command(st, cmd), true);
+    const people = new Set(st.pawns.filter((p) => {
+      const now = [p.household, R.spouseOf(st, p.id), R.holdingOf(st, p.id)?.id];
+      return now.some((v, i) => v !== before[p.id][i]);
+    }).map((p) => p.id));
+    const dirty = new Set(st.households.filter((h) => {
+      const old = houses[h.id]; return h.members !== old[0] || h.holder !== old[1] || h.dissolved !== old[2];
+    }).map((h) => h.id));
+    view.invalidate(people, dirty); compare();
+  };
+  const m = st.households[0].members[2], f = st.households[1].members[3];
+  change({ actor: m, verb: 'marry', target: f, args: { home: 1 }, source: 'round' });
+  change({ actor: st.households[1].holder, verb: 'handOn', target: f,
+    args: { household: 1, reason: 'marriage' }, source: 'round' });
+  const cached = view.rank(10), rankBefore = VB.count.heirRank;
+  assert.strictEqual(view.rank(10), cached);
+  assert.strictEqual(VB.count.heirRank, rankBefore, 'an unchanged household must reuse its ranking');
 }
 if (failed) process.exit(1);
 console.log('marriage ok');

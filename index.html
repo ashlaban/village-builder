@@ -6102,7 +6102,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null) {
     VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
@@ -6125,10 +6125,11 @@ VB['sim/heirs'] = (() => {
     };
     lineOf(line, 0);
     const direct = new Set(out);
-    // then the wider family: siblings and their lines, then the parents' siblings (cousins) and theirs
+    // Only full rankings need the wider family; ownFirstOf asks just for direct heirs.
+    // Then siblings and their lines, then the parents' siblings (cousins) and theirs.
     seen.add(line);
     let anc = line;
-    for (let up = 0; up < 2; up++) {
+    for (let up = 0; !nested && up < 2; up++) {
       const lp = st.pawns[anc];
       if (lp.father === null && lp.mother === null) break;
       const parent = lp.father !== null ? lp.father : lp.mother;
@@ -6138,6 +6139,7 @@ VB['sim/heirs'] = (() => {
       anc = parent; seen.add(parent);
     }
     const ok = out.filter((id) => {
+      if (watch) watch(id);
       const p = st.pawns[id];
       if (cu.heirSex === 'sons' && p.sex === 'f') return false;
       const own = holdingOf(st, id); if (own && own !== hh) return false; // already holds a farm
@@ -6170,6 +6172,46 @@ VB['sim/heirs'] = (() => {
       if (o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     }
     return out;
+  }
+  // A moving-round view, never saved. Watch even rejected candidates: a marriage can change their eligibility.
+  // Reverse dependencies include spouses, whose holding can exclude an otherwise eligible heir.
+  function roundHeirs(st) {
+    const own = new Map(), ranked = new Map(), dependents = new Map(), customs = new Map();
+    const custom = (h) => {
+      const v = st.farmsteads[st.households[h].farmstead].village;
+      if (!customs.has(v)) customs.set(v, practice(st, v));
+      return customs.get(v);
+    };
+    const watch = (h) => (id) => {
+      for (const p of [id, spouseOf(st, id)]) {
+        if (p === null) continue;
+        if (!dependents.has(p)) dependents.set(p, new Set());
+        dependents.get(p).add(h);
+      }
+    };
+    const direct = (h) => heirRanking(st, st.households[h], custom(h), true, null, watch(h))[0];
+    for (const h of st.liveHouseholds) own.set(h, direct(h));
+    let claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);
+    const rank = (h) => {
+      if (!ranked.has(h)) ranked.set(h, heirRanking(st, st.households[h], custom(h), false, claims, watch(h)));
+      return ranked.get(h);
+    };
+    const invalidate = (people, households) => {
+      const dirty = new Set(households);
+      for (const p of people) for (const h of dependents.get(p) || []) dirty.add(h);
+      const changed = new Set();
+      for (const h of dirty) {
+        const before = own.get(h), hh = st.households[h], after = hh.dissolved ? undefined : direct(h);
+        own.set(h, after); ranked.delete(h);
+        // The 'keeps' tie also depends on a farm's holder, even if its first direct heir is unchanged.
+        if (before !== undefined) changed.add(before);
+        if (after !== undefined) changed.add(after);
+      }
+      for (const p of changed) for (const h of dependents.get(p) || []) { ranked.delete(h); dirty.add(h); }
+      claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);
+      return dirty;
+    };
+    return { rank, invalidate };
   }
   // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
   function moveTo(st, id, hhId, text = null) {
@@ -6382,11 +6424,11 @@ VB['sim/heirs'] = (() => {
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
   }
-  function placeIfMarried(st, id, own = null) {
+  function placeIfMarried(st, id, own = null, rank = null) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
     if (!hh || hh.dissolved) return null;
     if (hh.holder === id) return hh.id;
-    return heirRanking(st, hh, null, false, own)[0] === id ? hh.id : null;
+    return (rank ? rank(hh.id) : heirRanking(st, hh, null, false, own))[0] === id ? hh.id : null;
   }
   // The first heir of each farm; wantsOut takes it so that counting all pawns ranks each household once, not once per pawn.
   function firstHeirs(st, own = ownFirstOf(st)) {
@@ -6397,25 +6439,26 @@ VB['sim/heirs'] = (() => {
     return out;
   }
   // own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function wantsOut(st, p, heirs = null, own = null) {
+  function wantsOut(st, p, heirs = null, own = null, rank = null) {
     if (!p.alive || p.age < 18 || p.retired) return false;
     if (isHolder(st, p.id)) return false;
     const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id, own) !== null) return false;
+    if (placeIfMarried(st, p.id, own, rank) !== null) return false;
     if (claimOf(st, p.id)) return false; // restoring an empty farm they claimed (sim/farmclaims)
     if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
     else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return false;
     return true;
   }
   // st.demand: the living pawns who want to move out (landless adults with no prospect of a farm), in id order
-  function countDemand(st) {
-    const own = ownFirstOf(st), heirs = firstHeirs(st, own);
-    st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own));
+  function countDemand(st, rank = null) {
+    const own = rank ? null : ownFirstOf(st);
+    const heirs = rank ? new Set(st.liveHouseholds.map((id) => rank(id)[0])) : firstHeirs(st, own);
+    st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own, rank));
   }
   return {
     heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf, setGuardian,
       handOn,
-    heirFor,
+    heirFor, roundHeirs,
   };
 })();
 </script>
@@ -7017,7 +7060,7 @@ VB['sim/lifecycle'] = (() => {
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
-    heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, placeIfMarried, countDemand, ownFirstOf, handOn, heirFor,
+    heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor, roundHeirs,
   } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms } = VB['sim/farmclaims'];
@@ -7143,10 +7186,12 @@ VB['sim/lifecycle'] = (() => {
       women = alive.filter((p) => p.sex === 'f' && p.age >= MARRIAGE.womenFrom && single(p) && !p.retired && fed(p));
     // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
     // heirs for every pair of candidates made the round cost about a second at populous medium.
-    let own = null, places = new Map();
+    const heirs = roundHeirs(st), places = new Map(), homes = new Map(alive.map((p) => [p.id, p.household]));
     const place = (id) => {
-      if (!own) own = ownFirstOf(st);
-      if (!places.has(id)) places.set(id, placeIfMarried(st, id, own));
+      if (!places.has(id)) {
+        const hh = st.households[st.pawns[id].household];
+        places.set(id, hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id) ? hh.id : null);
+      }
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
@@ -7156,10 +7201,10 @@ VB['sim/lifecycle'] = (() => {
     // the other farm is best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the
     // farm with more fields, the man's on a tie. Under the other customs the spouse's home counts.
     const fieldsAt = (h) => st.farmsteads[st.households[h].farmstead].fields.length;
-    let handed = new Map();
+    const handed = new Map();
     const handsOnWell = (h) => {
       if (!handed.has(h)) {
-        const hh = st.households[h], heir = heirFor(st, hh, heirRanking(st, hh), hh.holder), v = st.farmsteads[hh.farmstead].village;
+        const hh = st.households[h], heir = heirFor(st, hh, heirs.rank(h), hh.holder), v = st.farmsteads[hh.farmstead].village;
         const grown = heir !== null && (st.pawns[heir].age >= 18 || hh.members.some((id) => id !== hh.holder && st.pawns[id].age >= 18));
         handed.set(h, grown ? 2 : st.demand.some((id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v) ? 1 : 0);
       }
@@ -7178,7 +7223,7 @@ VB['sim/lifecycle'] = (() => {
     // The means to marry (VB-153): the home holds food above its seed for MARRIAGE.means years of its members and one more, counting grain
     // still in sheaf and the larder, so that marriages fall after a bad harvest (the preventive check). A home with fewer than two adults
     // needs no means: a lone holder, or a widow with small children, needs the spouse's hands. Cached per household until a marriage.
-    let means = new Map();
+    const means = new Map();
     const affords = (h) => {
       if (!means.has(h)) {
         const hh = st.households[h], store = hh.grain + hh.rations + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
@@ -7188,11 +7233,31 @@ VB['sim/lifecycle'] = (() => {
       return means.get(h);
     };
     const putOff = new Map(); // village -> couples who put off marrying for want of means
+    const changedSince = (mark, people, households) => {
+      for (const e of st.record.slice(mark)) {
+        if (e.household !== undefined && e.household !== null) households.add(e.household);
+        for (const id of [e.pawn, e.other]) if (id !== undefined && id !== null) {
+          people.add(id); households.add(homes.get(id)); households.add(st.pawns[id].household);
+        }
+      }
+      households.delete(null); households.delete(undefined);
+      const dirty = heirs.invalidate(people, households);
+      for (const h of households) means.delete(h);
+      for (const h of dirty) {
+        handed.delete(h);
+        for (const id of st.households[h].members) places.delete(id);
+      }
+      for (const id of people) { places.delete(id); homes.set(id, st.pawns[id].household); }
+    };
+    let housed = null;
     for (const m of men) {
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
       const pm = place(m.id);
-      for (const f of women) {
+      // With land residence and no place of his own, only women with a place can be candidates.
+      // Keep the original order and random draws; skip pairs whose homeFor would return null.
+      if (cu.residence === 'land' && pm === null && !housed) housed = women.filter((p) => place(p.id) !== null);
+      for (const f of cu.residence === 'land' && pm === null ? housed : women) {
         pairs++;
         if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
         const home = homeFor(m, f, cu, pm);
@@ -7205,8 +7270,19 @@ VB['sim/lifecycle'] = (() => {
       }
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
-      taken.add(best.f.id); own = null; places = new Map(); means = new Map(); handed = new Map(); // the families change
+      taken.add(best.f.id);
+      const mark = st.record.length;
       issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
+      housed = null;
+      const people = new Set([m.id, best.f.id]), households = new Set([homes.get(m.id), homes.get(best.f.id), best.home]);
+      // Commands record all moves, transfers and extinctions, including children and third-party claimants.
+      changedSince(mark, people, households);
+      // Marriage can move a village's last waiting adult, and a claim can remove one from demand.
+      // Other farms in either village must refresh their fallback handover score too.
+      for (const h of handed.keys()) {
+        const v = st.farmsteads[st.households[h].farmstead].village;
+        if ([...households].some((id) => st.farmsteads[st.households[id].farmstead].village === v)) handed.delete(h);
+      }
     }
     for (const [v, n] of putOff) {
       log(st, `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`, {
@@ -7214,21 +7290,23 @@ VB['sim/lifecycle'] = (() => {
     }
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
-    own = null; // the first heirs of every farm, ranked again only after a handover
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      if (!own) own = ownFirstOf(st);
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], r = heirRanking(st, hh, cu, false, own), heir = r[0];
+      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], heir = heirs.rank(hh.id)[0];
       if (heir === undefined || st.pawns[heir].age < 18) continue;
       const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
         : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
-      if (why) { issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' }); own = null; }
+      if (why) {
+        const mark = st.record.length, old = hh.holder;
+        issue(st, { actor: old, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' });
+        changedSince(mark, new Set([old, heir]), new Set([hh.id]));
+      }
     }
     refreshRoles(st);
     // who wants out: landless adults with no prospect of a farm
-    countDemand(st);
-    claimFarms(st); // empty farms go to claimants by custom (sim/farmclaims), before any plot is cleared
+    countDemand(st, heirs.rank);
+    claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
     startPlots(st);
     settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
