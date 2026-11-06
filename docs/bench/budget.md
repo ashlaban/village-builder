@@ -11,11 +11,11 @@ medium-y60: **stale golden hash**, 2492 starting living, stamp `4df576663f12ecd2
 | Measure | Budget | Year 5 | Year 60 |
 |---|---|---|---|
 | Mean simulation (ms/day) | 160; ceiling 400 | 211.664 | 752.525 |
-| Longest 6-minute step (ms) | 60 | 187.484 | 393.654 |
+| Longest 6-minute step (ms) | 60; medium-y60 400 until VB-201 | 187.484 | 393.654 |
 | 99th percentile step (ms) |  | 8.633 | 28.698 |
 | Simulation (ms/living pawn-day) |  | 0.237 | 0.301 |
-| Moving round, one call (ms) | 60 step limit | 145.266 | 17183.510 |
-| Meetings, one call (ms) | 60 step limit | 32.444 | 293.386 |
+| Moving round, one call (ms) | 60; medium-y60 400 step limit until VB-201 | 145.266 | 17183.510 |
+| Meetings, one call (ms) | 60; medium-y60 400 step limit until VB-201 | 32.444 | 293.386 |
 | Save + stringify + gzip (ms) | 500 | 1091.487 | 6016.713 |
 | Parse + load (ms) | 500 | 321.729 | 1567.307 |
 | JSON (MB) |  | 19.213 | 136.331 |

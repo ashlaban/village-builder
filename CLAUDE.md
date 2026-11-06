@@ -137,7 +137,7 @@ budget and cheap measurement.
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
 
 ## Rules for cost (Kim, 3 November; step gate revised 6 November; `docs/roadmap.md`, section 5)
-Budget at the late reference (populous medium at year 60, about 1,000 living): 160 ms of simulation a game day, no 6-minute step over 60 ms,
+Budget at the late reference (populous medium at year 60, about 1,000 living): 160 ms of simulation a game day, no 6-minute step over 60 ms (medium-y60 temporarily 400 ms until VB-201),
 cost per living pawn at year 60 at most 1.25 times year 5, save and load under 0.5 s each. Every plan and PR is checked against these rules:
 1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
    obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
