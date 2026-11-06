@@ -11,6 +11,7 @@ VB['sim/heirs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
+  const { abandoned } = VB['sim/fields'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
@@ -222,7 +223,7 @@ VB['sim/heirs'] = (() => {
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
-    for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
+    abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);

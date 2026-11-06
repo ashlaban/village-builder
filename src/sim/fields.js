@@ -1,7 +1,8 @@
-// @sys sim/fields: making new fields: how many a household wants, choosing a tile, clearing it and breaking the ground; soil and manure
+// @sys sim/fields: new fields, crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { next: rnd } = VB['sim/rng'];
+  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -97,6 +98,65 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n; fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
-  return { BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+  // @state farmstead.fields[]: crop stage, sown/reaped days, held sheaves and weeding progress; changed only here after seeding.
+  const hoed = (fd) => { fd.stage = 'plowed'; };
+  function sown(fd, c) {
+    fd.stage = 'sown'; fd.sown = c.day;
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+  }
+  function reaped(st, fd, c) {
+    const E = st.ECON;
+    fd.stage = 'stooks'; fd.reaped = c.day;
+    fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
+      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+    wearSoil(fd); // the crop takes from the soil (VB-137)
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+  }
+  const hauled = (fd) => { fd.held = 0; fd.stage = 'stubble'; fd.sown = null; };
+  function reclaimed(st, fd) {
+    if (fd.stage === 'fallow' || fd.stage === 'scrub') { fd.stage = 'stubble'; st.visualDirty = true; }
+  }
+  const weeded = (fd) => { fd.weedOpen = false; };
+  function abandoned(f) {
+    for (const fd of f.fields) { if (fd.stage !== 'stubble') fd.held = 0; fd.stage = 'stubble'; fd.sown = null; }
+  }
+  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
+  function nearForest(w, tile) {
+    for (const j of bfs(w, tile, 2, () => true).dist.keys()) if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
+    return false;
+  }
+  // Daily crop rules, after routes and before buildings and fences decay. No random draws.
+  function fieldsDay(st, c) {
+    const E = st.ECON;
+    const day = Math.floor(st.t / DAY);
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
+      const g = day - fd.sown;
+      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
+      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
+    }
+    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household === null || fd.stage !== 'growing') continue;
+      if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
+      if (fd.weedOpen) fd.weedMiss++;
+      fd.weedOpen = true; fd.weedPosted = day;
+    }
+    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
+      }
+    }
+    // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
+    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+      const yrs = (st.t - f.emptySince) / YEAR;
+      for (const fd of f.fields) {
+        const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
+        if (fd.stage !== want) { fd.stage = want; st.visualDirty = true; }
+      }
+    }
+  }
+  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
+    builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();
