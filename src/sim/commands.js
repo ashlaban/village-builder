@@ -101,6 +101,26 @@ VB['sim/commands'] = (() => {
         else S.found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field, wood: a.wood }, prov);
       },
     },
+    // A restored farm gains its household; construction keeps plot/farm-specific steps in their owners.
+    foundHousehold: {
+      check: (st, c) => {
+        const f = st.farmsteads[c.target], a = c.args || {};
+        if (!f || f.household !== null) return 'there is no empty farm';
+        if (!Array.isArray(a.members) || !a.members.includes(c.actor) || new Set(a.members).size !== a.members.length) {
+          return 'the household must include its holder and unique members';
+        }
+        for (const id of a.members) { const dead = living(st, id); if (dead) return dead; }
+        return Number.isFinite(a.grain) && a.grain >= 0 ? null : 'invalid provisions';
+      },
+      run: (st, c) => later('sim/membership').foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, { grain: c.args.grain }),
+    },
+    finishCottage: {
+      check: (st, c) => {
+        const v = st.villages[c.args && c.args.village], plot = v && v.plots[c.target];
+        return plot && plot.cottage && plot.cottage.i >= 3 && !plot.built ? null : 'there is no finished cottage';
+      },
+      run: (st, c) => later('sim/cottage').finishCottage(st, st.villages[c.args.village].plots[c.target]),
+    },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
     // retire: a holder hands the farm to the first heir

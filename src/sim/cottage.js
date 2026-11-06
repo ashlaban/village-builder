@@ -1,11 +1,9 @@
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
-  const { makeHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
-  const { setOwner } = VB['sim/ownership'];
   const { SHARES, SOIL } = VB['sim/rules'];
-  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { foundHousehold } = VB['sim/membership'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
@@ -35,20 +33,9 @@ VB['sim/cottage'] = (() => {
         if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
-    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
-    Stores.start(st, hh, 0);
-    for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0, { kind: 'provisions', pawn: id });
-    st.households.push(hh);
-    setOwner(st, house, { type: 'household', id: hh.id }); setOwner(st, field, { type: 'household', id: hh.id });
-    for (const id of members) {
-      const was = st.pawns[id].household;
-      if (was !== null) moveTo(st, id, hh.id);
-      else { hh.members.push(id); st.pawns[id].household = hh.id; }
-      st.rigDirty.add(id);
-    }
+    const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
     log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
-    refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
   // The payment goes to the pawn's household, or to its stake while it has none.

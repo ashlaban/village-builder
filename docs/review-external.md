@@ -39,8 +39,8 @@ foundations are in** (see the pick order in `BACKLOG.md`).
 | Needs, intentions and actions; households that plan ahead; personality in choices (P1) | New arch `foresight`, plan task VB-164. Job matching stays the means of acting, not the place where decisions are made. |
 | Keyboard and non-canvas ways to inspect the map (P2) | VB-165 (needs-review). Keys already pan, zoom and set the speed (`src/page/input.js`); selection and inspection need the pointer. |
 | A budget for drawing, apart from the simulation's | VB-166 (ready, tooling): frame times in headless Chromium, in verify. |
-| "Self-contained" page, but PixiJS comes from jsDelivr and the fonts from Google Fonts | `README.md` and `CLAUDE.md` now say so. Inlining both stays possible if offline play is wanted, at the cost of a larger page. |
-| Rules for agent contributions: name the boundaries touched, numbers before and after, prefer a general rule to the third special case, say why an existing abstraction does not fit, a refactor must make things simpler | `CLAUDE.md`, "Working rules". |
+| "Self-contained" page, but PixiJS comes from jsDelivr and the fonts from Google Fonts | `README.md` and `AGENTS.md` now say so. Inlining both stays possible if offline play is wanted, at the cost of a larger page. |
+| Rules for agent contributions: name the boundaries touched, numbers before and after, prefer a general rule to the third special case, say why an existing abstraction does not fit, a refactor must make things simpler | `AGENTS.md`, "Working rules". |
 | Shift from features to consolidation | The feature freeze in the pick order of `BACKLOG.md`. |
 
 ## Considered and not taken

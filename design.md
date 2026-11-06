@@ -13,7 +13,7 @@ reference for later work, not the truth: where it and the game differ, either ma
 Each version is its own document and is left unchanged once a newer one exists: version 0.3 is `docs/design-v0.3.md`.
 
 Implementation details (rendering, code structure, performance) are left out: the architecture is target-v2, and the budget and the rules
-for cost are in `docs/roadmap.md` and `CLAUDE.md`. Numbers are design targets or starting values to tune, not fixed values.
+for cost are in `docs/roadmap.md` and `AGENTS.md`. Numbers are design targets or starting values to tune, not fixed values.
 
 | Label | Meaning |
 | --- | --- |

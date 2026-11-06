@@ -16,7 +16,7 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 | VB-011 | Golden-state test for world, simulation and calibration | - | - | done | 1 | S | Fingerprint world and sim output so refactors provably change nothing. | [backlog/VB-011.md](backlog/VB-011.md) |
 | VB-012 | One module list, a module namespace and a Node loader | - | - | done | 1 | M | One module list, a `VB` namespace and a Node loader for tests. | [backlog/VB-012.md](backlog/VB-012.md) |
 | VB-013 | Structure lint: module headers, file and line length | - | - | done | 1 | S | Lint module headers, file length and line length. | [backlog/VB-013.md](backlog/VB-013.md) |
-| VB-014 | CLAUDE.md, a short guide for agents | - | - | done | 1 | S | Write CLAUDE.md, a short guide for agents. | [backlog/VB-014.md](backlog/VB-014.md) |
+| VB-014 | AGENTS.md, a short guide for agents | - | - | done | 1 | S | Write AGENTS.md, a short guide for agents. | [backlog/VB-014.md](backlog/VB-014.md) |
 | VB-015 | State schema as greppable tags | - | - | done | 1 | M | Document every `w` and `st` field with greppable `@state` tags. | [backlog/VB-015.md](backlog/VB-015.md) |
 | VB-016 | Refactor: sim rules, hex helpers and village layout into modules | - | - | done | 1 | S | Move sim rules, hex helpers and village layout out of `src/sim.js`. | [backlog/VB-016.md](backlog/VB-016.md) |
 | VB-017 | Refactor: family records and agents into modules | - | - | done | 1 | S | Move family records and agents out of `src/sim.js`. | [backlog/VB-017.md](backlog/VB-017.md) |
@@ -138,3 +138,4 @@ Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each ro
 
 | VB-179 | Refactor: the crop's life only through `sim/fields` | ownership | implement | done | 2 | M | The kinds, the clock and a farm emptying change a crop through `sim/fields`; its daily rules leave the clock. | [backlog/VB-179.md](backlog/VB-179.md) |
 | VB-174 | Household and village food in `sim/stores`, every movement recorded | ownership | implement | done | 2 | M | One owner for household and village food and the heirs' shares; every movement a ledger entry; golden re-recorded for the ledgers only. | [backlog/VB-174.md](backlog/VB-174.md) |
+| VB-175 | Refactor: household membership in `sim/records`, and one act that founds a household | ownership | implement | done | 2 | M | Membership through `sim/records`; one founding act for claims, cottages and settlers; two cycles gone. | [backlog/VB-175.md](backlog/VB-175.md) |

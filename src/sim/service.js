@@ -1,5 +1,6 @@
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
+  const { setServant } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
@@ -65,7 +66,7 @@ VB['sim/service'] = (() => {
   function enterService(st, id, hhId) {
     const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
     const from = farmIn(st, st.households[best.household], v);
-    moveTo(st, best.id, hh.id); best.servant = true;
+    moveTo(st, best.id, hh.id); setServant(st, best.id, true);
     personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
     log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
       kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });

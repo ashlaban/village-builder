@@ -4,10 +4,9 @@ VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, makeHousehold, atFarm,
+  const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
     atHousehold } = VB['sim/records'];
   const CL = VB['sim/claims'];
-  const { setOwner } = VB['sim/ownership'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
   // @state farmstead.claim: {by (pawn id), since (game hours), hours (to restore, by the condition when claimed), done (hours worked)} or
@@ -179,7 +178,7 @@ VB['sim/farmclaims'] = (() => {
   // old family's birthright are spent.
   function moveIn(st, f) {
     if (!valid(st, f)) { ended(st, f); return; }
-    const { moveTo, refreshRoles } = VB['sim/heirs'], holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
+    const holder = st.pawns[f.claim.by], sp = spouseOf(st, holder.id), v = st.villages[f.village];
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
     const from = new Set(members.map((id) => st.pawns[id].household));
@@ -188,18 +187,15 @@ VB['sim/farmclaims'] = (() => {
       if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
     }
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
-    const hh = makeHousehold(st, st.households.length, f, [], holder.id);
-    Stores.start(st, hh, grain); st.households.push(hh);
-    for (const id of members) { moveTo(st, id, hh.id); st.rigDirty.add(id); }
+    issue(st, { actor: holder.id, verb: 'foundHousehold', target: f.id, args: { members, grain }, source: 'restoration' });
+    const hh = st.households[f.household];
     Stores.put(st, hh, 'rations', 2 * dailyNeed(st, hh), 'provisions');
     f.claim = null; f.condition = 1; f.emptySince = null;
     CL.clearClaims(st, f.house);
-    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) setOwner(st, t, HH(hh.id));
     st.demand = st.demand.filter((id) => !members.includes(id));
     personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`, false); // recorded below
     log(st, `${fullName(holder)} moves into ${f.name} in ${v.name}, empty for ${years} years, with ${Math.round(grain)} rations of grain.`, {
       kind: 'moved', pawn: holder.id, ...atHousehold(st, hh) });
-    refreshRoles(st); st.biomeDirty.add(f.house); st.visualDirty = true;
   }
   return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
     restored,

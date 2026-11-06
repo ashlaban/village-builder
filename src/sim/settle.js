@@ -7,14 +7,13 @@ VB['sim/settle'] = (() => {
   const { seedReserve } = VB['sim/hunger'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, makeHousehold, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
-  const { setOwner } = VB['sim/ownership'];
+  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
-  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
@@ -183,16 +182,12 @@ VB['sim/settle'] = (() => {
     st.farmsteads.push(f); v.farmsteads.push(f.id);
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
-    const hh = makeHousehold(st, st.households.length, f, [], settler.id);
-    Stores.start(st, hh, prov.grain); st.households.push(hh);
     for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
     for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions');
-    setOwner(st, house, { type: 'household', id: hh.id }); stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
-    for (const id of party.all) { moveTo(st, id, hh.id, text); st.rigDirty.add(id); }
-    for (const id of party.followers) st.pawns[id].servant = true;
-    refreshRoles(st); st.biomeDirty.add(house); st.visualDirty = true;
+    const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers });
+    stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
+    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.

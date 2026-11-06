@@ -2,7 +2,7 @@
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
+  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, setTie } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
@@ -27,7 +27,7 @@ VB['sim/births'] = (() => {
     const free = names.filter((n) => !taken.has(n)), pool = free.length ? free : names, given = pool[(rnd(st.rng.people) * pool.length) | 0];
     const id = person({ pawns: st.pawns, living: st.living, rand: drawer(st.rng.people) }, { sex, age: 0, given, father: fatherId, mother: m.id }),
       p = st.pawns[id];
-    p.born = st.t; p.alive = true; p.age = 0; p.household = hh.id; hh.members.push(id);
+    p.born = st.t; p.alive = true; p.age = 0; joinHousehold(st, hh, id);
     Culture.initPerson(p, Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2));
     initRelations(p);
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { setTie(st, id, j, 1); setTie(st, j, id, 1); }

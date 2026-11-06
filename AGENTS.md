@@ -91,6 +91,10 @@ budget and cheap measurement.
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
+- Membership (VB-175): `sim/records` alone writes household members, a pawn's household and service (`joinHousehold`,
+  `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
+  `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
+  `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.

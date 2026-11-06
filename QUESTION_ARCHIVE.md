@@ -24,8 +24,8 @@ From `docs/roadmap.md`; questions 1, 2 and 4 are below.
    **A (Kim, 3 Nov):** P, as proposed.
 5. Work counters (roadmap, section 6): deterministic counts of work done, kept in `VB.count` outside `st` and asserted at tiny scale in `npm test`. **P:** yes, with one lint allowance; counters never feed the simulation.
    **A (Kim, 3 Nov):** P: yes, with one lint allowance; counters never feed the simulation.
-6. The ten rules for systems (roadmap, section 5.3) into `CLAUDE.md`'s working rules. **P:** yes.
-   **A (Kim, 3 Nov):** P: yes; they are in `CLAUDE.md`, Working rules.
+6. The ten rules for systems (roadmap, section 5.3) into `AGENTS.md`'s working rules. **P:** yes.
+   **A (Kim, 3 Nov):** P: yes; they are in `AGENTS.md`, Working rules.
 
 ## Architecture review: the vision and the first steps (raised 3 November 2026) (questions 1 to 4)
 From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173).

@@ -8,7 +8,7 @@ designing. Read at `fc5c2fc`. The numbers in section 5 were measured that day in
 
 Kim decided on 3 November, marked **Decided**: the slices and their order, about 1,000 living pawns on a medium map as the late
 game's reference, `design.md` v0.4 as a skeleton the slices fill in, the budget, the work counters, and the ten rules (now in
-`CLAUDE.md`). The rest is **Proposed**. The slices are archs of `BACKLOG.md` (keys in section 7). No code changes.
+`AGENTS.md`). The rest is **Proposed**. The slices are archs of `BACKLOG.md` (keys in section 7). No code changes.
 
 ## 1. In short
 
@@ -44,7 +44,7 @@ Programmer*, 1999): a thin piece that runs end to end, then grows. Both citation
    the exception: it is the measuring rod.
 2. **Framework arrives with its first consumer.** A target-v2 module is built only as far as the slice needs. Stores gains typed
    goods when the fair needs a cow and a sack; land gains `use` beside `own` when the first tenancy needs it. This is the rule of
-   `CLAUDE.md` on special cases, applied to the architecture: an abstraction earns its place.
+   `AGENTS.md` on special cases, applied to the architecture: an abstraction earns its place.
 3. **Behaviour-preserving first.** A slice starts with refactors that move today's behaviour behind the target's interfaces, with the
    golden file unchanged. Behaviour then changes in tasks that re-record it.
 4. **A slice is an arch,** with the three phases of `BACKLOG.md`:
@@ -377,7 +377,7 @@ its line; its wrap-up measures it.
 
 ### 5.3 Ten rules for systems
 
-Decided (Kim, 3 Nov), and in `CLAUDE.md` (Rules for cost) in short form. Each slice's plan is checked against them.
+Decided (Kim, 3 Nov), and in `AGENTS.md` (Rules for cost) in short form. Each slice's plan is checked against them.
 
 1. **Cost follows activity, not history.** No loop in a step walks every record ever made: dead pawns, dissolved households, ended
    edges, met obligations, the record. The owner keeps an index of the live ones (a cache with one writer, checked against its
@@ -507,6 +507,6 @@ Raised in `QUESTIONS.md`, Priority 1, with these proposals.
 4. **`design.md` v0.4** (section 7). **P:** keep v0.3 as `docs/design-v0.3.md`; a skeleton pass now; each slice's plan writes its
    own sections. **Decided (Kim, 3 Nov):** P.
 5. **Counters in `VB.count`** (section 6). **P:** yes, with one lint allowance; counters never feed the simulation. **Decided (Kim, 3 Nov):** P.
-6. **The ten rules** (section 5.3) into `CLAUDE.md`'s working rules. **P:** yes, once Kim agrees with them. **Decided (Kim, 3 Nov):** P.
+6. **The ten rules** (section 5.3) into `AGENTS.md`'s working rules. **P:** yes, once Kim agrees with them. **Decided (Kim, 3 Nov):** P.
 
 All six were answered on 3 November (`QUESTION_ARCHIVE.md`).

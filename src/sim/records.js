@@ -1,4 +1,4 @@
-// @sys sim/records: person and household records, live indexes, family-record queries, culture lookups per person
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -79,7 +79,19 @@ VB['sim/records'] = (() => {
     if (f.fence) for (const s of f.fence) s.owner.id = id;
     return hh;
   }
-  function joinHousehold(R, hh, id) { hh.members.push(id); R.pawns[id].household = hh.id; }
+  // @state pawn.household, pawn.servant, household.members: membership and service, written only here.
+  function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
+    if (!hh.members.includes(id)) hh.members.push(id);
+    R.pawns[id].household = hh.id; setServant(R, id, servant);
+  }
+  // Death keeps the last household and service on the historical person record.
+  function leaveHousehold(st, id, historical = false) {
+    const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
+    if (hh) hh.members = hh.members.filter((m) => m !== id);
+    if (!historical) p.household = null;
+  }
+  function clearMembers(st, hh) { hh.members = []; }
+  function setServant(st, id, servant) { st.pawns[id].servant = servant; }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
     if (!hh) return null;
@@ -220,7 +232,9 @@ VB['sim/records'] = (() => {
     return 0;
   }
   return {
-    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, personEvent, log, record, recordOf, atHousehold, atFarm, age,
+    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
+      record,
+      recordOf, atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,

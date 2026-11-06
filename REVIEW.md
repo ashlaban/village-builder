@@ -103,7 +103,7 @@ Status: **done** means it is built as designed, **partly** means some of it is b
 
 ## Development, debugging and inspection
 
-What exists is good: a golden file, a lint for structure and state tags, a backlog check, parallel test suites, `@sys` and `@state` greps, and a short CLAUDE.md. The gaps:
+What exists is good: a golden file, a lint for structure and state tags, a backlog check, parallel test suites, `@sys` and `@state` greps, and a short AGENTS.md. The gaps:
 
 1. **No command-line view of a run.** Each test prints its own report. A `tools/sim.js` that seeds a scenario, advances N years and prints or dumps households, pawns, jobs, customs and the event log, as text or JSON, would give every task the same way to look at the simulation, and give an agent a way to answer "what happened to household 12 in year 7".
 2. **The golden test names a key, not a change.** On a mismatch it should write both canonical texts and print the first differing path (for example `pawns[41].household: 7 → 9`), so an unintended change is found in seconds.

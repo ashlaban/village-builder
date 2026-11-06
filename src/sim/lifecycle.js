@@ -6,7 +6,7 @@ VB['sim/lifecycle'] = (() => {
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
-    unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
+    leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
       holdingOf, atHousehold,
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
@@ -34,7 +34,7 @@ VB['sim/lifecycle'] = (() => {
       + `${CAUSES[cause].log}, aged ${p.age}.`, {
         kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
     const hh = p.household !== null ? st.households[p.household] : null;
-    if (hh) { hh.members = hh.members.filter((m) => m !== id); if (hh.holder === id) succession(st, hh, 'death'); }
+    if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
   }
   function retireHolder(st, hhId) {
