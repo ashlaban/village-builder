@@ -115,7 +115,7 @@ VB['sim/commands'] = (() => {
     // argue({dim, option}): the pawn takes up the cause for ten years
     argue: {
       check: (st, c) => living(st, c.actor) || option(c),
-      run: (st, c) => { st.pawns[c.actor].advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 }; },
+      run: (st, c) => { Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10); },
     },
     // rally({dim, option}): a fifth of the settlement's voices, the most esteemed first, take up the cause
     rally: {
@@ -124,7 +124,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
-        for (const q of voiced.slice(0, want)) q.advocate = { dim: c.args.dim, opt: c.args.option, until: st.cenv.t + 10 };
+        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
       },
     },
     // skip({hours}): the world goes on for that long (no actor)

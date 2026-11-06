@@ -3,6 +3,7 @@ VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
+  const { initRelations, setTie, pairKey, pairOf } = VB['sim/relations'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -32,13 +33,13 @@ VB['sim/society'] = (() => {
     for (const p of st.pawns) {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
-      p.att = Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean); p.anc = Float32Array.from(p.att);
-      p.ties = new Map(); p.rel = new Map(); p.prestige = 1; p.interest = null; p.advocate = null;
+      Culture.initPerson(p, Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean));
+      initRelations(p);
     }
     // starting ties: household, kin, and a few neighbours
-    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) st.pawns[i].ties.set(j, 1);
+    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) setTie(st, i, j, 1);
     for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) {
-      p.ties.set(q, Math.max(p.ties.get(q) || 0, 0.5)); st.pawns[q].ties.set(p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
+      setTie(st, p.id, q, Math.max(p.ties.get(q) || 0, 0.5)); setTie(st, q, p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
     }
     updateTies(st); refreshPrestige(st); refreshInterests(st);
   }
@@ -129,10 +130,6 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
-  // A pair of pawns as one number, the smaller id first, and back.
-  const PAIR = 2 ** 21;
-  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
-  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
   // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
   // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
   const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;

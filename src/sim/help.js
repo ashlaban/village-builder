@@ -1,5 +1,6 @@
 // @sys sim/help: food help between households: gifts from kin and the village store, and the village store's filling
 VB['sim/help'] = (() => {
+  const { strengthenTie } = VB['sim/relations'];
   const { HELP } = VB['sim/rules'];
   const { personEvent, childrenOf, siblingsOf, atHousehold } = VB['sim/records'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
@@ -34,7 +35,7 @@ VB['sim/help'] = (() => {
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
       if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
         n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) a.ties.set(b.id, (a.ties.get(b.id) || 0) + HELP.tieGain);
+      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
     }
   }
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days asks kin, then the village store, for HELP.askDays days of food.
