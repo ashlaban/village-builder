@@ -1,0 +1,282 @@
+{
+  "task": "VB-198",
+  "measured": "2026-11-06",
+  "baselineSource": "1fbac6b",
+  "changedSource": "working tree based on 1fbac6b",
+  "environment": {
+    "node": "v24.22.1",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cores": 2
+  },
+  "method": "30 daily Sim.advance calls, same stale source-stamped populous seed-7 fixtures; saved cache retained; timings diagnostic, individual processes run serially",
+  "finalCacheMax": 60000,
+  "samples": {
+    "small-y40": {
+      "before": {
+        "fixture": "small-y40",
+        "stamp": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+        "stale": true,
+        "days": 30,
+        "loadEvictions": 0,
+        "cacheMax": null,
+        "before": {
+          "entries": 25723,
+          "cacheMB": 1.016894,
+          "saveJsonMB": 30.483807,
+          "saveGzipMB": 5.465111
+        },
+        "after": {
+          "entries": 27650,
+          "cacheMB": 1.10981,
+          "saveJsonMB": 31.054283,
+          "saveGzipMB": 5.585242
+        },
+        "hitRate": 0.9652482391637535,
+        "perDay": {
+          "routeHit": 3736.733333333333,
+          "routeSearch": 134.53333333333333,
+          "routeRefresh": 26106.633333333335,
+          "routeEvict": 0
+        },
+        "refreshMsPerDay": 2.410499066666671,
+        "simulationMsPerDay": 144.76242630000004,
+        "households": 183,
+        "living": 725
+      },
+      "after": {
+        "fixture": "small-y40",
+        "stamp": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+        "stale": true,
+        "days": 30,
+        "loadEvictions": 0,
+        "cacheMax": 60000,
+        "before": {
+          "entries": 25723,
+          "cacheMB": 1.016894,
+          "saveJsonMB": 30.483807,
+          "saveGzipMB": 5.465111
+        },
+        "after": {
+          "entries": 27650,
+          "cacheMB": 1.10981,
+          "saveJsonMB": 31.054283,
+          "saveGzipMB": 5.595349
+        },
+        "hitRate": 0.9652482391637535,
+        "perDay": {
+          "routeHit": 3736.733333333333,
+          "routeSearch": 134.53333333333333,
+          "routeRefresh": 26106.633333333335,
+          "routeEvict": 0
+        },
+        "refreshMsPerDay": 4.2504679999999855,
+        "simulationMsPerDay": 168.5671729,
+        "households": 183,
+        "living": 725
+      },
+      "householdEffects": {
+        "hungryDaysBefore": 163,
+        "hungryDaysAfter": 163,
+        "improvedHouseholds": 0,
+        "worsenedHouseholds": 0,
+        "changes": []
+      }
+    },
+    "medium-y60": {
+      "before": {
+        "fixture": "medium-y60",
+        "stamp": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+        "stale": true,
+        "days": 30,
+        "loadEvictions": 0,
+        "cacheMax": null,
+        "before": {
+          "entries": 95909,
+          "cacheMB": 4.130441,
+          "saveJsonMB": 133.639693,
+          "saveGzipMB": 23.952059
+        },
+        "after": {
+          "entries": 103324,
+          "cacheMB": 4.50986,
+          "saveJsonMB": 135.876641,
+          "saveGzipMB": 24.435726
+        },
+        "hitRate": 0.9618924592281608,
+        "perDay": {
+          "routeHit": 12311.133333333333,
+          "routeSearch": 487.73333333333335,
+          "routeRefresh": 100725.9,
+          "routeEvict": 0
+        },
+        "refreshMsPerDay": 19.06971420000015,
+        "simulationMsPerDay": 654.1291894999999,
+        "households": 618,
+        "living": 2509
+      },
+      "after": {
+        "fixture": "medium-y60",
+        "stamp": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+        "stale": true,
+        "days": 30,
+        "loadEvictions": 35909,
+        "cacheMax": 60000,
+        "before": {
+          "entries": 60000,
+          "cacheMB": 2.750437,
+          "saveJsonMB": 132.259689,
+          "saveGzipMB": 23.546765
+        },
+        "after": {
+          "entries": 59717,
+          "cacheMB": 2.687776,
+          "saveJsonMB": 134.085963,
+          "saveGzipMB": 23.950224
+        },
+        "hitRate": 0.9353031393783843,
+        "perDay": {
+          "routeHit": 11952.8,
+          "routeSearch": 826.8,
+          "routeRefresh": 59963,
+          "routeEvict": 810.9333333333333
+        },
+        "refreshMsPerDay": 13.336260833333714,
+        "simulationMsPerDay": 674.4696190666667,
+        "households": 618,
+        "living": 2509
+      },
+      "householdEffects": {
+        "hungryDaysBefore": 134,
+        "hungryDaysAfter": 133,
+        "improvedHouseholds": 7,
+        "worsenedHouseholds": 6,
+        "changes": [
+          {
+            "id": 170,
+            "before": 6,
+            "after": 7
+          },
+          {
+            "id": 325,
+            "before": 0,
+            "after": 1
+          },
+          {
+            "id": 328,
+            "before": 0,
+            "after": 1
+          },
+          {
+            "id": 336,
+            "before": 1,
+            "after": 0
+          },
+          {
+            "id": 383,
+            "before": 1,
+            "after": 0
+          },
+          {
+            "id": 393,
+            "before": 1,
+            "after": 0
+          },
+          {
+            "id": 410,
+            "before": 0,
+            "after": 1
+          },
+          {
+            "id": 444,
+            "before": 1,
+            "after": 0
+          },
+          {
+            "id": 454,
+            "before": 2,
+            "after": 3
+          },
+          {
+            "id": 476,
+            "before": 15,
+            "after": 13
+          },
+          {
+            "id": 481,
+            "before": 3,
+            "after": 0
+          },
+          {
+            "id": 526,
+            "before": 0,
+            "after": 4
+          },
+          {
+            "id": 587,
+            "before": 1,
+            "after": 0
+          }
+        ]
+      }
+    }
+  },
+  "mediumTrials": [
+    {
+      "cacheMax": 20000,
+      "hitRate": 0.8382386326570552,
+      "searchesPerDay": 2066.366666666667,
+      "finalEntries": 19895,
+      "finalCacheMB": 0.862238
+    },
+    {
+      "cacheMax": 40000,
+      "hitRate": 0.9136842819949705,
+      "searchesPerDay": 1101.8,
+      "finalEntries": 39706,
+      "finalCacheMB": 1.77164
+    },
+    {
+      "cacheMax": 60000,
+      "hitRate": 0.9353031393783843,
+      "searchesPerDay": 826.8,
+      "finalEntries": 59717,
+      "finalCacheMB": 2.687776
+    }
+  ],
+  "goldenChanges": "pathCache order only: founders/heirs, seeds 7/42, years 1/2/3 (12 entries); every other fingerprint unchanged",
+  "counterChanges": "routeEvict added at zero in the tiny reference; every previous baseline unchanged; nonzero eviction covered in routes.js",
+  "timingRepeats": {
+    "small-y40 baseline": {
+      "fixture": "small-y40",
+      "stamp": "4df576663f12ecd23f432413f1709d4f260c6f6d",
+      "stale": true,
+      "days": 30,
+      "loadEvictions": 0,
+      "cacheMax": null,
+      "before": {
+        "entries": 25723,
+        "cacheMB": 1.016894,
+        "saveJsonMB": 30.483807,
+        "saveGzipMB": 5.465111
+      },
+      "after": {
+        "entries": 27650,
+        "cacheMB": 1.10981,
+        "saveJsonMB": 31.054283,
+        "saveGzipMB": 5.585242
+      },
+      "hitRate": 0.9652482391637535,
+      "perDay": {
+        "routeHit": 3736.733333333333,
+        "routeSearch": 134.53333333333333,
+        "routeRefresh": 26106.633333333335,
+        "routeEvict": 0
+      },
+      "refreshMsPerDay": 2.5153794666667486,
+      "simulationMsPerDay": 136.2220165,
+      "households": 183,
+      "living": 725
+    }
+  },
+  "timingCaveat": "Small baseline repeated at 136.22 ms/day versus initial 144.76; LRU sample 168.57 (16-24% overhead). Medium serial baseline 654.13 versus 674.47 (about 3%). These are diagnostic samples, not speed guarantees."
+}

@@ -213,7 +213,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order
-    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)

@@ -461,6 +461,7 @@ VB.COUNTERS = {
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
+  routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   contactPairs: 'Indoor and outdoor pairs compared in noteContacts',
   walkStep: 'Agent records walked by the six-minute step',
@@ -2128,8 +2129,8 @@ VB['sim/rules'] = (() => {
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
     wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow.
-  const ROUTE = { reach: 200, minStep: 1 / PATHS.speed[3] };
+  // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
+  const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
@@ -2553,18 +2554,29 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
-  // ---- the cache: one route per pair of tiles; the way back is the way there, reversed ----
+  // ---- the cache: bounded LRU in Map order (oldest first); the way back is the way there, reversed ----
+  // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
+  function trimRoutes(st) {
+    while (st.pathCache.size > ROUTE.cacheMax) {
+      st.pathCache.delete(st.pathCache.keys().next().value); VB.count.routeEvict++;
+    }
+  }
   function route(st, from, to) {
     const N = st.w.N, k = from * N + to;
     let p = st.pathCache.get(k);
-    if (p) { VB.count.routeHit++; return p; }
-    const back = st.pathCache.get(to * N + from);
-    if (back && back[0] === to) { VB.count.routeHit++; p = back.slice().reverse(); }
-    else {
+    if (p) {
+      VB.count.routeHit++; st.pathCache.delete(k); st.pathCache.set(k, p);
+      return p;
+    }
+    const bk = to * N + from, back = st.pathCache.get(bk);
+    if (back && back[0] === to) {
+      VB.count.routeHit++; st.pathCache.delete(bk); st.pathCache.set(bk, back);
+      p = back.slice().reverse();
+    } else {
       p = findRoute(st.w, from, to);
       if (!p) { p = [to]; st.routeFallbacks++; }
     }
-    st.pathCache.set(k, p);
+    st.pathCache.set(k, p); trimRoutes(st);
     return p;
   }
   // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
@@ -2600,7 +2612,7 @@ VB['sim/routes'] = (() => {
     }
     st.routeDirty.clear();
   }
-  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes };
+  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes, trimRoutes };
 })();
 </script>
 <script>
@@ -7527,7 +7539,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order
-    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes).
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
@@ -7722,6 +7734,7 @@ VB['sim/clock'] = (() => {
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
+  const { trimRoutes } = VB['sim/routes'];
   const { rebuildLiving } = VB['sim/records'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
@@ -7844,6 +7857,7 @@ VB['sim/saves'] = (() => {
     const st = decode(data.state);
     st.w = w;
     rebuildLiving(st);
+    trimRoutes(st);
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;

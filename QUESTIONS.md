@@ -79,6 +79,22 @@ No two pawns of different villages ever meet today, so courting would keep marri
 
 ## Priority 3
 
+### VB-057: motivation for panel text snapshots (raised 5 November 2026)
+The user questioned whether this task is necessary; it is `needs-review` pending better motivation.
+1. What concrete, consequential UI regressions have escaped the existing smoke and browser checks?
+2. Would focused assertions cover those failures with less maintenance than whole-panel snapshots?
+3. What benefit justifies the baseline updates and review noise from intentional wording and simulation changes?
+
+
+### VB-160: research the mechanism for long-term yield increase (reopened 5 November 2026)
+The user asked to skip implementation: the mechanism for long-term yield increase needs better research.
+The previous village-age manure cap (+0.1 per century) is reopened, and the task is `needs-review`.
+1. Which historical mechanisms explain sustained yield increases in the game's medieval Nordic setting,
+   and what evidence supports their magnitude and timescale (soil management, tools, practice or other changes)?
+2. Which mechanisms should the game represent, and should gains follow actual changes in farming rather than village age?
+3. After researching these questions, what model, rates and acceptance criteria should replace the current proposal?
+
+
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
 Measured over 20–30 years on the small map (populous seeds 7 and 42, founders at six seeds, heirs at seeds 7 and 42); the numbers are in `backlog/VB-158.md` and `backlog/VB-033.md`.
 1. Contests never happen. A stake may be contested only after about 18 months unworked (below `CLAIMS.contestBelow` = 0.5), but projects are finished within days: 421 projects, no contest and no lapse. **P:** keep as built; the rule comes into play once projects can stall (a household losing its hands, winter work, larger projects), and then the custom decides as designed.
