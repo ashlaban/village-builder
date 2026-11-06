@@ -12,7 +12,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
@@ -24,7 +24,11 @@ VB['sim/heirs'] = (() => {
       if (cu.birthOrder === 'chosen') { const ha = pa.household === hh.id ? 0 : 1, hb = pb.household === hh.id ? 0 : 1; if (ha !== hb) return ha - hb; }
       return pa.born - pb.born;
     });
-    const out = [], seen = new Set();
+    // Kinship is fixed during a synchronous round. Chosen order additionally depends on membership:
+    // moveTo replaces the source member array and appends at the destination, so check both identity and size.
+    const cached = family && family.line === line && (cu.birthOrder !== 'chosen'
+      || (family.members === hh.members && family.size === hh.members.length)) ? family : null;
+    const out = cached ? cached.out : [], seen = new Set();
     const lineOf = (id, depth) => {
       if (depth > 3) return;
       for (const c of order(childrenOf(st, id))) {
@@ -33,13 +37,13 @@ VB['sim/heirs'] = (() => {
         lineOf(c, depth + 1); // a dead child's children stand in their place; a living child's line follows them
       }
     };
-    lineOf(line, 0);
-    const direct = new Set(out);
+    if (!cached) lineOf(line, 0);
+    const direct = cached ? cached.direct : new Set(out);
     // Only full rankings need the wider family; ownFirstOf asks just for direct heirs.
     // Then siblings and their lines, then the parents' siblings (cousins) and theirs.
     seen.add(line);
     let anc = line;
-    for (let up = 0; !nested && up < 2; up++) {
+    for (let up = 0; !cached && !nested && up < 2; up++) {
       const lp = st.pawns[anc];
       if (lp.father === null && lp.mother === null) break;
       const parent = lp.father !== null ? lp.father : lp.mother;
@@ -48,15 +52,19 @@ VB['sim/heirs'] = (() => {
       }
       anc = parent; seen.add(parent);
     }
+    if (family && !cached) {
+      family.line = line; family.out = out; family.direct = direct; family.members = hh.members; family.size = hh.members.length;
+    }
     const ok = out.filter((id) => {
-      if (watch) watch(id);
       const p = st.pawns[id];
       if (cu.heirSex === 'sons' && p.sex === 'f') return false;
+      if (watch) watch(id);
       const own = holdingOf(st, id); if (own && own !== hh) return false; // already holds a farm
       const sp = spouseOf(st, id); if (sp !== null) { const so = holdingOf(st, sp); if (so && so !== hh) return false; } // lives on a spouse's farm
       return id !== hh.holder;
     });
     if (nested) return ok.filter((id) => direct.has(id));
+    if (!ok.length) return ok; // No competing direct claim can change an empty ranking.
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
     const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
@@ -86,7 +94,8 @@ VB['sim/heirs'] = (() => {
   // A moving-round view, never saved. Watch even rejected candidates: a marriage can change their eligibility.
   // Reverse dependencies include spouses, whose holding can exclude an otherwise eligible heir.
   function roundHeirs(st) {
-    const own = new Map(), ranked = new Map(), dependents = new Map(), customs = new Map();
+    const own = new Map(), ranked = new Map(), dependents = new Map(), customs = new Map(), families = new Map();
+    const holders = new Map(st.liveHouseholds.map((h) => [h, st.households[h].holder]));
     const custom = (h) => {
       const v = st.farmsteads[st.households[h].farmstead].village;
       if (!customs.has(v)) customs.set(v, practice(st, v));
@@ -103,7 +112,10 @@ VB['sim/heirs'] = (() => {
     for (const h of st.liveHouseholds) own.set(h, direct(h));
     let claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);
     const rank = (h) => {
-      if (!ranked.has(h)) ranked.set(h, heirRanking(st, st.households[h], custom(h), false, claims, watch(h)));
+      if (!ranked.has(h)) {
+        if (!families.has(h)) families.set(h, {});
+        ranked.set(h, heirRanking(st, st.households[h], custom(h), false, claims, watch(h), families.get(h)));
+      }
       return ranked.get(h);
     };
     const invalidate = (people, households) => {
@@ -113,9 +125,13 @@ VB['sim/heirs'] = (() => {
       for (const h of dirty) {
         const before = own.get(h), hh = st.households[h], after = hh.dissolved ? undefined : direct(h);
         own.set(h, after); ranked.delete(h);
-        // The 'keeps' tie also depends on a farm's holder, even if its first direct heir is unchanged.
-        if (before !== undefined) changed.add(before);
-        if (after !== undefined) changed.add(after);
+        // Propagate only a changed direct claim or holder: a membership change with the same first heir
+        // cannot change other farms' competing claims. The 'keeps' tie also reads the competing holder.
+        if (before !== after || holders.get(h) !== hh.holder) {
+          if (before !== undefined) changed.add(before);
+          if (after !== undefined) changed.add(after);
+        }
+        holders.set(h, hh.holder);
       }
       for (const p of changed) for (const h of dependents.get(p) || []) { ranked.delete(h); dirty.add(h); }
       claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);

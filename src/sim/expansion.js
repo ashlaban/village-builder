@@ -51,14 +51,15 @@ VB['sim/expansion'] = (() => {
     }
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
+    const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
       if (nextTo(w, h, fields)) continue;
       let f = -1, fs = -Infinity;
-      for (const [t] of cand) {
+      for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
-        if (steps < 2 || steps > FIELD_REACH || !fieldOk(t)) continue;
-        const sc = fieldScore(t) - 0.15 * steps;
+        if (steps < 2 || steps > FIELD_REACH) continue;
+        const sc = score - 0.15 * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
       if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t), v.id) < FIELDS.room) continue;

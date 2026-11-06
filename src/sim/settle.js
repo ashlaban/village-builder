@@ -83,11 +83,24 @@ VB['sim/settle'] = (() => {
   // tiles: a new village is founded in wilderness only, sim/territory);
   // `near`, every tile within SETTLE.apart - 1 steps of a house, green, field, field project or plot tile, where no new house or field goes.
   function landInUse(st) {
-    const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = [...builtTiles(st)];
+    const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = builtTiles(st);
     for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) use.taken.add(t);
-    for (const f of st.farmsteads) { for (const fd of f.fields) marks.push(fd.tile); if (f.project) marks.push(f.project.tile); }
-    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.push(tr.tile);
-    for (const t of marks) markUsed(w, use, t);
+    for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.project) marks.add(f.project.tile); }
+    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+    // A multi-source search computes the union of the same radius searches. Each tile is visited once,
+    // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
+    const queue = [...marks], depth = new Map(queue.map((t) => [t, 0]));
+    for (const t of marks) use.taken.add(t);
+    for (let head = 0; head < queue.length; head++) {
+      const t = queue[head], d = depth.get(t);
+      use.near.add(t);
+      if (d >= SETTLE.apart - 1) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[t * 6 + k];
+        if (j < 0 || depth.has(j)) continue;
+        depth.set(j, d + 1); queue.push(j);
+      }
+    }
     return use;
   }
   function markUsed(w, use, t) {

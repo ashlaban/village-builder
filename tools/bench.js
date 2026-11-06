@@ -139,9 +139,9 @@ function budget(run) {
   const get = (f, key) => f && !f.error ? f[key] : undefined;
   const rows = [
     ['Mean simulation (ms/day)', '160; ceiling 400', 'msPerDay'],
-    ['Longest 6-minute step (ms)', '50', 'longestMs'], ['99th percentile step (ms)', '', 'p99Ms'],
+    ['Longest 6-minute step (ms)', '60', 'longestMs'], ['99th percentile step (ms)', '', 'p99Ms'],
     ['Simulation (ms/living pawn-day)', '', 'msPerPawnDay'],
-    ['Moving round, one call (ms)', '50 step limit', 'movingRoundMs'], ['Meetings, one call (ms)', '50 step limit', 'meetingsMs'],
+    ['Moving round, one call (ms)', '60 step limit', 'movingRoundMs'], ['Meetings, one call (ms)', '60 step limit', 'meetingsMs'],
     ['Save + stringify + gzip (ms)', '500', 'saveTotalMs'], ['Parse + load (ms)', '500', 'loadTotalMs'],
     ['JSON (MB)', '', 'jsonMB'], ['Gzip (MB)', '10', 'gzipMB'], ['Heap after window (MB)', '', 'heapMB'],
   ].map(([label, limit, key]) => `| ${label} | ${limit} | ${fmt(get(early, key))} | ${fmt(get(late, key))} |`);

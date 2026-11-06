@@ -1,6 +1,8 @@
 # VB-196: moving-round cache work, 6 November 2026
 
-**Partial implementation. VB-196 remains open:** the behavior-preserving cache work is retained, but the 50 ms step budget is not met.
+**Partial implementation. VB-196 remains open:** the current single-step gate is **60 ms**, raised from 50 ms by the user on
+6 November. The behavior-preserving cache work is retained: small-y40 passes the revised gate in the measured run; medium-y60 does not.
+Earlier measurements and rejected experiments below retain their original 50 ms threshold.
 The village scheduling experiment was removed because it failed the required demographic comparison. The golden file is unchanged.
 
 Impact: `sim/lifecycle` coordinates the same marriage and handover commands, in the same order and with the same random draws.
@@ -178,3 +180,75 @@ Follow-up PR validation: full verification rerun with the new demographic regres
 configuration above: **82 scripts pass in 225.1 s**. Both instrumented fixture runs reproduce the complete post-round hashes and exact
 ranking/pair counts reported above. The build and whitespace checks pass; `tests/golden.json` is unchanged. This PR completes the cache
 stage and investigation; it does not close VB-196 or claim that the proposed scheduler has passed its demographic or timing gates.
+
+## Continuation from c27d72f (6 November 2026)
+
+**Still open.** This continuation preserves behavior and improves the synchronous round. It does not introduce the conditional village
+scheduler or satisfy the revised 60 ms criterion on medium. The measured small round-day maxima (47.7 ms in an earlier run,
+53.7 ms in the final run) are below 60 ms; medium remains far above it. No golden update is retained.
+
+Impact: `sim/heirs` keeps an ordered family traversal per household inside its existing transient round view. Kinship and practice are
+fixed during this synchronous call. Lineage changes invalidate that traversal; chosen birth order additionally checks the identity and
+size of the membership array (the source array is replaced and the destination appended by `moveTo`). Eligibility, spouse holdings and
+competing direct claims are still checked against current state. Reverse-dependency propagation now stops when both a direct heir and
+its holder are unchanged. Sex-ineligible candidates need no eligibility dependency, since sex and practice cannot change during the call;
+source/destination household invalidation still handles chosen-order membership changes. An empty ranking avoids a global claims scan.
+
+`sim/settle` replaces overlapping per-mark radius searches with one multi-source BFS. It visits each covered tile once instead of once
+per nearby mark; its `taken` and `near` sets are identical by membership. `sim/expansion` evaluates field eligibility and base scores once
+per site search, keeping candidate order and tie-breaking. `sim/service` computes the static eligible pool once, in demand order, while
+rechecking mutable residence and remaining working hands for each placement. A servant can still move again if the old rules allow it.
+There are no new modules, saved fields, persistent caches, RNG draws, state owners or commands. Traversal caches are bounded by the
+round's households and their family candidates and discarded on return. This is a reduction in repeated work, not a change to pair
+encounters or scheduling.
+
+### Continuation measurements
+
+Before means the latest pulled `origin/main` (`c27d72f`), which already contains the first cache stage. These figures must not be
+confused with the original `f73de6c` baseline above. Both runs use the same published fixture saves, on Node v24.22.1, with no test suite
+running concurrently. Times remain diagnostic and vary with JIT, GC and host load. Reproduce with `node tools/moving-bench.js --day`.
+
+| Fixture | Direct round ms, before → after | Whole-day longest step ms, before → after | Rankings, before → after | Pairs, before → after |
+|---|---:|---:|---:|---:|
+| small-y40 | 91.997 → 53.723 | 61.227 → 53.713 | 580 → 577 | 369 → 369 |
+| medium-y60 | 440.895 → 329.952 | 513.844 → 333.546 | 6,907 → 6,680 | 9,178 → 9,178 |
+
+Complete post-round save hashes, including RNG and record contents, match the pulled baseline for both fixtures (the same hashes listed
+above). `tests/golden.json` is unchanged. The final medium run also reports a separate 215.856 ms midnight step; eliminating the moving
+round stall alone would not pass the whole-day limit. VB-201 owns that work. No timing samples were discarded.
+
+The cost is `183 × 3.169 → 183 × 3.153` and `618 × 11.176 → 618 × 10.809` rankings per round. Against the original implementation it is
+`13,807 → 577` and `276,544 → 6,680`. The history heir-ranking ceiling falls from 1.348733 to 1.347864; `roundRank` remains below the
+ordinary 1.25 history limit. Pair work is unchanged in this continuation; no pair baseline is lowered without a measured decrease.
+
+An isolated stage profile of this continuation reports 109.256 ms in cached ranking reads, 55.817 ms in settlement, 42.700 ms in starting
+plots and 10.829 ms in service (inclusive stage times; diagnostic instrumentation). Settlement alone is below the revised 60 ms gate,
+but that does not establish that all final cross-village work fits in one step. The user accepted publishing this partial optimization
+and raising the gate on 6 November; further scheduling and midnight work are deferred. The required demographic gate remains unchanged;
+no prior failing experiment is accepted here.
+
+### Continuation validation
+
+- `npm test`: 69 scripts pass with two workers and subprocess access. An initial restricted-sandbox attempt failed to spawn git/Node
+  subprocesses with EPERM; it was stopped and rerun with the required access.
+- Marriage-cache comparisons now cover youngest as well as eldest/chosen order, before and after real marriage and handover commands.
+- Empty rankings have a work-count regression test; they perform one source-counted ranking without scanning competing farms.
+- Spatial regression tests cover overlapping/duplicate marks, map edges, unbuilt owned/claimed land and exact set membership against
+  independent radius searches on all four published late fixtures. Their existing daily invariant checks also pass.
+- History cost checks pass. Build, lint, ownership and whitespace checks pass.
+- `VB_CHROMIUM=/usr/bin/chromium VB_SOFTWARE_RENDER=1 VB_TEST_JOBS=2 npm run verify`: all **82 scripts pass in 254.3 s**, including
+  all three browser suites, golden states, save/load determinism, invariants, all four fixtures and history.
+- No screenshots: this patch changes simulation computation only and has no visual changes to demonstrate.
+
+### What medium-y60 still needs
+
+At the revised 60 ms gate, its worst round-day step is 333.546 ms. Preparing direct claims/full rankings must be batched before
+village-local marriages, handovers and claims run in village order. The final cross-village phase must be timed as a whole against
+60 ms; settlement's 55.817 ms stage time alone leaves little margin. If it still cannot fit, bounded final steps need an explicit
+requirement change. Progress must be plain data, resumable after save/load, with exactly-once decisions and correct invalidation between
+steps. The 30-year demographic comparisons at seeds 7 and 42 must pass before accepting any golden changes. The whole-day limit also
+requires VB-201 to reduce the independent 215.856 ms midnight step. Raising the threshold does not complete either task.
+
+Gate-update validation: the bench regression checks the 60 ms limit on longest-step, moving-round and meeting rows. Backlog consistency,
+bench reporting, build freshness and whitespace checks pass after updating the gate. Simulation sources are unchanged since the full
+82-script verification above. Deterministic cost ceilings and demographic tolerances are not relaxed.
