@@ -74,12 +74,18 @@ VB['sim/service'] = (() => {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
     const village = (hh) => farmOf(st, hh).village;
+    // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
+    // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
+    const available = st.demand.filter((id) => {
+      const q = st.pawns[id];
+      return free(st, q) && spouseOf(st, id) === null && q.age <= SERVICE.ages[1] && q.age >= SERVICE.ages[0];
+    });
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
       let best = null, bs = null;
-      for (const id of st.demand) {
-        const q = st.pawns[id]; if (!free(st, q) || spouseOf(st, id) !== null || q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0]) continue;
+      for (const id of available) {
+        const q = st.pawns[id];
         const from = st.households[q.household]; if (from.dissolved || from.members.length < 2) continue;
         const left = hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0); if (left < SERVICE.keepHands) continue;
         const u = st.villages[village(from)], d = u.id === v.id ? 0 : hexSteps(st.w, u.center, v.center);

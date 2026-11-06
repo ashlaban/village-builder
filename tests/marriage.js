@@ -90,7 +90,7 @@ for (const grain of [0, 5000]) {
 }
 // Compare the round's dependency cache with independent, uncached rankings across real commands.
 // Chosen birth order reads residence, and 'keeps' reads competing farms' holders and first heirs.
-for (const order of ['eldest', 'chosen']) for (const ownHeir of ['behind', 'keeps']) {
+for (const order of ['eldest', 'youngest', 'chosen']) for (const ownHeir of ['behind', 'keeps']) {
   const st = require('./scaling.js').villageWorld(4), C = VB.culture;
   for (const [key, value] of [['birthOrder', order], ['ownHeir', ownHeir]]) {
     const dim = C.IDX[key], option = C.DIMS[dim].opts.findIndex((o) => o[0] === value);
@@ -125,6 +125,16 @@ for (const order of ['eldest', 'chosen']) for (const ownHeir of ['behind', 'keep
   const cached = view.rank(10), rankBefore = VB.count.heirRank;
   assert.strictEqual(view.rank(10), cached);
   assert.strictEqual(VB.count.heirRank, rankBefore, 'an unchanged household must reuse its ranking');
+}
+// An empty family ranking needs no global direct-claim scan.
+{
+  const st = require('./scaling.js').villageWorld(2), hh = st.households[0];
+  const cu = R.farmPractice(st, st.farmsteads[hh.farmstead]);
+  // Leave the household's lineage with no eligible heirs without changing global kin indexes.
+  for (const p of st.pawns) if (p.id !== hh.holder) { p.died = st.t; p.alive = false; }
+  VB.resetCounts();
+  assert.deepStrictEqual(H.heirRanking(st, hh, cu), []);
+  assert.strictEqual(VB.count.heirRank, 1, 'empty ranks must not rank other households');
 }
 if (failed) process.exit(1);
 console.log('marriage ok');

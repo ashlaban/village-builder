@@ -17,6 +17,24 @@ function setUp() {
 const fill = (st, v) => { for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t); };
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
 
+// Spatial occupancy is the union of radius searches, including overlaps, duplicate marks and map edges.
+// Ownership/claims exclude sites but do not create a building's separation radius.
+{
+  const { tinyWorld } = require('./lib/tiny.js'), assert = require('assert');
+  const w = tinyWorld(Array(12).fill('.'.repeat(16)));
+  const marks = [0, 1, 17, 18, w.N - 1], owned = 100, claimed = 105, used = 110;
+  const state = { w, used: new Set([used]), owner: new Int32Array(w.N), claims: new Map([[claimed, []]]),
+    villages: [{ center: 0, plots: [{ tiles: [{ tile: 1, kind: 'house' }, { tile: 17, kind: 'field' }] }] }],
+    farmsteads: [{ house: 0, fields: [{ tile: 1 }, { tile: 18 }], project: { tile: w.N - 1 } }] };
+  state.owner[owned] = 1;
+  const use = S.landInUse(state), expected = new Set();
+  for (const t of marks) for (const [j] of bfs(w, t, SETTLE.apart - 1, () => true).dist) expected.add(j);
+  assert.deepStrictEqual(use.near, expected, 'overlapping radius searches must have identical membership');
+  assert.deepStrictEqual(use.taken, new Set([used, owned, claimed, ...marks]));
+  state.villages = []; state.farmsteads = [];
+  assert.strictEqual(S.landInUse(state).near.size, 0, 'unbuilt owned/claimed land has no separation radius');
+}
+
 // 1. A village with room is not crowded, and nobody leaves.
 {
   const { st, v, m, sib } = setUp();

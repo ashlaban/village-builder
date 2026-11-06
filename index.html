@@ -4963,14 +4963,15 @@ VB['sim/expansion'] = (() => {
     }
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
+    const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
       if (nextTo(w, h, fields)) continue;
       let f = -1, fs = -Infinity;
-      for (const [t] of cand) {
+      for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
-        if (steps < 2 || steps > FIELD_REACH || !fieldOk(t)) continue;
-        const sc = fieldScore(t) - 0.15 * steps;
+        if (steps < 2 || steps > FIELD_REACH) continue;
+        const sc = score - 0.15 * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
       if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t), v.id) < FIELDS.room) continue;
@@ -6102,7 +6103,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead], cu = cust || practice(st, f.village);
     const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
@@ -6114,7 +6115,11 @@ VB['sim/heirs'] = (() => {
       if (cu.birthOrder === 'chosen') { const ha = pa.household === hh.id ? 0 : 1, hb = pb.household === hh.id ? 0 : 1; if (ha !== hb) return ha - hb; }
       return pa.born - pb.born;
     });
-    const out = [], seen = new Set();
+    // Kinship is fixed during a synchronous round. Chosen order additionally depends on membership:
+    // moveTo replaces the source member array and appends at the destination, so check both identity and size.
+    const cached = family && family.line === line && (cu.birthOrder !== 'chosen'
+      || (family.members === hh.members && family.size === hh.members.length)) ? family : null;
+    const out = cached ? cached.out : [], seen = new Set();
     const lineOf = (id, depth) => {
       if (depth > 3) return;
       for (const c of order(childrenOf(st, id))) {
@@ -6123,13 +6128,13 @@ VB['sim/heirs'] = (() => {
         lineOf(c, depth + 1); // a dead child's children stand in their place; a living child's line follows them
       }
     };
-    lineOf(line, 0);
-    const direct = new Set(out);
+    if (!cached) lineOf(line, 0);
+    const direct = cached ? cached.direct : new Set(out);
     // Only full rankings need the wider family; ownFirstOf asks just for direct heirs.
     // Then siblings and their lines, then the parents' siblings (cousins) and theirs.
     seen.add(line);
     let anc = line;
-    for (let up = 0; !nested && up < 2; up++) {
+    for (let up = 0; !cached && !nested && up < 2; up++) {
       const lp = st.pawns[anc];
       if (lp.father === null && lp.mother === null) break;
       const parent = lp.father !== null ? lp.father : lp.mother;
@@ -6138,15 +6143,19 @@ VB['sim/heirs'] = (() => {
       }
       anc = parent; seen.add(parent);
     }
+    if (family && !cached) {
+      family.line = line; family.out = out; family.direct = direct; family.members = hh.members; family.size = hh.members.length;
+    }
     const ok = out.filter((id) => {
-      if (watch) watch(id);
       const p = st.pawns[id];
       if (cu.heirSex === 'sons' && p.sex === 'f') return false;
+      if (watch) watch(id);
       const own = holdingOf(st, id); if (own && own !== hh) return false; // already holds a farm
       const sp = spouseOf(st, id); if (sp !== null) { const so = holdingOf(st, sp); if (so && so !== hh) return false; } // lives on a spouse's farm
       return id !== hh.holder;
     });
     if (nested) return ok.filter((id) => direct.has(id));
+    if (!ok.length) return ok; // No competing direct claim can change an empty ranking.
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
     const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
@@ -6176,7 +6185,8 @@ VB['sim/heirs'] = (() => {
   // A moving-round view, never saved. Watch even rejected candidates: a marriage can change their eligibility.
   // Reverse dependencies include spouses, whose holding can exclude an otherwise eligible heir.
   function roundHeirs(st) {
-    const own = new Map(), ranked = new Map(), dependents = new Map(), customs = new Map();
+    const own = new Map(), ranked = new Map(), dependents = new Map(), customs = new Map(), families = new Map();
+    const holders = new Map(st.liveHouseholds.map((h) => [h, st.households[h].holder]));
     const custom = (h) => {
       const v = st.farmsteads[st.households[h].farmstead].village;
       if (!customs.has(v)) customs.set(v, practice(st, v));
@@ -6193,7 +6203,10 @@ VB['sim/heirs'] = (() => {
     for (const h of st.liveHouseholds) own.set(h, direct(h));
     let claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);
     const rank = (h) => {
-      if (!ranked.has(h)) ranked.set(h, heirRanking(st, st.households[h], custom(h), false, claims, watch(h)));
+      if (!ranked.has(h)) {
+        if (!families.has(h)) families.set(h, {});
+        ranked.set(h, heirRanking(st, st.households[h], custom(h), false, claims, watch(h), families.get(h)));
+      }
       return ranked.get(h);
     };
     const invalidate = (people, households) => {
@@ -6203,9 +6216,13 @@ VB['sim/heirs'] = (() => {
       for (const h of dirty) {
         const before = own.get(h), hh = st.households[h], after = hh.dissolved ? undefined : direct(h);
         own.set(h, after); ranked.delete(h);
-        // The 'keeps' tie also depends on a farm's holder, even if its first direct heir is unchanged.
-        if (before !== undefined) changed.add(before);
-        if (after !== undefined) changed.add(after);
+        // Propagate only a changed direct claim or holder: a membership change with the same first heir
+        // cannot change other farms' competing claims. The 'keeps' tie also reads the competing holder.
+        if (before !== after || holders.get(h) !== hh.holder) {
+          if (before !== undefined) changed.add(before);
+          if (after !== undefined) changed.add(after);
+        }
+        holders.set(h, hh.holder);
       }
       for (const p of changed) for (const h of dependents.get(p) || []) { ranked.delete(h); dirty.add(h); }
       claims = [...own].filter((e) => e[1] !== undefined).map(([h, p]) => [p, h]);
@@ -6539,12 +6556,18 @@ VB['sim/service'] = (() => {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
     const village = (hh) => farmOf(st, hh).village;
+    // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
+    // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
+    const available = st.demand.filter((id) => {
+      const q = st.pawns[id];
+      return free(st, q) && spouseOf(st, id) === null && q.age <= SERVICE.ages[1] && q.age >= SERVICE.ages[0];
+    });
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
       let best = null, bs = null;
-      for (const id of st.demand) {
-        const q = st.pawns[id]; if (!free(st, q) || spouseOf(st, id) !== null || q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0]) continue;
+      for (const id of available) {
+        const q = st.pawns[id];
         const from = st.households[q.household]; if (from.dissolved || from.members.length < 2) continue;
         const left = hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0); if (left < SERVICE.keepHands) continue;
         const u = st.villages[village(from)], d = u.id === v.id ? 0 : hexSteps(st.w, u.center, v.center);
@@ -6885,11 +6908,24 @@ VB['sim/settle'] = (() => {
   // tiles: a new village is founded in wilderness only, sim/territory);
   // `near`, every tile within SETTLE.apart - 1 steps of a house, green, field, field project or plot tile, where no new house or field goes.
   function landInUse(st) {
-    const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = [...builtTiles(st)];
+    const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = builtTiles(st);
     for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) use.taken.add(t);
-    for (const f of st.farmsteads) { for (const fd of f.fields) marks.push(fd.tile); if (f.project) marks.push(f.project.tile); }
-    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.push(tr.tile);
-    for (const t of marks) markUsed(w, use, t);
+    for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.project) marks.add(f.project.tile); }
+    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+    // A multi-source search computes the union of the same radius searches. Each tile is visited once,
+    // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
+    const queue = [...marks], depth = new Map(queue.map((t) => [t, 0]));
+    for (const t of marks) use.taken.add(t);
+    for (let head = 0; head < queue.length; head++) {
+      const t = queue[head], d = depth.get(t);
+      use.near.add(t);
+      if (d >= SETTLE.apart - 1) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[t * 6 + k];
+        if (j < 0 || depth.has(j)) continue;
+        depth.set(j, d + 1); queue.push(j);
+      }
+    }
     return use;
   }
   function markUsed(w, use, t) {
