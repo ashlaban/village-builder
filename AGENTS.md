@@ -5,7 +5,7 @@ Design reference: `design.md`, "Village builder: game design snapshot v0.4" (a s
 v0.3 is kept in `docs/design-v0.3.md`); read-only for implementing tasks (only design and review tasks change it). A point marked "Under revision"
 stands as written until its slice's plan rewrites it.
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); its last section, "How this backlog works", holds the task rules (status values, archs and their phases,
-the refactor rules), and its pick order follows the vertical slices. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+the refactor rules); its Ready table is the order tasks are taken in (priority, then ID), and blocked tasks name what they wait for. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
 Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game

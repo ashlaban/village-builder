@@ -18,6 +18,10 @@ Bounded history was brought into slice 0 in the session that ran VB-181. Rule 9 
 2. When do `friend` and `fellOut` fold? Folded after a generation (25 years), they still fill the save at the late reference: year 60 would keep 35 years of them. **P:** after 2 years, since a pawn's present friends and enemies are kept in its relations anyway, and slice 7 replaces them with stories; the other routine kinds after a generation, as rule 9 says.
 3. If the save still takes over 0.5 s once history is bounded? **P:** VB-199 measures each part (encode, stringify, gzip; parse, decode) and proposes the next step in its PR rather than building it: pawn records in columns, or saving from a structured clone in a worker (roadmap, section 5.5).
 
+### VB-164: may slice 3's plan run before slice 2's? (raised 7 November 2026, backlog review)
+The rule of 3 November says a later slice's plan waits for the plan of the slice before it (now in `BACKLOG.md`, "How this backlog works"; slices 1 and 2 run side by side). VB-164, slice 3's plan, is `ready` at priority 2, so the nightly run takes it after VB-077, VB-127 and VB-163, while slice 2's plan (VB-079) is not done; its file names no exception, as VB-127's does for running ahead of its slice.
+1. Should VB-164 wait for VB-079? **P:** yes, as the rule says: set it `blocked` with `Waits for: VB-079`, so the plans run in slice order (roadmap, section 4: "0, then 1 and 2 side by side, then 3"), since slices 1 and 2 "test the pieces every later slice uses", among them "opportunities and the player". If running it early was meant, say so and its file gets a note giving the reason.
+
 ## Priority 2
 
 ### Target architecture v2: decisions waiting (raised 3 November 2026)

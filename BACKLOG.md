@@ -2,27 +2,13 @@
 
 Open tasks of the village builder. Each task's file, `backlog/VB-NNN.md`, holds its full description; the tables here are the overview.
 
-Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md) · Questions for Kim: [`QUESTIONS.md`](QUESTIONS.md) · Order of work: [`docs/roadmap.md`](docs/roadmap.md)
+Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md) · Questions for Kim: [`QUESTIONS.md`](QUESTIONS.md) · Slices and their order: [`docs/roadmap.md`](docs/roadmap.md)
 
 On this page: [Ready](#ready) · [Waiting for Kim](#waiting-for-kim) · [Blocked](#blocked) · [Archs](#archs) · [How this backlog works](#how-this-backlog-works)
 
-## Pick order
-
-Workers take `ready` tasks by priority, but several edit the same files, so this order avoids collisions (reviewed 3 November 2026, after `docs/roadmap.md`; done tasks dropped 7 November; the history of earlier orders is in git):
-
-The feature freeze of 2 November 2026 was lifted by Kim on 3 November: its foundations are in, and the slice order below, with the `blocked` tasks of later slices, now governs what runs.
-
-1. **The slices, in order** (Decided, Kim, 3 November; `docs/roadmap.md`, sections 3 and 4): 0 `yardstick`; 1 `kin-help` and 2 `life` side by side (they touch different files); then 3 `year`, 4 `fair`, 5 `debt`, 6 `mill`, 7 `talk`, 8 `ship`, 9 `town`, 10 `roads`. Each starts with its plan task: VB-181 (done), VB-182, VB-079, VB-164, VB-183 to VB-186, VB-188 to VB-190. A later slice's plan is `blocked` until the slice before it has written its tasks; its implement tasks wait for its plan.
-   - **Slice 0's order** (VB-181, 3 November): VB-192, VB-193, VB-088 and VB-194 to VB-198 are done. Left: VB-163 (bands) at priority 2; VB-201 (midnight) after VB-127; VB-199 (bounded history) waits for Kim; VB-200 wraps up. VB-055, VB-057 and VB-166 stay at priority 3.
-2. **Beside the slices:**
-   - The ownership refactors VB-173 to VB-179 are done; VB-180 wraps up the arch and is `ready`.
-   - VB-127 (ties from talk) runs early, since the late game already exceeds the budget (roadmap, section 5.1); it measures itself with `tests/perf.js` and one year from a late save (roadmap, section 6).
-   - `design.md` v0.4's skeleton (VB-191) is done (3 November); each slice's plan fills in its sections.
-   - Small tasks that touch nothing above: VB-160, VB-165, VB-139.
-
 ## Ready
 
-Sorted by priority (1 first), then ID; the pick order above says which go first.
+The order tasks are taken in: the nightly run takes the first. Sorted by priority (1 first), then ID.
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
@@ -136,7 +122,9 @@ their files stay in `backlog/`. Ready and Waiting for Kim are sorted by priority
 tasks outside every arch last), then priority, then ID; the archive by when a task was done, newest at the bottom.
 `tests/backlog.js` checks that files and rows agree, and the order.
 
-**Statuses.** The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order, as the pick order arranges them.
+**Order and statuses.** The nightly run takes only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
+To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
+same files run one at a time).
 A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
 `needs-review` tasks list the questions Kim must answer first; [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
 in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
@@ -152,7 +140,8 @@ rewrites or closes it. Only blocked tasks have the line.
 
 Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10). Each slice's plan task
 is a design pass: it makes the slice's systems concrete, proposes its sections of `design.md` v0.4, and confirms, rewrites or closes the tasks
-it took over from the earlier archs, which stay `blocked` until it has. The earlier archs are closed and kept in `BACKLOG_ARCHIVE.md` for their
+it took over from the earlier archs, which stay `blocked` until it has. A later slice's plan waits for the plan of the slice before it
+(slices 1 and 2 run side by side); a slice's other tasks wait for its plan. The earlier archs are closed and kept in `BACKLOG_ARCHIVE.md` for their
 done tasks; two, `ownership` and `animals`, still have open tasks that run beside the slices.
 
 A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement|wrap-up` lines after `Size:`; a task outside every arch
