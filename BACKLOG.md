@@ -126,7 +126,8 @@ Its row here is the overview: when a task's name, arch, priority, size or what i
 changes, move the row to that status's section. A new task takes the next free ID, gets a file and a row. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
 their files stay in `backlog/`. Ready and Waiting for Kim are sorted by priority, then ID; Blocked by arch (in the order of the Archs table,
 tasks outside every arch last), then priority, then ID; the archive by when a task was done, newest at the bottom.
-`tests/backlog.js` checks that files and rows agree, and the order.
+`tests/backlog.js` checks that files and rows agree, and the order. `node tools/backlog.js` makes these moves from the task files
+(`done`, `set`, `new`, `close-arch`, `sync`) and reads the backlog without these tables (`next`, `list`, `show`); `AGENTS.md`, Commands.
 
 **Order and statuses.** The nightly run takes only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
 To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
