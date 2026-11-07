@@ -20,6 +20,13 @@ fs.mkdirSync(path.join(dir, 'backlog'));
 for (const f of fs.readdirSync(path.join(root, 'backlog'))) fs.copyFileSync(path.join(root, 'backlog', f), path.join(dir, 'backlog', f));
 const file = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const section = (f, heading) => (file(f).split('\n## ' + heading + '\n')[1] || '').split('\n## ')[0];
+// after a merge that kept both sides' rows: a blocked row under Ready and a ready row twice and under Blocked; sync restores the tables
+const original = file('BACKLOG.md'), rowsOf = (h) => section('BACKLOG.md', h).split('\n').filter((l) => l.startsWith('| [VB-'));
+const [readyRow] = rowsOf('Ready'), [blockedRow] = rowsOf('Blocked');
+fs.writeFileSync(path.join(dir, 'BACKLOG.md'), original.replace(blockedRow, `${readyRow}\n${blockedRow}`)
+  .replace(readyRow, `${readyRow}\n${blockedRow}\n${readyRow}`));
+r = run(dir, 'sync');
+expect('sync restores tables merged with duplicate and misplaced rows', r.ok && file('BACKLOG.md') === original, r.out);
 // a test arch, last in the Archs table
 const archs = file('BACKLOG.md').split('\n'), last = archs.findLastIndex((l) => /^\| [a-z-]+ \| /.test(l) && !/^\| Key /.test(l));
 archs.splice(last + 1, 0, '| zz-test | Test arch | A test goal. | none |');
