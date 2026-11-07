@@ -8,7 +8,7 @@ On this page: [Ready](#ready) · [Waiting for Kim](#waiting-for-kim) · [Blocked
 
 ## Ready
 
-The order tasks are taken in: the nightly run takes the first. Sorted by priority (1 first), then ID.
+The order tasks are taken in, the first first (`node tools/backlog.js next`). Sorted by priority (1 first), then ID.
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
@@ -129,7 +129,7 @@ tasks outside every arch last), then priority, then ID; the archive by when a ta
 `tests/backlog.js` checks that files and rows agree, and the order. `node tools/backlog.js` makes these moves from the task files
 (`done`, `set`, `new`, `close-arch`, `sync`) and reads the backlog without these tables (`next`, `list`, `show`); `AGENTS.md`, Commands.
 
-**Order and statuses.** The nightly run takes only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
+**Order and statuses.** Agents take only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
 To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
 same files run one at a time).
 A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
@@ -147,7 +147,7 @@ ledgers adding half to the save were written in task files, and no one acted on 
 
 **Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
 - **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
-- **implement:** the tasks that build it, each small enough for one nightly run (size S or M where possible).
+- **implement:** the tasks that build it, each small enough for one agent session (size S or M where possible).
 - **wrap-up:** a task that checks the arch as a whole against the design with long runs, reports the numbers and proposes tuning. It is `blocked` until the arch's implement tasks are done.
 
 Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10). Each slice's plan task
