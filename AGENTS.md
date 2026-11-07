@@ -1,130 +1,86 @@
 # Village builder: guide for agents
 
-A village builder proof of concept on a generated hex archipelago: one `index.html` (PixiJS 8), built from `src/`; self-contained but for PixiJS (jsDelivr) and the fonts (Google Fonts), so it needs a network connection.
-Design reference: `design.md`, "Village builder: game design snapshot v0.4" (a skeleton since 3 November: each slice's plan fills in its sections;
-v0.3 is kept in `docs/design-v0.3.md`); read-only for implementing tasks (only design and review tasks change it). A point marked "Under revision"
-stands as written until its slice's plan rewrites it.
-Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); its last section, "How this backlog works", holds the task rules (status values, archs and their phases,
-the refactor rules); its Ready table is the order tasks are taken in (priority, then ID), and blocked tasks name what they wait for.
-Read and change the backlog with `node tools/backlog.js` (Commands, Backlog), not by reading or editing its tables. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
-Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
-Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
-The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game
-budget and cheap measurement.
-`docs/architecture/ownership.md` (VB-172) maps who writes each piece of state today. The external proposal target-v2 grew from (ChatGPT) is kept in
-`docs/architecture/target-architecture.md`; the first response to it, with Kim's adoption of a player who inhabits a pawn, is `docs/review-architecture.md`.
+A village builder proof of concept on a generated hex archipelago: one `index.html` (PixiJS 8), built from `src/`; it loads PixiJS
+(jsDelivr) and the fonts (Google Fonts), so it needs a network connection.
+
+Documents. Read the section you need, not the whole file: `node tools/doc.js FILE "Heading"`, or `--toc` for the contents with sizes.
+- `design.md`: the design, snapshot v0.4, a skeleton each slice's plan fills in (v0.3 is `docs/design-v0.3.md`; refs written before
+  3 November point there). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
+- `BACKLOG.md`: open tasks, one file each in `backlog/`, done ones in `BACKLOG_ARCHIVE.md`; its last section, "How this backlog works",
+  holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
+- `QUESTIONS.md`: open design questions for Kim, answered ones in `QUESTION_ARCHIVE.md`; read, answer and move them with `tools/questions.js`.
+- `docs/roadmap.md`: the order of work (vertical slices, each an arch of the backlog), the late-game budget and cheap measurement.
+- `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
+  not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
+- `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.
+- `REVIEW.md`: the latest review of design against code; earlier reviews are `docs/review-*.md`.
+
+## Taking a task
+1. `node tools/backlog.js next`, then `show ID`: the first ready task is the one to take.
+2. Read only what its Design ref and notes name (`tools/doc.js`), and its questions (`node tools/questions.js show ID`).
+3. If it turns out to need a design decision, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
+4. Work in small commits, with `npm test` after each change.
+5. Run `npm run verify` once, before the last commit; the task is not done until it passes. Rebuild `index.html` before committing.
+6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
+7. Open the PR, with the impact note and numbers that Working rules ask for.
 
 ## Commands
-- Backlog: `node tools/backlog.js next` prints the first ready tasks, in the order they are taken; `show ID [--brief]` a task's file
-  (`--brief` stops before its notes and reports); `list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]` one line per task.
-  To change it: `done ID...` (rows to the archive; tasks that waited for it drop it, and those left waiting for nothing are set ready),
-  `set ID key=value...` (status, priority, size, arch, phase, waits, name, summary), `new key=value...` (the next free ID), `close-arch KEY`,
-  and `sync` after editing a task file's header by hand. Each rewrites the tables from the task files and runs `tests/backlog.js`.
-- Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
-- Test: `npm install && npm test` runs the cheap headless checks in parallel (including build, lint, ownership, backlog and regressions).
-- Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and page checks in jsdom and real Chromium.
-  `node tests/run.js verify --verbose` also prints the reported numbers.
-  Presentation timing budgets are deferred by Kim (4 November 2026, VB-166); browser checks cover functionality, not rendering speed.
-  Real Chromium checks run individually before the parallel headless checks to avoid software-GPU contention.
-- Fixtures: `node tools/fixtures.js status|fetch|publish`; `make [small-y5 small-y40 medium-y5 medium-y60]` makes all by default.
-  Saves and stamps live in gitignored `tests/fixtures/`, distributed on the orphan `fixtures` branch. A check or task needing a late
-  state uses `require('./lib/fixtures.js').loadFixture(name)` from tests (or `../tests/lib/fixtures.js` from tools): `{st, stamp, stale}`
-  or `null` with a missing/offline notice. A stale golden hash is usable; incompatible save formats require a remake.
-  `npm run nightly` fetches, remakes stale/missing fixtures in worker processes, and publishes a single replacement orphan commit
-  with an explicit `--force-with-lease` on that branch: the project's only force-push; main's history and the checkout are untouched.
-- Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change, and list
-  the changed entries in the PR.
-- Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change (list the changed counters in the PR).
-  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
-  `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
-- Cost growth: `node tests/scaling.js` checks two/four repeated tiny villages in `npm test` (population exponent at most 1.15);
-  `node tests/history.js` checks 30 days and one moving round from `small-y5` and `small-y40` in verify (work per living pawn-day at
-  year 40 over year 5 at most 1.25).
-  Both print all work counters; history also reports six-minute step timings, never asserting wall-clock time.
-  `--update` only lowers existing excesses in `tests/cost-baseline.json` and removes fixed ones; it refuses new regressions.
-- Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
-- Ownership: `node tests/ownership.js`; fixed sites must be removed with `--update`, which refuses any new write past an owner.
-- Rules: `node tools/rules.js` lists owners and contributions; `--explain ID [--load FILE]` explains a pawn's death hazard.
-- Calibrate customs: `npm run calibrate`, or `node tests/calibrate.js natural 2 50` for a quick run.
-- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints one line per year;
-  `node tools/sim.js --years 5 --report households --json | jq .` or `--household 3` / `--pawn 12` show the state (`--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|hunger|perf|counts`; `perf` times each system per game day; `hunger` lists households hungry over 30 days in the last year, with a summary);
-  `--save FILE` saves the run at the end and `--load FILE` goes on from a save (`.gz` files are gzipped), so a bug report can carry the run.
-- Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15` prints rations made by source (grain net of seed,
-  milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
-- Wrap long lines: `node tools/wrap.js FILE...` breaks lines over 160 characters at safe token boundaries (`--dry` reports only; long template text is
-  left for wrapping by hand); `node tools/wrap.js --compare OLD.html NEW.html` checks that two builds differ only in whitespace outside literals.
-- Dependencies (VB-176): `node tests/dependencies.js` rejects imports and lookups into later modules, except command dispatch.
-- Writes map (VB-172): `node tools/writes.js` prints every field of the state with the modules that write it (file and line) and read it, the
-  modules' dependencies and their cycles; `--field household.grain` lists one field's write sites, `--json` gives it all.
-- Play locally: open `index.html` in a browser (PixiJS loads from a CDN).
+- Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read (`list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]`;
+  `--brief` leaves out notes and reports); `done ID...`, `set ID key=value...`, `new key=value...`, `close-arch KEY`, and `sync` after
+  a task file's header is edited by hand, to change it. Each rewrites the tables from the task files and runs `tests/backlog.js`.
+- Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
+- Build: `python3 build.py` inlines `src/` into `index.html`; `python3 build.py --check` fails if it is stale.
+- Test: `npm install && npm test` runs the cheap headless checks in parallel (build, lint, ownership, backlog, regressions); a passing run
+  prints its summary only (`node tests/run.js test --list` prints each script's line).
+- Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
+  not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
+- Fixtures, late saves (gitignored `tests/fixtures/`, kept on the orphan `fixtures` branch): `node tools/fixtures.js status|fetch|publish`,
+  `make [small-y5 small-y40 medium-y5 medium-y60]`. In a test, `require('./lib/fixtures.js').loadFixture(name)` (`../tests/lib/` from tools)
+  gives `{st, stamp, stale}`, or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. `npm run nightly`
+  remakes stale ones and replaces the `fixtures` branch with `--force-with-lease`: the project's only force-push.
+- Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
+- Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
+  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
+- Cost growth: `node tests/scaling.js` (npm test; population exponent at most 1.15) and `node tests/history.js` (verify, from `small-y5` and
+  `small-y40`; work per living pawn-day at year 40 over year 5 at most 1.25). `--update` only lowers excesses in `tests/cost-baseline.json`.
+- Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
+- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report households|pawns|jobs|
+  customs|events|farms|idle|paths|relations|herds|hunger|perf|counts [--json]` (`perf` times each system per game day), `--household N`,
+  `--pawn N`; `--save FILE` and `--load FILE` (`.gz` is gzipped), so a bug report can carry the run.
+- Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
+- Also: `node tools/rules.js [--explain ID] [--load FILE]` (rule owners; a pawn's death hazard), `node tools/writes.js [--field F] [--json]`
+  (each field's writers and readers; dependencies and cycles), `node tests/dependencies.js` (no lookups into later modules but command
+  dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over
+  160 characters; `--compare OLD.html NEW.html` checks two builds differ only in whitespace outside literals).
+- Play locally: open `index.html` in a browser.
 
 ## Finding things
-- Module map: `grep -rn "^// @sys" src`. State schema: `grep -rn "@state" src` (VB-015).
-- A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Modules are listed in `src/manifest.json` in load order.
-- The page script (VB-053): `src/page/*.js`, in the order of `src/page.json`; `build.py` splices them, without their `@sys` line, into the one
-  closure in `src/body.html` (which keeps the markup, styles and the closure's first and last lines). They are not `VB` modules: they share the
-  closure's variables, so a name defined in one is used in the others (grep `src/page` for it). Keep their order: `const` and `let` run in order.
-- Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
-
-## Architecture
-- `VB['sim/registry']` combines load-time rule declarations and ordered contributions; `value` creates no per-call containers or closures.
-  `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
-  The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
-  Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
-- `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the painterly chunk bake.
-  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
-- Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
-  search, the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
-  (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
-- `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it.
-  Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
-  houses round the green, each farm's fields one block beyond the yards. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
-- Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, rations, sheaves and food ledgers.
-  Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes. Owed shares stay in heirs/cottage.
-- Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap); the larder of stored food and grain spoiling in store are in `src/sim/hunger.js`; soil, manure and how many fields a household wants in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
-- Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
-  village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
-  (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.
-- Names (VB-026): `src/sim/names.js` holds the generators (farms by compass, landmark, owner; villages by syllables or founder) and each culture's
-  order of preference (`c.namePrefs`); a lone farm's village bears its farm's name, and the page labels a village of two or more farms once.
-- Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
-  servant to a holder who lives alone; marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
-  and `src/sim/heirs.js`.
-- Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
-  arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
-  `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts
-  (`tests/saves.js` catches it). A loaded run matches the unbroken one given the same `Sim.advance` calls.
-- The record of events (VB-075): `st.record`, typed events written by `log(st, text, event)` and `personEvent(...)` in `src/sim/records.js`
-  (`false` when another call records the same happening); `Sim.recordOf(st, {pawn, household, farm, village, kinds, from, to})` queries it.
-  A new log line names its event's kind, pawn and place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.
-- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`; `decide`; `marry`, `handOn`, `serve`,
-  `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
-  `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
-  A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
-- Membership (VB-175): `sim/records` alone writes household members, a pawn's household and service (`joinHousehold`,
-  `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
-  `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
-  `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
-- `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
-- The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
-  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
-- `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
+- Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`.
+- A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
+- The page script is `src/page/*.js`, in the order of `src/page.json`; `build.py` splices them, without their `@sys` line, into the one closure
+  in `src/body.html`. They are not `VB` modules: they share the closure's variables (grep `src/page` for a name), and run in order.
 
 ## Conventions
 - Read owned fields freely; write through the module in `src/owners.json` (caches follow the same rule; page flags are signals).
-  `tests/ownership.js` checks this in `npm test`; `// lint-allow: owner <reason>` exempts one line. The table lists creators and the save codec exemption.
-  Its schema validates owners against the manifest and explicit `plannedOwners`; remove a planned name when its module lands.
+  `tests/ownership.js` checks this; `// lint-allow: owner <reason>` exempts one line. Its schema validates owners against the manifest and
+  `plannedOwners`; remove a planned name when its module lands.
+- `st` is plain data: no functions, and no state kept aside in module closures, or a loaded run drifts (`tests/plaindata.js`, `tests/saves.js`).
+  A world field the simulation writes goes into the `WORLD` list of `src/sim/saves.js`.
+- A new act a pawn or the moving round chooses gets a verb in `src/sim/commands.js`, reached by `issue(st, {actor, verb, target, args, source})`;
+  a verb checks the act is possible and returns why not; `tests/commands.js` checks that only the verbs call the acts they wrap.
+- Events are written by `log(st, text, event)` and `personEvent(...)` (`src/sim/records.js`); a log line names its event's kind, pawn and
+  place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.
+- Food moves through `src/sim/stores.js` operations, each with a good and a reason.
+- A rule of `VB['sim/registry']` is declared or contributed to before the first seed or load, which seals the registry; rules never enter saved state.
+- The page script draws and only reads `st`. It writes to `st` through the `Sim` API and three flags, `visualDirty`, `naturalDeaths`, `driftMul`,
+  and clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
 - A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
-- Determinism: all randomness comes from seeded streams (VB-072, `src/sim/rng.js`): in play each system draws from its own, `rnd(st.rng.<system>)`,
-  and a new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream; no `Math.random`, `Date` or `performance.now` in the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
+- Determinism: all randomness comes from seeded streams (`src/sim/rng.js`): each system draws from its own, `rnd(st.rng.<system>)`, and a
+  new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream. No `Math.random`, `Date` or `performance.now` in
+  the modules (the page script may use them); the lint enforces it, and `// lint-allow: clock <reason>` exempts a line.
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
-- Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `ROUTE`, `PATHS`, `SETTLE` and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`;
-  `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK` (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
-- A new job kind is one record in `KINDS` (`src/sim/kinds.js`): numbers, type of work, labels, where to stand, urgency, and what finishing and delivering do.
-  It is posted from `refreshJobs` (`src/sim/jobs.js`); roles rank types of work (`work` in `ROLES`, with `except` for single kinds), so a kind of an existing
-  type needs no role numbers. Its `anim` names an animation in the page script.
-- A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
+- Tunables, a new job kind and a new custom: `docs/architecture/modules.md`, Adding things.
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find
@@ -141,19 +97,17 @@ budget and cheap measurement.
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. Use `npm run verify` sparingly: once at the end of a task, before its last commit,
   and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
-- Finishing a task: tick its criteria and add its implementation and validation notes to its file, then `node tools/backlog.js done ID`.
 - Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
 - A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
-  any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit
-  (external review, `docs/review-external.md`).
+  any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.
 - A change to behaviour reports numbers before and after (`tools/sim.js`, `tools/balance.js`, `node tests/run.js verify --verbose`)
   at the seeds and maps it names, in the PR and in the task file, and says whether households, not only averages, are better off.
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
 
-## Rules for cost (Kim, 3 November; step gate revised 6 November; reference and budget revised 7 November; `docs/roadmap.md`, section 5)
+## Rules for cost (Kim's; `docs/roadmap.md`, section 5)
 Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day
 for the systems built so far (half of the finished game's 400 ms, a quarter of the main thread at 30×; each slice's plan claims its line from the rest),
 no 6-minute step over 60 ms on `medium-ref` and `small-y40`, cost per living pawn-day at `small-y40` at most 1.25 times `small-y5`, save and load
@@ -171,4 +125,4 @@ Every plan and PR is checked against these rules:
 8. Bound every cache (routes, reach maps), and bound history (routine events fold into yearly counts; a pawn's events index the record).
 9. Name the cost before building: entities, times cadence, times work per call, in the plan; measure it in the wrap-up, early and on a
    late save.
-10. Work counters (slice 0) live in `VB.count`, outside `st`: never saved, never read by the simulation, read only by tools and tests.
+10. Work counters live in `VB.count`, outside `st`: never saved, never read by the simulation, read only by tools and tests.
