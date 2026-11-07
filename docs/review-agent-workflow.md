@@ -74,7 +74,29 @@ The tool's lines in `AGENTS.md` cost 900 bytes in every session, repaid the firs
    `docs/agents/nightly.md`, a change to it can be reviewed and its effect measured like any other change.
 10. **No SessionStart hook for the backlog.** Printing `next` at the start of every session would cost the sessions that take no task.
 
-## 5. Measuring the effect
+## 5. Done in the second batch (7 November 2026)
+
+Kim chose suggestions 1, 3, 4, 5 and 6, done directly rather than as backlog tasks. Section 1 stays as the baseline.
+
+| Suggestion | Where | Before | After |
+|------------|-------|-------:|------:|
+| 1. Quiet test runs | `tests/run.js` (`--list` for the old lines) | 7.6 KB per passing `npm test` | 68 B |
+| 3. A slimmer `AGENTS.md` | Architecture and "Adding things" to `docs/architecture/modules.md` (7.3 KB, read when needed); every rule kept | 20.7 KB in every session | 13.3 KB |
+| 4. Section reader | `tools/doc.js`; headings, a ref's "Section (Subsection)", table rows and bold bullets | "Goods, production and animals (Help in hunger)": the 18.1 KB section, or the whole 126 KB file | 0.6 KB; `--toc` 4.0 KB |
+| 5. Questions tool | `tools/questions.js`: `list`, `show`, `answer`, `archive` | 23.6 KB to find a task's questions; 76 KB archive read to append | `list` 2.3 KB; `show VB-163` 2.4 KB; archiving reads neither file |
+| 6. A checklist for a task | `AGENTS.md`, Taking a task | spread over four sections | seven steps, 750 B |
+
+Going below 13 KB would mean dropping rules or the list of commands, which an agent cannot discover otherwise (`tools/sim.js` has no
+`--help`); not done.
+
+**The nightly run (suggestion 9).** "The nightly run" of `BACKLOG.md` and older task notes is a scheduled task on Kim's account,
+"Village builder (worker)", beside "Village builder (Project manager)" and "Village builder (Reviewer)"; all three have been disabled since
+2 and 3 November. Their prompts describe the backlog as it was before 3 November (tasks as `## VB-NNN` blocks inside `BACKLOG.md`, status
+set there, v0.3 design refs), so re-enabled as they stand they would work against the current files. Before they run again, each should be
+rewritten against `AGENTS.md` (Taking a task; the backlog and questions tools) and kept in the repository, so a change to it is reviewed
+and measured like any other.
+
+## 6. Measuring the effect
 
 **Static measures** (deterministic and cheap; nightly, beside the bench history). A `tools/context-report.js` would print the
 bytes of what every session loads (`AGENTS.md`), the bytes each standard operation reads (find the next task, read a task, close
