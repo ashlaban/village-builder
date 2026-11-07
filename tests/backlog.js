@@ -35,10 +35,24 @@ for (const f of files) {
   if (arch !== '-' && PHASES.includes(phase) && phase !== phaseOf(head[2]))
     errors.push(`backlog/${f}: phase "${phase}", but its name makes it ${phaseOf(head[2])} (plans are named "Plan: ...", wrap-ups "Wrap-up: ...")`);
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
-  tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size') };
+  tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for') };
 }
 
-// Rows: "| [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size | summary |", under a section heading that names their status.
+// "Waits for:" names what a blocked task waits for: open tasks and/or Kim. Only blocked tasks have it, and it never names a done task, so a
+// task whose blockers are all done fails here until it is set ready (or names what it still waits for).
+for (const [id, t] of Object.entries(tasks)) {
+  if (t.status !== 'blocked') { if (t.waits) errors.push(`backlog/${id}.md is ${t.status}: remove its "Waits for:" line`); continue; }
+  if (!t.waits) { errors.push(`backlog/${id}.md is blocked: add a "Waits for:" line naming the open tasks (VB-NNN) or Kim it waits for`); continue; }
+  for (const item of t.waits.split(', ')) {
+    if (item === 'Kim') continue;
+    if (!/^VB-\d{3}$/.test(item)) errors.push(`backlog/${id}.md: "Waits for:" item "${item}" must be VB-NNN or Kim, separated by ", "`);
+    else if (item === id || !tasks[item]) errors.push(`backlog/${id}.md: waits for ${item}, ${item === id ? 'itself' : 'which has no file'}`);
+    else if (tasks[item].status === 'done') errors.push(`backlog/${id}.md waits for ${item}, which is done: drop it, and set the task ready if nothing is left`);
+  }
+}
+
+// Rows: "| [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size | summary |", under a section heading that names their status;
+// under "## Blocked" a "waits for" cell comes before the summary.
 const rows = {}, sections = [];
 for (const [file, text] of Object.entries(texts)) {
   let heading = null, list = null;
@@ -47,12 +61,15 @@ for (const [file, text] of Object.entries(texts)) {
     if (h) { heading = h[1]; list = { file, heading, rows: [] }; sections.push(list); continue; }
     if (!/^\| \[?VB-\d{3}/.test(line)) continue;
     const cells = line.replace(/^\| | \|\s*$/g, '').split(' | ');
-    const m = cells[0].match(/^\[(VB-\d{3})\]\(backlog\/(VB-\d{3})\.md\)$/);
-    if (!m || m[1] !== m[2] || cells.length < 6) { errors.push(`${file}: "${line.slice(0, 40)}..." must be | [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size | summary |`); continue; }
+    const m = cells[0].match(/^\[(VB-\d{3})\]\(backlog\/(VB-\d{3})\.md\)$/), blocked = heading === 'Blocked';
+    if (!m || m[1] !== m[2] || cells.length < (blocked ? 7 : 6)) {
+      errors.push(`${file}: "${line.slice(0, 40)}..." must be | [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size |${blocked ? ' waits for |' : ''} summary |`);
+      continue;
+    }
     const [, name, arch, priority, size] = cells, id = m[1], status = (SECTIONS[file] || {})[heading];
     if (!status) { errors.push(`${file}: ${id} is under "## ${heading}", which holds no tasks`); continue; }
     if (rows[id]) errors.push(`${file}: ${id} has more than one row`);
-    rows[id] = { file, heading, name, arch, status, priority, size };
+    rows[id] = { file, heading, name, arch, status, priority, size, waits: blocked ? cells[5] : '' };
     list.rows.push(id);
   }
 }
@@ -64,9 +81,9 @@ for (const [id, row] of Object.entries(rows)) {
   if (!t) { errors.push(`${row.file}: row ${id} has no file backlog/${id}.md`); continue; }
   if (!Object.values(SECTIONS).some((s) => Object.values(s).includes(t.status))) { errors.push(`backlog/${id}.md: unknown status "${t.status}"`); continue; }
   if (row.status !== t.status) errors.push(`${id} is ${t.status}: its row is under "## ${row.heading}" and belongs in ${where(t.status)}`);
-  for (const k of ['name', 'arch', 'priority', 'size']) {
+  for (const k of row.status === 'blocked' && t.status === 'blocked' ? ['name', 'arch', 'priority', 'size', 'waits'] : ['name', 'arch', 'priority', 'size']) {
     const want = k === 'name' ? t.name.replace(/\|/g, '/') : t[k];
-    if (row[k] !== want) errors.push(`${row.file}: ${id} ${k} is "${row[k]}", backlog/${id}.md says "${want}"`);
+    if (row[k] !== want) errors.push(`${row.file}: ${id} ${k === 'waits' ? 'waits for' : k} is "${row[k]}", backlog/${id}.md says "${want}"`);
   }
 }
 
