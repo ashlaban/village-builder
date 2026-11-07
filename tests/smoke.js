@@ -41,7 +41,7 @@ const iv = setInterval(async () => {
     if (Date.now() - start > 90000) { fail('the generation screen never appeared'); process.exit(1); }
     if (doc.getElementById('genScreen').hidden) return;
     const docs = [...doc.querySelectorAll('#genDocs a')].map((a) => a.getAttribute('href')).join(' ');
-    if (docs !== 'BACKLOG.html QUESTIONS.html') fail(`the generation screen links "${docs}", not the backlog and the open questions`);
+    if (docs !== 'docs/roadmap.html BACKLOG.html QUESTIONS.html') fail(`the generation screen links "${docs}", not the roadmap, backlog and open questions`);
     started = true; generate('heirs', 'm', '7'); return;
   }
   if (!doc.getElementById('loader').classList.contains('done')) { if (Date.now() - start > 90000) { fail('loader timeout'); process.exit(1); } return; }
