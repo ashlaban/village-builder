@@ -146,10 +146,12 @@ budget and cheap measurement.
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
 
-## Rules for cost (Kim, 3 November; step gate revised 6 November; `docs/roadmap.md`, section 5)
-Budget at the late reference (populous medium at year 60, about 1,000 living): 160 ms of simulation a game day, no 6-minute step over 60 ms (medium-y60 temporarily 400 ms until VB-201),
-cost per living pawn at year 60 at most 1.25 times year 5, save and load under 0.5 s each. Under revision (Kim, 7 November): the late reference becomes the
-first year populous medium reaches 1,000 living (VB-202), and the lines are re-derived there (VB-203); until VB-203 lands, the numbers above stand.
+## Rules for cost (Kim, 3 November; step gate revised 6 November; reference and budget revised 7 November; `docs/roadmap.md`, section 5)
+Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day
+for the systems built so far (half of the finished game's 400 ms, a quarter of the main thread at 30×; each slice's plan claims its line from the rest),
+no 6-minute step over 60 ms on `medium-ref` and `small-y40`, cost per living pawn-day at `small-y40` at most 1.25 times `small-y5`, save and load
+under 0.5 s each at `medium-ref`. `medium-y60` is a stress state, reported against twice these lines and never gating. Until VB-202 and VB-203 land,
+the bench still reports `medium-y60` as the late reference.
 Every plan and PR is checked against these rules:
 1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
    obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
