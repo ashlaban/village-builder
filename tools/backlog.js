@@ -87,7 +87,10 @@ for (const [status, [file, heading]] of Object.entries(TABLES)) {
   for (const line of tableRows(file, heading)) {
     const cells = cellsOf(line), id = (cells[0].match(/^\[(VB-\d{3})\]/) || [])[1];
     if (!id) fail(`${file}: "${line.slice(0, 40)}..." under "## ${heading}" is not a task row`);
-    summaries.set(id, cells.slice(status === 'blocked' ? 6 : 5).join(' | ')); placed.set(id, status);
+    // a row's own layout, not its table's: after a merge a blocked row may sit in another table, or another row under Blocked
+    const waits = cells.length > 6 && /^(VB-\d{3}|Kim)(, (VB-\d{3}|Kim))*$/.test(cells[5]), summary = cells.slice(waits ? 6 : 5).join(' | ');
+    if (summary || !summaries.get(id)) summaries.set(id, summary);
+    placed.set(id, status);
   }
 }
 const archKeys = (file, heading) => tableRows(file, heading).map((l) => cellsOf(l)[0]);
