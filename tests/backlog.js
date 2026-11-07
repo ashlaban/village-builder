@@ -2,9 +2,10 @@
 // in BACKLOG_ARCHIVE.md under "## Done tasks", and vice versa. Each row's link, name, arch, priority and size match the task file; the phase has no
 // column but must agree with the name ("Plan: ..." is a plan, "Wrap-up: ..." a wrap-up, any other an implement task). The open sections are sorted
 // as "How this backlog works" says. A task's arch is listed under "## Archs" in BACKLOG.md (open) or "## Closed archs" in BACKLOG_ARCHIVE.md;
-// an open task's arch must be open.
+// an open task's arch must be open. A ready task states its goal and acceptance criteria, with nothing left "(to write)".
+// `node tests/backlog.js DIR` checks the backlog of another checkout (tools/backlog.js checks the copy it changed).
 const fs = require('fs'), path = require('path');
-const root = path.join(__dirname, '..'), dir = path.join(root, 'backlog');
+const root = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..'), dir = path.join(root, 'backlog');
 const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
 const SECTIONS = { 'BACKLOG.md': { 'Ready': 'ready', 'Waiting for Kim': 'needs-review', 'Blocked': 'blocked' },
   'BACKLOG_ARCHIVE.md': { 'Done tasks': 'done' } };
@@ -35,6 +36,8 @@ for (const f of files) {
   if (arch !== '-' && PHASES.includes(phase) && phase !== phaseOf(head[2]))
     errors.push(`backlog/${f}: phase "${phase}", but its name makes it ${phaseOf(head[2])} (plans are named "Plan: ...", wrap-ups "Wrap-up: ...")`);
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
+  if (status === 'ready' && (!/^Goal: /m.test(text) || !/^Acceptance criteria\b/m.test(text) || text.includes('(to write)')))
+    errors.push(`backlog/${f} is ready: it needs a "Goal:" line and "Acceptance criteria", and nothing left "(to write)"`);
   tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for') };
 }
 
@@ -99,7 +102,10 @@ for (const s of sections.filter((s) => s.file === 'BACKLOG.md' && SORTS[s.headin
   }
 }
 
-if (errors.length) { console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
+if (errors.length) {
+  console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ') + '\n(rows, order and freed tasks follow from the task files: node tools/backlog.js sync)');
+  process.exit(1);
+}
 const count = (st) => Object.values(tasks).filter((t) => t.status === st).length;
 console.log(`backlog: ${files.length} task files match BACKLOG.md and BACKLOG_ARCHIVE.md: ${count('ready')} ready, ${count('needs-review')} waiting`
   + ` for Kim, ${count('blocked')} blocked, ${count('done')} done; ${openArchs.length} open archs, ${closedArchs.size} closed`);

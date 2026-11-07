@@ -5,7 +5,8 @@ Design reference: `design.md`, "Village builder: game design snapshot v0.4" (a s
 v0.3 is kept in `docs/design-v0.3.md`); read-only for implementing tasks (only design and review tasks change it). A point marked "Under revision"
 stands as written until its slice's plan rewrites it.
 Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); its last section, "How this backlog works", holds the task rules (status values, archs and their phases,
-the refactor rules); its Ready table is the order tasks are taken in (priority, then ID), and blocked tasks name what they wait for. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+the refactor rules); its Ready table is the order tasks are taken in (priority, then ID), and blocked tasks name what they wait for.
+Read and change the backlog with `node tools/backlog.js` (Commands, Backlog), not by reading or editing its tables. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
 Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game
@@ -14,6 +15,11 @@ budget and cheap measurement.
 `docs/architecture/target-architecture.md`; the first response to it, with Kim's adoption of a player who inhabits a pawn, is `docs/review-architecture.md`.
 
 ## Commands
+- Backlog: `node tools/backlog.js next` prints the first ready tasks, in the order they are taken; `show ID [--brief]` a task's file
+  (`--brief` stops before its notes and reports); `list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]` one line per task.
+  To change it: `done ID...` (rows to the archive; tasks that waited for it drop it, and those left waiting for nothing are set ready),
+  `set ID key=value...` (status, priority, size, arch, phase, waits, name, summary), `new key=value...` (the next free ID), `close-arch KEY`,
+  and `sync` after editing a task file's header by hand. Each rewrites the tables from the task files and runs `tests/backlog.js`.
 - Build: `python3 build.py` (inlines `src/` into `index.html`); `python3 build.py --check` fails if `index.html` is stale.
 - Test: `npm install && npm test` runs the cheap headless checks in parallel (including build, lint, ownership, backlog and regressions).
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and page checks in jsdom and real Chromium.
@@ -135,6 +141,7 @@ budget and cheap measurement.
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. Use `npm run verify` sparingly: once at the end of a task, before its last commit,
   and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
+- Finishing a task: tick its criteria and add its implementation and validation notes to its file, then `node tools/backlog.js done ID`.
 - Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
 - A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
