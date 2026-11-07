@@ -4,7 +4,7 @@ Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind t
 
 # Archived 7 November 2026 (review of the work since 3 November)
 
-Asked in the review session of 7 November and answered by Kim there. Recorded in VB-202 and VB-203, in the questions on VB-203 in `QUESTIONS.md`, and in dated notes in `docs/roadmap.md` (section 5.2), `design.md` (Performance budget) and `AGENTS.md` (Rules for cost).
+Asked in the review session of 7 November and answered by Kim there. Recorded in VB-202 and VB-203, in `docs/roadmap.md` (section 5.2), `design.md` (Performance budget) and `AGENTS.md` (Rules for cost).
 
 ## The late reference and the budget's basis (raised 7 November 2026)
 From the review of the 22 commits since 3 November: the `medium-y60` fixture holds 2,492 living, against the decided "about 1,000", and the mean budget of 160 ms rests on "30× at 10% of a core".
@@ -12,6 +12,23 @@ From the review of the 22 commits since 3 November: the `medium-y60` fixture hol
    **A (Kim, 7 Nov):** the reference can change to the year it reaches 1,000; the balance loop is continually being worked towards.
 2. Is "30× at 10% of a core" the real requirement?
    **A (Kim, 7 Nov):** not from Kim; it came from an agent, and may be changed.
+
+## VB-203: the budget re-derived (raised 7 November 2026, review of the work since 3 November)
+Kim decided on 7 November that the late reference is the first year populous medium reaches 1,000 living (VB-202), and that the budget's basis, "30× at 10% of a core", was an agent's proposal and may be changed (`QUESTION_ARCHIVE.md`). Measured that day (VB-203's file has the full table):
+- at year 5 (880 living) a game day costs 176 ms;
+- at 1,000 living (year 13 today) about 230 ms;
+- at year 60 (2,492 living) 652 ms;
+- the cost per living pawn-day rises from 0.16 ms in year 1 to about 0.26 by year 16, and is still about 0.26 at year 60.
+
+The answers let VB-203 write the budget and its closure table.
+1. What should the mean budget rest on? **P:** 30× stays smooth on a player's laptop once every slice is built. At 30× a game day lasts 1.6 s; the simulation may take at most a quarter of the page's main thread, which is 400 ms a game day at the late reference. The systems built so far may use half of that, 200 ms, and each later slice's plan claims its line from the other half (roadmap, section 2, point 5). The 400 ms ceiling of 3 November becomes the target for the finished game. It is measured in the container as today; VB-166 (frames in headless Chromium) checks the quarter once it runs.
+   **A (Kim, 7 Nov):** P.
+2. Where is the history ratio measured? With the late reference early in a run (year 13 today), year 60 against year 5 no longer measures it. **P:** on `small-y40` against `small-y5`, at most 1.25 times, as VB-088's history check already does for the counters; reported nightly on `medium-y60` against `medium-y5`.
+   **A (Kim, 7 Nov):** P, with the rationale given in the session (recorded in VB-203's notes).
+3. What becomes of `medium-y60`, now 2.5 times the reference? **P:** a stress fixture, reported nightly and never gating, whose mean line is twice the reference's (3 November: "a large map may reach about 2,000 at half the speed"). Its temporary 400 ms step allowance (VB-196) then ends: the 60 ms step limit is asserted on `medium-ref` and `small-y40`.
+   **A (Kim, 7 Nov):** P.
+4. Save and load? **P:** unchanged: 0.5 s each, now at `medium-ref`. VB-199 (bounded history) and VB-204 (ledgers folded) aim at it there.
+   **A (Kim, 7 Nov):** P.
 
 # Archived 3 November 2026 (the roadmap)
 

@@ -375,7 +375,14 @@ its line; its wrap-up measures it.
 
 **6 November update (user decision):** the single-step gate increases from 50 to 60 ms. Other budgets and demographic tolerances are unchanged. The subsequent user decision temporarily allows 400 ms on medium-y60; VB-201 must restore its 60 ms gate, including the moving-round day and midnight. Small-y40 stays at 60 ms.
 
-**7 November update (Kim):** the late reference becomes the first year populous medium reaches 1,000 living, year 14 at `6eaa6bc`, since the year-60 fixture holds 2,492. Balance work will move that year, and the fixture follows it (VB-202). The basis of the mean budget, 30× at 10% of a core, was an agent's proposal and is re-derived in VB-203, with the history ratio, the role of `medium-y60` and its 400 ms allowance (questions in `QUESTIONS.md`). Until VB-203 lands, the numbers above stand as written.
+**7 November update (Kim):** the late reference becomes the first year populous medium reaches 1,000 living, year 14 at `6eaa6bc`, since the year-60 fixture holds 2,492. Balance work will move that year, and the fixture follows it (VB-202). The basis of 160 ms, 30× at 10% of a core, was an agent's proposal; Kim decided its replacement and three more lines (`QUESTION_ARCHIVE.md`, VB-203):
+- mean: 400 ms a game day for the finished game, a quarter of the main thread at 30×; the systems built so far may use half of it, 200 ms, and each later slice's plan claims its line from the other half;
+- steps: no 6-minute step over 60 ms on `medium-ref` and `small-y40`; the temporary medium-y60 allowance has ended;
+- history: the cost per living pawn-day at `small-y40` at most 1.25 times `small-y5`, the pair VB-088 already checks with counters;
+- save and load: 0.5 s each, at `medium-ref`;
+- `medium-y60` is a stress state, reported nightly against twice these lines, never gating.
+
+The table above keeps the lines of 3 and 6 November for the record. VB-203 measures the new ones on VB-202's fixtures and writes the closure table by system.
 
 ### 5.3 Ten rules for systems
 

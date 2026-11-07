@@ -22,19 +22,6 @@ Bounded history was brought into slice 0 in the session that ran VB-181. Rule 9 
 The rule of 3 November says a later slice's plan waits for the plan of the slice before it (now in `BACKLOG.md`, "How this backlog works"; slices 1 and 2 run side by side). VB-164, slice 3's plan, is `ready` at priority 2, so the nightly run takes it after VB-077, VB-127 and VB-163, while slice 2's plan (VB-079) is not done; its file names no exception, as VB-127's does for running ahead of its slice.
 1. Should VB-164 wait for VB-079? **P:** yes, as the rule says: set it `blocked` with `Waits for: VB-079`, so the plans run in slice order (roadmap, section 4: "0, then 1 and 2 side by side, then 3"), since slices 1 and 2 "test the pieces every later slice uses", among them "opportunities and the player". If running it early was meant, say so and its file gets a note giving the reason.
 
-### VB-203: the budget re-derived (raised 7 November 2026, review of the work since 3 November)
-Kim decided on 7 November that the late reference is the first year populous medium reaches 1,000 living (VB-202), and that the budget's basis, "30× at 10% of a core", was an agent's proposal and may be changed (`QUESTION_ARCHIVE.md`). Measured that day (VB-203's file has the full table):
-- at year 5 (880 living) a game day costs 176 ms;
-- at 1,000 living (year 13 today) about 230 ms;
-- at year 60 (2,492 living) 652 ms;
-- the cost per living pawn-day rises from 0.16 ms in year 1 to about 0.26 by year 16, and is still about 0.26 at year 60.
-
-The answers let VB-203 write the budget and its closure table.
-1. What should the mean budget rest on? **P:** 30× stays smooth on a player's laptop once every slice is built. At 30× a game day lasts 1.6 s; the simulation may take at most a quarter of the page's main thread, which is 400 ms a game day at the late reference. The systems built so far may use half of that, 200 ms, and each later slice's plan claims its line from the other half (roadmap, section 2, point 5). The 400 ms ceiling of 3 November becomes the target for the finished game. It is measured in the container as today; VB-166 (frames in headless Chromium) checks the quarter once it runs.
-2. Where is the history ratio measured? With the late reference early in a run (year 13 today), year 60 against year 5 no longer measures it. **P:** on `small-y40` against `small-y5`, at most 1.25 times, as VB-088's history check already does for the counters; reported nightly on `medium-y60` against `medium-y5`.
-3. What becomes of `medium-y60`, now 2.5 times the reference? **P:** a stress fixture, reported nightly and never gating, whose mean line is twice the reference's (3 November: "a large map may reach about 2,000 at half the speed"). Its temporary 400 ms step allowance (VB-196) then ends: the 60 ms step limit is asserted on `medium-ref` and `small-y40`.
-4. Save and load? **P:** unchanged: 0.5 s each, now at `medium-ref`. VB-199 (bounded history) and VB-204 (ledgers folded) aim at it there.
-
 ## Priority 2
 
 ### Target architecture v2: decisions waiting (raised 3 November 2026)
