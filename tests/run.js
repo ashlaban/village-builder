@@ -1,5 +1,6 @@
 // Test runner: scripts in parallel, one per core; real browsers run alone to avoid software-GPU contention on small runners.
-// Prints each script's last line, or its full output if it fails.
+// Prints a failing script's full output and the summary; a passing script's last line only with `--list` or in a terminal (agents
+// read the output, so a run that passes costs one line).
 // `node tests/run.js test` runs the cheap checks; `node tests/run.js verify` runs those and the long verification runs.
 // `--verbose` prints every script's full output (the reported, not asserted, numbers of births.js and hunger.js, for example).
 const { spawn } = require('child_process'), os = require('os'), path = require('path');
@@ -22,9 +23,9 @@ const VERIFY = [
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
 ];
-const suite = process.argv[2], verbose = process.argv.includes('--verbose');
+const suite = process.argv[2], verbose = process.argv.includes('--verbose'), list = process.argv.includes('--list') || process.stdout.isTTY;
 const cmds = { test: TEST, verify: VERIFY }[suite];
-if (!cmds) { console.error('usage: node tests/run.js test|verify [--verbose]'); process.exit(2); }
+if (!cmds) { console.error('usage: node tests/run.js test|verify [--list] [--verbose]'); process.exit(2); }
 // longest first, so the slow scripts do not start last
 const SLOW = ['populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
 const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
@@ -38,7 +39,8 @@ function run(cmd) {
     p.on('close', (code) => {
       const name = cmd.slice(1).join(' '), secs = ((Date.now() - t) / 1000).toFixed(1), lines = out.trim().split('\n');
       if (code) { failed.push(name); console.log(`FAIL ${name} (${secs} s)\n${out.trim()}\n`); }
-      else console.log(verbose ? `ok   ${name} (${secs} s)\n${out.trim()}\n` : `ok   ${name} (${secs} s): ${lines[lines.length - 1].slice(0, 120)}`);
+      else if (verbose) console.log(`ok   ${name} (${secs} s)\n${out.trim()}\n`);
+      else if (list) console.log(`ok   ${name} (${secs} s): ${lines[lines.length - 1].slice(0, 120)}`);
       done();
     });
   });
