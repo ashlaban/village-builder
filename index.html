@@ -175,6 +175,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
+.genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
+.genscreen .gen-docs a { color: var(--accent); }
 .loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--sea); color: #e3eeea; transition: opacity 0.7s; }
 .loader.done { opacity: 0; pointer-events: none; }
 .loader p { margin: 0; text-align: center; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 22px; }
@@ -436,6 +438,8 @@ body.ui-hidden .hud * { pointer-events: none; }
     </label>
     <p class="err" id="genMsg" role="alert" hidden></p>
     <button class="primary" id="genGo" type="submit">Generate</button>
+    <p class="gen-docs" id="genDocs"><a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
+      <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </form>
 </div>
 
