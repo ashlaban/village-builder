@@ -1,29 +1,8 @@
 # Backlog
 
-Tasks for the village builder proof of concept. The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order. Design refs point to sections of `design.md` ("Village builder: game design snapshot v0.4"). Refs written before 3 November point to v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so most still find their place (v0.4's Status of this snapshot says where each section went).
-
-The nightly run starts with `npm run nightly`: fetch the late-game fixtures, remake stale/missing saves, then publish them.
-Generated saves live only on the orphan `fixtures` branch, replaced by one commit with an explicit `--force-with-lease` on that branch.
-This is the project's only force-push; main's source history and the current checkout/index are untouched by fixture publication.
-
-Done tasks are moved, row unchanged, to [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md); their files stay in `backlog/`. Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth. The table below is the overview of open tasks: when a task's name, arch, phase, status, priority or size changes, update its row too. A new task takes the next free ID, gets a file and a row.
-
-A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated. `needs-review` tasks list the questions Kim must answer first; [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
-
-Refactor rules (every task titled "Refactor:"):
-- Behaviour is unchanged: `npm run verify` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.
-- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
-- No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
-- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
-- Depends on VB-011 to VB-015; if any is not done, mark the task blocked.
-
-Once VB-011 is done, a non-refactor task that changes behaviour on purpose re-records the golden file with
-`node tests/golden.js --update` and lists the changed entries in its PR.
-An intentional change to work counters re-records `tests/counters.json` with
-`node tests/counters.js --update` and lists the changed counters in its PR.
-Cost growth is checked by `tests/scaling.js` (population exponent at most 1.15) and `tests/history.js`
-(work per living pawn-day at year 40 / year 5 at most 1.25). Known excesses live in `tests/cost-baseline.json`;
-`--update` on either check only lowers its existing entries or removes fixed ones, and refuses regressions.
+Open tasks of the village builder. Each task's file, `backlog/VB-NNN.md`, holds its full description; the tables here are the overview.
+Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md). Questions for Kim: [`QUESTIONS.md`](QUESTIONS.md).
+Order of work: [`docs/roadmap.md`](docs/roadmap.md). How tasks, statuses and archs work: [the last section](#how-this-backlog-works).
 
 ## Pick order
 
@@ -41,14 +20,7 @@ The feature freeze of 2 November 2026 was lifted by Kim on 3 November: its found
 
 ## Archs
 
-An arch groups the tasks that build one part of the design. Its tasks go through three phases:
-- **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
-- **implement:** the tasks that build it, each small enough for one nightly run (size S or M where possible).
-- **wrap-up:** a task that checks the arch as a whole against the design with long runs, reports the numbers and proposes tuning. It is `blocked` until the arch's implement tasks are done.
-
-Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10, listed first below). Each slice's plan task is a design pass: it makes the slice's systems concrete, proposes its sections of `design.md` v0.4, and confirms, rewrites or closes the tasks it took over from the earlier archs, which stay `blocked` until it has. The earlier archs are kept for their done tasks and marked closed; two, `ownership` and `animals`, still have open tasks that run beside the slices.
-
-A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement|wrap-up` lines after `Size:`; a task outside every arch has neither, and its row shows `-`. List an arch's tasks with `grep -l "^Arch: <key>" backlog/*.md`. A new arch gets a row below.
+The vertical slices of `docs/roadmap.md` in Kim's order, then the two older archs with open tasks. Closed archs are in the archive.
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
@@ -63,18 +35,8 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | ship | Slice 8: the ship | The outside world, silver, the Church and the Crown, rank, tithe and tax, disease by sea. | Roadmap 3.8; `docs/review-cities.md`, phases 3 and 5 |
 | town | Slice 9: the town | Market places and towns, burgage plots, the urban sink, settlement tiers and regions. | Roadmap 3.9; `docs/review-cities.md`, phase 4 |
 | roads | Slice 10: roads, boats and ice | Carts, sledges and boats, climate and ice, built ways, passage rights and upkeep. | World and scale; Weather, seasons and daylight; roadmap 3.10 |
-| expansion | Inheritance and expansion | Closed 3 November 2026: its open tasks moved to the slices. Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land, or leave a crowded village for new land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
-| courting | Relationships and courting | Closed 3 November 2026: its open tasks moved to the slices. Marriages come from courting; the marriage limit by degree; kin and the village help a hungry family. | People, households and family records; Inheritance and expansion (Leaving home) |
-| claims | Claims, ownership and territory | Closed 3 November 2026: its open tasks moved to the slices. Owners and claims on every tile, the ownership overlay with filters, one scope model for overlays, stores and family trees. | Claims, ownership and territory |
 | animals | Animals and husbandry | Open beside the slices: VB-160, VB-139, VB-091 and the wrap-up VB-048 (after slice 6). Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |
-| food | Food, hunger and health | Closed 3 November 2026: its open tasks moved to the slices. Daily food, seed, milling, hunger, health and causes of death. | Economy and jobs; People (Mortality) |
-| social | Pawn interactions | Closed 3 November 2026: its open tasks moved to the slices. Who meets whom, what happens between two pawns, and the relationships it builds; the base for courting, help between kin and persuasion. | People, households and family records; Customs and culture (How attitudes move) |
-| tooling | Code and verification | Closed 3 November 2026: its open tasks moved to the slices. Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
-| core | Commands, saves and the record of events | Closed 3 November 2026: its open tasks moved to the slices. Pawns and other entities act through commands; a run can be saved and loaded exactly; every notable event is kept as a typed record. | Commands, time steps and views; Systems overview |
-| player | The player's role | Closed 3 November 2026: its open tasks moved to the slices. Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
-| foresight | Needs, intentions and plans | Closed 3 November 2026: its open tasks moved to the slices. Households and pawns look ahead: what they will lack and by when (needs), what they mean to do about it over days or seasons (intentions), and the jobs and commands that carry it out (actions); temper and attitudes bend the choice. Job matching stays the means of acting. | Economy and jobs; People, households and family records; Customs and culture |
 | ownership | State ownership and boundaries | Open beside the slices: VB-173 to VB-179 are done (target-v2 found they fit it unchanged); the wrap-up VB-180 remains. Every piece of state the simulation keeps has one owning module, which alone writes it; other modules read it freely and change it through the owner's operations; a static check keeps it so, and the map of owners and dependencies stays current (architecture review, 3 November 2026, `docs/review-architecture.md`). | none |
-| work | Work and jobs | Closed 3 November 2026: its open tasks moved to the slices. Pawns work when there is work: several hands per job, children's work, help between households, interrupts, and the 6:00–18:00 day with a short night; steered by the player later. | Economy and jobs; Time and calendar (Daily rhythm) |
 
 ## Tasks
 
@@ -146,3 +108,42 @@ A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement
 | VB-199 | Bounded history: a pawn's events as an index, routine events folded | yardstick | implement | needs-review | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. | [backlog/VB-199.md](backlog/VB-199.md) |
 | VB-200 | Wrap-up: the yardstick | yardstick | wrap-up | blocked | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. | [backlog/VB-200.md](backlog/VB-200.md) |
 | VB-201 | Tighten medium steps to 60 ms and spread midnight work | yardstick | implement | blocked | 2 | M | Remove the temporary medium-y60 400 ms allowance; moving-round scheduling and midnight work under 60 ms, with deterministic saves and demographic gates. | [backlog/VB-201.md](backlog/VB-201.md) |
+
+## How this backlog works
+
+**Files and rows.** Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth.
+Its row here is the overview: when a task's name, arch, phase, status, priority or size changes, update its row too.
+A new task takes the next free ID, gets a file and a row. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
+their files stay in `backlog/`. `tests/backlog.js` checks that files and rows agree.
+
+**Statuses.** The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order, as the pick order arranges them.
+A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
+`needs-review` tasks list the questions Kim must answer first; [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
+in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
+
+**Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
+- **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
+- **implement:** the tasks that build it, each small enough for one nightly run (size S or M where possible).
+- **wrap-up:** a task that checks the arch as a whole against the design with long runs, reports the numbers and proposes tuning. It is `blocked` until the arch's implement tasks are done.
+
+Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10). Each slice's plan task
+is a design pass: it makes the slice's systems concrete, proposes its sections of `design.md` v0.4, and confirms, rewrites or closes the tasks
+it took over from the earlier archs, which stay `blocked` until it has. The earlier archs are closed and kept in `BACKLOG_ARCHIVE.md` for their
+done tasks; two, `ownership` and `animals`, still have open tasks that run beside the slices.
+
+A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement|wrap-up` lines after `Size:`; a task outside every arch
+has neither, and its row shows `-`. List an arch's tasks with `grep -l "^Arch: <key>" backlog/*.md`. A new arch gets a row in the Archs table;
+an arch with no open tasks left moves to the archive's closed archs.
+
+**Design refs** point to sections of `design.md` ("Village builder: game design snapshot v0.4"). Refs written before 3 November point to
+v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so most still find their place (v0.4's Status of this snapshot
+says where each section went).
+
+**Refactor rules** (every task titled "Refactor:"):
+- Behaviour is unchanged: `npm run verify` passes and `tests/golden.json` (VB-011) is unchanged. Rebuild `index.html` before committing.
+- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
+- No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
+- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
+
+**Golden file, work counters and cost growth:** a task that changes behaviour or work counters on purpose re-records them and lists
+the changes in its PR; the commands and limits are in `AGENTS.md` (Commands and Working rules).

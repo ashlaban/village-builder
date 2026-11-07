@@ -1,6 +1,23 @@
 # Backlog archive
 
-Done tasks, moved out of `BACKLOG.md` so its table lists only open work. Each row is unchanged; the task file in `backlog/` stays and holds the full description, notes and the commit that finished it. `tests/backlog.js` checks that every `done` task file has a row here and every other task has a row in `BACKLOG.md`. When a task is done, move its row here (newest at the bottom).
+Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only open work. Each row is unchanged; the task file in `backlog/` stays and holds the full description, notes and the commit that finished it. `tests/backlog.js` checks that every `done` task file has a row here and every other task has a row in `BACKLOG.md`, and that every task's arch is listed in one of the two. When a task is done, move its row here (newest at the bottom); when an arch has no open tasks left, move its row to the closed archs.
+
+## Closed archs
+
+| Key | Arch | Goal | Design ref |
+|-----|------|------|------------|
+| expansion | Inheritance and expansion | Closed 3 November 2026: its open tasks moved to the slices. Landless adults find a household of their own: claim an empty farm, clear a plot, build a farmstead, split land, or leave a crowded village for new land; the customs for claims, cleared land and shares take effect. | Inheritance and expansion |
+| courting | Relationships and courting | Closed 3 November 2026: its open tasks moved to the slices. Marriages come from courting; the marriage limit by degree; kin and the village help a hungry family. | People, households and family records; Inheritance and expansion (Leaving home) |
+| claims | Claims, ownership and territory | Closed 3 November 2026: its open tasks moved to the slices. Owners and claims on every tile, the ownership overlay with filters, one scope model for overlays, stores and family trees. | Claims, ownership and territory |
+| food | Food, hunger and health | Closed 3 November 2026: its open tasks moved to the slices. Daily food, seed, milling, hunger, health and causes of death. | Economy and jobs; People (Mortality) |
+| social | Pawn interactions | Closed 3 November 2026: its open tasks moved to the slices. Who meets whom, what happens between two pawns, and the relationships it builds; the base for courting, help between kin and persuasion. | People, households and family records; Customs and culture (How attitudes move) |
+| tooling | Code and verification | Closed 3 November 2026: its open tasks moved to the slices. Code structure, speed at 1,000 pawns, and automatic checks of the simulation and the page. | none |
+| core | Commands, saves and the record of events | Closed 3 November 2026: its open tasks moved to the slices. Pawns and other entities act through commands; a run can be saved and loaded exactly; every notable event is kept as a typed record. | Commands, time steps and views; Systems overview |
+| player | The player's role | Closed 3 November 2026: its open tasks moved to the slices. Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
+| foresight | Needs, intentions and plans | Closed 3 November 2026: its open tasks moved to the slices. Households and pawns look ahead: what they will lack and by when (needs), what they mean to do about it over days or seasons (intentions), and the jobs and commands that carry it out (actions); temper and attitudes bend the choice. Job matching stays the means of acting. | Economy and jobs; People, households and family records; Customs and culture |
+| work | Work and jobs | Closed 3 November 2026: its open tasks moved to the slices. Pawns work when there is work: several hands per job, children's work, help between households, interrupts, and the 6:00–18:00 day with a short night; steered by the player later. | Economy and jobs; Time and calendar (Daily rhythm) |
+
+## Done tasks
 
 | ID | Name | Arch | Phase | Status | Priority | Size | Summary | File |
 |----|------|------|-------|--------|----------|------|---------|------|
