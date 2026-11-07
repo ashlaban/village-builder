@@ -2,6 +2,17 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top.
 
+# Archived 7 November 2026 (review of the work since 3 November)
+
+Asked in the review session of 7 November and answered by Kim there. Recorded in VB-202 and VB-203, in the questions on VB-203 in `QUESTIONS.md`, and in dated notes in `docs/roadmap.md` (section 5.2), `design.md` (Performance budget) and `AGENTS.md` (Rules for cost).
+
+## The late reference and the budget's basis (raised 7 November 2026)
+From the review of the 22 commits since 3 November: the `medium-y60` fixture holds 2,492 living, against the decided "about 1,000", and the mean budget of 160 ms rests on "30× at 10% of a core".
+1. Should a balance loop hold populous medium near 1,000 living, or should the reference change, for example to the year populous medium reaches about 1,000?
+   **A (Kim, 7 Nov):** the reference can change to the year it reaches 1,000; the balance loop is continually being worked towards.
+2. Is "30× at 10% of a core" the real requirement?
+   **A (Kim, 7 Nov):** not from Kim; it came from an agent, and may be changed.
+
 # Archived 3 November 2026 (the roadmap)
 
 Answered by Kim in the session of 3 November; recorded in `docs/roadmap.md` and the slice archs of `BACKLOG.md`.

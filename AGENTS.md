@@ -148,7 +148,9 @@ budget and cheap measurement.
 
 ## Rules for cost (Kim, 3 November; step gate revised 6 November; `docs/roadmap.md`, section 5)
 Budget at the late reference (populous medium at year 60, about 1,000 living): 160 ms of simulation a game day, no 6-minute step over 60 ms (medium-y60 temporarily 400 ms until VB-201),
-cost per living pawn at year 60 at most 1.25 times year 5, save and load under 0.5 s each. Every plan and PR is checked against these rules:
+cost per living pawn at year 60 at most 1.25 times year 5, save and load under 0.5 s each. Under revision (Kim, 7 November): the late reference becomes the
+first year populous medium reaches 1,000 living (VB-202), and the lines are re-derived there (VB-203); until VB-203 lands, the numbers above stand.
+Every plan and PR is checked against these rules:
 1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
    obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
 2. No pass over pairs: pairs meet only among the present (cells, a venue, a household); every per-pawn collection has a declared cap.
