@@ -14,8 +14,6 @@ VB['sim/expansion'] = (() => {
   const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
-  // The empty farm the pawn may claim instead of waiting for a plot, or null (sim/farmclaims, VB-033; loaded after this module).
-  const claimableFarm = (st, pawnId) => VB['sim/farmclaims'].claimableFarm(st, pawnId);
   const activePlots = (v) => v.plots.filter((p) => !p.done);
   const building = (p) => p.done && p.holder !== null && p.cottage && !p.built;
   const stepsFor = (w, tile, kind) => [...wooded(w, tile) ? ['fell', 'grub'] : [], 'clear', ...kind === 'field' ? ['break'] : []];
@@ -88,11 +86,11 @@ VB['sim/expansion'] = (() => {
     const mine = (p) => (!p.done ? p.intended === id : p.holder === id || (sp !== null && p.holder === sp));
     return st.villages.some((v) => v.plots.some(mine));
   }
-  // At the moving round: villagers who want out and cannot claim an empty farm get a plot cleared, two projects at a time per village.
-  function startPlots(st) {
+  // At the moving round: the caller filters out farm claimants; two plots are cleared at a time per village.
+  function startPlots(st, mayStart = () => true) {
     for (const v of st.villages) {
       const waiting = st.demand.filter((id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v.id
-        && claimableFarm(st, id) === null && !hasPlot(st, id));
+        && mayStart(id) && !hasPlot(st, id));
       for (const id of waiting) {
         if (activePlots(v).length >= MAX_PLOTS) break;
         if (hasPlot(st, id)) continue;
@@ -193,7 +191,7 @@ VB['sim/expansion'] = (() => {
       kind: 'cottage', pawn: hh ? hh.holder : null, ...atFarm(f) });
   }
   return {
-    COTTAGE, building, claimableFarm, roomAt, findSite, hasPlot, awaitsCottage, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob,
+    COTTAGE, building, roomAt, findSite, hasPlot, awaitsCottage, startPlots, plotJobs, plotProgress, finishStep, activePlots, boothJob,
     finishBoothStage,
   };
 })();

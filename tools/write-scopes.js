@@ -66,7 +66,7 @@ function scopesOf(src, { fragment = false } = {}) {
     s.names.set(name, value);
   }
   return {
-    patterns, mutations,
+    tree, patterns, mutations,
     bindings(position) {
       return {
         get: (n, pos = position()) => binding(n, pos).names.get(n),

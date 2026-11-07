@@ -44,6 +44,7 @@ budget and cheap measurement.
   milk, butter, meat) against need, by household size, cattle and weather (VB-048; `--json` adds every household-year).
 - Wrap long lines: `node tools/wrap.js FILE...` breaks lines over 160 characters at safe token boundaries (`--dry` reports only; long template text is
   left for wrapping by hand); `node tools/wrap.js --compare OLD.html NEW.html` checks that two builds differ only in whitespace outside literals.
+- Dependencies (VB-176): `node tests/dependencies.js` rejects imports and lookups into later modules, except command dispatch.
 - Writes map (VB-172): `node tools/writes.js` prints every field of the state with the modules that write it (file and line) and read it, the
   modules' dependencies and their cycles; `--field household.grain` lists one field's write sites, `--json` gives it all.
 - Play locally: open `index.html` in a browser (PixiJS loads from a CDN).

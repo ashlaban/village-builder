@@ -17,6 +17,7 @@
 const fs = require('fs'), path = require('path');
 const { tokenize } = require('./wrap.js');
 const { scopesOf } = require('./write-scopes.js');
+const { dependencies } = require('./dependencies.js');
 const { validateOwners } = require('./owner-policy.js');
 const ROOT = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
@@ -105,7 +106,7 @@ function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, fil
   let position = 0;
   const scopes = scopesOf(src, { fragment: mod === 'page' }), bind = scopes.bindings(() => position);
   const imported = new Map(); // name -> module key, from `const { a, b: c } = VB['m']`
-  const writes = [], reads = [], deps = [], rets = {};
+  const writes = [], reads = [], rets = {};
   let locals = 0;
   const v = (i) => (toks[i] && (toks[i].t === 'punct' || toks[i].t === 'word') ? toks[i].v : null);
   const isWord = (i) => toks[i] && toks[i].t === 'word';
@@ -288,14 +289,13 @@ function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, fil
       const n = patterns.get(t.s); patternWrite(n.left, exprPath(starts.get(n.right.start), true));
     }
     while (fstack.length && i > fstack[fstack.length - 1].end) fstack.pop();
-    // dependencies: VB['x'] or VB.x, at load (a declaration at the top of the module) or inside a function
+    // Imported return aliases; the AST pass below supplies the complete dependency list.
     if (t.t === 'word' && t.v === 'VB' && v(i - 1) !== '.') {
       let key = null, after = i;
       if (v(i + 1) === '[' && toks[i + 2].t === 'str') { key = src.slice(toks[i + 2].s + 1, toks[i + 2].e - 1); after = i + 3; }
       else if (v(i + 1) === '.' && isWord(i + 2)) { key = toks[i + 2].v; after = i + 2; }
       if (key && v(after + 1) !== '=') {
         const atLoad = fstack.length <= 1 && v(i - 1) === '=';
-        deps.push({ key, line: lineOf(i), atLoad });
         if (atLoad && v(i - 2) === '}' ) {
           const o = M[i - 2]; for (let q = o + 1; q < i - 2; q++) if (isWord(q) && (v(q + 1) === ',' || v(q + 1) === '}')) imported.set(toks[q].v, key);
           else if (isWord(q) && v(q + 1) === ':') { imported.set(toks[q + 2].v, key); q += 2; } }
@@ -385,7 +385,7 @@ function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, fil
       if (p && p !== 'local') for (const path of follow(p, [{ field: t.v }]).split('|')) reads.push({ path, line: lineOf(i) });
     }
   }
-  return { file, mod, writes, reads, locals, deps, rets };
+  return { file, mod, writes, reads, locals, deps: dependencies(scopes.tree, src, mod), rets };
 }
 
 // ---- assembling the report ----
@@ -436,9 +436,9 @@ function build(sources = {}, { stateOnly = false } = {}) {
     const own = order.indexOf(m.mod);
     const imports = [...new Set(m.deps.filter((d) => d.atLoad && d.key !== m.mod).map((d) => d.key))];
     const seen = new Set(), lookups = [];
-    for (const d of m.deps) if (!d.atLoad && d.key !== m.mod && !seen.has(d.key + ':' + d.line)) {
-      seen.add(d.key + ':' + d.line); lookups.push({ key: d.key, line: d.line, later: order.indexOf(d.key) > own }); }
-    return { mod: m.mod, imports, lookups };
+    for (const d of m.deps) if (!d.atLoad && d.key !== m.mod && !seen.has(d.key + ':' + d.line + ':' + d.allowed)) {
+      seen.add(d.key + ':' + d.line + ':' + d.allowed); lookups.push({ ...d, later: order.indexOf(d.key) > own }); }
+    return { mod: m.mod, imports, importSites: m.deps.filter((d) => d.atLoad && d.key !== m.mod), lookups };
   });
   const edges = new Map(deps.map((d) => [d.mod, new Set([...d.imports, ...d.lookups.map((l) => l.key)].filter((k) => order.includes(k)))]));
   const idx = new Map(), low = new Map(), on = new Set(), stack = [], cycles = []; let n = 0; // Tarjan's strongly connected components

@@ -404,102 +404,93 @@ All five are writes to local objects. They are listed so that a rerun shows when
 
 ## 4. Dependencies
 
-Modules import each other at the top of their IIFE, in the order of `src/manifest.json`, so imports alone cannot form a cycle. Cycles come
-from lookups inside a function (`VB['x']` evaluated when the function runs), which reach modules loaded later. The table is the script's
-output. The Mermaid graph shows only the modules on a cycle, since the full graph (43 modules, 274 edges) is too dense to draw.
+### Current map (VB-176, 7 November 2026)
+
+Imports follow the load order in `src/manifest.json`. The dependency check in `npm test` uses the writes map's
+AST-derived edges and rejects later imports and later lookups, except access to `sim/commands.issue` and the verbs'
+`later()` dispatcher in `sim/commands`. Dynamic lookups outside that dispatcher are rejected. The policy is kept
+apart from extraction so layer ranks can replace load order later.
+
+The plot-versus-farm choice now belongs to the moving round: `sim/lifecycle` passes a filter to `startPlots`.
+This removes the direct expansion → farmclaims → expansion cycle without a new pass or a change to evaluation order.
+The map now includes the dispatcher's literal targets; older reports omitted those edges. Every cycle witness below
+passes through commands. A larger strongly connected component reflects those newly visible dispatch edges.
+
 
 | Module | Imports at load | Lookups inside functions (later: a module loaded after it) |
 | --- | --- | --- |
 | gen/paths | - | - |
 | gen/rivers | - | - |
-| gen | gen/rivers | gen/paths:622, gen/rivers:622 |
-| culture | - | - |
+| gen | - | gen/rivers:283, gen/paths:622, gen/rivers:622 |
+| culture | - | count:167 |
 | sim/rules | gen | - |
+| sim/registry | - | count:48 |
 | sim/rng | - | - |
 | sim/hex | - | - |
 | sim/names | gen, rules, hex, culture | - |
-| sim/routes | rules, hex | - |
+| sim/routes | rules, hex | count:63, count:74, count:86, count:100, count:107, count:112, count:137 |
 | sim/paths | rules, routes | - |
 | sim/layout | gen, rules, names, hex, routes, paths | - |
 | sim/ownership | - | - |
 | sim/records | culture, rules | - |
-| sim/relations | rng, rules, records | - |
+| sim/relations | rng, rules, records | commands:7 (later), count:30, count:40, count:42, count:195 |
 | sim/claims | culture, rules, ownership, records | - |
 | sim/territory | gen, rules, hex, routes, culture, claims, records, relations | - |
 | sim/stakes | rules, claims, territory, records, relations | - |
 | sim/forest | gen, rules, routes, territory | - |
 | sim/herds | rng, gen, rules, records, hex, routes, relations | - |
-| sim/hunger | rules, records | - |
-| sim/help | rules, records, hunger | - |
-| sim/deaths | rng, rules | - |
-| sim/fields | gen, rules, hex, routes, records, layout, territory, stakes, herds | - |
+| sim/stores | rules | count:68, count:76, count:78 |
+| sim/hunger | rules, records, stores | - |
+| sim/help | relations, stores, rules, records, hunger | - |
+| sim/deaths | rng, rules, registry | - |
+| sim/fields | gen, rng, rules, hex, routes, records, layout, territory, stakes, herds | - |
 | sim/meadows | rng, gen, rules, hex, routes, records, ownership, layout, herds, fields, territory, stakes | - |
-| sim/byre | rng, rules, records, hunger, herds, hex | - |
-| sim/expansion | gen, rules, hex, routes, records, ownership, territory, forest, fields, layout | farmclaims:17 (later), cottage:172 (later) |
-| sim/farmclaims | rules, hex, records, claims, ownership, hunger, expansion | commands:4 (later), heirs:181 (later) |
-| sim/kinds | rng, rules, records, forest, hunger, fields, meadows, byre, expansion, claims, farmclaims | - |
+| sim/byre | stores, rng, rules, records, hunger, herds, hex | - |
+| sim/expansion | gen, rules, hex, routes, records, ownership, territory, forest, fields, layout | commands:3 (later) |
+| sim/farmclaims | rules, hex, records, claims, hunger, expansion, stores | commands:4 (later) |
+| sim/kinds | stores, rules, records, forest, hunger, fields, meadows, byre, expansion, claims, farmclaims | - |
 | sim/agents | rng, rules, routes, paths, records, herds, expansion, kinds | - |
-| sim/commands | agents, kinds, culture, records | - |
+| sim/commands | agents, kinds, culture, records | lifecycle:65 (later), heirs:71 (later), service:77 (later), farmclaims:82, farmclaims:83, settle:89 (later), settle:98 (later), membership:115 (later), cottage:122 (later), lifecycle:125 (later), heirs:131 (later), lifecycle:133 (later), clock:153 (later) |
 | sim/jobs | rng, rules, hunger, hex, records, agents, relations, commands, kinds, fields, meadows, byre, expansion, farmclaims | - |
-| sim/heirs | records, agents, ownership, stakes, farmclaims, hex, rules, herds | - |
+| sim/heirs | records, agents, ownership, stores, stakes, farmclaims, hex, rules, herds, fields | count:20 |
+| sim/membership | records, ownership, stores, heirs | - |
 | sim/service | records, heirs, commands, hex, rules, expansion | - |
-| sim/cottage | records, layout, ownership, rules, heirs, names | - |
-| sim/society | rng, commands, culture, rules, hex, routes, records, heirs | - |
-| sim/settle | commands, rng, gen, rules, hunger, hex, routes, records, ownership, layout, names, fields, stakes, expansion, heirs, cottage, society | - |
-| sim/lifecycle | rng, culture, rules, hunger, deaths, records, agents, heirs, expansion, farmclaims, settle, service, cottage, help, society, commands, relations | - |
-| sim/births | rng, rules, records, agents, heirs, lifecycle | - |
+| sim/cottage | records, layout, rules, membership, stores, names | - |
+| sim/society | rng, commands, culture, relations, rules, hex, routes, records, heirs | count:162 |
+| sim/settle | commands, rng, gen, rules, hunger, hex, routes, records, layout, names, fields, stakes, expansion, membership, cottage, society, stores | - |
+| sim/lifecycle | rng, culture, rules, hunger, deaths, records, agents, heirs, expansion, farmclaims, settle, service, cottage, help, society, commands, relations | count:266, count:271, count:280 |
+| sim/births | rng, rules, records, culture, relations, agents, heirs, lifecycle | - |
 | sim/people | records | - |
-| sim/scenarios | gen, rng, rules, hex, routes, layout, people, records, agents, hunger, heirs, society, ownership, fields, herds, meadows, territory, farmclaims | - |
-| sim/clock | rng, rules, records, forest, gen, hex, routes, paths, hunger, help, agents, jobs, commands, society, relations, lifecycle, births, herds, meadows, byre, claims, stakes, farmclaims, territory | - |
-| sim/saves | gen | - |
+| sim/scenarios | gen, rng, rules, registry, hex, routes, layout, people, records, agents, hunger, heirs, society, ownership, fields, herds, meadows, territory, farmclaims | - |
+| sim/clock | rng, rules, records, forest, fields, routes, paths, hunger, stores, help, agents, jobs, commands, society, relations, lifecycle, births, herds, meadows, byre, claims, stakes, farmclaims, territory | count:96 |
+| sim/saves | gen, registry, routes, records | - |
 | sim | culture, rules, kinds, records, agents, jobs, hunger, fields, expansion, ownership, heirs, society, saves, commands, relations, lifecycle, scenarios, clock, herds, claims | - |
 
-Strongly connected: expansion, farmclaims, kinds, agents, commands, heirs, cottage. Each cycle, through a lookup of a later module:
+Strongly connected: relations, territory, stakes, forest, herds, help, fields, meadows, byre, expansion, farmclaims, kinds, agents, commands, jobs, heirs, membership, service, cottage, society, settle, lifecycle, births, clock. Each cycle, through a lookup of a later module:
 
-- expansion → farmclaims → expansion (the lookup at expansion.js:17)
-- expansion → cottage → heirs → agents → expansion (the lookup at expansion.js:172)
-- farmclaims → commands → kinds → farmclaims (the lookup at farmclaims.js:4)
-- farmclaims → heirs → farmclaims (the lookup at farmclaims.js:181)
+- relations → commands → lifecycle → relations (the lookup at relations.js:7)
+- expansion → commands → agents → expansion (the lookup at expansion.js:3)
+- farmclaims → commands → farmclaims (the lookup at farmclaims.js:4)
+- commands → lifecycle → commands (the lookup at commands.js:65)
+- commands → heirs → farmclaims → commands (the lookup at commands.js:71)
+- commands → service → commands (the lookup at commands.js:77)
+- commands → settle → commands (the lookup at commands.js:89)
+- commands → settle → commands (the lookup at commands.js:98)
+- commands → membership → heirs → farmclaims → commands (the lookup at commands.js:115)
+- commands → cottage → membership → heirs → farmclaims → commands (the lookup at commands.js:122)
+- commands → lifecycle → commands (the lookup at commands.js:125)
+- commands → heirs → farmclaims → commands (the lookup at commands.js:131)
+- commands → lifecycle → commands (the lookup at commands.js:133)
+- commands → clock → commands (the lookup at commands.js:153)
 
-```mermaid
-graph LR
-  expansion -->|"lookup :17 claimableFarm"| farmclaims
-  farmclaims -->|import| expansion
-  expansion -->|"lookup :172 finishCottage"| cottage
-  cottage -->|import| heirs
-  heirs -->|import| agents
-  agents -->|import| expansion
-  farmclaims -->|"lookup :4 issue"| commands
-  commands -->|import| kinds
-  kinds -->|import| farmclaims
-  farmclaims -->|"lookup :181 moveTo, refreshRoles"| heirs
-  heirs -->|import| farmclaims
-```
 
-What each cycle is, and a proposal to break it:
+### Ownership work already completed
 
-| Cycle | Why it is there | Proposal |
-| --- | --- | --- |
-| farmclaims → heirs → farmclaims (`farmclaims.js:181`) | `moveIn` founds the claimant's household. It needs `moveTo` and `refreshRoles`, which live in heirs, and heirs imports farmclaims (`birthright`, `claimOf`) | Move founding into one act (section 7.2), reached through the command layer |
-| expansion → cottage → heirs → agents → expansion (`expansion.js:172`) | The cottage's last stage done founds the household (`finishCottage`). cottage needs heirs, and heirs needs agents, which imports expansion (`finishStep`) | The same: the last stage issues a command whose act founds the household |
-| expansion → farmclaims → expansion (`expansion.js:17`) | Plots are started only for those with no farm to claim (`claimableFarm`), while farmclaims asks expansion who has a plot (`hasPlot`, `awaitsCottage`) | The choice between a plot and a farm belongs to the moving round (`sim/lifecycle`), which imports both: pass the filter to `startPlots` |
-| farmclaims → commands → kinds → farmclaims (`farmclaims.js:4`) | `claimFarms` chooses claimants at the moving round and issues the `claim` command. farmclaims loads before commands | Accept: `issue` is the one way an actor acts, and the command layer exists to be called from anywhere. Or move `claimFarms`, a choice of the round, into `sim/lifecycle` |
-
-**Proposed rule:** an import at load goes only to a module loaded earlier, and the only lookup into a later module is `issue`, together
-with the verbs' own `later()` in `sim/commands`. All four cycles then go through the command layer. The script lists every lookup, so the
-rule can be checked once Kim agrees to it.
-
-### VB-175 update (6 November 2026)
-
-The table and diagram above record the original audit. Household membership and service now have one writer, `sim/records`:
-`joinHousehold`, `leaveHousehold`, `clearMembers` and `setServant`. `moveTo` keeps agent release, placement and the move event.
-Death uses `leaveHousehold` with its historical-record option, preserving the deceased's last household and service.
-`sim/membership.foundHousehold` replaces the three copies of household creation, supply initialization, ownership, moving and marking.
-
-The direct expansion → cottage and farmclaims → heirs edges are gone. `finishCottage` and `foundHousehold` commands carry those
-requests. `tools/writes.js` reports the strongly connected component without heirs or cottage. Its cycle witnesses fall from five
-to four: two direct cycles removed, one permitted expansion → commands cycle added. The expansion → farmclaims filter lookup is
-still the work of VB-176. The seven remaining ownership allowances are all role writes, outside this task.
+VB-175 gave household membership and service one writer, `sim/records`: `joinHousehold`, `leaveHousehold`,
+`clearMembers` and `setServant`. Death retains the deceased's last household and service for history.
+`sim/membership.foundHousehold` replaced three copies of founding. The direct expansion → cottage and
+farmclaims → heirs lookups became `finishCottage` and `foundHousehold` commands. VB-176 removes the remaining
+direct expansion → farmclaims lookup and enforces the dependency rule agreed by Kim on 3 November.
 
 ## 5. Workflow traces
 
