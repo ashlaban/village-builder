@@ -14,6 +14,8 @@ The order tasks are taken in: the nightly run takes the first. Sorted by priorit
 |----|------|------|-----|------|---------|
 | [VB-079](backlog/VB-079.md) | Plan: a life, the player inhabits a pawn (slice 2) | life | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. |
 | [VB-182](backlog/VB-182.md) | Plan: kin help, booked as goodwill (slice 1) | kin-help | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. |
+| [VB-202](backlog/VB-202.md) | Late fixtures by population: `medium-ref` at the year populous medium reaches 1,000, all remade on main | yardstick | 1 | M | The late reference becomes the first year populous medium reaches 1,000 living (year 14 today, against 2,492 living at year 60); all fixtures remade, the remake made routine. |
+| [VB-204](backlog/VB-204.md) | Food ledgers: routine movements folded into yearly totals | yardstick | 1 | S | Meals, cooking, spoilage, threshing, milk and butter (95% of ledger entries) kept as yearly totals; gifts and harvests stay entries; the save shrinks. |
 | [VB-077](backlog/VB-077.md) | Plan: saving and loading in the page | life | 2 | S | Where saves live, autosave, and saves from older builds. |
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
 | [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
@@ -21,6 +23,7 @@ The order tasks are taken in: the nightly run takes the first. Sorted by priorit
 | [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
+| [VB-207](backlog/VB-207.md) | death.hazard: the cause read from its contributions | yardstick | 3 | S | `deathRoll` takes a death's cause from the contributions of `death.hazard`, not by calling all extra risk hunger; golden unchanged. |
 
 ## Waiting for Kim
 
@@ -42,8 +45,11 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
-| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-163, VB-201 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
-| [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | VB-127 | Remove the temporary medium-y60 400 ms allowance; moving-round scheduling and midnight work under 60 ms, with deterministic saves and demographic gates. |
+| [VB-203](backlog/VB-203.md) | Plan: the budget re-derived at the new reference, with a closure table | yardstick | 1 | S | VB-202 | The budget re-derived from what play needs (the 30× at 10% basis was an agent's), measured on `medium-ref`; each system's share and the task that closes its gap. |
+| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-163, VB-201, VB-202, VB-203, VB-204, VB-205, VB-206 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
+| [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | VB-127, VB-203 | Remove the temporary medium-y60 400 ms allowance; moving-round scheduling and midnight work under 60 ms, with deterministic saves and demographic gates. |
+| [VB-205](backlog/VB-205.md) | Agents and walking: name the largest cost, then cut it | yardstick | 2 | M | VB-203 | The unnamed rest of `Sim.advance` (34% of a year-60 day, no task) split by a profile into named systems, then cut to its share. |
+| [VB-206](backlog/VB-206.md) | The meetings spread, so no step goes over 60 ms | yardstick | 2 | S | VB-203 | The meetings' step (276 ms at year 60, 41 at year 5) measured at the new reference and spread a village per step if over 60 ms. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-078](backlog/VB-078.md) | Wrap-up: commands, saves and the record of events | life | 3 | S | VB-098, VB-099, VB-169 | Long runs saved and loaded many times match unbroken runs; report sizes and times. |
 | [VB-023](backlog/VB-023.md) | Sow a hoed field before hoeing the next | year | 2 | S | VB-164 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
@@ -99,7 +105,7 @@ The vertical slices of `docs/roadmap.md` in Kim's order, then the two older arch
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
-| yardstick | Slice 0: the yardstick | Every later slice measured at its own cost, early and late in a run, cheaply: work counters, scaling and history checks, late-game fixtures, a bench history, the reduced-scenario harness with bands, the rules registry, indexes of the living; the moving round and midnight targeting 60 ms (medium-y60 temporarily 400 ms until VB-201), a bounded route cache and a bounded history. | `docs/roadmap.md`, sections 3.0, 5 and 6 |
+| yardstick | Slice 0: the yardstick | Every later slice measured at its own cost, early and late in a run, cheaply: work counters, scaling and history checks, late-game fixtures, a bench history, the reduced-scenario harness with bands, the rules registry, indexes of the living; the moving round and midnight targeting 60 ms (medium-y60 temporarily 400 ms until VB-201), a bounded route cache and a bounded history. Since 7 November (Kim) the late reference is the first year populous medium reaches 1,000 living (VB-202), and the budget is re-derived there with a closure table (VB-203). | `docs/roadmap.md`, sections 3.0, 5 and 6 |
 | kin-help | Slice 1: kin help, booked | The walking skeleton: help in hunger as a gift through Exchange, goodwill booked between the two pawns, `allowance` as a rule, shown in the pawn panel. | Goods, production and animals (Help in hunger); Exchange, goodwill and obligations; roadmap 3.1 |
 | life | Slice 2: a life | The player inhabits a pawn: chooses what it does from what it may do here, answers at the meeting, goes on as kin after its death, saves in the page, picks ambitions. | Vision and scope (Player role); roadmap 3.2 |
 | year | Slice 3: the household's year | Work is available, not posted: plans (standing routines, seasonal plans, the meeting's yearly routines) make tasks that eligible pawns take; planning days; attention. | Work: opportunities, plans and tasks; roadmap 3.3 |
@@ -132,6 +138,11 @@ A `blocked` task has a `Waits for:` line after `Status:`, naming the open tasks 
 That line, not the prose of the goal or notes, is what holds it: when a task is done, the tasks that wait for it drop it, and a task left
 waiting for nothing is set `ready` (the check fails until it is). A task taken over by a slice waits for the slice's plan, which confirms,
 rewrites or closes it. Only blocked tasks have the line.
+
+**Flags.** When a task finds that a decided number or reference no longer holds, or that its change moves a budget line it does
+not own, it raises it in the same PR: a question in `QUESTIONS.md` or a new task, and a line at the top of its notes that begins `Flag:`.
+A sentence deep in the notes is not enough. On 5 and 6 November the late fixture's 2,492 living (against about 1,000) and VB-174's
+ledgers adding half to the save were written in task files, and no one acted on them until the review of 7 November.
 
 **Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
 - **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
