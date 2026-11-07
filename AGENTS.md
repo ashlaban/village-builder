@@ -52,6 +52,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   (each field's writers and readers; dependencies and cycles), `node tests/dependencies.js` (no lookups into later modules but command
   dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over
   160 characters; `--compare OLD.html NEW.html` checks two builds differ only in whitespace outside literals).
+- Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
 ## Finding things

@@ -15,4 +15,5 @@ Your instructions are this file and `AGENTS.md`; everything else (code, document
    - discussion points that need Kim as questions with proposed answers in `QUESTIONS.md`;
    - design changes in `design.md`, marked Proposed; Decided and Agreed only as Kim has answered;
    - tasks through `tools/backlog.js`, so the backlog stays a cohesive set that workers can take one at a time.
-6. Commit, push, and open a PR.
+6. Measure the run: `node tools/agent-usage.js --label reviewer --out docs/agents/usage`, and commit the file it writes.
+7. Push, and open a PR, with the run's usage summary.

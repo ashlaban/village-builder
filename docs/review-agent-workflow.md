@@ -21,9 +21,11 @@ suggestions in order of payoff, and how to measure the effect of each. Token cou
 ## 2. Why what is read early costs most
 
 Every model call re-reads the whole context, mostly from the prompt cache. A file read at call *k* of a session of *N* calls is
-read again *N − k* times. This session (the one that wrote this review) made about 98 calls; its context grew from about 100,000
-tokens (system prompt, tool definitions, `AGENTS.md`) to 174,000, and its calls read 12.8 million tokens from the cache in all.
-Reading `BACKLOG.md` at the fourth call cost about 5,800 × 94 ≈ 550,000 cached tokens, about 4% of the session.
+read again *N − k* times. The turn of this session that wrote this review made 47 model calls; its context grew from about 84,000
+tokens (system prompt, tool definitions, `AGENTS.md`) to 188,000, and its calls read 6.65 million tokens from the cache in all.
+Reading `BACKLOG.md` at the second call cost about 5,800 × 45 ≈ 260,000 cached tokens, about 4% of the turn. (Measured with
+`tools/agent-usage.js`, which counts each response once; the first version of this review counted transcript lines, of which a
+response has several, and gave about twice these numbers.)
 
 Cached tokens are billed at a fraction of fresh input, but they still fill the context window, count against rate limits, and a
 long context dilutes the model's attention to the instructions that matter. So, in order:
@@ -105,9 +107,10 @@ a threshold shows in the nightly PR as the budget table does. This catches regre
 
 **Session measures.** Claude Code writes a transcript per session (`~/.claude/projects/<directory>/<session>.jsonl`). Each model
 call records its `usage` (fresh input, cache writes, cache reads, output tokens), and each tool call and result is recorded. A
-`tools/agent-usage.js FILE [--json]` would report per session: model calls, peak context, the sums of cache reads, cache writes and
-output, tool calls by tool, result bytes by tool and by file read, wall time and time spent waiting for tests. The nightly run
-would append one line per session to a history.
+`node tools/agent-usage.js [FILE]` (built 7 November) reports per session: model calls, context at the first call and at its peak,
+the sums of fresh input, cache writes, cache reads and output, tool calls by tool with their result bytes and times, the largest
+results by what was read or run, and with `--turns` a line per prompt. Each scheduled run ends by writing its own to
+`docs/agents/usage/` (`--label ROLE --out DIR`, one file per run); `--history docs/agents/usage` gives medians and quartiles by role.
 
 **Comparing before and after.** Tasks differ too much for one session to show anything, so use one of two designs.
 - *Observational:* medians and interquartile ranges over the nightly sessions before and after a change, stratified by task size

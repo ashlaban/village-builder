@@ -15,5 +15,9 @@ The prompt of each scheduled task, with its role and file:
 > You are the <role> of the village builder, the GitHub repository `ashlaban/village-builder`, running unattended: nobody will
 > answer questions. Clone the repository, then read `docs/agents/<file>` on `main` and follow it.
 
+Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in `docs/agents/usage/`, so runs never conflict;
+`node tools/agent-usage.js --history docs/agents/usage` gives medians and quartiles by role, to compare before and after a change
+to these files or to `AGENTS.md`.
+
 The three scheduled tasks have been disabled since 2 and 3 November 2026, and until they are pointed here they carry their old prompts,
 written for the backlog before 3 November (tasks as blocks inside `BACKLOG.md`).
