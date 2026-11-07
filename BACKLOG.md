@@ -1,8 +1,10 @@
 # Backlog
 
 Open tasks of the village builder. Each task's file, `backlog/VB-NNN.md`, holds its full description; the tables here are the overview.
-Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md). Questions for Kim: [`QUESTIONS.md`](QUESTIONS.md).
-Order of work: [`docs/roadmap.md`](docs/roadmap.md). How tasks, statuses and archs work: [the last section](#how-this-backlog-works).
+
+Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md) · Questions for Kim: [`QUESTIONS.md`](QUESTIONS.md) · Order of work: [`docs/roadmap.md`](docs/roadmap.md)
+
+On this page: [Ready](#ready) · [Waiting for Kim](#waiting-for-kim) · [Blocked](#blocked) · [Archs](#archs) · [How this backlog works](#how-this-backlog-works)
 
 ## Pick order
 
@@ -17,6 +19,93 @@ The feature freeze of 2 November 2026 was lifted by Kim on 3 November: its found
    - VB-127 (ties from talk) runs early, since the late game already exceeds the budget (roadmap, section 5.1); it measures itself with `tests/perf.js` and one year from a late save (roadmap, section 6).
    - `design.md` v0.4's skeleton (VB-191) is done (3 November); each slice's plan fills in its sections.
    - Small tasks that touch nothing above: VB-160, VB-165, VB-139.
+
+## Ready
+
+Sorted by priority (1 first), then ID; the pick order above says which go first.
+
+| ID | Name | Arch | Pri | Size | Summary |
+|----|------|------|-----|------|---------|
+| [VB-079](backlog/VB-079.md) | Plan: a life, the player inhabits a pawn (slice 2) | life | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. |
+| [VB-182](backlog/VB-182.md) | Plan: kin help, booked as goodwill (slice 1) | kin-help | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. |
+| [VB-077](backlog/VB-077.md) | Plan: saving and loading in the page | life | 2 | S | Where saves live, autosave, and saves from older builds. |
+| [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
+| [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
+| [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
+| [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
+| [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
+| [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
+
+## Waiting for Kim
+
+Status `needs-review`: each file lists the questions Kim must answer first, and [`QUESTIONS.md`](QUESTIONS.md) gathers them with proposed answers.
+
+| ID | Name | Arch | Pri | Size | Summary |
+|----|------|------|-----|------|---------|
+| [VB-169](backlog/VB-169.md) | Take control of a pawn | life | 2 | M | "Take control" on the pawn panel: the player chooses the pawn's next command from a list; the planner leaves it alone until released. |
+| [VB-199](backlog/VB-199.md) | Bounded history: a pawn's events as an index, routine events folded | yardstick | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. |
+| [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Needs a concrete regression case and justification for snapshot maintenance before implementation. |
+| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 3 | M | One `notable` rule over the record of events; toasts that select what happened. |
+| [VB-099](backlog/VB-099.md) | A chronicle: the history of a pawn, farm and village | life | 3 | M | A History tab per pawn, household and village, read from the record of events. |
+| [VB-160](backlog/VB-160.md) | The soil's cap rises with a village's years of farming | animals | 3 | S | Research the mechanism for long-term yield increase before choosing a model and rate; the village-age manure cap is reopened. |
+| [VB-165](backlog/VB-165.md) | Inspect the map from the keyboard, and lists beside the canvas | - | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. |
+
+## Blocked
+
+By arch, in the order of the Archs table, then priority and ID. Each waits for other tasks; its file says which.
+
+| ID | Name | Arch | Pri | Size | Summary |
+|----|------|------|-----|------|---------|
+| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
+| [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | Remove the temporary medium-y60 400 ms allowance; moving-round scheduling and midnight work under 60 ms, with deterministic saves and demographic gates. |
+| [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Presentation budget deferred by Kim, 4 November; resume when presentation measurement is requested again. |
+| [VB-078](backlog/VB-078.md) | Wrap-up: commands, saves and the record of events | life | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. |
+| [VB-023](backlog/VB-023.md) | Sow a hoed field before hoeing the next | year | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. |
+| [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
+| [VB-090](backlog/VB-090.md) | Landless adults take service where labour is short | year | 2 | M | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. |
+| [VB-117](backlog/VB-117.md) | Fishing in rivers, lakes and the sea | year | 2 | M | Fishing from spring to autumn, always posted, urgent when food is short; fish stocks per water tile. |
+| [VB-118](backlog/VB-118.md) | Gathering berries, mushrooms and nuts | year | 2 | S | Women and children gather in the woods in late summer and autumn; stocks refill each spring. |
+| [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
+| [VB-136](backlog/VB-136.md) | Herding and grazing pressure | year | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. |
+| [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
+| [VB-106](backlog/VB-106.md) | Neighbours help with each other's work, and it builds ties | year | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. |
+| [VB-108](backlog/VB-108.md) | Wrap-up: work and jobs | year | 3 | S | Long runs check idleness, sowing and harvest in time, help and cost against VB-101's numbers; report and tune. |
+| [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
+| [VB-123](backlog/VB-123.md) | A job as a few steps: go, work, fetch, carry | year | 3 | M | Job kinds list their steps, so building and milling can fetch and carry; with the first building task. |
+| [VB-162](backlog/VB-162.md) | A village overview: food, people, idle hands and warnings | year | 3 | M | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. |
+| [VB-126](backlog/VB-126.md) | Occasions: the meeting, weddings and funeral ales bring people together | fair | 2 | M | Gatherings on the map where several households, and other villages, meet and talk. |
+| [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. |
+| [VB-183](backlog/VB-183.md) | Plan: the autumn fair (slice 4) | fair | 3 | S | Design the fair: goods and quanta, worth and need, how deals are found, grain loans as obligations. |
+| [VB-034](backlog/VB-034.md) | Splitting land between heirs | debt | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
+| [VB-035](backlog/VB-035.md) | Wrap-up: inheritance and expansion | debt | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. |
+| [VB-082](backlog/VB-082.md) | Customs made legible: votes, leanings and causes | debt | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. |
+| [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | A scope (level, entities, dimension) asks one membership graph for the tiles, stores or people it covers. |
+| [VB-044](backlog/VB-044.md) | Overlay filters by scope, and claims on the overlay | debt | 3 | M | The ownership overlay can be filtered by any entity level and also shows claims. |
+| [VB-045](backlog/VB-045.md) | Overlay cached per map chunk | debt | 3 | S | Draw the overlay per chunk and redraw only the chunks whose owners or claims changed. |
+| [VB-046](backlog/VB-046.md) | Wrap-up: claims, ownership and territory | debt | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. |
+| [VB-092](backlog/VB-092.md) | Store views for households and villages | debt | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. |
+| [VB-095](backlog/VB-095.md) | Family tree by scope, fast at full scale | debt | 3 | M | The tree opens on a scope, folds the rest and draws only what is on screen. |
+| [VB-141](backlog/VB-141.md) | Plan: customs of the animals | debt | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. |
+| [VB-184](backlog/VB-184.md) | Plan: debt and land (slice 5) | debt | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. |
+| [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
+| [VB-093](backlog/VB-093.md) | A village windmill | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
+| [VB-121](backlog/VB-121.md) | Winter crafts: tools and fence poles | mill | 3 | M | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. |
+| [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
+| [VB-185](backlog/VB-185.md) | Plan: the mill and the loom: facilities, recipes and crafts (slice 6) | mill | 3 | S | Design facilities and crafts: construction as recipes, the mill, the textile chain, skills, occupations. |
+| [VB-036](backlog/VB-036.md) | Plan: relationships and courting | talk | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. |
+| [VB-062](backlog/VB-062.md) | Mood and its modifiers, shown in the pawn panel | talk | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. |
+| [VB-040](backlog/VB-040.md) | Wrap-up: relationships and courting | talk | 3 | S | Long runs check marriage age, never-married share and help between kin against history; report. |
+| [VB-063](backlog/VB-063.md) | Wrap-up: pawn interactions | talk | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. |
+| [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 3 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
+| [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
+| [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
+| [VB-189](backlog/VB-189.md) | Plan: the town (slice 9) | town | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. |
+| [VB-083](backlog/VB-083.md) | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
+| [VB-097](backlog/VB-097.md) | Routes over regions (HPA*), if routes cost too much | roads | 3 | M | Measure route cost first; bound the cache, and build HPA* over regions only if needed. |
+| [VB-115](backlog/VB-115.md) | Building bridges | roads | 3 | M | A village builds a bridge where a ford detour costs it most; needs timber and labour. |
+| [VB-190](backlog/VB-190.md) | Plan: roads, boats and ice (slice 10) | roads | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. |
+| [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
+| [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 
 ## Archs
 
@@ -38,83 +127,14 @@ The vertical slices of `docs/roadmap.md` in Kim's order, then the two older arch
 | animals | Animals and husbandry | Open beside the slices: VB-160, VB-139, VB-091 and the wrap-up VB-048 (after slice 6). Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |
 | ownership | State ownership and boundaries | Open beside the slices: VB-173 to VB-179 are done (target-v2 found they fit it unchanged); the wrap-up VB-180 remains. Every piece of state the simulation keeps has one owning module, which alone writes it; other modules read it freely and change it through the owner's operations; a static check keeps it so, and the map of owners and dependencies stays current (architecture review, 3 November 2026, `docs/review-architecture.md`). | none |
 
-## Tasks
-
-| ID | Name | Arch | Phase | Status | Priority | Size | Summary | File |
-|----|------|------|-------|--------|----------|------|---------|------|
-| VB-009 | Hand-quern milling and making rations | mill | implement | blocked | 3 | M | Grind grain to flour on a hand quern and cook rations from it. | [backlog/VB-009.md](backlog/VB-009.md) |
-| VB-023 | Sow a hoed field before hoeing the next | year | implement | blocked | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. | [backlog/VB-023.md](backlog/VB-023.md) |
-| VB-034 | Splitting land between heirs | debt | implement | blocked | 2 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. | [backlog/VB-034.md](backlog/VB-034.md) |
-| VB-035 | Wrap-up: inheritance and expansion | debt | wrap-up | blocked | 2 | S | Long runs check that landless adults find households and the population grows; tune and report. | [backlog/VB-035.md](backlog/VB-035.md) |
-| VB-036 | Plan: relationships and courting | talk | plan | blocked | 2 | S | Design courting, relationships and food help between kin, so the courting tasks can be written. | [backlog/VB-036.md](backlog/VB-036.md) |
-| VB-040 | Wrap-up: relationships and courting | talk | wrap-up | blocked | 3 | S | Long runs check marriage age, never-married share and help between kin against history; report. | [backlog/VB-040.md](backlog/VB-040.md) |
-| VB-043 | One scope model: a membership graph of entities | debt | implement | blocked | 3 | M | A scope (level, entities, dimension) asks one membership graph for the tiles, stores or people it covers. | [backlog/VB-043.md](backlog/VB-043.md) |
-| VB-044 | Overlay filters by scope, and claims on the overlay | debt | implement | blocked | 3 | M | The ownership overlay can be filtered by any entity level and also shows claims. | [backlog/VB-044.md](backlog/VB-044.md) |
-| VB-045 | Overlay cached per map chunk | debt | implement | blocked | 3 | S | Draw the overlay per chunk and redraw only the chunks whose owners or claims changed. | [backlog/VB-045.md](backlog/VB-045.md) |
-| VB-046 | Wrap-up: claims, ownership and territory | debt | wrap-up | blocked | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. | [backlog/VB-046.md](backlog/VB-046.md) |
-| VB-048 | Wrap-up: tune yields and the food balance of a farm | animals | wrap-up | blocked | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. | [backlog/VB-048.md](backlog/VB-048.md) |
-| VB-055 | Type checking of the JavaScript with checkJs | yardstick | implement | ready | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. | [backlog/VB-055.md](backlog/VB-055.md) |
-| VB-057 | Golden text of the page's panels | yardstick | implement | needs-review | 3 | S | Needs a concrete regression case and justification for snapshot maintenance before implementation. | [backlog/VB-057.md](backlog/VB-057.md) |
-| VB-058 | The village green and well, built by the village | year | implement | blocked | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. | [backlog/VB-058.md](backlog/VB-058.md) |
-| VB-062 | Mood and its modifiers, shown in the pawn panel | talk | implement | blocked | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. | [backlog/VB-062.md](backlog/VB-062.md) |
-| VB-063 | Wrap-up: pawn interactions | talk | wrap-up | blocked | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. | [backlog/VB-063.md](backlog/VB-063.md) |
-| VB-077 | Plan: saving and loading in the page | life | plan | ready | 2 | S | Where saves live, autosave, and saves from older builds. | [backlog/VB-077.md](backlog/VB-077.md) |
-| VB-078 | Wrap-up: commands, saves and the record of events | life | wrap-up | blocked | 3 | S | Long runs saved and loaded many times match unbroken runs; report sizes and times. | [backlog/VB-078.md](backlog/VB-078.md) |
-| VB-079 | Plan: a life, the player inhabits a pawn (slice 2) | life | plan | ready | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. | [backlog/VB-079.md](backlog/VB-079.md) |
-| VB-082 | Customs made legible: votes, leanings and causes | debt | implement | blocked | 2 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. | [backlog/VB-082.md](backlog/VB-082.md) |
-| VB-083 | Seasons on the map | roads | implement | blocked | 3 | M | Seasonal tints and winter snow on the painted map. | [backlog/VB-083.md](backlog/VB-083.md) |
-| VB-090 | Landless adults take service where labour is short | year | implement | blocked | 2 | M | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. | [backlog/VB-090.md](backlog/VB-090.md) |
-| VB-091 | Forest spread into open land | animals | implement | blocked | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. | [backlog/VB-091.md](backlog/VB-091.md) |
-| VB-092 | Store views for households and villages | debt | implement | blocked | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. | [backlog/VB-092.md](backlog/VB-092.md) |
-| VB-093 | A village windmill | mill | implement | blocked | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. | [backlog/VB-093.md](backlog/VB-093.md) |
-| VB-095 | Family tree by scope, fast at full scale | debt | implement | blocked | 3 | M | The tree opens on a scope, folds the rest and draws only what is on screen. | [backlog/VB-095.md](backlog/VB-095.md) |
-| VB-097 | Routes over regions (HPA*), if routes cost too much | roads | implement | blocked | 3 | M | Measure route cost first; bound the cache, and build HPA* over regions only if needed. | [backlog/VB-097.md](backlog/VB-097.md) |
-| VB-098 | Notifications for notable events | life | implement | needs-review | 3 | M | One `notable` rule over the record of events; toasts that select what happened. | [backlog/VB-098.md](backlog/VB-098.md) |
-| VB-099 | A chronicle: the history of a pawn, farm and village | life | implement | needs-review | 3 | M | A History tab per pawn, household and village, read from the record of events. | [backlog/VB-099.md](backlog/VB-099.md) |
-| VB-100 | Common fields worked by the village | year | implement | blocked | 3 | M | A village with an empty store makes a common field; its harvest fills the store. | [backlog/VB-100.md](backlog/VB-100.md) |
-| VB-106 | Neighbours help with each other's work, and it builds ties | year | implement | blocked | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. | [backlog/VB-106.md](backlog/VB-106.md) |
-| VB-108 | Wrap-up: work and jobs | year | wrap-up | blocked | 3 | S | Long runs check idleness, sowing and harvest in time, help and cost against VB-101's numbers; report and tune. | [backlog/VB-108.md](backlog/VB-108.md) |
-| VB-115 | Building bridges | roads | implement | blocked | 3 | M | A village builds a bridge where a ford detour costs it most; needs timber and labour. | [backlog/VB-115.md](backlog/VB-115.md) |
-| VB-117 | Fishing in rivers, lakes and the sea | year | implement | blocked | 2 | M | Fishing from spring to autumn, always posted, urgent when food is short; fish stocks per water tile. | [backlog/VB-117.md](backlog/VB-117.md) |
-| VB-118 | Gathering berries, mushrooms and nuts | year | implement | blocked | 2 | S | Women and children gather in the woods in late summer and autumn; stocks refill each spring. | [backlog/VB-118.md](backlog/VB-118.md) |
-| VB-119 | Mixed meals go further, and fresh food spoils | year | implement | blocked | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). | [backlog/VB-119.md](backlog/VB-119.md) |
-| VB-120 | Village work days | year | implement | blocked | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. | [backlog/VB-120.md](backlog/VB-120.md) |
-| VB-121 | Winter crafts: tools and fence poles | mill | implement | blocked | 3 | M | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. | [backlog/VB-121.md](backlog/VB-121.md) |
-| VB-123 | A job as a few steps: go, work, fetch, carry | year | implement | blocked | 3 | M | Job kinds list their steps, so building and milling can fetch and carry; with the first building task. | [backlog/VB-123.md](backlog/VB-123.md) |
-| VB-126 | Occasions: the meeting, weddings and funeral ales bring people together | fair | implement | blocked | 2 | M | Gatherings on the map where several households, and other villages, meet and talk. | [backlog/VB-126.md](backlog/VB-126.md) |
-| VB-127 | Familiarity from talk and time at home, not from standing near each other | talk | implement | ready | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. | [backlog/VB-127.md](backlog/VB-127.md) |
-| VB-136 | Herding and grazing pressure | year | implement | blocked | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. | [backlog/VB-136.md](backlog/VB-136.md) |
-| VB-139 | Roe deer | animals | implement | ready | 3 | M | Deer stock per region, crop damage by broken fences, hunting. | [backlog/VB-139.md](backlog/VB-139.md) |
-| VB-140 | Livestock in shares and a new household's start | fair | implement | blocked | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. | [backlog/VB-140.md](backlog/VB-140.md) |
-| VB-141 | Plan: customs of the animals | debt | plan | blocked | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. | [backlog/VB-141.md](backlog/VB-141.md) |
-| VB-144 | Ewes' milk and wool | mill | implement | blocked | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. | [backlog/VB-144.md](backlog/VB-144.md) |
-| VB-160 | The soil's cap rises with a village's years of farming | animals | implement | needs-review | 3 | S | Research the mechanism for long-term yield increase before choosing a model and rate; the village-age manure cap is reopened. | [backlog/VB-160.md](backlog/VB-160.md) |
-| VB-162 | A village overview: food, people, idle hands and warnings | year | implement | blocked | 3 | M | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. | [backlog/VB-162.md](backlog/VB-162.md) |
-| VB-163 | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | implement | ready | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. | [backlog/VB-163.md](backlog/VB-163.md) |
-| VB-164 | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | plan | ready | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. | [backlog/VB-164.md](backlog/VB-164.md) |
-| VB-165 | Inspect the map from the keyboard, and lists beside the canvas | - | - | needs-review | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. | [backlog/VB-165.md](backlog/VB-165.md) |
-| VB-166 | A frame-time budget for the page, in headless Chromium | yardstick | implement | blocked | 3 | S | Presentation budget deferred by Kim, 4 November; resume when presentation measurement is requested again. | [backlog/VB-166.md](backlog/VB-166.md) |
-| VB-169 | Take control of a pawn | life | implement | needs-review | 2 | M | "Take control" on the pawn panel: the player chooses the pawn's next command from a list; the planner leaves it alone until released. | [backlog/VB-169.md](backlog/VB-169.md) |
-| VB-180 | Wrap-up: state ownership and boundaries | ownership | wrap-up | ready | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. | [backlog/VB-180.md](backlog/VB-180.md) |
-| VB-182 | Plan: kin help, booked as goodwill (slice 1) | kin-help | plan | ready | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. | [backlog/VB-182.md](backlog/VB-182.md) |
-| VB-183 | Plan: the autumn fair (slice 4) | fair | plan | blocked | 3 | S | Design the fair: goods and quanta, worth and need, how deals are found, grain loans as obligations. | [backlog/VB-183.md](backlog/VB-183.md) |
-| VB-184 | Plan: debt and land (slice 5) | debt | plan | blocked | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. | [backlog/VB-184.md](backlog/VB-184.md) |
-| VB-185 | Plan: the mill and the loom: facilities, recipes and crafts (slice 6) | mill | plan | blocked | 3 | S | Design facilities and crafts: construction as recipes, the mill, the textile chain, skills, occupations. | [backlog/VB-185.md](backlog/VB-185.md) |
-| VB-186 | Plan: talk travels: traits, venues and stories (slice 7) | talk | plan | blocked | 3 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. | [backlog/VB-186.md](backlog/VB-186.md) |
-| VB-187 | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | implement | blocked | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. | [backlog/VB-187.md](backlog/VB-187.md) |
-| VB-188 | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | plan | blocked | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. | [backlog/VB-188.md](backlog/VB-188.md) |
-| VB-189 | Plan: the town (slice 9) | town | plan | blocked | 3 | S | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. | [backlog/VB-189.md](backlog/VB-189.md) |
-| VB-190 | Plan: roads, boats and ice (slice 10) | roads | plan | blocked | 3 | S | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. | [backlog/VB-190.md](backlog/VB-190.md) |
-| VB-199 | Bounded history: a pawn's events as an index, routine events folded | yardstick | implement | needs-review | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. | [backlog/VB-199.md](backlog/VB-199.md) |
-| VB-200 | Wrap-up: the yardstick | yardstick | wrap-up | blocked | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. | [backlog/VB-200.md](backlog/VB-200.md) |
-| VB-201 | Tighten medium steps to 60 ms and spread midnight work | yardstick | implement | blocked | 2 | M | Remove the temporary medium-y60 400 ms allowance; moving-round scheduling and midnight work under 60 ms, with deterministic saves and demographic gates. | [backlog/VB-201.md](backlog/VB-201.md) |
-
 ## How this backlog works
 
 **Files and rows.** Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth.
-Its row here is the overview: when a task's name, arch, phase, status, priority or size changes, update its row too.
-A new task takes the next free ID, gets a file and a row. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
-their files stay in `backlog/`. `tests/backlog.js` checks that files and rows agree.
+Its row here is the overview: when a task's name, arch, priority or size changes, update its row too; when its status changes, move the row
+to that status's section. A new task takes the next free ID, gets a file and a row. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
+their files stay in `backlog/`. Ready and Waiting for Kim are sorted by priority, then ID; Blocked by arch (in the order of the Archs table,
+tasks outside every arch last), then priority, then ID; the archive by when a task was done, newest at the bottom.
+`tests/backlog.js` checks that files and rows agree, and the order.
 
 **Statuses.** The nightly run takes only `Status: ready` tasks, in priority order (1 first), then ID order, as the pick order arranges them.
 A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
@@ -132,7 +152,8 @@ it took over from the earlier archs, which stay `blocked` until it has. The earl
 done tasks; two, `ownership` and `animals`, still have open tasks that run beside the slices.
 
 A task file names its arch and phase in `Arch: <key>` and `Phase: plan|implement|wrap-up` lines after `Size:`; a task outside every arch
-has neither, and its row shows `-`. List an arch's tasks with `grep -l "^Arch: <key>" backlog/*.md`. A new arch gets a row in the Archs table;
+has neither, and its row shows `-` as its arch. The phase has no column: a plan task's name starts with "Plan:", a wrap-up's with "Wrap-up:",
+and the check holds name and phase together. List an arch's tasks with `grep -l "^Arch: <key>" backlog/*.md`. A new arch gets a row in the Archs table;
 an arch with no open tasks left moves to the archive's closed archs.
 
 **Design refs** point to sections of `design.md` ("Village builder: game design snapshot v0.4"). Refs written before 3 November point to
