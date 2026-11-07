@@ -92,9 +92,9 @@ Going below 13 KB would mean dropping rules or the list of commands, which an ag
 **The nightly run (suggestion 9).** "The nightly run" of `BACKLOG.md` and older task notes is a scheduled task on Kim's account,
 "Village builder (worker)", beside "Village builder (Project manager)" and "Village builder (Reviewer)"; all three have been disabled since
 2 and 3 November. Their prompts describe the backlog as it was before 3 November (tasks as `## VB-NNN` blocks inside `BACKLOG.md`, status
-set there, v0.3 design refs), so re-enabled as they stand they would work against the current files. Before they run again, each should be
-rewritten against `AGENTS.md` (Taking a task; the backlog and questions tools) and kept in the repository, so a change to it is reviewed
-and measured like any other.
+set there, v0.3 design refs), so re-enabled as they stand they would work against the current files. They are rewritten in `docs/agents/`
+against `AGENTS.md` (Taking a task; the backlog and questions tools), with the short prompt each scheduled task should carry instead,
+pointing to its file, so a change to them is reviewed and measured like any other; the scheduled tasks themselves are not yet changed.
 
 ## 6. Measuring the effect
 
