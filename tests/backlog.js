@@ -1,12 +1,19 @@
 // Backlog check: every backlog/VB-NNN.md has one row, in the BACKLOG.md table (open tasks) or in BACKLOG_ARCHIVE.md (done tasks), and vice versa, and each row's name, arch, phase,
-// status (its first word), priority, size and link match the task file. A task's arch must be listed under "## Archs".
+// status (its first word), priority, size and link match the task file. A task's arch must be listed under "## Archs" in BACKLOG.md (open archs)
+// or under "## Closed archs" in BACKLOG_ARCHIVE.md; an open task's arch must be open.
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), dir = path.join(root, 'backlog');
 const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
 const backlog = fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8');
-const archSection = (backlog.split('## Archs')[1] || '').split('\n## ')[0];
-const archs = new Set(archSection.split('\n').map((l) => (l.match(/^\| ([a-z][a-z-]*) \|/) || [])[1]).filter(Boolean));
-if (!archs.size) errors.push('BACKLOG.md: no arch rows under "## Archs"');
+const archive = fs.readFileSync(path.join(root, 'BACKLOG_ARCHIVE.md'), 'utf8');
+const archKeys = (text, heading) => {
+  const section = (text.split('\n' + heading + '\n')[1] || '').split('\n## ')[0];
+  return new Set(section.split('\n').map((l) => (l.match(/^\| ([a-z][a-z-]*) \|/) || [])[1]).filter(Boolean));
+};
+const openArchs = archKeys(backlog, '## Archs'), closedArchs = archKeys(archive, '## Closed archs');
+const archs = new Set([...openArchs, ...closedArchs]);
+if (!openArchs.size) errors.push('BACKLOG.md: no arch rows under "## Archs"');
+for (const k of openArchs) if (closedArchs.has(k)) errors.push(`arch "${k}" is listed as open in BACKLOG.md and as closed in BACKLOG_ARCHIVE.md`);
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
 const tasks = {};
 for (const f of files) {
@@ -16,14 +23,14 @@ for (const f of files) {
   if (f !== head[1] + '.md') errors.push(`backlog/${f}:1 file name must be ${head[1]}.md`);
   for (const k of ['Status', 'Priority', 'Size']) if (!field(k)) errors.push(`backlog/${f}: no "${k}:" line`);
   const arch = field('Arch') || '-', phase = field('Phase') || '-';
-  if (arch !== '-' && !archs.has(arch)) errors.push(`backlog/${f}: arch "${arch}" is not listed under "## Archs" in BACKLOG.md`);
+  if (arch !== '-' && !archs.has(arch)) errors.push(`backlog/${f}: arch "${arch}" is not listed in BACKLOG.md or BACKLOG_ARCHIVE.md`);
+  if (closedArchs.has(arch) && !/^done\b/.test(field('Status'))) errors.push(`backlog/${f}: open task in closed arch "${arch}"`);
   if (arch !== '-' && !PHASES.includes(phase)) errors.push(`backlog/${f}: phase "${phase}" must be one of ${PHASES.join(', ')}`);
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
   tasks[head[1]] = { name: head[2], arch, phase, status: field('Status').split(' ')[0], priority: field('Priority'), size: field('Size'),
     file: `[backlog/${f}](backlog/${f})` };
 }
 const rows = {}, archived = new Set();
-const archive = fs.readFileSync(path.join(root, 'BACKLOG_ARCHIVE.md'), 'utf8');
 const rowLines = [...backlog.split('\n').map((l) => [l, false]), ...archive.split('\n').map((l) => [l, true])];
 for (const [line, inArchive] of rowLines.filter(([l]) => /^\| VB-\d{3} \|/.test(l))) {
   const cells = line.replace(/^\| | \|\s*$/g, '').split(' | '), file = cells.pop(); // file is last: a summary may hold " | "
@@ -44,4 +51,5 @@ for (const [id, row] of Object.entries(rows)) {
 }
 if (errors.length) { console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
 const inArch = Object.values(tasks).filter((t) => t.arch !== '-').length;
-console.log(`backlog: ${files.length} task files match the BACKLOG.md table and BACKLOG_ARCHIVE.md; ${inArch} in ${archs.size} archs`);
+console.log(`backlog: ${files.length} task files match the BACKLOG.md table and BACKLOG_ARCHIVE.md; ${inArch} in ${archs.size} archs`
+  + ` (${openArchs.size} open, ${closedArchs.size} closed)`);

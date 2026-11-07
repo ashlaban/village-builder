@@ -4,8 +4,8 @@ A village builder proof of concept on a generated hex archipelago: one `index.ht
 Design reference: `design.md`, "Village builder: game design snapshot v0.4" (a skeleton since 3 November: each slice's plan fills in its sections;
 v0.3 is kept in `docs/design-v0.3.md`); read-only for implementing tasks (only design and review tasks change it). A point marked "Under revision"
 stands as written until its slice's plan rewrites it.
-Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); read its header for the task rules (status values, archs and their phases,
-the refactor and golden-file rules) and its pick order, which follows the vertical slices (the feature freeze of 2 November was lifted on 3 November). Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
+Work is planned in `BACKLOG.md` (overview table of open tasks; done ones move to `BACKLOG_ARCHIVE.md`; one file per task in `backlog/`); its last section, "How this backlog works", holds the task rules (status values, archs and their phases,
+the refactor rules), and its pick order follows the vertical slices. Open design questions for Kim are gathered in `QUESTIONS.md`; answered ones move to `QUESTION_ARCHIVE.md`. The latest review of design against code is `REVIEW.md`.
 Architecture reference: `docs/architecture/target-v2.md` (3 November): where the code is going (five layers, 21 modules, its principles in section 2,
 Kim's decisions in section 8). It is a target, not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 The order of work is `docs/roadmap.md`: vertical slices (each an arch of `BACKLOG.md`, in the order Kim chose on 3 November), the late-game
@@ -24,13 +24,16 @@ budget and cheap measurement.
   Saves and stamps live in gitignored `tests/fixtures/`, distributed on the orphan `fixtures` branch. A check or task needing a late
   state uses `require('./lib/fixtures.js').loadFixture(name)` from tests (or `../tests/lib/fixtures.js` from tools): `{st, stamp, stale}`
   or `null` with a missing/offline notice. A stale golden hash is usable; incompatible save formats require a remake.
-  `npm run nightly` fetches, remakes stale/missing fixtures in worker processes, and publishes a single replacement orphan commit.
-- Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change.
-- Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change.
+  `npm run nightly` fetches, remakes stale/missing fixtures in worker processes, and publishes a single replacement orphan commit
+  with an explicit `--force-with-lease` on that branch: the project's only force-push; main's history and the checkout are untouched.
+- Golden file: `node tests/golden.js --update` re-records `tests/golden.json`; do it only for an intended behaviour change, and list
+  the changed entries in the PR.
+- Work counters: `node tests/counters.js` checks tiny-scale work; `--update` records an intentional change (list the changed counters in the PR).
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day.
   `node tests/perf.js --counter-cost` reports deterministic tally work and a conditional cost estimate at an assumed 5 ns per addition.
-- Cost growth: `node tests/scaling.js` checks two/four repeated tiny villages in `npm test`;
-  `node tests/history.js` checks 30 days and one moving round from `small-y5` and `small-y40` in verify.
+- Cost growth: `node tests/scaling.js` checks two/four repeated tiny villages in `npm test` (population exponent at most 1.15);
+  `node tests/history.js` checks 30 days and one moving round from `small-y5` and `small-y40` in verify (work per living pawn-day at
+  year 40 over year 5 at most 1.25).
   Both print all work counters; history also reports six-minute step timings, never asserting wall-clock time.
   `--update` only lowers existing excesses in `tests/cost-baseline.json` and removes fixed ones; it refuses new regressions.
 - Lint: `node tests/lint.js`; `node tests/lint.js --update` lowers `tests/lint-baseline.json`, never raises it.
@@ -129,7 +132,7 @@ budget and cheap measurement.
   loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
 ## Working rules
-- Behaviour-preserving work leaves `tests/golden.json` unchanged (see the golden rule in `BACKLOG.md`).
+- Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. Use `npm run verify` sparingly: once at the end of a task, before its last commit,
   and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
 - Rebuild `index.html` before committing; both suites check it.
