@@ -14,7 +14,7 @@ VB['sim/lifecycle'] = (() => {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor, roundHeirs,
   } = VB['sim/heirs'];
   const { startPlots } = VB['sim/expansion'];
-  const { claimFarms } = VB['sim/farmclaims'];
+  const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
   const { careForOrphans, takeServants } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
@@ -258,7 +258,7 @@ VB['sim/lifecycle'] = (() => {
     // who wants out: landless adults with no prospect of a farm
     countDemand(st, heirs.rank);
     claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
-    startPlots(st);
+    startPlots(st, (id) => claimableFarm(st, id) === null);
     settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
     payOwed(st);
