@@ -158,3 +158,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-176](backlog/VB-176.md) | Refactor: only `issue` reaches a module loaded later, and a check | ownership | 2 | S | The plot-or-farm choice moves to the moving round; a check fails on any other lookup into a later module. |
 | [VB-077](backlog/VB-077.md) | Plan: saving and loading in the page | life | 2 | S | Where saves live, autosave, and saves from older builds. |
 | [VB-079](backlog/VB-079.md) | Plan: a life, the player inhabits a pawn (slice 2) | life | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. |
+| [VB-182](backlog/VB-182.md) | Plan: kin help, booked as goodwill (slice 1) | kin-help | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. |
