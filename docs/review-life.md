@@ -9,8 +9,8 @@ hash (usable; the state is from an older build).
 
 - **The player is a source with a queue.** Its commands go before the pawn's own logic. With the queue empty, the pawn does what its
   role's automatic behaviour (today's planner) chooses; the player can switch that off. Needs and going home at dark go on either way,
-  unless a command says otherwise. With no commands and the switch on, a played pawn does exactly what an unplayed one does, so the
-  golden file cannot tell them apart. That is the main test.
+  unless a command says otherwise. With no commands and the switch on, a played pawn does exactly what an unplayed one does, so a state
+  hash cannot tell the two runs apart. That is VB-169's main test.
 - **Three doors in slice 2:** commands (the queue), `Opportunities.forPawn` (what it may do here), and advocacy (the meeting). Offers in
   Exchange arrive with slice 1's gift. `Decisions.answer` waits for the first question that needs the player's answer: a holder's
   plan (slice 3) or a testament (slice 5).
