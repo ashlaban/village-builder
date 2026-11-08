@@ -34,12 +34,12 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   prints its summary only (`node tests/run.js test --list` prints each script's line).
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
   not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
-- Fixtures, late saves (gitignored `tests/fixtures/`, kept on the orphan `fixtures` branch): `node tools/fixtures.js status|fetch|publish`,
-  `make [small-y5 small-y40 medium-y5 medium-ref]`; `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
-  stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)` (`../tests/lib/` from tools)
-  gives `{st, stamp, stale}`, or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. `npm run nightly`
-  remakes stale ones and replaces the `fixtures` branch with `--force-with-lease`: the project's only force-push. Who remakes them: the
-  worker's wrap-up, until VB-223's nightly workflow takes over (release assets); a PR that changes the golden file says they are stale.
+- Fixtures, late saves (gitignored `tests/fixtures/`, published as the assets of the release `fixtures`, replaced in place): `node
+  tools/fixtures.js status|fetch|publish|refresh`, `make [small-y5 small-y40 medium-y5 medium-ref]`; `medium-ref` is saved at the first
+  year's end with 1,000 living (by year 60), and its stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)`
+  (`../tests/lib/` from tools) gives `{st, stamp, stale}`, or `null` with a notice; a stale golden hash is usable, a changed save format
+  needs a remake. Who remakes them: the nightly workflow (`.github/workflows/fixtures.yml`, `refresh`: fetch, remake what is stale, publish
+  with its token), so a PR that changes the golden file need not; `npm run nightly` fetches them and remakes locally what is still stale.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.

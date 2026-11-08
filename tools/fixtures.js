@@ -1,4 +1,4 @@
-// Late-game fixture lifecycle (VB-193). No checkout or index changes, including when publishing the orphan branch.
+// Late-game fixture lifecycle (VB-193): made here, published as the assets of one release (VB-223); no checkout or index changes.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), os = require('os');
 const { spawn } = require('child_process');
 const F = require('../tests/lib/fixtures.js');
@@ -28,7 +28,8 @@ function makeOne(name) {
     minutes: (Date.now() - started) / 60000, jsonBytes: json.length, gzipBytes: compressed.length, saveHash: F.hash(compressed) };
   F.writeFixture(name, compressed, stamp);
   if (stamp.reached === false) console.log(`${name}: NOT REACHED: ${stamp.living} living after year ${year}, short of ${def.living}`);
-  console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min at year ${year}; ${(json.length / 1e6).toFixed(2)} MB JSON, ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
+  console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min at year ${year}; ${(json.length / 1e6).toFixed(2)} MB JSON,`
+    + ` ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
   return stamp;
 }
 async function make(names = Object.keys(F.FIXTURES)) {
@@ -47,28 +48,40 @@ async function make(names = Object.keys(F.FIXTURES)) {
   }));
   if (failed.length) throw new Error('fixture make failed: ' + failed.join(', '));
 }
-function publish({ repo = F.root, dir = F.DIR, remote = 'origin', notice = console.log } = {}) {
-  const run = (args, opts = {}) => F.git(args, { cwd: repo, ...opts });
-  const entries = [];
+// The saves and stamps first, then the manifest naming their hashes, which fetch reads first (VB-223); every fixture must be fresh.
+function publish({ dir = F.DIR, release = F.githubRelease(), notice = console.log } = {}) {
+  const paths = [], manifest = { commit: F.git(['rev-parse', 'HEAD']).toString().trim(), fixtures: {} };
   for (const name of Object.keys(F.FIXTURES)) {
     const info = F.status(name, { dir });
     if (info.status !== 'fresh') throw new Error(`${name} is ${info.status}; make all fixtures before publishing`);
     const f = F.files(name, dir), compressed = fs.readFileSync(f.save);
     if (F.hash(compressed) !== info.stamp.saveHash) throw new Error(`${name}: damaged fixture; remake the fixtures`);
-    for (const [ext, file] of [['gz', f.save], ['json', f.stamp]]) {
-      const blob = run(['hash-object', '-w', '--stdin'], { input: fs.readFileSync(file) }).toString().trim();
-      entries.push(`100644 blob ${blob}\t${name}.${ext}\n`);
-    }
+    manifest.fixtures[name] = { gz: F.hash(compressed), json: F.hash(fs.readFileSync(f.stamp)), commit: info.stamp.commit };
+    paths.push(f.save, f.stamp);
   }
-  // Snapshot the remote head before committing; an explicit lease also protects an absent branch.
-  const head = run(['ls-remote', '--heads', remote, 'refs/heads/fixtures']).toString().trim();
-  const expected = head ? head.split(/\s+/)[0] : '';
-  let tree = run(['mktree'], { input: entries.sort().join('') }).toString().trim();
-  for (const name of ['fixtures', 'tests']) tree = run(['mktree'], { input: `040000 tree ${tree}\t${name}\n` }).toString().trim();
-  const commit = run(['commit-tree', tree], { input: 'VB-193: replace generated late-game fixtures\n' }).toString().trim();
-  run(['push', `--force-with-lease=refs/heads/fixtures:${expected}`, remote, `${commit}:refs/heads/fixtures`], { stdio: 'inherit', timeout: 120000 });
-  notice(`fixtures: published one orphan commit ${commit.slice(0, 7)} to ${remote}/fixtures`);
-  return commit;
+  const current = () => { try { return release.read(F.MANIFEST).toString('utf8'); } catch { return null; } };
+  const before = current();
+  release.write(paths);
+  // Another publisher finished meanwhile, and its saves may be mixed with these: leave its manifest, which fetch then refuses as mixed.
+  if (current() !== before) throw new Error('another publisher replaced the set during this publish; publish again');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-fixtures-')), file = path.join(tmp, F.MANIFEST);
+  try {
+    fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
+    release.write([file]);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  notice(`fixtures: published ${paths.length / 2} saves and ${F.MANIFEST} to ${release.where}`);
+  return manifest;
+}
+// The nightly remake (VB-223): fetch the published set, remake what is stale or missing, and publish only if something was remade.
+async function refresh({ publishing = true, notice = console.log } = {}) {
+  try { F.fetchFixtures({ notice }); } catch (e) { notice(`fixtures: ${e.message}; remaking`); } // a damaged set is remade, not kept
+  const remake = Object.keys(F.FIXTURES).filter((name) => F.status(name).status !== 'fresh');
+  if (!remake.length) { notice('fixtures: all fresh; nothing to remake or publish'); return remake; }
+  notice(`fixtures: remaking ${remake.join(', ')}`);
+  await make(remake);
+  if (publishing) publish({ notice });
+  else notice('fixtures: remade here and not published (no GH_TOKEN); the nightly workflow publishes them');
+  return remake;
 }
 async function main(args) {
   const [command, ...names] = args;
@@ -84,7 +97,8 @@ async function main(args) {
   }
   if (command === 'fetch' && !names.length) return F.fetchFixtures();
   if (command === 'publish' && !names.length) return publish();
-  throw new Error('usage: node tools/fixtures.js make [name...] | status | fetch | publish');
+  if (command === 'refresh' && !names.length) return refresh();
+  throw new Error('usage: node tools/fixtures.js make [name...] | status | fetch | publish | refresh');
 }
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error(e.message); process.exitCode = 1; });
-module.exports = { make, makeOne, publish, advanceYears };
+module.exports = { make, makeOne, publish, refresh, advanceYears };

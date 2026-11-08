@@ -41,29 +41,58 @@ function writeFixture(name, compressed, stamp, { dir = DIR } = {}) {
   }
 }
 const git = (args, opts = {}) => execFileSync('git', args, { cwd: root, timeout: 30000, maxBuffer: 128 * 1024 * 1024, ...opts });
-function fetchFixtures({ dir = DIR, repo = root, remote = 'origin', notice = console.log } = {}) {
-  const run = (args) => git(args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] });
-  try { run(['fetch', remote, 'fixtures']); }
-  catch (e) { notice('fixtures: fetch unavailable (offline or no fixtures branch); keeping local saves'); return false; }
-  const commit = run(['rev-parse', 'FETCH_HEAD']).toString().trim(), pairs = [];
-  // A remote set made for another fixture list (VB-202 added medium-ref and dropped medium-y60) replaces nothing, as offline.
-  const present = new Set(run(['ls-tree', '-r', '--name-only', commit]).toString().split('\n'));
-  const lacking = Object.keys(FIXTURES).filter((name) => ['gz', 'json'].some((ext) => !present.has(`tests/fixtures/${name}.${ext}`)));
-  if (lacking.length) {
-    notice(`fixtures: ${remote}/fixtures (${commit.slice(0, 7)}) lacks ${lacking.join(', ')}; keeping local saves`
-      + ' (run node tools/fixtures.js make)');
-    return false;
-  }
-  // Read and check the whole branch before replacing any local fixture.
+// VB-223: the saves are the assets of one GitHub release, tagged `fixtures` and replaced in place (Kim, 8 November); a manifest,
+// fixtures.json, published last, names the hash of every asset, so a set is fetched whole or not at all. A release is {where, read(name)
+// -> Buffer, write(paths)}: githubRelease reads over HTTPS without a token (curl, which follows the session's proxy) and writes with gh and
+// GH_TOKEN; directoryRelease stands in for it in tests.
+const MANIFEST = 'fixtures.json', TAG = 'fixtures';
+const RELEASE_URL = process.env.VB_FIXTURES_URL || `https://github.com/ashlaban/village-builder/releases/download/${TAG}`;
+function githubRelease({ url = RELEASE_URL, tag = TAG } = {}) {
+  const gh = (args, opts = {}) => execFileSync('gh', args, { cwd: root, timeout: 600000, ...opts });
+  return {
+    where: url,
+    read: (name) => execFileSync('curl', ['-fsSL', '--retry', '2', `${url}/${name}`],
+      { maxBuffer: 256 * 1024 * 1024, timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'] }),
+    write(paths) {
+      if (!process.env.GH_TOKEN) throw new Error('publishing needs GH_TOKEN (the nightly workflow has one); nothing published');
+      try { gh(['release', 'view', tag], { stdio: 'ignore' }); }
+      catch { gh(['release', 'create', tag, '--prerelease', '--title', 'Late-game fixtures', '--notes', 'Made by node tools/fixtures.js;'
+        + ' replaced in place each night by .github/workflows/fixtures.yml (VB-223). Read fixtures.json first.'], { stdio: 'inherit' }); }
+      gh(['release', 'upload', tag, ...paths, '--clobber'], { stdio: 'inherit' });
+    },
+  };
+}
+function directoryRelease(dir) {
+  return {
+    where: dir,
+    read: (name) => fs.readFileSync(path.join(dir, name)),
+    write(paths) { fs.mkdirSync(dir, { recursive: true }); for (const p of paths) fs.copyFileSync(p, path.join(dir, path.basename(p))); },
+  };
+}
+function fetchFixtures({ dir = DIR, release = githubRelease(), notice = console.log } = {}) {
+  const keep = (why) => { notice(`fixtures: ${why}; keeping local saves`); return false; };
+  let manifest;
+  try { manifest = JSON.parse(release.read(MANIFEST).toString('utf8')); }
+  catch { return keep(`no fixtures at ${release.where} (offline, or not yet published)`); }
+  // A set made for another fixture list (VB-202 added medium-ref and dropped medium-y60) replaces nothing, as offline.
+  const lacking = Object.keys(FIXTURES).filter((name) => !manifest.fixtures?.[name]);
+  if (lacking.length) return keep(`the set at ${release.where} lacks ${lacking.join(', ')} (run node tools/fixtures.js make)`);
+  // Read and check the whole set before replacing any local fixture.
+  const pairs = [];
   for (const name of Object.keys(FIXTURES)) {
-    const compressed = run(['show', `${commit}:tests/fixtures/${name}.gz`]);
-    const stamp = JSON.parse(run(['show', `${commit}:tests/fixtures/${name}.json`]).toString());
+    let compressed, stampBytes;
+    try { compressed = release.read(`${name}.gz`); stampBytes = release.read(`${name}.json`); }
+    catch { return keep(`${name} could not be read from ${release.where}`); }
+    const want = manifest.fixtures[name];
+    // A publish under way, or a race between two: the assets no longer match the manifest.
+    if (hash(compressed) !== want.gz || hash(stampBytes) !== want.json) return keep(`${name} differs from the manifest at ${release.where}`);
+    const stamp = JSON.parse(stampBytes.toString('utf8'));
     validateStamp(name, stamp);
     if (hash(compressed) !== stamp.saveHash) throw new Error(`${name}: damaged remote fixture`);
     pairs.push([name, compressed, stamp]);
   }
   for (const [name, compressed, stamp] of pairs) writeFixture(name, compressed, stamp, { dir });
-  notice(`fixtures: fetched ${pairs.length} saves from ${remote}/fixtures (${commit.slice(0, 7)})`);
+  notice(`fixtures: fetched ${pairs.length} saves from ${release.where} (made at ${(manifest.commit || 'unknown').slice(0, 7)})`);
   return true;
 }
 let fetched = false;
@@ -89,4 +118,5 @@ function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {
   if (stale) notice(`${name}: stale golden hash; using the saved state`);
   return { st, stamp, stale };
 }
-module.exports = { root, DIR, FIXTURES, hash, goldenHash, format, spec, files, status, writeFixture, fetchFixtures, loadFixture, git };
+module.exports = { root, DIR, FIXTURES, MANIFEST, hash, goldenHash, format, spec, files, status, writeFixture, fetchFixtures, loadFixture, git,
+  githubRelease, directoryRelease };

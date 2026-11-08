@@ -1,10 +1,10 @@
-// Lifecycle tests use a local bare remote; they never contact origin or publish real saves.
+// Lifecycle tests publish to a directory that stands in for the release (VB-223); they never contact GitHub or publish real saves.
 const assert = require('assert'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 const F = require('./lib/fixtures.js'), { publish, advanceYears } = require('../tools/fixtures.js');
 fs.mkdirSync(path.join(F.root, 'work'), { recursive: true });
 const scratch = fs.mkdtempSync(path.join(F.root, 'work/fixture-tools-'));
-const dir = path.join(scratch, 'saves'), repo = path.join(scratch, 'repo'), remote = path.join(scratch, 'remote.git');
-const notice = () => {}, run = (args) => F.git(args, { cwd: repo, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+const dir = path.join(scratch, 'saves'), releaseDir = path.join(scratch, 'release'), release = F.directoryRelease(releaseDir);
+const notice = () => {};
 // VB-202: a fixture by population stops at the first year's end with enough living, or at its last year.
 function years(def, livingByYear) {
   const st = { year: 0, pawns: [] }, Sim = { YEAR: 1, advance(s) {
@@ -18,38 +18,27 @@ assert.strictEqual(years({ living: 1000, maxYear: 60 }, () => 5000), 1, 'at leas
 assert.strictEqual(years({ living: 1000, maxYear: 60 }, () => 999), 60, 'never reached: stops at the last year');
 assert.strictEqual(F.spec('medium-ref').living, 1000);
 assert(!Object.hasOwn(F.FIXTURES, 'medium-y60'), 'medium-y60 was dropped (Kim, 8 November)');
-// Pushes a directory's saves as the orphan branch without publish()'s checks, to stand in for a damaged remote.
-function publishRaw(from) {
-  const entries = Object.keys(F.FIXTURES).flatMap((name) => Object.entries(F.files(name, from)).map(([kind, file]) => {
-    const blob = F.git(['hash-object', '-w', '--stdin'], { cwd: repo, input: fs.readFileSync(file) }).toString().trim();
-    return `100644 blob ${blob}\t${name}.${kind === 'save' ? 'gz' : 'json'}\n`;
-  }));
-  let tree = F.git(['mktree'], { cwd: repo, input: entries.sort().join('') }).toString().trim();
-  for (const name of ['fixtures', 'tests']) tree = F.git(['mktree'], { cwd: repo, input: `040000 tree ${tree}\t${name}\n` }).toString().trim();
-  const commit = F.git(['commit-tree', tree], { cwd: repo, input: 'raw\n' }).toString().trim();
-  F.git(['push', '--force', remote, `${commit}:refs/heads/fixtures`], { cwd: repo, stdio: 'ignore' });
-}
-const stampFor = (name, head, compressed) => {
+const head = F.git(['rev-parse', 'HEAD']).toString().trim();
+const stampFor = (name, compressed) => {
   const def = F.spec(name), byLiving = def.living !== undefined;
   return { name, commit: head, format: F.format(), goldenHash: F.goldenHash(), year: byLiving ? 14 : def.year,
     ...(byLiving ? { target: def.living, reached: true } : {}), living: byLiving ? def.living : 1, pawnRecords: 1, events: 0, minutes: 0,
     jsonBytes: 1, gzipBytes: compressed.length, saveHash: F.hash(compressed) };
 };
+const fetchInto = (to, from = release) => {
+  const notices = [], ok = F.fetchFixtures({ dir: to, release: from, notice: (m) => notices.push(m) });
+  return { ok, said: notices.join('\n') };
+};
+const manifestOf = () => JSON.parse(fs.readFileSync(path.join(releaseDir, F.MANIFEST), 'utf8'));
+const writeManifest = (m) => fs.writeFileSync(path.join(releaseDir, F.MANIFEST), JSON.stringify(m));
 try {
   assert.throws(() => F.status('../golden'), /unknown fixture/);
   assert.strictEqual(F.status('small-y5', { dir }).status, 'missing');
   assert.strictEqual(F.loadFixture('small-y5', { dir, fetch: false, notice }), null);
-  fs.mkdirSync(repo); F.git(['init', '--bare', remote], { stdio: 'ignore' });
-  F.git(['init', repo], { stdio: 'ignore' });
-  run(['config', 'user.name', 'Fixture test']); run(['config', 'user.email', 'fixture-test@example.invalid']);
-  fs.writeFileSync(path.join(repo, 'keep.txt'), 'preserve worktree and index\n');
-  run(['add', 'keep.txt']); run(['commit', '-m', 'original']);
-  const head = run(['rev-parse', 'HEAD']), index = run(['ls-files', '--stage']);
-  fs.appendFileSync(path.join(repo, 'keep.txt'), 'uncommitted change\n');
   for (const [name, def] of Object.entries(F.FIXTURES)) {
     // Tiny transport payloads: full save/load and invariants are exercised separately by tests/fixtures.js.
     const compressed = zlib.gzipSync(JSON.stringify({ format: F.format(), seed: 7, scenario: 'populous', cols: def.cols, rows: def.rows }));
-    F.writeFixture(name, compressed, stampFor(name, head, compressed), { dir });
+    F.writeFixture(name, compressed, stampFor(name, compressed), { dir });
   }
   // A population fixture's stamp names its year within the limit, its target, and whether it reached it.
   const ref = F.files('medium-ref', dir), refStamp = JSON.parse(fs.readFileSync(ref.stamp));
@@ -61,18 +50,19 @@ try {
   fs.writeFileSync(ref.stamp, JSON.stringify({ ...refStamp, year: 60, living: 999, reached: false }));
   assert.strictEqual(F.status('medium-ref', { dir }).status, 'fresh', 'a target never reached is a valid stamp');
   fs.writeFileSync(ref.stamp, JSON.stringify(refStamp) + '\n');
+  // Stale, wrong-format, damaged and mislabelled saves are refused, before anything is published.
   const f = F.files('small-y5', dir), stamp = JSON.parse(fs.readFileSync(f.stamp));
   assert.strictEqual(F.status('small-y5', { dir }).status, 'fresh');
   fs.writeFileSync(f.stamp, JSON.stringify({ ...stamp, goldenHash: 'old' }));
   assert.strictEqual(F.status('small-y5', { dir }).status, 'stale');
-  assert.throws(() => publish({ dir, repo, remote, notice }), /stale/);
+  assert.throws(() => publish({ dir, release, notice }), /stale/);
   fs.writeFileSync(f.stamp, JSON.stringify({ ...stamp, format: F.format() + 1 }));
   assert.throws(() => F.loadFixture('small-y5', { dir, fetch: false, notice }), /remake the fixtures/);
   fs.writeFileSync(f.stamp, JSON.stringify(stamp));
   const original = fs.readFileSync(f.save);
   fs.writeFileSync(f.save, 'damaged');
   assert.throws(() => F.loadFixture('small-y5', { dir, fetch: false, notice }), /checksum/);
-  assert.throws(() => publish({ dir, repo, remote, notice }), /damaged/);
+  assert.throws(() => publish({ dir, release, notice }), /damaged/);
   fs.writeFileSync(f.save, original);
   // A matching stamp cannot disguise a save header from a different format or scenario.
   for (const override of [{ format: F.format() + 1 }, { scenario: 'founders' }]) {
@@ -83,46 +73,73 @@ try {
     assert.throws(() => F.loadFixture('small-y5', { dir, fetch: false, notice }), /remake the fixtures/);
   }
   fs.writeFileSync(f.save, original); fs.writeFileSync(f.stamp, JSON.stringify(stamp));
-  const first = publish({ dir, repo, remote, notice });
-  assert.strictEqual(run(['rev-list', '--count', first]), '1');
-  assert.strictEqual(run(['ls-tree', '-r', '--name-only', first]).split('\n').length, 2 * Object.keys(F.FIXTURES).length);
-  assert.strictEqual(run(['rev-parse', 'HEAD']), head);
-  assert.strictEqual(run(['ls-files', '--stage']), index);
-  assert.match(fs.readFileSync(path.join(repo, 'keep.txt'), 'utf8'), /uncommitted change/);
-  // Change a stamp so the second tree differs even when both commits share a second.
-  fs.writeFileSync(f.stamp, JSON.stringify({ ...stamp, minutes: 1 }));
-  const second = publish({ dir, repo, remote, notice });
-  assert.notStrictEqual(second, first);
-  assert.strictEqual(run(['rev-list', '--count', second]), '1', 'replacement must have no parent');
-  // A competing publisher wins after ls-remote: our explicit lease must refuse to overwrite it.
-  const originalGit = F.git;
-  const competing = F.git(['commit-tree', run(['rev-parse', `${second}^{tree}`])], { cwd: repo, input: 'competing publisher\n' }).toString().trim();
-  F.git = (args, opts) => {
-    if (args[0] === 'push') originalGit(['push', '--force', remote, `${competing}:refs/heads/fixtures`], { cwd: repo, stdio: 'ignore' });
-    return originalGit(args, opts);
-  };
-  try { assert.throws(() => publish({ dir, repo, remote, notice }), /git push/); }
-  finally { F.git = originalGit; }
-  assert.strictEqual(run(['ls-remote', '--heads', remote, 'fixtures']).split(/\s+/)[0], competing);
+  assert(!fs.existsSync(releaseDir), 'a refused publish uploads nothing');
+  // Nothing published yet: fetch keeps the local saves, as when offline.
   const fetched = path.join(scratch, 'fetched');
-  assert(F.fetchFixtures({ dir: fetched, repo, remote, notice }));
+  let got = fetchInto(fetched);
+  assert(!got.ok && /not yet published/.test(got.said));
+  // A publish: every save and stamp, then the manifest naming their hashes; a fetch takes the whole set.
+  const first = publish({ dir, release, notice });
+  assert.deepStrictEqual(fs.readdirSync(releaseDir).sort(), [F.MANIFEST, ...Object.keys(F.FIXTURES).flatMap((n) => [n + '.gz', n + '.json'])].sort());
+  assert.strictEqual(first.commit, head);
+  assert.deepStrictEqual(manifestOf(), first);
+  got = fetchInto(fetched);
+  assert(got.ok, got.said);
   assert.deepStrictEqual(fs.readFileSync(F.files('small-y5', fetched).save), original);
-  assert.strictEqual(F.status('medium-ref', { dir: fetched }).status, 'fresh');
-  assert.strictEqual(F.fetchFixtures({ dir: fetched, repo, remote: path.join(scratch, 'absent.git'), notice }), false);
+  for (const name of Object.keys(F.FIXTURES)) assert.strictEqual(F.status(name, { dir: fetched }).status, 'fresh');
+  // Replaced in place: a second publish keeps one asset a name, the new stamp beside the new manifest.
+  fs.writeFileSync(f.stamp, JSON.stringify({ ...stamp, minutes: 1 }));
+  const second = publish({ dir, release, notice });
+  assert.notStrictEqual(second.fixtures['small-y5'].json, first.fixtures['small-y5'].json);
+  assert.strictEqual(fs.readdirSync(releaseDir).length, 2 * Object.keys(F.FIXTURES).length + 1);
+  assert(fetchInto(fetched).ok);
+  assert.strictEqual(JSON.parse(fs.readFileSync(F.files('small-y5', fetched).stamp)).minutes, 1);
+  // Offline: the local saves stay.
+  const offline = { where: 'offline', read() { throw new Error('offline'); }, write() { throw new Error('offline'); } };
+  got = fetchInto(fetched, offline);
+  assert(!got.ok && /offline/.test(got.said));
   assert.strictEqual(F.status('medium-ref', { dir: fetched }).status, 'fresh', 'offline fetch preserves saves');
-  // A partially populated remote must not replace any local save.
-  const tree = run(['mktree']), partial = F.git(['commit-tree', tree], { cwd: repo, input: 'incomplete\n' }).toString().trim();
-  run(['push', '--force', remote, `${partial}:refs/heads/fixtures`]);
-  const notices = [];
-  assert.strictEqual(F.fetchFixtures({ dir: fetched, repo, remote, notice: (m) => notices.push(m) }), false);
-  assert.match(notices.join('\n'), /lacks small-y5, small-y40, medium-y5, medium-ref; keeping local saves/);
-  assert.strictEqual(F.status('medium-ref', { dir: fetched }).status, 'fresh');
-  // A complete set with one damaged save replaces nothing either.
-  const damaged = path.join(scratch, 'damaged');
-  fs.cpSync(dir, damaged, { recursive: true });
-  fs.writeFileSync(F.files('medium-y5', damaged).save, 'damaged');
-  publishRaw(damaged);
-  assert.throws(() => F.fetchFixtures({ dir: fetched, repo, remote, notice }), /damaged remote fixture/);
+  // A set made for another fixture list replaces nothing.
+  const complete = manifestOf();
+  const { ['medium-ref']: dropped, ...older } = complete.fixtures;
+  writeManifest({ ...complete, fixtures: { ...older, 'medium-y60': dropped } });
+  got = fetchInto(fetched);
+  assert(!got.ok && /lacks medium-ref/.test(got.said), got.said);
+  // An asset that no longer matches the manifest (a publish under way) replaces nothing.
+  writeManifest(complete);
+  const mediumSave = path.join(releaseDir, 'medium-y5.gz'), mediumBytes = fs.readFileSync(mediumSave);
+  fs.writeFileSync(mediumSave, zlib.gzipSync('a newer save'));
+  got = fetchInto(fetched);
+  assert(!got.ok && /medium-y5 differs from the manifest/.test(got.said), got.said);
+  fs.writeFileSync(mediumSave, mediumBytes);
+  // A set whose manifest matches but whose stamp does not name its save is damaged: refused, and nothing replaced.
+  const damaged = zlib.gzipSync('damaged');
+  fs.writeFileSync(path.join(releaseDir, 'small-y40.gz'), damaged);
+  writeManifest({ ...complete, fixtures: { ...complete.fixtures, 'small-y40': { ...complete.fixtures['small-y40'], gz: F.hash(damaged) } } });
+  assert.throws(() => F.fetchFixtures({ dir: fetched, release, notice }), /damaged remote fixture/);
   assert.deepStrictEqual(fs.readFileSync(F.files('small-y5', fetched).save), original);
-  console.log('fixture tools: status, stale/format/checksum rejection, offline fetch, orphan replacement, lease race and worktree/index preservation pass');
+  // Two publishers: one finishing while the other uploads leaves its manifest, and the mixed assets are refused, never fetched.
+  publish({ dir, release, notice });
+  const rival = { ...release, write(paths) {
+    release.write(paths);
+    if (paths.length > 1) writeManifest({ ...manifestOf(), commit: 'rival' });
+  } };
+  assert.throws(() => publish({ dir, release: rival, notice }), /another publisher/);
+  assert.strictEqual(manifestOf().commit, 'rival');
+  writeManifest({ ...manifestOf(), fixtures: { ...manifestOf().fixtures, 'small-y5': { gz: 'rival', json: 'rival' } } });
+  got = fetchInto(fetched);
+  assert(!got.ok && /small-y5 differs from the manifest/.test(got.said), got.said);
+  // GitHub's release reads with curl, which takes the stand-in's directory as a file:// URL.
+  publish({ dir, release, notice });
+  const viaCurl = path.join(scratch, 'via-curl');
+  got = fetchInto(viaCurl, F.githubRelease({ url: 'file://' + releaseDir }));
+  assert(got.ok, got.said);
+  assert.deepStrictEqual(fs.readFileSync(F.files('small-y5', viaCurl).save), original);
+  // GitHub's release needs a token to publish, and says so before uploading anything.
+  const token = process.env.GH_TOKEN;
+  delete process.env.GH_TOKEN;
+  try { assert.throws(() => F.githubRelease({ url: 'http://127.0.0.1:9' }).write([]), /GH_TOKEN/); }
+  finally { if (token !== undefined) process.env.GH_TOKEN = token; }
+  console.log('fixture tools: status, stale/format/checksum rejection, release publish and fetch, in-place replacement, offline, older and'
+    + ' mixed sets, damaged remote, rival publisher, curl and token checks pass');
 } finally { fs.rmSync(scratch, { recursive: true, force: true }); }

@@ -45,6 +45,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
+| [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
 | [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-163, VB-201, VB-203, VB-204, VB-205, VB-206 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | VB-127, VB-203 | The moving-round day and midnight under 60 ms on `medium-ref` and `small-y40` (the medium-y60 allowance ended on 7 November), with deterministic saves and demographic gates. |
 | [VB-205](backlog/VB-205.md) | Agents and walking: name the largest cost, then cut it | yardstick | 2 | M | VB-203 | The unnamed rest of `Sim.advance` (34% of a year-60 day, no task) split by a profile into named systems, then cut to its share. |

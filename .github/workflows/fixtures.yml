@@ -1,0 +1,30 @@
+# VB-223: remakes the late-game fixtures each night when the simulation or the save format has changed, and publishes them as the assets
+# of the release `fixtures`, replaced in place (Kim, 8 November 2026). No bench here: the bench times its machine (docs/agents/worker.md).
+name: Fixtures
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fixtures
+  cancel-in-progress: false
+jobs:
+  remake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Fetch, remake what is stale, publish if remade
+        run: node tools/fixtures.js refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: node tools/fixtures.js status

@@ -1,13 +1,8 @@
-// Fixture preparation runs first, followed by diagnostic bench history and the generated budget table.
-const F = require('../tests/lib/fixtures.js'), { make, publish } = require('./fixtures.js');
+// Fixture preparation runs first, followed by diagnostic bench history and the generated budget table. The nightly workflow publishes
+// the fixtures (VB-223); here they are published only with a GH_TOKEN, and otherwise remade locally if still stale.
+const { refresh } = require('./fixtures.js');
 async function nightly() {
-  F.fetchFixtures();
-  const remake = Object.keys(F.FIXTURES).filter((name) => F.status(name).status !== 'fresh');
-  if (remake.length) {
-    console.log('nightly: remaking ' + remake.join(', ') + ' in background workers');
-    await make(remake);
-  } else console.log('nightly: all fixtures fresh; no simulation needed');
-  publish();
+  await refresh({ publishing: !!process.env.GH_TOKEN });
   console.log('nightly: fixture preparation complete');
   try { await require('./bench.js').runBench(); }
   catch (e) { console.error('nightly: bench UNAVAILABLE ' + e.message); }
