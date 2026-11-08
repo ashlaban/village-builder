@@ -21,6 +21,7 @@ Bounded history was brought into slice 0 in the session that ran VB-181. Rule 9 
 ### VB-164: may slice 3's plan run before slice 2's? (raised 7 November 2026, backlog review)
 The rule of 3 November says a later slice's plan waits for the plan of the slice before it (now in `BACKLOG.md`, "How this backlog works"; slices 1 and 2 run side by side). VB-164, slice 3's plan, is `ready` at priority 2, so the nightly run takes it after VB-077, VB-127 and VB-163, while slice 2's plan (VB-079) is not done; its file names no exception, as VB-127's does for running ahead of its slice.
 1. Should VB-164 wait for VB-079? **P:** yes, as the rule says: set it `blocked` with `Waits for: VB-079`, so the plans run in slice order (roadmap, section 4: "0, then 1 and 2 side by side, then 3"), since slices 1 and 2 "test the pieces every later slice uses", among them "opportunities and the player". If running it early was meant, say so and its file gets a note giving the reason.
+   *8 Nov 2026:* VB-079 is done (slice 2's plan), so the plans now run in slice order whatever the answer; "P" closes this.
 
 ## Priority 2
 
