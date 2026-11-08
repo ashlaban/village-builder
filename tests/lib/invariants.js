@@ -257,17 +257,17 @@ function checkHerds(st, bad) {
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
   }
 }
-// Goodwill balances (sim/relations, VB-217): none for the dead or with them, at most GOODWILL.cap, each non-zero, finite and mirrored
-// exactly on the other pawn.
+// Goodwill balances (sim/relations, VB-217): none for the dead or with them, at most GOODWILL.cap, each {v, t} with v non-zero and finite,
+// t no later than now, mirrored exactly on the other pawn ({v: -v, t}).
 function checkGoodwill(st, p, bad) {
   const { GOODWILL } = VB['sim/rules'];
   if (!p.alive) { bad.push(`pawns[${p.id}]: dead with a goodwill map`); return; }
   if (p.goodwill.size > GOODWILL.cap) bad.push(`pawns[${p.id}]: ${p.goodwill.size} goodwill balances, over the cap of ${GOODWILL.cap}`);
-  for (const [j, v] of p.goodwill) {
+  for (const [j, e] of p.goodwill) {
     const where = `pawns[${p.id}].goodwill<${j}>`, q = st.pawns[j], m = q && q.goodwill && q.goodwill.get(p.id);
     if (j === p.id || !q || !q.alive) { bad.push(`${where}: not a living other pawn`); continue; }
-    if (!(Number.isFinite(v) && v !== 0)) bad.push(`${where}: balance is ${v}`);
-    if (m !== -v) bad.push(`${where}: no exact mirror on pawn ${j} (${m})`);
+    if (!(Number.isFinite(e.v) && e.v !== 0 && e.t <= st.t)) bad.push(`${where}: ${JSON.stringify(e)} at ${st.t}`);
+    if (!m || m.v !== -e.v || m.t !== e.t) bad.push(`${where}: no exact mirror on pawn ${j}`);
   }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.
