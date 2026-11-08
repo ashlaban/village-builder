@@ -165,7 +165,8 @@ VB['sim/rules'] = (() => {
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
-    askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
+    askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
+    // next harvest and at least this many days (VB-222)
     storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };
   // ---- goodwill (sim/relations, VB-217; design.md, The gift): a balance between two pawns in customary rations ----

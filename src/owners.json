@@ -30,6 +30,7 @@
     "pawn.ties": "sim/relations",
     "pawn.rel": "sim/relations",
     "pawn.goodwill": "sim/relations",
+    "household.askedIn": "sim/help",
     "pawn.att": "culture",
     "pawn.anc": "culture",
     "pawn.advocate": "culture",
