@@ -38,3 +38,9 @@ t0 = Date.now(); Sim.advance(st, Sim.YEAR * 10); console.log(`\nten years in ${D
 show('ten years on');
 console.log('  recent events:', st.events.slice(0, 12).map((e) => e.text).join('\n    '));
 console.log('  hungry days:', st.households.map((h) => h.hungryDays).join(','), '| cultures:', st.cenv.cultures.map((c) => c.name).join(', '));
+// VB-224: the rankings that ask only their candidates' line farms match the full list (the fixtures check late states in verify).
+const { compareRankings } = require('./lib/heir-rankings.js'), assert = require('assert');
+const c = compareRankings(VB, st);
+assert.deepStrictEqual(c.bad, [], c.bad.slice(0, 4).join('; '));
+assert(c.claimed > 0, 'some ranking must depend on another farm\'s claim');
+console.log(`  rankings by line: ${c.checked} match the full list; another farm's claim mattered in ${c.claimed}`);

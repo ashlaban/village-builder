@@ -74,7 +74,7 @@ VB['sim/records'] = (() => {
       larder: [], fodderDay: -1,
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
-    f.household = id; f.line = holder; f.state = 'occupied';
+    f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
     for (const m of members) R.pawns[m].household = id;
     if (f.fence) for (const s of f.fence) s.owner.id = id;
     return hh;
@@ -102,14 +102,17 @@ VB['sim/records'] = (() => {
     for (const c of childrenOf(st, id)) out.add(c); for (const s of siblingsOf(st, id)) out.add(s);
     const sp = spouseOf(st, id); if (sp !== null) out.add(sp); return [...out];
   };
-  // Indexes over the records, built on first use and caught up with new pawns, unions and households on each read (records are only
-  // appended); the places that end a union or change a holder call noteUnionEnd and noteHolder. Not enumerable: they are derived data.
+  // Indexes over the records, built on first use and caught up with new pawns, unions, households and farmsteads on each read (records are
+  // only appended); the places that end a union, change a holder or set a farm's line call noteUnionEnd, noteHolder and noteLine. Not
+  // enumerable: they are derived data.
   // @state st.idx: {children: Map of pawn id to child ids, spouse: Map of pawn id to current spouse id, holds: Map of pawn id to the ids of
-  //   households it holds, union: Map of pawn id to active union id, widowed: Set of pawn ids with an ended union;
-  //   seen: counts of pawns, unions and households already indexed}; derived from the records, see sim/records
+  //   households it holds, lines: Map of pawn id to the ids of farmsteads whose line it is or was (VB-224), union: Map of pawn id to active
+  //   union id, widowed: Set of pawn ids with an ended union; seen: counts of pawns, unions, households and farmsteads already indexed};
+  //   derived from the records, see sim/records
   function index(st) {
     if (!st.idx) Object.defineProperty(st, 'idx', {
-      value: { children: new Map(), spouse: new Map(), union: new Map(), widowed: new Set(), holds: new Map(), np: 0, nu: 0, nh: 0 }, writable: true });
+      value: { children: new Map(), spouse: new Map(), union: new Map(), widowed: new Set(), holds: new Map(), lines: new Map(),
+        np: 0, nu: 0, nh: 0, nf: 0 }, writable: true });
     const x = st.idx;
     for (; x.np < st.pawns.length; x.np++) {
       const p = st.pawns[x.np];
@@ -127,6 +130,7 @@ VB['sim/records'] = (() => {
       }
     }
     while (x.nh < st.households.length) addHolder(x, st.households[x.nh++]);
+    while (x.nf < st.farmsteads.length) addLine(x, st.farmsteads[x.nf++]);
     return x;
   }
   function noteHolder(st, hh) { if (st.idx && hh.id < st.idx.nh) addHolder(st.idx, hh); } // households not yet indexed are added by index()
@@ -134,6 +138,28 @@ VB['sim/records'] = (() => {
     if (hh.holder === null || hh.holder === undefined) return;
     const l = x.holds.get(hh.holder);
     if (!l) x.holds.set(hh.holder, [hh.id]); else if (!l.includes(hh.id)) { l.push(hh.id); l.sort((a, b) => a - b); }
+  }
+  // A farm keeps an entry under every line it has had; householdsOfLine reads only those whose line is still that pawn.
+  function noteLine(st, f) { if (st.idx && f.id < st.idx.nf) addLine(st.idx, f); } // farmsteads not yet indexed are added by index()
+  function addLine(x, f) {
+    if (f.line === null || f.line === undefined) return;
+    const l = x.lines.get(f.line);
+    if (!l) x.lines.set(f.line, [f.id]); else if (!l.includes(f.id)) { l.push(f.id); l.sort((a, b) => a - b); }
+  }
+  // The ids of the live households whose farm's line is pawn `id`, or, on a farm with no line, whose holder it is: those whose direct
+  // heirs are its descendants (heirRanking's lineOf), in farmstead order, then holdings.
+  function householdsOfLine(st, id) {
+    const x = index(st), out = [];
+    for (const k of x.lines.get(id) || []) {
+      const f = st.farmsteads[k];
+      if (f.line !== id || f.household === null || f.household === undefined) continue;
+      if (!st.households[f.household].dissolved) out.push(f.household);
+    }
+    for (const k of x.holds.get(id) || []) {
+      const h = st.households[k], line = st.farmsteads[h.farmstead].line;
+      if (!h.dissolved && h.holder === id && (line === null || line === undefined)) out.push(k);
+    }
+    return out;
   }
   function noteUnionEnd(st, u) {
     const x = st.idx; if (!x) return;
@@ -167,6 +193,16 @@ VB['sim/records'] = (() => {
     return u ? (u.a === id ? u.b : u.a) : null;
   }
   const childrenOf = (st, id) => [...(index(st).children.get(id) || [])];
+  // The ancestors of `ids`, one to `generations` up (VB-224); each is reached first at its nearest generation, and walked from there.
+  function ancestorsOf(st, ids, generations) {
+    const out = new Set();
+    for (let up = 0, gen = ids; up < generations && gen.length; up++) {
+      const next = [];
+      for (const id of gen) for (const q of [st.pawns[id].father, st.pawns[id].mother]) if (q !== null && !out.has(q)) { out.add(q); next.push(q); }
+      gen = next;
+    }
+    return out;
+  }
   const siblingsOf = (st, id) => {
     const p = st.pawns[id]; if (p.father === null && p.mother === null) return [];
     const ids = new Set([...(p.father !== null ? childrenOf(st, p.father) : []), ...(p.mother !== null ? childrenOf(st, p.mother) : [])]);
@@ -238,5 +274,6 @@ VB['sim/records'] = (() => {
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
+    noteLine, householdsOfLine, ancestorsOf,
   };
 })();

@@ -34,4 +34,12 @@ child.born = st.t - 15 * VB.sim.YEAR; child.age = 15; child.role = 'child';
 assert(checkState(st).some((e) => e.includes('role cache')), 'birthday allowance must be bounded');
 child.born = born; child.age = VB.sim.age(st, child); VB.sim.refreshRoles(st);
 assert.deepStrictEqual(checkState(st), []);
-console.log('owner caches ok: roles, exact tile owners and membership corruption detected; strict checks after refresh');
+// The index of lines (VB-224): a farm's line written without noteLine must be detected, and noting it repairs the index.
+const lineFarm = st.farmsteads[st.households[0].farmstead], oldLine = lineFarm.line;
+lineFarm.line = st.households[0].members.find((m) => m !== st.households[0].holder);
+assert(checkState(st).some((e) => e.includes('index of lines')), 'an unnoted line must be detected');
+VB['sim/records'].noteLine(st, lineFarm);
+assert.deepStrictEqual(checkState(st), []);
+lineFarm.line = oldLine; VB['sim/records'].noteLine(st, lineFarm);
+assert.deepStrictEqual(checkState(st), []);
+console.log('owner caches ok: roles, exact tile owners, membership and line index corruption detected; strict checks after refresh');

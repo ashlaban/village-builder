@@ -57,6 +57,10 @@ function checkState(st) {
       bad.push(`households[${h.id}]: askedIn is ${h.askedIn}`);
     const f = st.farmsteads[h.farmstead];
     if (!f || f.household !== h.id) bad.push(`households[${h.id}]: farmstead ${h.farmstead} does not name it`);
+    // the index of lines (sim/records, VB-224): a household is found under its farm's line, or with none, its holder
+    const line = f && f.line !== null && f.line !== undefined ? f.line : h.holder;
+    if (line !== null && !globalThis.VB['sim/records'].householdsOfLine(st, line).includes(h.id))
+      bad.push(`households[${h.id}]: not in the index of lines under ${line}`);
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   for (const holder of [...st.households, ...st.villages]) {

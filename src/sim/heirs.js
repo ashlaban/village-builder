@@ -4,7 +4,7 @@ VB['sim/heirs'] = (() => {
     joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
       kinNear,
       isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
-      atHousehold,
+      atHousehold, noteLine, householdsOfLine, ancestorsOf,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -72,7 +72,9 @@ VB['sim/heirs'] = (() => {
     if (!ok.length) return ok; // No competing direct claim can change an empty ranking.
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id) : ownFirstOf(st, hh);
+    // Only a farm whose line is a candidate's ancestor, at most four generations up (lineOf), can have the candidate first (VB-224).
+    const claims = ownFirstSet ? ownFirstSet.filter((e) => e[1] !== hh.id)
+      : ownFirstOf(st, hh, [...ancestorsOf(st, ok, 4)].flatMap((id) => householdsOfLine(st, id)));
     if (cu.ownHeir === 'keeps') {
       // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
       // parents') and drops the other claim, which passes to the next in that line
@@ -87,10 +89,10 @@ VB['sim/heirs'] = (() => {
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
-  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet.
-  function ownFirstOf(st, hh = null) {
+  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet. `among`: only these household ids.
+  function ownFirstOf(st, hh = null, among = null) {
     const out = [];
-    for (const id of st.liveHouseholds) {
+    for (const id of among || st.liveHouseholds) {
       const o = st.households[id];
       if (o !== hh) { const r = heirRanking(st, o, null, true); if (r.length) out.push([r[0], o.id]); }
     }
@@ -165,7 +167,7 @@ VB['sim/heirs'] = (() => {
       if (sp !== null && st.pawns[sp].alive && from && st.pawns[sp].household === from.id) moveTo(st, sp, hh.id);
       for (const c of kids) moveTo(st, c, hh.id);
     }
-    hh.holder = heir; f.line = heir; noteHolder(st, hh);
+    hh.holder = heir; f.line = heir; noteHolder(st, hh); noteLine(st, f);
     // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
     if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death')) passGoodwill(st, old, heir, GOODWILL.share);
     if (op && op.alive && op.household === hh.id) {
@@ -293,7 +295,7 @@ VB['sim/heirs'] = (() => {
     const spouse = sp !== null && st.pawns[sp].alive && st.pawns[sp].household === hh.id ? sp : null;
     const ranking = heirRanking(st, hh, cu), heir = heirFor(st, hh, ranking, dead.id);
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
-      hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
+      hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') { f.line = spouse; noteLine(st, f); }
       passGoodwill(st, dead.id, spouse, GOODWILL.share); // the widow takes over as at any holder's death
       if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       // under "a right to her keep" the spouse holds only for a minor heir, or, with no heir at all, as the one left on the farm
