@@ -56,6 +56,6 @@ near(R.balance(st, heir, other2), -10, 'and owes half of what was owed'); ok('af
 
 // a death ends the pawn's balances on both sides
 killPawn(st, partner, 'killed');
-assert.strictEqual(st.pawns[partner].goodwill.size, 0); assert(!st.pawns[heir].goodwill.has(partner) && !st.pawns[old].goodwill.has(partner));
+assert.strictEqual(st.pawns[partner].goodwill, undefined, 'the dead keep no map'); assert(!st.pawns[heir].goodwill.has(partner) && !st.pawns[old].goodwill.has(partner));
 ok('after a death');
 console.log(`goodwill ok: booking, decay, netting, the cap of ${GOODWILL.cap}, the seasonal pass, a save, a retirement and a death`);
