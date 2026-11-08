@@ -46,4 +46,15 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   assert.strictEqual(a.job.kind, 'cook', 'the cook goes home to cook'); assert.strictEqual(wood.claims.length, 0); assert.strictEqual(wood.done, 1.5);
   assert(st.jobs.has('wood:x'), 'the other job stays on the board');
 }
+{ // a larder that covers the day in pieces: their sum may pass the want by a rounding error, and the meal must not take a negative amount
+  // (populous 3, small, stepped a year at a time, crashed in year 15: 8 rations, 0.3 eaten early, then 7.700000000000001 from the larder)
+  const st = fresh(), hh = st.households[0]; setup(st, hh);
+  const adults = hh.members.filter((id) => VB['sim/records'].age(st, st.pawns[id]) >= 14).length;
+  st.ECON = { ...st.ECON, ration: { adult: 4 / adults, child: 0 } }; // a need of 4 rations, so 0.1 early leaves 3.9
+  hh.rations = 0; hh.grain = seedReserve(st, hh);
+  hh.larder = [{ kind: 'fresh meat', n: 0.1, until: st.t + 2 * DAY }, ...Array.from({ length: 6 }, (_, i) => ({ kind: 'butter', n: 0.2, until: st.t + (10 + i) * DAY })),
+    { kind: 'salt meat', n: 100, until: st.t + 40 * DAY }];
+  assert.doesNotThrow(() => feedHousehold(st, hh), 'a rounding error in the larder\'s sum is not a negative meal');
+  assert.strictEqual(hh.hungryDays, 0, 'the larder fed them');
+}
 console.log('meals ok');
