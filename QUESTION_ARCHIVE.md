@@ -2,6 +2,33 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 8 November 2026 (VB-202)
+
+## VB-202: the late fixtures, their remake and their storage (asked in the session, 8 November 2026)
+Asked while taking VB-202. All four fixtures were made at `4df5766` (5 November); the golden file has changed since. `npm run nightly`
+already remakes stale fixtures, but the scheduled nightly task has been disabled since 2 November, and the interactive sessions that
+changed the golden file never ran it; the tests use a stale fixture with only a notice. A remake takes about an hour, nearly all of it
+`medium-y60` (59 minutes on 5 November); the others take 1 to 16 minutes. The repository is public, so GitHub's standard runners cost no
+minutes. Each publish of the orphan `fixtures` branch uploads 40 to 60 MB, and a force-pushed commit's objects may linger.
+1. Which branch? **P:** the session's branch, with the PR titled "Nightly 2026-11-08". **A (Kim, 8 Nov):** as proposed (P).
+2. The bench's budget column still holds the lines of 3 November (160 ms a game day, `medium-y60`'s 400 ms step allowance). Should VB-202
+   carry the lines decided on 7 November into `tools/bench.js`, or leave that to VB-203? **P:** now, as numbers. **A (Kim, 8 Nov):** as proposed (P).
+3. Should this session remake all five fixtures, `medium-y60` included, and publish them? **A (Kim, 8 Nov):** "Make all, but skip
+   medium-y60. Can we use git lfs here? We don't need the versions." (Confirmed first, from the record of 7 November: `medium-y60` holds
+   2,492 living, and the late reference became the first year populous medium reaches 1,000, the start of year 14 on `6eaa6bc`.)
+4. How should the remake be made routine? **P:** the worker's nightly remakes all stale fixtures; verify says how far behind they are.
+   **A (Kim, 8 Nov):** "Can a github ci worker be setup for this? Will it consume too many free minutes and mbs?" Then: "Yes, nightly
+   saves, no medium-y60 at all. Use git lfs for storage".
+5. Where should the fixtures live? Git LFS keeps every version and counts it against the free 10 GiB storage until the repository is
+   deleted, about 750 MB a month at a nightly remake. Release assets on one release are replaced in place, the old ones deleted, with no
+   total size or bandwidth limit, and are fetched over HTTPS without logging in. **P:** release assets on one `fixtures` release; the
+   orphan branch retired. **A (Kim, 8 Nov):** as proposed (P).
+6. Does "no medium-y60 at all" replace the decision of 7 November (VB-203's question 3: a stress fixture reported nightly at twice the
+   lines)? **P:** yes: `medium-y60` leaves the fixture set, the bench and the budget table; `medium-ref` is the only late medium fixture.
+   **A (Kim, 8 Nov):** as proposed (P).
+7. The work has outgrown VB-202's size M. **P:** two batches: VB-202 without its publish, and a new task for the release assets and the
+   nightly workflow, whose first publish runs once it is merged to `main`. **A (Kim, 8 Nov):** as proposed (P).
+
 # Archived 8 November 2026 (VB-217)
 
 ## VB-217: goodwill's core, and help as a seasonal ask (asked in the session, 8 November 2026)
