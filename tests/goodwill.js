@@ -1,7 +1,7 @@
-// Goodwill (VB-217; design.md, The gift): a kin gift books its worth between the two holders, one signed number mirrored on both; it decays
-// toward zero by a step each season, halving in GOODWILL.halfLife years (tunable from 2 to 20), large balances losing more than small;
-// balances net against each other, keep at most 32 counterparts, pass half at a retirement, end at a death, are forgotten under a ration,
-// and survive a save.
+// Goodwill (VB-217; design.md, The gift): a kin gift books its worth between the two holders, one signed balance {v, t} mirrored on both,
+// read as v halved every GOODWILL.halfLife years since t (tunable from 2 to 20), so a large balance loses more than a small one and no step
+// decays it; balances net, keep at most 32 counterparts, read as 0 once under a ration and are dropped when a pawn next books, pass half at
+// a retirement, end at a death, and survive a save.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const R = VB['sim/relations'], { issue } = VB['sim/commands'], { killPawn, retireHolder } = VB['sim/lifecycle'];
@@ -9,46 +9,49 @@ const { floorOf } = VB['sim/hunger'], { GOODWILL } = VB['sim/rules'], { checkSta
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const w = r.value, st = Sim.seed(w, 7, 'populous');
 const near = (x, y, what, tol = 1e-9) => assert(Math.abs(x - y) < tol, `${what}: ${x}, expected ${y}`);
-const ok = (what) => { const bad = checkState(st).filter((m) => m.includes('goodwill')); assert.deepStrictEqual(bad, [], `${what}: ${bad.slice(0, 3).join('; ')}`); };
-const season = (p) => R.decayGoodwill(st, st.pawns[p]); // one season's step for the pairs where p has the lower id
+// goodwill's invariants only: the decay checks move a clock by hand, which leaves age-based caches stale (tests/invariants.js checks all)
+const ok = (s, what) => { const bad = checkState(s).filter((m) => m.includes('goodwill')); assert.deepStrictEqual(bad, [], `${what}: ${bad.slice(0, 3).join('; ')}`); };
 const holders = st.households.filter((h) => !h.dissolved && h.holder !== null);
-const [A, B] = holders, a = Math.min(A.holder, B.holder), b = Math.max(A.holder, B.holder), giver = A.holder === a ? A : B;
+const [A, B] = holders, a = A.holder, b = B.holder;
+const alive = (s) => s.pawns.filter((p) => p.alive).map((p) => p.id);
 
 // a kin gift between two holders books its worth on both sides
-giver.grain = floorOf(st, giver) + st.pawns[a].buffer * 100 + 500;
-assert.strictEqual(issue(st, { actor: a, verb: 'give', target: (giver === A ? B : A).id, args: { good: 'grain', n: 40 }, source: 'help' }), true);
+A.grain = floorOf(st, A) + st.pawns[a].buffer * 100 + 500;
+assert.strictEqual(issue(st, { actor: a, verb: 'give', target: B.id, args: { good: 'grain', n: 40 }, source: 'help' }), true);
 near(R.balance(st, a, b), 40, 'the giver is owed the gift'); near(R.balance(st, b, a), -40, 'the receiver owes it');
-ok('after a gift');
+assert.deepStrictEqual(st.pawns[a].goodwill.get(b), { v: 40, t: st.t }); assert.deepStrictEqual(st.pawns[b].goodwill.get(a), { v: -40, t: st.t });
+// a gift back nets against it, and a larger one turns it
+R.book(st, b, a, 15); near(R.balance(st, a, b), 25, 'netted');
+R.book(st, b, a, 35); near(R.balance(st, a, b), -10, 'turned');
+ok(st, 'after gifts');
 
-// it decays toward zero by a step each season, halving in the half-life; a large balance loses more than a small one
-const half = GOODWILL.halfLife;
-for (const years of [2, 4, 20]) {
-  GOODWILL.halfLife = years; R.addGoodwill(st, a, b, 40 - R.balance(st, a, b)); // back to 40
-  for (let s = 0; s < 4 * years; s++) season(a);
-  near(R.balance(st, a, b), 20, `halved in ${years} years`, 1e-6);
+{ // decay when read, on a state of its own, whose clock is moved by hand
+  const s = Sim.seed(w, 7, 'populous'), [x, y, z, u] = alive(s), half = GOODWILL.halfLife;
+  for (const years of [2, 4, 20]) {
+    GOODWILL.halfLife = years; R.book(s, x, y, 40);
+    const before = s.pawns[x].goodwill.get(y);
+    s.t += years * Sim.YEAR; near(R.balance(s, x, y), 20, `halved in ${years} years`, 1e-9);
+    assert.strictEqual(s.pawns[x].goodwill.get(y), before, 'reading writes nothing');
+    R.addGoodwill(s, x, y, -R.balance(s, x, y)); assert(!s.pawns[x].goodwill.has(y), 'cancelled to nothing, dropped');
+  }
+  GOODWILL.halfLife = half;
+  R.book(s, x, y, 100); R.book(s, x, z, 10); s.t += Sim.YEAR;
+  near((100 - R.balance(s, x, y)) / (10 - R.balance(s, x, z)), 10, 'a large balance loses more, in proportion');
+  // under a ration it reads as 0 and is still stored, until x books again
+  R.book(s, x, u, 1.5); s.t += 4 * Sim.YEAR; // 1.5 halves to 0.75
+  assert.strictEqual(R.balance(s, x, u), 0, 'forgotten reads as 0'); assert(s.pawns[x].goodwill.has(u), 'not yet dropped');
+  assert(!R.goodwillOf(s, x).some((g) => g.other === u), 'not listed');
+  R.book(s, x, y, 5); assert(!s.pawns[x].goodwill.has(u) && !s.pawns[u].goodwill.has(x), 'dropped, on both sides, when x booked');
+  ok(s, 'after decay');
 }
-GOODWILL.halfLife = half; R.addGoodwill(st, a, b, 100 - R.balance(st, a, b));
-const c = st.pawns.find((p) => p.alive && p.id > b).id; R.book(st, a, c, 10);
-season(a);
-const lost100 = 100 - R.balance(st, a, b), lost10 = 10 - R.balance(st, a, c);
-near(lost100 / lost10, 10, 'loss proportional to size'); near(R.balance(st, c, a), -R.balance(st, a, c), 'the mirror decays with it');
-// a gift back nets against it, and may turn it
-R.book(st, b, a, 30); near(R.balance(st, a, b), 100 - lost100 - 30, 'netted');
-R.book(st, b, a, 200); assert(R.balance(st, a, b) < 0 && R.balance(st, b, a) > 0, 'turned');
-ok('after decay and netting');
 
 // at the cap, a new counterpart drops the smallest balance, on both sides
-const others = st.pawns.filter((p) => p.alive && p.id !== a && p.id !== b && p.id !== c).slice(0, GOODWILL.cap);
+const others = st.pawns.filter((p) => p.alive && p.id !== a && p.id !== b).slice(0, GOODWILL.cap);
 others.forEach((p, i) => R.book(st, a, p.id, 2 + i));
 assert.strictEqual(st.pawns[a].goodwill.size, GOODWILL.cap, 'held at the cap');
 assert(!st.pawns[a].goodwill.has(others[0].id) && !st.pawns[others[0].id].goodwill.has(a), 'the smallest went, on both sides');
 assert(st.pawns[a].goodwill.has(b), 'a larger one stayed');
-ok('at the cap');
-
-// the seasonal step forgets a balance that decays under a ration
-const [x, y] = [others[5].id, others[6].id].sort((m, n) => m - n); R.book(st, x, y, 1.02);
-season(x); assert(!st.pawns[x].goodwill.has(y) && !st.pawns[y].goodwill.has(x), 'under a ration, forgotten');
-ok('after the seasonal step');
+ok(st, 'at the cap');
 
 // a save keeps the balances
 const back = Sim.load(w, JSON.parse(JSON.stringify(Sim.save(st))));
@@ -61,12 +64,12 @@ const old = H.holder, partner = outside[10].id, other2 = outside[11].id;
 R.book(st, old, partner, 60); R.book(st, other2, old, 20);
 assert(retireHolder(st, H.id), 'retired'); const heir = H.holder; assert.notStrictEqual(heir, old);
 near(R.balance(st, old, partner), 30, 'the retired holder keeps half'); near(R.balance(st, heir, partner), 30, 'the heir is owed half');
-near(R.balance(st, heir, other2), -10, 'and owes half of what was owed'); ok('after a retirement');
+near(R.balance(st, heir, other2), -10, 'and owes half of what was owed'); ok(st, 'after a retirement');
 
 // a death ends the pawn's balances on both sides, and its map
 killPawn(st, partner, 'killed');
 assert.strictEqual(st.pawns[partner].goodwill, undefined, 'the dead keep no map');
 assert(!st.pawns[heir].goodwill.has(partner) && !st.pawns[old].goodwill.has(partner));
-ok('after a death');
-console.log(`goodwill ok: booking, a seasonal decay halving in 2, 4 and 20 years, netting, the cap of ${GOODWILL.cap}, forgetting, a save, `
-  + 'a retirement and a death');
+ok(st, 'after a death');
+console.log(`goodwill ok: booking, netting, decay when read halving in 2, 4 and 20 years, forgetting when touched, the cap of ${GOODWILL.cap}, `
+  + 'a save, a retirement and a death');

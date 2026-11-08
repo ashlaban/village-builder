@@ -170,8 +170,8 @@ VB['sim/rules'] = (() => {
   };
   // ---- goodwill (sim/relations, VB-217; design.md, The gift): a balance between two pawns in customary rations ----
   const GOODWILL = {
-    halfLife: 4, forget: 1, cap: 32, // a balance halves in 4 years (tunable from 2 to 20), by a step each season; one under a ration
-    // is forgotten; counterparts a pawn
+    halfLife: 4, forget: 1, cap: 32, // a balance halves in 4 years (tunable from 2 to 20), read when needed; one under a ration is
+    // forgotten; counterparts a pawn
     share: 0.5, // the share of a holder's balances that passes to the new holder at a retirement or a holder's death
     limitDays: 30, // allowance: what the receiver owes beyond this many days of its household's need counts against it
     acts: false, // slice 1 books and shows goodwill only; slice 4 switches on its terms (VB-220)
