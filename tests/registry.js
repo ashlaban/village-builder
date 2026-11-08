@@ -125,7 +125,9 @@ assert(Number.isFinite(sink));
 // CLI accepts new runs and both plain/gzipped saves, and refuses an unknown pawn.
 const invoke = (args) => cp.execFileSync(process.execPath, [path.join(root, 'tools/rules.js'), ...args], { encoding: 'utf8' });
 const rows = JSON.parse(invoke(['--json']));
-assert.deepStrictEqual(rows[0].contributions.map((c) => c.key), ['hunger', 'frailty']);
+const row = (id) => rows.find((x) => x.rule === id);
+assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
+assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'reserve']); // VB-216
 assert(invoke([]).includes('HEALTH.riskBelow'));
 const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
 assert.strictEqual(cliExplanation.pawn, 0);

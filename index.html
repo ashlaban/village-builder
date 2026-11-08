@@ -2129,6 +2129,7 @@ VB['sim/rules'] = (() => {
   const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
+    floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
     storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };
@@ -3247,6 +3248,13 @@ VB['sim/relations'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
 
+  // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
+  //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
+  //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
+  //   own reserve (sim/help); goodwill's term comes with VB-217. ALLOWANCE_BOUND is a bound above any store, for the registry's checks.
+  const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
+
   // A pair of pawns as one number, the smaller id first, and back.
   const PAIR = 2 ** 21;
   const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
@@ -3515,7 +3523,7 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
-    reasonsOf,
+    reasonsOf, ALLOWANCE_BOUND,
   };
 })();
 </script>
@@ -4366,9 +4374,10 @@ VB['sim/stores'] = (() => {
 <script>
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'];
+  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
     const f = st.farmsteads[hh.farmstead];
@@ -4379,6 +4388,11 @@ VB['sim/hunger'] = (() => {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
     return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
   }
+  // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
+  const floorOf = (st, hh) => seedReserve(st, hh) + HELP.floorDays * dailyNeed(st, hh);
+  // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
+  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
+    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
   const larderOf = (hh, kind) => hh.larder.reduce((s, l) => s + (!kind || l.kind === kind ? l.n : 0), 0);
@@ -4441,7 +4455,7 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
-  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+  return { feedHousehold, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
 </script>
 <script>
@@ -4452,6 +4466,12 @@ VB['sim/help'] = (() => {
   const { HELP } = VB['sim/rules'];
   const { personEvent, childrenOf, siblingsOf, atHousehold } = VB['sim/records'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
+  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
+  // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
+  // generosity until traits; a household without a holder keeps the most, as surplus does
+  Rules.contribute({ rule: 'allowance', source: 'sim/help', key: 'reserve', label: 'Own reserve', range: [-ALLOWANCE_BOUND, 0],
+    tunables: ['HELP.bufferDays', 'HELP.floorDays'],
+    value: (st, c) => -((c.giver !== null ? st.pawns[c.giver].buffer : HELP.bufferDays[1]) - HELP.floorDays) * dailyNeed(st, c.from) });
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
     const holder = hh.holder !== null ? st.pawns[hh.holder] : null, buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
