@@ -11,7 +11,7 @@ VB['sim/exchange'] = (() => {
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
   Rules.contribute({ rule: 'allowance', source: 'sim/relations', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
-    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays', 'GOODWILL.halfLife'],
+    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
@@ -53,7 +53,7 @@ VB['sim/exchange'] = (() => {
       if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
         n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
       if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
-      if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain, 'help'); // the giver is owed the gift's worth (Who books: the two holders)
+      if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
