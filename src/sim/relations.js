@@ -7,6 +7,13 @@ VB['sim/relations'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
 
+  // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
+  //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
+  //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
+  //   own reserve (sim/help); goodwill's term comes with VB-217. ALLOWANCE_BOUND is a bound above any store, for the registry's checks.
+  const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
+
   // A pair of pawns as one number, the smaller id first, and back.
   const PAIR = 2 ** 21;
   const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
@@ -275,6 +282,6 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
-    reasonsOf,
+    reasonsOf, ALLOWANCE_BOUND,
   };
 })();

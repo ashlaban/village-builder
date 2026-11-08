@@ -164,6 +164,7 @@ VB['sim/rules'] = (() => {
   const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
+    floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
     storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };

@@ -1,8 +1,9 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, DAY, YEAR_DAYS } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'];
+  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
   // Seed kept back for the fields not yet sown this year; never eaten.
   function seedReserve(st, hh) {
     const f = st.farmsteads[hh.farmstead];
@@ -13,6 +14,11 @@ VB['sim/hunger'] = (() => {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
     return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
   }
+  // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
+  const floorOf = (st, hh) => seedReserve(st, hh) + HELP.floorDays * dailyNeed(st, hh);
+  // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
+  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
+    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
   const larderOf = (hh, kind) => hh.larder.reduce((s, l) => s + (!kind || l.kind === kind ? l.n : 0), 0);
@@ -75,5 +81,5 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
-  return { feedHousehold, dailyNeed, seedReserve, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+  return { feedHousehold, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
