@@ -2,6 +2,52 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 8 November 2026 (VB-079, slice 2's plan)
+
+Asked by VB-079 in the session Kim started on 7 November and answered there, in the app, late on 7 November and early on 8 November.
+Recorded in the slice 2 tasks (VB-169, VB-208 to VB-215, VB-078), `design.md` (Vision and scope, section 15) and `docs/roadmap.md`
+(section 3.2). Kim's answers are quoted as given.
+
+## VB-079: a life, the player inhabits a pawn (raised 7 November 2026)
+Measured that day on the fixtures (all stale golden hash): a save takes 1.09 s at medium-y5 (budget 0.5 s); `recordOf` for one
+holder takes 1.76 ms at small-y40; at 30× a game day lasts 1.6 s.
+1. When the player inhabits a pawn and gives it no command, who chooses its work? **P:** the planner chooses for it as for anyone; a
+   player's command takes precedence until done; a "Hold" toggle (VB-076's control) makes the planner leave it alone until released.
+   **A (Kim, 7 Nov):** "So the player input should be that they can override the pawns own agency, primarily through queueing commands
+   that gets priority before the pawns own logic. But if the player-controlled pawn is left to it's own device it should fall-back to
+   an appropriate automatic behaviour for its role. The player should have the option to toggle automatically behaviour off."
+2. How does the inhabited pawn's answer count at the yearly meeting? **P:** a ballot: for each custom it answers, its whole weight
+   (voice × prestige) on the chosen option, at that sitting only.
+   **A (Kim, 7 Nov):** advocacy only.
+3. Autosave at each moving round would freeze the page for about 1.1 s at medium-y5 until VB-199 and VB-204. **P:** build saves now
+   (to file, from file, IndexedDB keeping the last 3, autosave when the page is hidden, a Save button); autosave at the moving round
+   once a save at `medium-ref` is under 0.5 s.
+   **A (Kim, 7 Nov):** P.
+4. Which ambitions should the first version offer besides the line's prestige? **P:** hold three farms, change a custom, hold land
+   after service, found a village.
+   **A (Kim, 7 Nov):** "The ambitions system is tentative (that they should be inside the game is not my idea, but from an agent). It
+   feels to me this can be postponed to late in the design (nothing else depends on it)."
+5. With the automatic behaviour off and nothing queued, what does the pawn do at dark (the end of work)? **P:** it goes home, since
+   needs go on for every pawn.
+   **A (Kim, 8 Nov):** "Goes home unless the players commands otherwise. If there are no commands, it follows its usual automatic
+   behaviour."
+6. The moving round decides claims on empty farms, service and moving out. When the player queues one of these acts, when does it
+   happen? **P:** kept as the player's wish and done first at the next round, if its check passes then.
+   **A (Kim, 8 Nov):** "The same rules should apply to player controlled pawn as to other paws to the extent possible."
+7. What say does the player have over its pawn's marriage in slice 2? **P:** none until courting (VB-036, slice 7); the round matches
+   the player's pawn as anyone.
+   **A (Kim, 8 Nov):** P.
+8. Saves: decided on 30 October, "the whole world is saved" and "a save from another build is refused"; VB-074 regenerates the world
+   from its seed and refuses only by a hand-kept format number, and saving the whole world would add 14.3 MB at medium. **P:** each
+   save names its build (a hash of `src/` written by `build.py`); a save from any other build is refused, with the message and the
+   button to delete it and start a new game; within one build the world regenerates exactly, so the save stays small.
+   **A (Kim, 8 Nov):** P.
+
+## VB-169: take control (raised 2 November 2026, writing the commands tasks)
+Answer 3 to VB-076 says the planner leaves a controlled pawn alone until released. One detail is open.
+1. Does a controlled pawn still eat and go home at dark? **P:** yes: needs go on as for any pawn (it eats, and at dark, when no command of the player's is under way, it goes home); only the choice of work and of idle walks passes to the player. Otherwise a pawn left in control overnight would stand in a field until it starves.
+   **A (Kim, 8 Nov, VB-079's question 5 above):** "Goes home unless the players commands otherwise. If there are no commands, it follows its usual automatic behaviour."
+
 # Archived 7 November 2026 (review of the work since 3 November)
 
 Asked in the review session of 7 November and answered by Kim there. Recorded in VB-202 and VB-203, in `docs/roadmap.md` (section 5.2), `design.md` (Performance budget) and `AGENTS.md` (Rules for cost).
