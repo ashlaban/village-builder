@@ -3,10 +3,20 @@
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { strengthenTie, book } = VB['sim/relations'];
-  const { HELP } = VB['sim/rules'];
+  const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold } = VB['sim/records'];
-  const { floorOf } = VB['sim/hunger'];
+  const { floorOf, dailyNeed } = VB['sim/hunger'];
+  // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
+  // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
+  // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
+  Rules.contribute({ rule: 'allowance', source: 'sim/relations', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays', 'GOODWILL.halfLife'],
+    value: (st, c) => {
+      if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
+      const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
+      return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
+    } });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;

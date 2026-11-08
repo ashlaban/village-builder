@@ -21,7 +21,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, setTie, dailyTies } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, setTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -35,6 +35,7 @@ VB['sim/lifecycle'] = (() => {
         kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
+    endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
   }
   function retireHolder(st, hhId) {

@@ -127,7 +127,7 @@ const invoke = (args) => cp.execFileSync(process.execPath, [path.join(root, 'too
 const rows = JSON.parse(invoke(['--json']));
 const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
-assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'reserve']); // VB-216
+assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'reserve']); // VB-216, VB-217
 assert(invoke([]).includes('HEALTH.riskBelow'));
 const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
 assert.strictEqual(cliExplanation.pawn, 0);
