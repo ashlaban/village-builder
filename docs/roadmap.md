@@ -104,6 +104,18 @@ The walking skeleton. It is the smallest slice that touches five layers, and tod
   - the contributions to `allowance`, with their ranges.
 - **Done when:** help in hunger works as today; balances are booked and shown; the golden file changes for the booking only.
 
+**8 November update (Kim, VB-182's plan; `QUESTION_ARCHIVE.md`, "VB-182").**
+- **Decided in the design pass** (`design.md`, section 9, The gift): goodwill in customary rations, halving in 4 years, 32 counterparts
+  a pawn; the floor at the seed reserve and 20 days of need; `allowance` as grain above the floor (`slack`), less the holder's own
+  reserve (`reserve`, generosity's stand-in until slice 7), plus a `goodwill` term; the debtor's gratitude and the creditor's souring
+  over an old debt. Goodwill is booked and shown only in this slice: its curves and its term in `allowance` act from the head of
+  slice 4 (VB-220), so "done when" above stands. The two holders book; the village store books nothing; half passes at a handover.
+- **The tasks.** VB-216 (the gift through Exchange and the verb `give`, the floor and `allowance`, golden unchanged), VB-217 (goodwill
+  booked, golden re-recorded for it only), VB-218 (the panel), and the wrap-up VB-219 with its probe of the balances. Beside them:
+  VB-220 in slice 4 (goodwill acts) and VB-221 in slice 2 (the player's gift, to any household, not bound by its pawn's allowance).
+- **Budget line:** under 0.1 ms a game day at the late reference (about 500 gifts a year among 2,531 living at `medium-y60`, no pawn
+  with more than 6 counterparts in a year), and under 50 KB more JSON in its save.
+
 ### 3.2 A life
 
 The vision's core (Kim, 3 November). Every later slice should be tried through the player's pawn, and the four doors of target-v2
