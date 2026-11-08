@@ -114,7 +114,8 @@ The walking skeleton. It is the smallest slice that touches five layers, and tod
   booked, golden re-recorded for it only), VB-218 (the panel), and the wrap-up VB-219 with its probe of the balances. Beside them:
   VB-220 in slice 4 (goodwill acts) and VB-221 in slice 2 (the player's gift, to any household, not bound by its pawn's allowance).
 - **Budget line:** under 0.1 ms a game day at the late reference (about 500 gifts a year among 2,531 living at `medium-y60`, no pawn
-  with more than 6 counterparts in a year), and under 50 KB more JSON in its save.
+  with more than 6 counterparts in a year). The save: its balances under 0.5% of the late save's JSON (Kim, 8 Nov), about 300 KB at
+  `medium-y60`, in place of the plan's 50 KB, counted from one year's pairs before measuring that balances accumulate (VB-217's Flag).
 
 ### 3.2 A life
 
