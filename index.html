@@ -4542,10 +4542,20 @@ VB['sim/hunger'] = (() => {
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { strengthenTie, book } = VB['sim/relations'];
-  const { HELP } = VB['sim/rules'];
+  const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold } = VB['sim/records'];
-  const { floorOf } = VB['sim/hunger'];
+  const { floorOf, dailyNeed } = VB['sim/hunger'];
+  // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
+  // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
+  // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
+  Rules.contribute({ rule: 'allowance', source: 'sim/relations', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays', 'GOODWILL.halfLife'],
+    value: (st, c) => {
+      if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
+      const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
+      return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
+    } });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
@@ -6459,7 +6469,8 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { SHARES } = VB['sim/rules'];
+  const { SHARES, GOODWILL } = VB['sim/rules'];
+  const { passGoodwill } = VB['sim/relations'];
   const { passHerds } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'];
   // Who would inherit this farm now, in order, under the practice of its village.
@@ -6612,6 +6623,8 @@ VB['sim/heirs'] = (() => {
       for (const c of kids) moveTo(st, c, hh.id);
     }
     hh.holder = heir; f.line = heir; noteHolder(st, hh);
+    // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
+    if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death')) passGoodwill(st, old, heir, GOODWILL.share, 'handover');
     if (op && op.alive && op.household === hh.id) {
       op.retired = true; const s = spouseOf(st, old); if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
     }
@@ -6738,6 +6751,7 @@ VB['sim/heirs'] = (() => {
     const ranking = heirRanking(st, hh, cu), heir = heirFor(st, hh, ranking, dead.id);
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
+      passGoodwill(st, dead.id, spouse, GOODWILL.share, 'handover'); // the widow takes over as at any holder's death
       if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       // under "a right to her keep" the spouse holds only for a minor heir, or, with no heir at all, as the one left on the farm
       const how = cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life'
@@ -7480,7 +7494,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, setTie, dailyTies } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, setTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -7494,6 +7508,7 @@ VB['sim/lifecycle'] = (() => {
         kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
+    endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st); refreshPrestige(st); st.visualDirty = true;
   }
   function retireHolder(st, hhId) {
