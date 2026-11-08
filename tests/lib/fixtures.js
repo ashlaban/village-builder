@@ -2,9 +2,10 @@
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), crypto = require('crypto');
 const { execFileSync } = require('child_process');
 const root = path.join(__dirname, '../..'), DIR = path.join(root, 'tests/fixtures');
+// A fixture is saved after `year` whole years, or (VB-202) at the first year's end with at least `living` alive, by year `maxYear` at the latest.
 const FIXTURES = {
   'small-y5': { cols: 180, rows: 130, year: 5 }, 'small-y40': { cols: 180, rows: 130, year: 40 },
-  'medium-y5': { cols: 280, rows: 200, year: 5 }, 'medium-y60': { cols: 280, rows: 200, year: 60 },
+  'medium-y5': { cols: 280, rows: 200, year: 5 }, 'medium-ref': { cols: 280, rows: 200, living: 1000, maxYear: 60 },
 };
 const hash = (data) => crypto.createHash('sha256').update(data).digest('hex');
 const goldenHash = () => hash(fs.readFileSync(path.join(root, 'tests/golden.json')));
@@ -12,7 +13,10 @@ const format = () => require('../../src/load.js')['sim/saves'].FORMAT;
 function spec(name) { if (!Object.hasOwn(FIXTURES, name)) throw new Error(`unknown fixture ${name}`); return FIXTURES[name]; }
 function files(name, dir = DIR) { spec(name); return { save: path.join(dir, name + '.gz'), stamp: path.join(dir, name + '.json') }; }
 function validateStamp(name, stamp) {
-  if (!stamp || stamp.name !== name || stamp.year !== spec(name).year || typeof stamp.goldenHash !== 'string'
+  const def = spec(name), byLiving = def.living !== undefined;
+  const yearOk = byLiving ? Number.isInteger(stamp?.year) && stamp.year >= 1 && stamp.year <= def.maxYear
+    && stamp.target === def.living && stamp.reached === (stamp.living >= def.living) : stamp?.year === def.year;
+  if (!stamp || stamp.name !== name || !yearOk || typeof stamp.goldenHash !== 'string'
       || !Number.isInteger(stamp.format) || !/^[a-f0-9]{40}$/.test(stamp.commit) || !/^[a-f0-9]{64}$/.test(stamp.saveHash)
       || !['living', 'pawnRecords', 'events', 'jsonBytes', 'gzipBytes'].every((k) => Number.isInteger(stamp[k]) && stamp[k] >= 0)
       || !Number.isFinite(stamp.minutes) || stamp.minutes < 0) throw new Error(`${name}: invalid fixture stamp; remake the fixtures`);
@@ -42,6 +46,14 @@ function fetchFixtures({ dir = DIR, repo = root, remote = 'origin', notice = con
   try { run(['fetch', remote, 'fixtures']); }
   catch (e) { notice('fixtures: fetch unavailable (offline or no fixtures branch); keeping local saves'); return false; }
   const commit = run(['rev-parse', 'FETCH_HEAD']).toString().trim(), pairs = [];
+  // A remote set made for another fixture list (VB-202 added medium-ref and dropped medium-y60) replaces nothing, as offline.
+  const present = new Set(run(['ls-tree', '-r', '--name-only', commit]).toString().split('\n'));
+  const lacking = Object.keys(FIXTURES).filter((name) => ['gz', 'json'].some((ext) => !present.has(`tests/fixtures/${name}.${ext}`)));
+  if (lacking.length) {
+    notice(`fixtures: ${remote}/fixtures (${commit.slice(0, 7)}) lacks ${lacking.join(', ')}; keeping local saves`
+      + ' (run node tools/fixtures.js make)');
+    return false;
+  }
   // Read and check the whole branch before replacing any local fixture.
   for (const name of Object.keys(FIXTURES)) {
     const compressed = run(['show', `${commit}:tests/fixtures/${name}.gz`]);
@@ -51,7 +63,7 @@ function fetchFixtures({ dir = DIR, repo = root, remote = 'origin', notice = con
     pairs.push([name, compressed, stamp]);
   }
   for (const [name, compressed, stamp] of pairs) writeFixture(name, compressed, stamp, { dir });
-  notice(`fixtures: fetched four saves from ${remote}/fixtures (${commit.slice(0, 7)})`);
+  notice(`fixtures: fetched ${pairs.length} saves from ${remote}/fixtures (${commit.slice(0, 7)})`);
   return true;
 }
 let fetched = false;
@@ -71,7 +83,7 @@ function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {
   let r; while (!(r = it.next()).done);
   const st = VB.sim.load(r.value, data), stamp = info.stamp;
   // Scenarios start at 06:00; fixtures are made after N complete years, with floating-point step error allowed.
-  if (Math.abs(st.t - (def.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length !== stamp.events
+  if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length !== stamp.events
       || st.pawns.filter((p) => p.alive).length !== stamp.living) throw new Error(`${name}: stamp does not match state; remake the fixtures`);
   const stale = info.status === 'stale';
   if (stale) notice(`${name}: stale golden hash; using the saved state`);

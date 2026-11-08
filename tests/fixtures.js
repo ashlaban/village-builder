@@ -21,4 +21,5 @@ for (const name of Object.keys(F.FIXTURES)) {
   assert.deepStrictEqual(bad, [], `${name}: ${bad.slice(0, 8).join('; ')}`);
   console.log(`${name}: loaded${fixture.stale ? ' (stale)' : ''}, advanced one day; invariants pass`); loaded++;
 }
-console.log(`fixtures: ${loaded}/4 saves checked; ${4 - loaded} missing`);
+const total = Object.keys(F.FIXTURES).length;
+console.log(`fixtures: ${loaded}/${total} saves checked; ${total - loaded} missing`);

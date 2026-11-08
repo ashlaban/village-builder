@@ -2,25 +2,33 @@
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), os = require('os');
 const { spawn } = require('child_process');
 const F = require('../tests/lib/fixtures.js');
+// Whole years from seeding: `def.year` of them, or (VB-202) until the first year's end with at least `def.living` alive, by
+// `def.maxYear` at the latest. Returns the number of years advanced.
+function advanceYears(Sim, st, def, report = () => {}) {
+  const last = def.year ?? def.maxYear, enough = () => def.living !== undefined && st.pawns.filter((p) => p.alive).length >= def.living;
+  let year = 0;
+  while (year < last && !(year > 0 && enough())) { Sim.advance(st, Sim.YEAR); year++; report(year, last); }
+  return year;
+}
 function makeOne(name) {
   const def = F.spec(name), VB = require('../src/load.js'), Sim = VB.sim;
   // The stamp names a commit, so uncommitted simulation changes cannot be its provenance.
   F.git(['diff', '--exit-code', 'HEAD', '--', 'src', 'tests/golden.json'], { stdio: 'ignore' });
   const started = Date.now(), golden = F.goldenHash(), commit = F.git(['rev-parse', 'HEAD']).toString().trim();
   const it = VB.gen.generate(7, { cols: def.cols, rows: def.rows }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, 7, 'populous');
-  for (let y = 1; y <= def.year; y++) {
-    Sim.advance(st, Sim.YEAR);
-    console.log(`${name}: year ${y}/${def.year}, ${st.pawns.filter((p) => p.alive).length} living, ${((Date.now() - started) / 60000).toFixed(2)} min`);
-  }
+  const st = Sim.seed(r.value, 7, 'populous'), living = () => st.pawns.filter((p) => p.alive).length;
+  const year = advanceYears(Sim, st, def, (y, last) => console.log(`${name}: year ${y}/${last}, ${living()} living,`
+    + ` ${((Date.now() - started) / 60000).toFixed(2)} min`));
   const data = Sim.save(st), json = Buffer.from(JSON.stringify(data)), compressed = zlib.gzipSync(json);
   F.git(['diff', '--exit-code', 'HEAD', '--', 'src', 'tests/golden.json'], { stdio: 'ignore' });
   if (golden !== F.goldenHash() || commit !== F.git(['rev-parse', 'HEAD']).toString().trim()) throw new Error('source changed during make; remake the fixtures');
-  const stamp = { name, commit, format: data.format, goldenHash: golden, year: def.year,
-    living: st.pawns.filter((p) => p.alive).length, pawnRecords: st.pawns.length, events: st.record.length,
+  const stamp = { name, commit, format: data.format, goldenHash: golden, year,
+    ...(def.living !== undefined ? { target: def.living, reached: living() >= def.living } : {}),
+    living: living(), pawnRecords: st.pawns.length, events: st.record.length,
     minutes: (Date.now() - started) / 60000, jsonBytes: json.length, gzipBytes: compressed.length, saveHash: F.hash(compressed) };
   F.writeFixture(name, compressed, stamp);
-  console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min; ${(json.length / 1e6).toFixed(2)} MB JSON, ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
+  if (stamp.reached === false) console.log(`${name}: NOT REACHED: ${stamp.living} living after year ${year}, short of ${def.living}`);
+  console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min at year ${year}; ${(json.length / 1e6).toFixed(2)} MB JSON, ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
   return stamp;
 }
 async function make(names = Object.keys(F.FIXTURES)) {
@@ -69,7 +77,8 @@ async function main(args) {
   if (command === 'status' && !names.length) {
     for (const name of Object.keys(F.FIXTURES)) {
       const info = F.status(name), s = info.stamp;
-      console.log(`${name}: ${info.status}${s ? ` (${s.living} living, ${s.minutes.toFixed(2)} min, ${(s.gzipBytes / 1e6).toFixed(2)} MB gzip)` : ''}`);
+      console.log(`${name}: ${info.status}${s ? ` (year ${s.year}, ${s.living} living${s.reached === false ? ', target NOT REACHED' : ''},`
+        + ` ${s.minutes.toFixed(2)} min, ${(s.gzipBytes / 1e6).toFixed(2)} MB gzip)` : ''}`);
     }
     return;
   }
@@ -78,4 +87,4 @@ async function main(args) {
   throw new Error('usage: node tools/fixtures.js make [name...] | status | fetch | publish');
 }
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error(e.message); process.exitCode = 1; });
-module.exports = { make, makeOne, publish };
+module.exports = { make, makeOne, publish, advanceYears };
