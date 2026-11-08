@@ -1,0 +1,165 @@
+{
+ "session": "5972fa67-12e6-5554-9f19-c2e3d1b9017f",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-08T19:20:44.059Z",
+ "end": "2026-11-08T23:12:18.159Z",
+ "wallMin": 231.6,
+ "activeMin": 70,
+ "prompts": 2,
+ "calls": 154,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 311,
+  "cacheWrite": 558386,
+  "cacheRead": 35265099,
+  "output": 144515
+ },
+ "context": {
+  "first": 79755,
+  "peak": 360871
+ },
+ "tools": {
+  "Bash": {
+   "calls": 134,
+   "bytes": 239457,
+   "seconds": 1322.9
+  },
+  "ToolSearch": {
+   "calls": 4,
+   "bytes": 411,
+   "seconds": 0.7
+  },
+  "AskUserQuestion": {
+   "calls": 4,
+   "bytes": 4344,
+   "seconds": 1505.1
+  },
+  "mcp__claude-code-remote__list_repos": {
+   "calls": 1,
+   "bytes": 194,
+   "seconds": 1
+  },
+  "WebSearch": {
+   "calls": 3,
+   "bytes": 12473,
+   "seconds": 18.2
+  },
+  "TaskCreate": {
+   "calls": 5,
+   "bytes": 406,
+   "seconds": 0
+  },
+  "TaskUpdate": {
+   "calls": 10,
+   "bytes": 220,
+   "seconds": 0.1
+  },
+  "Edit": {
+   "calls": 1,
+   "bytes": 86,
+   "seconds": 0.1
+  },
+  "Write": {
+   "calls": 4,
+   "bytes": 605,
+   "seconds": 0.1
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 1.3
+  },
+  "ReadNotifications": {
+   "calls": 1,
+   "bytes": 24,
+   "seconds": 0
+  },
+  "mcp__github__create_pull_request": {
+   "calls": 1,
+   "bytes": 79,
+   "seconds": 2
+  },
+  "Read": {
+   "calls": 1,
+   "bytes": 2940,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 17,
+   "bytes": 59161
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/bench.js",
+   "calls": 1,
+   "bytes": 27696
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 21425
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 27,
+   "bytes": 17465
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 7,
+   "bytes": 15819
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 9,
+   "bytes": 15659
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/fixtures.js",
+   "calls": 1,
+   "bytes": 12197
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-202.md",
+   "calls": 1,
+   "bytes": 8902
+  },
+  {
+   "tool": "Bash",
+   "what": "until grep",
+   "calls": 4,
+   "bytes": 6201
+  },
+  {
+   "tool": "Bash",
+   "what": "ls package-lock.json",
+   "calls": 1,
+   "bytes": 4855
+  },
+  {
+   "tool": "WebSearch",
+   "what": "GitHub Git LFS free plan storage bandwidth quota delete LFS objects without deleting repository",
+   "calls": 1,
+   "bytes": 4496
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 3,
+   "bytes": 4462
+  }
+ ]
+}
