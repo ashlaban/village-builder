@@ -61,7 +61,7 @@ Programmer*, 1999): a thin piece that runs end to end, then grows. Both citation
 |---|---|---|---|
 | 0 | The yardstick | (the team can measure every later slice at its own cost) | Work counters, fixtures, bands (6.2), the rules registry with `death.hazard` (4.1), indexes of the living |
 | 1 | Kin help, booked | See who owes whom goodwill, and why help was given or refused | Stores with goods (4.3), goodwill and `allowance` (4.4), Exchange's gift (4.5), `explain` |
-| 2 | A life | Inhabit a pawn, choose what it does, answer at the meeting, go on as kin after its death; save in the page | Opportunities for a pawn (4.5), the player's four doors (4.7), the actor view |
+| 2 | A life | Inhabit a pawn, queue what it does, argue at the meeting, go on as kin after its death; save in the page | Opportunities for a pawn (4.5), the player's doors (4.7) but `Decisions.answer`, the actor view |
 | 3 | The household's year | As holder, set the season's plan; as a member, follow it or not | Opportunities, plans, tasks, eligibility, planning days, the meeting's routines, attention (4.5) |
 | 4 | The autumn fair | Barter at the fair, borrow, lend | Typed goods and custody (4.3), venues, occasions, reach on foot (4.2), swap and loan, norms (5.1–5.3), Obligations (4.4) |
 | 5 | Debt and land | Press a debt, sit at the hearing, farm as a tenant | Land rights (4.3), Enforcement and Decisions (4.5), class with hysteresis (4.6), the bodies decision |
@@ -126,6 +126,22 @@ The vision's core (Kim, 3 November). Every later slice should be tried through t
   - ambitions for the first version;
   - whether the player may go below the floor (target-v2 10.1).
 - **Cost:** nothing per game day; opportunities for one pawn, on demand.
+
+**8 November update (Kim, VB-079's plan; `QUESTION_ARCHIVE.md`, "VB-079").**
+- **Changes to the list above.**
+  - The player is a source with a queue: its commands go before the pawn's own logic, and the role's automatic behaviour is the
+    fallback, with a switch to turn it off.
+  - The meeting is reached through advocacy only, so `Decisions.answer` waits for the first question that needs the player's answer
+    (a holder's plan, slice 3, or a testament, slice 5).
+  - Ambitions are postponed to late in the design, and so are the parts of VB-099 they needed.
+  - The round's acts take the player's wish where the round reads a pawn's own want, under the same rules.
+  - Each save names its build.
+- **The tasks.** VB-208 (each kind's `available`, golden unchanged), VB-209 (`Opportunities.forPawn` and the actor view), VB-169 (the
+  player's queue), VB-210 (playing a pawn in the page), VB-211 (advocacy), VB-212 (the round's acts as the player's wishes), VB-213 (the
+  player's succession), VB-214 (saves in the page), VB-215 (autosave at the round, once a save is under 0.5 s), and the wrap-up VB-078.
+  Their order and costs are in `docs/review-life.md`.
+- **Budget line:** 0 ms a game day of simulation, and, without a player, the state and counters unchanged. In the page,
+  opportunities for one pawn under 1 ms a call.
 
 ### 3.3 The household's year
 
