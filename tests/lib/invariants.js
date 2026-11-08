@@ -52,6 +52,9 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     for (const k of ['grain', 'wood', 'stone', 'rations', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // help's seasonal ask (sim/help, VB-222): the season of the last ask, no later than this one
+    if (h.askedIn !== undefined && !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
+      bad.push(`households[${h.id}]: askedIn is ${h.askedIn}`);
     const f = st.farmsteads[h.farmstead];
     if (!f || f.household !== h.id) bad.push(`households[${h.id}]: farmstead ${h.farmstead} does not name it`);
   }
