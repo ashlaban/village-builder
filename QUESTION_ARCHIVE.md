@@ -2,6 +2,19 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 8 November 2026 (VB-217)
+
+## VB-217: goodwill's core, and help as a seasonal ask (asked in the session, 8 November 2026)
+Asked while building VB-217, after `npm run verify` failed one cost check: `tests/history.js` found the seasonal pass over goodwill balances doing 6 times the work per living pawn-day from `small-y40` as from `small-y5` (limit 1.25), though the work itself was tiny (179 visits in 30 days, against 1.1 million tie updates). Measured over 40 years of populous 7, small: gifts between holders rise from 0.12 a living pawn a year at year 5 to 0.29 at year 40; a hungry household gets 2.3 to 3.1 gifts a year from 1.4 to 1.8 givers, of about 20 rations each; at year 40 the record holds 4,664 gift events (649 KB), the pawns' events 582 KB more and the ledgers 2,170 gift entries (199 KB), against 90 KB of goodwill balances.
+1. What matters in goodwill? **A (Kim, 8 Nov):** a single number that can decay, and can be negative, decaying toward zero; tracking individual dealings is for the stories arch (slice 7), and this can be an early experiment for it. If there are problems, note the analysis and keep to that core. Goodwill should be coupled to disposition (opinion).
+2. Shrink each balance to `{v, t}`, dropping when it opened and why? **A (Kim, 8 Nov):** why both `v` and `t`? Add the result of the gift to the pair's goodwill, and let it decay in proportion to its magnitude. (So `since` and `why` were dropped.)
+3. Forgetting small balances: a seasonal pass, or when touched? **A (Kim, 8 Nov):** a seasonal decay step is fine, or weekly; it depends on performance and the effects of discretisation. The half-life must be tunable within 2 to 20 years. Large magnitudes should decay faster than small (read as decay in proportion to size).
+4. The coupling to opinion: now, or at the head of slice 4 as agreed? **A (Kim, 8 Nov):** slice 4, as agreed.
+5. If many small gifts are the problem, make gifts rarer and more substantial (Kim). How should help in hunger change? **P:** whole sacks from one giver. **A (Kim, 8 Nov):** a household asks once a season, now, in slice 1.
+6. One seasonal ask, concretely. **P:** at most once a season, a household short of food asks for enough to reach the next harvest, at least a season's need, kin first, then the village store; if the gifts fall short, it waits for the next season. **A (Kim, 8 Nov):** as proposed (P).
+7. The cost check, explained again (the first wording was unclear): how should `tests/history.js` pass? **P:** record an exception in `tests/cost-baseline.json`. **A (Kim, 8 Nov):** decay when read, with no seasonal step: each balance keeps `v` and the time it last changed, its decay is computed when read, and small balances are dropped when a pawn next deals, reaches the cap, or dies.
+8. Principles for `design.md`, section 9. **A (Kim, 8 Nov):** "Lumps and occasions" and "Goodwill is one decaying number", as drafted; for the first, occasions now and whole quanta later: help in hunger is its first occasion, and quanta arrive with goods and the worth table in slice 4.
+
 # Archived 8 November 2026 (VB-182)
 
 ## VB-182: kin help, booked as goodwill (raised 8 November 2026, the plan of slice 1)
