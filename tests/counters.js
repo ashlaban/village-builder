@@ -7,7 +7,7 @@ const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
 assert.strictEqual(st.villages.length, 2);
 { // the fixture's households are not kin, so help gives nothing: one balance between two holders exercises the seasonal pass (VB-217)
   const [x, y] = st.households.filter((h) => h.holder !== null);
-  VB['sim/relations'].book(st, x.holder, y.holder, 50, 'help');
+  VB['sim/relations'].book(st, x.holder, y.holder, 50);
 }
 VB.resetCounts();
 const from = st.t;

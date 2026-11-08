@@ -167,7 +167,7 @@ VB['sim/heirs'] = (() => {
     }
     hh.holder = heir; f.line = heir; noteHolder(st, hh);
     // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
-    if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death')) passGoodwill(st, old, heir, GOODWILL.share, 'handover');
+    if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death')) passGoodwill(st, old, heir, GOODWILL.share);
     if (op && op.alive && op.household === hh.id) {
       op.retired = true; const s = spouseOf(st, old); if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
     }
@@ -294,7 +294,7 @@ VB['sim/heirs'] = (() => {
     const ranking = heirRanking(st, hh, cu), heir = heirFor(st, hh, ranking, dead.id);
     if (spouse !== null && (cu.widow === 'life' || cu.widow === 'outright' || heir === null || st.pawns[heir].age < 18)) {
       hh.holder = spouse; noteHolder(st, hh); if (cu.widow === 'outright') f.line = spouse;
-      passGoodwill(st, dead.id, spouse, GOODWILL.share, 'handover'); // the widow takes over as at any holder's death
+      passGoodwill(st, dead.id, spouse, GOODWILL.share); // the widow takes over as at any holder's death
       if (heir !== null && st.pawns[heir].age < 18) setGuardian(st, hh, heir);
       // under "a right to her keep" the spouse holds only for a minor heir, or, with no heir at all, as the one left on the farm
       const how = cu.widow === 'outright' ? 'outright' : cu.widow === 'life' ? 'for life'
