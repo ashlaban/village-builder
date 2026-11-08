@@ -2,7 +2,7 @@
 // people a pawn knows; owns familiarity, its daily update and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SOCIAL } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
@@ -116,7 +116,8 @@ VB['sim/relations'] = (() => {
       personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`, { other: b });
     }
   }
-  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
+  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped; so are
+  // goodwill balances under GOODWILL.forget.
   // (A faded memory counts 0 until then.)
   function fadeRelations(st) {
     for (const liveId of st.living) {
@@ -128,6 +129,7 @@ VB['sim/relations'] = (() => {
         for (const kind in r.mem) { if (memNow(st, kind, r.mem[kind]) === 0) delete r.mem[kind]; else left = true; }
         if (!left) p.rel.delete(j);
       }
+      fadeGoodwill(st, p);
     }
   }
   // A pawn's death ends the relationships of others with it.
@@ -259,6 +261,74 @@ VB['sim/relations'] = (() => {
     return cand[i];
   }
 
+  // ---- goodwill (VB-217; design.md, The gift): a signed balance per pair of pawns that have dealt, in customary rations ----
+  // @state pawn.goodwill: Map of the other pawn's id to {v, t, since, why}, made at the pawn's first booking and written only here: v > 0
+  //   means the other owes this pawn v rations as of game hour t, halving every GOODWILL.halfLife after; since is when the balance opened
+  //   or last changed sign, why the last booking's reason. The other pawn holds the mirror, -v with the same t, since and why. A pawn has
+  //   at most GOODWILL.cap counterparts; balances under GOODWILL.forget are dropped each season, and a pawn's end at its death.
+  const GW = GOODWILL;
+  const decayed = (st, e) => e.v * Math.pow(0.5, (st.t - e.t) / GW.halfLife);
+  // what b owes a now (negative: what a owes b)
+  function balance(st, a, b) { const g = st.pawns[a].goodwill, e = g && g.get(b); return e ? decayed(st, e) : 0; }
+  // when the balance between a and b opened or last changed sign, or null
+  function goodwillSince(st, a, b) { const g = st.pawns[a].goodwill, e = g && g.get(b); return e ? e.since : null; }
+  function setPair(st, a, b, v, since, why) {
+    const pa = st.pawns[a], pb = st.pawns[b];
+    if (!pa.goodwill) pa.goodwill = new Map();
+    if (!pb.goodwill) pb.goodwill = new Map();
+    pa.goodwill.set(b, { v, t: st.t, since, why }); pb.goodwill.set(a, { v: -v, t: st.t, since, why });
+  }
+  function dropPair(st, a, b) { const ga = st.pawns[a].goodwill, gb = st.pawns[b].goodwill; if (ga) ga.delete(b); if (gb) gb.delete(a); }
+  // Room for a new counterpart of a: at the cap, its smallest balance goes (the lower id on a tie).
+  function makeRoom(st, a) {
+    const g = st.pawns[a].goodwill; if (!g || g.size < GW.cap) return;
+    let worst = -1, least = Infinity;
+    for (const [j, e] of g) { const m = Math.abs(decayed(st, e)); if (m < least || (m === least && j < worst)) { least = m; worst = j; } }
+    dropPair(st, a, worst);
+  }
+  // b owes a x rations more (x < 0: a owes b); since carries over while the sign holds, and is `opened` for a new balance.
+  function addGoodwill(st, a, b, x, why, opened = st.t) {
+    if (!Number.isFinite(x) || a === b || !st.pawns[a].alive || !st.pawns[b].alive) throw new Error(`goodwill: cannot add ${x} between ${a} and ${b}`);
+    if (x === 0) return;
+    const g = st.pawns[a].goodwill, e = g && g.get(b);
+    if (!e) { makeRoom(st, a); makeRoom(st, b); setPair(st, a, b, x, opened, why); return; }
+    const was = decayed(st, e), v = was + x;
+    if (v === 0) dropPair(st, a, b); else setPair(st, a, b, v, (v > 0) === (was > 0) ? e.since : st.t, why);
+  }
+  // a gives b something worth `rations`: b owes a that much more
+  function book(st, creditor, debtor, rations, why) {
+    if (!(rations > 0)) throw new Error(`goodwill: cannot book ${rations}`);
+    addGoodwill(st, creditor, debtor, rations, why);
+  }
+  // At a handover, `share` of each of from's balances passes to `to` (a new balance keeps its age); from keeps the rest. A balance with
+  // `to` itself is only reduced.
+  function passGoodwill(st, from, to, share, why) {
+    const g = st.pawns[from].goodwill; if (!g || from === to) return;
+    for (const j of [...g.keys()]) {
+      const e = g.get(j); if (!e) continue; // dropped to make room for a counterpart passed earlier in this loop
+      const now = decayed(st, e), passed = now * share, kept = now - passed;
+      if (kept === 0) dropPair(st, from, j); else setPair(st, from, j, kept, e.since, e.why);
+      if (j !== to && st.pawns[j].alive) addGoodwill(st, to, j, passed, why, e.since);
+    }
+  }
+  // A pawn's death ends its balances, on both sides.
+  function endGoodwill(st, id) {
+    const g = st.pawns[id].goodwill; if (!g) return;
+    for (const j of g.keys()) { const q = st.pawns[j]; if (q.goodwill) q.goodwill.delete(id); }
+    g.clear();
+  }
+  // Once a season (fadeRelations): balances that have decayed under GOODWILL.forget are dropped.
+  function fadeGoodwill(st, p) {
+    if (!p.goodwill) return;
+    for (const [j, e] of p.goodwill) { VB.count.goodwillWalk++; if (Math.abs(decayed(st, e)) < GW.forget) dropPair(st, p.id, j); }
+  }
+  // a pawn's balances for the panel and the tools: [{other, balance, since, t, why}], the largest first
+  function goodwillOf(st, id) {
+    const g = st.pawns[id].goodwill, out = [];
+    if (g) for (const [j, e] of g) out.push({ other: j, balance: decayed(st, e), since: e.since, t: e.t, why: e.why });
+    return out.sort((x, y) => Math.abs(y.balance) - Math.abs(x.balance) || x.other - y.other);
+  }
+
   // ---- for the page and the tools ----
   const opinionWord = (o) => (o >= SOCIAL.closeFriend ? 'close friend' : o >= SOCIAL.friend ? 'friend' : o <= SOCIAL.enemy ? 'enemy'
     : o <= SOCIAL.dislike ? 'dislikes' : 'neutral');
@@ -282,6 +352,6 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
-    reasonsOf, ALLOWANCE_BOUND,
+    reasonsOf, ALLOWANCE_BOUND, balance, goodwillSince, book, passGoodwill, endGoodwill, fadeGoodwill, goodwillOf,
   };
 })();

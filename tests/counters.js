@@ -5,6 +5,10 @@ const { livingPawnDays } = require('../tools/counts.js');
 const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
   [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], { seed: 7, herds: true });
 assert.strictEqual(st.villages.length, 2);
+{ // the fixture's households are not kin, so help gives nothing: one balance between two holders exercises the seasonal pass (VB-217)
+  const [x, y] = st.households.filter((h) => h.holder !== null);
+  VB['sim/relations'].book(st, x.holder, y.holder, 50, 'help');
+}
 VB.resetCounts();
 const from = st.t;
 for (let d = 0; d < 30; d++) {
