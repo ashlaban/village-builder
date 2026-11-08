@@ -20,6 +20,10 @@ Slice 1 re-expresses help in hunger (`src/sim/help.js`, `shareFood`) through the
    **A (Kim, 8 Nov):** as proposed (P).
 7. What the pawn panel shows. **P:** under "Knows best", up to 5 balances by size: "Owes Erik Larsson 34 rations" or "Is owed 12 rations by Anna Persdotter", with the last booking's reason and year ("help in hunger, year 12"). On a holder's panel, each row also says "would give up to N rations", with `explain(allowance)`'s parts on hover.
    **A (Kim, 8 Nov):** as proposed (P).
+8. Is the player's gift bound by its pawn's own allowance? (Asked in the session, after the design text.) **P:** no: the player decides for its pawn, and allowance is the pawn's own willingness, which never chooses for the player (target-v2, section 4.7); the gift is limited only by what the household holds, and below the floor the warning names who goes hungry.
+   **A (Kim, 8 Nov):** as proposed (P).
+9. To whom may the player's pawn give food? **P:** any household, since a gift needs no tie; the panel lists kin households and those of its village first, and another village's household is chosen from the map.
+   **A (Kim, 8 Nov):** as proposed (P).
 
 # Archived 8 November 2026 (VB-079, slice 2's plan)
 
