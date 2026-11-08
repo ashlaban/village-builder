@@ -21,6 +21,7 @@ VB.COUNTERS = {
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   ruleValue: 'Rule values read (explanations excluded)',
+  goodwillWalk: 'Goodwill balances visited by the seasonal pass that forgets small ones',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };

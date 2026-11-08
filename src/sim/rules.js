@@ -168,6 +168,13 @@ VB['sim/rules'] = (() => {
     askBelow: 3, askDays: 12, // a household asks when its spare grain covers fewer days than this, for this many days of food
     storeShare: 0.25, tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };
+  // ---- goodwill (sim/relations, VB-217; design.md, The gift): a balance between two pawns in customary rations ----
+  const GOODWILL = {
+    halfLife: 4 * YEAR, forget: 1, cap: 32, // a balance halves in 4 years; one under a ration is forgotten; counterparts a pawn
+    share: 0.5, // the share of a holder's balances that passes to the new holder at a retirement or a holder's death
+    limitDays: 30, // allowance: what the receiver owes beyond this many days of its household's need counts against it
+    acts: false, // slice 1 books and shows goodwill only; slice 4 switches on its terms (VB-220)
+  };
 
   const SPEED = 3; // tiles per game hour on foot, on meadow
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
@@ -231,5 +238,5 @@ VB['sim/rules'] = (() => {
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
 })();
