@@ -265,7 +265,8 @@ VB['sim/relations'] = (() => {
   // @state pawn.goodwill: Map of the other pawn's id to {v, t, since, why}, made at the pawn's first booking and written only here: v > 0
   //   means the other owes this pawn v rations as of game hour t, halving every GOODWILL.halfLife after; since is when the balance opened
   //   or last changed sign, why the last booking's reason. The other pawn holds the mirror, -v with the same t, since and why. A pawn has
-  //   at most GOODWILL.cap counterparts; balances under GOODWILL.forget are dropped each season, and a pawn's end at its death.
+  //   at most GOODWILL.cap counterparts; balances under GOODWILL.forget are dropped each season, and a pawn's end at its death,
+  //   when the map goes too.
   const GW = GOODWILL;
   const decayed = (st, e) => e.v * Math.pow(0.5, (st.t - e.t) / GW.halfLife);
   // what b owes a now (negative: what a owes b)
@@ -311,11 +312,11 @@ VB['sim/relations'] = (() => {
       if (j !== to && st.pawns[j].alive) addGoodwill(st, to, j, passed, why, e.since);
     }
   }
-  // A pawn's death ends its balances, on both sides.
+  // A pawn's death ends its balances, on both sides; the dead keep no map, so the save does not grow with them.
   function endGoodwill(st, id) {
-    const g = st.pawns[id].goodwill; if (!g) return;
+    const p = st.pawns[id], g = p.goodwill; if (!g) return;
     for (const j of g.keys()) { const q = st.pawns[j]; if (q.goodwill) q.goodwill.delete(id); }
-    g.clear();
+    delete p.goodwill;
   }
   // Once a season (fadeRelations): balances that have decayed under GOODWILL.forget are dropped.
   function fadeGoodwill(st, p) {
