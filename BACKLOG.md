@@ -12,14 +12,14 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-079](backlog/VB-079.md) | Plan: a life, the player inhabits a pawn (slice 2) | life | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. |
 | [VB-182](backlog/VB-182.md) | Plan: kin help, booked as goodwill (slice 1) | kin-help | 1 | S | Design the walking skeleton: help in hunger as a gift through Exchange, goodwill booked, allowance as a rule. |
 | [VB-202](backlog/VB-202.md) | Late fixtures by population: `medium-ref` at the year populous medium reaches 1,000, all remade on main | yardstick | 1 | M | The late reference becomes the first year populous medium reaches 1,000 living (year 14 today, against 2,492 living at year 60); all fixtures remade, the remake made routine. |
 | [VB-204](backlog/VB-204.md) | Food ledgers: routine movements folded into yearly totals | yardstick | 1 | S | Meals, cooking, spoilage, threshing, milk and butter (95% of ledger entries) kept as yearly totals; gifts and harvests stay entries; the save shrinks. |
-| [VB-077](backlog/VB-077.md) | Plan: saving and loading in the page | life | 2 | S | Where saves live, autosave, and saves from older builds. |
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
 | [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
+| [VB-208](backlog/VB-208.md) | Refactor: each job kind says where it is available, and `refreshJobs` posts from them | life | 2 | M | Each kind's posting rule moves into its `KINDS` record as `available`; `refreshJobs` asks the kinds in today's order; golden unchanged. |
+| [VB-214](backlog/VB-214.md) | Saves in the page, named by their build | life | 2 | M | Save by hand and when hidden (IndexedDB, last 3), to and from a file; each save names its build, and another build's is refused with delete-and-start-new. |
 | [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
@@ -31,7 +31,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-169](backlog/VB-169.md) | Take control of a pawn | life | 2 | M | "Take control" on the pawn panel: the player chooses the pawn's next command from a list; the planner leaves it alone until released. |
 | [VB-199](backlog/VB-199.md) | Bounded history: a pawn's events as an index, routine events folded | yardstick | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. |
 | [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Record the text of the page's panels and compare it, as the golden file does for the state, so a wording or number change shows. |
 | [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 3 | M | One `notable` rule over the record of events; toasts that select what happened. |
@@ -51,7 +50,14 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-205](backlog/VB-205.md) | Agents and walking: name the largest cost, then cut it | yardstick | 2 | M | VB-203 | The unnamed rest of `Sim.advance` (34% of a year-60 day, no task) split by a profile into named systems, then cut to its share. |
 | [VB-206](backlog/VB-206.md) | The meetings spread, so no step goes over 60 ms | yardstick | 2 | S | VB-203 | The meetings' step (276 ms at year 60, 41 at year 5) measured at the new reference and spread a village per step if over 60 ms. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
-| [VB-078](backlog/VB-078.md) | Wrap-up: commands, saves and the record of events | life | 3 | S | VB-098, VB-099, VB-169 | Long runs saved and loaded many times match unbroken runs; report sizes and times. |
+| [VB-169](backlog/VB-169.md) | Inhabit a pawn: the player's queued commands go before its own logic | life | 2 | M | VB-208 | `st.player` with a queue of up to 8 commands that the planner's four sites leave alone; the role's automatic behaviour as the fallback, with a switch; home at dark. |
+| [VB-209](backlog/VB-209.md) | What a pawn may do here: `Opportunities.forPawn` and the actor view | life | 2 | M | VB-208 | Read-only, for one pawn on demand: its household's and village's work, going, causes and the round's acts, each with basis and reason; under 1 ms. |
+| [VB-210](backlog/VB-210.md) | Playing a pawn in the page: Play as, what it may do, the queue and the switch | life | 2 | M | VB-169, VB-209 | The pawn panel to play by: needs, activity, the queue, the automatic switch, what it may do as buttons, Follow; browser checks and screenshots. |
+| [VB-211](backlog/VB-211.md) | The player argues for a cause | life | 2 | S | VB-210 | Advocacy, the player's one door to the meeting: `argue` and `dropCause` for the played pawn, and how the village leans on its cause. |
+| [VB-212](backlog/VB-212.md) | The moving round's acts: the player's wish stands in for its pawn's own | life | 2 | M | VB-210 | Where the round reads what a pawn wants (moving out, claims, service), the player's wish stands in; the round's rules decide as for anyone. |
+| [VB-213](backlog/VB-213.md) | The player's succession: going on as another after a death | life | 2 | S | VB-210 | On the played pawn's death: heirs, kin, household and ties, in that order; the page pauses and offers them; a break when none is left. |
+| [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-169, VB-208, VB-209, VB-210, VB-211, VB-212, VB-213, VB-214 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
+| [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | VB-214, VB-199, VB-202, VB-204 | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
 | [VB-023](backlog/VB-023.md) | Sow a hoed field before hoeing the next | year | 2 | S | VB-164 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | VB-164 | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
 | [VB-090](backlog/VB-090.md) | Landless adults take service where labour is short | year | 2 | M | VB-164 | At the moving round, landless adults from farms with hands to spare go into service where a farm is short of hands. |

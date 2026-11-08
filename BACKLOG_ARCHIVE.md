@@ -156,3 +156,5 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-174](backlog/VB-174.md) | Household and village food in `sim/stores`, every movement recorded | ownership | 2 | M | One owner for household and village food and the heirs' shares; every movement a ledger entry; golden re-recorded for the ledgers only. |
 | [VB-175](backlog/VB-175.md) | Refactor: household membership in `sim/records`, and one act that founds a household | ownership | 2 | M | Membership through `sim/records`; one founding act for claims, cottages and settlers; two cycles gone. |
 | [VB-176](backlog/VB-176.md) | Refactor: only `issue` reaches a module loaded later, and a check | ownership | 2 | S | The plot-or-farm choice moves to the moving round; a check fails on any other lookup into a later module. |
+| [VB-077](backlog/VB-077.md) | Plan: saving and loading in the page | life | 2 | S | Where saves live, autosave, and saves from older builds. |
+| [VB-079](backlog/VB-079.md) | Plan: a life, the player inhabits a pawn (slice 2) | life | 1 | S | Design slice 2 and write its tasks: the player picks a pawn, chooses its acts, goes on as kin, saves in the page. |
