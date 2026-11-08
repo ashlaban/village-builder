@@ -116,6 +116,10 @@ The walking skeleton. It is the smallest slice that touches five layers, and tod
 - **Budget line:** under 0.1 ms a game day at the late reference (about 500 gifts a year among 2,531 living at `medium-y60`, no pawn
   with more than 6 counterparts in a year). The save: its balances under 0.5% of the late save's JSON (Kim, 8 Nov), about 300 KB at
   `medium-y60`, in place of the plan's 50 KB, counted from one year's pairs before measuring that balances accumulate (VB-217's Flag).
+- **Revised while building (Kim, 8 Nov; `QUESTION_ARCHIVE.md`, "VB-217").** Goodwill is one decaying number a pair, read from its value
+  and when it last changed, with no step of its own; dealings are for stories. Help in hunger becomes rarer and larger, by a new principle
+  (Lumps and occasions): at most once a season, a household asks for enough to reach the next harvest (VB-222). So "done when" above now
+  reads: help in hunger as a seasonal ask, measured against today's; balances booked and shown; the golden file changed for these two.
 
 ### 3.2 A life
 
