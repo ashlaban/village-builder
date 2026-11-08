@@ -33,8 +33,8 @@ assert.strictEqual(JSON.stringify(Sim.save(st)), saved, 'counts must stay out of
 VB['sim/heirs'].countDemand(st);
 assert(VB.count.heirRank > 0, 'countDemand rankings must be counted');
 VB.resetCounts();
-VB['sim/heirs'].heirRanking(st, st.households[0]);
-assert(VB.count.heirRank > 1, 'nested ownFirstOf rankings must be counted');
+VB['sim/heirs'].ownFirstOf(st);
+assert(VB.count.heirRank >= st.liveHouseholds.length, 'nested ownFirstOf rankings must be counted');
 // A second tiny fixture exercises many pair comparisons without advancing into hunger first.
 const probe = tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
   [{ at: [10, 15], farms: 3, sizes: [7, 7, 7] }, { at: [38, 15], farms: 3, sizes: [7, 7, 7] }], { seed: 7 });
