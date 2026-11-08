@@ -6,7 +6,7 @@ const root = sourceAt < 0 ? path.join(__dirname, '..') : path.resolve(args.splic
 const day = args.includes('--day'), names = args.filter((a) => a !== '--day');
 const VB = require(path.join(root, 'src/load.js')), Sim = VB.sim;
 const F = require(path.join(root, 'tests/lib/fixtures.js'));
-for (const name of names.length ? names : ['small-y40', 'medium-y60']) {
+for (const name of names.length ? names : ['small-y40', 'medium-ref']) {
   const fixture = F.loadFixture(name);
   if (!fixture) throw new Error(`${name}: a fixture is required for this benchmark`);
   const { st, stamp, stale } = fixture, households = st.liveHouseholds.length;

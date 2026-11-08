@@ -415,6 +415,9 @@ its line; its wrap-up measures it.
 - save and load: 0.5 s each, at `medium-ref`;
 - `medium-y60` is a stress state, reported nightly against twice these lines, never gating.
 
+**8 November update (Kim, VB-202):** `medium-y60` is dropped from the fixtures, the bench and the budget, replacing its stress role;
+`medium-ref` is the only late medium fixture. The fixtures move to release assets and a nightly GitHub workflow remakes them (VB-223).
+
 The table above keeps the lines of 3 and 6 November for the record. VB-203 measures the new ones on VB-202's fixtures and writes the closure table by system.
 
 ### 5.3 Ten rules for systems

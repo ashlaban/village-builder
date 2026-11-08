@@ -12,7 +12,8 @@ function run(ms, cpu = 'test CPU') {
   const f = { msPerDay: ms, msPerPawnDay: ms / 10, systems: [{ system: 'trees', msPerDay: ms / 2 }],
     micro: { routeUs: ms, routeNsPerExpanded: ms, ruleNs: ms } };
   return { schema: 1, cpu: { model: cpu, cores: 4 }, date: '2026-11-05', commit: 'test', node: 'test',
-    fixtures: { 'medium-y5': f, 'medium-y60': { ...f, msPerPawnDay: ms / 8 } } };
+    fixtures: { 'medium-y5': { ...f, stamp: { year: 5, living: 880 } },
+      'medium-ref': { ...f, msPerPawnDay: ms / 8, stamp: { year: 14, living: 1005, target: 1000, reached: true } } } };
 }
 const history = [80, 90, 100, 110, 120].map((n) => run(n));
 assert.strictEqual(B.flags(run(119.99), history).length, 0);
@@ -23,13 +24,22 @@ assert.strictEqual(B.flags(run(200, 'another CPU'), history).length, 0);
 assert.strictEqual(B.flags(run(200), history.slice(1)).length, 0);
 assert.strictEqual(B.flags(run(120), [...history, run(999, 'another CPU')]).length, flags.length);
 assert.strictEqual(B.flags(run(120), [run(999), ...history]).length, flags.length);
-const failed = { ...run(200), fixtures: { 'medium-y5': { error: 'offline' }, 'medium-y60': { error: 'offline' } } };
+const failed = { ...run(200), fixtures: { 'medium-y5': { error: 'offline' }, 'medium-ref': { error: 'offline' } } };
 assert.deepStrictEqual(B.flags(failed, history), []);
 const table = B.budget(run(100));
-assert(table.includes('| Longest 6-minute step (ms) | 60; medium-y60 400 until VB-201 |'));
-assert(table.includes('| Moving round, one call (ms) | 60; medium-y60 400 step limit until VB-201 |'));
-assert(table.includes('| Meetings, one call (ms) | 60; medium-y60 400 step limit until VB-201 |'));
-assert(table.includes('| Cost per living pawn-day / year 5 | ≤1.25× | 1.000 | 1.250 |'));
+// Kim's lines of 7 November as numbers (VB-202), with no medium-y60 (Kim, 8 November).
+assert.deepStrictEqual(B.NAMES, ['medium-y5', 'medium-ref']);
+assert(!table.includes('medium-y60') && !table.includes('400 until'));
+assert(table.includes("| Mean simulation (ms/day) | 200; today's systems; the finished game 400 |"));
+assert(table.includes('| Longest 6-minute step (ms) | 60; also on small-y40 (tests/history.js) |'));
+assert(table.includes('| Moving round, one call (ms) | 60; a 6-minute step |'));
+assert(table.includes('| Save + stringify + gzip (ms) | 500 |') && table.includes('| Parse + load (ms) | 500 |'));
+assert(table.includes('| Measure | Budget (at medium-ref) | medium-y5 (year 5, 880 living) | medium-ref (year 14, 1005 living) |'));
+assert(table.includes('medium-ref: fresh, saved after year 14, 1005 starting living'));
+assert(table.includes('| Cost per living pawn-day / medium-y5 | reported; the line is small-y40 / small-y5 (tests/history.js) | 1.000 | 1.250 |'));
+const short = run(100);
+short.fixtures['medium-ref'].stamp = { year: 60, living: 950, target: 1000, reached: false };
+assert(B.budget(short).includes('saved after year 60 (**never reached its target**)'));
 assert(table.includes('| trees (ms/day) |  | 50.000 | 50.000 |'));
 assert(B.budget(failed).includes('unavailable'));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-bench-'));
