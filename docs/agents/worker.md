@@ -26,8 +26,8 @@ must answer, with proposed answers, in `QUESTIONS.md`. Never make your own candi
 
 ## 3. Wrap up, whenever you stop
 1. `npm run nightly`: it refreshes the late-game fixtures and appends the bench history. Run nothing else meanwhile, since the bench times
-   the machine; with every fixture stale it takes up to two hours. Commit `docs/bench/history.jsonl` and `docs/bench/budget.md` to the
-   PR. If publishing the fixtures is refused, say so in the PR.
+   the machine; with every fixture stale it takes about 5 minutes (four fixtures since VB-202, made in 2.9 minutes on 8 November).
+   Commit `docs/bench/history.jsonl` and `docs/bench/budget.md` to the PR. If publishing the fixtures is refused, say so in the PR.
 2. Measure the run: `node tools/agent-usage.js --label worker --out docs/agents/usage`; commit the file it writes, and put its
    summary in the PR description.
 3. Mark the PR ready for review; its description is the night's log. Commit no separate run log.

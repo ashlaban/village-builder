@@ -2,9 +2,9 @@
 // node tools/route-bench.js small-y40 [days=30] [cacheMax override]
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const name = process.argv[2], days = Number(process.argv[3] || 30), max = process.argv[4] === undefined ? null : Number(process.argv[4]);
-if (!['small-y40', 'medium-y60'].includes(name) || !Number.isInteger(days) || days < 1
+if (!['small-y40', 'medium-ref'].includes(name) || !Number.isInteger(days) || days < 1
     || (max !== null && (!Number.isInteger(max) || max < 1))) {
-  throw new Error('usage: node tools/route-bench.js small-y40|medium-y60 [positive integer days] [positive cacheMax override]');
+  throw new Error('usage: node tools/route-bench.js small-y40|medium-ref [positive integer days] [positive cacheMax override]');
 }
 const root = path.join(__dirname, '../src');
 let refreshMs = 0;

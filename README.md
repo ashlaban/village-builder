@@ -13,7 +13,7 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
   `node tools/bench.js --budget` regenerates the table alone. Nightly runs it after fixture preparation;
   include both bench files in the nightly PR. Measurements and 20% regression flags are diagnostic and never fail the run.
 
-- **Route cache:** `node tools/route-bench.js small-y40` (or `medium-y60`) reports 30 days of cache work, hit rate and save size.
+- **Route cache:** `node tools/route-bench.js small-y40` (or `medium-ref`) reports 30 days of cache work, hit rate and save size.
   The cache retains at most 60,000 routes in least-recently-used order, including in saves.
 - **Moving round:** `node tools/moving-bench.js` reports late-fixture time, ranking and pair counts, and complete post-round save hashes.
   Add `--day` for six-minute round-day step timings or `--source DIR` to measure another checkout against its fixtures.

@@ -38,7 +38,7 @@ for (const file of JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json
   }
 }
 const VB = globalThis.VB, F = require('../tests/lib/fixtures.js');
-for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ['small-y40', 'medium-y60']) {
+for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ['small-y40', 'medium-ref']) {
   const fixture = F.loadFixture(name);
   if (!fixture) throw new Error(`${name}: fixture required`);
   const { st } = fixture;

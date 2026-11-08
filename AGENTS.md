@@ -35,9 +35,11 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
   not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
 - Fixtures, late saves (gitignored `tests/fixtures/`, kept on the orphan `fixtures` branch): `node tools/fixtures.js status|fetch|publish`,
-  `make [small-y5 small-y40 medium-y5 medium-y60]`. In a test, `require('./lib/fixtures.js').loadFixture(name)` (`../tests/lib/` from tools)
+  `make [small-y5 small-y40 medium-y5 medium-ref]`; `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
+  stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)` (`../tests/lib/` from tools)
   gives `{st, stamp, stale}`, or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. `npm run nightly`
-  remakes stale ones and replaces the `fixtures` branch with `--force-with-lease`: the project's only force-push.
+  remakes stale ones and replaces the `fixtures` branch with `--force-with-lease`: the project's only force-push. Who remakes them: the
+  worker's wrap-up, until VB-223's nightly workflow takes over (release assets); a PR that changes the golden file says they are stale.
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
@@ -112,8 +114,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day
 for the systems built so far (half of the finished game's 400 ms, a quarter of the main thread at 30×; each slice's plan claims its line from the rest),
 no 6-minute step over 60 ms on `medium-ref` and `small-y40`, cost per living pawn-day at `small-y40` at most 1.25 times `small-y5`, save and load
-under 0.5 s each at `medium-ref`. `medium-y60` is a stress state, reported against twice these lines and never gating. Until VB-202 and VB-203 land,
-the bench still reports `medium-y60` as the late reference.
+under 0.5 s each at `medium-ref`. There is no `medium-y60` (Kim, 8 November): the bench reports `medium-y5` and `medium-ref`.
 Every plan and PR is checked against these rules:
 1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
    obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
