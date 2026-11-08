@@ -1,9 +1,9 @@
-// @sys sim/help: food help between households: gifts from kin and the village store, and the village store's filling
+// @sys sim/help: food help between households: whom a hungry household asks (kin, then the village store) and for how much, and the
+// village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
 VB['sim/help'] = (() => {
-  const { strengthenTie } = VB['sim/relations'];
-  const Stores = VB['sim/stores'];
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP } = VB['sim/rules'];
-  const { personEvent, childrenOf, siblingsOf, atHousehold } = VB['sim/records'];
+  const { childrenOf, siblingsOf } = VB['sim/records'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
@@ -32,19 +32,11 @@ VB['sim/help'] = (() => {
     }
     return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
   }
-  function gift(st, from, to, n, fromName) {
-    Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName });
-    const ht = to.holder !== null ? st.pawns[to.holder] : null;
-    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
-      n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
-    if (from) {
-      Stores.take(st, from, 'grain', n, { kind: 'gift', to: st.farmsteads[to.farmstead].name });
-      const hf = from.holder !== null ? st.pawns[from.holder] : null;
-      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
-        n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
-    }
-  }
+  // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
+  // without one; true when it was given.
+  const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
+  const give = (st, from, to, n) => issue(st, { actor: actorOf(from), verb: 'give', target: 'farmstead' in to ? to.id : { village: to.id },
+    args: { good: 'grain', n }, source: 'help' }) === true;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days asks kin, then the village store, for HELP.askDays days of food.
   function shareFood(st) {
     for (const liveId of st.liveHouseholds) {
@@ -53,12 +45,12 @@ VB['sim/help'] = (() => {
       const need = dailyNeed(st, hh); if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let want = HELP.askDays * need - spare(st, hh);
       for (const k of kinHouseholds(st, hh)) {
-        const give = Math.min(want, surplus(st, st.households[k])); if (give <= 1e-9) continue;
-        gift(st, st.households[k], hh, give, st.farmsteads[st.households[k].farmstead].name); want -= give;
+        const n = Math.min(want, surplus(st, st.households[k])); if (n <= 1e-9) continue;
+        if (give(st, st.households[k], hh, n)) want -= n;
         if (want <= 1e-9) break;
       }
-      const v = st.villages[st.farmsteads[hh.farmstead].village], give = Math.min(want, v.grain);
-      if (give > 1e-9) { Stores.take(st, v, 'grain', give, { kind: 'gift', to: st.farmsteads[hh.farmstead].name }); gift(st, null, hh, give, v.name); }
+      const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, v.grain);
+      if (n > 1e-9) give(st, v, hh, n);
     }
   }
   // At the moving round every household gives a share of its surplus to its village's store.
@@ -66,8 +58,8 @@ VB['sim/help'] = (() => {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      const give = surplus(st, hh) * HELP.storeShare; if (give <= 1e-9) continue;
-      Stores.move(st, hh, st.villages[st.farmsteads[hh.farmstead].village], 'grain', give, { kind: 'gift', to: 'the village store' });
+      const n = surplus(st, hh) * HELP.storeShare; if (n <= 1e-9) continue;
+      give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
     }
   }
   return { surplus, kinHouseholds, shareFood, fillStores };

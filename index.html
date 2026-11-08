@@ -4459,12 +4459,68 @@ VB['sim/hunger'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/help: food help between households: gifts from kin and the village store, and the village store's filling
-VB['sim/help'] = (() => {
-  const { strengthenTie } = VB['sim/relations'];
+// @sys sim/exchange: deals between parties, the gift for now (VB-216): whether one goes ahead (the floor, allowance), and settling it through
+// sim/stores and sim/relations; owns no state
+VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
+  const Rules = VB['sim/registry'];
+  const { strengthenTie } = VB['sim/relations'];
   const { HELP } = VB['sim/rules'];
-  const { personEvent, childrenOf, siblingsOf, atHousehold } = VB['sim/records'];
+  const { personEvent, atHousehold } = VB['sim/records'];
+  const { floorOf } = VB['sim/hunger'];
+  // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
+  // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
+  const TOLERANCE = 1e-9;
+  const isHousehold = (x) => 'farmstead' in x;
+  const nameOf = (st, x) => (isHousehold(x) ? st.farmsteads[x.farmstead].name : x.name);
+  const ctx = { giver: null, receiver: null, from: null, to: null }; // reused, so allowance's value allocates nothing
+  // Whether a gift goes ahead: a giving household keeps its floor and gives no more than its allowance toward the receiver; a village
+  // store has neither and gives what it holds. The player's pawn passes both (The gift: the player's gift; the warning is VB-221's).
+  // {floorOk, allowance, accept, why}: why is null when the gift is accepted, else the reason.
+  function assessGift(st, o) {
+    let floorOk, allowance = Infinity;
+    if (isHousehold(o.from)) {
+      floorOk = o.from.grain - o.n >= floorOf(st, o.from) - TOLERANCE;
+      ctx.giver = o.from.holder; ctx.receiver = isHousehold(o.to) ? o.to.holder : null; ctx.from = o.from; ctx.to = o.to;
+      allowance = Rules.value(st, 'allowance', ctx);
+    } else floorOk = o.n <= o.from.grain + TOLERANCE;
+    const player = o.source === 'player', within = o.n <= allowance + TOLERANCE;
+    const why = !floorOk && (!player || !isHousehold(o.from)) ? `it would take ${nameOf(st, o.from)} below its floor`
+      : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
+    return { floorOk, allowance, accept: why === null, why };
+  }
+  // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,
+  // and the tie between the two holders.
+  function receive(st, from, to, n, fromName) {
+    Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName });
+    const ht = to.holder !== null ? st.pawns[to.holder] : null;
+    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
+      n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
+    if (from) {
+      Stores.take(st, from, 'grain', n, { kind: 'gift', to: st.farmsteads[to.farmstead].name });
+      const hf = from.holder !== null ? st.pawns[from.holder] : null;
+      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
+        n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
+      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
+    }
+  }
+  // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
+  function settleGift(st, o) {
+    if (!isHousehold(o.to)) Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
+    else if (!isHousehold(o.from)) { // the village store's gift
+      Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }); receive(st, null, o.to, o.n, o.from.name);
+    } else receive(st, o.from, o.to, o.n, st.farmsteads[o.from.farmstead].name);
+  }
+  return { assessGift, settleGift };
+})();
+</script>
+<script>
+// @sys sim/help: food help between households: whom a hungry household asks (kin, then the village store) and for how much, and the
+// village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
+VB['sim/help'] = (() => {
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const { HELP } = VB['sim/rules'];
+  const { childrenOf, siblingsOf } = VB['sim/records'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
@@ -4493,19 +4549,11 @@ VB['sim/help'] = (() => {
     }
     return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
   }
-  function gift(st, from, to, n, fromName) {
-    Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName });
-    const ht = to.holder !== null ? st.pawns[to.holder] : null;
-    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
-      n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
-    if (from) {
-      Stores.take(st, from, 'grain', n, { kind: 'gift', to: st.farmsteads[to.farmstead].name });
-      const hf = from.holder !== null ? st.pawns[from.holder] : null;
-      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
-        n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
-    }
-  }
+  // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
+  // without one; true when it was given.
+  const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
+  const give = (st, from, to, n) => issue(st, { actor: actorOf(from), verb: 'give', target: 'farmstead' in to ? to.id : { village: to.id },
+    args: { good: 'grain', n }, source: 'help' }) === true;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days asks kin, then the village store, for HELP.askDays days of food.
   function shareFood(st) {
     for (const liveId of st.liveHouseholds) {
@@ -4514,12 +4562,12 @@ VB['sim/help'] = (() => {
       const need = dailyNeed(st, hh); if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let want = HELP.askDays * need - spare(st, hh);
       for (const k of kinHouseholds(st, hh)) {
-        const give = Math.min(want, surplus(st, st.households[k])); if (give <= 1e-9) continue;
-        gift(st, st.households[k], hh, give, st.farmsteads[st.households[k].farmstead].name); want -= give;
+        const n = Math.min(want, surplus(st, st.households[k])); if (n <= 1e-9) continue;
+        if (give(st, st.households[k], hh, n)) want -= n;
         if (want <= 1e-9) break;
       }
-      const v = st.villages[st.farmsteads[hh.farmstead].village], give = Math.min(want, v.grain);
-      if (give > 1e-9) { Stores.take(st, v, 'grain', give, { kind: 'gift', to: st.farmsteads[hh.farmstead].name }); gift(st, null, hh, give, v.name); }
+      const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, v.grain);
+      if (n > 1e-9) give(st, v, hh, n);
     }
   }
   // At the moving round every household gives a share of its surplus to its village's store.
@@ -4527,8 +4575,8 @@ VB['sim/help'] = (() => {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      const give = surplus(st, hh) * HELP.storeShare; if (give <= 1e-9) continue;
-      Stores.move(st, hh, st.villages[st.farmsteads[hh.farmstead].village], 'grain', give, { kind: 'gift', to: 'the village store' });
+      const n = surplus(st, hh) * HELP.storeShare; if (n <= 1e-9) continue;
+      give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
     }
   }
   return { surplus, kinHouseholds, shareFood, fillStores };
@@ -5901,6 +5949,7 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
+  const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
@@ -5914,6 +5963,26 @@ VB['sim/commands'] = (() => {
   // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
+  // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
+  // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
+  function giftOf(st, c) {
+    const a = c.actor, t = c.target, n = c.args && c.args.n;
+    let from;
+    if (Number.isInteger(a)) {
+      const dead = living(st, a); if (dead) return dead;
+      from = holdingOf(st, a); if (!from || from.dissolved) return `pawn ${a} holds no household`;
+    } else if (a && a.household !== undefined) {
+      if (!home(st, a.household)) return `there is no household ${a.household}`;
+      from = st.households[a.household]; if (from.holder !== null) return `household ${a.household} gives through its holder`;
+    } else if (a && st.villages[a.village]) from = st.villages[a.village];
+    else return 'there is no giver';
+    const to = Number.isInteger(t) ? (home(st, t) ? st.households[t] : null) : t && st.villages[t.village] ? st.villages[t.village] : null;
+    if (!to) return `there is no household or village ${JSON.stringify(t)}`;
+    if (to === from) return 'one cannot give to oneself';
+    if (!(c.args && c.args.good === 'grain')) return 'only grain is given';
+    if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
+    return { from, to, good: 'grain', n, source: c.source };
+  }
   const VERBS = {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
@@ -5945,6 +6014,13 @@ VB['sim/commands'] = (() => {
     haltForTalk: {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
+    },
+    // ---- gifts (source 'help', later 'player'; VB-216) ----
+    // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store
+    // (target {village}); refused when it would take the giver below its floor or beyond its allowance (sim/exchange)
+    give: {
+      check: (st, c) => { const o = giftOf(st, c); return typeof o === 'string' ? o : assessGift(st, o).why; },
+      run: (st, c) => settleGift(st, giftOf(st, c)),
     },
     // ---- a settlement's meeting (source 'meeting') ----
     // decide({dim, option}): the settlement's practice of the custom becomes the option
