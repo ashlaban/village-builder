@@ -4,6 +4,7 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
+  const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
@@ -17,6 +18,26 @@ VB['sim/commands'] = (() => {
   // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
+  // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
+  // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
+  function giftOf(st, c) {
+    const a = c.actor, t = c.target, n = c.args && c.args.n;
+    let from;
+    if (Number.isInteger(a)) {
+      const dead = living(st, a); if (dead) return dead;
+      from = holdingOf(st, a); if (!from || from.dissolved) return `pawn ${a} holds no household`;
+    } else if (a && a.household !== undefined) {
+      if (!home(st, a.household)) return `there is no household ${a.household}`;
+      from = st.households[a.household]; if (from.holder !== null) return `household ${a.household} gives through its holder`;
+    } else if (a && st.villages[a.village]) from = st.villages[a.village];
+    else return 'there is no giver';
+    const to = Number.isInteger(t) ? (home(st, t) ? st.households[t] : null) : t && st.villages[t.village] ? st.villages[t.village] : null;
+    if (!to) return `there is no household or village ${JSON.stringify(t)}`;
+    if (to === from) return 'one cannot give to oneself';
+    if (!(c.args && c.args.good === 'grain')) return 'only grain is given';
+    if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
+    return { from, to, good: 'grain', n, source: c.source };
+  }
   const VERBS = {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
@@ -48,6 +69,13 @@ VB['sim/commands'] = (() => {
     haltForTalk: {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
+    },
+    // ---- gifts (source 'help', later 'player'; VB-216) ----
+    // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store
+    // (target {village}); refused when it would take the giver below its floor or beyond its allowance (sim/exchange)
+    give: {
+      check: (st, c) => { const o = giftOf(st, c); return typeof o === 'string' ? o : assessGift(st, o).why; },
+      run: (st, c) => settleGift(st, giftOf(st, c)),
     },
     // ---- a settlement's meeting (source 'meeting') ----
     // decide({dim, option}): the settlement's practice of the custom becomes the option
