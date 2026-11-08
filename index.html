@@ -4498,8 +4498,9 @@ VB['sim/hunger'] = (() => {
     const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
     if (avail >= rest - late) {
-      const cooked = Math.min(hh.rations, rest - late); Stores.take(st, hh, 'rations', cooked, 'meal');
-      Stores.take(st, hh, 'grain', rest - late - cooked, 'meal'); }
+      // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
+      const left = Math.max(0, rest - late), cooked = Math.min(hh.rations, left); Stores.take(st, hh, 'rations', cooked, 'meal');
+      Stores.take(st, hh, 'grain', Math.max(0, left - cooked), 'meal'); }
     else {
       const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
       const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
