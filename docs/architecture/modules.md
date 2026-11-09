@@ -42,6 +42,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
+  The player (VB-169) is one more source: `st.player` holds the inhabited pawn and its queue, written by `Sim.inhabit`, `uninhabit`, `queue`,
+  `unqueue` and `setAuto`; `playerStep` issues the queue's head each step, and the planner's sites ask `commanded` and `unplanned` before they
+  move a pawn (`tests/player.js`).
 - Membership (VB-175): `sim/records` alone writes household members, a pawn's household and service (`joinHousehold`,
   `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the

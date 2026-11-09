@@ -149,6 +149,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
+    if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

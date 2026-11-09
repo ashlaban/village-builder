@@ -1,9 +1,10 @@
-// @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out (VB-167)
+// @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
+  const { cal, WORK } = VB['sim/rules'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -67,7 +68,8 @@ VB['sim/commands'] = (() => {
     },
     // haltForTalk(until): pause an idle outdoor pawn until the talk ends, leaving work and indoor pawns alone
     haltForTalk: {
-      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
+      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past`
+        : commanded(st, c.actor) ? `pawn ${c.actor} is on the player's command` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
@@ -190,5 +192,89 @@ VB['sim/commands'] = (() => {
     V.run(st, cmd);
     return true;
   }
-  return { issue, VERBS };
+  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
+  // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
+  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
+  //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
+  const QUEUE_MAX = 8;
+  // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
+  // idling until its time is up. Any other verb is done at once.
+  const LASTS = {
+    work: (st, a, c) => !!a.job && a.job.key === c.target,
+    walkTo: (st, a) => !!a.path,
+    goHome: (st, a) => !a.inside && !!a.path,
+    idle: (st, a, c) => st.t < c.args.until,
+  };
+  // The planner's sites ask these two (docs/review-life.md, section 2). commanded: a command of the player's is queued or under way for the
+  // pawn, so nothing else moves it. unplanned: that, or the player has turned its automatic behaviour off, so the planner gives it no work.
+  const commanded = (st, id) => { const pl = st.player; return !!pl && pl.pawn === id && pl.queue.length > 0; };
+  const unplanned = (st, id) => { const pl = st.player; return !!pl && pl.pawn === id && (pl.queue.length > 0 || !pl.auto); };
+  function inhabit(st, id) {
+    const dead = living(st, id); if (dead) return dead;
+    if (st.player) uninhabit(st);
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    personEvent(st, id, 'player', 'Played by the player');
+    return true;
+  }
+  function uninhabit(st) {
+    if (!st.player) return 'no pawn is played';
+    personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
+    st.player = null;
+    return true;
+  }
+  // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
+  function homeAtDark(st, pl) {
+    const a = st.agents[pl.pawn], h = cal(st.t).hour;
+    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && a.phase === null) issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
+  }
+  // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,
+  // or its actor is not the player's pawn. `skip` is the world's, not a pawn's (it would advance time from within a step).
+  function queue(st, cmd) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (!cmd || !VERBS[cmd.verb] || cmd.verb === 'skip') return `there is no verb ${cmd && cmd.verb} to queue`;
+    if (cmd.actor !== pl.pawn) return `pawn ${cmd.actor} is not the player's pawn`;
+    if (pl.queue.length >= QUEUE_MAX) return `the queue is full (${QUEUE_MAX} commands)`;
+    const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // the queue keeps its own plain data
+    pl.queue.push({ actor: pl.pawn, verb: cmd.verb, target: copy(cmd.target), args: copy(cmd.args), source: 'player', begun: null });
+    return true;
+  }
+  // Takes command i off the queue. The head, once begun, only stops being the player's: the pawn goes on with the act as its own.
+  function unqueue(st, i) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (!(Number.isInteger(i) && i >= 0 && i < pl.queue.length)) return `the queue has no command ${i}`;
+    pl.queue.splice(i, 1);
+    if (!pl.queue.length && !living(st, pl.pawn)) homeAtDark(st, pl);
+    return true;
+  }
+  function setAuto(st, on) {
+    if (!st.player) return 'no pawn is played';
+    st.player.auto = !!on;
+    return true;
+  }
+  // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
+  // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
+  function playerStep(st) {
+    const pl = st.player;
+    if (!pl || !pl.queue.length) return;
+    const a = st.agents[pl.pawn], q = pl.queue;
+    if (q[0].begun !== null) {
+      const lasts = LASTS[q[0].verb];
+      if (lasts && !living(st, pl.pawn) && lasts(st, a, q[0])) return;
+      q.shift();
+    }
+    while (q.length) {
+      if (a.phase === 'back') return;
+      // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
+      const cmd = q[0], leaves = !!a.job && cmd.verb !== 'work' && !!LASTS[cmd.verb], barred = leaves ? VERBS[cmd.verb].check(st, cmd) : null;
+      if (leaves && !barred) release(st, a);
+      const why = barred || issue(st, cmd);
+      if (why === true) { cmd.begun = st.t; return; }
+      q.shift(); pl.refused = { verb: cmd.verb, why, t: st.t };
+    }
+    if (!living(st, pl.pawn)) homeAtDark(st, pl);
+  }
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
 })();

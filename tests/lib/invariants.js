@@ -239,6 +239,19 @@ function checkState(st) {
   }
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   if (st.herds) checkHerds(st, bad);
+  // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
+  if (st.player !== null && st.player !== undefined) {
+    const pl = st.player, QUEUE_MAX = globalThis.VB['sim/commands'].QUEUE_MAX;
+    if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
+    if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
+    if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
+    else pl.queue.forEach((c, n) => {
+      if (c.source !== 'player' || c.actor !== pl.pawn || typeof c.verb !== 'string') bad.push(`player.queue[${n}]: ${JSON.stringify(c)}`);
+      if (!(c.begun === null || (n === 0 && c.begun <= st.t))) bad.push(`player.queue[${n}]: begun ${c.begun}`);
+    });
+    const r = pl.refused;
+    if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
+  }
   return bad;
 }
 // Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;
