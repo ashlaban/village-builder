@@ -94,7 +94,7 @@
     return c;
   }
   function makeArt(R) {
-    const T = (c) => texFrom(c, { autoGenerateMipmaps: true });
+    const T = (c) => texFrom(c, { autoGenerateMipmaps: true, resolution: c.artK || 1 });
     fieldTex = {}; for (const k of ['stubble', 'plowed', 'sown', 'young', 'growing', 'ripe', 'fallow', 'scrub']) fieldTex[k] = T(fieldCanvas(k, R));
     for (const k of ['grass', 'mown', 'aftermath']) fieldTex['meadow-' + k] = T(meadowCanvas(k, R));
     art = {
