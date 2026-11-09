@@ -79,13 +79,14 @@
     const v = f.id % 3, ruin = f.state === 'ruin';
     return icon(`stuga${v}${ruin ? 'r' : ''}`, (g) => {
       const b = stugaCanvas(v);
-      if (ruin) g.drawImage(b, 8, 100 - b.height * 0.55, b.width, b.height * 0.55); else g.drawImage(b, 8, 100 - b.height);
+      const bw = b.width / ARTK, bh = b.height / ARTK;
+      if (ruin) g.drawImage(b, 8, 100 - bh * 0.55, bw, bh * 0.55); else g.drawImage(b, 8, 100 - bh, bw, bh);
     });
   }
   // A village by a cluster of its buildings: barn and storehouse behind a cottage, and the well sweep where it has a well.
   function villageIcon(v) {
     return icon(`village${v.well ? 'w' : ''}`, (g) => {
-      const at = (b, x, y, s) => g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s);
+      const at = (b, x, y, s0) => { const s = s0 / ARTK; g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s); };
       at(ladaCanvas(), 2, 70, 0.62); at(harbreCanvas(), 78, 80, 0.62);
       if (v.well) at(wellSweepCanvas(), 52, 74, 0.5);
       at(stugaCanvas(1), 18, 114, 0.72);

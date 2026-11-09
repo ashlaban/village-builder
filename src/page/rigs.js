@@ -3,39 +3,21 @@
   // Parts are painted in greys (white = full colour) and tinted per pawn. 4 texels per world unit.
   const PX = 4;
   let atlas = null;
-  // The art style of buildings and pawns: 'classic', or a story-book style of page/storybook. A rig style gives the parts' shading
-  // ('soft' gradient, 'hard' shadow or none), an inner outline in grey (so the tint makes it a darker shade of the cloth), a simpler
-  // face, k texels per part unit on the map, and its plant dyes.
-  let ART_STYLE = 'classic';
-  const RIG_STYLES = {
-    classic: { shade: 'soft', k: 1 },
-    ink: { shade: 'soft', line: 'rgb(98,84,80)', lw: 1.5, face: true, k: 2,
-      dyes: [[236, 226, 200], [176, 136, 96], [204, 72, 54], [76, 120, 184], [232, 186, 70], [122, 160, 84], [156, 104, 150], [226, 150, 90]],
-      hose: [[124, 104, 84], [80, 104, 140], [160, 84, 62], [100, 126, 84], [152, 132, 106]] },
-    cut: { shade: 'hard', face: true, k: 2,
-      dyes: [[244, 232, 204], [190, 130, 84], [222, 70, 50], [52, 110, 196], [246, 190, 50], [96, 164, 96], [170, 96, 160], [240, 140, 70]],
-      hose: [[110, 84, 70], [60, 90, 150], [170, 76, 56], [84, 130, 90], [160, 130, 96]] },
-    mural: { shade: 'none', line: 'rgb(56,48,46)', lw: 1.7, face: true, k: 2,
-      dyes: [[240, 230, 204], [200, 150, 84], [186, 62, 44], [70, 100, 140], [222, 178, 70], [112, 140, 84], [150, 70, 60], [226, 196, 140]],
-      hose: [[120, 96, 72], [70, 96, 130], [150, 70, 52], [104, 124, 84], [190, 160, 110]] },
-  };
-  const RS = RIG_STYLES[ART_STYLE];
+  // The parts are drawn as the farm art is (page/farmart): flat colour inside a contour and a few drapery lines. The contour is a dark
+  // grey inside the part's edge, so that the tint makes it a deep shade of the cloth, as a mural's contour follows its colour.
+  const RIG_LINE = 'rgb(56,48,46)', RIG_LW = 1.7, RIG_K = 2; // RIG_K texels per part unit on the map
   function rr(g, x, y, w, h, r) {
     g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r);
     g.arcTo(x, y, x + w, y, r); g.closePath(); }
-  function shadeRight(g, w, h, a = 0.22) {
-    const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(0,0,0,0)');
-    gr.addColorStop(1, `rgba(0,0,0,${a})`); g.fillStyle = gr; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, w, h);
-    g.globalCompositeOperation = 'source-over'; }
   // The outline of the current path, drawn inside it (the parts fill their canvases to the edge).
-  function ol(g) { if (RS.line) { g.save(); g.clip(); g.strokeStyle = RS.line; g.lineWidth = RS.lw * 2; g.lineJoin = 'round'; g.stroke(); g.restore(); } }
-  // Finishes a part whose shape is the current path: the style's shading, then its outline.
-  function fin(g, w, h, a) {
-    if (RS.shade === 'soft') shadeRight(g, w, h, a);
-    else if (RS.shade === 'hard') {
-      g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(0,0,0,${a * 0.8})`; g.fillRect(w * 0.64, 0, w, h);
-        g.globalCompositeOperation = 'source-over'; }
-    ol(g);
+  function ol(g) { g.save(); g.clip(); g.strokeStyle = RIG_LINE; g.lineWidth = RIG_LW * 2; g.lineJoin = 'round'; g.stroke(); g.restore(); }
+  // A part painted in its own colours (shoes, tools, loads) with a dark contour laid round whatever is on its canvas.
+  function contoured(c, o) {
+    const m = makeCanvas(c.width, c.height), g = m.getContext('2d');
+    for (let k = 0; k < 8; k++) g.drawImage(c, Math.cos(k * Math.PI / 4) * o, Math.sin(k * Math.PI / 4) * o);
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = 'rgb(44,32,28)'; g.fillRect(0, 0, m.width, m.height);
+    g.globalCompositeOperation = 'source-over'; g.drawImage(c, 0, 0);
+    return m;
   }
   // k texels per part unit: 1 for the map's atlas, more for the panels' portraits (page/portraits), which show the same parts larger.
   function partCanvases(k = 1) {
@@ -45,61 +27,47 @@
       const gr = g.createRadialGradient(17, 5, 0, 17, 5, 16); gr.addColorStop(0, 'rgba(20,28,18,0.42)'); gr.addColorStop(1, 'rgba(20,28,18,0)');
       g.fillStyle = gr; g.beginPath(); g.ellipse(17, 5, 16, 4.5, 0, 0, 7); g.fill(); });
     mk('hose', 9, 27, (g, w, h) => {
-      g.fillStyle = '#fff'; rr(g, 0.5, 0, 8, 27, 3.5); g.fill(); fin(g, w, h, 0.25); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(1, 12, 7, 1); });
+      g.fillStyle = '#fff'; rr(g, 0.5, 0, 8, 27, 3.5); g.fill(); ol(g); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(1, 12, 7, 1); });
     mk('shoe', 12, 6, (g) => {
       g.fillStyle = 'rgb(86,60,40)'; g.beginPath(); g.moveTo(1, 5.5); g.lineTo(1, 1.5); g.quadraticCurveTo(4, 0, 8, 1.2);
       g.quadraticCurveTo(12, 2.5, 11.5, 5.5); g.closePath(); g.fill(); g.fillStyle = 'rgb(54,38,26)'; g.fillRect(1, 4.5, 10.5, 1.5); });
     mk('tunic', 28, 37, (g, w, h) => {
       g.fillStyle = '#fff'; g.beginPath(); g.moveTo(5, 1); g.lineTo(23, 1); g.quadraticCurveTo(26, 2, 25.5, 6); g.lineTo(27.5, 35);
         g.quadraticCurveTo(14, 37.5, 0.5, 35); g.lineTo(2.5, 6); g.quadraticCurveTo(2, 2, 5, 1); g.closePath(); g.fill();
-      fin(g, w, h, 0.26);
-      g.strokeStyle = 'rgba(0,0,0,0.12)'; g.lineWidth = 1;
-        for (const x of [9, 15, 20]) { g.beginPath(); g.moveTo(x, 18); g.lineTo(x + (x - 14) * 0.25, 35); g.stroke(); }
+      ol(g);
+      g.strokeStyle = 'rgba(0,0,0,0.34)'; g.lineWidth = 1;
+        for (const x of [9, 15, 20]) { g.beginPath(); g.moveTo(x, 18); g.lineTo(x + (x - 14) * 0.25, 31); g.stroke(); }
+      g.beginPath(); g.moveTo(1.6, 31.6); g.quadraticCurveTo(14, 34.2, 26.6, 31.6); g.stroke(); // the hem's border
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(17, 2.5, 4, 2, 0, 0, 7); g.fill();
     });
     mk('dress', 34, 55, (g, w, h) => {
       g.fillStyle = '#fff'; g.beginPath(); g.moveTo(9, 1); g.lineTo(25, 1); g.quadraticCurveTo(28, 2, 27, 7); g.lineTo(33.5, 53);
         g.quadraticCurveTo(17, 56, 0.5, 53); g.lineTo(7, 7); g.quadraticCurveTo(6, 2, 9, 1); g.closePath(); g.fill();
-      fin(g, w, h, 0.26);
-      g.strokeStyle = 'rgba(0,0,0,0.11)'; g.lineWidth = 1.2;
-        for (const x of [10, 15, 21, 26]) { g.beginPath(); g.moveTo(x - (x - 17) * 0.2, 20); g.lineTo(x + (x - 17) * 0.45, 53); g.stroke(); }
+      ol(g);
+      g.strokeStyle = 'rgba(0,0,0,0.34)'; g.lineWidth = 1.1;
+        for (const x of [10, 15, 21, 26]) { g.beginPath(); g.moveTo(x - (x - 17) * 0.2, 20); g.lineTo(x + (x - 17) * 0.4, 48.5); g.stroke(); }
+      g.beginPath(); g.moveTo(1.6, 49.2); g.quadraticCurveTo(17, 52.2, 32.6, 49.2); g.stroke(); // the hem's border
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(19, 2.5, 4, 2, 0, 0, 7); g.fill();
     });
     mk('apron', 12, 34, (g, w, h) => {
       g.fillStyle = '#fff'; g.beginPath(); g.moveTo(2, 0); g.lineTo(10, 0); g.lineTo(11.5, 33); g.lineTo(0.5, 33); g.closePath(); g.fill();
-      fin(g, w, h, 0.18); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(5, 4, 1, 28); });
+      ol(g); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(5, 4, 1, 28); });
     mk('belt', 26, 4, (g) => { g.fillStyle = 'rgb(96,66,42)'; g.fillRect(0, 0.5, 26, 3); g.fillStyle = 'rgb(196,170,110)'; g.fillRect(17, 0, 4, 4); });
     mk('sleeve', 8, 21, (g, w, h) => {
-      g.fillStyle = '#fff'; rr(g, 0, 0, 8, 21, 3.6); g.fill(); fin(g, w, h, 0.22); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(0.5, 18, 7, 1.2); });
+      g.fillStyle = '#fff'; rr(g, 0, 0, 8, 21, 3.6); g.fill(); ol(g); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(0.5, 18, 7, 1.2); });
     mk('hand', 7, 7, (g) => {
       g.fillStyle = '#fff'; g.beginPath(); g.arc(3.5, 3.5, 3.3, 0, 7); g.fill(); ol(g); g.fillStyle = 'rgba(0,0,0,0.14)'; g.beginPath();
         g.arc(4.6, 4.2, 2, 0, 7);
       g.fill(); });
     mk('head', 24, 25, (g, w, h) => {
-      if (RS.face) { // one outline round head and nose, a dot for an eye, a red cheek and a small smile
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 12.5, 10, 0.3, Math.PI * 2 - 0.25); g.quadraticCurveTo(23.6, 13.2, 20.55, 15.45); g.closePath();
-          g.fill();
-        if (RS.shade === 'soft') {
-          const gr = g.createLinearGradient(1, 0, 21, 0); gr.addColorStop(0, 'rgba(0,0,0,0.16)'); gr.addColorStop(0.5, 'rgba(0,0,0,0)'); g.fillStyle = gr;
-          g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, 24, 25); g.globalCompositeOperation = 'source-over'; }
-        ol(g);
-        g.fillStyle = 'rgba(0,0,0,0.15)'; g.beginPath(); g.ellipse(8.5, 13.5, 2.1, 2.9, 0, 0, 7); g.fill();
-        g.fillStyle = 'rgba(232,84,70,0.4)'; g.beginPath(); g.arc(15.2, 16, 2.7, 0, 7); g.fill();
-        g.fillStyle = 'rgb(44,34,30)'; g.beginPath(); g.arc(16.4, 11.4, 1.45, 0, 7); g.fill();
-        g.strokeStyle = 'rgba(140,50,44,0.75)'; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath(); g.moveTo(16.4, 18.4);
-          g.quadraticCurveTo(18.2, 19.2, 19.4, 17.6);
-        g.stroke();
-        return;
-      }
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 12.5, 10, 0, 7); g.fill();
-      g.beginPath(); g.moveTo(19.5, 10); g.quadraticCurveTo(23.5, 13.5, 20, 15.5); g.fill(); // nose
-      const gr = g.createLinearGradient(1, 0, 21, 0); gr.addColorStop(0, 'rgba(0,0,0,0.2)'); gr.addColorStop(0.5, 'rgba(0,0,0,0)'); g.fillStyle = gr;
-        g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, 24, 25); g.globalCompositeOperation = 'source-over';
-      g.fillStyle = 'rgba(0,0,0,0.16)'; g.beginPath(); g.ellipse(8.5, 13.5, 2.2, 3, 0, 0, 7); g.fill(); // ear
-      g.fillStyle = 'rgb(40,34,30)'; g.fillRect(15.5, 10.5, 2.2, 2.4); // eye
-      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(14.8, 8.6, 3.8, 1); // brow
-      g.fillStyle = 'rgba(150,60,50,0.35)'; g.fillRect(17, 18, 3, 1.1); // mouth
-      g.fillStyle = 'rgba(200,90,80,0.18)'; g.beginPath(); g.arc(16.5, 15, 2.4, 0, 7); g.fill(); // cheek
+      // one outline round head and nose, a dot for an eye, a red cheek and a small smile
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 12.5, 10, 0.3, Math.PI * 2 - 0.25); g.quadraticCurveTo(23.6, 13.2, 20.55, 15.45); g.closePath(); g.fill();
+      ol(g);
+      g.fillStyle = 'rgba(0,0,0,0.15)'; g.beginPath(); g.ellipse(8.5, 13.5, 2.1, 2.9, 0, 0, 7); g.fill();
+      g.fillStyle = 'rgba(232,84,70,0.4)'; g.beginPath(); g.arc(15.2, 16, 2.7, 0, 7); g.fill();
+      g.fillStyle = 'rgb(44,34,30)'; g.beginPath(); g.arc(16.4, 11.4, 1.45, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(140,50,44,0.75)'; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath(); g.moveTo(16.4, 18.4);
+      g.quadraticCurveTo(18.2, 19.2, 19.4, 17.6); g.stroke();
     });
     mk('hair', 24, 22, (g) => {
       g.fillStyle = '#fff'; g.beginPath(); g.arc(11, 11.5, 10.6, Math.PI * 0.95, Math.PI * 2.08); g.lineTo(20, 8); g.quadraticCurveTo(13, 6.5, 9, 9);
@@ -114,15 +82,15 @@
         g.quadraticCurveTo(16, 16, 22, 23); g.lineTo(31, 26); g.quadraticCurveTo(31, 33, 26, 35); g.lineTo(4, 35); g.quadraticCurveTo(0, 30, 3, 24);
         g.quadraticCurveTo(1, 12, 5, 6); g.quadraticCurveTo(8, 0.5, 15, 0.5); g.closePath(); g.fill(); ol(g);
       g.beginPath(); g.moveTo(5, 6); g.quadraticCurveTo(-1, 8, 0.5, 18); g.lineTo(3, 18); g.closePath(); g.fill(); // liripipe tail
-      fin(g, w, h, 0.2);
+      ol(g);
       g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(15, 6); g.quadraticCurveTo(16, 16, 22, 23); g.stroke();
     });
     mk('headcloth', 28, 32, (g, w, h) => {
       g.fillStyle = '#fff'; g.beginPath(); g.moveTo(13, 0.5); g.quadraticCurveTo(25, 0, 25, 11); g.lineTo(22.5, 11); g.quadraticCurveTo(21, 5, 14, 5.5);
         g.quadraticCurveTo(14.5, 15, 19, 21); g.lineTo(24, 22); g.quadraticCurveTo(24, 30, 17, 31); g.lineTo(5, 31); g.quadraticCurveTo(0, 22, 1.5, 12);
         g.quadraticCurveTo(3, 1, 13, 0.5); g.closePath(); g.fill();
-      fin(g, w, h, 0.16);
-      g.strokeStyle = 'rgba(0,0,0,0.13)'; g.lineWidth = 1;
+      ol(g);
+      g.strokeStyle = 'rgba(0,0,0,0.26)'; g.lineWidth = 1;
         for (const y of [12, 20, 27]) { g.beginPath(); g.moveTo(3, y); g.quadraticCurveTo(10, y + 2, 17, y - 1); g.stroke(); }
     });
     mk('braid', 7, 22, (g) => {
@@ -177,10 +145,12 @@
       for (let k = 0; k < 16; k++) {
       const x = 3 + k * 1.5; g.beginPath(); g.moveTo(x, 4 + (k % 3)); g.quadraticCurveTo(x + 2, 10, x - 1, 16 - (k % 2)); g.stroke();
       } g.strokeStyle = 'rgb(110,86,60)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(5, 6); g.lineTo(23, 14); g.stroke(); });
+    for (const n of ['shoe', 'belt', 'band', 'hoe', 'axe', 'sickle', 'mallet', 'basket', 'bucket', 'sheaf', 'logs', 'scythe', 'hay']) P[n] = contoured(P[n],
+      0.8 * k);
     return P;
   }
   function buildAtlas() {
-    const k = RS.k, P = partCanvases(k), names = Object.keys(P), W = 256 * k;
+    const k = RIG_K, P = partCanvases(k), names = Object.keys(P), W = 256 * k;
     let x = k, y = k, rowH = 0;
     const pos = {};
     for (const n of names) {
@@ -196,8 +166,8 @@
 
   // Clothing after medieval Swedish peasant dress: wool kirtles in undyed or plant-dyed colours, hose and turnshoes,
   // hoods for men, a linen headcloth for married women and loose braided hair with a band for unmarried ones.
-  const DYES = RS.dyes || [[198, 190, 172], [150, 122, 92], [162, 70, 52], [78, 104, 146], [196, 166, 78], [112, 126, 82], [128, 98, 124], [176, 160, 136]];
-  const HOSE = RS.hose || [[92, 82, 70], [72, 84, 100], [116, 76, 60], [86, 98, 74], [120, 108, 92]];
+  const DYES = [[240, 230, 204], [200, 150, 84], [186, 62, 44], [70, 100, 140], [222, 178, 70], [112, 140, 84], [150, 70, 60], [226, 196, 140]];
+  const HOSE = [[120, 96, 72], [70, 96, 130], [150, 70, 52], [104, 124, 84], [190, 160, 110]];
   const SKINS = [[242, 208, 182], [232, 194, 164], [220, 180, 150]];
   const HAIRS = [[232, 206, 142], [206, 164, 100], [158, 112, 66], [110, 78, 52], [76, 58, 44]];
   const LINEN = [242, 238, 226];

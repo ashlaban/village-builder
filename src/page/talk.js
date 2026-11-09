@@ -7,6 +7,7 @@
   let herdSprites = new Map(); // herd id -> {sig, list of {s, ox, oy, ph, k}}; rebuilt only when the herd changes (see drawHerds)
   let teamDraw = new Map(); const teamOut = new Set(); // oxen at the plough (drawTeams): driver's pawn id -> {oxen: [sprites], g}; oxen out
   const ring = new PIXI.Graphics();
+  const PAWN_S = 0.76; // a grown pawn's size on the map, against the rig's own
   const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
 
   // ---- talk on the map (VB-061): a bubble over each pawn talking on screen, a chat faint; the lens of the selected pawn ----
@@ -35,7 +36,7 @@
       if (!b) { b = new PIXI.Sprite(bubbleTex.chat); b.anchor.set(0.25, 1); bubbles.addChild(b); bubblePool.push(b); }
       const f = clamp(Math.min(st.t - tk.at, tk.until - st.t) / ((tk.until - tk.at) / 6), 0, 1);
       b.texture = bubbleTex[tk.kind]; b.alpha = (tk.kind === 'chat' ? 0.5 : 0.95) * f; b.visible = true;
-      b.position.set(a.x + 1.5, a.y - 19 * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
+      b.position.set(a.x + 1.5, a.y - 22 * PAWN_S * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
       n++;
     }
     for (let i = n; i < bubblePool.length; i++) bubblePool[i].visible = false;
