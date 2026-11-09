@@ -108,8 +108,9 @@
     <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
       <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
       <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
-      <button type="button" data-mode="all" aria-pressed="false">Everyone</button>
+      <button type="button" data-mode="path" aria-pressed="false">Path to…</button><button type="button" data-mode="all" aria-pressed="false">Everyone</button>
     </div>
+    <p class="tree-caption" id="treeCaption" aria-live="polite" hidden></p>
     <div class="tree-body">
       <div class="tree-scroll" tabindex="0" aria-label="Scroll family tree"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
