@@ -7,7 +7,7 @@
   let herdSprites = new Map(); // herd id -> {sig, list of {s, ox, oy, ph, k}}; rebuilt only when the herd changes (see drawHerds)
   let teamDraw = new Map(); const teamOut = new Set(); // oxen at the plough (drawTeams): driver's pawn id -> {oxen: [sprites], g}; oxen out
   const ring = new PIXI.Graphics();
-  const PAWN_S = 0.76; // a grown pawn's size on the map, against the rig's own
+  const PAWN_S = 0.68; // a grown pawn's size on the map, against the rig's own
   const sizeAt = (age) => (age < 6 ? 0.55 : age < 10 ? 0.66 : age < 14 ? 0.8 : age < 17 ? 0.93 : 1); // children are smaller
 
   // ---- talk on the map (VB-061): a bubble over each pawn talking on screen, a chat faint; the lens of the selected pawn ----
@@ -18,8 +18,8 @@
     const c = makeCanvas(40, 34), g = c.getContext('2d'), cross = kind === 'crossWords';
     g.beginPath(); g.moveTo(12, 3); g.arcTo(37, 3, 37, 25, 9); g.arcTo(37, 25, 3, 25, 9); g.lineTo(19, 25); g.lineTo(9, 32); g.lineTo(11, 25);
     g.arcTo(3, 25, 3, 3, 9); g.arcTo(3, 3, 37, 3, 9); g.closePath();
-    g.fillStyle = cross ? '#f6ddd4' : '#fbf8ef'; g.fill(); g.lineWidth = 2; g.strokeStyle = cross ? '#8a3324' : '#4b5a5e'; g.stroke();
-    g.fillStyle = kind === 'chat' ? '#5d6b6e' : cross ? '#a8432f' : '#2f7a4b';
+    g.fillStyle = cross ? '#f2d6c0' : '#f6eed8'; g.fill(); g.lineWidth = 2.6; g.lineJoin = 'round'; g.strokeStyle = '#2c201c'; g.stroke();
+    g.fillStyle = kind === 'chat' ? '#2c201c' : cross ? '#a03c28' : '#4c7a44';
     if (kind === 'chat') for (const x of [12, 20, 28]) { g.beginPath(); g.arc(x, 14, 2.4, 0, Math.PI * 2); g.fill(); }
     else { g.font = 'bold 19px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(cross ? '!' : '♪', 20, 15); }
     return c;
