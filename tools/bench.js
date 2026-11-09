@@ -1,6 +1,12 @@
 // VB-194: diagnostic measurements only. Run fixtures sequentially in fresh processes; no clocks enter src/.
-// Slice plans add their per-system ms/day budgets here, using tools/perf.js system names.
-const SYSTEM_BUDGETS = {};
+// Each system's share of the 200 ms a game day at medium-ref, in tools/perf.js names (VB-203, Kim, 9 November); later slices'
+// plans add theirs. The shares sum to 192 ms: 8 ms is kept back for noise between runs and growth within today's systems.
+const SYSTEM_BUDGETS = {
+  'agents and walking (the rest of Sim.advance)': 60, 'talk and contacts': 55, 'daily life and births': 35,
+  'jobs refresh and matching': 30, 'paths and routes': 5.3, 'hunger and meals': 3, 'byre': 1.2, 'the moving round': 1.1,
+  'meetings': 1, 'herds': 0.2, 'meadows': 0.1, 'trees': 0.1,
+};
+const RESERVE = 200 - Object.values(SYSTEM_BUDGETS).reduce((a, b) => a + b, 0);
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
 const { fork } = require('child_process'), { performance } = require('perf_hooks');
 const F = require('../tests/lib/fixtures.js');
@@ -12,8 +18,9 @@ const LINES = [
   ['Mean simulation (ms/day)', 'msPerDay', 200, "today's systems; the finished game 400"],
   ['Longest 6-minute step (ms)', 'longestMs', 60, 'also on small-y40 (tests/history.js)'], ['99th percentile step (ms)', 'p99Ms'],
   ['Simulation (ms/living pawn-day)', 'msPerPawnDay'],
-  ['Moving round, one call (ms)', 'movingRoundMs', 60, 'a 6-minute step'], ['Meetings, one call (ms)', 'meetingsMs', 60, 'a 6-minute step'],
-  ['Save + stringify + gzip (ms)', 'saveTotalMs', 500], ['Parse + load (ms)', 'loadTotalMs', 500],
+  ['Moving round, its call (ms)', 'movingRoundMs', 60, 'a 6-minute step'], ['Meetings, its call (ms)', 'meetingsMs', 60, 'a 6-minute step'],
+  // Save counts the main thread only (Kim, 9 November): gzip may run in a worker, so it is reported beside it.
+  ['Save: encode + stringify, main thread (ms)', 'saveMainMs', 500], ['Gzip (ms)', 'gzipMs'], ['Parse + load (ms)', 'loadTotalMs', 500],
   ['JSON (MB)', 'jsonMB'], ['Gzip (MB)', 'gzipMB', 10], ['Heap after window (MB)', 'heapMB'],
 ];
 const timed = (fn) => { const start = performance.now(), value = fn(); return { value, ms: performance.now() - start }; };
@@ -70,10 +77,9 @@ function measure(name) {
   const fixture = F.loadFixture(name, { fetch: false });
   if (!fixture) return { error: 'missing fixture; run node tools/fixtures.js fetch or make' };
   const { st, stamp, stale } = fixture;
-  const movingRoundMs = timed(() => Sim.movingRound(st)).ms;
-  const meetingsMs = timed(() => Sim.holdMeetings(st)).ms;
+  // A whole game year (VB-203, Kim, 9 November): winter, the meetings and the moving round fall inside the window, in their own steps.
   perf.reset();
-  const from = st.t, steps = [], days = 30;
+  const from = st.t, steps = [], days = VB['sim/rules'].YEAR_DAYS;
   let totalMs = 0;
   for (let i = 0; i < days * 240; i++) {
     const hour = st.t, ms = perf.timeAdvance(Sim, st, 0.1);
@@ -82,6 +88,9 @@ function measure(name) {
   const { livingPawnDays } = require('./counts.js'), pawnDays = livingPawnDays(st, from, st.t, Sim.DAY);
   if (!(pawnDays > 0)) throw new Error('fixture window has no living pawn-days');
   const systems = perf.result(totalMs, days).systems;
+  // The round's and the meetings' one call each inside the window (inclusive time); NaN when the window missed it.
+  const callMs = (name) => { const row = systems.find((r) => r.system === name); return row && row.calls ? row.longestMs : NaN; };
+  const movingRoundMs = callMs('the moving round'), meetingsMs = callMs('meetings');
   // Heap is the used heap immediately after the simulation window, before save and microbench allocations.
   const heapMB = process.memoryUsage().heapUsed / 1e6;
   const save = timed(() => Sim.save(st)), stringify = timed(() => JSON.stringify(save.value));
@@ -94,7 +103,7 @@ function measure(name) {
   return { stamp, stale, days, from, to: st.t, pawnDays, meanLiving: pawnDays / days,
     msPerDay: totalMs / days, msPerPawnDay: totalMs / pawnDays, ...stepStats(steps),
     movingRoundMs, meetingsMs, heapMB, saveMs: save.ms, stringifyMs: stringify.ms, gzipMs: gzip.ms,
-    saveTotalMs: save.ms + stringify.ms + gzip.ms, jsonMB: jsonBytes / 1e6, gzipMB: gzip.value.length / 1e6,
+    saveTotalMs: save.ms + stringify.ms + gzip.ms, saveMainMs: save.ms + stringify.ms, jsonMB: jsonBytes / 1e6, gzipMB: gzip.value.length / 1e6,
     parseMs: parse.ms, loadMs: load.ms, loadTotalMs: parse.ms + load.ms, systems, micro: microbench(VB, st) };
 }
 function worker(name) {
@@ -126,7 +135,7 @@ function metrics(run) {
   for (const [name, f] of Object.entries(run.fixtures)) {
     if (f.error) continue;
     for (const key of ['msPerDay', 'msPerPawnDay', 'longestMs', 'p99Ms', 'movingRoundMs', 'meetingsMs', 'heapMB',
-      'saveMs', 'stringifyMs', 'gzipMs', 'saveTotalMs', 'jsonMB', 'gzipMB', 'parseMs', 'loadMs', 'loadTotalMs']) out[`${name}.${key}`] = f[key];
+      'saveMs', 'stringifyMs', 'gzipMs', 'saveTotalMs', 'saveMainMs', 'jsonMB', 'gzipMB', 'parseMs', 'loadMs', 'loadTotalMs']) out[`${name}.${key}`] = f[key];
     for (const row of f.systems) out[`${name}.system.${row.system}`] = row.msPerDay;
     for (const key of ['routeUs', 'routeNsPerExpanded', 'ruleNs']) out[`${name}.micro.${key}`] = f.micro[key];
   }
@@ -172,7 +181,9 @@ function budget(run) {
         + ` stamp \`${f.stamp?.commit ?? 'unknown'}\`.` : `${name}: unavailable.`;
     }).join('\n\n') + '\n\n'
     + `| Measure | Budget (at medium-ref) | ${column(NAMES[0])} | ${column(NAMES[1])} |\n|---|---|---|---|\n` + rows.join('\n')
-    + '\n\n30 days, 6-minute calls; exclusive system timings include profiling overhead. Explicit round and meeting calls are outside the daily mean.\n'
+    + `\n\nSystem shares sum to ${(200 - RESERVE).toFixed(0)} ms; ${RESERVE.toFixed(0)} ms is kept back (VB-203). The closure table is in \`closure.md\`.\n\n`
+    + 'A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead.'
+    + ' The round and the meetings run inside the window; their lines are that one call, inclusive.\n'
     + 'Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.\n'
     + 'Fixture stamps, staleness, five longest step hours, codec stages and microbenchmarks are in `history.jsonl`.\n';
 }
@@ -193,7 +204,7 @@ function report(run) {
   for (const flag of run.flags) console.log(`FLAG ${flag.key}: ${flag.value} vs median ${flag.median}; five values ${JSON.stringify(flag.previous)}`);
 }
 async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'budget.md') } = {}) {
-  const cpus = os.cpus(), run = { schema: 1, date: new Date().toISOString(),
+  const cpus = os.cpus(), run = { schema: 2, date: new Date().toISOString(),
     commit: F.git(['rev-parse', 'HEAD']).toString().trim(), dirty: !!F.git(['status', '--porcelain']).toString().trim(),
     node: process.version, cpu: { model: cpus[0]?.model || 'unknown', cores: cpus.length }, fixtures: {} };
   for (const name of NAMES) run.fixtures[name] = await worker(name);
@@ -217,4 +228,4 @@ async function main(args) {
 }
 // Diagnostic failures are visible in output/history, never a reason to fail a nightly run.
 if (require.main === module) main(process.argv.slice(2)).catch((e) => console.error('bench: UNAVAILABLE ' + (e.stack || e.message)));
-module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, SYSTEM_BUDGETS, NAMES, LINES };
+module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, SYSTEM_BUDGETS, RESERVE, NAMES, LINES };
