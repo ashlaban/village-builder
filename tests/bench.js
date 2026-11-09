@@ -32,15 +32,18 @@ assert.deepStrictEqual(B.NAMES, ['medium-y5', 'medium-ref']);
 assert(!table.includes('medium-y60') && !table.includes('400 until'));
 assert(table.includes("| Mean simulation (ms/day) | 200; today's systems; the finished game 400 |"));
 assert(table.includes('| Longest 6-minute step (ms) | 60; also on small-y40 (tests/history.js) |'));
-assert(table.includes('| Moving round, one call (ms) | 60; a 6-minute step |'));
-assert(table.includes('| Save + stringify + gzip (ms) | 500 |') && table.includes('| Parse + load (ms) | 500 |'));
+assert(table.includes('| Moving round, its call (ms) | 60; a 6-minute step |'));
+// The shares of VB-203 (Kim, 9 November): 192 ms among today's systems, 8 kept back.
+assert.strictEqual(B.RESERVE.toFixed(6), '8.000000');
+assert(table.includes('| talk and contacts (ms/day) | 55 |') || !table.includes('talk and contacts'));
+assert(table.includes('| Save: encode + stringify, main thread (ms) | 500 |') && table.includes('| Parse + load (ms) | 500 |'));
 assert(table.includes('| Measure | Budget (at medium-ref) | medium-y5 (year 5, 880 living) | medium-ref (year 14, 1005 living) |'));
 assert(table.includes('medium-ref: fresh, saved after year 14, 1005 starting living'));
 assert(table.includes('| Cost per living pawn-day / medium-y5 | reported; the line is small-y40 / small-y5 (tests/history.js) | 1.000 | 1.250 |'));
 const short = run(100);
 short.fixtures['medium-ref'].stamp = { year: 60, living: 950, target: 1000, reached: false };
 assert(B.budget(short).includes('saved after year 60 (**never reached its target**)'));
-assert(table.includes('| trees (ms/day) |  | 50.000 | 50.000 |'));
+assert(table.includes('| trees (ms/day) | 0.1 | 50.000 | 50.000 |'));
 assert(B.budget(failed).includes('unavailable'));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-bench-'));
 try {
@@ -76,11 +79,12 @@ const child = spawnSync(process.execPath, ['-e', `
   };
   fixtures.spec = () => ({cols:120,rows:85});
   const result = B.measure('medium-y5');
-  assert.strictEqual(result.days,30);
+  assert.strictEqual(result.days,48);
+  assert(result.movingRoundMs>0 && result.meetingsMs>0, 'a whole year holds the round and the meetings');
   assert.strictEqual(result.micro.routeSearches,1000);
   assert.strictEqual(result.micro.ruleCalls,1000000);
   assert(result.pawnDays>0 && result.systems.length>=10 && result.longest.length===5);
-  for (const key of ['msPerDay','msPerPawnDay','saveTotalMs','loadTotalMs','jsonMB','gzipMB']) assert(result[key]>0);
+  for (const key of ['msPerDay','msPerPawnDay','saveTotalMs','saveMainMs','loadTotalMs','jsonMB','gzipMB']) assert(result[key]>0);
   const before = JSON.stringify(st.rng);
   B.microbench(globalThis.VB,st);
   assert.strictEqual(JSON.stringify(st.rng),before,'microbench consumes simulation randomness');
