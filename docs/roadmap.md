@@ -163,15 +163,15 @@ The vision's core (Kim, 3 November). Every later slice should be tried through t
 **9 November update (Kim, the gameplay review).** The review found slice 2 thin as planned: the queue offers the chores the pawn would
 do anyway, real choices come about once a year, and the largest of a life, marriage, was not the player's. Kim's decisions:
 - **Marriage is a negotiation** between two households, and the player takes part, for its pawn and as head for its members
-  (`design.md`, Marriage as a negotiation). This replaces "no say until courting". VB-228 plans it: a first version here (the round's
+  (`design.md`, Marriage as a negotiation). This replaces "no say until courting". VB-233 plans it: a first version here (the round's
   match becomes an offer both sides answer, the first question through `Decisions.answer`), terms with slice 4's goods, courting in slice 7.
 - **The chronicle is built here**, apart from ambitions (VB-099, priority 2): it is the game's memory.
-- **Skip to the next event** that concerns the played pawn (VB-229), on VB-098's list of notable events (priority 2 with it).
+- **Skip to the next event** that concerns the played pawn (VB-234), on VB-098's list of notable events (priority 2 with it).
 - **The player steers by position:** what its pawn's position commands, the player chooses. Head of a household is the first such
   position, and slice 3 designs it (below).
-- Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-228", "VB-229", "VB-099"): an offer waits 7 game days;
+- Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-233", "VB-234", "VB-099"): an offer waits 7 game days;
   a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
-- The wrap-up (VB-078) waits for VB-099, VB-228 and VB-229 as well. The budget line stands: a skip changes nothing the simulation does.
+- The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year
 
@@ -288,7 +288,7 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
   - venue rules;
   - story kinds and their numbers, from the experiment.
 - **Done when:** the bands of target-v2 10.2 hold. Talk must cost less at the end of this slice than at its start.
-- **9 November update:** courting no longer replaces the round's matches; it feeds the negotiation between households (VB-228).
+- **9 November update:** courting no longer replaces the round's matches; it feeds the negotiation between households (VB-233).
 
 ### 3.8 The ship
 
