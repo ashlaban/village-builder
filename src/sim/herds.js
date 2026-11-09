@@ -242,6 +242,15 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // Whether the household has a team (team(st, hh) !== null), without making the list: read every step a ploughman works (VB-205).
+  function hasTeam(st, hh) {
+    let n = 0;
+    for (const id of hh.herds) {
+      const hd = st.herds[id]; if (hd.species !== 'cattle') continue;
+      for (const h of hd.head) if (h.kind === 'ox' && ++n >= HERD.team.oxen) return true;
+    }
+    return n >= HERD.team.oxen;
+  }
   // The household's team (VB-138): its two oldest oxen, or null without two.
   function team(st, hh) {
     const oxen = herdsOf(st, hh).flatMap((hd) => (hd.species === 'cattle' ? hd.head.filter((h) => h.kind === 'ox') : []));
@@ -293,6 +302,6 @@ VB['sim/herds'] = (() => {
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, team, inMilk, milkCows, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, team, hasTeam, inMilk, milkCows, describeHerds, herdReport,
   };
 })();

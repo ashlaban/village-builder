@@ -209,6 +209,7 @@ VB['sim/jobs'] = (() => {
   }
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
+    VB.count.idleStroll++;
     const mate = st.cenv ? companyFor(st, a) : null, go = (tile, x, y) =>
       issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
     if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);

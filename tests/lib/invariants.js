@@ -29,6 +29,21 @@ function checkState(st) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
     for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
   }
+  // the awake agents of the hour (VB-205): increasing ids of living pawns, and, for the hour it is, every agent the step could move,
+  // set working or offer to the planner: walking, working, or in working hours free with its pause ending by the hour's end
+  if (st.awake) {
+    const { ids, hour } = st.awake, living = new Set(st.living), { WORK, DAY } = globalThis.VB['sim/rules'];
+    if (ids.some((id, i) => !living.has(id) || (i > 0 && id <= ids[i - 1]))) bad.push(`awake: ids ${ids} are not increasing living pawns`);
+    if (hour === Math.floor(st.t + 1e-9)) {
+      const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
+      for (const id of st.living) {
+        const a = st.agents[id];
+        if (!has.has(id) && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
+          bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
+        }
+      }
+    }
+  }
   // random streams (VB-072): after seeding, exactly one stream per system, none shared, each a 32-bit state, none fixed by a test
   const keys = Object.keys(st.rng || {}).sort().join(), streams = Object.values(st.rng || {});
   if (keys !== [...SYSTEMS].sort().join()) bad.push(`rng: streams ${keys}, want ${[...SYSTEMS].sort().join()}`);

@@ -124,9 +124,16 @@ VB['sim/relations'] = (() => {
       if (!p.alive) continue;
       for (const [j, r] of p.rel) {
         if (!st.pawns[j].alive) { p.rel.delete(j); continue; }
-        let left = false;
-        for (const kind in r.mem) { if (memNow(st, kind, r.mem[kind]) === 0) delete r.mem[kind]; else left = true; }
+        // The memories left are copied in their order to a new record, not deleted from the old one: a deleted key leaves the object a
+        // slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205).
+        let left = false, faded = false;
+        for (const kind in r.mem) { if (memNow(st, kind, r.mem[kind]) === 0) faded = true; else left = true; }
         if (!left) p.rel.delete(j);
+        else if (faded) {
+          const mem = {};
+          for (const kind in r.mem) if (memNow(st, kind, r.mem[kind]) !== 0) mem[kind] = r.mem[kind];
+          r.mem = mem;
+        }
       }
     }
   }
@@ -247,6 +254,7 @@ VB['sim/relations'] = (() => {
     const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
     if (!list || !list.length) return null;
     let tot = 0; cand.length = 0; wts.length = 0;
+    VB.count.companyWeighed += SOCIAL.seekSample;
     for (let k = 0; k < SOCIAL.seekSample; k++) {
       const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;

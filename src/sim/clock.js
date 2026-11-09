@@ -10,7 +10,7 @@ VB['sim/clock'] = (() => {
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
-  const { placeByDoor, release, wantsWork, stepWork, moveAgent } = VB['sim/agents'];
+  const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
   const { issue } = VB['sim/commands'];
   const { noteContacts } = VB['sim/society'];
@@ -92,15 +92,7 @@ VB['sim/clock'] = (() => {
       st.t += step; left -= step;
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      const c = cal(st.t), idle = [];
-      VB.count.walkStep += st.living.length;
-      for (const liveId of st.living) {
-        const a = st.agents[liveId];
-        if (st.pawns[a.id].died) continue;
-        if (a.path) moveAgent(st, a, step);
-        else if (a.phase === 'work') stepWork(st, a, step);
-        else if (wantsWork(st, a, c)) idle.push(a);
-      }
+      const c = cal(st.t), idle = stepAgents(st, step, c);
       if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
     }
   }

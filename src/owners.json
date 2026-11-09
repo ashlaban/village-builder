@@ -6,6 +6,7 @@
     "st.owner": {"owner": "sim/ownership", "category": "cache"},
     "st.living": {"owner": "sim/records", "category": "cache"},
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
+    "st.awake": {"owner": "sim/agents", "category": "cache"},
     "st.claims": "sim/claims",
     "household.grain": "sim/stores",
     "household.rations": "sim/stores",

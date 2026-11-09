@@ -16,6 +16,9 @@ const SYSTEMS = {
   'trees': { 'sim/forest': ['growTrees'] },
   'the moving round': { 'sim/lifecycle': ['movingRound'] },
   'meetings': { 'sim/lifecycle': ['holdMeetings'] },
+  // VB-205: the agents' six-minute step (walking, working, and who wants work), and the strolls of those the planner found nothing for.
+  'agents: walking and working': { 'sim/agents': ['stepAgents'] },
+  'agents: idle strolls': { 'sim/jobs': ['idleAbout'] },
 };
 const now = () => Number(process.hrtime.bigint()) / 1e6;
 const acc = {}, stack = []; let active = false;
