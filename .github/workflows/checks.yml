@@ -1,0 +1,43 @@
+# The gate on a pull request, run apart from the session that wrote it: `verify` is `npm run verify` without the late fixtures, as an
+# agent's session runs it (the fixture tests pass with a notice); `late-game` fetches the published fixtures and runs the two tests
+# that need them. The fixtures are remade by fixtures.yml each night, not here, so late-game may run on stale ones and says so.
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/run.js verify --list
+  late-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - run: node tools/fixtures.js fetch
+      - run: node tools/fixtures.js status
+      - run: node tests/fixtures.js
+      - run: node tests/history.js

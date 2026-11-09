@@ -145,6 +145,10 @@ Open, in order of payoff:
 3. **`--help` everywhere: done** (9 November). `tools/help.js` prints a tool's header comment and exits before anything loads; every tool without its own usage text starts with it; nine at first
    tools start with it (`nightly.js --help` had started a real nightly run). The Commands section of `AGENTS.md` lost only its option
    lists (4.0 to 3.9 KB): its lines are what tells an agent a tool exists, so it stays.
-4. **Checks on pull requests**: the only workflow is the scheduled `fixtures.yml`, so the agent is the only gate.
+4. **Checks on pull requests: done** (9 November), not yet run. `.github/workflows/checks.yml`: `verify`, and `late-game` (the published
+   fixtures, then `tests/fixtures.js` and `tests/history.js`). Verify costs a session one line but 190 s, of which the page takes 150
+   (`smoke.js` 44 s, `browser-speed.js` 40, `browser-mobile.js` 36, `browser.js` 30); whether a session may leave those to the workflow
+   is Kim's to decide (`AGENTS.md`, Working rules, still asks for verify). With fresh fixtures `tests/history.js` fails on `main` as of
+   this date (`roundPairs` 6.1 against a baseline of 1.33): sessions never saw it, having no fixtures.
 5. Suggestions 2 and 7 of section 4 (targeted test runs; spec and report apart in task files).
 6. **More than one measured run**: the run above was not unattended (25 minutes waiting for answers), so there is no baseline yet.
