@@ -36,7 +36,7 @@
       showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
-    treeSel = -1; selPawn = -1; selectionPinned = false;
+    treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();

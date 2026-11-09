@@ -7,7 +7,8 @@
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
     for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(),
       ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
+    selPawn = -1; selVillage = -1; selFarm = -1; clearPortraits();
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
   }
   async function buildSettlement(wd, s) {
     clearSettlement();
@@ -29,15 +30,15 @@
   function buildLabels(wd) {
     for (const t of L.labels.removeChildren()) t.destroy();
     labels = []; labelSig = labelSigOf();
-    const mkLabel = (text, x, y, size) => {
+    const mkLabel = (text, x, y, size, of) => { // `of` names what the label stands for, for a click on it
       const t = new PIXI.Text({
         text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: {
         color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
-      t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
+      t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y, ...of });
     };
     for (const v of st.villages) {
-      if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26);
-      else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24); }
+      if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26, { village: v.id });
+      else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24, { farm: f.id }); }
     }
   }
   // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
@@ -123,8 +124,7 @@
     }
     if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
     for (const p of st.pawns) {
-      const married = Sim.spouseOf(st, p.id) !== null || (p.sex === 'f' && st.unions.some((u) => u.a === p.id || u.b === p.id));
-      const R = makeRig(p, married); R.root.visible = false;
+      const R = makeRig(p, wedded(p)); R.root.visible = false;
       L.objects.addChild(R.root); rigs.push(R);
     }
     L.objects.addChild(ring);

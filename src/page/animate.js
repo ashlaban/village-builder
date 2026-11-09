@@ -147,7 +147,8 @@
       if (drawerTab) renderDrawer();
       if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
         if (selPawn >= 0) showPawn(selPawn);
-        else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+        else if (selVillage >= 0) showVillage(selVillage);
+        else if (sel >= 0 && (selFarm >= 0 || w.treesMax[sel] > 0)) showTile(sel);
       }
     }
   }

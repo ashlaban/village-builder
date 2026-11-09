@@ -8,8 +8,8 @@
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler or tile for details.' :
-    'Drag to explore, scroll to zoom, point at a settler or tile for details.';
+  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler, farm, village name or tile for details.' :
+    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');

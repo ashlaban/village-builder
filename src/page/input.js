@@ -57,6 +57,7 @@
   }, { passive: false });
 
   const keys = new Set();
+  const SHORTCUTS = { p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -67,6 +68,12 @@
       closeSpeedOptions(); openPanel(null); return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
+    // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
+    const press = SHORTCUTS[e.key.toLowerCase()];
+    if (press && !e.shiftKey && !(e.target.closest && e.target.closest('input, select, textarea')) && !document.body.classList.contains('ui-hidden')) {
+      if (press === 'centre') centreSelection(); else $(press).click();
+      return;
+    }
     if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
@@ -146,7 +153,7 @@
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('peopleClose').addEventListener('click', () => { openPanel(null); $('settlersBtn').focus(); });
   $('tileClose').addEventListener('click', () => {
-    selPawn = -1; sel = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();
+    selPawn = -1; sel = -1; selVillage = -1; selFarm = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();
   });
   $('personFamily').addEventListener('click', () => { treeSel = selPawn; openTree(); });
   $('minimapBtn').addEventListener('click', () => {

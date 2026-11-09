@@ -2,7 +2,7 @@
   // ---- tile info ----
   function showTile(i) {
     const box = $('tile');
-    if (i < 0 || !w) { box.hidden = true; return; }
+    if (i < 0 || !w) { box.hidden = true; selVillage = -1; selFarm = -1; return; }
     const b = G.BIOMES[w.biome[i]], col = i % w.COLS, row = (i / w.COLS) | 0;
     let line;
     if (w.water[i]) {
@@ -15,7 +15,10 @@
     }
     const rg = w.regions[w.region[i]];
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
-    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
+    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null, of = farm ? farm[2] : null;
+    // the green stands for its village; a house for its farm, whose card is kept fresh while it is shown
+    if (of && of.village !== undefined) { selVillage = of.village; selFarm = -1; showVillage(of.village); return; }
+    selVillage = -1; selFarm = of && of.house ? of.farm : -1;
     const ownLine = own ?
       [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
     const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
@@ -25,7 +28,7 @@
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     const claims = claimLines(i);
-    if (farm) card(farm[0], [...farm[1], ...ownLine, ...claims, where]);
+    if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
@@ -48,9 +51,11 @@
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
     if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
+    const named = inspect ? labelAt(x, y) : null; // a click on a name on the map selects the village or the lone farm it names
+    if (named) { if (named.village !== undefined) selectVillage(named.village, false); else selectFarm(named.farm, false); return; }
     const i = loc(x, y, [0, 0]);
     if (inspect || !activePanel) openPanel('tile');
-    if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
+    if (i !== sel || selPawn >= 0 || inspect) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
   }
   function drawHover() {
     hoverG.clear();

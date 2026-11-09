@@ -262,6 +262,58 @@ body.ui-hidden .hud * { pointer-events: none; }
 .genscreen { overflow-y: auto; }
 .genscreen form { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
+/* Layout fixes: the phone-only menu header stays hidden on wide screens, name links read as text, and the left sheets end below the menu. */
+.sheet-head.mobile-only { display: none; }
+.people-sheet, .tile { max-height: min(65vh, calc(100dvh - var(--chart-bottom, 320px) - var(--dock-bottom) - 78px)); }
+.settlers p button { display: inline; min-height: 0; border: 0; border-radius: 3px; padding: 0; background: none; font-size: inherit; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
+/* Selection cards: a portrait or icon by the title, links to what the selection belongs to, and rows for what it holds. */
+.sheet-title { flex: 1; min-width: 0; }
+.tile .sheet-title span { margin: 1px 0 0; font-size: 14px; }
+#tileBadge { flex-shrink: 0; line-height: 0; }
+img.badge { width: 52px; height: 52px; border-radius: 12px; background: var(--node); border: 1px solid var(--edge); }
+img.mini { width: 26px; height: 26px; border-radius: 7px; background: var(--node); border: 1px solid var(--edge); flex-shrink: 0; vertical-align: middle; }
+img.gone { filter: grayscale(1); opacity: 0.6; }
+.icon-btn { width: 36px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
+.chip img.mini { margin-left: -7px; border-radius: 50%; }
+.roster { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--edge); }
+.roster h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: 6px; background: none;
+  text-align: left; }
+.tile .row span { margin: 0; }
+.tile .row .who { flex: 1; min-width: 0; color: var(--ink); }
+.row .who i { display: block; font-style: normal; font-size: 13px; color: var(--muted); }
+.tile .row .state { max-width: 46%; font-size: 13px; text-align: right; }
+.mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
+.mark.short { background: #c9a24a; }
+.mark.hungry { background: var(--bad); }
+.tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
+.tile.peek .sheet-head { border-bottom: 0; }
+.settlers li { display: flex; align-items: flex-start; gap: 8px; }
+.settlers li > div { flex: 1; min-width: 0; }
+.settlers li img.mini { margin-top: 2px; }
+.settlers summary img.mini { margin-right: 8px; }
+.selection-summary { padding-bottom: 2px; }
+.tile .sheet-content { padding-top: 2px; }
+.collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
+@media (min-width: 1025px) {
+  .chart .actions { gap: 6px; }
+  .chart .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
+  .chart .hint { font-size: 13px; }
+  .menu-label { margin: 10px 0 5px; }
+  .background-run { min-height: 30px; margin: 4px 0 8px; }
+}
+.household-block > summary .summary-meta, .village-block > summary .summary-meta { margin-left: 52px; }
+@media (hover: hover) and (pointer: fine) {
+  .settlers li button { min-height: 0; padding: 2px 0; }
+  .tile .rel button { min-height: 30px; padding: 3px 0; }
+  .row { min-height: 36px; padding: 3px 0; }
+  .row:hover, .tile .rel button:hover { background: var(--edge); }
+  .sheet-head button { min-height: 36px; }
+  summary { min-height: 36px; padding: 7px 0; }
+}
 @media (max-width: 1024px) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
@@ -328,10 +380,10 @@ body.ui-hidden .hud * { pointer-events: none; }
       <p class="hint" id="hint"></p>
       <h2 class="menu-label">Map &amp; layers</h2>
       <div class="actions">
-        <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
-        <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
-        <button id="landBtn" type="button" aria-pressed="false">Land</button>
-        <button id="minimapBtn" type="button" aria-pressed="false">Minimap</button>
+        <button id="gridBtn" type="button" aria-keyshortcuts="g" title="Hex grid (G)" aria-pressed="true">Grid</button>
+        <button id="regionBtn" type="button" aria-keyshortcuts="r" title="Regions (R)" aria-pressed="false">Regions</button>
+        <button id="landBtn" type="button" aria-keyshortcuts="l" title="Land ownership (L)" aria-pressed="false">Land</button>
+        <button id="minimapBtn" type="button" aria-keyshortcuts="m" title="Minimap (M)" aria-pressed="false">Minimap</button>
       </div>
       <h2 class="menu-label">Game</h2>
       <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
@@ -346,21 +398,21 @@ body.ui-hidden .hud * { pointer-events: none; }
     <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
     <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
     <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
-      <button type="button" data-speed="0" aria-pressed="false">Pause</button>
-      <button type="button" data-speed="1" aria-pressed="true">1×</button>
-      <button type="button" data-speed="3" aria-pressed="false">3×</button>
-      <button type="button" data-speed="10" aria-pressed="false">10×</button>
+      <button type="button" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" title="Pause (Space)">Pause</button>
+      <button type="button" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" title="1× (1)">1×</button>
+      <button type="button" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" title="3× (2)">3×</button>
+      <button type="button" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" title="10× (3)">10×</button>
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
   </div>
 </div>
-<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h">Hide UI</button>
+<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="settlersBtn" type="button" aria-pressed="false" aria-controls="peopleSheet">People</button>
-  <button id="treeBtn" type="button" aria-haspopup="dialog">Family</button>
-  <button id="customsBtn" type="button" aria-pressed="false" aria-controls="drawer">Customs</button>
+  <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
+  <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
+  <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
   <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
 </nav>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
@@ -388,7 +440,11 @@ body.ui-hidden .hud * { pointer-events: none; }
 <div class="hud bottom">
   <aside class="tile sheet panel collapsed" id="tile" hidden aria-labelledby="tileName">
     <div class="sheet-head">
-      <strong id="tileName"></strong>
+      <div id="tileBadge" hidden></div>
+      <div class="sheet-title"><strong id="tileName"></strong><span id="tileKind" hidden></span></div>
+      <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
+        viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
+        r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
       <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
       <button id="tileClose" type="button" aria-label="Close selection">Close</button>
     </div>
@@ -398,6 +454,8 @@ body.ui-hidden .hud * { pointer-events: none; }
       <span id="tileExtra" hidden></span>
       <span id="tileMore" hidden></span>
       <div id="tileRest"></div>
+      <div id="tileLinks" class="links" hidden></div>
+      <div id="tileList" class="roster" hidden></div>
       <button type="button" id="personFamily" hidden>View family records</button>
       <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
     </div>
@@ -8737,8 +8795,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler or tile for details.' :
-    'Drag to explore, scroll to zoom, point at a settler or tile for details.';
+  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler, farm, village name or tile for details.' :
+    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');
@@ -9139,7 +9197,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
-    treeSel = -1; selPawn = -1; selectionPinned = false;
+    treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
@@ -9256,7 +9314,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- tile info ----
   function showTile(i) {
     const box = $('tile');
-    if (i < 0 || !w) { box.hidden = true; return; }
+    if (i < 0 || !w) { box.hidden = true; selVillage = -1; selFarm = -1; return; }
     const b = G.BIOMES[w.biome[i]], col = i % w.COLS, row = (i / w.COLS) | 0;
     let line;
     if (w.water[i]) {
@@ -9269,7 +9327,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     const rg = w.regions[w.region[i]];
     const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
-    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null;
+    const farm = settlementTileInfo(i), own = st ? Sim.ownerOf(st, i) : null, of = farm ? farm[2] : null;
+    // the green stands for its village; a house for its farm, whose card is kept fresh while it is shown
+    if (of && of.village !== undefined) { selVillage = of.village; selFarm = -1; showVillage(of.village); return; }
+    selVillage = -1; selFarm = of && of.house ? of.farm : -1;
     const ownLine = own ?
       [own.type === 'village' ? `${st.villages[own.id].name} village` : `${st.farmsteads[st.households[own.id].farmstead].name} household`] : [];
     const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
@@ -9279,7 +9340,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
     const claims = claimLines(i);
-    if (farm) card(farm[0], [...farm[1], ...ownLine, ...claims, where]);
+    if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
   }
@@ -9302,9 +9363,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
     if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
+    const named = inspect ? labelAt(x, y) : null; // a click on a name on the map selects the village or the lone farm it names
+    if (named) { if (named.village !== undefined) selectVillage(named.village, false); else selectFarm(named.farm, false); return; }
     const i = loc(x, y, [0, 0]);
     if (inspect || !activePanel) openPanel('tile');
-    if (i !== sel || selPawn >= 0) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
+    if (i !== sel || selPawn >= 0 || inspect) { selPawn = -1; sel = i; hoverDirty = true; showTile(i); }
   }
   function drawHover() {
     hoverG.clear();
@@ -9372,6 +9435,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }, { passive: false });
 
   const keys = new Set();
+  const SHORTCUTS = { p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -9382,6 +9446,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
       closeSpeedOptions(); openPanel(null); return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
+    // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
+    const press = SHORTCUTS[e.key.toLowerCase()];
+    if (press && !e.shiftKey && !(e.target.closest && e.target.closest('input, select, textarea')) && !document.body.classList.contains('ui-hidden')) {
+      if (press === 'centre') centreSelection(); else $(press).click();
+      return;
+    }
     if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
@@ -9461,7 +9531,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('peopleClose').addEventListener('click', () => { openPanel(null); $('settlersBtn').focus(); });
   $('tileClose').addEventListener('click', () => {
-    selPawn = -1; sel = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();
+    selPawn = -1; sel = -1; selVillage = -1; selFarm = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();
   });
   $('personFamily').addEventListener('click', () => { treeSel = selPawn; openTree(); });
   $('minimapBtn').addEventListener('click', () => {
@@ -9511,9 +9581,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(0,0,0,0)');
     gr.addColorStop(1, `rgba(0,0,0,${a})`); g.fillStyle = gr; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, w, h);
     g.globalCompositeOperation = 'source-over'; }
-  function partCanvases() {
+  // k texels per part unit: 1 for the map's atlas, more for the panels' portraits (page/portraits), which show the same parts larger.
+  function partCanvases(k = 1) {
     const P = {};
-    const mk = (name, w, h, fn) => { const c = makeCanvas(w, h), g = c.getContext('2d'); fn(g, w, h); P[name] = c; };
+    const mk = (name, w, h, fn) => { const c = makeCanvas(w * k, h * k), g = c.getContext('2d'); if (k !== 1) g.scale(k, k); fn(g, w, h); P[name] = c; };
     mk('shadow', 34, 10, (g) => {
       const gr = g.createRadialGradient(17, 5, 0, 17, 5, 16); gr.addColorStop(0, 'rgba(20,28,18,0.42)'); gr.addColorStop(1, 'rgba(20,28,18,0)');
       g.fillStyle = gr; g.beginPath(); g.ellipse(17, 5, 16, 4.5, 0, 0, 7); g.fill(); });
@@ -9658,10 +9729,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const HAIRS = [[232, 206, 142], [206, 164, 100], [158, 112, 66], [110, 78, 52], [76, 58, 44]];
   const LINEN = [242, 238, 226];
   const hex = (c, f = 1) => ((Math.min(255, c[0] * f) << 16) | (Math.min(255, c[1] * f) << 8) | Math.min(255, c[2] * f)) >>> 0;
-  function makeRig(p, married) {
+  // A pawn's colours and headgear, from its `look` seed: the same on the map and in its portrait.
+  function lookOf(p) {
     const r = G.mulberry32(p.look), pick = (a) => a[(r() * a.length) | 0];
-    const look = { cloth: pick(DYES), cloth2: pick(DYES), hose: pick(HOSE), skin: pick(SKINS), hair: pick(HAIRS), beard: p.sex === 'm' && r() < 0.6,
+    return { cloth: pick(DYES), cloth2: pick(DYES), hose: pick(HOSE), skin: pick(SKINS), hair: pick(HAIRS), beard: p.sex === 'm' && r() < 0.6,
       hood: p.sex === 'm' && r() < 0.45, hoodCol: pick(DYES) };
+  }
+  function makeRig(p, married) {
+    const look = lookOf(p);
     const S = (name, tint, ax = 0.5, ay = 0) => {
       const s = new PIXI.Sprite(atlas[name]); s.anchor.set(ax, ay); if (tint !== undefined) s.tint = tint; return s; };
     const root = new PIXI.Container(); root.scale.set(1 / PX);
@@ -10180,6 +10255,99 @@ if (typeof module !== 'undefined') module.exports = Sim;
     };
     atlas = buildAtlas();
   }
+  // ======== portraits and icons ========
+  // A portrait is the pawn's bust as the map draws it, larger: the same parts, colours and headgear (lookOf, page/rigs), in profile. An icon
+  // is a building as it stands on the map. Both are data URLs for <img>, cached; the caches are the page's own and are cleared with the map.
+  const FACE = 3, BUST = 40; // texels per rig unit; the bust is a 40-unit square of the rig: head and shoulders
+  let faceParts = null;
+  const faceCache = new Map(), iconCache = new Map(), FACE_CAP = 600;
+  function clearPortraits() { faceCache.clear(); }
+  const wedded = (p) => Sim.spouseOf(st, p.id) !== null || (p.sex === 'f' && st.unions.some((u) => u.a === p.id || u.b === p.id));
+  const rgb = (c, f = 1) => `rgb(${c.map((v) => Math.min(255, Math.round(v * f))).join(',')})`;
+  // A grey part multiplied by a colour, as a sprite's tint does on the map.
+  function tinted(part, colour) {
+    if (!colour) return part;
+    const c = makeCanvas(part.width, part.height), g = c.getContext('2d');
+    g.drawImage(part, 0, 0);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = colour; g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(part, 0, 0);
+    return c;
+  }
+  // Positions, anchors and order follow makeRig (page/rigs); the origin is the rig's hip, y grows downward.
+  function drawFace(p, married, winter) {
+    if (!faceParts) faceParts = partCanvases(FACE);
+    const look = lookOf(p), c = makeCanvas(BUST * FACE, BUST * FACE), g = c.getContext('2d'), k = 0.6 + 0.4 * sizeAt(p.age);
+    g.scale(FACE, FACE); g.translate(BUST / 2, BUST); g.scale(k, k); g.translate(-1, 16); // a child's bust is smaller, standing on the same edge
+    const put = (name, colour, x, y, ax = 0.5, ay = 0, sx = 1, rot = 0) => {
+      const part = faceParts[name], pw = part.width / FACE, ph = part.height / FACE;
+      g.save(); g.translate(x, y); g.rotate(rot); g.scale(sx, 1); g.drawImage(tinted(part, colour), -ax * pw, -ay * ph, pw, ph); g.restore();
+    };
+    const cloth = rgb(look.cloth), hx = 1, hy = -27;
+    put('sleeve', rgb(look.cloth, 0.74), -3, -24);
+    if (p.sex === 'f') { put('dress', cloth, 0, -27); put('apron', rgb(LINEN, 0.97), 5.5, -14); put('belt', null, 0.5, -15, 0.5, 0, 0.78); }
+    else { put('tunic', cloth, 0, -27); put('belt', null, 0, -11); }
+    if (p.sex === 'f' && !married) put('braid', rgb(look.hair, 0.9), hx - 9, hy - 16);
+    put('head', rgb(look.skin), hx, hy, 0.46, 1);
+    if (p.sex === 'm') {
+      if (look.beard) put('beard', rgb(look.hair, 0.95), hx + 3, hy - 9);
+      if (look.hood || winter) put('hood', rgb(look.hoodCol), hx, hy + 7, 0.47, 1);
+      else put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1);
+    } else if (married) put('headcloth', rgb(LINEN), hx, hy + 5, 0.46, 1);
+    else { put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1); put('band', null, hx, hy - 19, 0.5, 0.5, 1, -0.15); }
+    put('sleeve', cloth, 3, -24);
+    return c.toDataURL('image/png');
+  }
+  // A pawn's portrait: redrawn only when what it wears or its size changes, looked at once a game day.
+  function faceOf(id) {
+    const p = st.pawns[id], day = Math.floor(st.t / Sim.DAY);
+    let e = faceCache.get(id);
+    if (e && e.day === day) return e.url;
+    const married = wedded(p), winter = Sim.cal(st.t).season === 3, sig = `${married}|${winter}|${sizeAt(p.age)}`;
+    if (!e || e.sig !== sig) {
+      if (faceCache.size >= FACE_CAP) faceCache.clear();
+      let url = '';
+      try { url = drawFace(p, married, winter); } catch (err) { /* no canvas here: the panels do without portraits */ }
+      e = { sig, url }; faceCache.set(id, e);
+    }
+    e.day = day;
+    return e.url;
+  }
+  const faceImg = (id, cls = 'face') => {
+    const url = faceOf(id); return url ? `<img class="${cls}${st.pawns[id].died !== null ? ' gone' : ''}" src="${url}" alt="">` : ''; };
+  function icon(key, draw) {
+    if (!iconCache.has(key)) {
+      let url = '';
+      try { const c = makeCanvas(120, 120); draw(c.getContext('2d')); url = c.toDataURL('image/png'); } catch (err) { /* as for portraits */ }
+      iconCache.set(key, url);
+    }
+    return iconCache.get(key);
+  }
+  // A farm by its cottage (one of three, as on the map), its settlers' booth while the cottage is built, or the low walls of a ruin.
+  function farmIcon(f) {
+    if (f.booth) return icon('booth', (g) => {
+      g.translate(60, 70); g.scale(4.4, 4.4); g.translate(-15, -1);
+      g.fillStyle = '#6b5135'; g.strokeStyle = '#3e2c1c'; g.lineWidth = 1; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(6, 8); g.lineTo(15, -6); g.lineTo(24, 8); g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = '#4a3524'; g.lineWidth = 1.2;
+      for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(15 + dx, -6); g.lineTo(15 + dx * 2.6, -10); g.stroke(); }
+      g.fillStyle = '#2a1e14'; g.fillRect(13, 2, 4, 6);
+    });
+    const v = f.id % 3, ruin = f.state === 'ruin';
+    return icon(`stuga${v}${ruin ? 'r' : ''}`, (g) => {
+      const b = stugaCanvas(v);
+      if (ruin) g.drawImage(b, 8, 100 - b.height * 0.55, b.width, b.height * 0.55); else g.drawImage(b, 8, 100 - b.height);
+    });
+  }
+  // A village by a cluster of its buildings: barn and storehouse behind a cottage, and the well sweep where it has a well.
+  function villageIcon(v) {
+    return icon(`village${v.well ? 'w' : ''}`, (g) => {
+      const at = (b, x, y, s) => g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s);
+      at(ladaCanvas(), 2, 70, 0.62); at(harbreCanvas(), 78, 80, 0.62);
+      if (v.well) at(wellSweepCanvas(), 52, 74, 0.5);
+      at(stugaCanvas(1), 18, 114, 0.72);
+    });
+  }
+  const iconImg = (url, cls = 'badge') => (url ? `<img class="${cls}" src="${url}" alt="">` : '');
   const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => {
     const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
 
@@ -10188,7 +10356,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     // the selection ring is shared across settlements and re-added later, so it must survive the clean-up
     for (const s of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren(),
       ...L.labels.removeChildren()]) if (s !== ring) s.destroy({ children: true });
-    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; selPawn = -1; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
+    selPawn = -1; selVillage = -1; selFarm = -1; clearPortraits();
+    fieldSprites = []; rigs = []; houseInfo = []; fences = []; labels = []; herdSprites = new Map(); meadowSprites = []; teamDraw = new Map();
   }
   async function buildSettlement(wd, s) {
     clearSettlement();
@@ -10210,15 +10379,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function buildLabels(wd) {
     for (const t of L.labels.removeChildren()) t.destroy();
     labels = []; labelSig = labelSigOf();
-    const mkLabel = (text, x, y, size) => {
+    const mkLabel = (text, x, y, size, of) => { // `of` names what the label stands for, for a click on it
       const t = new PIXI.Text({
         text, style: { fontFamily: 'Alegreya, Georgia, serif', fontStyle: 'italic', fontWeight: '700', fontSize: size, fill: 0xfff4e2, stroke: {
         color: 0x1a2e2a, width: size / 6, join: 'round' } }, resolution: 2 });
-      t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y });
+      t.anchor.set(0.5, 1); L.labels.addChild(t); labels.push({ t, x, y, ...of });
     };
     for (const v of st.villages) {
-      if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26);
-      else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24); }
+      if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26, { village: v.id });
+      else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24, { farm: f.id }); }
     }
   }
   // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
@@ -10304,8 +10473,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
     for (const p of st.pawns) {
-      const married = Sim.spouseOf(st, p.id) !== null || (p.sex === 'f' && st.unions.some((u) => u.a === p.id || u.b === p.id));
-      const R = makeRig(p, married); R.root.visible = false;
+      const R = makeRig(p, wedded(p)); R.root.visible = false;
       L.objects.addChild(R.root); rigs.push(R);
     }
     L.objects.addChild(ring);
@@ -10524,7 +10692,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (drawerTab) renderDrawer();
       if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
         if (selPawn >= 0) showPawn(selPawn);
-        else if (sel >= 0 && w.treesMax[sel] > 0) showTile(sel);
+        else if (selVillage >= 0) showVillage(selVillage);
+        else if (sel >= 0 && (selFarm >= 0 || w.treesMax[sel] > 0)) showTile(sel);
       }
     }
   }
@@ -10552,6 +10721,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const fd of f.fields) { const s = fd.stage === 'stooks' ? 'stooks' : cropStage(fd); n[s] = (n[s] || 0) + 1; }
     return Object.entries(n).map(([k, v]) => `${v} ${word[k]}`).join(', ');
   }
+  const hungerWord = (hh) => (hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving');
+  const hungerMark = (hh) => `<i class="mark ${hh.hunger <= 0 ? 'fed' : hh.hunger < .25 ? 'short' : 'hungry'}"></i>`;
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
   let settlersHTML = '', peopleQuery = '';
   const peopleFolds = new Set();
@@ -10597,16 +10768,17 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     const household = ({ hh, f, members }) => {
       const key = `household-${hh.id}`, expanded = !!query || foldOpen(key);
-      const state = hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving';
       let body = '';
       if (expanded) {
         const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-        body += `<div class="farm"><p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+        body += `<div class="farm"><p><button type="button" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
+          <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
         if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
         if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
         body += `<ul>${members.map((id) => {
           const pawn = st.pawns[id];
-          return `<li>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
+          return `<li>${faceImg(id, 'mini')}<div>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${
+            esc(Sim.describe(st, id))}</span></div></li>`;
         }).join('')}</ul>`;
         const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
         body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
@@ -10629,7 +10801,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
         body += fold(animalsKey, 'Animals & larder', animals) + '</div>';
       }
       return `<details class="household-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${esc(f.name)}<span class="summary-meta">${hh.members.length} people · ${state}</span></summary>${body}</details>`;
+        <summary>${iconImg(farmIcon(f), 'mini')}${esc(f.name)}<span class="summary-meta">${hungerMark(hh)}${hh.members.length} people · ${
+          hungerWord(hh)}</span></summary>${body}</details>`;
     };
     let h = '';
     for (const v of st.villages) {
@@ -10638,7 +10811,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
       let body = '';
       if (expanded) {
-        body = households.map(household).join('');
+        body = `<p><button type="button" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
+          + households.map(household).join('');
         const commonsKey = `commons-${v.id}`;
         let commons = '';
         if (foldOpen(commonsKey)) {
@@ -10667,7 +10841,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       }
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+        <summary>${iconImg(villageIcon(v),
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
     }
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
       const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
@@ -10686,17 +10861,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function focusPawn(id) {
     const p = st.pawns[id]; if (p.died !== null) { treeSel = id; openTree(); return; }
     const a = st.agents[id], f = farmOf(p);
-    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] : a.y, z1 = Math.max(cam.z, 1.5);
-    intro = { t: 0, d: 1.1, x0: cam.x, y0: cam.y, z0: cam.z, x1: x, y1: y, z1, T: levelFor(z1, 1),
-      rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, { x, y, z: z1 }) };
+    flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
     selectPawn(id);
   }
-  $('settlers').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function selectPawn(id, pinned = true) { selectionPinned = pinned; openPanel('tile'); selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
   function showPawn(id) {
     $('personFamily').hidden = false;
     const p = st.pawns[id], f = farmOf(p);
-    if (p.died !== null || !f) { card(Sim.fullName(p), ['Died']); return; }
+    if (p.died !== null || !f) { card(Sim.fullName(p), ['Died'], '', { badge: faceImg(id, 'badge') }); return; }
     const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
     const holds = Sim.holdingOf(st, id), heirs = heirTo(id);
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) =>
@@ -10704,12 +10876,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
       st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
+    const v = st.villages[f.village];
     card(Sim.fullName(p),
       [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` :
       (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''),
-      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id));
+      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id), { badge: faceImg(id, 'badge'),
+      links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) });
     showRelations(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
@@ -10722,7 +10896,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const word = Sim.opinionWord(x.opinion), kin = Sim.standingWord(st, id, x.id), why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
       const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
-      return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
+      return `<button type="button" data-pawn="${x.id}">${faceImg(x.id,
+        'mini')}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
         x.opinion)}</b></button>`;
     }).join('');
     const owed = goodwillRows(id), h = (rows ? `<h3>Knows best</h3>${rows}` : '') + (owed ? `<h3>Owes and is owed</h3>${owed}` : '');
@@ -10742,9 +10917,19 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return `<button type="button" data-pawn="${x.other}"${why}>${x.balance > 0 ? `Is owed ${n} by ${name}` : `Owes ${name} ${n}`}${give}</button>`;
     }).join('');
   }
-  $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function card(title, lines, activity = '') {
+  // The selection card: a title, up to four lines and the rest, an activity, and `more`: a badge (portrait or icon), a kind under the title,
+  // links to what the selection belongs to, and a list of what it holds. Unpinned, under the pointer, it shows its summary only.
+  const cardShown = {};
+  function cardPart(id, html = '') {
+    const el = $(id);
+    if (cardShown[id] !== html) { cardShown[id] = html; el.innerHTML = html; }
+    el.hidden = !html;
+  }
+  function card(title, lines, activity = '', more = {}) {
     $('tileName').textContent = title;
+    cardPart('tileBadge', more.badge); cardPart('tileKind', more.kind ? esc(more.kind) : ''); cardPart('tileLinks', more.links);
+    cardPart('tileList', more.list);
+    $('tile').classList.toggle('peek', !selectionPinned);
     $('tileActivity').textContent = activity; $('tileActivity').hidden = !activity;
     ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => {
       const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k];
@@ -10771,13 +10956,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const f of st.farmsteads) {
       const v = st.villages[f.village].name, where = `${f.name}, ${v}`;
       if (f.house === i) {
-        if (f.household === null) return [`${f.name}${v ? `, ${v}` : ''}`,
+        if (f.household === null) return [f.name,
           [`Empty for ${emptyYears(f)} years: ${f.state === 'ruin' ? 'a ruin' : 'buildings at ' + Math.round(f.condition * 100) + '%'}`,
-          'No heir took it; claims come in the next batch']];
+          'No heir took it; claims come in the next batch'], { farm: f.id, house: true }];
         const hh = st.households[f.household], heirs = Sim.heirRanking(st, hh).slice(0, 3).map((q) => Sim.fullName(st.pawns[q]));
-        return [`${f.name}${v ? `, ${v}` : ''}`,
+        return [f.name,
           [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
-          heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line']];
+          heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
+          `${hungerWord(hh)}: ${Math.round(hh.grain)} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
       }
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {
@@ -10789,7 +10975,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
         const worn = fd.soil < 0.99 ? `, worn to ${Math.round(fd.soil * 100)}% by its crops` : fd.soil > 1.01 ? `, dunged to ${Math.round(fd.soil * 100)}%` :
           '';
         return [`Field of ${where}`,
-          [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+          [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`], {
+            farm: f.id }];
       }
     }
     for (const f of st.farmsteads) {
@@ -10798,12 +10985,117 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const word = { grass: m.raked ? 'Grass growing, raked clean in spring' : 'Grass growing', mown: 'Mown; the hay is drying',
         aftermath: 'Aftermath: the hay is in' }[m.stage];
       return [`Hay meadow of ${f.name}, ${st.villages[f.village].name}`,
-        [word, `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`]];
+        [word, `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`], { farm: f.id }];
     }
-    for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
+    for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, [], { village: v.id }];
     return null;
   }
 
+  // ======== selection cards ========
+  // What is selected is the page's own state: a pawn (selPawn), a tile (sel), and with a tile, the farm whose house stands on it (selFarm);
+  // or a village (selVillage), whose green, where it has one, is the tile shown.
+  let selVillage = -1, selFarm = -1;
+  function flyTo(x, y, z1 = Math.max(cam.z, 1.5)) {
+    intro = { t: 0, d: 1.1, x0: cam.x, y0: cam.y, z0: cam.z, x1: x, y1: y, z1, T: levelFor(z1, 1),
+      rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, { x, y, z: z1 }) };
+  }
+  const villageSpot = (v) => (v.center >= 0 ? v.center : st.farmsteads[v.farmsteads[0]].house);
+  function selectFarm(id, fly = true) {
+    const f = st.farmsteads[id];
+    selectionPinned = true; openPanel('tile'); selPawn = -1; sel = f.house; hoverDirty = true; showTile(sel);
+    if (fly) flyTo(w.hx[f.house], w.hy[f.house]);
+  }
+  function selectVillage(id, fly = true) {
+    const v = st.villages[id], at = villageSpot(v);
+    selectionPinned = true; openPanel('tile'); selPawn = -1; selFarm = -1; selVillage = id; sel = v.green ? v.center : -1; hoverDirty = true;
+    showVillage(id);
+    if (fly) flyTo(w.hx[at], w.hy[at], Math.max(cam.z, 0.9));
+  }
+  // The key F and the card's button: bring what is selected to the middle of the view.
+  function centreSelection() {
+    if (!st || activePanel !== 'tile') return;
+    if (selPawn >= 0) {
+      const a = st.agents[selPawn], f = farmOf(st.pawns[selPawn]);
+      if (a && (!a.inside || f)) flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
+    } else if (selVillage >= 0) { const at = villageSpot(st.villages[selVillage]); flyTo(w.hx[at], w.hy[at], Math.max(cam.z, 0.9)); }
+    else if (sel >= 0) flyTo(w.hx[sel], w.hy[sel], Math.max(cam.z, 1.2));
+  }
+  $('tileFocus').addEventListener('click', centreSelection);
+  // A name on the map under a point of the world, while it shows.
+  function labelAt(x, y) {
+    for (const l of labels) if (l.t.visible && l.t.alpha > 0.3 && Math.abs(x - l.x) < l.t.width / 2 && y < l.y && y > l.y - l.t.height) return l;
+    return null;
+  }
+
+  // ---- links and rows ----
+  const pawnChip = (id) => `<button type="button" class="chip" data-pawn="${id}">${faceImg(id, 'mini')}${esc(Sim.fullName(st.pawns[id]))}</button>`;
+  const farmChip = (f) => `<button type="button" class="chip" data-farm="${f.id}">${iconImg(farmIcon(f), 'mini')}${esc(f.name)}</button>`;
+  const villageChip = (v) => `<button type="button" class="chip" data-village="${v.id}">${iconImg(villageIcon(v), 'mini')}${esc(v.name)}</button>`;
+  const row = (attr, img, name, note, state) => `<button type="button" class="row" ${attr}>${img}<span class="who">${esc(name)}<i>${
+    esc(note)}</i></span><span class="state">${state}</span></button>`;
+  // One listener for every link: a person, a farm, a village, or a village's customs.
+  function follow(e) {
+    const b = e.target.closest('button[data-pawn], button[data-farm], button[data-village], button[data-customs]');
+    if (!b || !st) return;
+    if (b.dataset.pawn) focusPawn(+b.dataset.pawn);
+    else if (b.dataset.farm) selectFarm(+b.dataset.farm);
+    else if (b.dataset.village) selectVillage(+b.dataset.village);
+    else {
+      customVillage = +b.dataset.customs; customsStamp = '';
+      if (activePanel !== 'customs') openDrawer('customs'); else buildCustoms();
+      renderDrawer();
+    }
+  }
+  $('settlers').addEventListener('click', follow);
+  $('tile').addEventListener('click', follow);
+
+  // ---- what a tile of a farm adds to its card: the farm's icon, kind and people on its house; a way back to the farm from its fields ----
+  function tileExtras(of) {
+    const f = st.farmsteads[of.farm], v = st.villages[f.village];
+    if (!of.house) return { links: farmChip(f) + villageChip(v) };
+    const hh = f.household === null ? null : st.households[f.household];
+    const list = hh ? `<h3>Lives here</h3>${hh.members.map((id) => {
+      const p = st.pawns[id];
+      return row(`data-pawn="${id}"`, faceImg(id, 'mini'), Sim.fullName(p), `${p.age}, ${roleLine(p)}`, esc(Sim.describe(st, id)));
+    }).join('')}` : '';
+    return { badge: iconImg(farmIcon(f), hh ? 'badge' : 'badge gone'), kind: `${hh ? 'Farm' : f.state === 'ruin' ? 'Ruined farm' : 'Empty farm'} in ${v.name}`,
+      links: villageChip(v), list };
+  }
+  function showVillage(id) {
+    const v = st.villages[id], farms = v.farmsteads.map((k) => st.farmsteads[k]), lived = farms.filter((f) => f.household !== null);
+    const people = lived.reduce((n, f) => n + st.households[f.household].members.length, 0), empty = farms.length - lived.length;
+    const worst = v.fence.length ? Math.min(...v.fence.map((fence) => fence.cond)) : 1;
+    const mother = v.founded ? st.villages[v.founded.from] : null;
+    const lines = [`${people} people in ${lived.length} ${lived.length === 1 ? 'household' : 'households'}${empty ? `, ${empty} empty` : ''}`,
+      `${v.fence.length ? `Fence in ${worst < .45 ? 'poor' : worst < .65 ? 'fair' : 'good'} repair` : 'No fence yet'}; ${
+        v.well ? 'a shared well and woods' : 'shared woods'}`,
+      v.founded ? `Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${mother.name} by ${Sim.fullName(st.pawns[v.founded.by])}` : '',
+      v.crowded > 0 ? `Crowded: ${v.crowded} adults wait for land, and there is no room to clear` : ''].filter(Boolean);
+    const list = `<h3>Farms</h3>${farms.map((f) => {
+      const hh = f.household === null ? null : st.households[f.household];
+      return row(`data-farm="${f.id}"`, iconImg(farmIcon(f), hh ? 'mini' : 'mini gone'), f.name,
+        hh ? `Held by ${Sim.fullName(st.pawns[hh.holder])}` : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
+        hh ? `${hungerMark(hh)}${hh.members.length} people · ${hungerWord(hh)}` : '');
+    }).join('')}`;
+    const customs = st.cenv.settlements[id] && st.cenv.settlements[id].id === id
+      ? `<button type="button" class="chip" data-customs="${id}">Customs</button>` : '';
+    card(v.name, lines, '', { badge: iconImg(villageIcon(v)), kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
+      links: (mother ? villageChip(mother) : '') + customs, list });
+  }
+
+  // ---- the left sheets end below the world menu on a wide screen: its bottom edge, as a CSS length ----
+  const chartBox = document.querySelector('.chart');
+  function measureChart() {
+    document.documentElement.style.setProperty('--chart-bottom', `${mobileUI.matches ? 0 : Math.round(chartBox.getBoundingClientRect().bottom)}px`);
+  }
+  if (window.ResizeObserver) new ResizeObserver(measureChart).observe(chartBox);
+  window.addEventListener('resize', measureChart);
+  measureChart();
+  // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
+  if (!mobileUI.matches) {
+    $('tile').classList.remove('collapsed');
+    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Collapse';
+  }
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {

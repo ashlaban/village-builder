@@ -262,6 +262,58 @@ body.ui-hidden .hud * { pointer-events: none; }
 .genscreen { overflow-y: auto; }
 .genscreen form { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
+/* Layout fixes: the phone-only menu header stays hidden on wide screens, name links read as text, and the left sheets end below the menu. */
+.sheet-head.mobile-only { display: none; }
+.people-sheet, .tile { max-height: min(65vh, calc(100dvh - var(--chart-bottom, 320px) - var(--dock-bottom) - 78px)); }
+.settlers p button { display: inline; min-height: 0; border: 0; border-radius: 3px; padding: 0; background: none; font-size: inherit; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
+/* Selection cards: a portrait or icon by the title, links to what the selection belongs to, and rows for what it holds. */
+.sheet-title { flex: 1; min-width: 0; }
+.tile .sheet-title span { margin: 1px 0 0; font-size: 14px; }
+#tileBadge { flex-shrink: 0; line-height: 0; }
+img.badge { width: 52px; height: 52px; border-radius: 12px; background: var(--node); border: 1px solid var(--edge); }
+img.mini { width: 26px; height: 26px; border-radius: 7px; background: var(--node); border: 1px solid var(--edge); flex-shrink: 0; vertical-align: middle; }
+img.gone { filter: grayscale(1); opacity: 0.6; }
+.icon-btn { width: 36px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
+.chip img.mini { margin-left: -7px; border-radius: 50%; }
+.roster { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--edge); }
+.roster h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: 6px; background: none;
+  text-align: left; }
+.tile .row span { margin: 0; }
+.tile .row .who { flex: 1; min-width: 0; color: var(--ink); }
+.row .who i { display: block; font-style: normal; font-size: 13px; color: var(--muted); }
+.tile .row .state { max-width: 46%; font-size: 13px; text-align: right; }
+.mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
+.mark.short { background: #c9a24a; }
+.mark.hungry { background: var(--bad); }
+.tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
+.tile.peek .sheet-head { border-bottom: 0; }
+.settlers li { display: flex; align-items: flex-start; gap: 8px; }
+.settlers li > div { flex: 1; min-width: 0; }
+.settlers li img.mini { margin-top: 2px; }
+.settlers summary img.mini { margin-right: 8px; }
+.selection-summary { padding-bottom: 2px; }
+.tile .sheet-content { padding-top: 2px; }
+.collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
+@media (min-width: 1025px) {
+  .chart .actions { gap: 6px; }
+  .chart .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
+  .chart .hint { font-size: 13px; }
+  .menu-label { margin: 10px 0 5px; }
+  .background-run { min-height: 30px; margin: 4px 0 8px; }
+}
+.household-block > summary .summary-meta, .village-block > summary .summary-meta { margin-left: 52px; }
+@media (hover: hover) and (pointer: fine) {
+  .settlers li button { min-height: 0; padding: 2px 0; }
+  .tile .rel button { min-height: 30px; padding: 3px 0; }
+  .row { min-height: 36px; padding: 3px 0; }
+  .row:hover, .tile .rel button:hover { background: var(--edge); }
+  .sheet-head button { min-height: 36px; }
+  summary { min-height: 36px; padding: 7px 0; }
+}
 @media (max-width: 1024px) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
