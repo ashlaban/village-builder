@@ -19,11 +19,13 @@
 require('./help.js')(__filename);
 const root = require('path').join(__dirname, '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
-const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; }, has = (k) => args.includes('--' + k);
+const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; }, has = (k) =>
+  args.includes('--' + k);
 const seeds = String(opt('seeds', opt('seed', '7'))).split(',').map(Number), farms = +opt('farms', 8), cols = +opt('cols', 40), rows = +opt('rows', 28);
 const years = +opt('years', 0), zoom = +opt('zoom', 0), scale = +opt('scale', 2), outDir = path.resolve(opt('out', '.'));
 const htmlPath = opt('html', path.join(root, 'index.html'));
-if (seeds.some((s) => !(s >= 0)) || !(farms >= 1) || !(cols >= 12) || !(rows >= 12)) { console.error('village-shot: bad options; see --help'); process.exit(2); }
+if (seeds.some((s) => !(s >= 0)) || !(farms >= 1) || !(cols >= 12) || !(rows >= 12)) {
+  console.error('village-shot: bad options; see --help'); process.exit(2); }
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 // Three hooks into the page script: the state and camera, a map size of our own, and our seeding in place of a scenario's.
 const HOOKS = [
@@ -76,7 +78,8 @@ async function shootSeed(browser, seed) {
     document.getElementById('genForm').dispatchEvent(new Event('submit', { cancelable: true }));
   }, String(seed));
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
-  if (await page.evaluate(() => !window.__vb.st)) { console.error(`${tag}: no village fits this island; try another seed or a larger one`); await page.close(); return false; }
+  if (await page.evaluate(() => !window.__vb.st)) {
+    console.error(`${tag}: no village fits this island; try another seed or a larger one`); await page.close(); return false; }
   await page.click('[data-speed="0"]').catch(() => {});
   await page.evaluate(async (n) => {
     const st = window.__vb.st, Sim = window.__vb.Sim();
@@ -101,7 +104,8 @@ async function shootSeed(browser, seed) {
   const shoot = async (name, x, y, z) => {
     await page.evaluate(([x, y, z]) => window.__vb.view(x, y, z), [x, y, z]);
     await page.waitForTimeout(2500);
-    await page.waitForFunction(() => document.getElementById('lod').hidden, null, { timeout: 90000 }).catch(() => console.error('painting not finished for', name));
+    await page.waitForFunction(() => document.getElementById('lod').hidden, null, { timeout: 90000 }).catch(() =>
+      console.error('painting not finished for', name));
     await page.waitForTimeout(800);
     await page.screenshot({ path: path.join(outDir, name), type: 'jpeg', quality: 86 }); console.log(path.join(outDir, name));
   };
