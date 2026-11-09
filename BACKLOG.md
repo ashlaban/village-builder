@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-219](backlog/VB-219.md) | Wrap-up: kin help, booked | kin-help | 1 | S | A probe of the balances over long runs and late saves, the slice's cost against its line, The gift against the code; the arch closed. |
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
 | [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
@@ -113,7 +112,6 @@ The vertical slices of `docs/roadmap.md` in Kim's order, then the two older arch
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
 | yardstick | Slice 0: the yardstick | Every later slice measured at its own cost, early and late in a run, cheaply: work counters, scaling and history checks, late-game fixtures, a bench history, the reduced-scenario harness with bands, the rules registry, indexes of the living; the moving round, the meetings and midnight under 60 ms, a bounded route cache and a bounded history. Since 7 November (Kim) the late reference is the first year populous medium reaches 1,000 living (`medium-ref`, VB-202), with 200 ms a game day for today's systems and `medium-y60` as a stress state; VB-203 measures it and writes the closure table by system. | `docs/roadmap.md`, sections 3.0, 5 and 6 |
-| kin-help | Slice 1: kin help, booked | The walking skeleton: help in hunger as a gift through Exchange, goodwill booked between the two pawns, `allowance` as a rule, shown in the pawn panel. | Goods, production and animals (Help in hunger); Exchange, goodwill and obligations; roadmap 3.1 |
 | life | Slice 2: a life | The player inhabits a pawn: chooses what it does from what it may do here, answers at the meeting, goes on as kin after its death, saves in the page, picks ambitions. | Vision and scope (Player role); roadmap 3.2 |
 | year | Slice 3: the household's year | Work is available, not posted: plans (standing routines, seasonal plans, the meeting's yearly routines) make tasks that eligible pawns take; planning days; attention. | Work: opportunities, plans and tasks; roadmap 3.3 |
 | fair | Slice 4: the autumn fair | Barter between villages in whole goods; need decides, customary worth books goodwill; grain loans as obligations. | Roadmap 3.4; `docs/review-cities.md`, phase 1 |
