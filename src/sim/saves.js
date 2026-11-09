@@ -4,6 +4,7 @@ VB['sim/saves'] = (() => {
   const { seal } = VB['sim/registry'];
   const { trimRoutes } = VB['sim/routes'];
   const { rebuildLiving } = VB['sim/records'];
+  const { close: closeLedger } = VB['sim/stores'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -129,6 +130,7 @@ VB['sim/saves'] = (() => {
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
     for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
+    for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;
