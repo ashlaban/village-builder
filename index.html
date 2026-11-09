@@ -5759,16 +5759,16 @@ VB['sim/farmclaims'] = (() => {
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
-  const { ROLES, cal } = VB['sim/rules'];
+  const { ROLES, WORK, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed, seedReserve } = VB['sim/hunger'];
-  const { finishClear, finishBreak, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
-  const { finishMeadow, hayDay, mowDone, hayIn } = VB['sim/meadows'];
-  const { slaughterDone, saltDone, milkDone, fodderDone } = VB['sim/byre'];
-  const { finishBoothStage } = VB['sim/expansion'];
+  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
+  const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
+  const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
+  const { finishBoothStage, plotJobs, boothJob } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
-  const { workClaim, restored } = VB['sim/farmclaims'];
+  const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -5778,7 +5778,12 @@ VB['sim/kinds'] = (() => {
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
   //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
-  //   the project (sim/jobs drops it, its hands freed, once it is no longer posted).
+  //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
+  //   available(st, holder, at, c, post, f): where the kind could be done now (VB-208); it calls post(key, site, extra) for each job it
+  //   would post. holder is the household (or the village), at the field, farm or village asked about, f the household's farm. sim/jobs'
+  //   refreshJobs asks the rules in the order of ASK, below. A rule shared by the kinds a module posts together names each job's kind,
+  //   post(key, site, extra, kind), and the owner of a job not the household's, post(key, site, extra, kind, owner). A kind posted by two
+  //   rules names its household's: clear and break, also a plot's steps, and the cottage's stages, also a plot's (plotWork).
   // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
   const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -5795,12 +5800,50 @@ VB['sim/kinds'] = (() => {
   const workStake = (st, j) => { renewClaim(st, j.site, j.owner); };
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
+  const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
+  // The spring sowing window, when fields are hoed and sown.
+  const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
+  const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
+  // The household has less cooked food than the coming meal needs, and grain to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
+  // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
+  // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
+  function meadowWork(st, hh, f, c, post) {
+    const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
+    for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(key, m.tile, { meadow: m, farm: f }, kind);
+  }
+  // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
+  function byreWork(st, hh, f, c, post) {
+    if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
+  }
+  // The farm's land project, a new field or meadow, at its present stage (clear, break, meadow) on its tile (sim/fields, sim/meadows).
+  function landProject(st, hh, f, c, post) {
+    if (f.project) post(`${f.project.stage}:f${f.id}`, f.project.tile, { farm: f, hours: f.project.hours }, f.project.stage);
+  }
+  // Settlers build their cottage (sim/settle): the open stage while the farm's booth stands (sim/expansion).
+  function boothWork(st, hh, f, c, post) {
+    const bj = boothJob(st, f); if (bj) post(bj[0], f.house, bj[2], bj[1]);
+  }
+  // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
+  // owned by the plot's village (sim/expansion).
+  function plotWork(st, holder, at, c, post) {
+    for (const [key, kind, site, extra] of plotJobs(st)) post(key, site, extra, kind, { type: 'village', id: extra.plot.village });
+  }
+  // Asked once for the island: empty farms being restored, each by its claimant's household while the claim holds (sim/farmclaims).
+  function claimWork(st, holder, at, c, post) {
+    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
+  }
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
     plow: {
       verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
       field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
+      // a field in stubble, in the sowing window
+      available: (st, hh, fd, c, post, f) => {
+        if (sowing(st.ECON, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+      },
     },
     sow: {
       verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
@@ -5811,12 +5854,19 @@ VB['sim/kinds'] = (() => {
         if (hh.grain < E.seedPerField) return;
         Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
       },
+      // a hoed field, in the sowing window, while the household has the seed for it
+      available: (st, hh, fd, c, post, f) => {
+        const E = st.ECON;
+        if (sowing(E, c) && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+      },
     },
     reap: {
       verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
       field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
       done: (st, j, hh, c) => reaped(st, j.field, c),
+      // a ripe field
+      available: (st, hh, fd, c, post, f) => { if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f }); },
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
@@ -5827,6 +5877,10 @@ VB['sim/kinds'] = (() => {
         if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
           kind: 'harvest', ...atFarm(f) });
         hauled(j.field);
+      },
+      // a field's stooks, once they have dried dryDays since the reaping
+      available: (st, hh, fd, c, post, f) => {
+        if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays) post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
     wood: {
@@ -5839,6 +5893,14 @@ VB['sim/kinds'] = (() => {
         return hh.wood < U.woodLow ? U.woodLowUrgency : (woodGoal(st.ECON, c) - hh.wood) / woodGoal(st.ECON, c) + (c.season === 2 ? U.woodSummer : 0);
       },
       deliver: (st, j, hh) => { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); },
+      // from a farm with a woodlot while the pile is below its goal; a second job while it is below 40% of woodTarget
+      available: (st, hh, f, c, post) => {
+        const E = st.ECON;
+        if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
+          post(`wood:h${hh.id}`, f.woodlot, { farm: f });
+          if (hh.wood < E.woodTarget * 0.4) post(`wood:h${hh.id}b`, f.woodlot, { farm: f });
+        }
+      },
     },
     water: {
       verb: 'Drawing water', go: 'Going for water', back: 'Carrying water home', name: 'Fetch water', label: 'Water', anim: 'draw', hours: 0.5,
@@ -5849,6 +5911,12 @@ VB['sim/kinds'] = (() => {
       },
       urgency: (st, j, c, U) => (c.hour < U.waterMorningHour ? U.waterMorning : U.water),
       deliver: (st, j, hh) => { hh.waterDay = cal(st.t).day; },
+      // once a day, from the hour before work until its end, at the village well if it has one, else by the house
+      available: (st, hh, f, c, post) => {
+        const inWork = c.hour >= WORK[0] - 1 && c.hour < WORK[1];
+        if (inWork && hh.waterDay !== c.day) post(`water:h${hh.id}:${c.day}`,
+          st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
+      },
     },
     cook: {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
@@ -5859,85 +5927,107 @@ VB['sim/kinds'] = (() => {
         const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
         Stores.cook(st, hh, make); hh.cookDay = c.day;
       },
+      // from 14:00 to the end of work, while the household is short of cooked food and has grain to cook (cookWanted)
+      available: (st, hh, f, c, post) => {
+        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
+      },
     },
     weed: {
       verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
       field: true, spot: onField, done: (st, j) => weeded(j.field),
+      // a growing field whose weeding is open (sim/fields)
+      available: (st, hh, fd, c, post, f) => { if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f }); },
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
       hands: Infinity, type: 'threshing', inside: true, done: (st, j, hh) => { Stores.thresh(st, hh); },
+      // while the barn holds unthreshed sheaves
+      available: (st, hh, f, c, post) => { if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, { farm: f }); },
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
       type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishClear(st, j.farm, hh),
+      available: landProject, // also a plot's step (plotWork)
     },
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
       type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(j) && finishBreak(st, j.farm),
+      available: landProject, // also a plot's step (plotWork)
     },
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
       type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
+      available: landProject,
     },
     reclaim: {
       verb: 'Clearing an overgrown field', go: 'Going to clear an overgrown field', name: 'Clear an overgrown field', label: 'Reclaim', anim: 'hoe',
       hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
       done: (st, j) => reclaimed(st, j.field),
+      // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
+      available: (st, hh, fd, c, post, f) => {
+        if (fd.stage === 'fallow' || fd.stage === 'scrub') post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
+      },
     },
     restore: { // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
       verb: 'Mending an empty farm', go: 'Going to mend an empty farm', name: 'Mend an empty farm', label: 'Mending a farm', anim: 'mallet', hours: 20,
-      hands: Infinity, type: 'wood', project: true, worked: workClaim, done: restored,
+      hands: Infinity, type: 'wood', project: true, worked: workClaim, done: restored, available: claimWork,
     },
     rake: {
       verb: 'Raking the meadow clean', go: 'Going to rake a meadow', name: 'Rake a meadow', label: 'Raking', anim: 'gather', hours: 2, hands: Infinity,
-      type: 'harvest', field: true, spot: onField, urgency: (st, j, c, U) => U.rake, done: (st, j) => { j.meadow.raked = true; },
+      type: 'harvest', field: true, spot: onField, urgency: (st, j, c, U) => U.rake, done: (st, j) => { j.meadow.raked = true; }, available: meadowWork,
     },
     mow: {
       verb: 'Mowing hay', go: 'Going to mow a meadow', name: 'Mow a meadow', label: 'Mowing', anim: 'mow', hours: 16, hands: Infinity, type: 'harvest',
       field: true, spot: onField, urgency: (st, j, c, U) => U.mow + Math.max(0, hayDay(c)) / U.mowPerDay, done: (st, j, hh, c) => mowDone(st, j.meadow, c),
+      available: meadowWork,
     },
     hay: {
       verb: 'Gathering the hay', go: 'Going for the hay', back: 'Carrying hay to the barn', name: 'Bring in hay', label: 'Hauling hay', anim: 'gather',
       hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f),
+      deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f), available: meadowWork,
     },
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
-      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => fodderDone(st, hh, c),
+      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => fodderDone(st, hh, c), available: byreWork,
     },
     manure: {
       verb: 'Spreading manure on the field', go: 'Carting manure to the field', name: 'Cart manure', label: 'Manure', anim: 'gather', hours: 1,
       hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure,
       done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
+      // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
+      available: (st, hh, f, c, post) => {
+        const dung = manureWanted(f, hh, c);
+        if (dung) post(`manure:f${f.id}.${dung[0].id}`, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
+      },
     },
     milk: {
       verb: 'Milking the cows', go: 'Going to milk the cows', name: 'Milk the cows', label: 'Milking', anim: 'milk', hours: 0.5, hands: 1,
       type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
-      done: (st, j, hh, c) => milkDone(st, hh, c),
+      done: (st, j, hh, c) => milkDone(st, hh, c), available: byreWork,
     },
     slaughter: {
       verb: 'Slaughtering', go: 'Going to slaughter', name: 'Slaughter an animal', label: 'Slaughter', anim: 'mallet', hours: 3, hands: 2,
       type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (j.entry.lean ? U.slaughterNow : U.slaughter),
-      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh),
+      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh), available: byreWork,
     },
     salt: {
       verb: 'Salting meat', go: 'Going home to salt the meat', name: 'Salt the meat', label: 'Salting', anim: null, hours: 1, hands: 1, type: 'household',
-      inside: true, urgency: (st, j, c, U) => U.salt, done: (st, j, hh) => saltDone(st, hh),
+      inside: true, urgency: (st, j, c, U) => U.salt, done: (st, j, hh) => saltDone(st, hh), available: byreWork,
     },
-    fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood' },
+    fell: { verb: 'Felling trees', go: 'Going to fell trees', name: 'Fell trees', label: 'Fell', anim: 'chop', hours: 10, hands: Infinity, type: 'wood',
+      available: plotWork },
     grub: {
       verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
-      type: 'tilling', field: true, spot: onField,
+      type: 'tilling', field: true, spot: onField, available: plotWork,
     },
     // the cottage's stages: a plot's are finished by sim/expansion (j.plot); a booth's (j.booth, settlers) here
     foundation: { verb: 'Laying the foundation', go: 'Going to lay a foundation', name: 'Lay the foundation', label: 'Foundation', anim: 'mallet', hours: 30,
-      hands: Infinity, type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
+      hands: Infinity, type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork }, // also a plot's (plotWork)
     walls: { verb: 'Raising the log walls', go: 'Going to raise the walls', name: 'Raise the walls', label: 'Walls', anim: 'chop', hours: 60, hands: Infinity,
-      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork },
     roof: { verb: 'Laying the turf roof', go: 'Going to lay the roof', name: 'Lay the roof', label: 'Roof', anim: 'mallet', hours: 30, hands: Infinity,
-      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); } },
+      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork },
     mend: {
       verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
       type: 'upkeep',
@@ -5947,13 +6037,31 @@ VB['sim/kinds'] = (() => {
       },
       urgency: (st, j, c, U) => (1 - j.stretch.cond) * U.mendPerCond,
       done: (st, j) => { j.stretch.cond = 1; j.stretch.dirty = true; },
+      // a stretch worn below fenceMendBelow: of the farm's fence, the household's; asked at a village (no farm), of the village's own
+      available: (st, holder, at, c, post, f) => {
+        const E = st.ECON;
+        if (f) { if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(`mend:f${f.id}.${s.id}`, s.tile, { stretch: s, farm: f }); return; }
+        for (const s of at.fence) if (s.cond < E.fenceMendBelow) post(`mend:v${at.id}.${s.id}`, s.tile, { stretch: s }, 'mend', { type: 'village', id: at.id });
+      },
     },
   };
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
   for (const r of Object.values(ROLES)) r.prio = Object.fromEntries(Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.work[K.type] ?? 0]));
-  return { KINDS, woodGoal, rowAngle, firstRow, isOpen };
+  // Where refreshJobs (sim/jobs) asks, in this order: for each occupied farm in turn, at each of its fields (field), at the farm (farm),
+  // and at the farm again after the household's plans for land (farmAfterPlans); then at each village (village), then once for the island
+  // (island). An entry is [kind, rule]: a kind's own rule posts that kind; a shared rule (kind null) names its jobs' kinds. A job's id is its
+  // posting order and matching visits jobs by id, so this order is part of the behaviour: two jobs new in the same hour keep their order.
+  const rule = (k) => (typeof k === 'string' ? [k, KINDS[k].available] : [null, k]);
+  const ASK = {
+    field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
+    farm: [meadowWork, 'manure', byreWork].map(rule),
+    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'mend'].map(rule),
+    village: ['mend'].map(rule),
+    island: [plotWork, claimWork].map(rule),
+  };
+  return { KINDS, ASK, woodGoal, cookWanted, rowAngle, firstRow, isOpen };
 })();
 </script>
 <script>
@@ -6395,19 +6503,15 @@ VB['sim/commands'] = (() => {
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
-  const { dailyNeed, seedReserve } = VB['sim/hunger'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue } = VB['sim/commands'];
-  const { KINDS, woodGoal, isOpen } = VB['sim/kinds'];
-  const { startProject, manureWanted } = VB['sim/fields'];
-  const { startMeadow, meadowJobs, hayWanted } = VB['sim/meadows'];
-  const { byreJobs } = VB['sim/byre'];
-  const { plotJobs, boothJob } = VB['sim/expansion'];
-  const { claimJobs, claimPrio } = VB['sim/farmclaims'];
-  const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
+  const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
+  const { startProject } = VB['sim/fields'];
+  const { startMeadow } = VB['sim/meadows'];
+  const { claimPrio } = VB['sim/farmclaims'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -6418,8 +6522,6 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // The household has less cooked food than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
   // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
@@ -6435,49 +6537,28 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
+  // Each kind says where it is available (sim/kinds, `available`); refreshJobs asks them in the order of ASK, which is the jobs' ids.
   function refreshJobs(st, c) {
-    const E = st.ECON;
     for (const j of st.jobs.values()) j.live = false;
-    const inWork = c.hour >= WORK[0] - 1 && c.hour < WORK[1];
+    // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
+    let kind = null, own = null;
+    const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
+    const ask = (rules, holder, at, f) => { for (const [k, available] of rules) { kind = k; available(st, holder, at, c, put, f); } };
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
-      const hh = st.households[f.household], own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const fk = `f${f.id}.${fd.id}`;
-        const sowing = c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
-        if (sowing && fd.stage === 'stubble') post(st, 'plow:' + fk, 'plow', own, fd.tile, { field: fd, farm: f });
-        if (sowing && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post(st, 'sow:' + fk, 'sow', own, fd.tile, { field: fd, farm: f });
-        if (fd.stage === 'growing' && fd.weedOpen) post(st, 'weed:' + fk, 'weed', own, fd.tile, { field: fd, farm: f });
-        if (fd.stage === 'ripe') post(st, 'reap:' + fk, 'reap', own, fd.tile, { field: fd, farm: f });
-        if (fd.stage === 'stooks' && c.day >= fd.reaped + E.dryDays) post(st, 'haul:' + fk, 'haul', own, fd.tile, { field: fd, farm: f });
-        // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
-        if (fd.stage === 'fallow' || fd.stage === 'scrub') post(st, 'reclaim:' + fk, 'reclaim', own, fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
-      }
-      const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
-      for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(st, key, kind, own, m.tile, { meadow: m, farm: f });
-      const dung = manureWanted(f, hh, c); // VB-137
-      if (dung) post(st, `manure:f${f.id}.${dung[0].id}`, 'manure', own, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
-      if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(st, key, kind, own, f.house, { farm: f, ...extra });
-      // a household looks for land for a new field, or a meadow once the fields are enough, once a day at the start of work (balance review:
-      // households in every scenario look, and those short of land searched in vain every hour)
+      const hh = st.households[f.household];
+      own = { type: 'household', id: hh.id };
+      for (const fd of f.fields) ask(ASK.field, hh, fd, f);
+      ask(ASK.farm, hh, f, f);
+      // A choice, not an availability: a household looks for land for a new field, or a meadow once the fields are enough, once a day at
+      // the start of work (balance review: households in every scenario look, and those short of land searched in vain every hour).
+      // These are slice 3's hidden plans (VB-164).
       if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
-      if (f.project) post(st, `${f.project.stage}:f${f.id}`, f.project.stage, own, f.project.tile, { farm: f, hours: f.project.hours });
-      const bj = boothJob(st, f); if (bj) post(st, bj[0], bj[1], own, f.house, bj[2]); // settlers build their cottage (sim/settle)
-      if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
-        post(st, `wood:h${hh.id}`, 'wood', own, f.woodlot, { farm: f });
-        if (hh.wood < E.woodTarget * 0.4) post(st, `wood:h${hh.id}b`, 'wood', own, f.woodlot, { farm: f });
-      }
-      if (hh.unthreshed.length) post(st, `thresh:h${hh.id}`, 'thresh', own, f.house, { farm: f });
-      if (inWork && hh.waterDay !== c.day) post(st, `water:h${hh.id}:${c.day}`, 'water', own,
-        st.villages[f.village].well ? st.villages[f.village].center : f.house, { farm: f });
-      if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(st, `cook:h${hh.id}:${c.day}`, 'cook', own, f.house, { farm: f });
-      if (f.fence) for (const s of f.fence) if (s.cond < E.fenceMendBelow) post(st, `mend:f${f.id}.${s.id}`, 'mend', own, s.tile, { stretch: s, farm: f });
+      ask(ASK.farmAfterPlans, hh, f, f);
     }
-    for (const v of st.villages) for (const s of v.fence) if (s.cond < E.fenceMendBelow) {
-      post(st, `mend:v${v.id}.${s.id}`, 'mend', { type: 'village', id: v.id }, s.tile, { stretch: s });
-    }
-    for (const [key, kind, site, extra] of plotJobs(st)) post(st, key, kind, { type: 'village', id: extra.plot.village }, site, extra);
-    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(st, key, kind, owner, site, extra); // empty farms being restored
+    own = null;
+    for (const v of st.villages) ask(ASK.village, v, v);
+    ask(ASK.island, null, null); // plots, and empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {
       if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
