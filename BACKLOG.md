@@ -31,10 +31,12 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 2 | M | One `notable` rule over the record of events; toasts that select what happened. |
+| [VB-099](backlog/VB-099.md) | A chronicle: the history of a pawn, farm and village | life | 2 | M | A History tab per pawn, household and village, read from the record of events. |
 | [VB-199](backlog/VB-199.md) | Bounded history: a pawn's events as an index, routine events folded | yardstick | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. |
+| [VB-228](backlog/VB-228.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
+| [VB-229](backlog/VB-229.md) | Skip to the next event that concerns the player's pawn | life | 2 | S | Run ahead at the uncapped speed until something notable to the played pawn, its household or its line happens, then pause there. |
 | [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Record the text of the page's panels and compare it, as the golden file does for the state, so a wording or number change shows. |
-| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 3 | M | One `notable` rule over the record of events; toasts that select what happened. |
-| [VB-099](backlog/VB-099.md) | A chronicle: the history of a pawn, farm and village | life | 3 | M | A History tab per pawn, household and village, read from the record of events. |
 | [VB-160](backlog/VB-160.md) | The soil's cap rises with a village's years of farming | animals | 3 | S | Yields rise slightly over a game as the soil's cap rises with years of farming; the mechanism is to be researched before a model and rate. |
 | [VB-165](backlog/VB-165.md) | Inspect the map from the keyboard, and lists beside the canvas | - | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. |
 
@@ -53,7 +55,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-212](backlog/VB-212.md) | The moving round's acts: the player's wish stands in for its pawn's own | life | 2 | M | VB-210 | Where the round reads what a pawn wants (moving out, claims, service), the player's wish stands in; the round's rules decide as for anyone. |
 | [VB-213](backlog/VB-213.md) | The player's succession: going on as another after a death | life | 2 | S | VB-210 | On the played pawn's death: heirs, kin, household and ties, in that order; the page pauses and offers them; a break when none is left. |
 | [VB-221](backlog/VB-221.md) | The player's gift from the pawn panel, with the floor's warning | life | 2 | S | VB-210 | While playing a pawn, give grain to any household by the verb `give` (source `player`), unbound by allowance; below the floor, a warning that names who goes hungry. |
-| [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-169, VB-209, VB-210, VB-211, VB-212, VB-213, VB-214 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
+| [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-169, VB-209, VB-210, VB-211, VB-212, VB-213, VB-214, VB-099, VB-228, VB-229 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
 | [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | VB-214, VB-199 | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
 | [VB-023](backlog/VB-023.md) | Sow a hoed field before hoeing the next | year | 2 | S | VB-164 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | VB-164 | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
