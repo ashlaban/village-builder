@@ -42,12 +42,12 @@ VB['sim/jobs'] = (() => {
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
     let kind = null, own = null;
     const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
-    const ask = (rules, holder, at, f) => { for (const [k, available] of rules) { kind = k; available(st, holder, at, c, put, f); } };
+    const ask = (rules, holder, at, f) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); } };
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) ask(ASK.field, hh, fd, f);
+      for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
       ask(ASK.farm, hh, f, f);
       // A choice, not an availability: a household looks for land for a new field, or a meadow once the fields are enough, once a day at
       // the start of work (balance review: households in every scenario look, and those short of land searched in vain every hour).
