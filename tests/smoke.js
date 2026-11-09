@@ -87,6 +87,9 @@ const iv = setInterval(async () => {
   q('[data-act="kill"]').click(); const killed = doc.getElementById('dbgMsg').textContent; console.log('kill:', killed);
   if (!/has died/.test(killed)) fail(`the debug kill did not report a death: ${killed}`);
   tick(30);
+  // the death of the selected pawn raises a toast (VB-098)
+  console.log('toasts:', qa('#toasts .toast').map((b) => b.textContent).join(' / '));
+  if (!qa('#toasts .toast').some((b) => / was killed, aged \d+\.$/.test(b.textContent))) fail('the debug kill raised no toast');
   doc.getElementById('treeBtn').click(); tick(2);
   console.log('tree:', doc.getElementById('treeSub').textContent, '| nodes', qa('#treeSvg g.tn').length, 'dead', qa('#treeSvg g.tn.dead').length, 'heir dots', qa('#treeSvg .heir').length);
   if (!qa('#treeSvg g.tn').length) fail('family tree is empty');
@@ -108,7 +111,7 @@ const iv = setInterval(async () => {
   const iv2 = setInterval(() => { if (!doc.getElementById('regen').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('regen').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
-    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(() => process.exit(failed ? 1 : 0)); } }, 50);
+    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(() => process.exit(failed ? 1 : 0)); } }, 50);
 }, 50);
 // The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward
 // another household shows its rows, each with what it would give and the parts of that allowance on hover.
@@ -152,4 +155,52 @@ async function goodwillPanel() {
     settlers.querySelector(`button[data-pawn="${none}"]`).click(); tick(20);
     if (/Owes and is owed/.test(rel.innerHTML)) fail(`pawn ${none}, with no balance, shows a goodwill list`);
   }
+}
+// Notifications (VB-098), on the tiny populous map: a landholder's death raises a toast that tells it as the log did, a click selects the
+// farm and takes the toast away, deaths of one day in one village share a toast, at most 3 show, a kind turned off raises none and the
+// choice is kept, and a toast goes after 6 s.
+function notices() {
+  const Sim = win.Sim, st = simSt, q = (s) => doc.querySelector(s), shown = () => [...doc.querySelectorAll('#toasts .toast')];
+  const texts = () => shown().map((b) => b.textContent).join(' / ');
+  q('[data-speed="0"]').click(); tick(400);
+  if (shown().length) fail(`toasts still up after 6 s: ${texts()}`);
+  const holdersOf = (v) => st.liveHouseholds.map((id) => st.households[id]).filter((h) => st.farmsteads[h.farmstead].village === v.id
+    && st.pawns[h.holder].alive).map((h) => h.holder);
+  const v = st.villages.find((u) => holdersOf(u).length >= 6);
+  if (!v) { fail('no village with 6 holders on the tiny populous map'); return; }
+  const kill = (id) => { Sim.killPawn(st, id, 'illness'); return st.record.filter((e) => e.kind === 'died' && e.pawn === id).pop(); };
+  const boxes = [...doc.querySelectorAll('#noticeList input[data-notice]')];
+  if (boxes.map((b) => b.dataset.notice).join() !== Object.keys(Sim.NOTABLE).join()) fail('the notification list does not show the kinds of Sim.NOTABLE');
+  if (!boxes.every((b) => b.checked)) fail('a kind of notification starts turned off');
+  // one death: its sentence, and the click
+  const ids = holdersOf(v), ev = kill(ids[0]); tick(2);
+  console.log('toast:', texts());
+  const mine = shown().find((b) => b.textContent === Sim.eventLine(st, ev));
+  if (!mine || !/ died of illness, aged \d+\.$/.test(mine.textContent)) fail(`no toast tells the death of a landholder: ${texts()}`);
+  else {
+    mine.click(); tick(2);
+    const farm = st.farmsteads[ev.farm].name, title = doc.getElementById('tileName').textContent;
+    if (doc.getElementById('tile').hidden || !title.startsWith(farm)) fail(`a click on the toast selected "${title}", not ${farm}`);
+    if (shown().includes(mine)) fail('a clicked toast stays up');
+  }
+  // three deaths of one day in one village share a toast, and no more than 3 toasts show
+  tick(400);
+  for (const id of ids.slice(1, 4)) kill(id);
+  tick(2); console.log('merged:', texts());
+  if (!shown().some((b) => b.textContent === `3 deaths in ${v.name}`)) fail(`3 deaths in a day did not merge: ${texts()}`);
+  if (shown().length > 3) fail(`${shown().length} toasts at once`);
+  // every kind turned off: no toast, and the choice is kept
+  tick(400);
+  for (const b of boxes) { b.checked = false; b.dispatchEvent(new win.Event('change', { bubbles: true })); }
+  kill(ids[4]); tick(2);
+  if (shown().length) fail(`a toast with every kind turned off: ${texts()}`);
+  const kept = JSON.parse(win.localStorage.getItem('vb.notices.off') || '[]');
+  if (kept.slice().sort().join() !== Object.keys(Sim.NOTABLE).sort().join()) fail(`the kinds turned off were not kept: ${kept}`);
+  for (const b of boxes) { b.checked = true; b.dispatchEvent(new win.Event('change', { bubbles: true })); }
+  if (win.localStorage.getItem('vb.notices.off') !== '[]') fail('the kinds turned on again were not kept');
+  // and a toast goes after 6 s: up at 5.9 s, gone at 6.1
+  kill(ids[5]); tick(2);
+  if (!shown().length) fail('no toast once the kinds are on again');
+  tick(366); if (!shown().length) fail('a toast went before 6 s');
+  tick(15); if (shown().length) fail(`a toast is still up after 6 s: ${texts()}`);
 }
