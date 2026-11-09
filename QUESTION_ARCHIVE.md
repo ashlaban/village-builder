@@ -2,6 +2,22 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 9 November 2026 (VB-203)
+
+## VB-203: the budget's shares, window and save line (asked in the session, 9 November 2026)
+Asked while taking VB-203, at `9f130e6` with fresh fixtures. A whole game year from `medium-ref` (two runs, 233 and 237 ms a game day)
+by system: agents and walking 71, talk and contacts 74, daily life and births 42, jobs 36, all the rest 12. The bench's 30-day window,
+from the year's turn, read 215 ms and missed the meetings, the moving round and winter. The save at `medium-ref` took 2.3 s (encode 0.73,
+stringify 0.84, gzip 0.73) and load 0.44 s; by size alone, VB-204 and VB-199 should bring the save to about 0.9 s.
+1. How should the 200 ms be shared among systems? **P:** cuts plus a reserve: agents and walking 60 (VB-205), talk 55 (VB-127), daily
+   life 35 (VB-201, VB-127), jobs 30 (a new task), the rest 12, and 8 kept back for noise and growth. **A (Kim, 9 Nov):** as proposed (P).
+2. Should the bench's window be a whole game year (48 days)? **P:** yes; the mean and the longest step then hold the meetings, the round
+   and winter, and the one-call lines become that call inside the window. **A (Kim, 9 Nov):** as proposed (P).
+3. What of the save line? **P:** keep 0.5 s, counting the main thread only (encode and stringify); gzip may run in a worker. VB-204 and
+   VB-199 first, then a task for what is left. **A (Kim, 9 Nov):** as proposed (P).
+4. May the session edit `design.md`, Performance budget: drop `medium-y60` (Kim, 8 November), write year 12, and add these answers to
+   its Status? **P:** yes. **A (Kim, 9 Nov):** as proposed (P).
+
 # Archived 8 November 2026 (VB-202)
 
 ## VB-202: the late fixtures, their remake and their storage (asked in the session, 8 November 2026)
