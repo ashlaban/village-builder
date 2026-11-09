@@ -1,11 +1,13 @@
 // VB-194: diagnostic measurements only. Run fixtures sequentially in fresh processes; no clocks enter src/.
 // Each system's share of the 200 ms a game day at medium-ref, in tools/perf.js names (VB-203, Kim, 9 November); later slices'
-// plans add theirs. The shares sum to 192 ms: 8 ms is kept back for noise between runs and growth within today's systems.
+// plans add theirs. The shares sum to 192.1 ms: 7.9 ms is kept back for noise between runs and growth within today's systems (8 until
+// slice 1's 0.1 ms, VB-219).
 // VB-205 split agents and walking's 60 ms among its named parts and what is left of Sim.advance.
 const SYSTEM_BUDGETS = {
   'agents: idle strolls': 33, 'agents: walking and working': 23, 'agents and walking (the rest of Sim.advance)': 4, 'talk and contacts': 55, 'daily life and births': 35,
   'jobs refresh and matching': 30, 'paths and routes': 5.3, 'hunger and meals': 3, 'byre': 1.2, 'the moving round': 1.1,
   'meetings': 1, 'herds': 0.2, 'meadows': 0.1, 'trees': 0.1,
+  'kin help and goodwill': 0.1, // slice 1's line (VB-182), taken from the 8 ms kept back (VB-219; a question for Kim)
 };
 const RESERVE = 200 - Object.values(SYSTEM_BUDGETS).reduce((a, b) => a + b, 0);
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
@@ -164,7 +166,8 @@ function budget(run) {
   rows.push(`| Cost per living pawn-day / medium-y5 | reported; the line is small-y40 / small-y5 (tests/history.js) |`
     + ` ${early && !early.error ? '1.000' : 'unavailable'} | ${fmt(ratio)} |`);
   rows.push('| Page frames | Deferred (VB-166) | — | — |');
-  const systems = [...new Set(NAMES.flatMap((n) => (run.fixtures[n]?.systems || []).map((r) => r.system)))].sort();
+  // every system with a share gets its row, so a share added since the run shows as unavailable until the next bench (VB-219)
+  const systems = [...new Set([...NAMES.flatMap((n) => (run.fixtures[n]?.systems || []).map((r) => r.system)), ...Object.keys(SYSTEM_BUDGETS)])].sort();
   for (const system of systems) {
     const value = (f) => fmt(f?.systems?.find((r) => r.system === system)?.msPerDay);
     rows.push(`| ${system} (ms/day) | ${SYSTEM_BUDGETS[system] ?? ''} | ${value(early)} | ${value(late)} |`);
@@ -182,7 +185,7 @@ function budget(run) {
         + ` stamp \`${f.stamp?.commit ?? 'unknown'}\`.` : `${name}: unavailable.`;
     }).join('\n\n') + '\n\n'
     + `| Measure | Budget (at medium-ref) | ${column(NAMES[0])} | ${column(NAMES[1])} |\n|---|---|---|---|\n` + rows.join('\n')
-    + `\n\nSystem shares sum to ${(200 - RESERVE).toFixed(0)} ms; ${RESERVE.toFixed(0)} ms is kept back (VB-203). The closure table is in \`closure.md\`.\n\n`
+    + `\n\nSystem shares sum to ${+(200 - RESERVE).toFixed(1)} ms; ${+RESERVE.toFixed(1)} ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in \`closure.md\`.\n\n`
     + 'A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead.'
     + ' The round and the meetings run inside the window; their lines are that one call, inclusive.\n'
     + 'Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.\n'

@@ -33,8 +33,9 @@ assert(!table.includes('medium-y60') && !table.includes('400 until'));
 assert(table.includes("| Mean simulation (ms/day) | 200; today's systems; the finished game 400 |"));
 assert(table.includes('| Longest 6-minute step (ms) | 60; also on small-y40 (tests/history.js) |'));
 assert(table.includes('| Moving round, its call (ms) | 60; a 6-minute step |'));
-// The shares of VB-203 (Kim, 9 November): 192 ms among today's systems, 8 kept back.
-assert.strictEqual(B.RESERVE.toFixed(6), '8.000000');
+// The shares of VB-203 (Kim, 9 November): 192 ms among today's systems, 8 kept back; slice 1's 0.1 ms taken from it (VB-219).
+assert.strictEqual(B.RESERVE.toFixed(6), '7.900000');
+assert.strictEqual(B.SYSTEM_BUDGETS['kin help and goodwill'], 0.1);
 assert(table.includes('| talk and contacts (ms/day) | 55 |') || !table.includes('talk and contacts'));
 assert(table.includes('| Save: encode + stringify, main thread (ms) | 500 |') && table.includes('| Parse + load (ms) | 500 |'));
 assert(table.includes('| Measure | Budget (at medium-ref) | medium-y5 (year 5, 880 living) | medium-ref (year 14, 1005 living) |'));

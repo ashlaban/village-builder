@@ -24,12 +24,15 @@ medium-ref: fresh, saved after year 12, 1026 starting living, stamp `9f130e60a78
 | Heap after window (MB) |  | 394.765 | 274.408 |
 | Cost per living pawn-day / medium-y5 | reported; the line is small-y40 / small-y5 (tests/history.js) | 1.000 | 1.059 |
 | Page frames | Deferred (VB-166) | — | — |
-| agents and walking (the rest of Sim.advance) (ms/day) | 60 | 56.730 | 68.480 |
+| agents and walking (the rest of Sim.advance) (ms/day) | 4 | 56.730 | 68.480 |
+| agents: idle strolls (ms/day) | 33 | unavailable | unavailable |
+| agents: walking and working (ms/day) | 23 | unavailable | unavailable |
 | byre (ms/day) | 1.2 | 1.030 | 1.110 |
 | daily life and births (ms/day) | 35 | 29.510 | 39.210 |
 | herds (ms/day) | 0.2 | 0.180 | 0.150 |
 | hunger and meals (ms/day) | 3 | 2.130 | 2.960 |
 | jobs refresh and matching (ms/day) | 30 | 28.380 | 33.170 |
+| kin help and goodwill (ms/day) | 0.1 | unavailable | unavailable |
 | meadows (ms/day) | 0.1 | 0.030 | 0.030 |
 | meetings (ms/day) | 1 | 0.700 | 1.030 |
 | paths and routes (ms/day) | 5.3 | 3.420 | 5.050 |
@@ -37,7 +40,7 @@ medium-ref: fresh, saved after year 12, 1026 starting living, stamp `9f130e60a78
 | the moving round (ms/day) | 1.1 | 0.620 | 1.170 |
 | trees (ms/day) | 0.1 | 0.040 | 0.020 |
 
-System shares sum to 192 ms; 8 ms is kept back (VB-203). The closure table is in `closure.md`.
+System shares sum to 192.1 ms; 7.9 ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in `closure.md`.
 
 A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead. The round and the meetings run inside the window; their lines are that one call, inclusive.
 Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.
