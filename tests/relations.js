@@ -1,6 +1,6 @@
 // Relationships (sim/relations): compatibility, timed memories within their caps, opinion, friend and dislike bands told once,
 // memories that fade and are forgotten (once a season), and death ending relationships.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, DAY } = VB['sim/rules'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RELATIONS FAIL:', m); } };
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
@@ -126,8 +126,13 @@ check(fp.tieT === st.t && tieT0 <= st.t, `renormalised: tieT ${fp.tieT}, now ${s
 check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(R.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget)),
   'renormalising keeps every tie as it was, and drops those under TIES.forget');
 R.dailyTies(st);
-// kin keep the floor after the midnight step
-for (const q of VB['sim/records'].kinNear(st, f0)) if (st.pawns[q].alive) check(R.tieOf(st, f0, q) >= TS.kin - 1e-9, `kin ${q} at ${R.tieOf(st, f0, q)}`);
+// the kin floor, once a season: raised with a season's fading to spare, kin are still at the floor at the pawn's next turn
+const kin0 = VB['sim/records'].kinNear(st, f0).filter((q) => st.pawns[q].alive);
+check(kin0.length > 0, 'a pawn with living near kin');
+for (const q of kin0) { fp.ties.delete(q); R.floorKin(st, f0, q); }
+fp.tieT -= SEASON_DAYS * DAY - 1e-6; // a season on, less a moment
+for (const q of kin0) check(R.tieOf(st, f0, q) >= TS.kin - 1e-9, `kin ${q} at ${R.tieOf(st, f0, q)} a season after the floor`);
+fp.tieT += SEASON_DAYS * DAY - 1e-6;
 // waking hours at home: two housemates both inside for every talk hour grow by TIES.home over the day
 const hm = st.households.find((h) => !h.dissolved && h.members.length >= 2 && h.members.every((m) => st.pawns[m].alive));
 const [m0, m1] = hm.members, home0 = R.tieOf(st, m0, m1);

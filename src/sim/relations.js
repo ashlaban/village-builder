@@ -2,7 +2,7 @@
 // people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
@@ -38,12 +38,10 @@ VB['sim/relations'] = (() => {
     p.ties.set(b, w);
   }
   function addTie(st, a, b, v) { const p = st.pawns[a]; put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p)); } // a's tie to b grows by v
-  // a's tie to b is at least v now (seeding, births, a wedding)
-  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); }
+  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); } // at least v
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties.
   function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }
-  // Two pawns finished one job together (sim/agents): each pair of `ids` grows by TIES.work.
-  function workedTogether(st, ids) {
+  function workedTogether(st, ids) { // the pawns `ids` finished one job together (sim/agents): each pair grows by TIES.work
     VB.count.tiePairs += ids.length * (ids.length - 1) / 2;
     for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
       const i = ids[x], j = ids[y]; if (st.pawns[i].alive && st.pawns[j].alive) { addTie(st, i, j, TIES.work); addTie(st, j, i, TIES.work); }
@@ -53,11 +51,10 @@ VB['sim/relations'] = (() => {
   function renormalise(st, p) {
     const f = scaleOf(st, p), kin = kinNear(st, p.id);
     VB.count.walkTies += p.ties.size;
-    for (const [j, w] of p.ties) { const v = w * f; if (v < TIES.forget && !kin.includes(j)) p.ties.delete(j); else p.ties.set(j, v); }
-    p.tieT = st.t;
+    for (const [j, w] of p.ties) { const v = w * f; if (v < TIES.forget && !kin.includes(j)) p.ties.delete(j); else p.ties.set(j, v); } p.tieT = st.t;
   }
   // Once a day, at midnight: two housemates' tie grows by TIES.home per 24 waking hours both spent in their house (the lesser of their
-  // hours); the pawns due put their ties back on today's scale; near kin are raised to the floor.
+  // hours); the pawns due put their ties back on today's scale, or raise their near kin to the floor (once a season, spread by id).
   function dailyTies(st) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId], m = hh.members; if (hh.dissolved || m.length < 2) continue;
@@ -72,15 +69,17 @@ VB['sim/relations'] = (() => {
     for (const id of st.living) {
       const p = st.pawns[id]; p.homeHours = 0;
       if ((day + id * SPREAD) % every === 0) renormalise(st, p);
-      const floor = TIES.kin / scaleOf(st, p);
-      for (const q of kinNear(st, id)) if (st.pawns[q].alive && !((p.ties.get(q) || 0) >= floor)) put(st, p, q, floor);
+      if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) floorKin(st, id, q);
     }
   }
+  // a's tie to its near kin b is raised to the floor and a season's fading: so it stays at the floor or above until a's next turn
+  function floorKin(st, a, b) { raiseTie(st, a, b, TIES.kin * Math.pow(2, SEASON_DAYS / YEAR_DAYS)); }
   // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept.
   function migrateTies(st) {
     for (const p of st.pawns) if (p.ties && p.tieT === undefined) {
       p.tieT = st.t; p.homeHours = 0;
       if (p.alive && p.ties.size > TIES.cap) { const old = [...p.ties]; p.ties = new Map(); for (const [j, w] of old) put(st, p, j, w); }
+      if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) floorKin(st, p.id, q);
     }
   }
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
@@ -392,7 +391,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
-    initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, migrateTies,
+    initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, floorKin, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
