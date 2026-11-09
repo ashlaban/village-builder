@@ -25,11 +25,11 @@ game's reference, `design.md` v0.4 as a skeleton the slices fill in, the budget,
   double (352 to 729) and a game day costs 3.3 times as much (68 to 227 ms). In year 41 the moving round takes 899 ms in one call,
   against about 20 ms in year 2. The year-40 save is 29 MB of JSON and takes 2.7 s to write. Ten rules for every system follow,
   in section 5.3.
-- **Proposed budget at a late reference state:**
-  - 160 ms per game day (30× at 10% of a core);
-  - no step over 60 ms (medium-y60 temporarily 400 ms until VB-201);
-  - the cost per living pawn flat in history (year 60 at most 1.25 times year 5);
-  - a save under 0.5 s.
+- **Budget at the late reference, `medium-ref`** (Decided, Kim; section 5.2):
+  - 200 ms a game day for today's systems, the mean over a whole game year; each system's share in `tools/bench.js`;
+  - no step over 60 ms on `medium-ref` and `small-y40`;
+  - the cost per living pawn-day flat in history (`small-y40` at most 1.25 times `small-y5`);
+  - save and load under 0.5 s each of the page's main thread.
 - **Measure work, not time.** Deterministic counters of work done, asserted in `npm test` at tiny scale, need no baseline machine and
   never flake. Scaling exponents come from two sizes, and history checks from an early and a late save. Late-game fixtures are loaded
   from saves: one year from the year-40 save took 11 s, against 4 minutes to get there. Wall-clock timing runs nightly, is reported
@@ -418,7 +418,13 @@ its line; its wrap-up measures it.
 **8 November update (Kim, VB-202):** `medium-y60` is dropped from the fixtures, the bench and the budget, replacing its stress role;
 `medium-ref` is the only late medium fixture. The fixtures move to release assets and a nightly GitHub workflow remakes them (VB-223).
 
-The table above keeps the lines of 3 and 6 November for the record. VB-203 measures the new ones on VB-202's fixtures and writes the closure table by system.
+**9 November update (Kim, VB-203):** the mean is taken over a whole game year from the save (48 days), so winter, the meetings and
+the moving round count; the 30-day window read 7% low. Each system has a share of the 200 ms, 192 ms in all and 8 kept back, in the
+budget column of `tools/bench.js`. The save's line counts the time the main thread is blocked (encode and stringify); gzip may run
+in a worker and is reported beside it. Measured at `9f130e6`, `medium-ref` costs about 232 ms a game day, and the save 1.51 s of main
+thread; the closure table, `docs/bench/closure.md`, names the task that closes each gap.
+
+The table above keeps the lines of 3 and 6 November for the record.
 
 ### 5.3 Ten rules for systems
 

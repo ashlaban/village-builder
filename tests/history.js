@@ -35,6 +35,10 @@ async function main() {
   if (results.length !== 2) console.log('history: skipped comparison; both small-y5 and small-y40 are required');
   else {
     check('history', growth(...results), { update: process.argv.includes('--update') });
+    // Kim's line (7 November) on the wall clock: reported only, since both windows run at once on a shared machine (VB-203).
+    const [early, late] = results.map((r) => r.ms / r.pawnDays);
+    console.log(`history: ${early.toFixed(4)} and ${late.toFixed(4)} ms a living pawn-day, round included; wall-clock ratio`
+      + ` ${(late / early).toFixed(3)} against the line's 1.25 (reported only)`);
     console.log(`history: ${NAMES.length} counters pass (including known excesses); timings reported only;`
       + ` ${((performance.now() - started) / 1000).toFixed(1)} s elapsed`);
   }
