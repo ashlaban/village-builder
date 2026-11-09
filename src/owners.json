@@ -31,6 +31,8 @@
     "agent.x": "sim/agents",
     "agent.y": "sim/agents",
     "pawn.ties": "sim/relations",
+    "pawn.tieT": "sim/relations",
+    "pawn.homeHours": "sim/relations",
     "pawn.rel": "sim/relations",
     "pawn.goodwill": "sim/relations",
     "household.askedIn": "sim/help",

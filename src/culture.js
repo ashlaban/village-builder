@@ -173,7 +173,8 @@ const Culture = (() => {
     if (!p.alive || p.age < 12) return;
     const s = hooks.settlementOf(p), local = s ? means.get(s.id) : null, M = local ? local.mean : null;
     const kind = s ? s.kind : 'village', kindRate = local ? local.rate : P.kind[kind];
-    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
+    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole. A pawn's ties are stored on one decay
+    // scale (sim/relations, VB-127), which cancels in the division by wsum.
     tgt.fill(0); let wsum = 0; press.fill(0);
     for (const [j, w0] of p.ties) {
       const q = byId(j); if (!q || !q.alive || q.age < 12) continue;

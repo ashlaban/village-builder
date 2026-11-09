@@ -470,14 +470,14 @@ VB.COUNTERS = {
   routeRefresh: 'Cached routes tested for invalidation',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
-  contactPairs: 'Indoor and outdoor pairs compared in noteContacts',
   walkStep: 'Agent records walked by the six-minute step (the awake ones, sim/agents)',
   walkAwake: 'Agent records walked to rebuild the awake list, once a game hour (VB-205)',
   idleStroll: 'Idle pawns sent strolling by idleAbout when the planner found them no work (VB-205)',
   companyWeighed: 'Idle pawns drawn and weighed as company in companyFor (VB-205)',
   walkPoint: 'Path points walked past by moveAgent (VB-205)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
-  walkTies: 'Ties decayed by dailyLife',
+  walkTies: 'Ties walked to put a pawn\'s ties back on today\'s scale, or to make room under the cap (sim/relations, VB-127)',
+  tiePairs: 'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
@@ -1816,7 +1816,8 @@ const Culture = (() => {
     if (!p.alive || p.age < 12) return;
     const s = hooks.settlementOf(p), local = s ? means.get(s.id) : null, M = local ? local.mean : null;
     const kind = s ? s.kind : 'village', kindRate = local ? local.rate : P.kind[kind];
-    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole
+    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole. A pawn's ties are stored on one decay
+    // scale (sim/relations, VB-127), which cancels in the division by wsum.
     tgt.fill(0); let wsum = 0; press.fill(0);
     for (const [j, w0] of p.ties) {
       const q = byId(j); if (!q || !q.alive || q.age < 12) continue;
@@ -2068,7 +2069,7 @@ VB['sim/rules'] = (() => {
   // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
   // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
   // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates). Two unmarried pawns
-  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds `tie` to the tie of both and shows a
+  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a
   // bubble for `bubbleHours`. friend and dislike: an opinion entering them is a life event; leaving needs `back` past the line.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   const SOCIAL = {
@@ -2082,7 +2083,12 @@ VB['sim/rules'] = (() => {
       claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
-      tie: 0.1, bubbleHours: 0.5 },
+      bubbleHours: 0.5 },
+    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk, by `home` per 24 waking hours (the talk
+    // hours) two housemates spend in their house, counted once a day, and by `work` for each job two pawns finish together; it halves every
+    // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
+    // when the pawn's ties are put back on today's scale, every `renorm` years.
+    ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
     friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.6, enemy: -0.5,
     seek: 0.5, seekSample: 4,
   };
@@ -3292,7 +3298,7 @@ VB['sim/records'] = (() => {
 </script>
 <script>
 // @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
-// people a pawn knows; owns familiarity, its daily update and relationship records
+// people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
@@ -3307,46 +3313,75 @@ VB['sim/relations'] = (() => {
   const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
   Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
 
-  // A pair of pawns as one number, the smaller id first, and back.
-  const PAIR = 2 ** 21;
-  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
-  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
-  // @state pawn.ties: directed familiarity weights, initialized and changed only here.
-  function initRelations(p) { p.ties = new Map(); p.rel = new Map(); }
-  function setTie(st, a, b, value) { st.pawns[a].ties.set(b, value); }
-  function strengthenTie(st, a, b, value) {
-    const p = st.pawns[a]; p.ties.set(b, (p.ties.get(b) || 0) + value);
+  // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
+  // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
+  // year since pawn.tieT (tieOf; Culture.dailyStep divides by their sum, so the scale cancels there), put back on today's scale every
+  // TIES.renorm years, on a day spread by the pawn's id.
+  // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
+  //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
+  //   in its house since midnight. All initialized and changed only here.
+  const TIES = SOCIAL.ties, SPREAD = 73; // 192 / φ², prime to 192 days: ids next to each other renormalise far apart, any run of days evenly
+  function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
+  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
+  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
+  // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
+  // weaker still and not to kin either; then it is not kept.
+  function put(st, p, b, w) {
+    if (p.ties.size >= TIES.cap && !p.ties.has(b)) {
+      const kin = kinNear(st, p.id), isKin = kin.includes(b);
+      let worst = -1, least = Infinity;
+      VB.count.walkTies += p.ties.size;
+      for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
+      if (worst < 0 ? !isKin : !isKin && w <= least) return; else if (worst >= 0) p.ties.delete(worst);
+    }
+    p.ties.set(b, w);
   }
+  function addTie(st, a, b, v) { const p = st.pawns[a]; put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p)); } // a's tie to b grows by v
+  // a's tie to b is at least v now (seeding, births, a wedding)
+  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); }
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties.
-  function dropTies(st, id) {
-    const p = st.pawns[id];
-    for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+  function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }
+  // Two pawns finished one job together (sim/agents): each pair of `ids` grows by TIES.work.
+  function workedTogether(st, ids) {
+    VB.count.tiePairs += ids.length * (ids.length - 1) / 2;
+    for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
+      const i = ids[x], j = ids[y]; if (st.pawns[i].alive && st.pawns[j].alive) { addTie(st, i, j, TIES.work); addTie(st, j, i, TIES.work); }
+    }
   }
+  // p's ties put back on today's scale; those under TIES.forget go, unless to kin (the floor raises them again)
+  function renormalise(st, p) {
+    const f = scaleOf(st, p), kin = kinNear(st, p.id);
+    VB.count.walkTies += p.ties.size;
+    for (const [j, w] of p.ties) { const v = w * f; if (v < TIES.forget && !kin.includes(j)) p.ties.delete(j); else p.ties.set(j, v); }
+    p.tieT = st.t;
+  }
+  // Once a day, at midnight: two housemates' tie grows by TIES.home per 24 waking hours both spent in their house (the lesser of their
+  // hours); the pawns due put their ties back on today's scale; near kin are raised to the floor.
   function dailyTies(st) {
-    let ties = 0;
-    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
-    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
-    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
-    VB.count.walkDaily += st.living.length;
-    for (const liveId of st.living) {
-      const p = st.pawns[liveId];
-      if (!p.alive) continue;
-      for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId], m = hh.members; if (hh.dissolved || m.length < 2) continue;
+      VB.count.tiePairs += m.length * (m.length - 1) / 2;
+      for (let x = 0; x < m.length; x++) for (let y = x + 1; y < m.length; y++) {
+        const h = Math.min(st.pawns[m[x]].homeHours, st.pawns[m[y]].homeHours) * TIES.home / DAY;
+        if (h > 0) { addTie(st, m[x], m[y], h); addTie(st, m[y], m[x], h); }
+      }
     }
-    for (const [k, hrs] of st.contacts) {
-      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
-      const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
-    }
-    VB.count.walkTies += ties;
-    st.contacts.clear();
+    const day = Math.floor(st.t / DAY), every = TIES.renorm * YEAR_DAYS;
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) {
-      const p = st.pawns[id];
-      for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
+      const p = st.pawns[id]; p.homeHours = 0;
+      if ((day + id * SPREAD) % every === 0) renormalise(st, p);
+      const floor = TIES.kin / scaleOf(st, p);
+      for (const q of kinNear(st, id)) if (st.pawns[q].alive && !((p.ties.get(q) || 0) >= floor)) put(st, p, q, floor);
     }
-    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
   }
-
+  // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept.
+  function migrateTies(st) {
+    for (const p of st.pawns) if (p.ties && p.tieT === undefined) {
+      p.tieT = st.t; p.homeHours = 0;
+      if (p.alive && p.ties.size > TIES.cap) { const old = [...p.ties]; p.ties = new Map(); for (const [j, w] of old) put(st, p, j, w); }
+    }
+  }
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
   const mix = (h) => {
     h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
@@ -3446,7 +3481,7 @@ VB['sim/relations'] = (() => {
   let busy = new Int32Array(1024), seen = new Int32Array(1024), round = 0, look = 0;
   const found = [], lists = [];
   // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
-  // it (`near`, from noteContacts), within near.size in x and y. Pawns talking already this hour are left out.
+  // it (`near`, from outdoors in sim/society), within near.size in x and y. Pawns talking already this hour are left out.
   function partnersOf(st, a, near) {
     found.length = 0;
     if (a.inside) {
@@ -3468,14 +3503,17 @@ VB['sim/relations'] = (() => {
       if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
     }
   }
-  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes
-  const talkWeight = (st, a, b, ya) => (1 + Math.min(st.pawns[a].ties.get(b) || 0, 1)) * (1 + opinionOf(st, a, b))
+  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes. sa is a's tie scale (scaleOf).
+  const talkWeight = (st, a, b, ya, sa) => (1 + Math.min((st.pawns[a].ties.get(b) || 0) * sa, 1)) * (1 + opinionOf(st, a, b))
     * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
-  // hour h: the pawns, from a random one on, each start a talk at chance T.chance, unless already talking this hour
+  // Waking hour h: each pawn in its house counts the hour (pawn.homeHours, for dailyTies); then the pawns, from a random one on, each start a
+  // talk at chance T.chance, unless already talking this hour.
   const cand = [], wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
-    const ag = st.agents, ids = st.living, n = ids.length, start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const ag = st.agents, ids = st.living, n = ids.length;
+    for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
+    const start = Math.floor(rnd(st.rng.talk) * ag.length);
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
     // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
     let lo = 0, hi = n;
@@ -3485,13 +3523,13 @@ VB['sim/relations'] = (() => {
     for (let k = 0; k < n; k++) {
       const a = ag[ids[(lo + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
-      const ya = young(st, st.pawns[a.id]);
+      const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
       partnersOf(st, a, near);
       for (const b of found) {
         if (!able(st, b)) continue;
         weighed++;
-        const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+        const w = talkWeight(st, a.id, b.id, ya, sa); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
       let x = rnd(st.rng.talk) * tot, i = 0;
@@ -3509,8 +3547,8 @@ VB['sim/relations'] = (() => {
     const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = rnd(st.rng.talk) * (1 + wg + wc);
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     remember(st, i, j, kind); remember(st, j, i, kind);
-    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
-    pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
+    const at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
+    addTie(st, i, j, TIES.talk); addTie(st, j, i, TIES.talk);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
     // an idle pawn outdoors stops where it is until the talk is over
@@ -3551,7 +3589,7 @@ VB['sim/relations'] = (() => {
     for (let k = 0; k < SOCIAL.seekSample; k++) {
       const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;
-      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
+      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(tieOf(st, a.id, b.id), 1));
       if (w > 0) { cand.push(b); wts.push(w); tot += w; }
     }
     if (!cand.length) return null;
@@ -3640,7 +3678,7 @@ VB['sim/relations'] = (() => {
     const p = st.pawns[id], ids = new Set([...p.ties.keys(), ...p.rel.keys()]), out = [];
     for (const j of ids) {
       if (!st.pawns[j].alive) continue;
-      out.push({ id: j, tie: p.ties.get(j) || 0, opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
+      out.push({ id: j, tie: tieOf(st, id, j), opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
     }
     return out.sort((x, y) => y.tie - x.tie || x.id - y.id);
   }
@@ -3653,7 +3691,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
-    initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
+    initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
@@ -3666,6 +3704,7 @@ VB['sim/claims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
   const { kinship, membersOf, voiceOf } = VB['sim/records'];
+  const { tieOf } = VB['sim/relations'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -3739,7 +3778,7 @@ VB['sim/claims'] = (() => {
     return claims.map((c) => {
       if (c.by.type === 'village') return voiced(c.by.id).reduce((s, [, v]) => s + v, 0);
       const sp = speaker(st, c.by); if (sp === null) return 0;
-      return here.reduce((s, [p, v]) => s + v * (p.id === sp ? 1 : Math.min(1, p.ties.get(sp) || 0)), 0);
+      return here.reduce((s, [p, v]) => s + v * (p.id === sp ? 1 : Math.min(1, tieOf(st, p.id, sp))), 0);
     });
   }
   // The score of each claim under a rule, higher wins; ties go to the first claim. ctx: {lastHolder (pawn id or null), village (id of the
@@ -4631,7 +4670,7 @@ VB['sim/hunger'] = (() => {
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed } = VB['sim/hunger'];
@@ -4680,7 +4719,7 @@ VB['sim/exchange'] = (() => {
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
       if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
         n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
+      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) addTie(st, a.id, b.id, HELP.tieGain);
       if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
@@ -6079,6 +6118,7 @@ VB['sim/agents'] = (() => {
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { hasTeam } = VB['sim/herds'];
+  const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -6153,9 +6193,11 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher);
   }
-  // The work is done: a plot's step is finished (sim/expansion), any other job does what its kind says (sim/kinds).
+  // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
+  // any other job does what its kind says (sim/kinds).
   function complete(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
@@ -7303,7 +7345,7 @@ VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
-  const { initRelations, setTie, pairKey, pairOf } = VB['sim/relations'];
+  const { initRelations, raiseTie } = VB['sim/relations'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -7334,13 +7376,11 @@ VB['sim/society'] = (() => {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
       Culture.initPerson(p, Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean));
-      initRelations(p);
+      initRelations(st, p);
     }
-    // starting ties: household, kin, and a few neighbours
-    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) setTie(st, i, j, 1);
-    for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) {
-      setTie(st, p.id, q, Math.max(p.ties.get(q) || 0, 0.5)); setTie(st, q, p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
-    }
+    // starting ties, on the pawns' tie scale (sim/relations): household members 1, near kin at least 0.5
+    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) raiseTie(st, i, j, 1);
+    for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) { raiseTie(st, p.id, q, 0.5); raiseTie(st, q, p.id, 0.5); }
     updateTies(st); refreshPrestige(st); refreshInterests(st);
   }
   // The Culture settlement of village v, with the same id: its culture, a copy of the practice it keeps and its tie to the centre.
@@ -7430,39 +7470,19 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
-  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
-  // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
+  // The pawns outdoors in a talk hour, in cells of NEAR map units, for talk (sim/relations): {out (agents), cells (cell key to indexes into
+  // out), cellOf (cell x, y to key), size}; derived, not state. (Until VB-127 it also counted every pair near each other.)
   const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
-  function noteContacts(st) {
-    let pairs = 0;
-    const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
-    const ins = [];
-    for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved) continue;
-      ins.length = 0; for (const m of hh.members) if (st.agents[m].inside) ins.push(m);
-      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) { pairs++; add(ins[x], ins[y]); }
-    }
-    // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
-    // so pairs are counted in the same order as by comparing every pair.
+  function outdoors(st) {
     const out = []; for (const id of st.living) { const a = st.agents[id]; if (!a.inside) out.push(a); }
-    const cells = new Map(), cand = [];
+    const cells = new Map();
     out.forEach((a, n) => {
       const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
       if (l) l.push(n); else cells.set(k, [n]);
     });
-    for (let x = 0; x < out.length; x++) {
-      const a = out[x], cx = Math.floor(a.x / NEAR), cy = Math.floor(a.y / NEAR); cand.length = 0;
-      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
-        const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
-      }
-      if (cand.length > 1) cand.sort((p, q) => p - q);
-      for (const y of cand) { pairs++; const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
-    }
-    VB.count.contactPairs += pairs;
     return { out, cells, cellOf, size: NEAR };
   }
-  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, outdoors };
 })();
 </script>
 <script>
@@ -7745,7 +7765,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, setTie, dailyTies, endGoodwill } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -7845,7 +7865,7 @@ VB['sim/lifecycle'] = (() => {
     const fm = st.farmsteads[st.households[home].farmstead];
     log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
       kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
-    setTie(st, mId, fId, 2); setTie(st, fId, mId, 2);
+    raiseTie(st, mId, fId, 2); raiseTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
   function movingRound(st) {
@@ -8020,7 +8040,7 @@ VB['sim/births'] = (() => {
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
   const Culture = VB['culture'];
-  const { initRelations, setTie } = VB['sim/relations'];
+  const { initRelations, raiseTie } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
@@ -8045,8 +8065,8 @@ VB['sim/births'] = (() => {
       p = st.pawns[id];
     p.born = st.t; p.alive = true; p.age = 0; joinHousehold(st, hh, id);
     Culture.initPerson(p, Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2));
-    initRelations(p);
-    for (const j of hh.members) if (j !== id && st.pawns[j].alive) { setTie(st, id, j, 1); setTie(st, j, id, 1); }
+    initRelations(st, p);
+    for (const j of hh.members) if (j !== id && st.pawns[j].alive) { raiseTie(st, id, j, 1); raiseTie(st, j, id, 1); }
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
@@ -8300,7 +8320,7 @@ VB['sim/scenarios'] = (() => {
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
-    //   ties; rel (sim/relations)
+    //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
@@ -8351,7 +8371,6 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
-    // @state st.contacts: Map of pawn pair (pairKey in sim/society: i * 2^21 + j, i < j) to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
@@ -8367,7 +8386,7 @@ VB['sim/scenarios'] = (() => {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
+      talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
@@ -8403,7 +8422,7 @@ VB['sim/scenarios'] = (() => {
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
@@ -8415,8 +8434,8 @@ VB['sim/clock'] = (() => {
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
   const { issue } = VB['sim/commands'];
-  const { noteContacts } = VB['sim/society'];
   const { talkHour } = VB['sim/relations'];
+  const { outdoors } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
@@ -8427,7 +8446,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { landMeeting } = VB['sim/territory'];
   function onHour(st, h, c) {
-    if (st.cenv) talkHour(st, h, noteContacts(st));
+    if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
     if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
@@ -8509,6 +8528,7 @@ VB['sim/saves'] = (() => {
   const { trimRoutes } = VB['sim/routes'];
   const { rebuildLiving } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
+  const { migrateTies } = VB['sim/relations'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -8638,7 +8658,11 @@ VB['sim/saves'] = (() => {
       else if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
       else w[k] = a;
     }
-    const st = decode(data.state);
+    // VB-127: older saves kept the hours spent near each other (st.contacts); it is left out here rather than deleted after, so st keeps
+    // fast properties (VB-205).
+    let enc = data.state;
+    if (enc && 'contacts' in enc) { enc = { ...enc }; delete enc.contacts; }
+    const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
     trimRoutes(st);
@@ -8648,6 +8672,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
+    migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
   return { encode, decode, save, load, FORMAT };

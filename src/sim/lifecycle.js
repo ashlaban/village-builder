@@ -21,7 +21,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, setTie, dailyTies, endGoodwill } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -121,7 +121,7 @@ VB['sim/lifecycle'] = (() => {
     const fm = st.farmsteads[st.households[home].farmstead];
     log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
       kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
-    setTie(st, mId, fId, 2); setTie(st, fId, mId, 2);
+    raiseTie(st, mId, fId, 2); raiseTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
   function movingRound(st) {

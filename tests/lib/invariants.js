@@ -128,6 +128,7 @@ function checkState(st) {
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
     if (p.rel) checkRel(st, p, bad);
+    if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
     if (p.kinPush !== null && !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
     if (p.landWait !== undefined && !(Number.isInteger(p.landWait) && p.landWait >= 0)) bad.push(`pawns[${p.id}]: landWait is ${p.landWait}`);
@@ -301,6 +302,22 @@ function checkGoodwill(st, p, bad) {
     if (j === p.id || !q || !q.alive) { bad.push(`${where}: not a living other pawn`); continue; }
     if (!(Number.isFinite(e.v) && e.v !== 0 && e.t <= st.t)) bad.push(`${where}: ${JSON.stringify(e)} at ${st.t}`);
     if (!m || m.v !== -e.v || m.t !== e.t) bad.push(`${where}: no exact mirror on pawn ${j}`);
+  }
+}
+// Familiarity (sim/relations, VB-127): a living pawn's ties are to living other pawns, finite and above 0, at most SOCIAL.ties.cap of them
+// (or its near kin, if more); its scale's start is no later than now, and its waking hours at home today are a whole number within the
+// talk hours. (The kin floor holds from midnight to midnight and is checked in tests/relations.js.)
+function checkTies(st, p, bad) {
+  const { SOCIAL } = VB['sim/rules'], TIES = SOCIAL.ties, T = SOCIAL.talk;
+  if (!(Number.isFinite(p.tieT) && p.tieT <= st.t)) bad.push(`pawns[${p.id}]: tieT ${p.tieT} at ${st.t}`);
+  if (!(Number.isInteger(p.homeHours) && p.homeHours >= 0 && p.homeHours <= T.to - T.from)) bad.push(`pawns[${p.id}]: homeHours ${p.homeHours}`);
+  if (!p.alive) return;
+  const kin = VB['sim/records'].kinNear(st, p.id).filter((q) => st.pawns[q].alive);
+  if (p.ties.size > Math.max(TIES.cap, kin.length)) bad.push(`pawns[${p.id}]: ${p.ties.size} ties, over the cap of ${TIES.cap}`);
+  for (const [j, w] of p.ties) {
+    const q = st.pawns[j];
+    if (j === p.id || !q || !q.alive) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn`);
+    if (!(Number.isFinite(w) && w > 0)) bad.push(`pawns[${p.id}].ties<${j}>: ${w}`);
   }
 }
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.

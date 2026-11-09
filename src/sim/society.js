@@ -3,7 +3,7 @@ VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
-  const { initRelations, setTie, pairKey, pairOf } = VB['sim/relations'];
+  const { initRelations, raiseTie } = VB['sim/relations'];
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -34,13 +34,11 @@ VB['sim/society'] = (() => {
       p.alive = p.died === null; p.age = age(st, p);
       const s = settlementIdOf(st, p), lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
       Culture.initPerson(p, Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean));
-      initRelations(p);
+      initRelations(st, p);
     }
-    // starting ties: household, kin, and a few neighbours
-    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) setTie(st, i, j, 1);
-    for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) {
-      setTie(st, p.id, q, Math.max(p.ties.get(q) || 0, 0.5)); setTie(st, q, p.id, Math.max(st.pawns[q].ties.get(p.id) || 0, 0.5));
-    }
+    // starting ties, on the pawns' tie scale (sim/relations): household members 1, near kin at least 0.5
+    for (const hh of st.households) for (const i of hh.members) for (const j of hh.members) if (i !== j) raiseTie(st, i, j, 1);
+    for (const p of st.pawns) if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) { raiseTie(st, p.id, q, 0.5); raiseTie(st, q, p.id, 0.5); }
     updateTies(st); refreshPrestige(st); refreshInterests(st);
   }
   // The Culture settlement of village v, with the same id: its culture, a copy of the practice it keeps and its tie to the centre.
@@ -130,37 +128,17 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
-  // An hour together: housemates inside their house, and pawns outdoors within NEAR map units in x and y. Returns the outdoor pawns and
-  // their cells, {out, cells (cell key to indexes into out), cellOf (cell x, y to key), size}, for talk (sim/relations).
+  // The pawns outdoors in a talk hour, in cells of NEAR map units, for talk (sim/relations): {out (agents), cells (cell key to indexes into
+  // out), cellOf (cell x, y to key), size}; derived, not state. (Until VB-127 it also counted every pair near each other.)
   const NEAR = 30, cellOf = (cx, cy) => cx * 65536 + cy;
-  function noteContacts(st) {
-    let pairs = 0;
-    const add = (i, j) => { const k = pairKey(i, j); st.contacts.set(k, (st.contacts.get(k) || 0) + 1); };
-    const ins = [];
-    for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved) continue;
-      ins.length = 0; for (const m of hh.members) if (st.agents[m].inside) ins.push(m);
-      for (let x = 0; x < ins.length; x++) for (let y = x + 1; y < ins.length; y++) { pairs++; add(ins[x], ins[y]); }
-    }
-    // Outdoors, from cells of NEAR units: each pawn meets the later pawns of its own and the 8 cells around, in agent order,
-    // so pairs are counted in the same order as by comparing every pair.
+  function outdoors(st) {
     const out = []; for (const id of st.living) { const a = st.agents[id]; if (!a.inside) out.push(a); }
-    const cells = new Map(), cand = [];
+    const cells = new Map();
     out.forEach((a, n) => {
       const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), l = cells.get(k);
       if (l) l.push(n); else cells.set(k, [n]);
     });
-    for (let x = 0; x < out.length; x++) {
-      const a = out[x], cx = Math.floor(a.x / NEAR), cy = Math.floor(a.y / NEAR); cand.length = 0;
-      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
-        const l = cells.get(cellOf(cx + dx, cy + dy)); if (l) for (const y of l) if (y > x) cand.push(y);
-      }
-      if (cand.length > 1) cand.sort((p, q) => p - q);
-      for (const y of cand) { pairs++; const b = out[y]; if (Math.abs(a.x - b.x) < NEAR && Math.abs(a.y - b.y) < NEAR) add(a.id, b.id); }
-    }
-    VB.count.contactPairs += pairs;
     return { out, cells, cellOf, size: NEAR };
   }
-  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, pairKey, pairOf, noteContacts };
+  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, outdoors };
 })();

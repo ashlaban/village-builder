@@ -97,7 +97,7 @@ VB['sim/rules'] = (() => {
   // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
   // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
   // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates). Two unmarried pawns
-  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds `tie` to the tie of both and shows a
+  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a
   // bubble for `bubbleHours`. friend and dislike: an opinion entering them is a life event; leaving needs `back` past the line.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   const SOCIAL = {
@@ -111,7 +111,12 @@ VB['sim/rules'] = (() => {
       claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
-      tie: 0.1, bubbleHours: 0.5 },
+      bubbleHours: 0.5 },
+    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk, by `home` per 24 waking hours (the talk
+    // hours) two housemates spend in their house, counted once a day, and by `work` for each job two pawns finish together; it halves every
+    // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
+    // when the pawn's ties are put back on today's scale, every `renorm` years.
+    ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
     friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.6, enemy: -0.5,
     seek: 0.5, seekSample: 4,
   };

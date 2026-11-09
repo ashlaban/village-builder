@@ -64,24 +64,24 @@ R.remember(st, a.id, b.id, 'goodTalk'); R.remember(st, b.id, a.id, 'goodTalk');
 Sim.killPawn(st, b.id, 'killed');
 check(!a.rel.has(b.id) && b.rel.size === 0, 'death ends relationships');
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
-// talk (VB-061): two pawns standing together outdoors in waking hours talk, both remember it, and their tie grows by SOCIAL.talk.tie
-const S = VB['sim/society'], T = SOCIAL.talk, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
+// talk (VB-061): two pawns standing together outdoors in waking hours talk, both remember it, and their tie grows by SOCIAL.ties.talk
+const S = VB['sim/society'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
 const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { g.inside = false; g.path = null; g.job = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
-const tie0 = pair[0].ties.get(pair[1].id) || 0, talks0 = st.talks;
+const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
 ta.talk = null;
-while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.noteContacts(st)); hours++; }
+while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st)); hours++; }
 check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
 check(pair[0].rel.has(pair[1].id) && pair[1].rel.has(pair[0].id), 'both remember the talk');
-const grew = ((pair[0].ties.get(pair[1].id) || 0) - tie0) / T.tie; // housemates indoors talk too, so count the pair's talks by its tie
+const grew = (R.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
 check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
-const before = st.talks; stand(); R.talkHour(st, 23, S.noteContacts(st)); stand(); R.talkHour(st, 3, S.noteContacts(st));
+const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st)); stand(); R.talkHour(st, 3, S.outdoors(st));
 check(st.talks === before, 'no talk at night');
 // in a busy hour each pawn is in one talk at most
 for (const ag of st.agents) { ag.talk = null; if (st.pawns[ag.id].alive) { ag.inside = false; ag.path = null; ag.carry = null; ag.x = 6000 + (ag.id % 5) * 6; ag.y = 6000; } }
-const t1 = st.talks; R.talkHour(st, 10, S.noteContacts(st));
+const t1 = st.talks; R.talkHour(st, 10, S.outdoors(st));
 const talking = st.agents.filter((ag) => ag.talk).length;
 check(st.talks > t1 && talking === 2 * (st.talks - t1), `${st.talks - t1} talks, ${talking} pawns talking`);
 check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).slice(0, 3).join('; '));
@@ -110,4 +110,53 @@ check(Math.abs(end[0] - (hx + 40)) <= 8 && Math.abs(end[1] - hy) <= 4, `walks to
 st.agents[fr.id].inside = true; idleAt(foe, 40); st.t += 0.01;
 check(R.companyFor(st, ax) === null, 'never joins someone it dislikes');
 SOCIAL.seek = seek0;
+
+// familiarity (VB-127): stored on the pawn's own decay scale, read as halving every year; put back on today's scale without change
+const TS = SOCIAL.ties, YEAR = YEAR_DAYS * DAY, [f0, f1] = adults.filter((p) => p.alive && p.id !== x.id).map((p) => p.id);
+const fp = st.pawns[f0], tieT0 = fp.tieT;
+fp.ties.delete(f1); R.raiseTie(st, f0, f1, 3);
+check(Math.abs(R.tieOf(st, f0, f1) - 3) < 1e-9, `a raised tie reads 3: ${R.tieOf(st, f0, f1)}`);
+fp.tieT -= YEAR; // as if the scale had started a year earlier: the same stored weight is a year older
+check(Math.abs(R.tieOf(st, f0, f1) - 1.5) < 1e-9, `a year on, it reads half: ${R.tieOf(st, f0, f1)}`);
+R.addTie(st, f0, f1, TS.talk);
+check(Math.abs(R.tieOf(st, f0, f1) - 1.5 - TS.talk) < 1e-9, `a talk adds ${TS.talk} as of now: ${R.tieOf(st, f0, f1)}`);
+const atDay = [...fp.ties.keys()].map((j) => [j, R.tieOf(st, f0, j)]);
+R.renormalise(st, fp);
+check(fp.tieT === st.t && tieT0 <= st.t, `renormalised: tieT ${fp.tieT}, now ${st.t}`);
+check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(R.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget)),
+  'renormalising keeps every tie as it was, and drops those under TIES.forget');
+R.dailyTies(st);
+// kin keep the floor after the midnight step
+for (const q of VB['sim/records'].kinNear(st, f0)) if (st.pawns[q].alive) check(R.tieOf(st, f0, q) >= TS.kin - 1e-9, `kin ${q} at ${R.tieOf(st, f0, q)}`);
+// waking hours at home: two housemates both inside for every talk hour grow by TIES.home over the day
+const hm = st.households.find((h) => !h.dissolved && h.members.length >= 2 && h.members.every((m) => st.pawns[m].alive));
+const [m0, m1] = hm.members, home0 = R.tieOf(st, m0, m1);
+for (const id of st.living) st.pawns[id].homeHours = 0;
+for (const ag of st.agents) { ag.inside = st.pawns[ag.id].household === hm.id; ag.talk = null; }
+const talks1 = st.talks;
+for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st)); }
+check(st.pawns[m0].homeHours === T.to - T.from, `the talk hours counted at home: ${st.pawns[m0].homeHours}`);
+const talked = R.tieOf(st, m0, m1) - home0;
+R.dailyTies(st);
+const homeGain = R.tieOf(st, m0, m1) - home0 - talked;
+check(Math.abs(homeGain - TS.home * (T.to - T.from) / DAY) < 1e-6, `a day at home adds ${homeGain}`);
+check(st.pawns[m0].homeHours === 0, 'the hours start again at midnight');
+check(st.talks >= talks1, 'housemates talk at home');
+// a job finished together
+const job0 = R.tieOf(st, m0, m1); R.workedTogether(st, [m0, m1]);
+check(Math.abs(R.tieOf(st, m0, m1) - job0 - TS.work) < 1e-9 && R.tieOf(st, m1, m0) > 0, 'a job finished together adds TIES.work');
+// the cap: at most TIES.cap ties; a new tie stronger than the weakest replaces it, a weaker one is not kept, kin always are
+const cp = st.pawns[f0], others = st.pawns.filter((p) => p.alive && p.id !== f0 && !VB['sim/records'].kinNear(st, f0).includes(p.id));
+const fake = [];
+for (const [j, w] of cp.ties) cp.ties.set(j, w + 2); // all real ties above the fakes
+for (let k = 0; cp.ties.size < TS.cap; k++) { const id = 100000 + k; fake.push(id); cp.ties.set(id, 1 + k * 1e-3); } // ids beyond the pawns, removed below
+const weakest = fake.length ? fake[0] : null, newcomer = others.find((p) => !cp.ties.has(p.id));
+if (weakest !== null && newcomer) {
+  R.addTie(st, f0, newcomer.id, 0.1);
+  check(!cp.ties.has(newcomer.id) && cp.ties.size === TS.cap, 'a tie weaker than the weakest is not kept at the cap');
+  R.addTie(st, f0, newcomer.id, 5);
+  check(cp.ties.has(newcomer.id) && !cp.ties.has(weakest) && cp.ties.size === TS.cap, 'a stronger tie replaces the weakest at the cap');
+}
+for (const id of fake) cp.ties.delete(id);
+check(checkState(st).length === 0, 'invariants after familiarity: ' + checkState(st).slice(0, 3).join('; '));
 if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}; ${st.talks - t1} talks in one crowded hour`);

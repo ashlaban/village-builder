@@ -169,7 +169,7 @@ VB['sim/scenarios'] = (() => {
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
-    //   ties; rel (sim/relations)
+    //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
@@ -220,7 +220,6 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
-    // @state st.contacts: Map of pawn pair (pairKey in sim/society: i * 2^21 + j, i < j) to hours spent together since the last drift step
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
@@ -236,7 +235,7 @@ VB['sim/scenarios'] = (() => {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      contacts: new Map(), talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
+      talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,

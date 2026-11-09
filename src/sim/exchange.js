@@ -3,7 +3,7 @@
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed } = VB['sim/hunger'];
@@ -52,7 +52,7 @@ VB['sim/exchange'] = (() => {
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
       if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
         n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) strengthenTie(st, a.id, b.id, HELP.tieGain);
+      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) addTie(st, a.id, b.id, HELP.tieGain);
       if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
