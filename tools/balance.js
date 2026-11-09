@@ -2,7 +2,7 @@
 // fresh, butter, meat) against what its members need, grouped by household size, by cattle and by the year's weather.
 // node tools/balance.js --scenario founders|heirs|populous --seeds 3,7,11,42 --map small --years 30 [--from 3] [--json]
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',').map(Number), map = opt('map', 'small');
@@ -32,6 +32,8 @@ function run(seed) {
         else if (e.kind in made) made[e.kind] += e.n;
         else if (e.kind === 'gift') gifts += e.n;
       }
+      // milk and butter are routine movements, summed per calendar year (VB-204); game year y runs from t0 to t1
+      for (const k of ['milk', 'butter']) made[k] += Stores.yearSum(hh, k, y);
       const size = F.dailyNeed(st, hh), need = size * Sim.YEAR_DAYS, total = SOURCES.reduce((s, k) => s + made[k], 0);
       const soil = f.fields.length ? f.fields.reduce((s, q) => s + q.soil, 0) / f.fields.length : null;
       rows.push({ seed, year: y, household: hh.id, weather: +weather.toFixed(3), size, members: hh.members.length, fields: f.fields.length,

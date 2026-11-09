@@ -231,7 +231,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     abandoned(f);
-    hh.dissolved = true; noteDissolved(st, hh); dropStakes(st, hh); farmToVillage(st, f);
+    hh.dissolved = true; noteDissolved(st, hh); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village

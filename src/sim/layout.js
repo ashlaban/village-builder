@@ -116,7 +116,7 @@ VB['sim/layout'] = (() => {
   // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: true, well: true };
     used.add(center);
     const built = new Set([center]), near = new Set(), houses = [];
     const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
@@ -195,7 +195,7 @@ VB['sim/layout'] = (() => {
     // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], green: false, well: false };
+      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }

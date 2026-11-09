@@ -41,13 +41,14 @@ check(Math.abs(F.larderOf(hh) - cows * HD.milk * (1 - HD.leanMax)) < 1e-9, `100 
 // --- a whole year: every day out of the byre is milked; fresh milk does not spoil (it is drunk), butter is in the larder in autumn
 st = Sim.seed(world(7), 7, 'founders');
 Sim.advance(st, 33 * Sim.DAY);
-let fresh = 0, churned = 0, days = new Set(), inMilk = 0;
-for (const h of st.households) for (const e of h.ledger) {
-  if (e.kind === 'milk') { fresh += e.n; days.add(`${h.id}:${Math.floor(e.t / Sim.DAY)}`); }
-  if (e.kind === 'butter') churned += e.n;
+// milk and butter are yearly totals (VB-204): one movement of each a milking, so a total's count is its days milked
+let fresh = 0, churned = 0, milkings = 0, inMilk = 0;
+for (const h of st.households) for (const x of h.totals) {
+  if (x.kind === 'milk') { fresh += x.n; milkings += x.count; }
+  if (x.kind === 'butter') churned += x.n;
 }
 for (const h of st.households) if (H.milkCows(st, h, cal(10)) > 0) inMilk += H.milkCows(st, h, cal(10));
-const outDays = HD.stall[0] - HD.stall[1], milked = days.size / Math.max(1, st.households.filter((h) => H.milkCows(st, h, cal(10)) > 0).length);
+const outDays = HD.stall[0] - HD.stall[1], milked = milkings / Math.max(1, st.households.filter((h) => H.milkCows(st, h, cal(10)) > 0).length);
 check(milked >= outDays - 2, `milked ${milked.toFixed(1)} of ${outDays} days out a household`);
 check(Math.abs(churned / (fresh + churned) - HD.butter) < 1e-6, 'butter share');
 // the meal drinks the day's milk first: across a summer midnight the milk goes and grain and rations fall by the rest of the need

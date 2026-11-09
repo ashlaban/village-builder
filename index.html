@@ -2829,7 +2829,7 @@ VB['sim/layout'] = (() => {
   // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: true, well: true };
     used.add(center);
     const built = new Set([center]), near = new Set(), houses = [];
     const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
@@ -2908,7 +2908,7 @@ VB['sim/layout'] = (() => {
     // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], green: false, well: false };
+      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
@@ -3076,7 +3076,7 @@ VB['sim/records'] = (() => {
   }
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
-      ledger: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, haySpoilt: 0,
+      ledger: [], totals: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, haySpoilt: 0,
       larder: [], fodderDay: -1,
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -4393,9 +4393,9 @@ VB['sim/herds'] = (() => {
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
         .map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
-      // rations of fresh milk and of butter made since the start of this game year (VB-135)
-      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.ledger.filter((e) => e.kind === k && e.t >= Math.floor(st.t / YEAR) * YEAR)
-        .reduce((s, e) => s + e.n, 0).toFixed(1)])),
+      // rations of fresh milk and of butter made since the start of this game year (VB-135), from the stores' yearly totals (VB-204)
+      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.totals.filter((x) => x.kind === k && x.year === Math.floor(st.t / YEAR) + 1)
+        .reduce((s, x) => s + x.n, 0).toFixed(1)])),
     };
   }
   return {
@@ -4405,10 +4405,22 @@ VB['sim/herds'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers
+// @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
   const { YEAR, YEAR_DAYS } = VB['sim/rules'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
+  // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
+  const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
+  // The calendar year (as cal(hour).year) of the hour the clock is working through: midnight's work belongs to the day it starts.
+  const yearOf = (t) => Math.floor(Math.floor(t + 1e-9) / YEAR) + 1;
+  // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
+  function fold(holder, year, kind, good, n) {
+    const T = holder.totals;
+    for (let i = T.length - 1; i >= 0 && T[i].year === year; i--) {
+      const x = T[i]; if (x.kind === kind && x.good === good) { x.n += n; x.count++; return; }
+    }
+    T.push({ year, kind, good, n, count: 1 });
+  }
   function amount(n) { if (!Number.isFinite(n) || n < 0) throw new Error(`stores: invalid amount ${n}`); }
   function type(holder) {
     if (!holder || holder.dissolved) throw new Error('stores: missing or dissolved holder');
@@ -4420,7 +4432,8 @@ VB['sim/stores'] = (() => {
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const kind = type(holder), hh = kind === 'pawn' ? st.households[holder.household] : holder;
-    if (hh) {
+    if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearOf(st.t), detail.kind, good, n);
+    else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };
       if (kind === 'village') villageEntry(holder, entry);
       else { if (!hh.ledger) hh.ledger = []; hh.ledger.push(entry); }
@@ -4479,14 +4492,26 @@ VB['sim/stores'] = (() => {
       record(st, v, 'grain', after - v.grain, 'spoilage'); v.grain = after;
     }
   }
+  // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
+  // ledger was emptied when it dissolved (close).
   function prune(st) {
-    VB.count.storeWalk += st.households.length + st.villages.length;
-    for (const hh of [...st.households, ...st.villages]) {
-      VB.count.storeWalk += hh.ledger.length;
-      hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
+    const keep = yearOf(st.t) - 3, recent = (e) => st.t - e.t < YEAR * 3, kept = (x) => x.year >= keep;
+    VB.count.storeWalk += st.liveHouseholds.length + st.villages.length;
+    for (const id of st.liveHouseholds) {
+      const hh = st.households[id];
+      VB.count.storeWalk += hh.ledger.length + hh.totals.length;
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept);
+    }
+    for (const v of st.villages) {
+      VB.count.storeWalk += v.ledger.length + v.totals.length;
+      v.ledger = v.ledger.filter(recent); v.totals = v.totals.filter(kept);
     }
   }
-  return { KINDS, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  // A household's ledger ends when it dissolves: no movement can reach it afterwards (type refuses a dissolved holder).
+  function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
+  // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
+  function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
+  return { KINDS, ROUTINE, yearOf, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
 })();
 </script>
 <script>
@@ -6746,7 +6771,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     abandoned(f);
-    hh.dissolved = true; noteDissolved(st, hh); dropStakes(st, hh); farmToVillage(st, f);
+    hh.dissolved = true; noteDissolved(st, hh); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
@@ -7470,8 +7495,8 @@ VB['sim/settle'] = (() => {
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
   function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
-    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0, ledger: [],
-      green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
+    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
+      ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
@@ -8116,7 +8141,9 @@ VB['sim/scenarios'] = (() => {
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
-    //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
+    //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
+    //   hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
@@ -8132,7 +8159,8 @@ VB['sim/scenarios'] = (() => {
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
     //   their cottage is built (sim/settle, sim/expansion)
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], green, well}; center is a tile index, farmsteads are ids;
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], totals[] (as a household's), green, well};
+    //   center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
@@ -8445,6 +8473,8 @@ VB['sim/saves'] = (() => {
     rebuildLiving(st);
     trimRoutes(st);
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
+    // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
+    for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;

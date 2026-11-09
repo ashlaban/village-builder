@@ -1,7 +1,19 @@
-// @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers
+// @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
   const { YEAR, YEAR_DAYS } = VB['sim/rules'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
+  // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
+  const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
+  // The calendar year (as cal(hour).year) of the hour the clock is working through: midnight's work belongs to the day it starts.
+  const yearOf = (t) => Math.floor(Math.floor(t + 1e-9) / YEAR) + 1;
+  // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
+  function fold(holder, year, kind, good, n) {
+    const T = holder.totals;
+    for (let i = T.length - 1; i >= 0 && T[i].year === year; i--) {
+      const x = T[i]; if (x.kind === kind && x.good === good) { x.n += n; x.count++; return; }
+    }
+    T.push({ year, kind, good, n, count: 1 });
+  }
   function amount(n) { if (!Number.isFinite(n) || n < 0) throw new Error(`stores: invalid amount ${n}`); }
   function type(holder) {
     if (!holder || holder.dissolved) throw new Error('stores: missing or dissolved holder');
@@ -13,7 +25,8 @@ VB['sim/stores'] = (() => {
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const kind = type(holder), hh = kind === 'pawn' ? st.households[holder.household] : holder;
-    if (hh) {
+    if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearOf(st.t), detail.kind, good, n);
+    else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };
       if (kind === 'village') villageEntry(holder, entry);
       else { if (!hh.ledger) hh.ledger = []; hh.ledger.push(entry); }
@@ -72,12 +85,24 @@ VB['sim/stores'] = (() => {
       record(st, v, 'grain', after - v.grain, 'spoilage'); v.grain = after;
     }
   }
+  // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
+  // ledger was emptied when it dissolved (close).
   function prune(st) {
-    VB.count.storeWalk += st.households.length + st.villages.length;
-    for (const hh of [...st.households, ...st.villages]) {
-      VB.count.storeWalk += hh.ledger.length;
-      hh.ledger = hh.ledger.filter((e) => st.t - e.t < YEAR * 3);
+    const keep = yearOf(st.t) - 3, recent = (e) => st.t - e.t < YEAR * 3, kept = (x) => x.year >= keep;
+    VB.count.storeWalk += st.liveHouseholds.length + st.villages.length;
+    for (const id of st.liveHouseholds) {
+      const hh = st.households[id];
+      VB.count.storeWalk += hh.ledger.length + hh.totals.length;
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept);
+    }
+    for (const v of st.villages) {
+      VB.count.storeWalk += v.ledger.length + v.totals.length;
+      v.ledger = v.ledger.filter(recent); v.totals = v.totals.filter(kept);
     }
   }
-  return { KINDS, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  // A household's ledger ends when it dissolves: no movement can reach it afterwards (type refuses a dissolved holder).
+  function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
+  // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
+  function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
+  return { KINDS, ROUTINE, yearOf, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
 })();
