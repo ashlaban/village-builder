@@ -59,6 +59,18 @@ assert.strictEqual(Sim.eventLine(st, { t: 0, kind: 'empty', text: 'Nygård stand
 const old = st.record.find((e) => e.kind === 'died' && e.text === 'before the record');
 assert.strictEqual(Sim.eventLine(st, old), `${Sim.fullName(st.pawns[old.pawn])} died before the record.`);
 
+// a cottage built on a cleared plot is told as a cottage, once, and its holder's move as a move, once (an untouched year of heirs 7)
+{
+  const it2 = G.generate(7); let r2; while (!(r2 = it2.next()).done);
+  const s2 = Sim.seed(r2.value, 7, 'heirs'); Sim.advance(s2, Sim.YEAR);
+  const built = s2.record.filter((e) => e.kind === 'cottage' && / moves into the new farmstead /.test(e.text));
+  assert.ok(built.length, 'no cottage was built on a cleared plot in a year of heirs 7');
+  for (const e of built) {
+    assert.deepStrictEqual(Sim.notable(s2, e), ['farm']);
+    assert.strictEqual(s2.record.filter((x) => x.kind === 'moved' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder moved there once');
+  }
+}
+
 // a year of play: every event answers, with reasons that NOTABLE knows
 st.naturalDeaths = true; Sim.advance(st, Sim.YEAR);
 const counts = {}; let n = 0;
