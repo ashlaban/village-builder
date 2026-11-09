@@ -304,9 +304,9 @@ function checkGoodwill(st, p, bad) {
     if (!m || m.v !== -e.v || m.t !== e.t) bad.push(`${where}: no exact mirror on pawn ${j}`);
   }
 }
-// Familiarity (sim/relations, VB-127): a living pawn's ties are to living other pawns, finite and above 0, at most SOCIAL.ties.cap of them
-// (or its near kin, if more); its scale's start is no later than now, and its waking hours at home today are a whole number within the
-// talk hours. (The kin floor holds from midnight to midnight and is checked in tests/relations.js.)
+// Familiarity (sim/relations, VB-127): a living pawn's ties are to other pawns, living or dead since its last renormalisation, finite and
+// above 0, at most SOCIAL.ties.cap of them (or its near kin, if more); its scale's start is no later than now, and its waking hours at
+// home today are a whole number within the talk hours. (The kin floor is checked in tests/relations.js.)
 function checkTies(st, p, bad) {
   const { SOCIAL } = VB['sim/rules'], TIES = SOCIAL.ties, T = SOCIAL.talk;
   if (!(Number.isFinite(p.tieT) && p.tieT <= st.t)) bad.push(`pawns[${p.id}]: tieT ${p.tieT} at ${st.t}`);
@@ -316,7 +316,8 @@ function checkTies(st, p, bad) {
   if (p.ties.size > Math.max(TIES.cap, kin.length)) bad.push(`pawns[${p.id}]: ${p.ties.size} ties, over the cap of ${TIES.cap}`);
   for (const [j, w] of p.ties) {
     const q = st.pawns[j];
-    if (j === p.id || !q || !q.alive) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn`);
+    // a tie to one who died is dropped at the death, or, if that pawn had dropped its own tie, when this pawn next renormalises
+    if (j === p.id || !q || (!q.alive && !(q.died > p.tieT))) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn, nor one dead since ${p.tieT}`);
     if (!(Number.isFinite(w) && w > 0)) bad.push(`pawns[${p.id}].ties<${j}>: ${w}`);
   }
 }
