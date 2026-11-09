@@ -83,6 +83,14 @@ async function refresh({ publishing = true, notice = console.log } = {}) {
   else notice('fixtures: remade here and not published (no GH_TOKEN); the nightly workflow publishes them');
   return remake;
 }
+const USAGE = `usage: node tools/fixtures.js <command>
+  status         each fixture: fresh, stale or missing, with its stamp (year, living, minutes to make, size)
+  fetch          download the published fixtures (the assets of the release "fixtures") into tests/fixtures/
+  make [name...] make the named fixtures here, or all (${Object.keys(F.FIXTURES).join(', ')}); minutes each; needs src/ and
+                 tests/golden.json committed, since the stamp names the commit
+  refresh        fetch, remake what is stale, publish (the nightly workflow's command)
+  publish        replace the release's assets with the local fixtures; needs GH_TOKEN
+  in a test: require('./lib/fixtures.js').loadFixture(name) gives {st, stamp, stale}, or null with a notice`;
 async function main(args) {
   const [command, ...names] = args;
   if (command === 'make') return make(names.length ? names : undefined);
@@ -98,7 +106,8 @@ async function main(args) {
   if (command === 'fetch' && !names.length) return F.fetchFixtures();
   if (command === 'publish' && !names.length) return publish();
   if (command === 'refresh' && !names.length) return refresh();
-  throw new Error('usage: node tools/fixtures.js make [name...] | status | fetch | publish | refresh');
+  if (command === '--help' || command === '-h' || command === 'help') return console.log(USAGE);
+  throw new Error(USAGE);
 }
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error(e.message); process.exitCode = 1; });
 module.exports = { make, makeOne, publish, refresh, advanceYears };

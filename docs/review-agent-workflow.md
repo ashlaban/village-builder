@@ -88,7 +88,7 @@ Kim chose suggestions 1, 3, 4, 5 and 6, done directly rather than as backlog tas
 | 5. Questions tool | `tools/questions.js`: `list`, `show`, `answer`, `archive` | 23.6 KB to find a task's questions; 76 KB archive read to append | `list` 2.3 KB; `show VB-163` 2.4 KB; archiving reads neither file |
 | 6. A checklist for a task | `AGENTS.md`, Taking a task | spread over four sections | seven steps, 750 B |
 
-Going below 13 KB would mean dropping rules or the list of commands, which an agent cannot discover otherwise (`tools/sim.js` has no
+Going below 13 KB would mean dropping rules or the list of commands, which an agent cannot discover otherwise (`tools/sim.js` had no
 `--help`); not done.
 
 **The nightly run (suggestion 9).** "The nightly run" of `BACKLOG.md` and older task notes is a scheduled task on Kim's account,
@@ -122,3 +122,25 @@ results by what was read or run, and with `--turns` a line per prompt. Each sche
 
 Count quality as well as cost: whether the first PR passes its checks, the number of review rounds and fix-up commits, and
 whether the task was taken in the right order. A cheaper session that skips verification costs more in the end.
+
+## 7. Third batch (9 November 2026)
+
+The one measured run (`docs/agents/usage/2026-11-08-worker-5972fa67.json`: 154 calls, context from 80,000 to 361,000 tokens, 35.3 million
+tokens read from the cache) shows that `AGENTS.md`, about 3,500 tokens, is no longer what costs: the length of the session is. Done:
+
+| Change | Where | Before | After |
+|--------|-------|--------|-------|
+| `--help` | `tools/sim.js`, `tools/bench.js`, `tools/fixtures.js` | `sim.js --help` ran a three-year medium run; the run above read `bench.js` and `fixtures.js` whole to learn them (40 KB, 15% of its tool output) | 0.6 to 0.7 KB each |
+| Searches skip built and archived files | `.ignore`: `index.html`, `package-lock.json`, `docs/img/`, the two archives | a search from the root hit every line of `src/` twice | ripgrep (the Grep tool) skips them; name the file to search it |
+| Diffs skip built files | `.gitattributes`: `index.html` and `package-lock.json` are `-diff` | `git show` and `git diff` printed the rebuilt page | "Binary files differ" |
+
+Open, in order of payoff:
+1. **One task per context.** `docs/agents/worker.md` takes ready tasks in one session until none are left, and each call re-reads all
+   that came before. An orchestrator that hands each task to a fresh subagent or session and keeps one line of its result; the
+   implementing agent on a cheaper model where the task is S or keeps behaviour (the golden file is the gate).
+2. **A `.claude/` directory**: a permission allowlist, the roles of `docs/agents/` as agent definitions with a model and tools each, and
+   `npm install` in the cloud environment's setup script.
+3. **The Commands section of `AGENTS.md` as pointers**, once every tool it lists answers `--help`.
+4. **Checks on pull requests**: the only workflow is the scheduled `fixtures.yml`, so the agent is the only gate.
+5. Suggestions 2 and 7 of section 4 (targeted test runs; spec and report apart in task files).
+6. **More than one measured run**: the run above was not unattended (25 minutes waiting for answers), so there is no baseline yet.

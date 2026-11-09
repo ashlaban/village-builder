@@ -3,6 +3,16 @@
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
+const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land'];
+const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
+  defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
+  --report NAME     ${REPORTS.join('|')}
+  --json            the report as JSON
+  --pawn ID, --household ID   one pawn or household in detail
+  --at Y            stop at year Y, overriding --years
+  --save FILE       save the run at its end (.gz is gzipped)
+  --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year`;
+if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/page/loader.js)
 const args = process.argv.slice(2);
@@ -13,8 +23,8 @@ const loaded = loadFrom ? readSave(loadFrom) : null;
 const mapOf = (d) => Object.keys(SIZES).find((k) => SIZES[k][0] === d.cols && SIZES[k][1] === d.rows);
 const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'), seedNum = loaded ? loaded.seed : +opt('seed', 7), map = loaded ? mapOf(loaded) : opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
-if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error('usage: node tools/sim.js --scenario founders|heirs|populous --seed N --map tiny|small|medium|large --years Y'); process.exit(2); }
-if (report && !['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land'].includes(report)) { console.error('unknown report ' + report); process.exit(2); }
+if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) { console.error(USAGE); process.exit(2); }
+if (report && !REPORTS.includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"
 function plain(v, seen = new Map(), where = '$') {

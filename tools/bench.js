@@ -228,7 +228,12 @@ async function main(args) {
     if (!last) console.log('bench: no history yet; run node tools/bench.js first');
     else fs.writeFileSync(path.join(DIR, 'budget.md'), budget(last));
   } else if (!args.length) await runBench();
-  else console.log('usage: node tools/bench.js [--budget]');
+  else console.log(`usage: node tools/bench.js [--budget]
+  (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing or stale one is reported, not made),
+                 appends the run to docs/bench/history.jsonl, rewrites docs/bench/budget.md and prints the report; takes minutes,
+                 and times the machine, so run nothing else meanwhile
+  --budget       rewrites docs/bench/budget.md from the last run in the history, measuring nothing
+  fixtures first: node tools/fixtures.js status|fetch|make`);
 }
 // Diagnostic failures are visible in output/history, never a reason to fail a nightly run.
 if (require.main === module) main(process.argv.slice(2)).catch((e) => console.error('bench: UNAVAILABLE ' + (e.stack || e.message)));
