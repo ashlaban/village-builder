@@ -68,6 +68,37 @@ Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed me
 5. When does a source count in a meal? **P:** when it gives at least a fifth of what is eaten that day; grain and flour are one source.
 6. VB-009 was blocked because a missed cooking left people hungry although there was grain. **P:** the meal eats fresh food, then rations, then grain (as today), so milling makes food go further without new hungry days.
 
+### VB-219: slice 1's wrap-up, kin help booked (raised 9 November 2026)
+From the wrap-up's measurements (`backlog/VB-219.md`, notes of 9 November): help as a seasonal ask over 16 runs (seeds 3, 7, 11 and 42,
+populous small, 15 years, four ways of stepping the clock each), the probe of the balances, the slice's cost, and The gift against the
+code. None blocks a task.
+1. The slice's share of the budget. `docs/bench/budget.md` gains `kin help and goodwill` (the gift's check, the booking, handovers and
+   ends: 0.06 to 0.13 ms a game day at `medium-ref` in six runs, median 0.07), and its 0.1 ms has to come from somewhere, since the shares
+   of 9 November sum to 192 ms with 8 kept back. **P:** from the 8 kept back (now 7.9): slice 1 is growth among today's systems. Help's own
+   daily ask (about 0.45 ms) and the gift's moves and events (about 0.07 ms), which were help's before the slice, stay in hunger and meals'
+   3 ms. (The other way: take 0.1 from hunger and meals, which measured 2.5 to 2.9 ms without the ask and 3.0 to 3.5 with it.)
+2. Households of one under the seasonal ask. Over the 16 runs, hungry household-days hardly moved (7,547 before VB-216, 7,648 now; the
+   17% VB-222 saw is one way of stepping, and the others give +26%, -32% and +1%), but deaths from hunger and starvation rose from 32 to 43,
+   and those in households of one person from 0 to 14 (in 9 of the 16 runs). A lone person whose ask brings nothing (no kin with a
+   surplus, the store empty) waits a whole season. **P:** an ask that brings nothing at all does not count as the season's ask, so the
+   household may ask again on a later day; a task builds it as a behaviour change and measures it by the same 16 runs, and the rule is
+   otherwise kept (Lumps and occasions).
+3. The store's last grain. In a lean season the village store gives its whole remainder to the first household that asks (the lowest
+   id that day). At founders 7 (small), the store held about 80 rations for two hungry households: asking for 12 days at a time, as
+   before VB-222, each got 36 in the first winter and household 4 the last 7.7 in spring; asking once a season, each got 29 in winter
+   and household 4 the last 21.8 in spring, and household 5's one member starved in the autumn of year 2. **P:** keep it until the
+   village has an agent that decides its store's gifts (The gift, Who books); question 2's change covers the worst case.
+4. Goodwill at a handover: section 9 says "a share of the holder's goodwill passes to the new holder, set by custom" (Decided, 3 Nov);
+   The gift and the code pass a fixed half (`GOODWILL.share`, Agreed 8 Nov). **P:** half, for every culture, until a custom of
+   inheritance takes it up (customs, or slice 5's estates); the row of section 9 gains "(half for now; The gift)".
+5. A balance between the old holder and the heir. At a handover, the half of the old holder's balance with the heir himself has nowhere
+   to go, so it is cancelled, and the old holder keeps the other half (`passGoodwill`); since kin help runs between parents, children
+   and in-laws, the heir can be the counterpart. The design does not say. **P:** keep it, and write it into Who books: "a balance with
+   the heir is halved".
+6. Help in hunger (section 8) says "each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving"; the code reads only
+   the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
+   reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
+
 ### VB-039 and VB-106: help as memories (relationships review)
 Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind gains a value per event, up to a cap, and fades to 0 over its days. The gains Kim accepted for help become memories; their caps and durations are new.
 1. A gift of food (VB-039). **P:** the receiving holder remembers "A gift of food", +0.1 per gift, cap +0.4, fading over 3 years; the giver gains nothing beyond the tie.
