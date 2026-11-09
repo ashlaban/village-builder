@@ -2,6 +2,18 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 9 November 2026 (VB-127)
+
+## VB-127: the build's three departures (asked in the session, 9 November 2026)
+Asked when VB-127 was done: at `medium-ref`, talk and contacts 73 to 46 ms a game day and daily life 44 to 28; customs change about as often as before.
+1. The criterion says one shared decay scale; the build gives each pawn its own, renormalised every 4 years on a day spread by id, since a
+   shared one would renormalise about 150,000 ties in one midnight step at `medium-ref`. **P:** accept it. **A (Kim, 9 Nov):** as proposed (P).
+2. `history.routeExpand` reads 1.257 against 1.25 and was added by hand to `tests/cost-baseline.json`, against "the baseline only falls". Year
+   40's route expansions are unchanged and year 5's fell 4%, as idle pawns walk differently. **P:** accept it and recheck once the nightly run
+   remakes the fixtures with this code. **A (Kim, 9 Nov):** as proposed (P).
+3. "Starting ties on the same scale": the old values (household 1, kin 0.5, newborn 1, wedding 2, now only raising), or near the steady state
+   (housemates about 53)? **P:** the old values. **A (Kim, 9 Nov):** as proposed (P).
+
 # Archived 9 November 2026 (VB-203)
 
 ## VB-203: the budget's shares, window and save line (asked in the session, 9 November 2026)
