@@ -169,6 +169,8 @@ do anyway, real choices come about once a year, and the largest of a life, marri
 - **Skip to the next event** that concerns the played pawn (VB-229), on VB-098's list of notable events (priority 2 with it).
 - **The player steers by position:** what its pawn's position commands, the player chooses. Head of a household is the first such
   position, and slice 3 designs it (below).
+- Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-228", "VB-229", "VB-099"): an offer waits 7 game days;
+  a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
 - The wrap-up (VB-078) waits for VB-099, VB-228 and VB-229 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year

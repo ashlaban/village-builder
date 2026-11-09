@@ -2,6 +2,36 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 9 November 2026 (the gameplay review)
+
+## VB-228: marriage as a negotiation (raised 9 November 2026, gameplay review)
+Kim decided on 9 November that a marriage is a negotiation between two households in which the player takes part (`design.md`, Inheritance, Marriage as a negotiation). The proposals below are that section's rows; Swedish and continental customs may be mixed where it plays better.
+1. Who negotiates? **P:** each side's spokesman: the head of the household the pawn lives in as a son or daughter of the house; an adult with no such head (a holder, a widow or widower, a servant, a cottager) speaks for itself.
+   **A (Kim, 9 Nov):** P.
+2. Must the two who marry consent? **P:** yes, both; refusing a match one's head made costs some of the head's opinion. "Who makes a match" (the heads; the heads with consent; the couple) becomes a custom later.
+   **A (Kim, 9 Nov):** P.
+3. The first version, in slice 2? **P:** the round's matcher finds the pairs it finds today, each becomes an offer both sides answer, and a side with no player says yes, so a run with no player is unchanged. The player answers for its pawn, and as head for a member; it may also set a wish for a match, carried to the round like its other wishes. Heads that look for matches themselves and weigh land, stores and standing come later.
+   **A (Kim, 9 Nov):** P.
+4. How long does an offer wait for the player? **P:** 7 game days; the world does not wait, and unanswered the pawn answers as it would unplayed. The skip (VB-229) stops on it.
+   **A (Kim, 9 Nov):** P.
+5. Terms? **P:** none in the first version beyond the means to marry and the start in life. With slice 4's goods: a dowry counted against the bride's share of the inheritance, and a morning gift from the groom's side that is hers if widowed, both in customary worth.
+   **A (Kim, 9 Nov):** P.
+6. Courting's place (slice 7)? **P:** a courting couple's wish moves their heads to negotiate and is enough for those who speak for themselves; a courted match the heads refuse may end in a birth outside marriage or in the couple leaving for service.
+   **A (Kim, 9 Nov):** P.
+
+## VB-229: skip to the next event (raised 9 November 2026, gameplay review)
+Kim decided on 9 November that the player may skip until the next event. VB-098's first question (which events notify) gives the list this starts from.
+1. What stops a skip? **P:** an event of VB-098's list that concerns the played pawn, its household or its line (a birth, marriage or death; a farm inherited, emptied or claimed; hunger in the household; a change of practice in its village); a question that waits for the player's answer (an offer of marriage); a refused command; an empty queue with the automatic behaviour off; and the eve of the moving round, when wishes are read.
+   **A (Kim, 9 Nov):** P.
+2. Pause, or drop to 1×? **P:** pause, with the camera on what happened and a line saying why.
+   **A (Kim, 9 Nov):** P.
+3. A limit? **P:** the next moving round at the latest, so a skip is never longer than a year.
+   **A (Kim, 9 Nov):** P.
+
+## VB-099: a chronicle (planning)
+1. **P:** a "History" tab in the pawn, household and village panels, read from the record of events (VB-075), newest first, filtered by kind; a farm's history follows the farm across households; the village log becomes a view of the same record.
+   **A (Kim, 9 Nov):** P; built with slice 2, apart from ambitions.
+
 # Archived 9 November 2026 (VB-127)
 
 ## VB-127: the build's three departures (asked in the session, 9 November 2026)

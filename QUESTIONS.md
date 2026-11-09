@@ -99,21 +99,6 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
-### VB-228: marriage as a negotiation (raised 9 November 2026, gameplay review)
-Kim decided on 9 November that a marriage is a negotiation between two households in which the player takes part (`design.md`, Inheritance, Marriage as a negotiation). The proposals below are that section's rows; Swedish and continental customs may be mixed where it plays better.
-1. Who negotiates? **P:** each side's spokesman: the head of the household the pawn lives in as a son or daughter of the house; an adult with no such head (a holder, a widow or widower, a servant, a cottager) speaks for itself.
-2. Must the two who marry consent? **P:** yes, both; refusing a match one's head made costs some of the head's opinion. "Who makes a match" (the heads; the heads with consent; the couple) becomes a custom later.
-3. The first version, in slice 2? **P:** the round's matcher finds the pairs it finds today, each becomes an offer both sides answer, and a side with no player says yes, so a run with no player is unchanged. The player answers for its pawn, and as head for a member; it may also set a wish for a match, carried to the round like its other wishes. Heads that look for matches themselves and weigh land, stores and standing come later.
-4. How long does an offer wait for the player? **P:** 7 game days; the world does not wait, and unanswered the pawn answers as it would unplayed. The skip (VB-229) stops on it.
-5. Terms? **P:** none in the first version beyond the means to marry and the start in life. With slice 4's goods: a dowry counted against the bride's share of the inheritance, and a morning gift from the groom's side that is hers if widowed, both in customary worth.
-6. Courting's place (slice 7)? **P:** a courting couple's wish moves their heads to negotiate and is enough for those who speak for themselves; a courted match the heads refuse may end in a birth outside marriage or in the couple leaving for service.
-
-### VB-229: skip to the next event (raised 9 November 2026, gameplay review)
-Kim decided on 9 November that the player may skip until the next event. VB-098's first question (which events notify) gives the list this starts from.
-1. What stops a skip? **P:** an event of VB-098's list that concerns the played pawn, its household or its line (a birth, marriage or death; a farm inherited, emptied or claimed; hunger in the household; a change of practice in its village); a question that waits for the player's answer (an offer of marriage); a refused command; an empty queue with the automatic behaviour off; and the eve of the moving round, when wishes are read.
-2. Pause, or drop to 1×? **P:** pause, with the camera on what happened and a line saying why.
-3. A limit? **P:** the next moving round at the latest, so a skip is never longer than a year.
-
 ### VB-039 and VB-106: help as memories (relationships review)
 Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind gains a value per event, up to a cap, and fades to 0 over its days. The gains Kim accepted for help become memories; their caps and durations are new.
 1. A gift of food (VB-039). **P:** the receiving holder remembers "A gift of food", +0.1 per gift, cap +0.4, fading over 3 years; the giver gains nothing beyond the tie.
@@ -173,9 +158,6 @@ Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oc
 ### VB-098: notifications (planning)
 1. Which events notify? **P:** a death, birth or marriage in the selected pawn's household or line; the death of a landholder; a farm emptied, claimed or newly built; a change of practice or of the culture's custom; a death from hunger. Each kind can be turned off.
 2. How are they shown? **P:** toasts at the bottom left for 6 s, at most 3 at once, merged by kind at high speed ("3 births in Ulsäter"); a click selects and moves the camera.
-
-### VB-099: a chronicle (planning)
-1. **P:** a "History" tab in the pawn, household and village panels, read from the record of events (VB-075), newest first, filtered by kind; a farm's history follows the farm across households; the village log becomes a view of the same record.
 
 ### VB-100: common fields (planning)
 Fields can be private or common (Decided); nothing makes a common field yet.
