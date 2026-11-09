@@ -14,12 +14,16 @@ lists them all. **Proposed** marks what Claude proposed and Kim has not yet rule
 JavaScript repo: sketches of shape and ownership, not code to build. The full batch sketches (`interfaces-batch2.ts` to
 `interfaces-batch16.ts`) were working files; this document carries their final form, with every later correction applied.
 
+Revised in place on 9 November 2026 after a review of this target against the code (Kim's decisions 25 to 30, section 8). Two
+conventions for the sketches follow from it: `| Refusal` on an owner's write means the paired query refuses (4.1, Workflows), and a
+`step(st, dt)` is built under the rules for cost (`docs/roadmap.md`, 5.3: decay lazily, schedule what falls due), not as a daily pass.
+
 ## 1. In short
 
 - **The form holds.** Domains own truth, processes coordinate, infrastructure serves: the external review's three parts, and what
   the code already does. Sixteen batches of probes and three whole-system traces (section 7) needed no new layer after the first batch.
-- **Five layers** (world and kernel; material and land; social; agency; derived views) plus the player. Calls and reads go downward;
-  upward only by commands, events, or three declared hooks (section 3).
+- **Five layers** (world and kernel; material and land; social; agency; derived views) plus the player. Calls go downward; reads are
+  free; influence goes upward only by commands, events, or three declared hooks (section 3).
 - **The review's domain list was reshaped in five places:** one Obligations domain for every explicit claim (goodwill, debt, rent,
   tithe, tax, toll, wage, shares); Exchange narrowed to mechanisms; typed resources with subtypes; culture as a policy provider;
   derived views for strata, settlement tiers, regions and balance probes.
@@ -36,8 +40,8 @@ JavaScript repo: sketches of shape and ownership, not code to build. The full ba
   geography and society, through the draw of every gathering.
 - **About twenty balance loops,** declared with probes and setpoints, calibrated fast loops first. Full-simulation bands are reported
   nightly; reduced scenarios are asserted.
-- **Twenty-one modules** besides the page, against 43 today; many of today's become kind rules, providers or contributions inside
-  them.
+- **Twenty-one modules** besides the page, against 43 on 3 November and 48 on 9 November; many of today's become kind rules,
+  providers or contributions inside them. The count is not a goal: the owner boundaries are.
 
 ## 2. Principles
 
@@ -47,8 +51,9 @@ These are the invariants. Each later section applies them; a change that breaks 
    (a workflow, a decision, a plan) coordinates domains and owns only its own progress. (External review, kept.)
 2. **One writer per field, and per cache.** Every field of `st` has one owning module (VB-173's owners table). A derived cache
    (`pawn.household`, `st.owner`) has one writer too, and a check that it equals what it is derived from.
-3. **Layers.** A module reads and calls its own layer and those below. It reaches upward only by issuing a command, emitting an
-   event, or one of three declared hooks: a rule contribution, an escalation target, a procedure choice (section 3.2).
+3. **Layers.** A module calls its own layer and those below; reads are free everywhere (Decided, Kim, 9 Nov). It acts upward only
+   by issuing a command, emitting an event, or one of three declared hooks: a rule contribution, an escalation target, a procedure
+   choice (section 3.2).
 4. **Opportunity, plan, task and activity are four things.** What could be done is computed and never stored. What will be done is
    a plan's. What is to be done now is a task, held by a party. What a pawn is doing is its activity. Nothing is posted.
 5. **Rights, ownership, authority and possession are distinct; so are title and custody.** Who owns a cow and where it stands;
@@ -66,7 +71,7 @@ These are the invariants. Each later section applies them; a change that breaks 
 11. **Rules combine contributions.** A quantity is owned by one domain; other domains contribute factors or terms to it, declared
     with a range. Traits and derived views act on behaviour only this way, or through a decider's evaluation.
 12. **Custom is read through one door.** Everything that varies by custom asks `Culture.inForce` or `Culture.norm`; no module reads
-    practice arrays.
+    practice arrays. The door is in the kernel layer, because every layer asks it; what changes custom is social (3.1).
 13. **Distance has one source.** Every consumer of distance (fairs, mills, marriage, culture drift, arbiters, regions, venues,
     news) asks the reach query, so they agree.
 14. **Level of detail by cadence, not by a second model.** Off-map pawns follow the same rules at a coarse cadence; the outside
@@ -77,8 +82,10 @@ These are the invariants. Each later section applies them; a change that breaks 
     first content.
 17. **Balance loops are declared, measured and tuned, never steered at run time.** Equilibria emerge; a loop's band is a probe's
     target, not a controller's.
-18. **Determinism.** Plain data in `st`; registries (rules, recipes, kinds) are code, built at load; contributions run in a fixed
-    order; every random draw comes from a named seeded stream.
+18. **Determinism.** Plain data in `st`; registries (rules, recipes, kinds, verbs, event subscribers, question kinds) are code,
+    built at load; contributions and subscribers run in a fixed order; every random draw comes from a named seeded stream.
+19. **A command changes everything or nothing.** Refusals come from queries and from a command's check, never from an owner's
+    write (4.1, Workflows; Decided, Kim, 9 Nov).
 
 ## 3. Layers and modules
 
@@ -88,22 +95,27 @@ These are the invariants. Each later section applies them; a change that breaks 
 |---|---|---|
 | Derived views (read-only) | `derived` | Class and occupation, settlement tier, regions and central places, desire lines, probes and loops |
 | Agency and coordination | `decisions`, `plans`, `work`, `exchange`, `enforcement`, `outside` | Questions and sittings; plans, occasions and tasks; matching; deals; cases; voyages |
-| Social | `persons`, `relations`, `membership`, `obligations`, `culture`, `encounters`, `institutions` | Traits and skills; opinion, goodwill, memories, stories; bodies and roles; claims; customs and norms; who meets whom; the Crown and the Church |
+| Social | `persons`, `relations`, `membership`, `obligations`, `culture`, `encounters`, `institutions` | Traits and skills; opinion, goodwill, memories, stories; bodies and roles; claims; attitudes, drift and what changes custom; who meets whom; the Crown and the Church |
 | Material and land | `stores`, `land`, `facilities`, `production` | Goods and custody; holdings and rights; built things, ways included; recipes and their runs |
-| World and kernel | `world`, `movement`, `kernel` | Terrain, ecology and climate; modes, vehicles, worn ways and reach; time, the calendar, seeded streams, commands, records, saves, the rules registry |
+| World and kernel | `world`, `movement`, `kernel` | Terrain, ecology and climate; modes, vehicles, worn ways and reach; time, the calendar, seeded streams, commands, events, records, saves, the rules registry, the customs in force (read side) |
 | Player and presentation | `page` | What the player sees and the commands it issues |
 
 Twenty-one modules besides the page, against 43 today. Most of today's modules survive inside them: `herds`, `meadows`, `byre` and `fields` as
 domain steps and job kinds in `production` and `world`; `heirs`, `cottage`, `settle` and `farmclaims` as kind rules and workflows in
 `membership`; `claims`, `stakes`, `territory` and `ownership` in `land`; `help` as a mechanism in `exchange`; `jobs` as `work`.
 
-Two placements matter most. **Material and land sits below Social:** stores and rights refer to holders by opaque `PartyRef`, so a
+Three placements matter most. **The customs in force sit in the kernel** (Decided, Kim, 9 Nov): the practice and norm tables and
+their read functions (`inForce`, `norm`) are plain data any layer may ask, as land does for contested claims and passage, movement
+for `move.cost` and enforcement for the remedy; `culture`, in Social, is their only writer (attitudes, drift, sittings, doctrine,
+the resolver). It is the registry's shape: a low table that higher layers fill. **Material and land sits below Social:** stores and rights refer to
+holders by opaque `PartyRef`, so a
 pawn, a household, a church or a ship can hold goods and land without those modules knowing what a household is. **Derived views
 sit on top:** they read everything and write nothing but their own classifications.
 
 ### 3.2 The three upward hooks
 
-Reads are free (the project's rule). Influence on a lower layer's behaviour from a higher one goes only through:
+Reads are free (the project's rule), so the layers constrain calls and writes. Influence on a lower layer's behaviour from a
+higher one goes only through:
 
 1. **Rule contributions** (section 4.1): the landed class lowering a holder's priority for field work; a trait raising allowance.
 2. **Escalation targets** (section 4.5): an undecided dispute going to an arbiter that a derived view names.
@@ -112,12 +124,25 @@ Reads are free (the project's rule). Influence on a lower layer's behaviour from
 Each is declared in a registry, so a lint (`tools/rules.js`, beside `tools/writes.js`) can list every upward influence; a
 contribution that reads something it has not declared is the hidden coupling this rule exists to catch.
 
+A lower layer's act reaches a higher layer in two ways, both in the kernel (4.1):
+
+- **Events** (Decided, Kim, 9 Nov): the lower module emits; higher modules subscribe at load, and run at once, in load order. A
+  subscriber reacts and cannot veto. It replaces a land module calling `remember` (a claim taken, a border lost, a bull lent).
+- **Commands:** each domain registers its own verbs at load, as it does rules, so `sim/commands` imports no domain and a verb's body
+  lives with its owner. A lower layer issues a verb only for a consequence its own act completes (a cottage finished).
+
+Measured on 9 November, with today's modules placed in these layers: 29 of 250 calls between modules go upward. Sixteen are
+`sim/commands` importing or looking up its verbs' modules, five are land modules calling `remember` or `tieOf`, five read custom
+from `culture`, and three are odd ones (`hunger` for a constant of `relations`; `heirs` and `births` to `agents`). The first three
+groups are what the two channels and the kernel's door remove.
+
 ### 3.3 The calendar
 
 `sim/clock` holds rules today (`ownership.md`, section 1). In the target it holds only an ordered schedule: each domain registers
-its steps at its natural rate (hourly agents and encounters; daily stores, goodwill decay, worn ways and attitudes; each holder's
+its steps at its natural rate (hourly agents and encounters; daily stores and attitudes; each holder's
 planning day; seasonal fairs and plan reviews; yearly meetings, strata and culture; voyages by season). Their order is design and is
-declared in one table, because it decides outcomes: in autumn, harvest, then stores, then dues, then plans, then the meeting
+declared in one table, because it decides outcomes (what decays, such as goodwill and worn ways, has no step: it is read in closed
+form, by the rules for cost): in autumn, harvest, then stores, then dues, then plans, then the meeting
 (autumn day 10), then the moving round (day 11).
 
 ## 4. Domains
@@ -125,7 +150,17 @@ declared in one table, because it decides outcomes: in autumn, harvest, then sto
 ### 4.1 Kernel
 
 Time and the calendar (3.3); seeded streams (`st.rng.*`, one per concern: `deaths`, `talk`, `outside`, and so on); commands (VB-167,
-VB-169: one verb per kind of change, `source: 'player' | 'pawn'`); the record (events, the chronicle); saves (plain data, versioned).
+VB-169: one verb per kind of change, `source: 'player' | 'pawn'`, registered by its owner); events and their subscribers (3.2); the
+record (the chronicle); saves (plain data, versioned); the customs in force (3.1).
+
+**Workflows** (Decided, Kim, 9 Nov). Today a command checks, then runs, and no owner's write refuses; the target keeps that.
+
+1. A refusal comes only from a query or from a command's check. An owner's write throws if its precondition is false.
+2. Every write that can be impossible has a paired read-only query that gives the reason (`LandRights.may`, `Stores.available`). A
+   workflow's check is the conjunction of its owners' queries, so no check copies an owner's rule.
+3. A workflow that spans ticks (a case, a plan, a building, a voyage, a succession) keeps its progress as data with its process
+   owner. Each tick's step is one command; the states between steps are named and legal.
+4. An event's subscriber cannot veto; a command it issues and is refused changes nothing further.
 
 **The rules registry** is the kernel's one new piece. A rule is a quantity one domain owns; contributions from other domains combine
 into it. Today's `deathRoll` is already one in small (base hazard by age, times one plus hunger, times frailty, with one draw naming
@@ -145,9 +180,21 @@ interface Rules {
 }
 ```
 
-Rules named so far: `death.hazard`, `conception`, `marriage.ready`, `work.rate`, `work.priority`, `yield`, `allowance` (owned by
-relations), `leisure.choice`, `attitude.malleability`, `move.cost` (compiled into a cost grid per mode set and season). A continuous
-derived value may feed a contribution directly; a categorical one (class, tier) only through its hysteretic value.
+Rules named so far, in two groups. **Quantities** combine into one number: `death.hazard`, `conception`, `work.rate`, `yield`,
+`allowance` (owned by relations), `attitude.malleability`, `move.cost` (compiled into a cost grid per mode set and season).
+**Scores** feed a chooser that their owner keeps: `marriage.ready` (a gate), `work.priority` (per pawn and task), `leisure.choice`
+(among options); the registry gives each option's score, never the choice. A continuous derived value may feed a contribution
+directly; a categorical one (class, tier) only through its hysteretic value.
+
+Built so far (VB-197): `declare`, `contribute`, `value`, `explain`, `list`, with `product` and `sum`. The review of 9 November adds:
+
+- A contribution's `source` is the module that registers it, checked by a lint; else the list of upward influences is hearsay.
+- A `product` rule's ranges are tight (hunger: 1 to 2.5); a `sum` rule's may be left open, since a bound of ±1e9 checks nothing.
+- **Causes do not depend on load order** (Decided, Kim, 9 Nov). A product's excess over its base is shared among contributions by
+  the logarithm of each factor. Walking them in order would give the joint part of two causes to whichever module loads later.
+- A contribution may not read another rule's `value`; a load-time check rejects a cycle between rules.
+- `value` allocates nothing, and neither may its caller: a rule over a pair (`work.priority`) needs a context that is reused or
+  passed as two arguments, and `compile` covers contexts that are a tile or a pawn.
 
 ### 4.2 World and movement
 
@@ -263,6 +310,11 @@ A built way needs a `pass` right for each holding it crosses; a refusal leaves a
 facility posts nothing: it shows as an opportunity to mend. Movement reads `cross`, `moor` and `carry`; encounters read venues'
 hours and capacity; opportunities read capabilities. None of them writes a facility.
 
+Where a sketch of this layer names something of a higher one, the higher layer's workflow makes the call and holds the reference:
+the lease's rent and a toll are obligations that Exchange creates around `lease` and `use`; a right's `conditions` and `whileEdge`
+are ids that Obligations and Membership act on by calling `end`; `Production.start` takes a holder and a recipe, the task being
+Work's; `Production.available` returns what a recipe needs and yields, which Opportunities (4.5) wraps.
+
 **Production** holds recipes: human transformation only. A recipe's input can bind the subtype that matched, so `hew/block` turns
 any stone into blocks of the same stone and `cheese` turns sheep's milk into sheep's cheese, without a recipe per subtype.
 Construction is a recipe too, whose output is a facility's stage, so making and building share one execution path.
@@ -329,10 +381,13 @@ workshop (4.4, Membership) with a contribution to the learning rate, not a separ
 - **Opinion** stays the one number the rest of the game reads: standing (kin, spouse, housemate), plus timed memories, plus the
   culture's coupling of goodwill.
 - **Goodwill** (Decided, Kim, 3 Nov) is its own signed balance per pawn pair, in customary rations: `balance(a, b) > 0` means b
-  owes a. Two culture-owned curves say how being owed and owing colour opinion, by size and by how long the balance has stood; the
-  same custom sets its decay and the shares passed on (section 5).
+  owes a. As built (VB-217; `design.md`, The gift, is the current statement): one number per pair, decaying lazily, at most 32
+  counterparts a pawn; it colours opinion by size only (gratitude; Kim, 8 Nov), and an old debt's souring is left to stories.
+  Custom sets its decay and the shares passed on (section 5). The sketch's `standing` and `step` are not built.
 - **Allowance** (Decided: agent to agent) is a rule owned here: how much one pawn would give up to another in one deal, with
-  contributions from goodwill, kinship, need slack, generosity and custom. A household's allowance is its agent's.
+  contributions from goodwill, opinion, kinship, need slack, generosity and custom. A household's allowance is its agent's.
+  Goodwill and opinion both count, coupled as they are (Decided, Kim, 9 Nov): goodwill is the quasi-currency a deal is settled in,
+  and a high opinion makes an unfavourable deal likelier to pass.
 
 ```ts
 interface Goodwill { balance(st, a: PawnId, b: PawnId): number; standing(st, a, b): Tick;
@@ -363,7 +418,8 @@ interface Rumours {
 **Membership** (Proposed: one membership graph, rules per kind; it passed the succession probe, section 9). Bodies are households,
 villages, towns, parishes, courts, estates, workshops, crews, ships and the `abroad` body; members are pawns or bodies, along typed
 edges with roles (`resides`, `holder`, `spouse`, `servant`, `alderman`, `priest`, `member`, `apprentice`). Ended edges stay, as
-history. Overlapping memberships form a graph, not a tree: a parish draws households from three villages.
+history, outside the index of live edges that every step reads (cost rule 1). Overlapping memberships form a graph, not a tree: a parish draws
+households from three villages.
 
 ```ts
 type PartyRef = { kind: 'pawn'; id: PawnId } | { kind: 'body'; id: number };
@@ -437,7 +493,8 @@ malleability is the rule `attitude.malleability` (the key's own, openness, a con
 practices and four norms join today's 14 customs (about 80 attitude options per pawn); `tools/customs.js` lists each key's readers.
 
 **Encounters** own who meets whom. Today's two kinds stay exactly as built (housemates inside; outdoors within 30 units, by cells),
-so the golden file holds; venues and work sites add kinds. An encounter rule says how a kind of gathering mixes people (kin,
+so the golden file holds; venues and work sites add kinds. An occasion is a plan (4.5); Plans opens and closes a venue's gathering
+by a call down to Encounters, which never reads plans. An encounter rule says how a kind of gathering mixes people (kin,
 village, stratum or rank, age bands), how often they talk, which acts happen (chat, good talk, cross words, courting, gossip,
 sermon), and how much the meeting counts in culture's social pull. Encounters have only social effects: deals, matches and hiring
 arise in agency from who is present.
@@ -481,7 +538,9 @@ interface Decisions {
 }
 ```
 
-A decision records its ballots and its margin; a narrow or forced outcome is weak, and losers remember it. Ties, vetoes and missing
+A pending question is saved, so it is plain data: its `evaluate` is not stored but found by its `kind` in a registry of question
+kinds that the posing domain fills at load. A decision records its ballots and its margin; a narrow or forced outcome is weak, and losers remember
+it. Ties, vetoes and missing
 quorums escalate along the kind's `escalateTo` (household, village, court where one exists), which may name a pawn: a landed big man
 as arbiter is the implicit Crown taking up justice. Interested parties sit out or not by custom. Hourly single-voice choices (which
 job next) stay in Work; Decide is for questions with several voices, a sitting, or the player.
@@ -680,11 +739,20 @@ or a process, with sign and lag), its setpoints (the tunables that move the equi
 | Culture drift | balancing (built) | attitude spread within and between settlements | anchor, social pull, towns' rate |
 | Trait drift | watched, not tuned | each trait's mean by generation and village | heritability, the learned share |
 
+Six loops are reinforcing and one names what opposes it. Each reinforcing loop's plan names its opposer or the ceiling that stops
+it, and both timescales. Gossip is balancing as social control, but belief by opinion of the teller and by fit is reinforcing
+within it: its experiment tests for that (10.2). Since opinion feeds allowance (decision 30), a story reaches deals: story,
+opinion, allowance, deal, story is a fast reinforcing loop. Opinion's contribution to allowance therefore has a tight range, and
+the loop a probe, before stories are built (slice 7).
+
 ### 6.2 Calibration and bands
 
 The loops act on very different timescales: food in seasons, people in years, land in decades, culture over generations. They are
 calibrated in that order, fast loops first, each with the slower ones held fixed; the separation of timescales is what makes some
-twenty loops tunable at all. Before tuning a town, find the constraint that binds: its population settles near `M / (d - b)`
+twenty loops tunable at all. The order assumes the fast loop is the balancing one. Where a reinforcing loop is faster than its
+opposer, it is tuned by its ceiling, not by the opposer: land concentration runs in years (two unpaid harvests and a hearing),
+debtors' politics and elite turnover in decades and generations, and the 75 of section 6.3 rests on that pair. Before tuning a town, find the
+constraint that binds: its population settles near `M / (d - b)`
 (migrants a year over its excess of deaths over births) and cannot exceed `S / c` (the surplus that reaches it over each person's
 need); if food binds, the urban hazard changes how many die getting there, not how many live there.
 
@@ -794,6 +862,12 @@ marriage, culture and prices.
 | 22 | Passage for a way across others' holdings | The village grants for its land; every other holder must agree | 15 |
 | 23 | Slander | Pawns and the player alike; a discovered lie is the source of a counter-story of higher valence, depending on cultural values | 16 |
 | 24 | Consolidation | One document, this one | 17 |
+| 25 | How a lower layer's act reaches a higher one (9 Nov) | Events: subscribers declared at load, run at once, in load order; they cannot veto | review |
+| 26 | Reads across layers (9 Nov) | Free everywhere; the layers constrain calls and writes | review |
+| 27 | Where custom is read (9 Nov) | The customs in force and their read side sit in the kernel; `culture` writes them | review |
+| 28 | A death's cause when several contributions raise the hazard (9 Nov) | Shares must not depend on load order: split by the logarithm of each factor | review |
+| 29 | A workflow that could fail halfway (9 Nov) | It cannot: refusals from queries and checks only; the four rules of 4.1 | review |
+| 30 | Does opinion feed allowance, beside goodwill (9 Nov) | Yes, both, though they are coupled: goodwill is the quasi-currency of the deal; a high opinion makes an unfavourable deal likelier to pass | review |
 
 ## 9. Tensions resolved, and the succession probe
 
@@ -850,7 +924,9 @@ tune, then assert:
 - an untold story is mostly forgotten within three years;
 - a slander with a living witness to deny it spreads less far than a true story of the same kind; and an exposed lie's
   counter-story further than the lie;
-- the baseline, on the same seed, converges everyone's opinion and forgets nothing.
+- the baseline, on the same seed, converges everyone's opinion and forgets nothing;
+- stories do not polarise (Proposed): the share of opinions about a story's subject held at either extreme stays under a band, and
+  a village does not split into two camps over one story.
 
 The counterpoint to test, not assume: online, false news has been found to spread faster than true (Vosoughi, Roy and Aral 2018); a
 crowded town may show it, villages with witnesses near may not.
@@ -861,7 +937,8 @@ crowded town may show it, villages with witnesses near may not.
   most historical part of the urban sink.
 - **Childcare and the household's division of labour:** minding as a partial-attention task; nursing deciding who can take which
   work (acoup, part IVd), on which culture's practices of who does what rest.
-- **The knowledge seam proper:** most knowledge is still omniscient; stories are its first content.
+- **The knowledge seam proper:** most knowledge is still omniscient; stories are its first content. A rule's contributions read
+  `st`, not the actor view, so a contribution inside a decision passes the seam by; it needs a rule when knowledge comes in.
 - **Crime and law beyond debt:** theft and fines exist only as kinds of story.
 - **Quality** of goods: hooks only, nothing yet consumes it.
 - **Legibility:** how the player reads all this (labels, `explain`, what people say), and save versioning across the migration.
@@ -896,6 +973,7 @@ VB-173 to VB-180 (`ownership.md` section 7) fit this target unchanged in order. 
 ### 11.3 Proposed tasks, in order of dependency
 
 Unnumbered here; each would be written up under the task rules in `BACKLOG.md`, behaviour-preserving first where it can be.
+`docs/roadmap.md` (the slices) has since set the order; this list stays as the inventory of what the target asks for.
 
 1. The rules registry, with `deathRoll` as its first rule, unchanged in behaviour; `tools/rules.js`.
 2. Reduced-scenario harness and nightly band reports (6.2); `tools/loops.js`.
