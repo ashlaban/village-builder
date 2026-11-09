@@ -1,11 +1,11 @@
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { cal, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
+  const { cal, DAY, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
-  const { team } = VB['sim/herds'];
+  const { hasTeam } = VB['sim/herds'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -20,7 +20,7 @@ VB['sim/agents'] = (() => {
   function placeByDoor(st, a) {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y;
   }
-  function idle(st, a, until) { a.idleUntil = until; }
+  function idle(st, a, until) { a.idleUntil = until; wake(st, a.id); }
   // A talk stops only an idle pawn outdoors, and never shortens an existing pause.
   function haltForTalk(st, g, until) {
     if (!g.inside && !g.job && g.phase === null) {
@@ -28,7 +28,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function stillAtDeath(st, a) {
-    release(st, a); a.path = null; a.inside = true;
+    release(st, a); a.path = null; a.inside = true; sleep(st, a.id);
   }
   function tileAt(st, x, y) {
     const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
@@ -50,7 +50,7 @@ VB['sim/agents'] = (() => {
       a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
     }
     a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
-    a.seg = 0; a.inside = false; a.anim = 'walk';
+    a.seg = 0; a.inside = false; a.anim = 'walk'; wake(st, a.id);
   }
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) => (KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
@@ -118,7 +118,7 @@ VB['sim/agents'] = (() => {
     if (!j || a.phase !== 'work' || j.claims[0] !== a.id || j.owner.type !== 'household' || !HERD.team.kinds.includes(j.kind)) return false;
     let first = null;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
-    return first === j && team(st, st.households[j.owner.id]) !== null;
+    return first === j && hasTeam(st, st.households[j.owner.id]);
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
@@ -155,16 +155,64 @@ VB['sim/agents'] = (() => {
   function moveAgent(st, a, dt) {
     let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
     while (left > 0 && a.seg < a.path.length - 1) {
-      const [tx, ty, c = 1] = a.path[a.seg + 1], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
+      const pt = a.path[a.seg + 1], tx = pt[0], ty = pt[1], c = pt[2] === undefined ? 1 : pt[2];
+      const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
       const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; tread(st.w, a.path[a.seg][3] ?? -1); }
+      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; VB.count.walkPoint++; tread(st.w, a.path[a.seg][3] ?? -1); }
       else if (reach > 0) { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
       else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
       left -= m * c;
     }
     if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }
+  }
+  // ---- the six-minute step (VB-205): only the agents that may act this hour are walked (rule 4) ----
+  // @state st.awake: {hour, ids, at}, a cache owned here, not saved (non-enumerable, like st.idx): the ids, in increasing order, of the
+  //   living agents that may act in game hour `hour`: those walking or working, and in working hours those with no task whose pause ends
+  //   by the hour's end. Rebuilt at the first step of each hour, after its onHour; between, only walkTo and idle can make an agent act, and
+  //   they wake it (add it here); a death takes it out. `at` is the step's place in ids, kept right when an agent is woken mid-step.
+  //   Read by stepAgents only, so an agent left out is one the step would have passed over.
+  function awake(st) {
+    const hour = Math.floor(st.t + 1e-9);
+    if (st.awake && st.awake.hour === hour) return st.awake;
+    const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], ids = [];
+    VB.count.walkAwake += st.living.length;
+    for (const id of st.living) {
+      const a = st.agents[id];
+      if (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1)) ids.push(id);
+    }
+    if (!st.awake) Object.defineProperty(st, 'awake', { value: null, writable: true });
+    st.awake = { hour, ids, at: ids.length };
+    return st.awake;
+  }
+  // Where id is in the sorted ids, or where it would go.
+  function place(ids, id) {
+    let lo = 0, hi = ids.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (ids[m] < id) lo = m + 1; else hi = m; }
+    return lo;
+  }
+  function wake(st, id) {
+    const w = st.awake; if (!w) return;
+    const i = place(w.ids, id); if (w.ids[i] === id) return;
+    w.ids.splice(i, 0, id); if (i <= w.at) w.at++;
+  }
+  function sleep(st, id) {
+    const w = st.awake; if (!w) return;
+    const i = place(w.ids, id); if (w.ids[i] !== id) return;
+    w.ids.splice(i, 1); if (i <= w.at) w.at--;
+  }
+  // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock).
+  function stepAgents(st, dt, c) {
+    const w = awake(st), ids = w.ids, out = [];
+    VB.count.walkStep += ids.length;
+    for (w.at = 0; w.at < ids.length; w.at++) {
+      const a = st.agents[ids[w.at]];
+      if (a.path) moveAgent(st, a, dt);
+      else if (a.phase === 'work') stepWork(st, a, dt);
+      else if (wantsWork(st, a, c)) out.push(a);
+    }
+    return out;
   }
   function describe(st, id) {
     const a = st.agents[id];
@@ -183,6 +231,6 @@ VB['sim/agents'] = (() => {
     homeSpot, placeAtHome, placeByDoor, idle, haltForTalk, stillAtDeath, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit,
       wantsWork, arrived, goHome, rateOf,
     withOxen, stepWork,
-    moveAgent, describe,
+    moveAgent, stepAgents, describe,
   };
 })();
