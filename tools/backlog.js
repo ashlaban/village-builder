@@ -244,4 +244,4 @@ if (cmd === 'next') {
   sync(report);
   console.log(`arch ${key} closed; check the prose above BACKLOG.md's Archs table if it counts or names archs`);
 } else if (cmd === 'sync') sync(report);
-else { console.error(USAGE); process.exit(cmd && cmd !== 'help' ? 1 : 0); }
+else { const help = !cmd || ['help', '--help', '-h'].includes(cmd); (help ? console.log : console.error)(USAGE); process.exit(help ? 0 : 1); }

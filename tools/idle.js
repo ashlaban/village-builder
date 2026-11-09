@@ -1,4 +1,5 @@
 // Idle report for tools/sim.js: steps the run one hour at a time and samples every adult during work hours.
+require('./help.js')(__filename);
 module.exports = (Sim, st) => {
   const [W0, W1] = Sim.WORK, SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   const share = {}, reasons = {}, waits = {}, seen = new Map(), unclaimed = {}, last = new Map(), switches = { other: 0, cook: 0 }; let days = 0, years = 0, first = true, pawnsSeen = 0;

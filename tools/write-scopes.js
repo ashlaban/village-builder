@@ -1,4 +1,5 @@
 // Lexical bindings for the writes scanner. Acorn supplies real block/function/loop boundaries and binding patterns.
+require('./help.js')(__filename);
 const { parse } = require('acorn');
 function scopesOf(src, { fragment = false } = {}) {
   // Page files are fragments of the built async closure, so return and await can occur at their apparent top level.
