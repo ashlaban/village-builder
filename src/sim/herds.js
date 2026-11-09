@@ -286,9 +286,9 @@ VB['sim/herds'] = (() => {
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
         .map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
-      // rations of fresh milk and of butter made since the start of this game year (VB-135)
-      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.ledger.filter((e) => e.kind === k && e.t >= Math.floor(st.t / YEAR) * YEAR)
-        .reduce((s, e) => s + e.n, 0).toFixed(1)])),
+      // rations of fresh milk and of butter made since the start of this game year (VB-135), from the stores' yearly totals (VB-204)
+      ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.totals.filter((x) => x.kind === k && x.year === Math.floor(st.t / YEAR) + 1)
+        .reduce((s, x) => s + x.n, 0).toFixed(1)])),
     };
   }
   return {

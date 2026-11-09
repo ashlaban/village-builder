@@ -176,7 +176,9 @@ VB['sim/scenarios'] = (() => {
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
-    //   sim/byre)), hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
+    //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
+    //   hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
@@ -192,7 +194,8 @@ VB['sim/scenarios'] = (() => {
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
     //   their cottage is built (sim/settle, sim/expansion)
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], green, well}; center is a tile index, farmsteads are ids;
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], totals[] (as a household's), green, well};
+    //   center is a tile index, farmsteads are ids;
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;

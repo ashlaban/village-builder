@@ -70,6 +70,17 @@ function checkState(st) {
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
+    // VB-204: routine kinds are yearly totals, one per year, kind and good, in year order, none after this year or before the last three
+    const S = globalThis.VB['sim/stores'], year = S.yearOf(st.t), seen = new Set();
+    if (!Array.isArray(holder.totals)) { bad.push(`stores[${holder.id}]: missing totals`); continue; }
+    for (let i = 0; i < holder.totals.length; i++) {
+      const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
+      if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
+          || !Number.isInteger(x.count) || x.count < 1 || !['grain', 'rations', 'sheaves', 'milk', 'butter'].includes(x.good) || seen.has(key)
+          || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
+      seen.add(key);
+    }
+    if (holder.dissolved && (holder.ledger.length || holder.totals.length)) bad.push(`households[${holder.id}]: dissolved with a ledger`);
   }
   for (const v of st.villages) {
     if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);

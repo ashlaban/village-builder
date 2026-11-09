@@ -127,6 +127,8 @@ VB['sim/saves'] = (() => {
     rebuildLiving(st);
     trimRoutes(st);
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
+    // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
+    for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     return st;
