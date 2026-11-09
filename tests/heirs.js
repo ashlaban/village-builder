@@ -36,7 +36,7 @@ show('after Olof and Lars die');
 st.naturalDeaths = true;
 t0 = Date.now(); Sim.advance(st, Sim.YEAR * 10); console.log(`\nten years in ${Date.now() - t0} ms`);
 show('ten years on');
-console.log('  recent events:', st.events.slice(0, 12).map((e) => e.text).join('\n    '));
+console.log('  recent events:', Sim.villageLog(st, Infinity).slice(0, 12).map((e) => e.text).join('\n    '));
 console.log('  hungry days:', st.households.map((h) => h.hungryDays).join(','), '| cultures:', st.cenv.cultures.map((c) => c.name).join(', '));
 // VB-224: the rankings that ask only their candidates' line farms match the full list (the fixtures check late states in verify).
 const { compareRankings } = require('./lib/heir-rankings.js'), assert = require('assert');

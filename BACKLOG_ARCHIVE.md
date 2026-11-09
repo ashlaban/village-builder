@@ -175,3 +175,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
 | [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 2 | M | One `notable` rule over the record of events; toasts that select what happened. |
 | [VB-169](backlog/VB-169.md) | Inhabit a pawn: the player's queued commands go before its own logic | life | 2 | M | `st.player` with a queue of up to 8 commands that the planner's four sites leave alone; the role's automatic behaviour as the fallback, with a switch; home at dark. |
+| [VB-099](backlog/VB-099.md) | A chronicle: the history of a pawn, farm and village | life | 2 | M | A History tab per pawn, household and village, read from the record of events. |

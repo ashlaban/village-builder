@@ -71,7 +71,7 @@ st = Sim.seed(world(7), 7, 'founders');
 const fStart = new Map(st.households.map((h) => [h.id, h.hay]));
 at(st, 28);
 for (const h of st.households.filter((x) => x.herds.length)) check(h.hay > fStart.get(h.id), `founders: household ${h.id} brought in no hay in year 1`);
-check(st.events.some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
+check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);
 console.log(`hay ok: populous 7 tiny: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +

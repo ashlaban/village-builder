@@ -14,6 +14,6 @@ const st = Sim.seed(r.value, 7, 'founders'), id = st.households[0].members[0];
 Sim.killPawn(st, id, 'illness');
 const e = st.pawns[id].events.find((x) => x.kind === 'died');
 assert.strictEqual(e.text, CAUSES.illness.event); assert.strictEqual(e.cause, 'illness');
-assert(st.events.some((x) => x.text.includes(CAUSES.illness.log)), 'the log names the cause');
+assert(Sim.villageLog(st, Infinity).some((x) => x.text.includes(CAUSES.illness.log)), 'the log names the cause');
 for (const [k, c] of Object.entries(CAUSES)) assert(c.event && c.log, `${k} has both texts`);
 console.log('deaths ok');

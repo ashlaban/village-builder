@@ -27,7 +27,7 @@ Sim.HERD.death.cattle = deathRate;
 const calves = st.herds.reduce((s, hd) => s + (hd.head ? hd.head.filter((h) => h.kind === 'calf').length : 0), 0);
 const lambs = st.herds.reduce((s, hd) => s + (hd.lambs || 0), 0);
 check(calves >= 2 && lambs >= 3, `founders year 2: ${calves} calves and ${lambs} lambs born`);
-check(st.events.some((e) => /born this spring/.test(e.text)), 'founders year 2: no log line for the births');
+check(Sim.villageLog(st, Infinity).some((e) => /born this spring/.test(e.text)), 'founders year 2: no log line for the births');
 check(!checkState(st).length, 'founders year 2: ' + checkState(st).slice(0, 3).join('; '));
 const report = `founders seed 7, year 2: ${calves} calves, ${lambs} lambs; ` + hhs.filter((h) => h.herds.length).map((h) => H.describeHerds(st, h)).join(' / ');
 

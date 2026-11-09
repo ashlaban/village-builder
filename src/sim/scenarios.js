@@ -213,9 +213,9 @@ VB['sim/scenarios'] = (() => {
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
-    // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
+    // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
-    //   seeding writes the history before the start (births, deaths, marriages), in time order
+    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
@@ -234,7 +234,7 @@ VB['sim/scenarios'] = (() => {
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
+      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -258,6 +258,8 @@ VB['sim/scenarios'] = (() => {
       if (p.died !== null) before.push([p.died, { kind: 'died', pawn: p.id, text: 'before the record' }]);
     }
     for (const u of st.unions) before.push([u.start, { kind: 'married', pawn: u.a, other: u.b }]);
+    // and who holds each farm at the start, so a farm's history names every holder it has had (VB-099)
+    for (const hh of st.households) if (hh.holder !== null && !hh.dissolved) before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
     before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
     return st;
   }

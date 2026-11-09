@@ -145,8 +145,9 @@
         <summary>${iconImg(villageIcon(v),
           'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
     }
-    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
-      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
+    // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
+    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {
+      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${linkNames(e.text, e.ev)}</p>`;
     }).join('') + '</div>' : '');
     if (!h) h = '<p>No matching people or households. Try another name.</p>';
     $('peopleCount').textContent = query ? `${matches} of ${total} people match` : `${total} people across ${st.villages.length} villages`;
@@ -240,6 +241,7 @@
     $('personFamily').hidden = selPawn < 0;
     $('tileRel').hidden = true; $('relationsDetails').hidden = true;
     $('tile').hidden = activePanel !== 'tile';
+    syncTabs();
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;

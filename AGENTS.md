@@ -73,7 +73,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - A new act a pawn or the moving round chooses gets a verb in `src/sim/commands.js`, reached by `issue(st, {actor, verb, target, args, source})`;
   a verb checks the act is possible and returns why not; `tests/commands.js` checks that only the verbs call the acts they wrap.
 - Events are written by `log(st, text, event)` and `personEvent(...)` (`src/sim/records.js`); a log line names its event's kind, pawn and
-  place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.
+  place (`atHousehold`, `atFarm`); `tests/record.js` checks every call. The village log and the History tabs are views of the record
+  (`Sim.villageLog`, `Sim.chronicle`, `src/sim/notable.js`): there is no `st.events`.
 - Food moves through `src/sim/stores.js` operations, each with a good and a reason.
 - A rule of `VB['sim/registry']` is declared or contributed to before the first seed or load, which seals the registry; rules never enter saved state.
 - The page script draws and only reads `st`. It writes to `st` through the `Sim` API and three flags, `visualDirty`, `naturalDeaths`, `driftMul`,

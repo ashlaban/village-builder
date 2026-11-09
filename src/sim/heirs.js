@@ -152,7 +152,8 @@ VB['sim/heirs'] = (() => {
     leaveHousehold(st, id);
     const hh = st.households[hhId]; joinHousehold(st, hh, id, false);
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, atHousehold(st, hh));
+    if (old && old.farmstead !== hh.farmstead) { // on the record as `joined`, beside the event that tells the move itself
+      personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, { ...atHousehold(st, hh), kind: 'joined' }); }
   }
   // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
   // farm left with no heir; nobody is owed shares of it).

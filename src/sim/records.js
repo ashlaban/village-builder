@@ -24,11 +24,10 @@ VB['sim/records'] = (() => {
       && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
     return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
   }
-  // The village log (the last 40 lines) and the event behind the line.
+  // A line of the village log: its event goes on the record, and the log is a view of the record (sim/notable, villageLog; VB-099).
   // Every line names its event (tests/record.js checks each call), or false when another call records the same happening.
   const log = (st, text, ev) => {
     if (ev === undefined) throw new Error(`log without an event: ${text}`);
-    st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop();
     if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
   };
   // @state st.living: sorted ids of living pawns; a cache owned here.

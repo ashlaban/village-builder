@@ -28,12 +28,12 @@ for (const [rule, winner] of [['first', 0], ['strongest', 0], ['kin', 0], ['meet
   st.t += YEAR / 2; T.landMeeting(st);
   const tiles = pressed(st, big);
   check(tiles.length === CLAIMS.pressPerMeeting && tiles.every((t) => st.owner[t] === -small.id - 1), `${rule}: the big village presses ${tiles.length} of the small one's tiles`);
-  const before = opinion(st, winner ? small : big, winner ? big : small), nEvents = st.events.length;
+  const before = opinion(st, winner ? small : big, winner ? big : small), nEvents = Sim.villageLog(st, Infinity).length;
   st.t += YEAR; T.landMeeting(st);
   const want = winner ? big.id : small.id, lose = winner ? small.id : big.id;
   check(tiles.every((t) => st.owner[t] === -want - 1), `${rule}: the tiles are ${winner ? 'taken by the big village' : 'kept by the small one'}`);
   check(tiles.every((t) => st.cairns.get(t) && st.cairns.get(t).a === want && st.cairns.get(t).b === lose), `${rule}: cairns mark the settled tiles`);
-  const line = st.events.slice(0, st.events.length - nEvents).find((e) => /meet over their border/.test(e.text));
+  const line = Sim.villageLog(st, Infinity).slice(0, Sim.villageLog(st, Infinity).length - nEvents).find((e) => /meet over their border/.test(e.text));
   check(line && (winner ? / takes 4 tiles/ : / keeps 4 tiles/).test(line.text), `${rule}: log: ${line && line.text}`);
   check(opinion(st, winner ? small : big, winner ? big : small) < before, `${rule}: the losers think less of the winners`);
   const lost = homes(st, winner ? small : big)[0];

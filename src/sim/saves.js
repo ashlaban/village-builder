@@ -138,7 +138,8 @@ VB['sim/saves'] = (() => {
     // VB-127: older saves kept the hours spent near each other (st.contacts); it is left out here rather than deleted after, so st keeps
     // fast properties (VB-205).
     let enc = data.state;
-    if (enc && 'contacts' in enc) { enc = { ...enc }; delete enc.contacts; }
+    // VB-099: nor the 40-line text log (st.events), which the record replaces.
+    if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
     const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
