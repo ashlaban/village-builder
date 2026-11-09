@@ -105,6 +105,11 @@
 <div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
   <div class="tree-card panel">
     <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
+    <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
+      <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
+      <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
+      <button type="button" data-mode="all" aria-pressed="false">Everyone</button>
+    </div>
     <div class="tree-body">
       <div class="tree-scroll" tabindex="0" aria-label="Scroll family tree"><svg id="treeSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Family tree"></svg></div>
       <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>

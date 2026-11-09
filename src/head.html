@@ -100,6 +100,8 @@ body {
 .tree-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 14px 18px; border-bottom: 1px solid var(--edge); }
 .tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 26px; line-height: 1.1; margin: 0; }
 .tree-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; min-width: 12ch; }
+.tree-modes { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--edge); }
+.tree-modes button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .tree-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; flex: 1; }
 .tree-scroll { overflow: auto; padding: 10px; min-height: 220px; }
 .tree-info { border-left: 1px solid var(--edge); padding: 14px 18px 18px; overflow: auto; }
@@ -115,6 +117,12 @@ body {
 #treeSvg .tn { cursor: pointer; }
 #treeSvg .tn rect { fill: var(--node); stroke: var(--edge); stroke-width: 1; }
 #treeSvg .tn.sel rect { stroke: var(--accent); stroke-width: 2.5; }
+#treeSvg .tn.focus rect { stroke: var(--ink); stroke-width: 1.5; }
+#treeSvg .tn.focus.sel rect { stroke: var(--accent); stroke-width: 2.5; }
+#treeSvg .chip { cursor: pointer; }
+#treeSvg .chip rect { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+#treeSvg .chip:focus { outline: none; }
+#treeSvg .chip:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: none; }
 #treeSvg .tn:focus { outline: none; }
 #treeSvg .tn:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
 #treeSvg .marriage, #treeSvg .descent { fill: none; stroke: var(--muted); stroke-width: 1.5; }
@@ -378,6 +386,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
   .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }
   .tree-head h2 { font-size: 22px; flex: 1; }
   .tree-head p { flex-basis: 100%; order: 3; }
+  .tree-modes { padding: 6px 12px; flex-wrap: nowrap; overflow-x: auto; }
+  .tree-modes button { flex: none; }
   .tree-body { display: flex; flex-direction: column; overflow: hidden; }
   .tree-scroll { flex: 1; min-height: 90px; overscroll-behavior: contain; }
   .tree-info { border-left: 0; border-top: 1px solid var(--edge); flex: 0 1 auto; max-height: 42dvh; padding: 12px 16px; }
