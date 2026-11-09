@@ -57,7 +57,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Also: `node tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies
   and cycles), `node tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs;
   `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js`
-  (screenshots of the page), `node tools/bench.js` (the budget's lines at `medium-y5` and `medium-ref`).
+  (screenshots of the page), `node tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads),
+  `node tools/bench.js` (the budget's lines at `medium-y5` and `medium-ref`).
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
