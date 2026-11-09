@@ -2,6 +2,7 @@
 // fresh, butter, meat) against what its members need, grouped by household size, by cattle and by the year's weather.
 // node tools/balance.js --scenario founders|heirs|populous --seeds 3,7,11,42 --map small --years 30 [--from 3] [--json]
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
+require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };

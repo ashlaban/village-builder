@@ -139,9 +139,12 @@ Open, in order of payoff:
    (`.claude/agents/vb-task.md`) with a fresh context: Sonnet for size S, Opus for M and L (Kim). Not yet run: the first night
    measures it, and must show whether `tools/agent-usage.js` counts the subagents' tokens (it counts `isSidechain` entries of the
    session's transcript; subagents written to transcripts of their own would be missed). `tools/shot.js` got its `--help` too.
-2. **The rest of `.claude/`**: a permission allowlist, and
-   `npm install` in the cloud environment's setup script.
-3. **The Commands section of `AGENTS.md` as pointers**, once every tool it lists answers `--help`.
+2. **`npm install` at session start: done** (9 November), as the setup script of Kim's cloud environment "Research" (`npm ci` in the
+   checkout, when it is there); unproven until a fresh session starts on it. **A permission allowlist** in `.claude/settings.json` is
+   Kim's to add: an agent may not widen its own permissions.
+3. **`--help` everywhere: done** (9 November). `tools/help.js` prints a tool's header comment and exits before anything loads; nine more
+   tools start with it (`nightly.js --help` had started a real nightly run). The Commands section of `AGENTS.md` lost only its option
+   lists (4.0 to 3.9 KB): its lines are what tells an agent a tool exists, so it stays.
 4. **Checks on pull requests**: the only workflow is the scheduled `fixtures.yml`, so the agent is the only gate.
 5. Suggestions 2 and 7 of section 4 (targeted test runs; spec and report apart in task files).
 6. **More than one measured run**: the run above was not unattended (25 minutes waiting for answers), so there is no baseline yet.

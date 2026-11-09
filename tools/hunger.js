@@ -2,6 +2,7 @@
 // and reads the state at the ends of them; it only reads st. Like the idle report it steps the clock in pieces (a season at a time), so the
 // run differs in detail from a plain one (the clock adds its 0.1 hour steps per call).
 // Used by tools/sim.js: `const h = require('./hunger.js')(Sim, st)`; `h.advanceYear()` in place of `Sim.advance(st, Sim.YEAR)`; `h.result()`.
+require('./help.js')(__filename);
 module.exports = (Sim, st) => {
   const SEASON = Sim.SEASON_DAYS * Sim.DAY, LIMIT = 30;
   const band = (a) => (a < 6 ? 'infant' : a < 16 ? 'child' : a < 60 ? 'adult' : 'old');

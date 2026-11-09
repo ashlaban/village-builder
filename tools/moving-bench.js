@@ -1,5 +1,6 @@
 // VB-196: isolated round cost, complete post-round save hash, and optional six-minute round-day timings.
 // --source DIR runs another checkout against its fixture directory; no simulation source is modified.
+require('./help.js')(__filename);
 const path = require('path'), crypto = require('crypto');
 const args = process.argv.slice(2), sourceAt = args.indexOf('--source');
 const root = sourceAt < 0 ? path.join(__dirname, '..') : path.resolve(args.splice(sourceAt, 2)[1]);

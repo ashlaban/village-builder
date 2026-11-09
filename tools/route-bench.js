@@ -1,5 +1,6 @@
 // VB-198: repeatable cache measurements on a late fixture, without changing the simulation's instrumentation.
 // node tools/route-bench.js small-y40 [days=30] [cacheMax override]
+require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const name = process.argv[2], days = Number(process.argv[3] || 30), max = process.argv[4] === undefined ? null : Number(process.argv[4]);
 if (!['small-y40', 'medium-ref'].includes(name) || !Number.isInteger(days) || days < 1

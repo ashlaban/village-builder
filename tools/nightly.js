@@ -1,5 +1,6 @@
 // Fixture preparation runs first, followed by diagnostic bench history and the generated budget table. The nightly workflow publishes
 // the fixtures (VB-223); here they are published only with a GH_TOKEN, and otherwise remade locally if still stale.
+require('./help.js')(__filename);
 const { refresh } = require('./fixtures.js');
 async function nightly() {
   await refresh({ publishing: !!process.env.GH_TOKEN });

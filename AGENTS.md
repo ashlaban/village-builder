@@ -25,35 +25,35 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
 ## Commands
-- Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read (`list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]`;
-  `--brief` leaves out notes and reports); `done ID...`, `set ID key=value...`, `new key=value...`, `close-arch KEY`, and `sync` after
-  a task file's header is edited by hand, to change it. Each rewrites the tables from the task files and runs `tests/backlog.js`.
+Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
+- Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
+  `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Build: `python3 build.py` inlines `src/` into `index.html`; `python3 build.py --check` fails if it is stale.
 - Test: `npm install && npm test` runs the cheap headless checks in parallel (build, lint, ownership, backlog, regressions); a passing run
   prints its summary only (`node tests/run.js test --list` prints each script's line).
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
   not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
-- Fixtures, late saves (gitignored `tests/fixtures/`, published as the assets of the release `fixtures`, replaced in place): `node
-  tools/fixtures.js status|fetch|publish|refresh`, `make [small-y5 small-y40 medium-y5 medium-ref]`; `medium-ref` is saved at the first
-  year's end with 1,000 living (by year 60), and its stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)`
-  (`../tests/lib/` from tools) gives `{st, stamp, stale}`, or `null` with a notice; a stale golden hash is usable, a changed save format
-  needs a remake. Who remakes them: the nightly workflow (`.github/workflows/fixtures.yml`, `refresh`: fetch, remake what is stale, publish
-  with its token), so a PR that changes the golden file need not; `npm run nightly` fetches them and remakes locally what is still stale.
+- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`; gitignored `tests/fixtures/`, published as the assets of the
+  release `fixtures`): `node tools/fixtures.js status|fetch|make|refresh|publish`. `medium-ref` is saved at the first year's end with 1,000
+  living (by year 60), and its stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp, stale}`,
+  or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. The nightly workflow
+  (`.github/workflows/fixtures.yml`) remakes and publishes them, so a PR that changes the golden file need not; `npm run nightly` fetches
+  them, remakes locally what is still stale and runs the bench (minutes).
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
 - Cost growth: `node tests/scaling.js` (npm test; population exponent at most 1.15) and `node tests/history.js` (verify, from `small-y5` and
   `small-y40`; work per living pawn-day at year 40 over year 5 at most 1.25). `--update` only lowers excesses in `tests/cost-baseline.json`.
 - Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
-- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report households|pawns|jobs|
-  customs|events|farms|idle|paths|relations|herds|hunger|perf|counts [--json]` (`perf` times each system per game day), `--household N`,
-  `--pawn N`; `--save FILE` and `--load FILE` (`.gz` is gzipped), so a bug report can carry the run.
+- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
+  adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
+  `--load FILE`, so a bug report can carry the run.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
-- Also: `node tools/rules.js [--explain ID] [--load FILE]` (rule owners; a pawn's death hazard), `node tools/writes.js [--field F] [--json]`
-  (each field's writers and readers; dependencies and cycles), `node tests/dependencies.js` (no lookups into later modules but command
-  dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over
-  160 characters; `--compare OLD.html NEW.html` checks two builds differ only in whitespace outside literals).
+- Also: `node tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies
+  and cycles), `node tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs;
+  `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js`
+  (screenshots of the page), `node tools/bench.js` (the budget's lines at `medium-y5` and `medium-ref`).
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
