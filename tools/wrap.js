@@ -5,6 +5,7 @@
 // regexes or comments, so no automatic semicolon can be inserted and no literal changes. Among the breaks that fit it takes the shallowest
 // bracket depth, a statement end (;) first, then the latest; continuation lines are indented 2 more. Lines it cannot wrap (long template
 // text) are listed for wrapping by hand. A wrapped file's token stream is checked against the original before it is written.
+require('./help.js')(__filename);
 const fs = require('fs');
 const MAX = 160;
 const OPS = ['>>>=', '...', '===', '!==', '**=', '<<=', '>>=', '>>>', '&&=', '||=', '??=', '=>', '==', '!=', '<=', '>=', '&&', '||', '??', '?.',

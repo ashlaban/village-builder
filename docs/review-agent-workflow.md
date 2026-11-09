@@ -142,7 +142,7 @@ Open, in order of payoff:
 2. **`npm install` at session start: done** (9 November), as the setup script of Kim's cloud environment "Research" (`npm ci` in the
    checkout, when it is there); unproven until a fresh session starts on it. **A permission allowlist** in `.claude/settings.json` is
    Kim's to add: an agent may not widen its own permissions.
-3. **`--help` everywhere: done** (9 November). `tools/help.js` prints a tool's header comment and exits before anything loads; nine more
+3. **`--help` everywhere: done** (9 November). `tools/help.js` prints a tool's header comment and exits before anything loads; every tool without its own usage text starts with it; nine at first
    tools start with it (`nightly.js --help` had started a real nightly run). The Commands section of `AGENTS.md` lost only its option
    lists (4.0 to 3.9 KB): its lines are what tells an agent a tool exists, so it stays.
 4. **Checks on pull requests**: the only workflow is the scheduled `fixtures.yml`, so the agent is the only gate.

@@ -1,4 +1,5 @@
 // Validate the data-only ownership policy before any write is allowed or exempted.
+require('./help.js')(__filename);
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 function validateOwners(policy, { modules, entities }) {
   const errors = [], fail = (msg) => errors.push(`src/owners.json: ${msg}`);

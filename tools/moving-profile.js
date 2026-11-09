@@ -1,5 +1,6 @@
 // Node-only investigation of VB-196. Wrap before importers capture exports; never read clocks in simulation code.
 // Times are inclusive and exclusive of nested wrapped calls. Counts and hashes remain comparable with moving-bench.js.
+require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const root = path.join(__dirname, '..'), rows = new Map(), stack = [];
 let active = false;

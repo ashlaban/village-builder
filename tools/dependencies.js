@@ -1,4 +1,5 @@
 // Module edges for the writes map and dependency gate. Policy is separate from extraction so layers can replace load order.
+require('./help.js')(__filename);
 function dependencies(tree, src, mod) {
   const out = [];
   const prop = (n) => n.computed ? n.property.value : n.property.name;

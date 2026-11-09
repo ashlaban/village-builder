@@ -113,4 +113,4 @@ if (cmd === 'list') {
   fs.writeFileSync(A, arch.join('\n'));
   console.log(`moved ${whole ? 'the block' : and(moving.map((q) => q.n))} "${b.title}" to QUESTION_ARCHIVE.md, "${heading.slice(2)}"`
     + (whole ? '' : `; ${and(b.items.filter((q) => !wanted.includes(q.n)).map((q) => q.n))} stay`));
-} else { console.error(USAGE); process.exit(cmd && cmd !== 'help' ? 1 : 0); }
+} else { const help = !cmd || ['help', '--help', '-h'].includes(cmd); (help ? console.log : console.error)(USAGE); process.exit(help ? 0 : 1); }

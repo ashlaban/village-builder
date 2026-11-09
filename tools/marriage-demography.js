@@ -1,4 +1,5 @@
 // VB-196's acceptance measures, shared by current and baseline checkouts. No timing or probes in simulation code.
+require('./help.js')(__filename);
 const path = require('path');
 function summarize(st, from, yearHours) {
   const first = new Map(), during = st.unions.filter((u) => u.start >= from && u.start <= st.t);
