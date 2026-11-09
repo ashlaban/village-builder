@@ -6,7 +6,7 @@ VB['sim/jobs'] = (() => {
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
-  const { issue } = VB['sim/commands'];
+  const { issue, unplanned } = VB['sim/commands'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
@@ -31,7 +31,7 @@ VB['sim/jobs'] = (() => {
       let best = null, top = 0;
       for (const id of hh.members) {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
-        if (p.died === null && pr > top) { best = st.agents[id]; top = pr; }
+        if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
       }
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
@@ -104,7 +104,7 @@ VB['sim/jobs'] = (() => {
     for (const liveId of st.living) {
       const a = st.agents[liveId];
       const p = st.pawns[a.id], j = a.job;
-      if (a.phase !== 'work' || !j || p.died !== null) continue;
+      if (a.phase !== 'work' || !j || p.died !== null || unplanned(st, a.id)) continue;
       if (((j.hours ?? KINDS[j.kind].hours) - j.done) <= rateOf(st, p)) continue;
       const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;

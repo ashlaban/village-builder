@@ -8,6 +8,7 @@
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
     "st.awake": {"owner": "sim/agents", "category": "cache"},
     "st.claims": "sim/claims",
+    "st.player": "sim/commands",
     "household.grain": "sim/stores",
     "household.rations": "sim/stores",
     "household.unthreshed": "sim/stores",

@@ -12,7 +12,7 @@ VB['sim/clock'] = (() => {
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
-  const { issue } = VB['sim/commands'];
+  const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
@@ -41,6 +41,7 @@ VB['sim/clock'] = (() => {
       const a = st.agents[liveId];
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
+      if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
       release(st, a);
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
@@ -92,7 +93,8 @@ VB['sim/clock'] = (() => {
       st.t += step; left -= step;
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      const c = cal(st.t), idle = stepAgents(st, step, c);
+      playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
+      const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
       if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
     }
   }

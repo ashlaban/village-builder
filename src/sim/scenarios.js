@@ -221,6 +221,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
+    // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units
@@ -235,7 +236,7 @@ VB['sim/scenarios'] = (() => {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
+      talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,

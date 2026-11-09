@@ -6509,12 +6509,13 @@ VB['sim/agents'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out (VB-167)
+// @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf, spouseOf } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
+  const { cal, WORK } = VB['sim/rules'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -6578,7 +6579,8 @@ VB['sim/commands'] = (() => {
     },
     // haltForTalk(until): pause an idle outdoor pawn until the talk ends, leaving work and indoor pawns alone
     haltForTalk: {
-      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
+      check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past`
+        : commanded(st, c.actor) ? `pawn ${c.actor} is on the player's command` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
@@ -6701,7 +6703,91 @@ VB['sim/commands'] = (() => {
     V.run(st, cmd);
     return true;
   }
-  return { issue, VERBS };
+  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
+  // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
+  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
+  //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
+  const QUEUE_MAX = 8;
+  // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
+  // idling until its time is up. Any other verb is done at once.
+  const LASTS = {
+    work: (st, a, c) => !!a.job && a.job.key === c.target,
+    walkTo: (st, a) => !!a.path,
+    goHome: (st, a) => !a.inside && !!a.path,
+    idle: (st, a, c) => st.t < c.args.until,
+  };
+  // The planner's sites ask these two (docs/review-life.md, section 2). commanded: a command of the player's is queued or under way for the
+  // pawn, so nothing else moves it. unplanned: that, or the player has turned its automatic behaviour off, so the planner gives it no work.
+  const commanded = (st, id) => { const pl = st.player; return !!pl && pl.pawn === id && pl.queue.length > 0; };
+  const unplanned = (st, id) => { const pl = st.player; return !!pl && pl.pawn === id && (pl.queue.length > 0 || !pl.auto); };
+  function inhabit(st, id) {
+    const dead = living(st, id); if (dead) return dead;
+    if (st.player) uninhabit(st);
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    personEvent(st, id, 'player', 'Played by the player');
+    return true;
+  }
+  function uninhabit(st) {
+    if (!st.player) return 'no pawn is played';
+    personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
+    st.player = null;
+    return true;
+  }
+  // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
+  function homeAtDark(st, pl) {
+    const a = st.agents[pl.pawn], h = cal(st.t).hour;
+    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && a.phase === null) issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
+  }
+  // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,
+  // or its actor is not the player's pawn. `skip` is the world's, not a pawn's (it would advance time from within a step).
+  function queue(st, cmd) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (!cmd || !VERBS[cmd.verb] || cmd.verb === 'skip') return `there is no verb ${cmd && cmd.verb} to queue`;
+    if (cmd.actor !== pl.pawn) return `pawn ${cmd.actor} is not the player's pawn`;
+    if (pl.queue.length >= QUEUE_MAX) return `the queue is full (${QUEUE_MAX} commands)`;
+    const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // the queue keeps its own plain data
+    pl.queue.push({ actor: pl.pawn, verb: cmd.verb, target: copy(cmd.target), args: copy(cmd.args), source: 'player', begun: null });
+    return true;
+  }
+  // Takes command i off the queue. The head, once begun, only stops being the player's: the pawn goes on with the act as its own.
+  function unqueue(st, i) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (!(Number.isInteger(i) && i >= 0 && i < pl.queue.length)) return `the queue has no command ${i}`;
+    pl.queue.splice(i, 1);
+    if (!pl.queue.length && !living(st, pl.pawn)) homeAtDark(st, pl);
+    return true;
+  }
+  function setAuto(st, on) {
+    if (!st.player) return 'no pawn is played';
+    st.player.auto = !!on;
+    return true;
+  }
+  // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
+  // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
+  function playerStep(st) {
+    const pl = st.player;
+    if (!pl || !pl.queue.length) return;
+    const a = st.agents[pl.pawn], q = pl.queue;
+    if (q[0].begun !== null) {
+      const lasts = LASTS[q[0].verb];
+      if (lasts && !living(st, pl.pawn) && lasts(st, a, q[0])) return;
+      q.shift();
+    }
+    while (q.length) {
+      if (a.phase === 'back') return;
+      // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
+      const cmd = q[0], leaves = !!a.job && cmd.verb !== 'work' && !!LASTS[cmd.verb], barred = leaves ? VERBS[cmd.verb].check(st, cmd) : null;
+      if (leaves && !barred) release(st, a);
+      const why = barred || issue(st, cmd);
+      if (why === true) { cmd.begun = st.t; return; }
+      q.shift(); pl.refused = { verb: cmd.verb, why, t: st.t };
+    }
+    if (!living(st, pl.pawn)) homeAtDark(st, pl);
+  }
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
 })();
 </script>
 <script>
@@ -6713,7 +6799,7 @@ VB['sim/jobs'] = (() => {
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
-  const { issue } = VB['sim/commands'];
+  const { issue, unplanned } = VB['sim/commands'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
@@ -6738,7 +6824,7 @@ VB['sim/jobs'] = (() => {
       let best = null, top = 0;
       for (const id of hh.members) {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
-        if (p.died === null && pr > top) { best = st.agents[id]; top = pr; }
+        if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
       }
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
@@ -6811,7 +6897,7 @@ VB['sim/jobs'] = (() => {
     for (const liveId of st.living) {
       const a = st.agents[liveId];
       const p = st.pawns[a.id], j = a.job;
-      if (a.phase !== 'work' || !j || p.died !== null) continue;
+      if (a.phase !== 'work' || !j || p.died !== null || unplanned(st, a.id)) continue;
       if (((j.hours ?? KINDS[j.kind].hours) - j.done) <= rateOf(st, p)) continue;
       const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
@@ -8531,6 +8617,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
+    // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units
@@ -8545,7 +8632,7 @@ VB['sim/scenarios'] = (() => {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      talks: 0, driftMul: 1, naturalDeaths: true, demand: [], meetingLog: [], herds: [], headSeq: 0,
+      talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
@@ -8592,7 +8679,7 @@ VB['sim/clock'] = (() => {
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
-  const { issue } = VB['sim/commands'];
+  const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
   const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
@@ -8621,6 +8708,7 @@ VB['sim/clock'] = (() => {
       const a = st.agents[liveId];
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
+      if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
       release(st, a);
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
@@ -8672,7 +8760,8 @@ VB['sim/clock'] = (() => {
       st.t += step; left -= step;
       const after = Math.floor(st.t + 1e-9);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      const c = cal(st.t), idle = stepAgents(st, step, c);
+      playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
+      const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
       if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
     }
   }
@@ -8831,6 +8920,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
+    if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -8857,7 +8947,7 @@ const Sim = (() => {
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
-  const { issue: command } = VB['sim/commands'];
+  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto } = VB['sim/commands'];
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { explainAllowance } = VB['sim/exchange'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
@@ -8870,7 +8960,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, describe, villageOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf,
+      kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,
       YEAR,
       YEAR_DAYS,
