@@ -129,7 +129,7 @@
         p.visible = smoking; if (!smoking) return;
         const ph = (time * 0.16 + k / h.puffs.length + h.f.id * 0.37) % 1;
         p.position.set(h.cx + ph * 9 + Math.sin(ph * 6 + k) * 1.4, h.cy - ph * 20);
-        p.scale.set(0.1 + ph * 0.24); p.alpha = Math.min(0.95, (1 - ph) * 1.7 * h.smoke * (ph < 0.1 ? ph * 10 : 1));
+        p.scale.set(0.09 + ph * 0.24); p.alpha = Math.min(0.95, (1 - ph * ph) * 2.2 * h.smoke * (ph < 0.1 ? ph * 10 : 1));
       });
       const glowing = near && h.fire > 0.02, flicker = reduceMotion ? 1 : 0.86 + 0.14 * Math.sin(time * 7 + h.f.id * 1.7) * Math.sin(time * 2.3 + h.f.id);
       if (h.lit) { h.lit.visible = glowing; h.lit.alpha = h.fire; }

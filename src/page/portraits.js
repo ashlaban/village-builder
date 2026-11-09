@@ -70,9 +70,9 @@
   function farmIcon(f) {
     if (f.booth) return icon('booth', (g) => {
       g.translate(60, 70); g.scale(4.4, 4.4); g.translate(-15, -1);
-      g.fillStyle = '#6b5135'; g.strokeStyle = '#3e2c1c'; g.lineWidth = 1; g.lineJoin = 'round';
+      g.fillStyle = '#cc9a58'; g.strokeStyle = '#2c201c'; g.lineWidth = 1; g.lineJoin = 'round';
       g.beginPath(); g.moveTo(6, 8); g.lineTo(15, -6); g.lineTo(24, 8); g.closePath(); g.fill(); g.stroke();
-      g.strokeStyle = '#4a3524'; g.lineWidth = 1.2;
+      g.strokeStyle = '#96462f'; g.lineWidth = 1.2;
       for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(15 + dx, -6); g.lineTo(15 + dx * 2.6, -10); g.stroke(); }
       g.fillStyle = '#2a1e14'; g.fillRect(13, 2, 4, 6);
     });

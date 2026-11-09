@@ -27,7 +27,7 @@
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
     Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
     yield 1;
-    G.decorateChunk(wd, ctx, l, cx, cy, SPR);
+    G.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
   }
   function addChunk(l, cx, cy, canvas) {
     const s = LV[l].size;

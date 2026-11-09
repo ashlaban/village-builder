@@ -264,6 +264,45 @@
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
     return c;
   }
+  // The trees and shrubs of the map, in the shape gen's decorateChunk draws them from (broad 28 by 30, pine 20 by 34, shrub 12 by 10): a
+  // crown of rounds or tiers of boughs inside one contour, in green earth, as the trees of a painted vault stand for a whole wood.
+  function landSprites() {
+    const S = { broad: [], pine: [], shrub: [] }, T = 3;
+    const mk = (w, h, seed, fn) => {
+      const c = makeCanvas(w * T, h * T), g = c.getContext('2d'); g.scale(T, T); g.lineJoin = 'round'; g.lineCap = 'round'; fn(g, G.mulberry32(seed));
+      return c; };
+    const col = (c3, f = 1) => `rgb(${c3.map((v) => Math.min(255, v * f) | 0)})`;
+    const trunk = (g, x, y, wd, h) => {
+      g.beginPath(); g.rect(x, y, wd, h); g.fillStyle = col(MP.post); g.fill(); g.strokeStyle = MP.line; g.lineWidth = 0.8; g.stroke(); };
+    const leafs = [[104, 148, 84], [122, 162, 84], [92, 136, 88], [136, 166, 80], [152, 164, 78]];
+    for (let v = 0; v < 10; v++) S.broad.push(mk(28, 30, 1000 + v, (g, r) => {
+      const leaf = leafs[v % leafs.length], pts = [];
+      trunk(g, 12.7, 17, 2.8, 10);
+      for (let k = 0, n = 4 + ((r() * 3) | 0); k < n; k++) pts.push([14 + (r() - 0.5) * 10, 12.5 + (r() - 0.5) * 8, 4.6 + r() * 2.6]);
+      g.strokeStyle = MP.line; g.lineWidth = 2; for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); }
+      g.fillStyle = col(leaf); for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill(); }
+      g.strokeStyle = col(leaf, 0.72); g.lineWidth = 0.9;
+      for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y + 0.4, rad * 0.55, Math.PI * 0.15, Math.PI * 0.85); g.stroke(); }
+      g.fillStyle = col(leaf, 1.3); for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x - rad * 0.3, y - rad * 0.4, 0.9, 0, 7); g.fill(); }
+    }));
+    const needles = [[70, 112, 84], [80, 122, 84], [62, 102, 88], [88, 122, 78]];
+    for (let v = 0; v < 8; v++) S.pine.push(mk(20, 34, 2000 + v, (g, r) => {
+      const leaf = needles[v % needles.length], tall = 0.85 + r() * 0.3, top = 33 - 29 * tall;
+      trunk(g, 9, 25, 2, 7.4);
+      for (let t = 2; t >= 0; t--) {
+        const y0 = top + (t * (26 * tall)) / 3, y1 = y0 + 13 * tall, hw = 3.6 + t * 2.3;
+        g.beginPath(); g.moveTo(10, y0); g.lineTo(10 + hw, y1); g.quadraticCurveTo(10, y1 - 2.4, 10 - hw, y1); g.closePath();
+        g.fillStyle = col(leaf, 1 + (2 - t) * 0.06); g.fill(); g.strokeStyle = MP.line; g.lineWidth = 0.9; g.stroke();
+      }
+    }));
+    const heath = [[152, 142, 86], [130, 136, 78], [166, 126, 98], [138, 114, 86]];
+    for (let v = 0; v < 4; v++) S.shrub.push(mk(12, 10, 3000 + v, (g, r) => {
+      const pts = []; for (let k = 0; k < 3; k++) pts.push([4 + r() * 4, 5.2 + r() * 2, 2 + r() * 1.4]);
+      g.strokeStyle = MP.line; g.lineWidth = 1.3; for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); }
+      g.fillStyle = col(heath[v]); for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill(); }
+    }));
+    return S;
+  }
   // Cattle and sheep, side on, facing right; `look` 0 grazes with the head down, 1 looks up. Coats after old Nordic landraces:
   // red, brown, black, dun, and white with dark patches.
   const COATS = [[178, 82, 52], [140, 94, 60], [70, 60, 56], [214, 176, 116], 'pied'];
