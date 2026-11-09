@@ -5,7 +5,7 @@ VB['sim/exchange'] = (() => {
   const Rules = VB['sim/registry'];
   const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
-  const { personEvent, atHousehold } = VB['sim/records'];
+  const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed } = VB['sim/hunger'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
@@ -63,5 +63,12 @@ VB['sim/exchange'] = (() => {
       Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }); receive(st, null, o.to, o.n, o.from.name);
     } else receive(st, o.from, o.to, o.n, st.farmsteads[o.from.farmstead].name);
   }
-  return { assessGift, settleGift };
+  // For the panel (VB-218): what giver would give up to receiver (pawn ids) in one deal toward receiver's household, and its parts, as
+  // Rules.explain returns them; null unless giver holds a household and receiver lives in another. Reads only; its own context.
+  function explainAllowance(st, giver, receiver) {
+    const from = holdingOf(st, giver), h = st.pawns[receiver].household, to = h !== null ? st.households[h] : null;
+    if (!from || !to || to === from || to.dissolved) return null;
+    return Rules.explain(st, 'allowance', { giver, receiver, from, to });
+  }
+  return { assessGift, settleGift, explainAllowance };
 })();

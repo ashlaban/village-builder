@@ -19,7 +19,7 @@ class Obj { constructor(o) { this.children = []; this.scale = P(); this.position
   get width() { return 400 * this.scale.x; }
   addChild(c) { this.children.push(c); c.parent = this; return c; } removeChildren() { const c = this.children; this.children = []; return c; }
   destroy() { destroyed++; this._dead = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }
-class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'fill', 'clear', 'ellipse'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
+class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'rect', 'fill', 'clear', 'ellipse'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
 const tickers = []; let APP;
 class Application { constructor() { APP = this; } async init(o) { this.canvas = origCreate('div'); this.screen = { width: 1440, height: 900 }; this.renderer = { gl: null }; this.ticker = { add: (f) => tickers.push(f) }; this.stage = new Obj(); } }
 class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w, height: h }); } }
@@ -108,5 +108,48 @@ const iv = setInterval(async () => {
   const iv2 = setInterval(() => { if (!doc.getElementById('regen').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('regen').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
-    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); process.exit(failed ? 1 : 0); } }, 50);
+    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(() => process.exit(failed ? 1 : 0)); } }, 50);
 }, 50);
+// The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward
+// another household shows its rows, each with what it would give and the parts of that allowance on hover.
+async function goodwillPanel() {
+  const Sim = win.Sim, msg = doc.getElementById('dbgMsg'); msg.textContent = '';
+  doc.querySelector('[data-act="skip1"]').click();
+  for (let k = 0; k < 6000 && !msg.textContent.startsWith('Skipped'); k++) await new Promise((r) => setTimeout(r, 5));
+  if (!msg.textContent.startsWith('Skipped')) { fail('"Skip a year" did not finish on the tiny map'); return; }
+  tick(5);
+  const st = simSt, holder = st.pawns.find((p) => p.alive && Sim.isHolder(st, p.id)
+    && Sim.goodwillOf(st, p.id).some((x) => Math.abs(x.balance) >= 1 && Sim.explainAllowance(st, p.id, x.other)));
+  if (!holder) { fail('no holder has a goodwill balance after a year of populous 7 on the tiny map'); return; }
+  const settlers = doc.getElementById('settlers');
+  if (doc.getElementById('peopleSheet').classList.contains('collapsed')) doc.getElementById('settlersBtn').click();
+  tick(2);
+  // each toggle redraws the list, so the next closed fold is found afresh
+  for (let el, k = 0; k < 500 && (el = settlers.querySelector('.village-block:not([open]), .household-block:not([open])')); k++) {
+    el.open = true; el.dispatchEvent(new win.Event('toggle'));
+  }
+  tick(2);
+  const b = settlers.querySelector(`button[data-pawn="${holder.id}"]`);
+  if (!b) { fail(`no settlers button for holder ${holder.id}`); return; }
+  b.click(); tick(20);
+  const rel = doc.getElementById('tileRel'), heads = [...rel.querySelectorAll('h3')].map((h) => h.textContent);
+  const rows = [...rel.querySelectorAll('h3')].filter((h) => h.textContent === 'Owes and is owed').flatMap((h) => {
+    const out = []; for (let n = h.nextElementSibling; n && n.tagName === 'BUTTON'; n = n.nextElementSibling) out.push(n); return out; });
+  const want = Math.min(5, Sim.goodwillOf(st, holder.id).filter((x) => Math.abs(x.balance) >= 1).length);
+  console.log(`goodwill: ${Sim.fullName(holder)} |`, heads.join(' / '), '|', rows.map((r) => `${r.textContent} [${r.title}]`).join(' / '));
+  if (rel.hidden || rows.length !== want) fail(`the goodwill list of holder ${holder.id} has ${rows.length} rows, expected ${want}`);
+  if (!rows.every((r) => /^(Owes .+ \d+ rations?|Is owed \d+ rations? by .+?)(would give up to \d+ rations?)?$/.test(r.textContent))) {
+    fail('a goodwill row does not read "Owes X N rations" or "Is owed N rations by X"'); }
+  const given = rows.filter((r) => r.querySelector('i.give'));
+  if (!given.length || !given.every((r) => ['Grain above the floor', 'Own reserve', 'Goodwill'].every((label) =>
+    new RegExp(`(^| · )${label}[^·]* (0|[+−]\\d+)( ·|$)`).test(r.title)))) {
+    fail("no goodwill row of a holder shows what it would give, with its allowance's parts on hover"); }
+  // a pawn with no balance of a ration or more has no list
+  const none = [...settlers.querySelectorAll('button[data-pawn]')].map((x) => +x.dataset.pawn)
+    .find((id) => st.pawns[id].alive && !Sim.goodwillOf(st, id).some((x) => Math.abs(x.balance) >= 1));
+  if (none === undefined) fail('every listed pawn has a goodwill balance');
+  else {
+    settlers.querySelector(`button[data-pawn="${none}"]`).click(); tick(20);
+    if (/Owes and is owed/.test(rel.innerHTML)) fail(`pawn ${none}, with no balance, shows a goodwill list`);
+  }
+}
