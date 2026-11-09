@@ -173,3 +173,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-219](backlog/VB-219.md) | Wrap-up: kin help, booked | kin-help | 1 | S | A probe of the balances over long runs and late saves, the slice's cost against its line, The gift against the code; the arch closed. |
 | [VB-208](backlog/VB-208.md) | Refactor: each job kind says where it is available, and `refreshJobs` posts from them | life | 2 | M | Each kind's posting rule moves into its `KINDS` record as `available`; `refreshJobs` asks the kinds in today's order; golden unchanged. |
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
+| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 2 | M | One `notable` rule over the record of events; toasts that select what happened. |
