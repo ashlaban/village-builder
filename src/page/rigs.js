@@ -10,9 +10,10 @@
     const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(0,0,0,0)');
     gr.addColorStop(1, `rgba(0,0,0,${a})`); g.fillStyle = gr; g.globalCompositeOperation = 'source-atop'; g.fillRect(0, 0, w, h);
     g.globalCompositeOperation = 'source-over'; }
-  function partCanvases() {
+  // k texels per part unit: 1 for the map's atlas, more for the panels' portraits (page/portraits), which show the same parts larger.
+  function partCanvases(k = 1) {
     const P = {};
-    const mk = (name, w, h, fn) => { const c = makeCanvas(w, h), g = c.getContext('2d'); fn(g, w, h); P[name] = c; };
+    const mk = (name, w, h, fn) => { const c = makeCanvas(w * k, h * k), g = c.getContext('2d'); if (k !== 1) g.scale(k, k); fn(g, w, h); P[name] = c; };
     mk('shadow', 34, 10, (g) => {
       const gr = g.createRadialGradient(17, 5, 0, 17, 5, 16); gr.addColorStop(0, 'rgba(20,28,18,0.42)'); gr.addColorStop(1, 'rgba(20,28,18,0)');
       g.fillStyle = gr; g.beginPath(); g.ellipse(17, 5, 16, 4.5, 0, 0, 7); g.fill(); });
@@ -157,10 +158,14 @@
   const HAIRS = [[232, 206, 142], [206, 164, 100], [158, 112, 66], [110, 78, 52], [76, 58, 44]];
   const LINEN = [242, 238, 226];
   const hex = (c, f = 1) => ((Math.min(255, c[0] * f) << 16) | (Math.min(255, c[1] * f) << 8) | Math.min(255, c[2] * f)) >>> 0;
-  function makeRig(p, married) {
+  // A pawn's colours and headgear, from its `look` seed: the same on the map and in its portrait.
+  function lookOf(p) {
     const r = G.mulberry32(p.look), pick = (a) => a[(r() * a.length) | 0];
-    const look = { cloth: pick(DYES), cloth2: pick(DYES), hose: pick(HOSE), skin: pick(SKINS), hair: pick(HAIRS), beard: p.sex === 'm' && r() < 0.6,
+    return { cloth: pick(DYES), cloth2: pick(DYES), hose: pick(HOSE), skin: pick(SKINS), hair: pick(HAIRS), beard: p.sex === 'm' && r() < 0.6,
       hood: p.sex === 'm' && r() < 0.45, hoodCol: pick(DYES) };
+  }
+  function makeRig(p, married) {
+    const look = lookOf(p);
     const S = (name, tint, ax = 0.5, ay = 0) => {
       const s = new PIXI.Sprite(atlas[name]); s.anchor.set(ax, ay); if (tint !== undefined) s.tint = tint; return s; };
     const root = new PIXI.Container(); root.scale.set(1 / PX);

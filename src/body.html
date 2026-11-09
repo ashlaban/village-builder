@@ -13,10 +13,10 @@
       <p class="hint" id="hint"></p>
       <h2 class="menu-label">Map &amp; layers</h2>
       <div class="actions">
-        <button id="gridBtn" type="button" aria-pressed="true">Grid</button>
-        <button id="regionBtn" type="button" aria-pressed="false">Regions</button>
-        <button id="landBtn" type="button" aria-pressed="false">Land</button>
-        <button id="minimapBtn" type="button" aria-pressed="false">Minimap</button>
+        <button id="gridBtn" type="button" aria-keyshortcuts="g" title="Hex grid (G)" aria-pressed="true">Grid</button>
+        <button id="regionBtn" type="button" aria-keyshortcuts="r" title="Regions (R)" aria-pressed="false">Regions</button>
+        <button id="landBtn" type="button" aria-keyshortcuts="l" title="Land ownership (L)" aria-pressed="false">Land</button>
+        <button id="minimapBtn" type="button" aria-keyshortcuts="m" title="Minimap (M)" aria-pressed="false">Minimap</button>
       </div>
       <h2 class="menu-label">Game</h2>
       <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
@@ -31,21 +31,21 @@
     <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
     <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
     <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
-      <button type="button" data-speed="0" aria-pressed="false">Pause</button>
-      <button type="button" data-speed="1" aria-pressed="true">1×</button>
-      <button type="button" data-speed="3" aria-pressed="false">3×</button>
-      <button type="button" data-speed="10" aria-pressed="false">10×</button>
+      <button type="button" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" title="Pause (Space)">Pause</button>
+      <button type="button" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" title="1× (1)">1×</button>
+      <button type="button" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" title="3× (2)">3×</button>
+      <button type="button" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" title="10× (3)">10×</button>
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
   </div>
 </div>
-<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h">Hide UI</button>
+<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="settlersBtn" type="button" aria-pressed="false" aria-controls="peopleSheet">People</button>
-  <button id="treeBtn" type="button" aria-haspopup="dialog">Family</button>
-  <button id="customsBtn" type="button" aria-pressed="false" aria-controls="drawer">Customs</button>
+  <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
+  <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
+  <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
   <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
 </nav>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
@@ -73,7 +73,11 @@
 <div class="hud bottom">
   <aside class="tile sheet panel collapsed" id="tile" hidden aria-labelledby="tileName">
     <div class="sheet-head">
-      <strong id="tileName"></strong>
+      <div id="tileBadge" hidden></div>
+      <div class="sheet-title"><strong id="tileName"></strong><span id="tileKind" hidden></span></div>
+      <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
+        viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
+        r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
       <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
       <button id="tileClose" type="button" aria-label="Close selection">Close</button>
     </div>
@@ -83,6 +87,8 @@
       <span id="tileExtra" hidden></span>
       <span id="tileMore" hidden></span>
       <div id="tileRest"></div>
+      <div id="tileLinks" class="links" hidden></div>
+      <div id="tileList" class="roster" hidden></div>
       <button type="button" id="personFamily" hidden>View family records</button>
       <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
     </div>

@@ -22,6 +22,8 @@
     for (const fd of f.fields) { const s = fd.stage === 'stooks' ? 'stooks' : cropStage(fd); n[s] = (n[s] || 0) + 1; }
     return Object.entries(n).map(([k, v]) => `${v} ${word[k]}`).join(', ');
   }
+  const hungerWord = (hh) => (hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving');
+  const hungerMark = (hh) => `<i class="mark ${hh.hunger <= 0 ? 'fed' : hh.hunger < .25 ? 'short' : 'hungry'}"></i>`;
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
   let settlersHTML = '', peopleQuery = '';
   const peopleFolds = new Set();
@@ -67,16 +69,17 @@
     }
     const household = ({ hh, f, members }) => {
       const key = `household-${hh.id}`, expanded = !!query || foldOpen(key);
-      const state = hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving';
       let body = '';
       if (expanded) {
         const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-        body += `<div class="farm"><p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
+        body += `<div class="farm"><p><button type="button" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
+          <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
         if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
         if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
         body += `<ul>${members.map((id) => {
           const pawn = st.pawns[id];
-          return `<li>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${esc(Sim.describe(st, id))}</span></li>`;
+          return `<li>${faceImg(id, 'mini')}<div>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${
+            esc(Sim.describe(st, id))}</span></div></li>`;
         }).join('')}</ul>`;
         const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
         body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
@@ -99,7 +102,8 @@
         body += fold(animalsKey, 'Animals & larder', animals) + '</div>';
       }
       return `<details class="household-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${esc(f.name)}<span class="summary-meta">${hh.members.length} people · ${state}</span></summary>${body}</details>`;
+        <summary>${iconImg(farmIcon(f), 'mini')}${esc(f.name)}<span class="summary-meta">${hungerMark(hh)}${hh.members.length} people · ${
+          hungerWord(hh)}</span></summary>${body}</details>`;
     };
     let h = '';
     for (const v of st.villages) {
@@ -108,7 +112,8 @@
       const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
       let body = '';
       if (expanded) {
-        body = households.map(household).join('');
+        body = `<p><button type="button" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
+          + households.map(household).join('');
         const commonsKey = `commons-${v.id}`;
         let commons = '';
         if (foldOpen(commonsKey)) {
@@ -137,7 +142,8 @@
       }
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+        <summary>${iconImg(villageIcon(v),
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
     }
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
       const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
@@ -156,17 +162,14 @@
   function focusPawn(id) {
     const p = st.pawns[id]; if (p.died !== null) { treeSel = id; openTree(); return; }
     const a = st.agents[id], f = farmOf(p);
-    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] : a.y, z1 = Math.max(cam.z, 1.5);
-    intro = { t: 0, d: 1.1, x0: cam.x, y0: cam.y, z0: cam.z, x1: x, y1: y, z1, T: levelFor(z1, 1),
-      rect: viewRect(LV[levelFor(z1, 1)].size * 0.25, { x, y, z: z1 }) };
+    flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
     selectPawn(id);
   }
-  $('settlers').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function selectPawn(id, pinned = true) { selectionPinned = pinned; openPanel('tile'); selPawn = id; sel = -1; hoverDirty = true; showPawn(id); }
   function showPawn(id) {
     $('personFamily').hidden = false;
     const p = st.pawns[id], f = farmOf(p);
-    if (p.died !== null || !f) { card(Sim.fullName(p), ['Died']); return; }
+    if (p.died !== null || !f) { card(Sim.fullName(p), ['Died'], '', { badge: faceImg(id, 'badge') }); return; }
     const sp = Sim.spouseOf(st, id), kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
     const holds = Sim.holdingOf(st, id), heirs = heirTo(id);
     const status = holds ? `Holds ${f.name}` : heirs.length ? `Heir to ${heirs.map((x) =>
@@ -174,12 +177,14 @@
       st.demand.includes(id) ? `Landless at ${f.name}, wants to move out` : `Lives at ${f.name}`;
     const rel = (sp !== null ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}` : isWidow(p) ? 'Widowed' : 'Unmarried')
       + (p.pregnantUntil !== null ? ', expecting a child' : p.nursingUntil !== null && st.t < p.nursingUntil ? ', nursing a baby' : '');
+    const v = st.villages[f.village];
     card(Sim.fullName(p),
       [`${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` :
       (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''),
-      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id));
+      Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id), { badge: faceImg(id, 'badge'),
+      links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) });
     showRelations(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
@@ -192,7 +197,8 @@
       const word = Sim.opinionWord(x.opinion), kin = Sim.standingWord(st, id, x.id), why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
       const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null].filter(Boolean).join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
-      return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
+      return `<button type="button" data-pawn="${x.id}">${faceImg(x.id,
+        'mini')}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
         x.opinion)}</b></button>`;
     }).join('');
     const owed = goodwillRows(id), h = (rows ? `<h3>Knows best</h3>${rows}` : '') + (owed ? `<h3>Owes and is owed</h3>${owed}` : '');
@@ -212,9 +218,19 @@
       return `<button type="button" data-pawn="${x.other}"${why}>${x.balance > 0 ? `Is owed ${n} by ${name}` : `Owes ${name} ${n}`}${give}</button>`;
     }).join('');
   }
-  $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
-  function card(title, lines, activity = '') {
+  // The selection card: a title, up to four lines and the rest, an activity, and `more`: a badge (portrait or icon), a kind under the title,
+  // links to what the selection belongs to, and a list of what it holds. Unpinned, under the pointer, it shows its summary only.
+  const cardShown = {};
+  function cardPart(id, html = '') {
+    const el = $(id);
+    if (cardShown[id] !== html) { cardShown[id] = html; el.innerHTML = html; }
+    el.hidden = !html;
+  }
+  function card(title, lines, activity = '', more = {}) {
     $('tileName').textContent = title;
+    cardPart('tileBadge', more.badge); cardPart('tileKind', more.kind ? esc(more.kind) : ''); cardPart('tileLinks', more.links);
+    cardPart('tileList', more.list);
+    $('tile').classList.toggle('peek', !selectionPinned);
     $('tileActivity').textContent = activity; $('tileActivity').hidden = !activity;
     ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => {
       const el = $(id); el.textContent = lines[k] || ''; el.hidden = !lines[k];
@@ -241,13 +257,14 @@
     for (const f of st.farmsteads) {
       const v = st.villages[f.village].name, where = `${f.name}, ${v}`;
       if (f.house === i) {
-        if (f.household === null) return [`${f.name}${v ? `, ${v}` : ''}`,
+        if (f.household === null) return [f.name,
           [`Empty for ${emptyYears(f)} years: ${f.state === 'ruin' ? 'a ruin' : 'buildings at ' + Math.round(f.condition * 100) + '%'}`,
-          'No heir took it; claims come in the next batch']];
+          'No heir took it; claims come in the next batch'], { farm: f.id, house: true }];
         const hh = st.households[f.household], heirs = Sim.heirRanking(st, hh).slice(0, 3).map((q) => Sim.fullName(st.pawns[q]));
-        return [`${f.name}${v ? `, ${v}` : ''}`,
+        return [f.name,
           [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
-          heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line']];
+          heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
+          `${hungerWord(hh)}: ${Math.round(hh.grain)} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
       }
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {
@@ -259,7 +276,8 @@
         const worn = fd.soil < 0.99 ? `, worn to ${Math.round(fd.soil * 100)}% by its crops` : fd.soil > 1.01 ? `, dunged to ${Math.round(fd.soil * 100)}%` :
           '';
         return [`Field of ${where}`,
-          [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`]];
+          [word, `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`], {
+            farm: f.id }];
       }
     }
     for (const f of st.farmsteads) {
@@ -268,9 +286,9 @@
       const word = { grass: m.raked ? 'Grass growing, raked clean in spring' : 'Grass growing', mown: 'Mown; the hay is drying',
         aftermath: 'Aftermath: the hay is in' }[m.stage];
       return [`Hay meadow of ${f.name}, ${st.villages[f.village].name}`,
-        [word, `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`]];
+        [word, `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`], { farm: f.id }];
     }
-    for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, ['The well sweep and the green are village commons']];
+    for (const v of st.villages) if (v.center === i && v.green) return [`Village green of ${v.name}`, [], { village: v.id }];
     return null;
   }
 
