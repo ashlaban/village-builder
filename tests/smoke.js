@@ -93,6 +93,24 @@ const iv = setInterval(async () => {
   doc.getElementById('treeBtn').click(); tick(2);
   console.log('tree:', doc.getElementById('treeSub').textContent, '| nodes', qa('#treeSvg g.tn').length, 'dead', qa('#treeSvg g.tn.dead').length, 'heir dots', qa('#treeSvg .heir').length);
   if (!qa('#treeSvg g.tn').length) fail('family tree is empty');
+  // the line view: a living person's line shows fewer people than the records hold, each mode draws, and a chip opens in place
+  const everyone = () => { q('#treeModes [data-mode="all"]').click(); return qa('#treeSvg g.tn').length; };
+  const all = everyone(), parent = +q('#treeSvg g.tn:not(.dead)').dataset.pawn;
+  q(`#treeSvg g.tn[data-pawn="${parent}"]`).dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+  const shown = {};
+  for (const mode of ['line', 'father', 'mother', 'desc']) {
+    q(`#treeModes [data-mode="${mode}"]`).click(); shown[mode] = qa('#treeSvg g.tn').length;
+    if (!q('#treeSvg g.tn.focus')) fail(`the ${mode} view does not show the person it is of`);
+    if (shown[mode] > all) fail(`the ${mode} view shows more people than the records hold`);
+    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-pressed') !== 'true') fail(`the ${mode} button is not pressed`);
+    const chip = q('#treeSvg g.chip');
+    if (chip) {
+      chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+      if (qa('#treeSvg g.tn').length < shown[mode]) fail(`a chip of the ${mode} view hid people`);
+    }
+  }
+  console.log('tree lines:', JSON.stringify(shown), 'of', all);
+  everyone();
   const dn = q('#treeSvg g.tn.dead'); dn.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
   console.log('dead info:', doc.getElementById('treeInfo').textContent.replace(/\s+/g, ' ').slice(0, 200));
   doc.getElementById('treeClose').click();
