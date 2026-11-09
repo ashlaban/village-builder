@@ -16,6 +16,7 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | player | The player's role | Closed 3 November 2026: its open tasks moved to the slices. Decide and build what the player is and does: whose commands they give, how they sway customs, and what a run offers them. | Vision and scope (Player role); Systems overview |
 | foresight | Needs, intentions and plans | Closed 3 November 2026: its open tasks moved to the slices. Households and pawns look ahead: what they will lack and by when (needs), what they mean to do about it over days or seasons (intentions), and the jobs and commands that carry it out (actions); temper and attitudes bend the choice. Job matching stays the means of acting. | Economy and jobs; People, households and family records; Customs and culture |
 | work | Work and jobs | Closed 3 November 2026: its open tasks moved to the slices. Pawns work when there is work: several hands per job, children's work, help between households, interrupts, and the 6:00–18:00 day with a short night; steered by the player later. | Economy and jobs; Time and calendar (Daily rhythm) |
+| kin-help | Slice 1: kin help, booked | Closed 9 November 2026: The walking skeleton: help in hunger as a gift through Exchange, goodwill booked between the two pawns, `allowance` as a rule, shown in the pawn panel. | Goods, production and animals (Help in hunger); Exchange, goodwill and obligations; roadmap 3.1 |
 
 ## Done tasks
 
@@ -169,3 +170,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-204](backlog/VB-204.md) | Food ledgers: routine movements folded into yearly totals | yardstick | 1 | S | Meals, cooking, spoilage, threshing, milk and butter (95% of ledger entries) kept as yearly totals; gifts and harvests stay entries; the save shrinks. |
 | [VB-218](backlog/VB-218.md) | The pawn panel: goodwill balances and a holder's allowance | kin-help | 1 | S | Up to 5 balances under Knows best, with the last booking's reason and year; on a holder's panel, what it would give each, with `explain(allowance)` on hover. |
 | [VB-205](backlog/VB-205.md) | Agents and walking: name the largest cost, then cut it | yardstick | 2 | M | The unnamed rest of `Sim.advance` (34% of a year-60 day, no task) split by a profile into named systems, then cut to its share. |
+| [VB-219](backlog/VB-219.md) | Wrap-up: kin help, booked | kin-help | 1 | S | A probe of the balances over long runs and late saves, the slice's cost against its line, The gift against the code; the arch closed. |
