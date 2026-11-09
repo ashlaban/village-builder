@@ -3,6 +3,17 @@
 // camera, as docs/stability/shots.js; PixiJS from node_modules.
 //   node tools/shot.js --scenario populous --seed 7 --size t --years 10 --land --out /tmp/shots [--tag x] [--close 2] [--at X,Y,Z] [--html file]
 // Sizes: t(iny), s(mall), m(edium), l(arge). Writes <tag>-island.jpg, <tag>-close<k>.jpg and <tag>-info.json (villages, their land).
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`usage: node tools/shot.js [--scenario populous] [--seed 7] [--size t|s|m|l] [--years 0] [--out DIR]
+  screenshots of the built index.html in Chromium: the whole island and close-ups of the largest villages
+  writes <tag>-island.jpg, <tag>-close<k>.jpg and <tag>-info.json (villages, their land) into DIR (default: the current directory)
+  --land        with the Land overlay on
+  --close N     close-ups of the N largest villages (default 1)
+  --at X,Y,Z    one close-up at a point and zoom instead
+  --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
+  --html FILE   another build of the page`);
+  process.exit(0);
+}
 const root = require('path').join(__dirname, '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };

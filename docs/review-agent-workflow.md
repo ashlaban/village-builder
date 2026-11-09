@@ -135,10 +135,11 @@ tokens read from the cache) shows that `AGENTS.md`, about 3,500 tokens, is no lo
 | Diffs skip built files | `.gitattributes`: `index.html` and `package-lock.json` are `-diff` | `git show` and `git diff` printed the rebuilt page | "Binary files differ" |
 
 Open, in order of payoff:
-1. **One task per context.** `docs/agents/worker.md` takes ready tasks in one session until none are left, and each call re-reads all
-   that came before. An orchestrator that hands each task to a fresh subagent or session and keeps one line of its result; the
-   implementing agent on a cheaper model where the task is S or keeps behaviour (the golden file is the gate).
-2. **A `.claude/` directory**: a permission allowlist, the roles of `docs/agents/` as agent definitions with a model and tools each, and
+1. **One task per context: done** (9 November). `docs/agents/worker.md` now orchestrates and hands each task to a `vb-task` subagent
+   (`.claude/agents/vb-task.md`) with a fresh context: Sonnet for size S, Opus for M and L (Kim). Not yet run: the first night
+   measures it, and must show whether `tools/agent-usage.js` counts the subagents' tokens (it counts `isSidechain` entries of the
+   session's transcript; subagents written to transcripts of their own would be missed). `tools/shot.js` got its `--help` too.
+2. **The rest of `.claude/`**: a permission allowlist, and
    `npm install` in the cloud environment's setup script.
 3. **The Commands section of `AGENTS.md` as pointers**, once every tool it lists answers `--help`.
 4. **Checks on pull requests**: the only workflow is the scheduled `fixtures.yml`, so the agent is the only gate.
