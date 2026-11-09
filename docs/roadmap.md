@@ -61,8 +61,8 @@ Programmer*, 1999): a thin piece that runs end to end, then grows. Both citation
 |---|---|---|---|
 | 0 | The yardstick | (the team can measure every later slice at its own cost) | Work counters, fixtures, bands (6.2), the rules registry with `death.hazard` (4.1), indexes of the living |
 | 1 | Kin help, booked | See who owes whom goodwill, and why help was given or refused | Stores with goods (4.3), goodwill and `allowance` (4.4), Exchange's gift (4.5), `explain` |
-| 2 | A life | Inhabit a pawn, queue what it does, argue at the meeting, go on as kin after its death; save in the page | Opportunities for a pawn (4.5), the player's doors (4.7) but `Decisions.answer`, the actor view |
-| 3 | The household's year | As holder, set the season's plan; as a member, follow it or not | Opportunities, plans, tasks, eligibility, planning days, the meeting's routines, attention (4.5) |
+| 2 | A life | Inhabit a pawn, queue what it does, argue at the meeting, answer an offer of marriage, read its line's history, skip to the next event, go on as kin after its death; save in the page | Opportunities for a pawn (4.5), the player's doors (4.7) but `Decisions.answer`, the actor view |
+| 3 | The household's year | As holder, set the season's plan and place the next field; as a member, follow it or not | Opportunities, plans, tasks, eligibility, planning days, the meeting's routines, attention (4.5) |
 | 4 | The autumn fair | Barter at the fair, borrow, lend | Typed goods and custody (4.3), venues, occasions, reach on foot (4.2), swap and loan, norms (5.1–5.3), Obligations (4.4) |
 | 5 | Debt and land | Press a debt, sit at the hearing, farm as a tenant | Land rights (4.3), Enforcement and Decisions (4.5), class with hysteresis (4.6), the bodies decision |
 | 6 | The mill and the loom | Build a mill with the village, learn a craft, spin and weave | Facilities and construction (4.3), recipes with subtypes, skills, the textile chain (5.6), occupation |
@@ -160,6 +160,19 @@ The vision's core (Kim, 3 November). Every later slice should be tried through t
 - **Budget line:** 0 ms a game day of simulation, and, without a player, the state and counters unchanged. In the page,
   opportunities for one pawn under 1 ms a call.
 
+**9 November update (Kim, the gameplay review).** The review found slice 2 thin as planned: the queue offers the chores the pawn would
+do anyway, real choices come about once a year, and the largest of a life, marriage, was not the player's. Kim's decisions:
+- **Marriage is a negotiation** between two households, and the player takes part, for its pawn and as head for its members
+  (`design.md`, Marriage as a negotiation). This replaces "no say until courting". VB-233 plans it: a first version here (the round's
+  match becomes an offer both sides answer, the first question through `Decisions.answer`), terms with slice 4's goods, courting in slice 7.
+- **The chronicle is built here**, apart from ambitions (VB-099, priority 2): it is the game's memory.
+- **Skip to the next event** that concerns the played pawn (VB-234), on VB-098's list of notable events (priority 2 with it).
+- **The player steers by position:** what its pawn's position commands, the player chooses. Head of a household is the first such
+  position, and slice 3 designs it (below).
+- Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-233", "VB-234", "VB-099"): an offer waits 7 game days;
+  a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
+- The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
+
 ### 3.3 The household's year
 
 The riskiest change, because it rewires the core loop. It goes before the fair because every later slice stands on it: the fair is
@@ -190,6 +203,11 @@ an occasion (a plan), labour owed is the creditor's opportunity, and a mill is a
   cost in the game. They should be computed on a holder's planning day and on a change to its rights or stores. They are cached
   per holder by one writer, with a test that the cache equals a fresh computation. Budget line: under 10 ms a game day at the
   early reference.
+
+**9 November update (Kim, the gameplay review).** A player who is head of a household directs it directly: it places the next field,
+meadow or building to be made and sets the season's work, in place of the holder's rule and under the rules that bind any holder
+(`design.md`, The player and what they see, As head of the household). The design pass (VB-164) adds: which of a holder's choices the
+player may make, and what the household does where the player makes none.
 
 ### 3.4 The autumn fair
 
@@ -270,6 +288,7 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
   - venue rules;
   - story kinds and their numbers, from the experiment.
 - **Done when:** the bands of target-v2 10.2 hold. Talk must cost less at the end of this slice than at its start.
+- **9 November update:** courting no longer replaces the round's matches; it feeds the negotiation between households (VB-233).
 
 ### 3.8 The ship
 
