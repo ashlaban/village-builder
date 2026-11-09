@@ -20,7 +20,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 2. Read only what its Design ref and notes name (`tools/doc.js`), and its questions (`node tools/questions.js show ID`).
 3. If it turns out to need a design decision, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
-5. Run `npm run verify` once, before the last commit; the task is not done until it passes. Rebuild `index.html` before committing.
+5. Before the last commit: `npm test` and `node tests/golden.js`; for a task of size M or L, or one that touches `src/page/`, `npm run verify`
+   instead, once. Rebuild `index.html` before committing. The task is not done until the PR's Checks pass.
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
@@ -98,8 +99,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 
 ## Working rules
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
-- Use `npm test` while working, after each change. Use `npm run verify` sparingly: once at the end of a task, before its last commit,
-  and always for a refactor (the golden file is only checked there). A task is not done until verify passes.
+- Use `npm test` while working, after each change. At the end of a task, before its last commit: `node tests/golden.js` (the golden file
+  is not in `npm test`), or `npm run verify` once for size M or L and for a change under `src/page/`. The Checks workflow
+  (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, on every PR: a task is not done until
+  both of its jobs pass, and a failure there is fixed on the PR.
 - Rebuild `index.html` before committing; both suites check it.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
 - A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).

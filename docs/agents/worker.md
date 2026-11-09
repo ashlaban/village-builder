@@ -39,7 +39,9 @@ status=needs-review`: goal, proposed criteria, Design ref, size, and the questio
    It publishes nothing without a `GH_TOKEN`; if the fixtures it fetched were stale, say so in the PR.
 2. Measure the run: `node tools/agent-usage.js --label worker --out docs/agents/usage`; commit the file it writes, and put its
    summary in the PR description.
-3. Mark the PR ready for review; its description is the night's log. Commit no separate run log.
+3. Read the PR's Checks (`verify`, `late-game`) for the last push. A failure: say in the description which job and script failed and,
+   if it is clear, which task's commit; do not fix it tonight.
+4. Mark the PR ready for review; its description is the night's log. Commit no separate run log.
 
 ## Rules
 - Never leave uncommitted work at the end of a task. Never edit `design.md`.
