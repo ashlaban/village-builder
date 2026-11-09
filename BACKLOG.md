@@ -12,7 +12,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-218](backlog/VB-218.md) | The pawn panel: goodwill balances and a holder's allowance | kin-help | 1 | S | Up to 5 balances under Knows best, with the last booking's reason and year; on a holder's panel, what it would give each, with `explain(allowance)` on hover. |
+| [VB-219](backlog/VB-219.md) | Wrap-up: kin help, booked | kin-help | 1 | S | A probe of the balances over long runs and late saves, the slice's cost against its line, The gift against the code; the arch closed. |
 | [VB-127](backlog/VB-127.md) | Familiarity from talk and time at home, not from standing near each other | talk | 2 | M | Ties from talk, home and shared work; a shared decay scale and at most 150 ties; customs recalibrated. |
 | [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
@@ -50,7 +50,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | VB-199 | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | VB-208 | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
-| [VB-219](backlog/VB-219.md) | Wrap-up: kin help, booked | kin-help | 1 | S | VB-218 | A probe of the balances over long runs and late saves, the slice's cost against its line, The gift against the code; the arch closed. |
 | [VB-169](backlog/VB-169.md) | Inhabit a pawn: the player's queued commands go before its own logic | life | 2 | M | VB-208 | `st.player` with a queue of up to 8 commands that the planner's four sites leave alone; the role's automatic behaviour as the fallback, with a switch; home at dark. |
 | [VB-209](backlog/VB-209.md) | What a pawn may do here: `Opportunities.forPawn` and the actor view | life | 2 | M | VB-208 | Read-only, for one pawn on demand: its household's and village's work, going, causes and the round's acts, each with basis and reason; under 1 ms. |
 | [VB-210](backlog/VB-210.md) | Playing a pawn in the page: Play as, what it may do, the queue and the switch | life | 2 | M | VB-169, VB-209 | The pawn panel to play by: needs, activity, the queue, the automatic switch, what it may do as buttons, Follow; browser checks and screenshots. |

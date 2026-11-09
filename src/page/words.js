@@ -195,9 +195,22 @@
       return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
         x.opinion)}</b></button>`;
     }).join('');
-    const h = rows ? `<h3>Knows best</h3>${rows}` : '';
+    const owed = goodwillRows(id), h = (rows ? `<h3>Knows best</h3>${rows}` : '') + (owed ? `<h3>Owes and is owed</h3>${owed}` : '');
     if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
     $('tileRel').hidden = !h; $('relationsDetails').hidden = !h;
+  }
+  // A pawn's largest goodwill balances (VB-218; design.md, The gift: What the player sees), in whole rations; on a holder's panel, what
+  // it would give each counterpart's household, with the parts of its allowance on hover.
+  const rations = (n) => `${n} ${n === 1 ? 'ration' : 'rations'}`;
+  const part = (v) => { const r = Math.round(v); return r === 0 ? '0' : `${r < 0 ? '−' : '+'}${Math.abs(r)}`; };
+  function goodwillRows(id) {
+    return Sim.goodwillOf(st, id).filter((x) => Math.abs(x.balance) >= 1).slice(0, 5).map((x) => {
+      const name = esc(Sim.fullName(st.pawns[x.other])), n = rations(Math.round(Math.abs(x.balance)));
+      const a = Sim.explainAllowance(st, id, x.other);
+      const give = a ? `<i class="give">would give up to ${rations(Math.round(a.value))}</i>` : '';
+      const why = a ? ` title="${esc(a.parts.map((q) => `${q.label} ${part(q.factor)}`).join(' · '))}"` : '';
+      return `<button type="button" data-pawn="${x.other}"${why}>${x.balance > 0 ? `Is owed ${n} by ${name}` : `Owes ${name} ${n}`}${give}</button>`;
+    }).join('');
   }
   $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function card(title, lines, activity = '') {

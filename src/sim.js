@@ -17,7 +17,8 @@ const Sim = (() => {
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command } = VB['sim/commands'];
-  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf } = VB['sim/relations'];
+  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
+  const { explainAllowance } = VB['sim/exchange'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -37,7 +38,7 @@ const Sim = (() => {
       fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
   };
 })();
 VB['sim'] = Sim;

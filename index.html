@@ -163,6 +163,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   text-align: left; cursor: pointer; }
 .tile .rel button i { flex: 1; font-style: normal; color: var(--muted); }
 .tile .rel button b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .rel button i.give { text-align: right; }
+.tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
 .minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
@@ -4610,7 +4612,7 @@ VB['sim/exchange'] = (() => {
   const Rules = VB['sim/registry'];
   const { strengthenTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
-  const { personEvent, atHousehold } = VB['sim/records'];
+  const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed } = VB['sim/hunger'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
@@ -4668,7 +4670,14 @@ VB['sim/exchange'] = (() => {
       Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }); receive(st, null, o.to, o.n, o.from.name);
     } else receive(st, o.from, o.to, o.n, st.farmsteads[o.from.farmstead].name);
   }
-  return { assessGift, settleGift };
+  // For the panel (VB-218): what giver would give up to receiver (pawn ids) in one deal toward receiver's household, and its parts, as
+  // Rules.explain returns them; null unless giver holds a household and receiver lives in another. Reads only; its own context.
+  function explainAllowance(st, giver, receiver) {
+    const from = holdingOf(st, giver), h = st.pawns[receiver].household, to = h !== null ? st.households[h] : null;
+    if (!from || !to || to === from || to.dissolved) return null;
+    return Rules.explain(st, 'allowance', { giver, receiver, from, to });
+  }
+  return { assessGift, settleGift, explainAllowance };
 })();
 </script>
 <script>
@@ -8504,7 +8513,8 @@ const Sim = (() => {
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command } = VB['sim/commands'];
-  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf } = VB['sim/relations'];
+  const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
+  const { explainAllowance } = VB['sim/exchange'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -8524,7 +8534,7 @@ const Sim = (() => {
       fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
   };
 })();
 VB['sim'] = Sim;
@@ -10529,9 +10539,22 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return `<button type="button" data-pawn="${x.id}">${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(
         x.opinion)}</b></button>`;
     }).join('');
-    const h = rows ? `<h3>Knows best</h3>${rows}` : '';
+    const owed = goodwillRows(id), h = (rows ? `<h3>Knows best</h3>${rows}` : '') + (owed ? `<h3>Owes and is owed</h3>${owed}` : '');
     if (h !== relHTML) { relHTML = h; $('tileRel').innerHTML = h; }
     $('tileRel').hidden = !h; $('relationsDetails').hidden = !h;
+  }
+  // A pawn's largest goodwill balances (VB-218; design.md, The gift: What the player sees), in whole rations; on a holder's panel, what
+  // it would give each counterpart's household, with the parts of its allowance on hover.
+  const rations = (n) => `${n} ${n === 1 ? 'ration' : 'rations'}`;
+  const part = (v) => { const r = Math.round(v); return r === 0 ? '0' : `${r < 0 ? '−' : '+'}${Math.abs(r)}`; };
+  function goodwillRows(id) {
+    return Sim.goodwillOf(st, id).filter((x) => Math.abs(x.balance) >= 1).slice(0, 5).map((x) => {
+      const name = esc(Sim.fullName(st.pawns[x.other])), n = rations(Math.round(Math.abs(x.balance)));
+      const a = Sim.explainAllowance(st, id, x.other);
+      const give = a ? `<i class="give">would give up to ${rations(Math.round(a.value))}</i>` : '';
+      const why = a ? ` title="${esc(a.parts.map((q) => `${q.label} ${part(q.factor)}`).join(' · '))}"` : '';
+      return `<button type="button" data-pawn="${x.other}"${why}>${x.balance > 0 ? `Is owed ${n} by ${name}` : `Owes ${name} ${n}`}${give}</button>`;
+    }).join('');
   }
   $('tileRel').addEventListener('click', (e) => { const b = e.target.closest('button[data-pawn]'); if (b) focusPawn(+b.dataset.pawn); });
   function card(title, lines, activity = '') {
