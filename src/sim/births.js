@@ -2,9 +2,9 @@
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold } = VB['sim/records'];
+  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold, kinNear } = VB['sim/records'];
   const Culture = VB['culture'];
-  const { initRelations, raiseTie } = VB['sim/relations'];
+  const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
@@ -31,6 +31,7 @@ VB['sim/births'] = (() => {
     Culture.initPerson(p, Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2));
     initRelations(st, p);
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { raiseTie(st, id, j, 1); raiseTie(st, j, id, 1); }
+    for (const q of kinNear(st, id)) if (st.pawns[q].alive) { floorKin(st, id, q); floorKin(st, q, id); } // kin elsewhere, till their turn (sim/relations)
     p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
