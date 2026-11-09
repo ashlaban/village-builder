@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'callCooks', 'lookUp', 'planRound'] },
-  'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/society': ['noteContacts'] },
+  'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/society': ['outdoors'] },
   'daily life and births': { 'sim/lifecycle': ['dailyLife'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },
   // Slice 1, kin help booked (VB-219): what it added to help, the gift's check (the floor and the allowance) and goodwill's booking,

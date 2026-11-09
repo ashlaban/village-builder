@@ -10,7 +10,7 @@ if (process.argv.includes('--counter-cost')) {
   const perDay = Object.fromEntries(Object.entries(VB.count).map(([k, n]) => [k, n / Sim.YEAR_DAYS]));
   // These are exactly the counters fed by per-iteration local tallies. walkDaily includes bulk pawn walks too,
   // so treating all its work as local increments is conservative.
-  const localNames = ['routeExpand', 'talkWeighed', 'contactPairs', 'walkDaily', 'walkTies', 'roundPairs'];
+  const localNames = ['routeExpand', 'talkWeighed', 'tiePairs', 'walkDaily', 'walkTies', 'roundPairs'];
   const localIncrementsPerDayBound = localNames.reduce((n, k) => n + perDay[k], 0);
   // Direct increments + one routeExpand publication per search; hourly contacts/talk, 240 six-minute steps,
   // at most eight daily publications and two round publications (overestimated as daily).

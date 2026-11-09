@@ -4,6 +4,7 @@ VB['sim/claims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
   const { kinship, membersOf, voiceOf } = VB['sim/records'];
+  const { tieOf } = VB['sim/relations'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -77,7 +78,7 @@ VB['sim/claims'] = (() => {
     return claims.map((c) => {
       if (c.by.type === 'village') return voiced(c.by.id).reduce((s, [, v]) => s + v, 0);
       const sp = speaker(st, c.by); if (sp === null) return 0;
-      return here.reduce((s, [p, v]) => s + v * (p.id === sp ? 1 : Math.min(1, p.ties.get(sp) || 0)), 0);
+      return here.reduce((s, [p, v]) => s + v * (p.id === sp ? 1 : Math.min(1, tieOf(st, p.id, sp))), 0);
     });
   }
   // The score of each claim under a rule, higher wins; ties go to the first claim. ctx: {lastHolder (pawn id or null), village (id of the

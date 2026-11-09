@@ -1,5 +1,5 @@
 // @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
-// people a pawn knows; owns familiarity, its daily update and relationship records
+// people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
@@ -14,46 +14,75 @@ VB['sim/relations'] = (() => {
   const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
   Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
 
-  // A pair of pawns as one number, the smaller id first, and back.
-  const PAIR = 2 ** 21;
-  const pairKey = (i, j) => (i < j ? i * PAIR + j : j * PAIR + i);
-  const pairOf = (k) => { const i = Math.floor(k / PAIR); return [i, k - i * PAIR]; };
-  // @state pawn.ties: directed familiarity weights, initialized and changed only here.
-  function initRelations(p) { p.ties = new Map(); p.rel = new Map(); }
-  function setTie(st, a, b, value) { st.pawns[a].ties.set(b, value); }
-  function strengthenTie(st, a, b, value) {
-    const p = st.pawns[a]; p.ties.set(b, (p.ties.get(b) || 0) + value);
+  // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
+  // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
+  // year since pawn.tieT (tieOf; Culture.dailyStep divides by their sum, so the scale cancels there), put back on today's scale every
+  // TIES.renorm years, on a day spread by the pawn's id.
+  // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
+  //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
+  //   in its house since midnight. All initialized and changed only here.
+  const TIES = SOCIAL.ties, SPREAD = 73; // 192 / φ², prime to 192 days: ids next to each other renormalise far apart, any run of days evenly
+  function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
+  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
+  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
+  // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
+  // weaker still and not to kin either; then it is not kept.
+  function put(st, p, b, w) {
+    if (p.ties.size >= TIES.cap && !p.ties.has(b)) {
+      const kin = kinNear(st, p.id), isKin = kin.includes(b);
+      let worst = -1, least = Infinity;
+      VB.count.walkTies += p.ties.size;
+      for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
+      if (worst < 0 ? !isKin : !isKin && w <= least) return; else if (worst >= 0) p.ties.delete(worst);
+    }
+    p.ties.set(b, w);
   }
+  function addTie(st, a, b, v) { const p = st.pawns[a]; put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p)); } // a's tie to b grows by v
+  // a's tie to b is at least v now (seeding, births, a wedding)
+  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); }
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties.
-  function dropTies(st, id) {
-    const p = st.pawns[id];
-    for (const [j] of p.ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); }
+  function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }
+  // Two pawns finished one job together (sim/agents): each pair of `ids` grows by TIES.work.
+  function workedTogether(st, ids) {
+    VB.count.tiePairs += ids.length * (ids.length - 1) / 2;
+    for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
+      const i = ids[x], j = ids[y]; if (st.pawns[i].alive && st.pawns[j].alive) { addTie(st, i, j, TIES.work); addTie(st, j, i, TIES.work); }
+    }
   }
+  // p's ties put back on today's scale; those under TIES.forget go, unless to kin (the floor raises them again)
+  function renormalise(st, p) {
+    const f = scaleOf(st, p), kin = kinNear(st, p.id);
+    VB.count.walkTies += p.ties.size;
+    for (const [j, w] of p.ties) { const v = w * f; if (v < TIES.forget && !kin.includes(j)) p.ties.delete(j); else p.ties.set(j, v); }
+    p.tieT = st.t;
+  }
+  // Once a day, at midnight: two housemates' tie grows by TIES.home per 24 waking hours both spent in their house (the lesser of their
+  // hours); the pawns due put their ties back on today's scale; near kin are raised to the floor.
   function dailyTies(st) {
-    let ties = 0;
-    // contact over the day builds ties; ties fade with a half-life of about a year; kin never fall below a floor; weak ties are dropped.
-    // Contact and the floor only raise a tie, so only the ties that fade below 0.02 here can be dropped at the end.
-    const decay = Math.pow(0.5, 1 / YEAR_DAYS), low = [];
-    VB.count.walkDaily += st.living.length;
-    for (const liveId of st.living) {
-      const p = st.pawns[liveId];
-      if (!p.alive) continue;
-      for (const [j, w0] of p.ties) { ties++; const v = w0 * decay; p.ties.set(j, v); if (v < 0.02) low.push(p, j); }
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId], m = hh.members; if (hh.dissolved || m.length < 2) continue;
+      VB.count.tiePairs += m.length * (m.length - 1) / 2;
+      for (let x = 0; x < m.length; x++) for (let y = x + 1; y < m.length; y++) {
+        const h = Math.min(st.pawns[m[x]].homeHours, st.pawns[m[y]].homeHours) * TIES.home / DAY;
+        if (h > 0) { addTie(st, m[x], m[y], h); addTie(st, m[y], m[x], h); }
+      }
     }
-    for (const [k, hrs] of st.contacts) {
-      const [i, j] = pairOf(k), pi = st.pawns[i], pj = st.pawns[j]; if (!pi.alive || !pj.alive) continue;
-      const add = hrs / 24; pi.ties.set(j, (pi.ties.get(j) || 0) + add); pj.ties.set(i, (pj.ties.get(i) || 0) + add);
-    }
-    VB.count.walkTies += ties;
-    st.contacts.clear();
+    const day = Math.floor(st.t / DAY), every = TIES.renorm * YEAR_DAYS;
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) {
-      const p = st.pawns[id];
-      for (const q of kinNear(st, p.id)) if (st.pawns[q].alive && (p.ties.get(q) || 0) < 0.4) p.ties.set(q, 0.4);
+      const p = st.pawns[id]; p.homeHours = 0;
+      if ((day + id * SPREAD) % every === 0) renormalise(st, p);
+      const floor = TIES.kin / scaleOf(st, p);
+      for (const q of kinNear(st, id)) if (st.pawns[q].alive && !((p.ties.get(q) || 0) >= floor)) put(st, p, q, floor);
     }
-    for (let n = 0; n < low.length; n += 2) { const p = low[n], j = low[n + 1], v = p.ties.get(j); if (v !== undefined && v < 0.02) p.ties.delete(j); }
   }
-
+  // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept.
+  function migrateTies(st) {
+    for (const p of st.pawns) if (p.ties && p.tieT === undefined) {
+      p.tieT = st.t; p.homeHours = 0;
+      if (p.alive && p.ties.size > TIES.cap) { const old = [...p.ties]; p.ties = new Map(); for (const [j, w] of old) put(st, p, j, w); }
+    }
+  }
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
   const mix = (h) => {
     h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
@@ -153,7 +182,7 @@ VB['sim/relations'] = (() => {
   let busy = new Int32Array(1024), seen = new Int32Array(1024), round = 0, look = 0;
   const found = [], lists = [];
   // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
-  // it (`near`, from noteContacts), within near.size in x and y. Pawns talking already this hour are left out.
+  // it (`near`, from outdoors in sim/society), within near.size in x and y. Pawns talking already this hour are left out.
   function partnersOf(st, a, near) {
     found.length = 0;
     if (a.inside) {
@@ -175,14 +204,17 @@ VB['sim/relations'] = (() => {
       if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
     }
   }
-  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes
-  const talkWeight = (st, a, b, ya) => (1 + Math.min(st.pawns[a].ties.get(b) || 0, 1)) * (1 + opinionOf(st, a, b))
+  // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes. sa is a's tie scale (scaleOf).
+  const talkWeight = (st, a, b, ya, sa) => (1 + Math.min((st.pawns[a].ties.get(b) || 0) * sa, 1)) * (1 + opinionOf(st, a, b))
     * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
-  // hour h: the pawns, from a random one on, each start a talk at chance T.chance, unless already talking this hour
+  // Waking hour h: each pawn in its house counts the hour (pawn.homeHours, for dailyTies); then the pawns, from a random one on, each start a
+  // talk at chance T.chance, unless already talking this hour.
   const cand = [], wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
-    const ag = st.agents, ids = st.living, n = ids.length, start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const ag = st.agents, ids = st.living, n = ids.length;
+    for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
+    const start = Math.floor(rnd(st.rng.talk) * ag.length);
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
     // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
     let lo = 0, hi = n;
@@ -192,13 +224,13 @@ VB['sim/relations'] = (() => {
     for (let k = 0; k < n; k++) {
       const a = ag[ids[(lo + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
-      const ya = young(st, st.pawns[a.id]);
+      const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
       partnersOf(st, a, near);
       for (const b of found) {
         if (!able(st, b)) continue;
         weighed++;
-        const w = talkWeight(st, a.id, b.id, ya); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
+        const w = talkWeight(st, a.id, b.id, ya, sa); if (w > 0) { cand.push(b); wts.push(w); tot += w; }
       }
       if (!cand.length) continue;
       let x = rnd(st.rng.talk) * tot, i = 0;
@@ -216,8 +248,8 @@ VB['sim/relations'] = (() => {
     const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = rnd(st.rng.talk) * (1 + wg + wc);
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     remember(st, i, j, kind); remember(st, j, i, kind);
-    const pi = st.pawns[i], pj = st.pawns[j], at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
-    pi.ties.set(j, (pi.ties.get(j) || 0) + T.tie); pj.ties.set(i, (pj.ties.get(i) || 0) + T.tie);
+    const at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
+    addTie(st, i, j, TIES.talk); addTie(st, j, i, TIES.talk);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
     // an idle pawn outdoors stops where it is until the talk is over
@@ -258,7 +290,7 @@ VB['sim/relations'] = (() => {
     for (let k = 0; k < SOCIAL.seekSample; k++) {
       const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;
-      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(st.pawns[a.id].ties.get(b.id) || 0, 1));
+      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(tieOf(st, a.id, b.id), 1));
       if (w > 0) { cand.push(b); wts.push(w); tot += w; }
     }
     if (!cand.length) return null;
@@ -347,7 +379,7 @@ VB['sim/relations'] = (() => {
     const p = st.pawns[id], ids = new Set([...p.ties.keys(), ...p.rel.keys()]), out = [];
     for (const j of ids) {
       if (!st.pawns[j].alive) continue;
-      out.push({ id: j, tie: p.ties.get(j) || 0, opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
+      out.push({ id: j, tie: tieOf(st, id, j), opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
     }
     return out.sort((x, y) => y.tie - x.tie || x.id - y.id);
   }
@@ -360,7 +392,7 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
-    initRelations, setTie, strengthenTie, dropTies, dailyTies, pairKey, pairOf,
+    initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
     reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };

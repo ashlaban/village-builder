@@ -6,6 +6,7 @@ VB['sim/agents'] = (() => {
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { hasTeam } = VB['sim/herds'];
+  const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
@@ -80,9 +81,11 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher);
   }
-  // The work is done: a plot's step is finished (sim/expansion), any other job does what its kind says (sim/kinds).
+  // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
+  // any other job does what its kind says (sim/kinds).
   function complete(st, a) {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));

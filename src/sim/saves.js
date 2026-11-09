@@ -5,6 +5,7 @@ VB['sim/saves'] = (() => {
   const { trimRoutes } = VB['sim/routes'];
   const { rebuildLiving } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
+  const { migrateTies } = VB['sim/relations'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -134,7 +135,11 @@ VB['sim/saves'] = (() => {
       else if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
       else w[k] = a;
     }
-    const st = decode(data.state);
+    // VB-127: older saves kept the hours spent near each other (st.contacts); it is left out here rather than deleted after, so st keeps
+    // fast properties (VB-205).
+    let enc = data.state;
+    if (enc && 'contacts' in enc) { enc = { ...enc }; delete enc.contacts; }
+    const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
     trimRoutes(st);
@@ -144,6 +149,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
+    migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
   return { encode, decode, save, load, FORMAT };
