@@ -4,7 +4,7 @@ VB['sim/notable'] = (() => {
   const { CAUSES } = VB['sim/deaths'];
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
-    family: 'Births, marriages and deaths in the household or line of the person you follow',
+    family: "Births, marriages and deaths in the selected person's household or line",
     holder: 'Deaths of landholders',
     hunger: 'Deaths from hunger',
     farm: 'Farms left empty, claimed or newly built',

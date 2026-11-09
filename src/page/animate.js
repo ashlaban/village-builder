@@ -78,6 +78,7 @@
     if (!st) return;
     if (!simulationAway()) advanceSimulation(dt);
     updateClock();
+    updateNotices(dt);
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
