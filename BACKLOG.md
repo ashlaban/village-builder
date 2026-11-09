@@ -24,6 +24,11 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
 | [VB-207](backlog/VB-207.md) | death.hazard: the cause read from its contributions | yardstick | 3 | S | `deathRoll` takes a death's cause from the contributions of `death.hazard`, not by calling all extra risk hunger; golden unchanged. |
+| [VB-228](backlog/VB-228.md) | Refactor: each domain registers its own verbs | - | 3 | M | Verbs are registered at load by the module that carries them out, as rules are; `sim/commands` imports no domain and `later()` goes. |
+| [VB-229](backlog/VB-229.md) | Refactor: events in the kernel, and land's memories as their first subscribers | - | 3 | S | An event channel with subscribers declared at load; `stakes`, `territory`, `herds` and `claims` emit instead of calling `sim/relations`. |
+| [VB-230](backlog/VB-230.md) | The dependency check by layer, with a baseline that only falls | - | 3 | S | Each module names its layer; the check lists calls that go upward outside the declared channels, against a baseline that only falls (29 on 9 November). |
+| [VB-231](backlog/VB-231.md) | Refactor: the customs in force, read from the kernel layer | - | 3 | M | A kernel-layer `inForce` is the one door to custom; the four modules that index practice arrays ask it, and `culture` stays the only writer. |
+| [VB-232](backlog/VB-232.md) | Refactor: a rule's contribution is registered by its source | - | 3 | S | A contribution may be registered before its rule is declared, in a declared order; a lint holds `source` to the registering module; the hunger and goodwill terms move home. |
 
 ## Waiting for Kim
 
