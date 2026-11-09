@@ -1,5 +1,9 @@
 // @sys page/settlement: building the settlement layer: farms, pawns, labels, booths, fences and herd sprites
-  const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => {
+  // World units per art unit, and where a farm's buildings stand from the centre of its house tile: [x, y of the foot]. The yard is one
+  // hex, so the byre and the barn stand at the back, the storehouse and the cottage before them, and the piles in the corners left.
+  const ART_S = 0.23;
+  const YARD = { byre: [-12, -2], lada: [4, 0], harbre: [13, 5], stuga: [-3, 13], wood: [11, 14.5], stack: [-13.5, 14], heap: [-15, 3], curb: [1, 18] };
+  const place = (tex, x, y, ax, ay, layer = L.objects, sc = ART_S) => {
     const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
 
   function clearSettlement() {
@@ -79,28 +83,35 @@
         const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]); sp.anchor.set(0.5); sp.scale.set(0.5); sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
         L.fields.addChild(sp); meadowSprites.push({ sp, m, stage: m.stage });
       }
-      const yard = place(art.yard, hx, hy + 2, 0.5, 0.5, L.fields); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
+      const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
       const v = f.id % 3;
       // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
       const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
       if (f.booth) drawBooth(wd, f, empty);
       else {
-        const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95),
-          stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
+        const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
+          harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
+          stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
         for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
-        if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
+        if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = ART_S * 0.55; stuga.alpha = 0.85; }
       }
-      const wood = place(art.wood[0], hx + 13, hy + 16, 0.5, 0.9); wood.visible = !empty;
+      const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9); wood.visible = !empty;
       const herds = !empty && st.households[f.household].herds.length > 0;
-      if (herds) place(art.byre, hx - 25, hy + 2, 0.5, 0.92);
-      const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx - 36, hy + 12, 0.5, 0.93) : null;
-      const heap = herds ? place(art.manure[0], hx - 21, hy + 14, 0.5, 0.88) : null; // the dung heap by the byre door (VB-137)
-      if (!st.villages[f.village].well) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
+      if (herds) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+      const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93) : null;
+      const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
+      if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
-        // smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built
-        houseInfo.push({ f, puffs, wood, stack, heap, cx: f.booth ? hx + 15 : hx - 7 + (67 - 52) * 0.27, cy: f.booth ? hy - 2 : hy + 10 + (9 - 73.6) * 0.27 });
+        // Smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built; and the firelight after dark: the
+        // cottage's openings lit over it, and a warm glow on the ground before the door (before the booth, the glow alone).
+        const sx = hx + YARD.stuga[0], sy = hy + YARD.stuga[1], at = (q) => [sx + (q[0] - STUGA.w / 2) * ART_S, sy + (q[1] - STUGA.h * 0.92) * ART_S];
+        const [cx, cy] = f.booth ? [hx + 15, hy - 2] : at(STUGA.hole), [gx, gy] = f.booth ? [hx + 15, hy + 6] : at([48, 62]);
+        const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92); if (lit) { lit.zIndex = sy + 0.01; lit.visible = false; }
+        const glow = new PIXI.Sprite(art.glow); glow.anchor.set(0.5); glow.blendMode = 'add'; glow.position.set(gx, gy);
+        glow.scale.set(f.booth ? 0.2 : 0.4, f.booth ? 0.14 : 0.26); glow.zIndex = sy + 0.02; glow.visible = false; L.objects.addChild(glow);
+        houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
       }
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
