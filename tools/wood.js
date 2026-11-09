@@ -1,6 +1,7 @@
 // Wood supply report (VB-024): trees felled per year per village, and forest tiles cleared (felled to meadow) per 10 years.
 // node tools/wood.js [--scenario founders|populous] [--seed 7] [--map medium] [--years 10]
 // Counts by wrapping fellTree and clearTile at load time (as tools/perf.js does), so src/ is untouched and the run is the same as a plain one.
+require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seed = +opt('seed', 7), map = opt('map', 'medium'), years = +opt('years', 10);

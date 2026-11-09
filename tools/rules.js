@@ -1,5 +1,6 @@
 // Inspect the load-time registry, or explain death.hazard for a pawn in a run or save.
 // node tools/rules.js [--explain ID --scenario populous --seed 7 --map tiny --years 0] [--load FILE[.gz]] [--json]
+require('./help.js')(__filename);
 const VB = require('../src/load.js'), Rules = VB['sim/registry'], Sim = VB.sim;
 const fs = require('fs'), zlib = require('zlib'), args = process.argv.slice(2);
 function opt(key, fallback) {

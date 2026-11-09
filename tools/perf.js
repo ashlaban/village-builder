@@ -4,6 +4,7 @@
 // working) are far too many to time one by one: the agents' step is timed whole, once a step (VB-205), and what is left of Sim.advance (the
 // clock's own loops, onHour and endOfDay outside the named systems) is the remainder, reported as "agents and walking".
 // Used by tools/sim.js: `const { load, result } = require('./perf.js')`; `load()` replaces require('../src/load.js').
+require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'callCooks', 'lookUp', 'planRound'] },

@@ -14,6 +14,7 @@
 // Bindings to object or array literals and new Maps or Sets are local; writes to them are counted, not listed. Writes whose receiver is
 // neither are listed as unresolved, for a judgement by hand. Fields of nested records are reported by path (`farmstead.fields[].stage`);
 // a nested object with no record type of its own is reported as its parent field (`farmstead.booth`).
+require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const { tokenize } = require('./wrap.js');
 const { scopesOf } = require('./write-scopes.js');
