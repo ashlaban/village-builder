@@ -1,8 +1,8 @@
 // @sys page/notices: toasts for notable events (VB-098), read from the record through Sim.notable, and the list that turns each kind on or off
   // ---- notifications ----
-  // A toast for each notable event the record gains: at the bottom left for 6 s, at most 3 at once (a fourth replaces the oldest). Events of
-  // one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what happens at high speed.
-  // Which kinds show is the page's choice, kept in localStorage and never in st.
+  // A toast for each notable event the record gains: at the bottom centre, above the dock, for 6 s, at most 3 at once (a fourth replaces
+  // the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
+  // happens at high speed. Which kinds show is the page's choice, kept in localStorage and never in st.
   const TOAST_SECONDS = 6, TOAST_MAX = 3, NOTICE_KEY = 'vb.notices.off';
   const MANY = { born: 'births', died: 'deaths', married: 'marriages', empty: 'farms left empty', claim: 'farms claimed', cottage: 'new cottages',
     left: 'parties setting out for new land', custom: 'changes of custom', split: 'partings of custom' };
