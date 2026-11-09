@@ -88,7 +88,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   for (const h of t.st.households) h.grain = 0;
   const n = t.st.villages.length;
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n && t.st.events.some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
+  check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
 // 4. Founders at seed 42: a lone farm lies 15 steps from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
@@ -109,7 +109,7 @@ const founders = () => {
   check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
     `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
   // named by direction from the lone farm, now the hamlet's centre (VB-026), and the log says so
-  check(/^(Norr|Söder|Öster|Väster|Mellan|Ny)gården$/.test(g.name) && t.st.events.some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
+  check(/^(Norr|Söder|Öster|Väster|Mellan|Ny)gården$/.test(g.name) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
     `the joined farm is named by compass and the log says so (${g.name})`);
   check(t.lone.name === t.st.farmsteads[t.lone.farmsteads[0]].name, `the lone farm's village bears its farm's name (${t.lone.name})`);
   bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);

@@ -59,7 +59,7 @@ for (const grain of [0, 5000]) {
   if (grain) check(R.spouseOf(st, man.id) === woman.id, 'with food in store the heir marries');
   else {
     check(R.spouseOf(st, man.id) === null, 'with an empty store the heir does not marry');
-    check(st.events.some((e) => /put off marrying/.test(e.text)), 'the log says they put it off');
+    check(Sim.villageLog(st, Infinity).some((e) => /put off marrying/.test(e.text)), 'the log says they put it off');
   }
 }
 // 3. A lone holder and the first heir of another farm of her village: they live on her farm, and he leaves the line of his own.

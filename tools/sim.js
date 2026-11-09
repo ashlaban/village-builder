@@ -82,7 +82,7 @@ const tables = {
   pawns: () => st.pawns.filter((p) => p.alive).map(pawnRow),
   jobs: () => [...st.jobs.values()].map((j) => ({ id: j.id, key: j.key, kind: j.kind, owner: j.owner, site: j.site, claims: j.claims, done: j.done })),
   customs: () => st.cenv.cultures.map((c, i) => ({ culture: i, ...plain(c) })),
-  events: () => st.events,
+  events: () => Sim.villageLog(st).map(({ t, text }) => ({ t, text })),
   idle: () => idle.result(),
   hunger: () => hunger.result(),
   perf: () => perf.result(perfMs, years * Sim.YEAR_DAYS),

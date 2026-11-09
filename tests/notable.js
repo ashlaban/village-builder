@@ -20,7 +20,7 @@ assert.deepStrictEqual(Sim.notable(st, ev, far.id), ['holder'], 'a stranger is t
 assert.deepStrictEqual(Sim.notable(st, ev, mate.id), ['family', 'holder'], 'a housemate');
 assert.deepStrictEqual(Sim.notable(st, ev, child), ['family', 'holder'], 'a child');
 assert.deepStrictEqual(Sim.notable(st, ev, holder), ['family', 'holder'], 'the followed pawn itself');
-const line = st.events.find((e) => e.text.startsWith(Sim.fullName(st.pawns[holder])) && / died of illness, aged \d+\.$/.test(e.text));
+const line = Sim.villageLog(st, Infinity).find((e) => e.text.startsWith(Sim.fullName(st.pawns[holder])) && / died of illness, aged \d+\.$/.test(e.text));
 assert.ok(line, 'the village log told the death');
 assert.strictEqual(Sim.eventLine(st, ev), line.text, 'a death is told as the village log told it');
 
@@ -67,7 +67,9 @@ assert.strictEqual(Sim.eventLine(st, old), `${Sim.fullName(st.pawns[old.pawn])} 
   assert.ok(built.length, 'no cottage was built on a cleared plot in a year of heirs 7');
   for (const e of built) {
     assert.deepStrictEqual(Sim.notable(s2, e), ['farm']);
-    assert.strictEqual(s2.record.filter((x) => x.kind === 'moved' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder moved there once');
+    assert.strictEqual(s2.record.filter((x) => x.kind === 'joined' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder joined it once');
+    const told = Sim.chronicle(s2, { pawn: e.pawn }).filter((x) => x.ev.t === e.t).map((x) => x.ev.kind);
+    assert.deepStrictEqual(told, ['cottage'], 'and its history tells the move once (VB-099)');
   }
 }
 

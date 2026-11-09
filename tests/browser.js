@@ -30,8 +30,16 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.click('#' + id); await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');
   }
+  // the History tab (VB-099) of a village, a farm and a pawn, with each filter by kind
+  await page.click('#settlersBtn'); await page.click('#settlers .village-block > summary'); await page.click('#settlers [data-village]');
+  for (const next of [null, '#tileList [data-farm]', '#tileList [data-pawn]']) {
+    if (next) { await page.click('#tabFacts'); await page.click(next); }
+    await page.click('#tabHistory'); await page.waitForSelector('#historyList time');
+    for (const kind of await page.$$('#historyKinds button')) await kind.click();
+    await page.click('#historyKinds [data-history=""]');
+  }
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn)');
 })().catch((e) => { console.error(e); process.exit(1); });

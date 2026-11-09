@@ -182,6 +182,45 @@ async function goodwillPanel() {
     settlers.querySelector(`button[data-pawn="${none}"]`).click(); tick(20);
     if (/Owes and is owed/.test(rel.innerHTML)) fail(`pawn ${none}, with no balance, shows a goodwill list`);
   }
+  // The History tab (VB-099) on the card of a pawn, a farm and a village: it opens, lists events of the record with their dates, each
+  // filter by kind narrows it, and a name in a line selects what it names. The village log lists the record's last lines.
+  const hist = doc.getElementById('historyList'), tabH = doc.getElementById('tabHistory'), opened = [];
+  const openHistory = (what, pick) => {
+    pick(); tick(20);
+    if (doc.getElementById('tileTabs').hidden) { fail(`no tabs on the card of ${what}`); return; }
+    tabH.click(); tick(2);
+    if (doc.getElementById('tileHistory').hidden || !doc.getElementById('tileFacts').hidden || tabH.getAttribute('aria-selected') !== 'true') {
+      fail(`the History tab of ${what} did not open`); }
+    const all = hist.querySelectorAll('p').length;
+    if (!all || hist.querySelectorAll('time').length !== all) fail(`the history of ${what} has ${all} lines, not each with its date`);
+    for (const k of doc.querySelectorAll('#historyKinds button')) {
+      k.click(); tick(2);
+      if (k.getAttribute('aria-pressed') !== 'true' || hist.querySelectorAll('time').length > all) fail(`the filter ${k.textContent} of ${what}`);
+    }
+    doc.querySelector('#historyKinds [data-history=""]').click(); tick(2);
+    opened.push(`${what} ${all}`);
+  };
+  const farmId = st.households[holder.household].farmstead, farm = st.farmsteads[farmId];
+  openHistory('a pawn', () => settlers.querySelector(`button[data-pawn="${holder.id}"]`).click());
+  if (!/ holds /.test(hist.textContent) || !/was born/.test(hist.textContent)) fail("a holder's history lacks its birth or its farm");
+  openHistory('a farm', () => settlers.querySelector(`button[data-farm="${farmId}"]`).click());
+  openHistory('a village', () => settlers.querySelector(`button[data-village="${farm.village}"]`).click());
+  const link = hist.querySelector('button.name[data-farm]');
+  if (!link) fail("no farm's name in the village's history is a link");
+  else {
+    link.click(); tick(5);
+    const shown = doc.getElementById('tileName').textContent;
+    if (shown !== link.textContent) fail(`the link ${link.textContent} selected ${shown}`);
+    if (doc.getElementById('tileHistory').hidden) fail('following a name left the History tab');
+  }
+  doc.getElementById('tabFacts').click(); tick(2);
+  if (doc.getElementById('tileFacts').hidden || !doc.getElementById('tileHistory').hidden) fail('the Details tab did not come back');
+  const recent = settlers.querySelector('[data-fold="recent"]');
+  recent.open = true; recent.dispatchEvent(new win.Event('toggle')); tick(2);
+  const lines = settlers.querySelectorAll('[data-fold="recent"] .log p').length, told = Sim.villageLog(st).length;
+  if (!lines || lines !== told || lines > 40) fail(`the village log shows ${lines} lines, the record's log has ${told}`);
+  if (!settlers.querySelector('[data-fold="recent"] .log button.name')) fail('no name in the village log is a link');
+  console.log(`history: ${opened.join(', ')} lines; the village log ${lines} lines`);
 }
 // Notifications (VB-098), on the tiny populous map: a landholder's death raises a toast that tells it as the log did, a click selects the
 // farm and takes the toast away, deaths of one day in one village share a toast, at most 3 show, a kind turned off raises none and the

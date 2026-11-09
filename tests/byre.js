@@ -67,13 +67,13 @@ let seenT = -Infinity, hunger = 0, counts = 0, slaughtered = 0, spoiled = 0;
 const herdSize = () => st.herds.reduce((s, hd) => s + (hd.head ? hd.head.length : hd.ewes + hd.rams + hd.lambs), 0);
 for (let d = 0; d < 3 * Sim.YEAR_DAYS; d++) {
   Sim.advance(st, Sim.DAY);
-  for (const e of st.events) {
+  for (const e of Sim.villageLog(st, Infinity)) {
     if (e.t <= seenT) break;
     if (/Hunger in the byre/.test(e.text)) hunger++;
     if (/autumn count/.test(e.text)) counts++;
     if (/spoiled/.test(e.text)) spoiled++;
   }
-  seenT = st.events.length ? st.events[0].t : seenT;
+  seenT = Sim.villageLog(st, Infinity).length ? Sim.villageLog(st, Infinity)[0].t : seenT;
 }
 slaughtered = st.households.reduce((s, h) => s + F.larderOf(h, 'salt meat'), 0);
 check(hunger === 0, `founders: ${hunger} animals died of hunger in the byre`);

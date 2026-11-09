@@ -18,7 +18,7 @@ function scene(dispute = 'first') {
   const hh = st.households, f = hh.map((h) => st.farmsteads[h.farmstead]);
   return { st, hh, f };
 }
-const events = (st, from, re) => st.events.slice(0, st.events.length - from).filter((e) => re.test(e.text));
+const events = (st, from, re) => Sim.villageLog(st, Infinity).slice(0, Sim.villageLog(st, Infinity).length - from).filter((e) => re.test(e.text));
 const out = [];
 
 // ---- a stake: claimed, not owned; nobody else takes it in; work renews it; breaking the ground makes it the household's ----
@@ -53,7 +53,7 @@ const out = [];
 {
   const { st, hh, f } = scene();
   F.startProject(st, f[0], hh[0]);
-  const t = f[0].project.tile, n = st.events.length;
+  const t = f[0].project.tile, n = Sim.villageLog(st, Infinity).length;
   st.t += CLAIMS.years * YEAR - DAY;
   S.lapsedStakes(st, CL.lapseClaims(st));
   check(f[0].project && CL.claimOf(st, t, H(0)), 'still staked a day before 3 years');
@@ -98,7 +98,7 @@ function contest(dispute, idle = 2, ties = 'contestor') {
     p.ties.delete(a); p.ties.delete(b);
     if (p.id !== a && p.id !== b) p.ties.set(ties === 'contestor' ? a : b, 1);
   }
-  const before = R.opinionOf(st, b, a), n = st.events.length;
+  const before = R.opinionOf(st, b, a), n = Sim.villageLog(st, Infinity).length;
   F.startProject(st, f[2], hh[2]);
   const taken = !!f[2].project && f[2].project.tile === t;
   if (taken) {

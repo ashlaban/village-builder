@@ -97,13 +97,13 @@ const P = (id) => ({ type: 'pawn', id });
   check(FC.claimableFarm(st, who.gunhild) === f && FC.claimableFarm(st, holder) === null && FC.claimableFarm(st, who.per) === null,
     'claimableFarm: the farm for a claimant, none for a holder or for one out of reach');
   f.condition = 0.3; f.fields[0].stage = 'fallow'; f.fields[1].stage = 'scrub';
-  const n = st.events.length;
+  const n = Sim.villageLog(st, Infinity).length;
   FC.claimFarms(st);
   const c = CL.claimOf(st, f.house, P(who.gunhild));
   check(f.claim && f.claim.by === who.gunhild && Math.abs(f.claim.hours - 36) < 1e-9 && c && c.why === 'farm' && c.state === 'unrealised',
     `Gunhild claims the farm, 36 hours to mend at 30% (${JSON.stringify(f.claim)})`);
   check(!st.demand.includes(who.gunhild) && !st.demand.includes(who.jons), 'the claimant and her husband no longer wait for land');
-  check(st.events.slice(0, st.events.length - n).some((e) => /claims the empty farm .* birthright/.test(e.text)), 'the log tells the claim, by birthright');
+  check(Sim.villageLog(st, Infinity).slice(0, Sim.villageLog(st, Infinity).length - n).some((e) => /claims the empty farm .* birthright/.test(e.text)), 'the log tells the claim, by birthright');
   check(FC.claimableFarm(st, who.olof) === null && !VB['sim/heirs'].wantsOut(st, st.pawns[who.gunhild]), 'a claimed farm is claimable no more');
   ok(st, 'claimed');
   // the restoration job: the claimant's household's, at 9 for the couple and 5 for grown housemates
@@ -179,9 +179,9 @@ const P = (id) => ({ type: 'pawn', id });
   const { st, f } = scene('kin');
   f.condition = 0.5;
   st.t = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 10) * DAY + 11; // the hour before the moving round
-  const n = st.events.length;
+  const n = Sim.villageLog(st, Infinity).length;
   for (let d = 0; d < 4 && f.household === null; d++) Sim.advance(st, DAY);
-  const lines = st.events.slice(0, st.events.length - n).map((e) => e.text);
+  const lines = Sim.villageLog(st, Infinity).slice(0, Sim.villageLog(st, Infinity).length - n).map((e) => e.text);
   check(f.household !== null && lines.some((t) => /claims the empty farm/.test(t)) && lines.some((t) => /moves into/.test(t)),
     `claimed and moved in within 4 days: ${lines.filter((t) => /claim|moves into/.test(t)).join(' | ')}`);
   ok(st, 'in play');

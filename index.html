@@ -316,6 +316,17 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
 .mark.short { background: #c9a24a; }
 .mark.hungry { background: var(--bad); }
+.tabs { display: flex; gap: 6px; margin: 6px 0 8px; }
+.tabs button, .history .kinds button { min-height: 36px; padding: 5px 12px; font-size: 14px; }
+.tabs button[aria-selected="true"], .history .kinds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.tabs button[aria-selected="false"] { color: var(--muted); }
+.history .kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.history p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.history p time, .history p i { display: block; font-style: normal; font-size: 12px; color: var(--muted); }
+.history p.more { color: var(--muted); }
+button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: var(--ink); text-align: left;
+  text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
+@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; } }
 .tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
 .tile.peek .sheet-head { border-bottom: 0; }
 .settlers li { display: flex; align-items: flex-start; gap: 8px; }
@@ -483,14 +494,24 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
     </div>
     <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
     <div class="sheet-content" id="tileDetails">
-      <span id="tileCoord"></span>
-      <span id="tileExtra" hidden></span>
-      <span id="tileMore" hidden></span>
-      <div id="tileRest"></div>
-      <div id="tileLinks" class="links" hidden></div>
-      <div id="tileList" class="roster" hidden></div>
-      <button type="button" id="personFamily" hidden>View family records</button>
-      <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
+      <div class="tabs" id="tileTabs" role="tablist" aria-label="About the selection" hidden>
+        <button type="button" role="tab" id="tabFacts" data-tab="facts" aria-selected="true" aria-controls="tileFacts">Details</button>
+        <button type="button" role="tab" id="tabHistory" data-tab="history" aria-selected="false" aria-controls="tileHistory" tabindex="-1">History</button>
+      </div>
+      <div id="tileFacts" role="tabpanel" aria-labelledby="tabFacts">
+        <span id="tileCoord"></span>
+        <span id="tileExtra" hidden></span>
+        <span id="tileMore" hidden></span>
+        <div id="tileRest"></div>
+        <div id="tileLinks" class="links" hidden></div>
+        <div id="tileList" class="roster" hidden></div>
+        <button type="button" id="personFamily" hidden>View family records</button>
+        <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
+      </div>
+      <div id="tileHistory" class="history" role="tabpanel" aria-labelledby="tabHistory" hidden>
+        <div class="kinds" id="historyKinds" role="group" aria-label="Kinds of event"></div>
+        <div id="historyList"></div>
+      </div>
     </div>
   </aside>
   <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
@@ -3139,11 +3160,10 @@ VB['sim/records'] = (() => {
       && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
     return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
   }
-  // The village log (the last 40 lines) and the event behind the line.
+  // A line of the village log: its event goes on the record, and the log is a view of the record (sim/notable, villageLog; VB-099).
   // Every line names its event (tests/record.js checks each call), or false when another call records the same happening.
   const log = (st, text, ev) => {
     if (ev === undefined) throw new Error(`log without an event: ${text}`);
-    st.events.unshift({ t: st.t, text }); if (st.events.length > 40) st.events.pop();
     if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
   };
   // @state st.living: sorted ids of living pawns; a cache owned here.
@@ -4960,10 +4980,11 @@ VB['sim/deaths'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence; a read-only view, no state (VB-098)
+// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; read-only views, no state
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age } = VB['sim/records'];
   const { CAUSES } = VB['sim/deaths'];
+  const { YEAR } = VB['sim/rules'];
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
     family: "Births, marriages and deaths in the selected person's household or line",
@@ -5011,13 +5032,65 @@ VB['sim/notable'] = (() => {
     if (ev.kind !== 'died') {
       if (ev.text) return ev.text;
       if (ev.kind === 'born') return `${fullName(st.pawns[ev.pawn])} was born.`;
+      if (ev.kind === 'holds') return `${fullName(st.pawns[ev.pawn])} holds ${st.farmsteads[ev.farm].name}.`;
       return ev.kind === 'married' ? `${fullName(st.pawns[ev.pawn])} and ${fullName(st.pawns[ev.other])} married.` : '';
     }
     const p = st.pawns[ev.pawn], cause = CAUSES[ev.text];
     if (!cause) return `${fullName(p)} died ${ev.text || ''}`.trim() + '.';
     return `${fullName(p)} of ${ev.farm !== undefined ? st.farmsteads[ev.farm].name : 'the island'} ${cause.log}, aged ${age(st, p, ev.t)}.`;
   }
-  return { NOTABLE, notable, eventLine };
+  // ---- the chronicle (VB-099): the record as the history of a pawn, a farm or a village, and as the village log ----
+  // The kinds a history is filtered by, in the order the page offers them.
+  const CHRONICLE = {
+    life: { label: 'Births and deaths', kinds: ['born', 'died'] },
+    marriage: { label: 'Marriages', kinds: ['married', 'putOff'] },
+    land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
+      'plotStarted', 'field', 'meadow', 'stake', 'border', 'service', 'guardian'] },
+    custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
+  };
+  // Events a pawn's own history tells in its own voice ("Became friends with ..."): no line of the village log, nor of a farm's history.
+  const PERSONAL = new Set(['friend', 'fellOut', 'cause', 'player', 'share', 'gift', 'joined']);
+  // The events that tell a farm is lived in again, which end a spell of standing empty.
+  const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
+  const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;
+  // The history of q = {pawn}, {farm} or {village}, of the kinds of CHRONICLE[group] (all kinds without one), newest first: rows
+  // {ev, text, note}. A farm's history follows the farm across households: the record names the farm in every event that happened there.
+  // A pawn's has what it did and what befell it, in its own words where it has them, and what it took part in as `other` (a child born
+  // to it, a farm taken over from it). A farm's or village's leaves out the personal events; an `empty` event's note says how long the
+  // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
+  function chronicle(st, q, group = null) {
+    const kinds = group ? new Set(CHRONICLE[group].kinds) : null, rows = [], mine = q.pawn !== undefined;
+    const base = st.record.filter((e) => (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
+      && (q.farm === undefined || e.farm === q.farm) && (q.village === undefined || e.village === q.village));
+    const list = base.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      // its coming to a household is told once: not as `joined` when another event of the same hour tells it (a wedding, a new farm)
+      if (e.kind === 'joined' && list.some((o) => o !== e && o.t === e.t && o.farm === e.farm && o.kind !== 'joined')) continue;
+      if (kinds && !kinds.has(e.kind)) continue;
+      let note = null;
+      if (e.kind === 'empty' && q.farm !== undefined) {
+        let next = null;
+        for (let k = i + 1; k < list.length && !next; k++) if (SETTLES.has(list[k].kind)) next = list[k];
+        const years = Math.floor(((next ? next.t : st.t) - e.t) / YEAR);
+        note = next ? `Empty for ${whole(years)}` : `Empty since, ${whole(years)}`;
+      }
+      rows.push({ ev: e, text: eventLine(st, e), note });
+    }
+    return rows.reverse();
+  }
+  // The village log: the last n events of the record that were lines of the log, newest first, as {t, text, ev}. Not the personal events,
+  // nor the history seeded from before the start, which was never told. It walks back from the record's end only as far as it needs.
+  function villageLog(st, n = 40) {
+    const out = [];
+    for (let i = st.record.length - 1; i >= 0 && out.length < n; i--) {
+      const e = st.record[i];
+      if (PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
+      out.push({ t: e.t, text: eventLine(st, e), ev: e });
+    }
+    return out;
+  }
+  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog };
 })();
 </script>
 <script>
@@ -7144,7 +7217,8 @@ VB['sim/heirs'] = (() => {
     leaveHousehold(st, id);
     const hh = st.households[hhId]; joinHousehold(st, hh, id, false);
     const a = st.agents[id]; release(st, a); placeAtHome(st, a);
-    if (old && old.farmstead !== hh.farmstead) personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, atHousehold(st, hh));
+    if (old && old.farmstead !== hh.farmstead) { // on the record as `joined`, beside the event that tells the move itself
+      personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, { ...atHousehold(st, hh), kind: 'joined' }); }
   }
   // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
   // farm left with no heir; nobody is owed shares of it).
@@ -8609,9 +8683,9 @@ VB['sim/scenarios'] = (() => {
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
-    // @state st.events[]: {t, text}; newest first. st.meetingLog[]: {year, text}; newest first
+    // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
-    //   seeding writes the history before the start (births, deaths, marriages), in time order
+    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
@@ -8630,7 +8704,7 @@ VB['sim/scenarios'] = (() => {
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, events: [], record: [],
+      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -8654,6 +8728,8 @@ VB['sim/scenarios'] = (() => {
       if (p.died !== null) before.push([p.died, { kind: 'died', pawn: p.id, text: 'before the record' }]);
     }
     for (const u of st.unions) before.push([u.start, { kind: 'married', pawn: u.a, other: u.b }]);
+    // and who holds each farm at the start, so a farm's history names every holder it has had (VB-099)
+    for (const hh of st.households) if (hh.holder !== null && !hh.dissolved) before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
     before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
     return st;
   }
@@ -8909,7 +8985,8 @@ VB['sim/saves'] = (() => {
     // VB-127: older saves kept the hours spent near each other (st.contacts); it is left out here rather than deleted after, so st keeps
     // fast properties (VB-205).
     let enc = data.state;
-    if (enc && 'contacts' in enc) { enc = { ...enc }; delete enc.contacts; }
+    // VB-099: nor the 40-line text log (st.events), which the record replaces.
+    if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
     const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
@@ -8937,7 +9014,7 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
     membersOf, voiceOf, recordOf,
   } = VB['sim/records'];
-  const { NOTABLE, notable, eventLine } = VB['sim/notable'];
+  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog } = VB['sim/notable'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
@@ -8970,7 +9047,7 @@ const Sim = (() => {
       fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
   };
 })();
 VB['sim'] = Sim;
@@ -11205,8 +11282,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
         <summary>${iconImg(villageIcon(v),
           'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
     }
-    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + st.events.slice(0, 6).map((e) => {
-      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${esc(e.text)}</p>`;
+    // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
+    if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {
+      const c = Sim.cal(e.t); return `<p>Year ${c.year}, ${Sim.SEASONS[c.season]}: ${linkNames(e.text, e.ev)}</p>`;
     }).join('') + '</div>' : '');
     if (!h) h = '<p>No matching people or households. Try another name.</p>';
     $('peopleCount').textContent = query ? `${matches} of ${total} people match` : `${total} people across ${st.villages.length} villages`;
@@ -11300,6 +11378,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('personFamily').hidden = selPawn < 0;
     $('tileRel').hidden = true; $('relationsDetails').hidden = true;
     $('tile').hidden = activePanel !== 'tile';
+    syncTabs();
   }
   function pawnAt(x, y) {
     if (!st || cam.z <= 0.28) return -1;
@@ -11457,6 +11536,73 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('tile').classList.remove('collapsed');
     const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Collapse';
   }
+  // ======== history ========
+  // The card of a pawn, a farm or a village has two tabs, Details and History; the tab chosen stays as the selection changes, so a name
+  // followed in one history opens the next. The filter by kind is the page's own state too.
+  let cardTab = 'facts', historyGroup = '', historyStamp = '', historyHTML = '';
+  const HISTORY_ROWS = 200; // lines drawn; a filter by kind reaches the older ones
+  $('historyKinds').innerHTML = [['', 'All'], ...Object.entries(Sim.CHRONICLE).map(([key, g]) => [key, g.label])].map(([key, label]) =>
+    `<button type="button" data-history="${key}" aria-pressed="${key === ''}">${label}</button>`).join('');
+  // When an event happened: the year, and for those of the run its season and day (the dates from before the start are only years).
+  function whenOf(t) {
+    const c = Sim.cal(t);
+    return t < 0 ? `Year ${String(c.year).replace('-', '−')}` : `Year ${c.year}, ${Sim.SEASONS[c.season]}, day ${c.sday + 1}`;
+  }
+  // A line of the record with the names of its pawns, farm and village as links that select them: each name where the line first has it.
+  function linkNames(text, ev) {
+    const names = [], marks = [];
+    if (ev.pawn !== undefined) names.push([Sim.fullName(st.pawns[ev.pawn]), `data-pawn="${ev.pawn}"`]);
+    if (ev.other !== undefined) names.push([Sim.fullName(st.pawns[ev.other]), `data-pawn="${ev.other}"`]);
+    if (ev.farm !== undefined) names.push([st.farmsteads[ev.farm].name, `data-farm="${ev.farm}"`]);
+    if (ev.village !== undefined) names.push([st.villages[ev.village].name, `data-village="${ev.village}"`]);
+    names.sort((a, b) => b[0].length - a[0].length); // the longer name first, where one holds another
+    for (const [name, attr] of names) {
+      let i = -1;
+      do i = text.indexOf(name, i + 1); while (i >= 0 && marks.some((m) => i < m[1] && i + name.length > m[0]));
+      if (i >= 0) marks.push([i, i + name.length, attr]);
+    }
+    marks.sort((a, b) => a[0] - b[0]);
+    let h = '', at = 0;
+    for (const [from, to, attr] of marks) {
+      h += `${esc(text.slice(at, from))}<button type="button" class="name" ${attr}>${esc(text.slice(from, to))}</button>`; at = to;
+    }
+    return h + esc(text.slice(at));
+  }
+  // What the History tab tells of: the selected pawn, village, or farm (a farm's history follows the farm, whoever lives there).
+  const historySubject = () => (selPawn >= 0 ? { pawn: selPawn } : selVillage >= 0 ? { village: selVillage } : selFarm >= 0 ? { farm: selFarm } : null);
+  function renderHistory(q) {
+    const stamp = `${JSON.stringify(q)}|${historyGroup}|${st.record.length}`;
+    if (stamp === historyStamp) return; // the record grows by appending: nothing new, nothing to tell
+    historyStamp = stamp;
+    const rows = Sim.chronicle(st, q, historyGroup || null);
+    let h = rows.slice(0, HISTORY_ROWS).map((r) =>
+      `<p><time>${whenOf(r.ev.t)}</time>${linkNames(r.text, r.ev)}${r.note ? `<i>${esc(r.note)}</i>` : ''}</p>`).join('');
+    if (!rows.length) h = `<p class="more">${historyGroup ? 'Nothing of this kind on record.' : 'Nothing on record yet.'}</p>`;
+    if (rows.length > HISTORY_ROWS) h += `<p class="more">${rows.length - HISTORY_ROWS} earlier events are not listed; choose a kind to reach them.</p>`;
+    if (h !== historyHTML) { historyHTML = h; updatePanelHTML($('historyList'), h); }
+  }
+  // Called whenever the card is filled (page/words, card): the tabs show for a pinned pawn, farm or village, and the open one is drawn.
+  function syncTabs() {
+    const q = st && selectionPinned ? historySubject() : null, history = !!q && cardTab === 'history';
+    $('tileTabs').hidden = !q; $('tileFacts').hidden = history; $('tileHistory').hidden = !history;
+    for (const b of $('tileTabs').children) {
+      const on = (b.dataset.tab === 'history') === history;
+      b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+    }
+    for (const b of $('historyKinds').children) b.setAttribute('aria-pressed', b.dataset.history === historyGroup);
+    if (history) renderHistory(q);
+  }
+  $('tile').addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-tab]'), kind = e.target.closest('[data-history]');
+    if (tab) cardTab = tab.dataset.tab; else if (kind) historyGroup = kind.dataset.history; else return;
+    syncTabs();
+  });
+  // Left and right move between the tabs, as in any tab list.
+  $('tileTabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    cardTab = cardTab === 'history' ? 'facts' : 'history'; syncTabs();
+    $(cardTab === 'history' ? 'tabHistory' : 'tabFacts').focus(); e.preventDefault();
+  });
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
