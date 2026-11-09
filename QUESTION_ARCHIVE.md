@@ -32,6 +32,12 @@ Kim decided on 9 November that the player may skip until the next event. VB-098'
 1. **P:** a "History" tab in the pawn, household and village panels, read from the record of events (VB-075), newest first, filtered by kind; a farm's history follows the farm across households; the village log becomes a view of the same record.
    **A (Kim, 9 Nov):** P; built with slice 2, apart from ambitions.
 
+## VB-098: notifications (planning)
+1. Which events notify? **P:** a death, birth or marriage in the selected pawn's household or line; the death of a landholder; a farm emptied, claimed or newly built; a change of practice or of the culture's custom; a death from hunger. Each kind can be turned off.
+   **A (Kim, 9 Nov):** P.
+2. How are they shown? **P:** toasts at the bottom left for 6 s, at most 3 at once, merged by kind at high speed ("3 births in Ulsäter"); a click selects and moves the camera.
+   **A (Kim, 9 Nov):** P.
+
 # Archived 9 November 2026 (VB-127)
 
 ## VB-127: the build's three departures (asked in the session, 9 November 2026)

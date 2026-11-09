@@ -155,10 +155,6 @@ Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oc
 ### VB-095: family tree by scope (planning)
 1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
 
-### VB-098: notifications (planning)
-1. Which events notify? **P:** a death, birth or marriage in the selected pawn's household or line; the death of a landholder; a farm emptied, claimed or newly built; a change of practice or of the culture's custom; a death from hunger. Each kind can be turned off.
-2. How are they shown? **P:** toasts at the bottom left for 6 s, at most 3 at once, merged by kind at high speed ("3 births in Ulsäter"); a click selects and moves the camera.
-
 ### VB-100: common fields (planning)
 Fields can be private or common (Decided); nothing makes a common field yet.
 1. When does a village make a common field? **P:** at the moving round, a village of 3 or more occupied farms whose store holds less than 10 days of food for its members, with a free meadow tile within 3 steps of the green; at most one common field per 3 farms.

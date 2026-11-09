@@ -12,6 +12,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 2 | M | One `notable` rule over the record of events; toasts that select what happened. |
 | [VB-099](backlog/VB-099.md) | A chronicle: the history of a pawn, farm and village | life | 2 | M | A History tab per pawn, household and village, read from the record of events. |
 | [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
@@ -38,7 +39,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-098](backlog/VB-098.md) | Notifications for notable events | life | 2 | M | One `notable` rule over the record of events; toasts that select what happened. |
 | [VB-199](backlog/VB-199.md) | Bounded history: a pawn's events as an index, routine events folded | yardstick | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. |
 | [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Record the text of the page's panels and compare it, as the golden file does for the state, so a wording or number change shows. |
 | [VB-160](backlog/VB-160.md) | The soil's cap rises with a village's years of farming | animals | 3 | S | Yields rise slightly over a game as the soil's cap rises with years of farming; the mechanism is to be researched before a model and rate. |
