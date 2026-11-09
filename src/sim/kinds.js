@@ -26,6 +26,7 @@ VB['sim/kinds'] = (() => {
   //   refreshJobs asks the rules in the order of ASK, below. A rule shared by the kinds a module posts together names each job's kind,
   //   post(key, site, extra, kind), and the owner of a job not the household's, post(key, site, extra, kind, owner). A kind posted by two
   //   rules names its household's: clear and break, also a plot's steps, and the cottage's stages, also a plot's (plotWork).
+  //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
   // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
   const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -83,7 +84,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
       field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
       // a field in stubble, in the sowing window
-      available: (st, hh, fd, c, post, f) => {
+      stages: ['stubble'], available: (st, hh, fd, c, post, f) => {
         if (sowing(st.ECON, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
@@ -97,7 +98,7 @@ VB['sim/kinds'] = (() => {
         Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
-      available: (st, hh, fd, c, post, f) => {
+      stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
         const E = st.ECON;
         if (sowing(E, c) && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
@@ -108,7 +109,7 @@ VB['sim/kinds'] = (() => {
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
-      available: (st, hh, fd, c, post, f) => { if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f }); },
+      stages: ['ripe'], available: (st, hh, fd, c, post, f) => { if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f }); },
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
@@ -121,7 +122,7 @@ VB['sim/kinds'] = (() => {
         hauled(j.field);
       },
       // a field's stooks, once they have dried dryDays since the reaping
-      available: (st, hh, fd, c, post, f) => {
+      stages: ['stooks'], available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays) post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
@@ -178,7 +179,9 @@ VB['sim/kinds'] = (() => {
       verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
       field: true, spot: onField, done: (st, j) => weeded(j.field),
       // a growing field whose weeding is open (sim/fields)
-      available: (st, hh, fd, c, post, f) => { if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f }); },
+      stages: ['growing'], available: (st, hh, fd, c, post, f) => {
+        if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+      },
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
@@ -206,7 +209,7 @@ VB['sim/kinds'] = (() => {
       hours: 10, hands: Infinity, type: 'tilling', field: true, spot: onField,
       done: (st, j) => reclaimed(st, j.field),
       // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
-      available: (st, hh, fd, c, post, f) => {
+      stages: ['fallow', 'scrub'], available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'fallow' || fd.stage === 'scrub') post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
       },
     },
@@ -295,6 +298,7 @@ VB['sim/kinds'] = (() => {
   // and at the farm again after the household's plans for land (farmAfterPlans); then at each village (village), then once for the island
   // (island). An entry is [kind, rule]: a kind's own rule posts that kind; a shared rule (kind null) names its jobs' kinds. A job's id is its
   // posting order and matching visits jobs by id, so this order is part of the behaviour: two jobs new in the same hour keep their order.
+  // fieldAt: the field's rules by the field's stage (each kind's `stages`), in the order of `field`; refreshJobs asks only those.
   const rule = (k) => (typeof k === 'string' ? [k, KINDS[k].available] : [null, k]);
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
@@ -302,6 +306,8 @@ VB['sim/kinds'] = (() => {
     farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'mend'].map(rule),
     village: ['mend'].map(rule),
     island: [plotWork, claimWork].map(rule),
+    fieldAt: {},
   };
+  for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, woodGoal, cookWanted, rowAngle, firstRow, isOpen };
 })();
