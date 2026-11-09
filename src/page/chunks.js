@@ -65,7 +65,7 @@
   // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
   // the frame budget; the overview shows no paths.
   function refreshPaths() {
-    const reach = 2 * w.R;
+    const reach = 3.2 * w.R; // a tile's stage changes the trails of the tiles round it (gen/paths)
     for (const tile of st.pathDirty) for (const l of [0, 1]) {
       const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
       for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));

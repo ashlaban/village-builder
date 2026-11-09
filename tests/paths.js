@@ -53,10 +53,10 @@ for (let i = 0; i < pw.N; i++) {
   segs += g.length;
   check(g.length > 0 && g.every((s) => Math.hypot(s[4] - pw.hx[i], s[5] - pw.hy[i]) < 1.2 * pw.HW), `tile ${i}: trail segments ${g.length}`);
 }
-// decorations: an item on the middle of a lane goes; one well clear of its trail stays
+// decorations: an item on a lane (where its first curve ends) goes; one well clear of its trail stays
 const lane = pw.worn.findIndex((s, i) => s === 3 && !pw.dev[i] && !pw.river[i]);
 if (lane >= 0) {
-  const [bx, by] = Look.bend(pw, lane), segs3 = Look.segments(pw, lane);
+  const segs3 = Look.segments(pw, lane), [bx, by] = [segs3[0][4], segs3[0][5]];
   const clear = (x, y) => segs3.every((g) => [0, 0.25, 0.5, 0.75, 1].every((t) => { // points along the quadratic curve
     const u = 1 - t, px = u * u * g[0] + 2 * u * t * g[2] + t * t * g[4], py = u * u * g[1] + 2 * u * t * g[3] + t * t * g[5];
     return Math.hypot(px - x, py - y) > g[6] / 2 + 10;
@@ -67,4 +67,5 @@ if (lane >= 0) {
   check(!items.some((it) => it.x === bx) && items.length === (free ? 1 : 0), `thin keeps ${items.length} items on and beside a lane`);
 }
 if (failed) process.exit(1);
-console.log(`paths ok: populous seed 7 trodden/path/lane worn in ${start.slice(1).join('/')}, after a year ${counts.slice(1).join('/')}; ${segs} trail segments`);
+console.log(`paths ok: populous seed 7 trodden/path/lane worn in ${start.slice(1).join('/')}, after a year ${counts.slice(1).join(
+  '/')}; ${segs} trail segments`);

@@ -191,9 +191,10 @@ VB['sim/rules'] = (() => {
   // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
   // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
-  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set from grown runs.
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set so a new village has the paths a
+  // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
-    wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
+    wornYears: 3, trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 } };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
