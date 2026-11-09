@@ -34,6 +34,7 @@
     g.restore();
   }
   function stugaCanvas(v) {
+    if (ART_STYLE !== 'classic') return sbStuga(v);
     const c = makeCanvas(104, 80), g = c.getContext('2d'), r = G.mulberry32(100 + v);
     const logs = [[132, 108, 84], [120, 100, 80], [138, 116, 90]][v % 3];
     g.fillStyle = 'rgba(20,30,20,0.32)'; g.beginPath(); g.ellipse(54, 73, 48, 7, 0, 0, 7); g.fill();
@@ -58,6 +59,7 @@
     return c;
   }
   function harbreCanvas() {
+    if (ART_STYLE !== 'classic') return sbHarbre();
     const c = makeCanvas(56, 86), g = c.getContext('2d'), r = G.mulberry32(7);
     g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(30, 81, 24, 4.5, 0, 0, 7); g.fill();
     g.fillStyle = 'rgb(126,122,116)'; for (const x of [12, 42]) { g.beginPath(); g.ellipse(x, 79, 5, 3, 0, 0, 7); g.fill(); }
@@ -79,6 +81,7 @@
     return c;
   }
   function ladaCanvas() {
+    if (ART_STYLE !== 'classic') return sbLada();
     const c = makeCanvas(110, 72), g = c.getContext('2d'), r = G.mulberry32(11);
     g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(56, 67, 50, 6, 0, 0, 7); g.fill();
     g.fillStyle = 'rgb(40,32,26)'; g.fillRect(10, 30, 90, 34);
@@ -144,6 +147,7 @@
   }
   // Byre (fähus): a low log house with a turf roof and a plank door, smaller than the barn; the animals stand in it from autumn to spring.
   function byreCanvas() {
+    if (ART_STYLE !== 'classic') return sbByre();
     const c = makeCanvas(86, 62), g = c.getContext('2d'), r = G.mulberry32(17);
     g.fillStyle = 'rgba(20,30,20,0.3)'; g.beginPath(); g.ellipse(44, 57, 40, 5, 0, 0, 7); g.fill();
     for (let k = 0; k < 4; k++) logCourse(g, 8, 78, 33 + k * 5.6, 5.6, [118, 98, 76], r);
