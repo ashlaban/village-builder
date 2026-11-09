@@ -1,8 +1,9 @@
 // VB-194: diagnostic measurements only. Run fixtures sequentially in fresh processes; no clocks enter src/.
 // Each system's share of the 200 ms a game day at medium-ref, in tools/perf.js names (VB-203, Kim, 9 November); later slices'
 // plans add theirs. The shares sum to 192 ms: 8 ms is kept back for noise between runs and growth within today's systems.
+// VB-205 split agents and walking's 60 ms among its named parts and what is left of Sim.advance.
 const SYSTEM_BUDGETS = {
-  'agents and walking (the rest of Sim.advance)': 60, 'talk and contacts': 55, 'daily life and births': 35,
+  'agents: idle strolls': 33, 'agents: walking and working': 23, 'agents and walking (the rest of Sim.advance)': 4, 'talk and contacts': 55, 'daily life and births': 35,
   'jobs refresh and matching': 30, 'paths and routes': 5.3, 'hunger and meals': 3, 'byre': 1.2, 'the moving round': 1.1,
   'meetings': 1, 'herds': 0.2, 'meadows': 0.1, 'trees': 0.1,
 };

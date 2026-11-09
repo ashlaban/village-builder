@@ -1,7 +1,8 @@
 // The profile report (VB-143): milliseconds per system per game day. Nothing is added to src/: this loader requires the manifest modules in
 // load.js's order and, right after each registers, wraps the coarse entry points listed in SYSTEMS in a timer, so the modules loaded after it
 // destructure the wrapped functions. Time is exclusive (a wrapped call inside another counts for the inner one). Per-pawn steps (moving,
-// working) are far too many to time one by one; they and the loop around them are the remainder of Sim.advance, reported as "agents and walking".
+// working) are far too many to time one by one: the agents' step is timed whole, once a step (VB-205), and what is left of Sim.advance (the
+// clock's own loops, onHour and endOfDay outside the named systems) is the remainder, reported as "agents and walking".
 // Used by tools/sim.js: `const { load, result } = require('./perf.js')`; `load()` replaces require('../src/load.js').
 const fs = require('fs'), path = require('path');
 const SYSTEMS = {

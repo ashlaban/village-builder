@@ -1,4 +1,4 @@
-// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs
+// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
