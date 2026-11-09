@@ -14,7 +14,7 @@ lists them all. **Proposed** marks what Claude proposed and Kim has not yet rule
 JavaScript repo: sketches of shape and ownership, not code to build. The full batch sketches (`interfaces-batch2.ts` to
 `interfaces-batch16.ts`) were working files; this document carries their final form, with every later correction applied.
 
-Revised in place on 9 November 2026 after a review of this target against the code (Kim's decisions 25 to 29, section 8). Two
+Revised in place on 9 November 2026 after a review of this target against the code (Kim's decisions 25 to 30, section 8). Two
 conventions for the sketches follow from it: `| Refusal` on an owner's write means the paired query refuses (4.1, Workflows), and a
 `step(st, dt)` is built under the rules for cost (`docs/roadmap.md`, 5.3: decay lazily, schedule what falls due), not as a daily pass.
 
@@ -385,7 +385,9 @@ workshop (4.4, Membership) with a contribution to the learning rate, not a separ
   counterparts a pawn; it colours opinion by size only (gratitude; Kim, 8 Nov), and an old debt's souring is left to stories.
   Custom sets its decay and the shares passed on (section 5). The sketch's `standing` and `step` are not built.
 - **Allowance** (Decided: agent to agent) is a rule owned here: how much one pawn would give up to another in one deal, with
-  contributions from goodwill, kinship, need slack, generosity and custom. A household's allowance is its agent's.
+  contributions from goodwill, opinion, kinship, need slack, generosity and custom. A household's allowance is its agent's.
+  Goodwill and opinion both count, coupled as they are (Decided, Kim, 9 Nov): goodwill is the quasi-currency a deal is settled in,
+  and a high opinion makes an unfavourable deal likelier to pass.
 
 ```ts
 interface Goodwill { balance(st, a: PawnId, b: PawnId): number; standing(st, a, b): Tick;
@@ -663,8 +665,7 @@ allowance toward the other side is at least zero:
 
 `accept = floorOk && gain + allowance >= 0`
 
-Whether opinion feeds allowance directly is open (10.1): 4.4 lists goodwill, kinship, need slack, generosity and custom; 5.2 and
-5.4 below read as if it does. Allowance is between the two agents (Decided), and so is booking: the customary residual of a settled deal goes to their goodwill
+Allowance is between the two agents (Decided), and so is booking: the customary residual of a settled deal goes to their goodwill
 balance, and memories follow (gratitude for a gift; resentment for a deal driven in dearth; a breach for a promise broken).
 
 ### 5.2 Lumps, change and money
@@ -740,7 +741,9 @@ or a process, with sign and lag), its setpoints (the tunables that move the equi
 
 Six loops are reinforcing and one names what opposes it. Each reinforcing loop's plan names its opposer or the ceiling that stops
 it, and both timescales. Gossip is balancing as social control, but belief by opinion of the teller and by fit is reinforcing
-within it: its experiment tests for that (10.2).
+within it: its experiment tests for that (10.2). Since opinion feeds allowance (decision 30), a story reaches deals: story,
+opinion, allowance, deal, story is a fast reinforcing loop. Opinion's contribution to allowance therefore has a tight range, and
+the loop a probe, before stories are built (slice 7).
 
 ### 6.2 Calibration and bands
 
@@ -864,6 +867,7 @@ marriage, culture and prices.
 | 27 | Where custom is read (9 Nov) | The customs in force and their read side sit in the kernel; `culture` writes them | review |
 | 28 | A death's cause when several contributions raise the hazard (9 Nov) | Shares must not depend on load order: split by the logarithm of each factor | review |
 | 29 | A workflow that could fail halfway (9 Nov) | It cannot: refusals from queries and checks only; the four rules of 4.1 | review |
+| 30 | Does opinion feed allowance, beside goodwill (9 Nov) | Yes, both, though they are coupled: goodwill is the quasi-currency of the deal; a high opinion makes an unfavourable deal likelier to pass | review |
 
 ## 9. Tensions resolved, and the succession probe
 
@@ -903,9 +907,6 @@ absent from the Crown's place in the jurisdiction list (4.4).
   household hot path behind a cache; cardinality declared rather than implicit) are named in 4.4. Kim asked to iterate before
   deciding (decision 3); the next iteration is a measurement: the cache's build and update cost at populous medium, which VB-043
   already bounds (under 50 ms).
-- **Opinion and allowance.** Does a pawn's opinion of another feed its allowance directly (5.2, 5.4), or only through goodwill and
-  the decider's evaluation (4.4)? Proposed: no. Directly, a story could close a fast loop with deals (story, opinion, allowance,
-  deal, story).
 - **The 600 / 325 / 75 reading** of section 6.3 is Proposed.
 - **The player and the floor.** May the player accept a deal that takes its household below the floor that binds every pawn?
 - **A meeting that fails to decide** its yearly routines (no quorum, a tie): no fence work that year, or a fallback by custom?
