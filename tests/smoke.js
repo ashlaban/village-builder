@@ -109,6 +109,15 @@ const iv = setInterval(async () => {
       if (qa('#treeSvg g.tn').length < shown[mode]) fail(`a chip of the ${mode} view hid people`);
     }
   }
+  // the path: to a spouse or a child of the first living person who has one, and it names the relation
+  q(`#treeModes [data-mode="line"]`).click();
+  if (q('#treeSvg g.tn:not(.focus)')) {
+    q('#treeModes [data-mode="path"]').click();
+    if (!/second person/.test(q('#treeCaption').textContent)) fail('Path does not ask for the second person');
+    q('#treeSvg g.tn:not(.focus)').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+    const cap = q('#treeCaption').textContent; console.log('tree path:', qa('#treeSvg g.tn').length, 'shown |', cap);
+    if (qa('#treeSvg g.tn.focus').length !== 2 || !/ is .*'s /.test(cap)) fail(`the path view does not show both people and their relation: ${cap}`);
+  }
   console.log('tree lines:', JSON.stringify(shown), 'of', all);
   everyone();
   const dn = q('#treeSvg g.tn.dead'); dn.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
