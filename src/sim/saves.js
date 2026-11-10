@@ -6,6 +6,7 @@ VB['sim/saves'] = (() => {
   const { rebuildLiving } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
+  const { seedPlans } = VB['sim/plans'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -153,6 +154,7 @@ VB['sim/saves'] = (() => {
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

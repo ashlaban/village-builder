@@ -3,6 +3,7 @@ VB['sim/membership'] = (() => {
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
+  const { makePlan } = VB['sim/plans'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   function foundHousehold(st, f, members, holder, { grain = 0, stakes = false, text = null, followers = [], unhomed = false } = {}) {
@@ -10,7 +11,7 @@ VB['sim/membership'] = (() => {
     Stores.start(st, hh, grain);
     if (stakes) for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0,
       { kind: 'provisions', pawn: id });
-    st.households.push(hh);
+    st.households.push(hh); makePlan(st, 'household', hh.id);
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
       setOwner(st, t, { type: 'household', id: hh.id });
     }

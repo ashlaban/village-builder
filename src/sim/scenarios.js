@@ -10,6 +10,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
+  const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
@@ -245,6 +246,7 @@ VB['sim/scenarios'] = (() => {
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
     };
     rebuildLiving(st);
+    seedPlans(st);
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);

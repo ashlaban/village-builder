@@ -13,6 +13,19 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  // the standing plans (VB-258): exactly one per undissolved household and per village, none of a dissolved household
+  if (st.plans) {
+    for (const [type, map, live] of [['household', st.plans.households, st.liveHouseholds], ['village', st.plans.villages, st.villages.map((v) => v.id)]]) {
+      if (!(map instanceof Map) || map.size !== live.length) { bad.push(`plans: ${type} plans ${map && map.size}, live ${type}s ${live.length}`); continue; }
+      for (const id of live) {
+        const plan = map.get(id);
+        if (!plan || plan.kind !== 'standing' || plan.holder.type !== type || plan.holder.id !== id || !Number.isFinite(plan.nextReview)) {
+          bad.push(`plans: ${type} ${id} has no standing plan of its own`);
+        }
+      }
+      if (type === 'household') for (const id of map.keys()) if (!st.households[id] || st.households[id].dissolved) bad.push(`plans: dissolved household ${id} keeps a plan`);
+    }
+  } else bad.push('plans: missing');
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }

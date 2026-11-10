@@ -11,6 +11,7 @@ VB['sim/jobs'] = (() => {
   const { startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { planOf, reviewed } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -36,16 +37,22 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
-  // Each kind says where it is available (sim/kinds, `available`); refreshJobs asks them in the order of ASK, which is the jobs' ids.
+  // The review of every holder's standing plan (sim/plans; VB-258), every review hour: each kind says where it is available for the holder
+  // (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids, and what it reports is posted.
   function refreshJobs(st, c) {
     for (const j of st.jobs.values()) j.live = false;
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
     let kind = null, own = null;
     const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
-    const ask = (rules, holder, at, f) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); } };
+    const ask = (rules, holder, at, f) => {
+      VB.count.oppAsk += rules.length;
+      for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
+    };
+    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan); };
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
+      review('household', hh.id);
       own = { type: 'household', id: hh.id };
       for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
       ask(ASK.farm, hh, f, f);
@@ -56,7 +63,7 @@ VB['sim/jobs'] = (() => {
       ask(ASK.farmAfterPlans, hh, f, f);
     }
     own = null;
-    for (const v of st.villages) ask(ASK.village, v, v);
+    for (const v of st.villages) { review('village', v.id); ask(ASK.village, v, v); }
     ask(ASK.island, null, null); // plots, and empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {

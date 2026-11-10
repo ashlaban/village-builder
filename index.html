@@ -691,6 +691,8 @@ VB.COUNTERS = {
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   ruleValue: 'Rule values read (explanations excluded)',
+  oppAsk: 'Calls of a kind\'s `available` rule by the hourly review of the standing plans (sim/jobs, refreshJobs; VB-258)',
+  planReview: 'Standing plans reviewed, one per live household on a farm and per village each review hour (sim/plans, VB-258)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -7279,6 +7281,44 @@ VB['sim/commands'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/plans: holders' plans (design.md, section 7; VB-258): one standing plan per live household and per village, made and dropped with its holder
+VB['sim/plans'] = (() => {
+  const { WORK, DAY } = VB['sim/rules'];
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan}; a plan is
+  //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours)}. One standing plan per undissolved household
+  //   and per village; a dissolved household's plan is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review
+  //   is the hourly pass that asks each kind where it is available (refreshJobs, sim/jobs); nothing else reads a plan yet.
+  // The hours a standing plan is reviewed: every hour from one before work starts to the end of work (sim/clock calls refreshJobs then).
+  const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
+  // The first review hour after the hour of time t.
+  function reviewAfter(t) {
+    const day = Math.floor(t / DAY), h = Math.floor(t - day * DAY) + 1;
+    if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
+    if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
+    return day * DAY + h;
+  }
+  const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
+  // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load).
+  function makePlan(st, type, id) {
+    const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(st.t - 1) };
+    mapOf(st, type).set(id, plan);
+    return plan;
+  }
+  // A dissolved household's plan goes with it.
+  function dropPlan(st, type, id) { mapOf(st, type).delete(id); }
+  const planOf = (st, type, id) => mapOf(st, type).get(id);
+  // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
+  function seedPlans(st) {
+    st.plans = { households: new Map(), villages: new Map() };
+    for (const id of st.liveHouseholds) makePlan(st, 'household', id);
+    for (const v of st.villages) makePlan(st, 'village', v.id);
+  }
+  // A plan reviewed now: its next review is the next review hour.
+  function reviewed(st, plan) { VB.count.planReview++; plan.nextReview = reviewAfter(st.t); }
+  return { reviewHour, makePlan, dropPlan, planOf, seedPlans, reviewed };
+})();
+</script>
+<script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
@@ -7292,6 +7332,7 @@ VB['sim/jobs'] = (() => {
   const { startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { planOf, reviewed } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -7317,16 +7358,22 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
-  // Each kind says where it is available (sim/kinds, `available`); refreshJobs asks them in the order of ASK, which is the jobs' ids.
+  // The review of every holder's standing plan (sim/plans; VB-258), every review hour: each kind says where it is available for the holder
+  // (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids, and what it reports is posted.
   function refreshJobs(st, c) {
     for (const j of st.jobs.values()) j.live = false;
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
     let kind = null, own = null;
     const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
-    const ask = (rules, holder, at, f) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); } };
+    const ask = (rules, holder, at, f) => {
+      VB.count.oppAsk += rules.length;
+      for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
+    };
+    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan); };
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
+      review('household', hh.id);
       own = { type: 'household', id: hh.id };
       for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
       ask(ASK.farm, hh, f, f);
@@ -7337,7 +7384,7 @@ VB['sim/jobs'] = (() => {
       ask(ASK.farmAfterPlans, hh, f, f);
     }
     own = null;
-    for (const v of st.villages) ask(ASK.village, v, v);
+    for (const v of st.villages) { review('village', v.id); ask(ASK.village, v, v); }
     ask(ASK.island, null, null); // plots, and empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {
@@ -7496,7 +7543,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES, GOODWILL } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds } = VB['sim/herds'];
-  const { abandoned } = VB['sim/fields'];
+  const { abandoned } = VB['sim/fields'], { dropPlan } = VB['sim/plans'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
@@ -7713,7 +7760,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     abandoned(f);
-    hh.dissolved = true; noteDissolved(st, hh); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
+    hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
@@ -7886,6 +7933,7 @@ VB['sim/membership'] = (() => {
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
+  const { makePlan } = VB['sim/plans'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   function foundHousehold(st, f, members, holder, { grain = 0, stakes = false, text = null, followers = [], unhomed = false } = {}) {
@@ -7893,7 +7941,7 @@ VB['sim/membership'] = (() => {
     Stores.start(st, hh, grain);
     if (stakes) for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0,
       { kind: 'provisions', pawn: id });
-    st.households.push(hh);
+    st.households.push(hh); makePlan(st, 'household', hh.id);
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
       setOwner(st, t, { type: 'household', id: hh.id });
     }
@@ -8461,6 +8509,7 @@ VB['sim/settle'] = (() => {
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
+  const { makePlan } = VB['sim/plans'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
@@ -8640,7 +8689,7 @@ VB['sim/settle'] = (() => {
     const hs = st.cenv.settlements[home.id];
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
-    st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
+    st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
@@ -9128,6 +9177,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
+  const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
@@ -9363,6 +9413,7 @@ VB['sim/scenarios'] = (() => {
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
     };
     rebuildLiving(st);
+    seedPlans(st);
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
@@ -9400,6 +9451,7 @@ VB['sim/clock'] = (() => {
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
+  const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
@@ -9423,7 +9475,7 @@ VB['sim/clock'] = (() => {
         if (a.inside && !a.job) placeByDoor(st, a);
       }
     }
-    if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (reviewHour(h)) refreshJobs(st, c); // the review of the standing plans (sim/plans)
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
     if (h === WORK[1]) for (const liveId of st.living) {
@@ -9506,6 +9558,7 @@ VB['sim/saves'] = (() => {
   const { rebuildLiving } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
+  const { seedPlans } = VB['sim/plans'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -9653,6 +9706,7 @@ VB['sim/saves'] = (() => {
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -13327,7 +13381,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '26d3efdb18', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'b6f8b56e8b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
