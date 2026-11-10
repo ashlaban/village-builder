@@ -184,6 +184,7 @@
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
+    if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } // choosing a speed, or pausing, ends a skip
     resetSpeedSample();
     $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
     $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');

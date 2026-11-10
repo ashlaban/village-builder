@@ -197,6 +197,7 @@
   // offers "Go on as", and the break is recorded. Called each frame (page/animate).
   function offerSuccession() {
     const box = $('succession'), pl = st && st.player, dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
+    const noSkip = played() < 0; if ($('skipBtn').hidden !== noSkip) $('skipBtn').hidden = noSkip; // Skip is offered while a pawn is played
     if (dead < 0) { if (!box.hidden) box.hidden = true; succFor = -1; return; }
     const now = performance.now();
     if (succFor !== dead) { succFor = dead; succAt = 0; followPlayed = false; walkPick = false; document.querySelector('[data-speed="0"]').click(); }
@@ -217,6 +218,31 @@
     succAt = 0;
     if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
   });
+  // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
+  // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
+  // and a note says why, until it is clicked or the next skip begins. The simulation does nothing differently for it.
+  let skipNote = null;
+  function dropSkipNote() { if (skipNote) { skipNote.remove(); skipNote = null; } }
+  function startSkip() {
+    if (played() < 0 || building || skipping) return;
+    const back = speed === 0 ? lastSpeed : speed;
+    dropSkipNote(); setSpeed(Infinity); lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
+    skipCursor = Sim.skipFrom(st); $('skipBtn').setAttribute('aria-pressed', 'true');
+  }
+  function endSkip(stop) {
+    const ev = stop.ev, id = st.player ? st.player.pawn : -1, f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
+    setSpeed(0);
+    if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+    else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
+    else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
+    skipNote = document.createElement('button');
+    skipNote.type = 'button'; skipNote.className = 'toast panel skip-note'; skipNote.id = 'skipNote'; skipNote.dataset.why = stop.why;
+    const c = Sim.cal(st.t);
+    skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
+    skipNote.addEventListener('click', dropSkipNote);
+    $('toasts').appendChild(skipNote);
+  }
+  $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
   // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
   function offerPlay() {
     const id = suggestedPawn(), box = $('playOffer');

@@ -83,7 +83,8 @@ body {
 .speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
 .background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .background-run input { margin: 0; accent-color: var(--accent); }
-.speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+#skipBtn { padding: 5px 10px; font-size: 14px; }
+#skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
 .settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
@@ -485,6 +486,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
+    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
   </div>
 </div>
 <button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
@@ -9855,7 +9857,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     choice = { seed, scenario, size };
     $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null;
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
@@ -10234,6 +10236,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
+    if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } // choosing a speed, or pausing, ends a skip
     resetSpeedSample();
     $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
     $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
@@ -11341,6 +11344,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const backgroundRun = $('backgroundRun');
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
+  // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
+  let skipCursor = null;
   const simulationAway = () => document.hidden || !windowFocused;
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
@@ -11349,7 +11354,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden) { resetSpeedSample(); return; }
     const before = st.t;
-    if (speed === Infinity) {
+    if (skipCursor) {
+      // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
+      const deadline = performance.now() + SIM_BUDGET_MS;
+      let stop = Sim.skipStop(st, skipCursor);
+      while (!stop) { Sim.advance(st, SIM_SLICE_HOURS); stop = Sim.skipStop(st, skipCursor); if (performance.now() >= deadline) break; }
+      if (stop) endSkip(stop);
+    } else if (speed === Infinity) {
       const deadline = performance.now() + SIM_BUDGET_MS;
       // Yield between ordinary six-minute steps; one indivisible step can exceed the budget.
       do { Sim.advance(st, SIM_SLICE_HOURS); } while (performance.now() < deadline);
@@ -12207,6 +12218,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // offers "Go on as", and the break is recorded. Called each frame (page/animate).
   function offerSuccession() {
     const box = $('succession'), pl = st && st.player, dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
+    const noSkip = played() < 0; if ($('skipBtn').hidden !== noSkip) $('skipBtn').hidden = noSkip; // Skip is offered while a pawn is played
     if (dead < 0) { if (!box.hidden) box.hidden = true; succFor = -1; return; }
     const now = performance.now();
     if (succFor !== dead) { succFor = dead; succAt = 0; followPlayed = false; walkPick = false; document.querySelector('[data-speed="0"]').click(); }
@@ -12227,6 +12239,31 @@ if (typeof module !== 'undefined') module.exports = Sim;
     succAt = 0;
     if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
   });
+  // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
+  // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
+  // and a note says why, until it is clicked or the next skip begins. The simulation does nothing differently for it.
+  let skipNote = null;
+  function dropSkipNote() { if (skipNote) { skipNote.remove(); skipNote = null; } }
+  function startSkip() {
+    if (played() < 0 || building || skipping) return;
+    const back = speed === 0 ? lastSpeed : speed;
+    dropSkipNote(); setSpeed(Infinity); lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
+    skipCursor = Sim.skipFrom(st); $('skipBtn').setAttribute('aria-pressed', 'true');
+  }
+  function endSkip(stop) {
+    const ev = stop.ev, id = st.player ? st.player.pawn : -1, f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
+    setSpeed(0);
+    if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+    else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
+    else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
+    skipNote = document.createElement('button');
+    skipNote.type = 'button'; skipNote.className = 'toast panel skip-note'; skipNote.id = 'skipNote'; skipNote.dataset.why = stop.why;
+    const c = Sim.cal(st.t);
+    skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
+    skipNote.addEventListener('click', dropSkipNote);
+    $('toasts').appendChild(skipNote);
+  }
+  $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
   // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
   function offerPlay() {
     const id = suggestedPawn(), box = $('playOffer');

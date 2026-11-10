@@ -100,6 +100,22 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
   await page.click('#playBox [data-play="stop"]');
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
+  // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop
+  if (await page.locator('#skipBtn').isVisible()) fail('Skip is offered with no pawn played');
+  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  const skipT = await page.evaluate(() => window.__play.st.t);
+  await page.click('#skipBtn');
+  await page.waitForSelector('#skipNote', { timeout: 240000 });
+  const skipped = await page.evaluate(() => {
+    const { st, Sim } = window.__play, note = document.getElementById('skipNote');
+    return { t: st.t, why: note.dataset.why, known: !!Sim.SKIP[note.dataset.why], text: note.textContent,
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'), pressed: document.getElementById('skipBtn').getAttribute('aria-pressed') };
+  });
+  if (!skipped.known || !/^Skip stopped, .+: .+/.test(skipped.text)) fail(`the skip did not stop at a named event: ${JSON.stringify(skipped)}`);
+  if (skipped.paused !== 'true' || skipped.pressed !== 'false') fail(`the page is not paused after the skip: ${JSON.stringify(skipped)}`);
+  if (!(skipped.t > skipT) || skipped.t - skipT > 1153) fail(`the skip ran from ${skipT} to ${skipped.t}`);
+  await page.click('#skipNote');
+  await page.click('#playBox [data-play="stop"]');
   // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
   await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
   await page.click('[data-speed="1"]');
@@ -125,5 +141,5 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, its death and going on as its heir)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir)');
 })().catch((e) => { console.error(e); process.exit(1); });
