@@ -14,6 +14,22 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-270: the hunger floors, what the diagnosis found (raised 10 November 2026, by VB-270)
+VB-270 replayed the ten full runs (`docs/bench/closure.md`, "The hunger floors"; the replay is `docs/bench/hunger-causes.js`). Of 141 hunger
+deaths after year 3, 91 are in households whose stores still held a day's food behind the seed reserve (`seedReserve`; design.md, Seed, Agreed:
+"a household keeps back seed for all its fields before it eats"), mostly a lone adult or an heir with 3 to 5 fields; 49 are real shortage.
+1. May a household that cannot feed itself eat its seed? **P:** yes, as the last step of a short day: when the meal falls short, the grain
+   below the seed reserve is taken for the meal too, and the fields it leaves unsown are the price (the log says so). Design.md's line
+   becomes "keeps back seed before it eats, unless it would go hungry". At the recorded runs this would take at most 91 of the 141 hunger deaths
+   away (the share of deaths after year 3 would read 0.022, 0.023, 0.058, 0.012 on populous, 0.000, 0.033, 0.037, 0.094 on founders and 0.000,
+   0.048 on heirs: 3 of 10 runs in); the share of household-years over 0.3 hungry would fall from 0.006 to 0.085 to 0.002 to 0.057. It is
+   an upper bound: a household that eats its seed sows less the next year. VB-270-a builds it and measures the true numbers. If no, the
+   residual stays and the floors' hunger-deaths band is raised or dropped for the reserve's households (Kim's choice).
+2. Should the band "hungry-households" read the worst household? It is an extreme value: it grows with the number of households and is
+   1.00 on six of the ten runs. **P:** read the share of household-years after year 3 in which a household (present 12 days or more) was
+   hungry over 0.3 of its days, at most 0.05; the worst household stays in the report. Today's values read 0.006 to 0.085: 9 of 10 runs in
+   (founders 42 is out at 0.085, heirs 42 in at 0.047), against none in today.
+
 ### VB-242 and VB-280: a village a step, the order of villages and what stays island-wide (raised 10 November 2026, by VB-242)
 Kim decided on 10 November that each village holds its meeting and its round in its own step, in the order of village id, with a village's own men and women from anywhere (`design.md`, Leaving home: A village's round). VB-242's survey and numbers are in `backlog/VB-242.md`. The plan proceeds on both proposals. Only VB-280 waits.
 1. Should the first village turn from year to year? Measured with a static matcher on 38 states (populous small, seeds 1 to 6, years 5 to 30, plus `small-y40` and `medium-ref`), the same men asking under each order: by village id, the first third of villages' men lose the woman they score best 21% of the times they ask, against 38% today, and marry 44% of the times against 36%. The middle third lose 48% (43% today) and marry 36% (41%). So village 0 and its neighbours in id order, the oldest and largest villages, always ask first. **P:** yes, VB-280: the villages' steps of the round and of the meetings start at village `year mod villages` and go on in id order, wrapping. It is deterministic, draws nothing, and costs one modulo a step. In the study this evens the advantage out over the years. If no, VB-280 is closed, and the advantage of the first villages is part of the design.

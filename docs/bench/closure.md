@@ -5,6 +5,76 @@ at `7205992`); the sections dated 9 November are VB-203's, at `9f130e6` with the
 after Kim's answers of 9 November: the shares, a whole game year as the bench's window, and the save line counted on the main thread.
 The cost-growth table is kept current.
 
+## The hunger floors: who is hungry, and which task closes each (VB-270, 10 November)
+
+The bands' full runs at `756c693` (`bands.jsonl`, 28 of 50 in; every hunger band out on all ten runs; population out on founders 3 and
+heirs 42). Each run was replayed a day at a time as `tests/lib/bands.js` does (`docs/bench/hunger-causes.js`; it reproduces the recorded
+worst shares and death shares to the last digit), naming each household over 0.3 of its days after year 3 (280 household-years in all)
+and each hunger or starvation death (141). A hungry day is sorted by what the household held after it: **reserve** when its grain and
+meals still covered the day's need (the seed reserve, `seedReserve` in `src/sim/hunger.js`, is never eaten: design.md, Seed, Agreed), **short**
+when they did not. Nothing in the game changed; bands before and after are the same record.
+
+| Run | Worst share | Rows (reserve / short) | Hunger deaths after y3 (share) | Of them: reserve / short | Share without the reserve deaths | Share of household-years over 0.3 (without reserve) |
+|---|---:|---|---:|---|---:|---|
+| populous 3 | 1.00 | 92 (40 / 52) | 38 of 360 (0.106) | 30 / 7 | 0.022 | 0.030 (0.017) |
+| populous 7 | 0.92 | 16 (10 / 6) | 10 of 341 (0.029) | 2 / 8 | 0.023 | 0.006 (0.002) |
+| populous 11 | 1.00 | 79 (36 / 43) | 66 of 412 (0.160) | 42 / 24 | 0.058 | 0.025 (0.014) |
+| populous 42 | 1.00 | 44 (8 / 36) | 10 of 341 (0.029) | 6 / 4 | 0.012 | 0.014 (0.012) |
+| founders 3 | 0.73 | 6 (2 / 4) | 1 of 20 (0.050) | 1 / 0 | 0.000 | 0.027 (0.018) |
+| founders 7 | 0.56 | 7 (2 / 5) | 2 of 30 (0.067) | 1 / 1 | 0.033 | 0.024 (0.017) |
+| founders 11 | 0.44 | 2 (0 / 2) | 1 of 27 (0.037) | 0 / 1 | 0.037 | 0.007 (0.007) |
+| founders 42 | 1.00 | 21 (7 / 14) | 7 of 32 (0.219) | 4 / 3 | 0.094 | 0.085 (0.057) |
+| heirs 7 | 1.00 | 5 (5 / 0) | 2 of 13 (0.154) | 2 / 0 | 0.000 | 0.026 (0.000) |
+| heirs 42 | 0.86 | 8 (4 / 4) | 4 of 21 (0.190) | 3 / 1 | 0.048 | 0.047 (0.023) |
+
+(A death is sorted by its household's hungry days that year; one death, of an infant fed that day, is in neither. "Without the reserve
+deaths" subtracts the reserve column from the hunger deaths and keeps the denominator: an upper bound on what a rule change would give, since
+a household that eats its seed sows less. The worst-share column's households are named below.)
+
+**Cause 1, the seed reserve: 114 of 280 household-years and 91 of 141 deaths.** A household keeps back 25 rations of seed for each field that
+is stubble or plowed (all of them from harvest to spring), and nothing may be eaten below that, so a household of one with 3 to 5 fields
+(114 rows average 3.9 fields and 1.2 members; 90 are households of one) starves with a granary that holds a few days to weeks of its food.
+Named: populous 3, year 18, household 124 (a 19-year-old woman and a 4-year-old holder, 6 fields, 73 grain against a reserve of 75; both died,
+hungry on all 20 days it lasted: this is the 1.00); populous 11, year 23, household 69 (two children of 4 and under, a holder of 11, 24 grain
+against 50; dissolved, 30 of 30 days); populous 42, year 21, household 142 (a 19-year-old and a 1-year-old holder, 5 fields, 45 against 75);
+founders 42, year 38, household 10 (holder 5, 1 field, 24 against 25) and year 47, household 11 (a lone adult, 48 of 48 days, 4 fields, 89
+grain); founders 3, year 26, household 6 (a lone adult, 35 of 48 days, 1 field, 46 grain); heirs 7, year 17, household 4 (a man of 40 with a
+holder of 10, 3 fields, 49 against 50) and year 24, household 3 (21 and 15, 5 fields, 90 against 125); heirs 42, year 17, household 3 (a man of
+68 and a holder of 68: 5 fields, 122 grain against 125). Within these, the lone adult, the heir and the ward (21 rows have a holder under 16) is
+the shape, and the reserve is the mechanism: the household cannot work the fields its reserve is held for. 30 of populous 3's 38 deaths and 42 of
+populous 11's 66 are of this kind.
+Closing: a design change, so a question for Kim (QUESTIONS.md, VB-270, 1) and the proposed task **VB-270-a**; the lone survivor is **VB-270-b**.
+
+**Cause 2, real shortage: 166 of 280 household-years and 49 of 141 deaths.** Households of 4.1 members on 3.2 fields (2.2 adults, 1.9 children
+or infants; 78 of the 166 have 2 or more adults and 2 or more children; 36 have one adult at most), 0.2 herds, short in spring to autumn
+before the harvest (populous 42, year 30, household 9: 2 adults and an infant, 5 fields, 4 sown, 9, 12 and 11 hungry days in spring, summer and
+autumn, none in winter; populous 3 has 52 such rows, populous 42 has 36, and the same households recur: 55 households make populous 3's 92 rows, 27 make populous 42's 44). Labour, land and herd all play: this is the food balance VB-048 was written for (its goal: "a couple with 4 or more children
+runs short every year before harvest"), and none of its prerequisites are in. VB-048 stays blocked, behind VB-136 (VB-251), VB-144 (VB-185,
+VB-121) and VB-139, VB-160 (ready), so the proposed task **VB-270-c** is its first, measuring pass, runnable now.
+
+**Cause 3, the household of one and the heir: 90 of the 114 reserve rows and 36 of the short ones are households of one adult or fewer; 25
+rows have a holder under 16.** Their deaths mostly show above as reserve deaths (the lone adult at 19 or 20 next to a child holder). A
+household that dissolves within the year, or is made in it, counts as hungry on all its days: 46 of the 280 rows are such (populous 3: 15;
+populous 11: 17), but they are real hunger (a dissolved household's last days are those of a starving one), so the probe is right about them;
+leaving them out the worst share is still 1.00 in populous 3 and founders 42, and moves populous 7 (0.92 to 0.73), populous 42 (1.00 to
+0.67) and heirs 7 (1.00 to 0.65), never under 0.44.
+Closing: **VB-270-b**, with VB-090 (landless adults take service) and VB-034 for the land of heirs.
+
+**Cause 4, the measure.** The worst household is an extreme value: it grows with the number of households (92 rows and 55 households in
+populous 3, 16 and 10 in populous 7) and is 1.00 on six of ten runs while the share of household-years over 0.3 is 0.006 to 0.085. The hunger
+share of deaths is fine. A question for Kim (QUESTIONS.md, VB-270, 2): the band reads the share of household-years hungry over 0.3, at most 0.05;
+today's values read 9 of 10 in (founders 42 at 0.085 is out, heirs 42 at 0.047 in), and 0.057 for founders 42 without the reserve deaths.
+
+**Population.** Founders 3 (10 to 7) and heirs 42 (18 to 12) are small numbers: hunger caused 2 of 26 and 4 of 21 of their deaths, so these
+are not diagnosed here; they stay residuals of the early game's small founding groups.
+
+| Residual | Where | Closed by |
+|---|---|---|
+| Seed reserve never eaten: 91 of 141 hunger deaths, 114 rows | all ten runs but founders 11 | Kim's question 1; VB-270-a |
+| Real shortage before harvest: 49 deaths, 166 rows | all ten | VB-270-c, then VB-048 |
+| Lone survivors and wards | populous 3, 11, heirs, founders 42 | VB-270-b (with VB-090, VB-034) |
+| The worst household as the band's reading | six of ten runs at 1.00 | Kim's question 2 |
+
 ## Slice 0's wrap-up: the lines at `7205992` (VB-200, 10 November)
 
 Fresh fixtures made at `7205992` (format 2; `medium-ref` at year 12 with 1,010 living, `medium-y5` 883, `small-y40` 689, `small-y5`
