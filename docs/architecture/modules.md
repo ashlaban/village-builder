@@ -35,6 +35,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The record of events (VB-075): `st.record`, typed events written by `log(st, text, event)` and `personEvent(...)` in `src/sim/records.js`
   (`false` when another call records the same happening); `Sim.recordOf(st, {pawn, household, farm, village, kinds, from, to})` queries it.
   A new log line names its event's kind, pawn and place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.
+  Bounded history (VB-199): `pawn.events` holds positions in `st.record`, read with `Sim.recordOf(st, {pawn, life: true})` (`sim/notable`,
+  `lifeOf`); a new kind of event goes into `HISTORY` (`sim/records`), 0 to keep it or the years after which `foldHistory` folds it into
+  `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
