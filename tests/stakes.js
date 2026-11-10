@@ -90,8 +90,8 @@ function contest(dispute, idle = 2, ties = 'contestor') {
     if (u !== t && !st.used.has(u) && u !== st.villages[0].center && (st.owner[u] === 0 || T.isOutland(st, u, 0))) setOwner(st, u, H(1));
   }
   check(F.chooseTile(st, f[2]) < 0, `${dispute}: no free tile for household 2`);
-  // a member of household 0 is on its way to the project
-  J.refreshJobs(st, cal(st.t));
+  // a member of household 0 is on its way to the project (the reviews' land step held back: household 2 contests below, with the voices set)
+  st.makeFields = false; J.refreshJobs(st, cal(st.t), true); st.makeFields = true;
   const job = st.jobs.get(`clear:f${f[0].id}`), worker = st.agents[hh[0].members.find((id) => st.pawns[id].age >= 18)];
   A.start(st, worker, job);
   const [a, b] = [hh[2].holder, hh[0].holder];

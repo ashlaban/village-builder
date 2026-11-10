@@ -12,7 +12,7 @@ VB['sim/clock'] = (() => {
   const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
-  const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
+  const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
@@ -123,7 +123,13 @@ VB['sim/clock'] = (() => {
     stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t), all = stepAgents(st, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
-    if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+    if (idle.length) {
+      const got = planRound(st, idle, c);
+      // those the plan's tasks did not employ look at the household's opportunities, and are matched again (VB-249)
+      const looked = got.size < idle.length ? lookForWork(st, idle.filter((a) => !got.has(a)), c) : [];
+      if (looked.length) for (const a of planRound(st, looked, c)) got.add(a);
+      for (const a of idle) if (!got.has(a)) idleAbout(st, a);
+    }
   }
   const advance = (st, hours) => ticking(st, hours, step);
   return { onHour, endOfDay, newYear, advance, ticking, stepsIn };

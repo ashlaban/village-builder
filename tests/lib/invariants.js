@@ -52,6 +52,32 @@ function checkState(st) {
         }
       }
     }
+    // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
+    // none of a dissolved household (an overdue entry is not checked: tests move the clock by hand, and the next review hour asks it)
+    const due = st.plans.due, W = globalThis.VB['sim/plans'].WINDOWED;
+    if (!Array.isArray(due)) bad.push('plans: no due-queue');
+    else {
+      const seen = new Set();
+      for (let i = 0; i < due.length; i++) {
+        const e = due[i], prev = due[i - 1];
+        if (!Array.isArray(e) || e.length !== 3 || !Number.isInteger(e[0]) || !Number.isInteger(e[2]) || e[2] < 0 || e[2] >= W.length) {
+          bad.push(`plans: due entry ${JSON.stringify(e)} is malformed`); continue;
+        }
+        if (prev && (prev[0] > e[0] || (prev[0] === e[0] && (prev[1] > e[1] || (prev[1] === e[1] && prev[2] >= e[2]))))) bad.push(`plans: due-queue unsorted at ${i}`);
+        if (!st.households[e[1]] || st.households[e[1]].dissolved) bad.push(`plans: due entry for dissolved household ${e[1]}`);
+        seen.add(`${e[1]}:${e[2]}`);
+      }
+      if (seen.size !== due.length || due.length !== st.plans.households.size * W.length) {
+        bad.push(`plans: due-queue holds ${due.length} entries (${seen.size} distinct) for ${st.plans.households.size} households`);
+      }
+    }
+    for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
+      if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
+    }
+    for (const id of st.living) {
+      const d = st.pawns[id].diligence;
+      if (d !== undefined && !(d >= 0 && d < 1)) bad.push(`pawn ${id}: diligence ${d}`);
+    }
   } else bad.push('plans: missing');
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
