@@ -20,7 +20,8 @@
     $('genCancel').hidden = !w;
     $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
-  async function build(seed, scenario, size) {
+  // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  async function build(seed, scenario, size, save = null) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
@@ -28,12 +29,13 @@
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
-    setLoad('Settling the founders', 0.52); await frame();
+    setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement on this map for this scenario', e); }
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('regen').disabled = false;
-      showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
+      showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
@@ -95,8 +97,8 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    offerPlay();
-    building = false; $('regen').disabled = false;
+    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) selectPawn(sim.player.pawn);
+    building = false; drawSaveSlots(); $('regen').disabled = false;
   }
 
   function makeClouds(wd) {

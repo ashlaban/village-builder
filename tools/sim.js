@@ -18,7 +18,8 @@ const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt; };
 const fs = require('fs'), zlib = require('zlib'), saveTo = opt('save', null), loadFrom = opt('load', null);
-const readSave = (f) => JSON.parse((f.endsWith('.gz') ? zlib.gunzipSync(fs.readFileSync(f)) : fs.readFileSync(f)).toString('utf8'));
+// a page save (VB-214) wraps the run as {build, savedAt, label, save}: it is unwrapped here, whatever its build
+const readSave = (f) => { const d = JSON.parse((f.endsWith('.gz') ? zlib.gunzipSync(fs.readFileSync(f)) : fs.readFileSync(f)).toString('utf8')); return d && d.build && d.save ? d.save : d; };
 const loaded = loadFrom ? readSave(loadFrom) : null;
 const mapOf = (d) => Object.keys(SIZES).find((k) => SIZES[k][0] === d.cols && SIZES[k][1] === d.rows);
 const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'), seedNum = loaded ? loaded.seed : +opt('seed', 7), map = loaded ? mapOf(loaded) : opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
