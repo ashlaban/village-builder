@@ -18,7 +18,7 @@ const Sim = (() => {
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish } = VB['sim/commands'];
-  const { actorView, forPawn } = VB['sim/opportunities'];
+  const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
@@ -33,7 +33,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, cal, age, birthYear, fullName, spouseOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
+      fullName, spouseOf,
       childrenOf, siblingsOf,
       kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,

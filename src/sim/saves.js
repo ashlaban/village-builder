@@ -152,6 +152,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+    if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

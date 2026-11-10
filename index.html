@@ -6630,7 +6630,8 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -6838,8 +6839,10 @@ VB['sim/commands'] = (() => {
   //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
   //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
   //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
-  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants)}; plain data, saved with the run
-  const QUEUE_MAX = 8;
+  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
+  //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
+  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
+  const QUEUE_MAX = 8, TIES_MAX = 12;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
   const LASTS = {
@@ -6855,7 +6858,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null } };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -6864,6 +6867,27 @@ VB['sim/commands'] = (() => {
     personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
     st.player = null;
     return true;
+  }
+  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
+  // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
+  function playerDied(st, id) {
+    const pl = st.player;
+    if (!pl || pl.pawn !== id) return;
+    const held = holdingOf(st, id), friends = relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend);
+    friends.sort((x, y) => y.opinion - x.opinion || x.id - y.id);
+    pl.queue = [];
+    pl.left = { t: st.t, held: held ? held.id : null, spouse: spouseOf(st, id),
+      ties: friends.slice(0, TIES_MAX).map((r) => ({ id: r.id, why: opinionWord(r.opinion) })) };
+  }
+  // The player goes on as pawn id after its pawn's death: `text` is written to the dead pawn's events, and id is played from now, with
+  // nothing queued and no wishes. sim/opportunities' succeed checks who may be chosen; true, or why not.
+  function goOnAs(st, id, text) {
+    const pl = st.player;
+    if (!pl || !pl.left) return 'the played pawn has not died';
+    const dead = living(st, id); if (dead) return dead;
+    personEvent(st, pl.pawn, 'player', text);
+    st.player = null;
+    return inhabit(st, id);
   }
   // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
   function homeAtDark(st, pl) {
@@ -6931,7 +6955,7 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep };
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep, playerDied, goOnAs, TIES_MAX };
 })();
 </script>
 <script>
@@ -7680,15 +7704,18 @@ VB['sim/service'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209)
+// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
+// whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
-  const { villageOf, settlementIdOf, fullName } = VB['sim/records'];
+  const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'];
-  const { VERBS } = VB['sim/commands'];
+  const { VERBS, goOnAs } = VB['sim/commands'];
+  const { relationsOf, opinionWord } = VB['sim/relations'];
+  const { SOCIAL } = VB['sim/rules'];
   const { mayTake, fit, jobsFor } = VB['sim/jobs'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { unfit, handsLeft } = VB['sim/service'];
@@ -7807,7 +7834,87 @@ VB['sim/opportunities'] = (() => {
     if (housed) round(view, p, out);
     return out;
   }
-  return { actorView, forPawn };
+
+  // ---- the player's succession (VB-213): whom it may go on as after its pawn's death ----
+  const KIN = { reach: 4, bySpouse: 2, spouses: 2 }, SUCCESSORS_MAX = 40;
+  const KIN_WORDS = { '0:1': ['son', 'daughter'], '0:2': ['grandson', 'granddaughter'], '1:0': ['father', 'mother'], '2:0': ['grandfather', 'grandmother'],
+    '1:1': ['brother', 'sister'], '1:2': ['nephew', 'niece'], '2:1': ['uncle', 'aunt'], '2:2': ['cousin', 'cousin'] };
+  const sexed = (st, id, pair) => pair[st.pawns[id].sex === 'f' ? 1 : 0];
+  // The blood kin of pawn id within civil degree `reach`, living or dead: Map of pawn id -> {deg, word}. Up to its ancestors and down from
+  // each of them, so the walk is bounded by the family, not by the island.
+  function bloodKin(st, id, reach) {
+    const out = new Map(), ups = new Map([[id, 0]]);
+    for (let g = 1, gen = [id]; g <= reach && gen.length; g++) {
+      const next = [];
+      for (const x of gen) for (const q of [st.pawns[x].father, st.pawns[x].mother]) if (q !== null && !ups.has(q)) { ups.set(q, g); next.push(q); }
+      gen = next;
+    }
+    const note = (q, up, down) => {
+      if (q === id) return false;
+      const was = out.get(q);
+      if (was && was.deg <= up + down) return false;
+      out.set(q, { deg: up + down, word: sexed(st, q, KIN_WORDS[`${up}:${down}`] || ['kin', 'kin']) });
+      return true;
+    };
+    for (const [a, up] of ups) {
+      if (up) note(a, up, 0);
+      for (let down = 1, gen = [a]; up + down <= reach && gen.length; down++) {
+        const next = [];
+        for (const x of gen) for (const c of childrenOf(st, x)) if (!ups.has(c) && note(c, up, down)) next.push(c);
+        gen = next;
+      }
+    }
+    return out;
+  }
+  // The living the player may go on as after pawn id, in order and without repeats, each {id, why}: the heirs of the farm it held (who
+  // holds it now, then heirRanking); its kin by blood (to first cousins) or marriage (its spouse, the spouse's kin to degree KIN.bySpouse,
+  // the spouses of its own kin to degree KIN.spouses), nearest first, of any age; its household; those it thought friends. At most
+  // SUCCESSORS_MAX. For the player's dead pawn the farm, the spouse and the friends are those noted at its death (st.player.left); for
+  // any other pawn they are read now. Read-only; it walks the pawn's family and household, never the island's pawns or records.
+  function successors(st, id) {
+    const p = st.pawns[id], out = [], seen = new Set([id]);
+    if (!p) return out;
+    const left = st.player && st.player.pawn === id ? st.player.left : null;
+    const add = (q, why) => { if (!seen.has(q) && st.pawns[q].alive) { seen.add(q); out.push({ id: q, why }); } };
+    const holding = left ? null : holdingOf(st, id), held = left ? left.held : holding ? holding.id : null;
+    if (held !== null && !st.households[held].dissolved) {
+      const hh = st.households[held];
+      if (hh.holder !== null) add(hh.holder, 'heir');
+      for (const q of heirRanking(st, hh)) add(q, 'heir');
+    }
+    const sp = left ? left.spouse : spouseOf(st, id), kin = [], mine = bloodKin(st, id, KIN.reach);
+    for (const [q, k] of mine) {
+      kin.push({ id: q, deg: k.deg, blood: 0, why: k.word });
+      const qs = k.deg <= KIN.spouses ? spouseOf(st, q) : null;
+      if (qs !== null && qs !== id && !mine.has(qs)) kin.push({ id: qs, deg: k.deg, blood: 1, why: `${k.word}'s ${sexed(st, qs, ['husband', 'wife'])}` });
+    }
+    if (sp !== null) {
+      const spouse = sexed(st, sp, ['husband', 'wife']);
+      kin.push({ id: sp, deg: 0, blood: 1, why: spouse });
+      for (const [q, k] of bloodKin(st, sp, KIN.bySpouse)) if (!mine.has(q)) kin.push({ id: q, deg: k.deg, blood: 1, why: `${spouse}'s ${k.word}` });
+    }
+    kin.sort((x, y) => x.deg - y.deg || x.blood - y.blood || st.pawns[x.id].born - st.pawns[y.id].born || x.id - y.id);
+    for (const k of kin) add(k.id, k.why);
+    const home = p.household !== null ? st.households[p.household] : null;
+    if (home && !home.dissolved) for (const q of home.members) add(q, 'household');
+    const ties = left ? left.ties : relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend)
+      .sort((x, y) => y.opinion - x.opinion || x.id - y.id).map((r) => ({ id: r.id, why: opinionWord(r.opinion) }));
+    for (const t of ties) add(t.id, t.why);
+    return out.slice(0, SUCCESSORS_MAX);
+  }
+  // The player goes on as pawn id, after its pawn's death: one of the successors, or, when none of them is alive, any living adult, which
+  // is a break in the line. Either is written to the dead pawn's events. True, or why not.
+  function succeed(st, id) {
+    const pl = st.player;
+    if (!pl || !pl.left) return 'the played pawn has not died';
+    const q = st.pawns[id], list = successors(st, pl.pawn), pick = list.find((s) => s.id === id);
+    if (!q || !q.alive) return `pawn ${id} is not a living pawn`;
+    if (list.length && !pick) return `${fullName(q)} is not among those ${fullName(st.pawns[pl.pawn])} leaves`;
+    if (!list.length && q.age < 18) return 'only an adult begins a new line';
+    const link = !pick ? null : pick.why === 'heir' ? 'the heir' : pick.why === 'household' ? 'one of its household' : `its ${pick.why}`;
+    return goOnAs(st, id, pick ? `The player went on as ${link}, ${fullName(q)}` : `A break in the line: the player went on as ${fullName(q)}`);
+  }
+  return { actorView, forPawn, successors, succeed };
 })();
 </script>
 <script>
@@ -8295,13 +8402,14 @@ VB['sim/lifecycle'] = (() => {
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
-  const { issue } = VB['sim/commands'];
+  const { issue, playerDied } = VB['sim/commands'];
   const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; stillAtDeath(st, a);
+    playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     dropTies(st, id);
     if (p.rel) forget(st, id);
@@ -9224,6 +9332,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+    if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -9251,7 +9360,7 @@ const Sim = (() => {
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish } = VB['sim/commands'];
-  const { actorView, forPawn } = VB['sim/opportunities'];
+  const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
@@ -9266,7 +9375,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, cal, age, birthYear, fullName, spouseOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
+      fullName, spouseOf,
       childrenOf, siblingsOf,
       kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,
