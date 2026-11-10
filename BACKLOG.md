@@ -55,6 +55,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-307](backlog/VB-307.md) | The menu screens as one family, on a live showcase island | - | 2 | M | Main menu, New archipelago and Saves share one card; the docs links move to the main menu; a tiny live island plays behind them |
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 
 ## Blocked

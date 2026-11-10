@@ -99,8 +99,13 @@
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
+    // from the main menu it is the Load archipelago screen, with Back to the menu; in a game it is Saves (VB-307)
+    const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
-    if (on) { saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus(); }
+    if (on) {
+      $('savesTitle').textContent = menu ? 'Load archipelago' : 'Saves'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
+    } else if (menu) $('landLoad').focus();
   }
   const saveFile = document.createElement('input');
   saveFile.type = 'file'; saveFile.accept = '.gz,.json,application/gzip,application/json'; saveFile.hidden = true; document.body.appendChild(saveFile);
