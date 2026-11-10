@@ -234,8 +234,8 @@
   // Poses: angles in radians. Arm 0 hangs down, negative swings forward and up. Upper body leans forward with positive angles.
   const swing = (t, a, b) => a + (b - a) * (0.5 - 0.5 * Math.cos(t));
   function strike(t) { const u = t % 1; return u < 0.7 ? u / 0.7 : 1 - (u - 0.7) / 0.3; } // slow lift, fast blow
-  function pose(R, a, t, winter) {
-    const s = a.stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim === 'hoe' && Sim.withOxen(st, a) ? 'plough' : a.anim;
+  function pose(R, a, t, winter, stride = a.stride) {
+    const s = stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim === 'hoe' && Sim.withOxen(st, a) ? 'plough' : a.anim;
     let legF = 0, legB = 0, armF = 0.05, armB = 0.05, lean = 0, bob = 0, headR = 0;
     let tool = null, toolR = 0, back = null, shoulder = null, heldF = null, heldB = null;
     if (walking || anim === 'sow' || anim === 'plough') {

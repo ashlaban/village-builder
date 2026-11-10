@@ -19,16 +19,15 @@ for (const chunk of [YEAR, DAY, 1, 0.1]) {
 }
 for (const h of hashes.slice(1)) assert.strictEqual(h.hash, hashes[0].hash, `chunks of ${h.chunk} h give the run of chunks of a year`);
 
-// 2. The clock's arithmetic alone over 60 years, by whole steps of several sizes and by frame-sized parts (as the page asks): every hour
-// begins exactly once, in order, on the pass that ends its first step, where st.t is that hour exactly; the hour read from the count never
-// disagrees with the hour of st.t.
+// 2. The clock's arithmetic alone over 60 years, by whole steps of several sizes: every hour begins exactly once, in order, on the step
+// that reaches it, where st.t is that hour exactly; the hour read from the count never disagrees with the hour of st.t.
 const YEARS = 60;
-for (const sizes of [[YEAR], [0.1], [1, 0.7, 0.3, 2.5], [0.0731, 0.016, 0.05]]) {
+for (const sizes of [[YEAR], [0.1], [1, 0.7, 0.3, 2.5]]) {
   const st = { tick: 6 * TICKS, tickPart: 0, t: 6 }, end = 6 + YEARS * YEAR;
   let hour = 6, hours = 0, steps = 0;
-  const each = (s, part, ends) => {
-    if (ends) steps++;
-    if (ends && s.tick % TICKS === 0) {
+  const each = (s) => {
+    steps++;
+    if (s.tick % TICKS === 0) {
       hour++; hours++;
       if (s.tick / TICKS !== hour || s.t !== hour) assert.fail(`sizes ${sizes}: hour ${hour} began at tick ${s.tick}, t ${s.t}`);
     }
@@ -38,5 +37,11 @@ for (const sizes of [[YEAR], [0.1], [1, 0.7, 0.3, 2.5], [0.0731, 0.016, 0.05]]) 
   assert(hours >= YEARS * YEAR && hours === Math.floor(st.tick / TICKS) - 6, `sizes ${sizes}: ${hours} hours begun in ${YEARS} years`);
   assert.strictEqual(steps, st.tick - 6 * TICKS, `sizes ${sizes}: every step ended once`);
 }
+// 3. Whole steps only (VB-244): a part of a step, as a frame's worth, or a negative time is refused and leaves the state as it was.
+for (const hours of [0.0731, 0.016, 0.05, 1.05, -0.1]) {
+  const st = Sim.seed(world(), 7, 'populous'), before = sha(canon({ ...st, w: null }));
+  assert.throws(() => Sim.advance(st, hours), /not a whole number of 6-minute steps/, `${hours} h is refused`);
+  assert.strictEqual(sha(canon({ ...st, w: null })), before, `${hours} h refused leaves the state as it was`);
+}
 console.log(`clock ok: populous 7 tiny, 2 years, one state by chunks of ${hashes.map((h) => h.chunk).join(', ')} h (${hashes[0].living} living); `
-  + `${YEARS} years of the clock's arithmetic, every hour on its step, by whole and frame-sized chunks`);
+  + `${YEARS} years of the clock's arithmetic, every hour on its step; parts of a step refused`);

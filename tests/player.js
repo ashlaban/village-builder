@@ -98,7 +98,7 @@ const FARMER = 0, WIFE = 1;
 
 // 6. A walk under way at the end of work is carried out, not cut off; then the pawn goes home, as needs have it.
 {
-  const st = make(WORK[1] - 6 - 0.15), a = st.agents[FARMER], far = 11 * st.w.COLS + 1; // the far corner of the map
+  const st = make(WORK[1] - 6 - 0.2), a = st.agents[FARMER], far = 11 * st.w.COLS + 1; // the far corner of the map
   Sim.inhabit(st, FARMER);
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: far });
   Sim.advance(st, 0.3);
