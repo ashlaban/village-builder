@@ -53,7 +53,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-165](backlog/VB-165.md) | Inspect the map from the keyboard, and lists beside the canvas | - | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. |
 
 ## Blocked
 
@@ -81,7 +80,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-252](backlog/VB-252.md) | The seasonal plan: the culture's year as a template, golden unchanged | year | 2 | M | VB-249 | A table of season by routine with a target per store and an order, per culture, with today's numbers as its values; the review reads it. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | VB-252, VB-123 | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |
 | [VB-254](backlog/VB-254.md) | Foresight: stand-in traits, a head's horizon and its bias | year | 2 | M | VB-252, VB-023 | A head plans from an estimate of its needs: wits, husbandry and years as head set the horizon and a persistent bias; the poorest tenth leave the template's order. |
-| [VB-255](backlog/VB-255.md) | Projects: a head with a surplus takes one, by its values | year | 2 | M | VB-123, VB-254, Kim | With targets met and hands and stores to spare, a head takes one project from the menu (more fields, a claim, a farm or cottage for the heir, a barn), weighted by ambition and generosity. |
+| [VB-255](backlog/VB-255.md) | Projects: a head with a surplus takes one, by its values | year | 2 | M | VB-123, VB-254 | With targets met and hands and stores to spare, a head takes one project from the menu (more fields, a claim, a farm or cottage for the heir, a barn), weighted by ambition and generosity. |
 | [VB-256](backlog/VB-256.md) | The plan panel: a holder's plan read and changed in the page | year | 2 | M | VB-253, VB-255 | The household panel shows routines and targets, next steps, the project, reservations and who holds which task; the player as head changes them. |
 | [VB-257](backlog/VB-257.md) | The meeting sets the village's routines, and a practice for when it does not | year | 2 | M | VB-250 | The yearly meeting chooses at most four routines from the village work available; the fence is the first; a practice says what follows no decision. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | VB-257, Kim | A village with an empty store makes a common field; its harvest fills the store. |
@@ -89,7 +88,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | VB-023, VB-058, VB-090, VB-100, VB-106, VB-117, VB-118, VB-119, VB-120, VB-123, VB-136, VB-162, VB-253, VB-254, VB-255, VB-256 | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | VB-257, Kim | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
 | [VB-123](backlog/VB-123.md) | Project plans: steps, reservations and reconsideration | year | 3 | M | VB-252 | The land project, the plot and the restoration become one project plan in st.plans, whose steps reserve what they spend and are reviewed when impossible. |
-| [VB-162](backlog/VB-162.md) | A village overview: food, people, idle hands and warnings | year | 3 | M | VB-256, Kim | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. |
+| [VB-162](backlog/VB-162.md) | A village overview: food, people, idle hands and warnings | year | 3 | M | VB-256 | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. |
 | [VB-126](backlog/VB-126.md) | Occasions: the meeting, weddings and funeral ales bring people together | fair | 2 | M | VB-183 | Gatherings on the map where several households, and other villages, meet and talk. |
 | [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | VB-183 | Shares paid partly in animals; a cow and two ewes start a new household. |
 | [VB-220](backlog/VB-220.md) | Goodwill acts: gratitude, an old debt, and allowance's goodwill term | fair | 3 | S | VB-183 | Switch on the curves of The gift (the debtor's gratitude, the creditor's souring) and allowance's goodwill term; golden re-recorded; help and hunger numbers before and after. |

@@ -2,6 +2,24 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-162 and VB-165)
+
+## VB-162, VB-163 and VB-165: the external review's new tasks (raised 2 November 2026) (questions 3 and 4)
+From the external review (`docs/review-external.md`). The task files hold the draft criteria; the answers below make them `ready`. VB-162 and VB-165 are page features, so they wait for the feature freeze to lift; VB-163 is tooling and may run during it. Questions 1 and 2 were taken up by slice 0's plan (VB-181, 3 November): the roadmap, whose slices Kim decided, makes the floors of question 1 the first asserted bands, and Kim's decision 9 (target-v2, section 8) replaces question 2 (reduced scenarios asserted in verify, the long runs reported nightly). VB-163 is rewritten and `ready`; answer "P" to move them to the archive, or change a floor.
+3. VB-162: what does the village overview show? **P:** as in the task file: food in store in days of need, this year's harvest against a year's need, people by age band and the change in a year, hungry households in the last 30 days, idle share of adult work hours; four warnings (food short of the next harvest, a household hungry 5 of 30 days, a holder over 60 with no heir at home, a farm short of hands), each naming its households. Social tensions (grudges, disputes) wait for VB-062 and the record of events (VB-075).
+   **A (Kim, 10 Nov):** as proposed (P).
+4. VB-165: keyboard and lists. **P:** a Lists panel on `L` (villages, households, people as buttons; Enter selects and centres as a click does); `[` `]` step between villages, `,` `.` between households of the selected village, `Escape` clears; the selection is announced in an `aria-live` region. Full screen-reader play of the map is not a goal; reading every panel and selecting every pawn, household and village without a pointer is.
+   **A (Kim, 10 Nov):** closed: VB-165 is not built; reopen if accessibility becomes a goal.
+
+# Archived 10 November 2026 (VB-255)
+
+## VB-255: the barn as a project (raised 10 November 2026, by slice 3's tasks)
+Kim agreed a barn on slice 3's menu of projects (VB-164, question 1). No barn exists as a building: grain, sheaves and hay are held by the farm, and "the barn" is a word in the spoilage rules. The answers take `Kim` off VB-255's `Waits for:` line.
+1. What does a barn do, and what does it cost? **P:** a second store building on the farm's block, built as a cottage is (the steps of a plot's cottage, 40 timber and its hours). A farm with a barn loses half as much grain to spoilage (`ECON.storeLoss`) and half as much barn hay, so it pays for a head who keeps more than a year's need. One per farm; shown on the map beside the house.
+   **A (Kim, 10 Nov):** as proposed (P): built as a cottage is, 40 timber; half the spoilage of grain and of barn hay; one per farm.
+2. Base weights of the four projects, before the head's lean? **P:** 1 each, so only ambition and generosity tell them apart; the wrap-up (VB-108) reports the mix and proposes a tuning.
+   **A (Kim, 10 Nov):** 1 each, but the heir's farm weighs 2 when the head has more than one potential heir (read as: two or more who could inherit, so that one would be left without the home farm).
+
 # Archived 10 November 2026 (VB-164)
 
 ## VB-164: may slice 3's plan run before slice 2's? (raised 7 November 2026, backlog review)

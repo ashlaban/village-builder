@@ -360,7 +360,7 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
 - *Boats with the fair*, since an archipelago's fair should draw across water. This is reasonable if the fair islands of the
   reference seeds are too small; slice 4's plan should measure it.
 
-**Beside the slices:** small tasks that touch nothing above may run at any time: VB-159, VB-160 (since 10 November a survey of what raised yields), VB-084 (speeds), VB-165, VB-091.
+**Beside the slices:** small tasks that touch nothing above may run at any time: VB-159, VB-160 (since 10 November a survey of what raised yields), VB-084 (speeds), VB-091 (VB-165 was closed on 10 November).
 They run as long as they do not edit the files of the slice in progress.
 
 **Size.** About 60 to 70 tasks of size S or M. At one task a night, that is two to three months, slices 0 to 4 being the first
