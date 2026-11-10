@@ -217,6 +217,11 @@ player may make, and what the household does where the player makes none.
 
 The cities review's phase 1, and the loans of its phase 2.
 
+**Revised 10 November** (Kim, on `docs/review-markets.md`; `design.md`, sections 8, 9 and 11): the slice is built on a yearly gathering of
+near and like-minded villages at a host village's centre, where customs are held together, marriages between villages are made and border
+disputes resolved; the fair is held at it, as barter. It also brings two goods of place (dried fish, tar) made as side crafts, so that
+villages differ. The list below stands where it does not contradict this; VB-183 rewrites it with its tasks.
+
 - **Brings:**
   - the goods registry for the goods the fair trades: grain, butter, salt meat, cheese, cattle, sheep, wool, labour days;
   - quanta and custody;

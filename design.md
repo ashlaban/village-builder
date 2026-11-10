@@ -198,7 +198,7 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | Daily rhythm | Work from 6:00 to 18:00, home by evening, indoors at night; lengthened from 7:00–17:00 because nights are short (backlog VB-105). Kim kept this over a fixed night with work from sunrise to sunset, when merging the two lines of design (30 Oct) | Decided, 30 Oct |
 | Night and sleep | Dark for about 6 hours at the equinoxes (22:00 to 4:00), from about 4 hours at midsummer to 8 at midwinter; pawns sleep in the dark (backlog VB-105) | Decided, 30 Oct |
 | Twilight | Dusk and dawn of 2 hours each; pawns sleep about 6 hours. The dark lasts 6 − 2 × cos(2π (doy − 15) / 48) hours, centred on 1:00 (backlog VB-105) | Agreed, 30 Oct |
-| Yearly round | Sowing in spring; haymaking in summer; harvest in early autumn; village meetings on autumn day 10; moving round on autumn day 11 | Agreed |
+| Yearly round | Sowing in spring; haymaking in summer; harvest in early autumn; the gathering of villages and its fair on autumn days 6 to 8 (Proposed, 10 Nov; see The gathering); village meetings on autumn day 10; moving round on autumn day 11 | Agreed |
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
 
@@ -413,7 +413,7 @@ Land lies in three rings, as in the medieval village: the infield of houses, fie
 | --- | --- | --- |
 | Outland | Claimed by need at each autumn meeting: free tiles nearest the green, within 8 walking steps, until the village holds about 8 tiles of outland a farm; the nearest forest first when it holds none | Decided (by need), Proposed (numbers), 1 Nov |
 | A year and a day | An outland claim that stands unopposed until the next meeting becomes village land; the village claims a tile another village wants only when it lies nearer its own green | Decided, 1 Nov |
-| Borders | Two villages claiming one tile: the Disputed claims custom settles it at the meeting (the custom both hold; if they differ, the culture's); the border is marked with cairns (*rå och rör*), drawn on the map and told in the log | Decided, 1 Nov |
+| Borders | Two villages claiming one tile: the Disputed claims custom settles it at the meeting (the custom both hold; if they differ, the culture's); the border is marked with cairns (*rå och rör*), drawn on the map and told in the log | Decided, 1 Nov; **Under revision** (slice 4): Kim, 10 Nov: disputes between villages are resolved at the gathering (see The gathering); a village with no gathering keeps this rule |
 | Border pressure | A village still short of outland once no free land is left in its reach may claim the outland of a neighbour that holds more a farm (at most 4 tiles a meeting); the holder's right is the oldest claim, so under "the first claim stands" the holder keeps it and under "the meeting decides" the village with more voices takes it; a village with no occupied farm cannot defend its land; a cairn keeps the loser off a tile for 3 years | Decided (pressure), 2 Nov; Proposed (rule and numbers) |
 | Border grudges | The losing village's holders remember the winners' holders ("Won the border from us"), fading over 3 years; its households lean towards the rules that would have let it win | Decided, 1 Nov |
 | Taking in land | Households and plots take in land only from their own village's outland or from wilderness, never from another village's land or claims | Decided, 1 Nov |
@@ -624,10 +624,29 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
 | Textiles | Spinning as background work and weaving as partial work: the missing labour sink of the slack seasons; cloth keeps its worth | Proposed (target-v2, section 5.6) |
 
+### Goods of place and side crafts (slice 4, 10 November)
+
+Villages must differ before they need each other: where neighbours make the same things, a market has little to move
+(`docs/review-markets.md`, sections 2.2 and 5). So some goods can be made only where the land gives them, and households make them
+beside their farming, for the fair. The first row and the principle of the second are Kim's (10 November); the rest is the approach
+proposed with them, for slice 4's plan (VB-183) to confirm.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Local differences | Villages differ in what their land lets them make, and this is what draws them to deal with each other | Decided, 10 Nov |
+| More specialised work | There are more specialised jobs, so that villagers can turn to producing more than their sustenance | Decided, 10 Nov (the need); Proposed (the approach below) |
+| Goods of place | A good of place needs a resource within a village's reach: fish (sea shore, lake or river), tar and charcoal (pine forest), bog iron (marsh, smelted with charcoal), stone for querns and whetstones (stone ground). A village without the resource cannot make the good and must get it by exchange. The plain's own goods are those every farm has: grain, butter, cattle, wool | Proposed |
+| First goods | Slice 4 builds two: dried fish, a food that keeps and counts as a source in the pot (Mixed meals), and tar, for roofs and boats; both need no facility beyond a drying rack and a tar pit (*tjärdal*). Iron waits for tools that wear (VB-121), stone for the mill (slice 6), salt and cloth of quality for the ship (slice 8) | Proposed |
+| Side crafts | A household stays a farm and takes up a side craft in its slack hours (*bisyssla*; the many trades of the Nordic peasant), as a kind of long work with its own job kinds. It is the sink the idle hours lack beside textiles (target-v2, section 5.6), and it needs no new kind of household | Proposed |
+| Why make more than is needed | The surplus is a holder's project (Work, the third layer: one project by values): a household aims its side craft at something it lacks and can only get at the fair: the other villages' goods, an animal, a dowry. Nobody produces for sale in general; with no coin there is nothing general to sell for | Proposed |
+| Skill and tools | Hours at a craft raise the pawn's skill at it, and a craft's facility (a boat, a tar pit, later a smithy) is a lump one household builds and owns. Both make the household that began a craft better at it than its neighbours, so a village comes to have "the fisher" and "the tar burner" without any rule naming them (the derived roles of the vision) | Proposed |
+| The ladder | Three steps, each needing a wider market than the last: a side craft (the yearly fair is enough); a craft household, which holds less land than it needs and lives partly by exchange (a fair twice a year or a monthly market); a specialist with a plot and no fields (a weekly market: see Towns and regions). A household moves up or down by what its craft brought it over the last years, with hysteresis | Proposed |
+| Cost | A side craft is ordinary jobs on a household's planning day; goods of place add one reach test per village and resource, refreshed when its land changes | Proposed |
+
 ## 9. Exchange, goodwill and obligations
 
 Help in hunger is the first exchange, a gift (The gift, below, from slice 1's plan, backlog VB-182; see also Goods and the farming
-year). Slices 4 and 5 write the rest of this section (backlog VB-183, VB-184).
+year). The fair, below, is barter between villages, begun on 10 November for slice 4's plan (VB-183), which writes the rest with slice 5's (VB-184).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
@@ -638,7 +657,7 @@ year). Slices 4 and 5 write the rest of this section (backlog VB-183, VB-184).
 | The floor | No pawn accepts a deal that takes its household below its floor (seed and some days of food); the player's pawn may, with a warning that names who goes hungry | Decided, 3 Nov |
 | Lumps | Goods change hands in whole quanta, so most deals leave a residual that goodwill absorbs; silver, divisible by weight, shrinks it | Proposed (target-v2, section 5.2) |
 | Obligations | Every explicit claim (deal, loan, share, rent, tithe, tax, toll, wage, dowry, fine, service) names a debtor, a creditor, what is owed, when, and who enforces it; the heirs' shares are the first | Proposed (target-v2, section 4.4) |
-| Money | Silver arrives from outside first, as payment by weight; minting comes later, by an established institution | Decided, 3 Nov |
+| Money | Until coin, the economy is barter: goods for goods, with goodwill as the change (Decided, 10 Nov). Silver arrives from outside first, as payment by weight; minting comes later, by an established institution. Taxes drive the adoption of money (Decided, 10 Nov): the Crown first takes its tax in named goods, then asks for it in silver, and a household that owes silver must sell for silver, so coin spreads from those who have it (ships' merchants, the landed) to every farm that is taxed. Slice 8 designs it (VB-188) | Decided, 3 Nov; barter and taxes, 10 Nov |
 
 ### The gift (slice 1, 8 November)
 
@@ -655,6 +674,24 @@ year). Slices 4 and 5 write the rest of this section (backlog VB-183, VB-184).
 | Who books | The two holders. The village store's gifts and its yearly filling book nothing until the village has an agent; a household without a holder books nothing. At a handover (a retirement, or a holder's death), half of the old holder's balances pass to the new holder, and a retired holder keeps the rest. Other deaths end a pawn's balances until a person's estate is designed (slice 5) | Agreed, 8 Nov |
 | What the player sees | The pawn panel lists up to 5 balances by size ("Owes Erik Larsson 34 rations", "Is owed 12 rations by Anna Persdotter"). On a holder's panel, each row adds how much it would give that pawn, with the parts of its allowance on hover | Agreed, 8 Nov; no reason or year (one number), 8 Nov |
 | The player's gift | The player's pawn gives by the same command as any holder, to any household. Its pawn's allowance does not bind it, since the player decides for its pawn; it may give below its floor, with a warning that names who goes hungry (Decided, 3 Nov). The page's side follows slice 2 | Decided (the floor), 3 Nov; Agreed (rest), 8 Nov |
+
+### The fair: barter between villages (10 November)
+
+From the markets review (`docs/review-markets.md`) and Kim's answers of 10 November. Inside a village goods move as they do now, by
+help and goodwill; the fair is where households of different villages, who owe each other nothing, exchange. It is not a thing of its
+own: it is held at the gathering of villages (Settlements, The gathering), which is why people are there. Slice 4's plan (VB-183) adds
+quanta, the worth table, need curves and loans.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| A barter economy | Goods are exchanged for goods, in whole quanta; need decides whether a party accepts, customary worth says what the deal was worth, and the residual is booked as goodwill between the two who dealt (Value and acceptance, Booking and Lumps, above). There is no coin and no price list until money arrives (Money, above) | Decided, 10 Nov |
+| The fair follows the gathering | A gathering has the fair its attendance bears: a few households swapping at a small gathering, rows of loads and animals at a large one. The fair has no site, date or reach of its own | Decided, 10 Nov (the principle); Proposed (the rest) |
+| Deals between strangers | Two pawns who have not dealt before have no goodwill, so their allowance toward each other is near zero: a deal passes only when both gain by need, and many fail because the lumps do not fit. Deals that failed for want of change are counted, as the measure of how much the island wants money | Proposed (target-v2, section 5.2) |
+| Trade partners | A deal leaves a small balance, and a balance is a reason to deal again: at the next fair a pawn proposes first to those it has a balance with. Over the years two holders of different villages become partners, and that tie is what later carries a loan, a lodging or a match between their children | Proposed |
+| Keeping goods | To get round the double coincidence of wants, a few goods that keep and that every household can use (butter, dried fish, tar, cloth, a sheep) are accepted beyond the taker's own need, at their customary worth and up to a cap, to be passed on in a later deal. They are goods and nothing more; the one accepted most widely is the island's nearest thing to money before silver | Proposed |
+| What may be exchanged for what | Either everything has a worth in rations and any good may be offered for any other, or goods fall into a few classes (food; animals, cloth and labour; land) and custom says which exchanges across classes are proper: grain for a cow in a good year is admired, a cow taken for grain in a dearth is a hard bargain and is remembered, and land is not offered at a fair at all. One unit of account either way | Open (`QUESTIONS.md`, VB-183) |
+| A small fair is the right result | Households that feed themselves and owe nothing bring only their margin. The fair grows when villages differ (Goods of place), when households owe (slice 5) and when they are taxed (slice 8); it is not tuned to move much grain before then | Proposed |
+| Cost | Proposals in seeded order, each pawn to its partners first and then to a few others present, a fixed number a pawn: the work grows with those at the fair, not with their pairs | Proposed |
 
 ## 10. Customs and culture
 
@@ -713,6 +750,7 @@ Gender eligibility, number of heirs, timing of succession and claims on empty fa
 - **Tie to the centre:** travel distance, with sea crossings costing more, plus living kin across the gap. Distant villages drift more easily. Decided (principle), Agreed (measure).
 - **Fission:** automatic when a weakly tied settlement stays far from the culture's customs for 3 years; hard customs count most. The same split function can be called by events later. Decided.
 - **Cities:** will count more at the reckoning and change faster, through more contacts and newcomers. Decided (principle).
+- **The gathering:** like-minded villages near each other meet once a year, and meeting draws their customs together (Settlements, The gathering). Decided, 10 Nov (the purpose); how it joins the reckoning and the tie to the centre is Proposed there.
 
 ### Pace
 
@@ -764,12 +802,40 @@ Villages are clusters of farmsteads around a green with a well sweep, fenced tog
 - **Varied forms:** irregular cluster villages (*klungbyar*), the most common form in medieval Sweden; row villages (*radbyar*) along a lane or a shore, as in the regulated villages of the plains (*solskifte*, in the provincial laws from the 13th century); and lone farms (*ensamgårdar*). Farms differ in age, size and number of buildings.
 - **Fitted to the land:** villages follow shores, slopes, rivers and the edge of the forest, and avoid stony and wet ground for houses.
 
+### The gathering (slice 4, 10 November)
+
+The first thing that happens between villages, and what the fair, marriages across villages and the settling of borders are latched
+onto. In history the gathering came first and the market rode on it: people met for law, cult and matchmaking, and traded because they
+were there (`docs/review-markets.md`, section 2.3; the *ting*, and the Disting at Uppsala, a thing, a sacrifice and a fair in one). The
+rows marked Decided are Kim's of 10 November; the rest is proposed with them for slice 4's plan (VB-183), which takes over the occasions
+of VB-126.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| The gathering | Once a year, villages that lie near each other and think alike gather at a village's centre (a *ting*). Its purposes are to hold their customs together, to make marriages between villages, and to resolve disputes over borders; a fair is held at it (Exchange, The fair) | Decided, 10 Nov |
+| The host | A village hosts, on its green. Villages compete to host | Decided, 10 Nov |
+| How a village comes to host | Proposed rule: at its autumn meeting a village with a green may offer to host; at the same meeting every village chooses the gathering it will attend next year, by its pull: nearness in travel hours, nearness in customs (hard customs count most), kin living in the villages that go there, the host holders' prestige and how last year's went. A village attends one gathering. A gathering that fewer than three villages choose is not held, and its villages choose again; a lone village far from any has none | Proposed |
+| Who gathers | Villages within a day's walk of the host (about 30 walking steps, or a boat crossing of the same cost: the question of boats is in VB-183), and close enough in customs to wish to: a village that has split from a culture (Meetings, culture and splits) is not drawn to its old gathering | Decided, 10 Nov (near and like-minded); Proposed (measures) |
+| When | Autumn days 6 to 8, after the harvest is in and before the village meetings of day 10, so that what was settled between villages is known at each meeting | Proposed |
+| Going there | Pawns prepare and travel in person. The household plans it as an occasion (a kind of plan, Work): it chooses who goes, packs provisions for the days away and what it means to exchange, as loads (a back load, or a cart with oxen), and those who go walk there and back; those who stay keep the animals and the fire | Decided, 10 Nov (prepare and travel); Proposed (details) |
+| Who goes | From each household: its holder or spokesman; its unmarried of marrying age; anyone party to a dispute; others as hands for the loads and by their own wish (sociability, until traits a stand-in). Never everyone: at least one adult stays | Proposed |
+| Customs drawn together | Those present meet (encounters at a venue), and attitudes move by contact as they do within a village, so villages that gather drift toward each other and away from those that gather elsewhere. The culture's reckoning counts a gathering's villages as tied to each other; a culture that fills more than one gathering is a candidate to split along them | Decided, 10 Nov (the purpose); Proposed (the mechanism) |
+| Marriages between villages | The gathering is where households of different villages can make a match: spokesmen (Inheritance, Marriage as a negotiation) negotiate there, and the round's matcher may pair pawns of different villages only if both were at the same gathering within the last few years. Courting across villages starts there too, once courting exists | Decided, 10 Nov (the purpose); Proposed (the rule) |
+| Borders | A dispute between two villages over a tile (Land, Infield, outland and wilderness) is brought to the gathering both attend and decided by the holders present from the other villages, under the Disputed claims custom of the gathering's villages; the cairns are raised after it. Two villages of different gatherings, or of none, settle it as now | Decided, 10 Nov (resolved at the gathering); Proposed (who decides) |
+| The peace of the gathering | For its days no one presses a grudge: the host village's holders keep the peace and hear a quarrel over a deal on the spot. A breach is an event of the record, told in every village that was there | Proposed |
+| What the host gains | Prestige for the host village's holders, and for the one who presides most; the trade nearest home; later, when there are obligations, a due from those who trade (slice 5 or 8). This is why villages compete, and the first step of the alderman's road (target-v2, section 7.1) | Proposed |
+| The district | The villages of one gathering are a district (*bygd*, later *härad*): the first unit above the village, read from where villages go, never stored apart from that choice | Proposed |
+| What the player sees | Households packing the day before; lines of walkers and carts on the paths to the host village; the green full for three days, with loads and animals set out; a report in the log (who came, what was settled, matches made, what changed hands). The player's pawn goes or stays by the player's choice and takes part in person: deals, a match for a child, a voice in a border case | Proposed |
+| Cost | One choice a village a year; walking by a few pawns a household for a day each way, less than the moving round; encounters only among those on the green, with a cap a pawn; the gathering's days are entries in the due-queue | Proposed |
+
 ### Towns and regions (to be written: slice 9, VB-189)
 
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Markets and towns | Markets arise between villages and can grow into towns; a region holds a town or city and its villages, about two cities a map, from geography rather than a quota; alehouses mix villages | Decided, 3 Nov (Kim's description) |
 | Settlement tier and regions | Derived from market potential (Harris 1954) with hysteresis, never stored; the cities review's phases are the road (`docs/review-cities.md`) | Proposed (target-v2, section 4.6) |
+| From gathering to town | A town grows out of a gathering by one quantity, how often it is held. A gathering that fills gains a second date (before sowing; midwinter where ice opens the way), then a market day each month and each week, as the households within reach bring more to exchange; a craft household can live beside it once the days are close enough to feed it (Goods, The ladder), and a market that is held every few days with households living by it is a town. The dates are a list the host keeps; the tier reads the list, with hysteresis. Villages compete at every step, so where the towns stand, about two a map, follows from geography and from which hosts drew the others. Slice 9 designs it (VB-189); slice 4 builds the yearly gathering only | Proposed (`docs/review-markets.md`, section 3.2) |
+| The region | A district is a gathering's villages (The gathering); a region is the districts whose people go to one town's market. Market potential explains which hosts win; attendance is what is read | Proposed |
 
 ## 12. Institutions and the world beyond
 
@@ -1014,6 +1080,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (markets review) | 10 November 2026 | Kim's answers to the markets review (`docs/review-markets.md`), ahead of slice 4's plan (VB-183): villages that are near and like-minded meet at a yearly gathering at a host village's centre, to hold their customs together, make marriages between villages and resolve border disputes, and the fair is held at it; pawns prepare and travel there in person; villages host and compete to host; villages differ in what their land lets them make, and there are more specialised jobs; the economy is barter until coin, and taxes drive the adoption of money. Written as section 11, The gathering and two rows of Towns and regions; section 9, The fair and the Money row; section 8, Goods of place and side crafts; with notes in sections 3, 6 (Borders, now Under revision) and 10. Everything beyond Kim's points is Proposed; what may be exchanged for what is Open |
 | 0.4 (meals) | 10 November 2026 | Kim's decision on VB-119's questions: a ration is only the unit of food; a household stores foods and meals; variety is judged in the pot; uncooked grain is eaten at a penalty (section 8, Food and Meals; backlog VB-259, VB-119) |
 | 0.4 (slice 3 plan) | 10 November 2026 | Slice 3's plan (backlog VB-164): section 7 written with Kim's answers: a holder chooses in three layers (the culture's year as a template, foresight by skill, one project by values), traits as stand-ins until slice 7, planning days by diligence with a due-queue, four bases of eligibility, herding the only background work, reservations, sowing first as the template's order, the meeting's routines and a practice for a meeting that does not decide; no limit on idle hours (replaces the 40 to 60% target of 30 Oct); the player as head makes every choice of the plan |
 | 0.4 (backlog review) | 10 November 2026 | Kim's decision in the backlog review of 10 November: parity of command (section 15): every act a pawn may take is the player's to command unless a gameplay reason is written against it; the player may have more options than the pawns' logic uses, never fewer (also target-v2, principle 15) |
