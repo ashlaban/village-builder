@@ -37,6 +37,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-238](backlog/VB-238.md) | Refactor: a tie's eviction and floor in sim/relations, written as plain cases | - | 3 | S | put and raiseTie in sim/relations fold three cases into one nested condition and a double negation; write them as the cases they are. |
 | [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
 | [VB-241](backlog/VB-241.md) | Refactor: the calendar, one ordered table of what runs each step, hour, day, season and year | - | 3 | M | What runs when is spread over a dozen date tests in eight modules; gather it in one ordered table in sim/clock, with behaviour unchanged. |
+| [VB-243](backlog/VB-243.md) | The ownership scan's unresolved writes, a baseline that only falls | - | 3 | S | A write whose receiver the scan cannot place is listed, not checked, and up to 20 are allowed; make the list a baseline that only falls and place the 19 there are. |
 
 ## Waiting for Kim
 
