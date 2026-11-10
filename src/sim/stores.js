@@ -1,9 +1,9 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
   const { YEAR, YEAR_DAYS, TICKS, FOODS } = VB['sim/rules'];
-  const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
+  const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
-  const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
+  const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.

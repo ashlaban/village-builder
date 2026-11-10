@@ -180,7 +180,7 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
-    //   hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),

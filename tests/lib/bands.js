@@ -20,7 +20,7 @@ const FULL = {
 const REDUCED = { setup: 'populous tiny', years: 8, seeds: [3, 7, 11, 42] };
 // A household present on fewer days of a year than this is not judged on that year (one founded on the year's last day and hungry
 // that day would be hungry on all its days).
-const MIN_DAYS = SEASON_DAYS;
+const MIN_DAYS = SEASON_DAYS, HUNGRY_SHARE = 0.3;
 
 // Probes: (samples, afterYear) -> a number. samples[0] is the state at seeding, samples[y] at the end of year y.
 const HUNGER = new Set(['hunger', 'starvation']);
@@ -39,7 +39,13 @@ const PROBES = {
     for (const x of after(s, y)) for (const [c, n] of Object.entries(x.deaths)) { all += n; if (HUNGER.has(c)) hunger += n; }
     return all ? hunger / all : 0;
   },
-  // the highest share of its days that a household was hungry, over the years after y (households present MIN_DAYS or more)
+  // the share of household-years after y (a household present MIN_DAYS or more in the year) in which it was hungry on over HUNGRY_SHARE of its
+  // days (Kim, 10 November, VB-270: the band reads the share of household-years, not the worst household, which grows with their number)
+  hungryHouseholdShare: (s, y) => {
+    let bad = 0, all = 0; for (const x of after(s, y)) { bad += x.hungryHouseholds; all += x.householdYears; }
+    return all ? bad / all : 0;
+  },
+  // the highest share of its days that a household was hungry, over the years after y (households present MIN_DAYS or more), beside it
   worstHungryShare: (s, y) => Math.max(0, ...after(s, y).map((x) => x.worstHungry)),
   // invariant violations (tests/lib/invariants.js, checkState) over every year end
   invariantFailures: (s) => s.reduce((n, x) => n + x.invariants.length, 0),
@@ -51,7 +57,8 @@ const FLOORS = [
   { id: 'villages', probe: 'villagesEmptied', kind: 'balancing', lo: 0, hi: 0, afterYear: 5 },
   // The reduced run reports these at full strength as targets (VB-264; Kim, 10 November, VB-261 question 4): a seed's residual is a result.
   { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'balancing', lo: 0, hi: 0.02, afterYear: 3 },
-  { id: 'hungry-households', probe: 'worstHungryShare', kind: 'balancing', lo: 0, hi: 0.3, afterYear: 3 },
+  { id: 'hungry-households', probe: 'hungryHouseholdShare', kind: 'balancing', lo: 0, hi: 0.05, afterYear: 3 },
+  { id: 'worst-household', probe: 'worstHungryShare', kind: 'watched', lo: 0, hi: 1, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
 ];
 const BANDS = [];
@@ -79,7 +86,7 @@ function runScenario({ scenario, map, seed, years }) {
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }
 // A year's sample: living, the live households of each village, births, marriages and deaths by cause (read from the record appended
-// this year), hungry household-days and household-days, the worst household's hungry share, and checkState's violations.
+// this year), hungry household-days and household-days, the worst household's hungry share, the household-years judged and those over HUNGRY_SHARE, and checkState's violations.
 function sample(st, year, y) {
   const villages = {};
   for (const id of st.liveHouseholds) {
@@ -87,7 +94,7 @@ function sample(st, year, y) {
     if (v !== null && v !== undefined) villages[v] = (villages[v] || 0) + 1;
   }
   const out = { year, living: st.living.length, households: st.liveHouseholds.length, villages, births: 0, marriages: 0, deaths: {},
-    hungryDays: 0, householdDays: 0, worstHungry: 0, invariants: [] };
+    hungryDays: 0, householdDays: 0, worstHungry: 0, hungryHouseholds: 0, householdYears: 0, invariants: [] };
   if (!y) return out;
   for (let i = y.from; i < st.record.length; i++) {
     const e = st.record[i]; if (typeof e !== 'object' || e.self) continue; // a folded slot, or a pawn's own telling (VB-199)
@@ -100,7 +107,10 @@ function sample(st, year, y) {
     out.hungryDays += hungry; out.householdDays += n;
     // a household made or dissolved during a day may be fed that day and not counted present at its end: at most one day, so the
     // share is capped at 1
-    if (n >= MIN_DAYS) out.worstHungry = Math.max(out.worstHungry, hungry / Math.max(n, hungry));
+    if (n >= MIN_DAYS) {
+      const share = hungry / Math.max(n, hungry);
+      out.worstHungry = Math.max(out.worstHungry, share); out.householdYears++; if (share > HUNGRY_SHARE) out.hungryHouseholds++;
+    }
   }
   out.invariants = checkState(st).slice(0, 5);
   if (out.invariants.length) out.invariants.unshift(`year ${year}`);

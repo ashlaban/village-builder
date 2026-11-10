@@ -28,15 +28,19 @@ for (const [order, check] of [
   assert.strictEqual(hh.grain, 0); assert.strictEqual(hh.hungryDays, 1);
 }
 
-// seed corn is never eaten: 3 unsown fields keep 75 back
+// seed corn is eaten only when the day would otherwise fall short (VB-282): 3 unsown fields keep 75 back
 {
   const st = fresh('heirs'), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
   while (f.fields.length < 4) f.fields.push({ ...f.fields[0], id: f.fields.length });
   hh.members = [man.id]; man.hunger = 0; man.hungerLog = [];
   f.fields.forEach((fd, k) => { fd.stage = k < 3 ? 'plowed' : 'growing'; });
   assert.strictEqual(f.fields.filter((fd) => fd.stage === 'plowed').length, 3);
-  hh.grain = 50; feedHousehold(st, hh);
-  assert.strictEqual(hh.grain, 50, 'grain below the seed reserve is not eaten'); assert(man.hungerLog[0] > 0 && hh.hungryDays === 1);
+  hh.grain = 50; const log0 = st.record.length; feedHousehold(st, hh);
+  assert(Math.abs(hh.grain - 49) < 1e-9, 'the short day eats one ration of the seed, no more');
+  assert(man.hungerLog[0] === 0 && hh.hungryDays === 0, 'and the household is not hungry');
+  assert.strictEqual(st.record.slice(log0).filter((e) => e.kind === 'seedEaten').length, 1, 'the unsown fields are told');
+  feedHousehold(st, hh); assert.strictEqual(st.record.slice(log0).filter((e) => e.kind === 'seedEaten').length, 1, 'once a season');
+  hh.grain = 0; feedHousehold(st, hh); assert(man.hungerLog.pop() > 0 && hh.hungryDays === 1, 'nothing to eat is still hungry');
   hh.grain = 100; feedHousehold(st, hh);
   assert(Math.abs(hh.grain - 99) < 1e-9, 'grain above the reserve is eaten (one ration)');
   hh.grain = 76; hh.members = [man.id]; feedHousehold(st, hh);
