@@ -200,3 +200,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-271](backlog/VB-271.md) | Walking costs more on a slope | - | 3 | S | A step's cost grows with the elevation difference between its two tiles, up or down alike; strength and cap are tunables (SLOPE in sim/rules.js) |
+| [VB-183](backlog/VB-183.md) | Plan: the autumn fair (slice 4) | fair | 3 | S | Design the fair: goods and quanta, worth and need, how deals are found, grain loans as obligations. |
