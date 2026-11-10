@@ -1,8 +1,9 @@
-// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; read-only views, no state
+// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
+// skip to the next event that concerns the played pawn (VB-234); read-only views, no state
 VB['sim/notable'] = (() => {
-  const { index, ancestorsOf, fullName, age } = VB['sim/records'];
+  const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES } = VB['sim/deaths'];
-  const { YEAR } = VB['sim/rules'];
+  const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
     family: "Births, marriages and deaths in the selected person's household or line",
@@ -108,5 +109,58 @@ VB['sim/notable'] = (() => {
     }
     return out;
   }
-  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog };
+  // ---- skip to the next event (VB-234): what stops a run ahead, for the played pawn ----
+  // Why a skip stops, in the order they are looked for; the page says the reason's sentence and moves the camera to what happened.
+  const SKIP = {
+    family: 'A birth, marriage or death in its household or line',
+    farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
+    custom: 'A change of custom in its village',
+    hunger: 'Hunger in its household',
+    refused: 'A command refused',
+    idle: 'Nothing queued, with its automatic behaviour off',
+    round: 'The eve of the moving round',
+    none: 'No pawn is played',
+  };
+  // The eve of the next moving round after game hour t: the start of work on the day before it (the round is at noon on day 11 of autumn).
+  function roundEve(t) {
+    const eve = Math.floor(t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + WORK[0];
+    return eve > t ? eve : eve + YEAR;
+  }
+  // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
+  // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
+  // already)}; null when no pawn is played.
+  function skipFrom(st) {
+    const pl = st.player; if (!pl) return null;
+    const hid = st.pawns[pl.pawn].household, hh = hid !== null ? st.households[hid] : null;
+    return { t: st.t, n: st.record.length, eve: roundEve(st.t), homeId: hid, short: hh ? hh.hungryDays : 0, hungry: !!hh && hh.hunger > 0 };
+  }
+  // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
+  function stopsFor(st, ev, about, hid, vid) {
+    const k = ev.kind;
+    if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
+    if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (FARM.has(k)) return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about) ? 'farm' : null;
+    return CUSTOM.has(k) && vid !== null && ev.village === vid ? 'custom' : null;
+  }
+  // Has a skip begun at `from` (skipFrom) reached a stop: null, or {why (a key of SKIP), text (a sentence), ev (the record event, if one)}.
+  // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on), st.player and the clock, and
+  // writes nothing to st, so a skipped run is the run played (rule 7). The eve of the moving round always stops it, within a year.
+  function skipStop(st, from) {
+    const pl = st.player;
+    if (!pl) return { why: 'none', text: 'No pawn is played.' };
+    const p = st.pawns[pl.pawn], hid = p.household, vid = settlementIdOf(st, p), hh = hid !== null ? st.households[hid] : null;
+    while (from.n < st.record.length) {
+      const ev = st.record[from.n++], why = stopsFor(st, ev, pl.pawn, hid, vid);
+      if (why) return { why, text: eventLine(st, ev), ev };
+    }
+    if (hid !== from.homeId) { from.homeId = hid; from.short = hh ? hh.hungryDays : 0; from.hungry = !!hh && hh.hunger > 0; }
+    if (hh && hh.hungryDays > from.short) {
+      from.short = hh.hungryDays;
+      if (!from.hungry) { from.hungry = true; return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` }; }
+    }
+    if (pl.refused && pl.refused.t > from.t) return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
+    if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
+    return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
+  }
+  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
 })();

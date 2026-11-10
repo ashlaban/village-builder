@@ -4,6 +4,9 @@
   const backgroundRun = $('backgroundRun');
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
+  // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
+  let skipCursor = null;
+  function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
@@ -12,7 +15,13 @@
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden) { resetSpeedSample(); return; }
     const before = st.t;
-    if (speed === Infinity) {
+    if (skipCursor) {
+      // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
+      const deadline = performance.now() + SIM_BUDGET_MS;
+      let stop = Sim.skipStop(st, skipCursor);
+      while (!stop) { Sim.advance(st, SIM_SLICE_HOURS); stop = Sim.skipStop(st, skipCursor); if (performance.now() >= deadline) break; }
+      if (stop) endSkip(stop);
+    } else if (speed === Infinity) {
       const deadline = performance.now() + SIM_BUDGET_MS;
       // Yield between ordinary six-minute steps; one indivisible step can exceed the budget.
       do { Sim.advance(st, SIM_SLICE_HOURS); } while (performance.now() < deadline);

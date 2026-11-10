@@ -1,8 +1,9 @@
-// @sys page/play: playing a pawn (VB-210): Play as, the played pawn's part of its card and what it may do here, Walk here, Follow, its map mark
+// @sys page/play: playing a pawn (VB-210): Play as, the played pawn's part of its card and what it may do here, Walk here, Follow, its map mark;
+// after its death, whom the player may go on as (VB-213)
   // ======== playing a pawn ========
   // Which pawn is played, its queue and its switch are the run's (st.player, written only through Sim.inhabit, uninhabit, queue, unqueue and
   // setAuto). Following it with the camera, choosing a tile to walk to and the last message are the page's own state, never saved.
-  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '';
+  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '', succFor = -1, succAt = 0, succHTML = '';
   const ADULT = 18; // who may be played: any living adult (design.md, Which pawn)
   const playMark = new PIXI.Graphics();
   L.hover.addChild(playMark);
@@ -36,13 +37,34 @@
     return VERB_WORDS[c.verb] || c.verb;
   }
   const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
-  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only where its verb is not yet the
-  // player's (causes, VB-211; the round's acts, VB-212).
+  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only for the round's acts, which the
+  // round carries out for a pawn that wishes them (roundBox).
   function oppRow(o, open) {
     const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
     if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
     const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
     return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  }
+  // The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
+  // wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
+  function roundBox(id, acts, wishes) {
+    const pick = (kind, value, label, on = wishes[kind] === value) =>
+      `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
+    const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
+    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
+      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
+      o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
+      esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
+      : '<p class="hint">No farm of its village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+    h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
@@ -71,8 +93,14 @@
   function renderPlay(id) {
     const p = st.pawns[id], pl = st.player;
     let h = '';
-    if (!pl || pl.pawn !== id) {
-      if (p.age >= ADULT) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
+    if (pl && st.pawns[pl.pawn].died !== null) {
+      // the played pawn has died: its own card says so, and a living pawn the player may go on as offers it (the list is page/play's box)
+      const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
+      if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
+      else if (may) h = `<button type="button" class="primary" id="playAs" data-play="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
+    } else if (!pl || pl.pawn !== id) {
+      if (p.age >= ADULT &&
+        p.died === null) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
     } else {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
@@ -104,8 +132,7 @@
         walkPick}">${walkPick ? 'Choose an open tile on the map, or cancel' : 'Walk here'}<i>for itself</i></button></li></ul>`;
       if (groups.causes.length || p.advocate) h += `<h4>Causes</h4>${causeNote(p)}<ul class="opps">${groups.causes.map((o) =>
         oppRow(o, true)).join('')}</ul>`;
-      if (groups.round.length) h += `<h4>At the moving round <span>shown only, for now</span></h4><ul class="opps">${groups.round.map((o) =>
-        oppRow(o, false)).join('')}</ul>`;
+      if (groups.round.length) h += roundBox(id, groups.round, pl.wishes);
     }
     if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
     if (h !== playHTML) { playHTML = h; $('playBox').innerHTML = h; }
@@ -122,11 +149,13 @@
     const id = selPawn, act = b.dataset.play;
     let r = true;
     if (act === 'inhabit') r = playAs(id);
+    else if (act === 'succeed') { r = Sim.succeed(st, id); succAt = 0; }
     else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') walkPick = !walkPick;
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
+    else if (act === 'wish') r = Sim.wish(st, b.dataset.kind, JSON.parse(b.dataset.value));
     else if (act === 'do') {
       const c = JSON.parse(b.dataset.cmd);
       r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
@@ -163,6 +192,57 @@
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }
+  // After the played pawn's death (VB-213): the page pauses once, and a box offers those the player may go on as, the heir first, for as
+  // long as the choice is open; the world does not wait, so the list is read again twice a second. With none alive, any adult's card
+  // offers "Go on as", and the break is recorded. Called each frame (page/animate).
+  function offerSuccession() {
+    const box = $('succession'), pl = st && st.player, dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
+    const noSkip = played() < 0; if ($('skipBtn').hidden !== noSkip) $('skipBtn').hidden = noSkip; // Skip is offered while a pawn is played
+    if (dead < 0) { if (!box.hidden) box.hidden = true; succFor = -1; return; }
+    const now = performance.now();
+    if (succFor !== dead) { succFor = dead; succAt = 0; followPlayed = false; walkPick = false; document.querySelector('[data-speed="0"]').click(); }
+    if (now - succAt < 500 && !box.hidden) return;
+    succAt = now;
+    const list = Sim.successors(st, dead);
+    let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
+      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+    if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
+      esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
+    if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
+    box.hidden = false;
+  }
+  $('succession').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-succeed]');
+    if (!b || !st) return;
+    const id = +b.dataset.succeed, r = Sim.succeed(st, id);
+    succAt = 0;
+    if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
+  });
+  // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
+  // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
+  // and a note says why, until it is clicked or the next skip begins. The simulation does nothing differently for it.
+  let skipNote = null;
+  function dropSkipNote() { if (skipNote) { skipNote.remove(); skipNote = null; } }
+  function startSkip() {
+    if (played() < 0 || building || skipping) return;
+    const back = speed === 0 ? lastSpeed : speed;
+    dropSkipNote(); setSpeed(Infinity); lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
+    skipCursor = Sim.skipFrom(st); $('skipBtn').setAttribute('aria-pressed', 'true');
+  }
+  function endSkip(stop) {
+    const ev = stop.ev, id = st.player ? st.player.pawn : -1, f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
+    setSpeed(0);
+    if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+    else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
+    else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
+    skipNote = document.createElement('button');
+    skipNote.type = 'button'; skipNote.className = 'toast panel skip-note'; skipNote.id = 'skipNote'; skipNote.dataset.why = stop.why;
+    const c = Sim.cal(st.t);
+    skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
+    skipNote.addEventListener('click', dropSkipNote);
+    $('toasts').appendChild(skipNote);
+  }
+  $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
   // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
   function offerPlay() {
     const id = suggestedPawn(), box = $('playOffer');

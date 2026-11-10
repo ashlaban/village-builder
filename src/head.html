@@ -83,7 +83,8 @@ body {
 .speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
 .background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .background-run input { margin: 0; accent-color: var(--accent); }
-.speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+#skipBtn { padding: 5px 10px; font-size: 14px; }
+#skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
 .settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
@@ -275,10 +276,16 @@ body:has(.toast) .lod { visibility: hidden; }
 .play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
+.succession ul { flex: 1 1 100%; max-height: 40vh; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.succession li button { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; width: 100%; min-height: 36px;
+  margin: 2px 0; padding: 4px 10px; font-size: 14px; text-align: left; }
+.succession li i { font-style: normal; font-size: 13px; color: var(--muted); }
+@media (pointer: coarse) { .succession li button { min-height: 44px; } }
 body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 130px); }
 .play { margin: 8px 0; }
 .play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.play h5 { margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }

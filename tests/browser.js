@@ -91,10 +91,55 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (idle) fail(`automatic behaviour off: ${idle}`);
   await page.waitForTimeout(600);
   if (!/off/.test(await page.locator('#playBox [data-play="auto"]').textContent())) fail('the switch does not show off');
+  // the wishes for the moving round (VB-212): a wish is set from the panel, shown as pressed, and taken back
+  const stay = '#playBox [data-play="wish"][data-kind="out"][data-value="false"]';
+  await page.click(stay);
+  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== false) fail('the wish to stay was not set');
+  if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
+  await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
+  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
   await page.click('#playBox [data-play="stop"]');
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
+  // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop
+  if (await page.locator('#skipBtn').isVisible()) fail('Skip is offered with no pawn played');
+  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  const skipT = await page.evaluate(() => window.__play.st.t);
+  await page.click('#skipBtn');
+  await page.waitForSelector('#skipNote', { timeout: 240000 });
+  const skipped = await page.evaluate(() => {
+    const { st, Sim } = window.__play, note = document.getElementById('skipNote');
+    return { t: st.t, why: note.dataset.why, known: !!Sim.SKIP[note.dataset.why], text: note.textContent,
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'), pressed: document.getElementById('skipBtn').getAttribute('aria-pressed') };
+  });
+  if (!skipped.known || !/^Skip stopped, .+: .+/.test(skipped.text)) fail(`the skip did not stop at a named event: ${JSON.stringify(skipped)}`);
+  if (skipped.paused !== 'true' || skipped.pressed !== 'false') fail(`the page is not paused after the skip: ${JSON.stringify(skipped)}`);
+  if (!(skipped.t > skipT) || skipped.t - skipT > 1153) fail(`the skip ran from ${skipT} to ${skipped.t}`);
+  await page.click('#skipNote');
+  await page.click('#playBox [data-play="stop"]');
+  // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
+  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  await page.click('[data-speed="1"]');
+  await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#debugBtn');
+  await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
+  const offer = await page.evaluate((dead) => {
+    const { st, Sim } = window.__play, list = Sim.successors(st, dead), first = document.querySelector('#succession button[data-succeed]');
+    return { kept: st.player && st.player.pawn === dead, heir: list[0], shown: +first.dataset.succeed, text: first.textContent,
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') };
+  }, played);
+  if (!offer.kept) fail('the player did not keep its dead pawn until the choice');
+  if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id || !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
+  if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
+  await page.click('#succession button[data-succeed]');
+  await page.waitForSelector('#playBox [data-play="stop"]');
+  const after = await page.evaluate((dead) => {
+    const { st } = window.__play;
+    return { pawn: st.player.pawn, events: st.pawns[dead].events.filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
+  }, played);
+  if (after.pawn !== offer.heir.id || !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
+  await page.waitForFunction(() => document.getElementById('succession').hidden);
+  await page.click('#playBox [data-play="stop"]');
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, the automatic behaviour off and the pawn idle in working hours)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir)');
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -5,7 +5,7 @@ VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
-    atHousehold } = VB['sim/records'];
+    atHousehold, wishOf } = VB['sim/records'];
   const CL = VB['sim/claims'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
@@ -60,6 +60,7 @@ VB['sim/farmclaims'] = (() => {
   //   anyone    any landless adult of a village within reach
   //   assembly  the meeting assigns it to one of its own: most voice-weighted support through ties first (sim/claims, support)
   // Then married couples before singles, then the oldest. One of a married couple stands for both (the first of them).
+  // Which farm a pawn would take is its own wish, any it may, and the player's stands in (st.player.wishes.claim, VB-212); the order is a rule.
   function claimants(st, f, ids = st.demand, rule = practice(st, f.village).claims) {
     const vid = f.village, centre = st.villages[vid].center, right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
@@ -68,6 +69,7 @@ VB['sim/farmclaims'] = (() => {
     if (right) for (const id of ids) { const d = kinDegree(st, id, right.by.id); if (Number.isFinite(d)) degree.set(id, d); }
     const keep = (id) => {
       if (!free(st, id)) return false;
+      const wish = wishOf(st, id, 'claim'); if (wish !== null && wish !== f.id) return false; // the player's: no farm, or only the one it names
       if (rule === 'kin') return home(id) === vid || (degree.has(id) && near(id));
       if (rule === 'assembly') return home(id) === vid;
       return near(id);

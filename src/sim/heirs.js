@@ -4,7 +4,7 @@ VB['sim/heirs'] = (() => {
     joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
       kinNear,
       isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
-      atHousehold, noteLine, householdsOfLine, ancestorsOf,
+      atHousehold, noteLine, householdsOfLine, ancestorsOf, wishOf,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -327,7 +327,8 @@ VB['sim/heirs'] = (() => {
     const claim = keeps ? undefined : st.demand.filter((id) => {
       const q = at(id), sp = spouseOf(st, id);
       return q.alive && q.age >= 18 && q.household !== null && q.household !== hh.id && st.farmsteads[st.households[q.household].farmstead].village === v
-        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
+        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id)
+        && (wishOf(st, id, 'claim') ?? hh.farmstead) === hh.farmstead; // the player's wish: no farm, or only the one it names (VB-212)
     }).sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
     for (const c of childrenOf(st, giver)) {
@@ -375,11 +376,12 @@ VB['sim/heirs'] = (() => {
     return out;
   }
   // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function staysWhy(st, p, heirs = null, own = null, rank = null) {
+  function staysWhy(st, p, heirs = null, own = null, rank = null, wish = wishOf(st, p.id, 'out')) {
     if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
     const sp = spouseOf(st, p.id); if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
-    if (placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
+    if (wish !== true && placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
+    if (wish !== null) return wish ? null : 'its player wishes it to stay'; // an heir's wait is the pawn's wish: the player's stands in (VB-212)
     if (heirs) { if (heirs.has(p.id)) return 'heir to a farm'; } // heir somewhere else
     else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return 'heir to a farm';
     return null;
@@ -393,8 +395,6 @@ VB['sim/heirs'] = (() => {
   }
   return {
     heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, staysWhy, countDemand, firstHeirs, ownFirstOf,
-      setGuardian,
-      handOn,
-    heirFor, roundHeirs,
+    setGuardian, handOn, heirFor, roundHeirs,
   };
 })();

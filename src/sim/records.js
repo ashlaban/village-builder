@@ -173,6 +173,9 @@ VB['sim/records'] = (() => {
     return null;
   };
   const isHolder = (st, id) => holdingOf(st, id) !== null;
+  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
+  // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
+  const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -273,6 +276,6 @@ VB['sim/records'] = (() => {
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
-    noteLine, householdsOfLine, ancestorsOf,
+    noteLine, householdsOfLine, ancestorsOf, wishOf,
   };
 })();

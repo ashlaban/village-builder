@@ -24,7 +24,7 @@
     choice = { seed, scenario, size };
     $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null;
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
