@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-163](backlog/VB-163.md) | Bands: reduced scenarios asserted in verify, full runs reported nightly | yardstick | 2 | M | One table of bands; the floors against collapse asserted on tiny maps in verify; the long runs at four seeds reported nightly, never failing. |
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
 | [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | The moving-round day and midnight under 60 ms on `medium-ref` and `small-y40` (the medium-y60 allowance ended on 7 November), with deterministic saves and demographic gates. |
 | [VB-206](backlog/VB-206.md) | The meetings spread, so no step goes over 60 ms | yardstick | 2 | S | The meetings' step (276 ms at year 60, 41 at year 5) measured at the new reference and spread a village per step if over 60 ms. |
@@ -23,6 +22,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
+| [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
 | [VB-207](backlog/VB-207.md) | death.hazard: the cause read from its contributions | yardstick | 3 | S | `deathRoll` takes a death's cause from the contributions of `death.hazard`, not by calling all extra risk hunger; golden unchanged. |
 | [VB-228](backlog/VB-228.md) | Refactor: each domain registers its own verbs | - | 3 | M | Verbs are registered at load by the module that carries them out, as rules are; `sim/commands` imports no domain and `later()` goes. |
 | [VB-229](backlog/VB-229.md) | Refactor: events in the kernel, and land's memories as their first subscribers | - | 3 | S | An event channel with subscribers declared at load; `stakes`, `territory`, `herds` and `claims` emit instead of calling `sim/relations`. |
@@ -48,7 +48,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
 | [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
-| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-163, VB-201, VB-206 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
+| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201, VB-206 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | VB-199 | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-211](backlog/VB-211.md) | The player argues for a cause | life | 2 | S | VB-210 | Advocacy, the player's one door to the meeting: `argue` and `dropCause` for the played pawn, and how the village leans on its cause. |
@@ -96,7 +96,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-040](backlog/VB-040.md) | Wrap-up: relationships and courting | talk | 3 | S | VB-036 | Long runs check marriage age, never-married share and help between kin against history; report. |
 | [VB-063](backlog/VB-063.md) | Wrap-up: pawn interactions | talk | 3 | S | VB-062 | Check talk, relationships and mood at full scale; report cost and patterns. |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 3 | S | VB-185 | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
-| [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | VB-163 | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
 | [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | VB-186 | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
 | [VB-189](backlog/VB-189.md) | Plan: the town (slice 9) | town | 3 | S | VB-188 | Design the market place and the town: plots, food bought, the urban sink, tiers and regions. |
 | [VB-083](backlog/VB-083.md) | Seasons on the map | roads | 3 | M | VB-190 | Seasonal tints and winter snow on the painted map. |

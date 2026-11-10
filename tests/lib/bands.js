@@ -102,7 +102,9 @@ function sample(st, year, y) {
   for (const [id, n] of y.days) {
     const hungry = st.households[id].hungryDays - y.hungry0.get(id);
     out.hungryDays += hungry; out.householdDays += n;
-    if (n >= MIN_DAYS) out.worstHungry = Math.max(out.worstHungry, hungry / n);
+    // a household made or dissolved during a day may be fed that day and not counted present at its end: at most one day, so the
+    // share is capped at 1
+    if (n >= MIN_DAYS) out.worstHungry = Math.max(out.worstHungry, hungry / Math.max(n, hungry));
   }
   out.invariants = checkState(st).slice(0, 5);
   if (out.invariants.length) out.invariants.unshift(`year ${year}`);
