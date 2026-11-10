@@ -55,7 +55,10 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-307](backlog/VB-307.md) | The village's wood is an area: each firewood trip fells a tree on a random tile of it | - | 2 | M | The commons wood becomes an allotment of wooded tiles sized to the village's hearths, so cutting spreads and regrowth can meet it; a trip's tile is drawn at random. |
+| [VB-308](backlog/VB-308.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
+| [VB-309](backlog/VB-309.md) | Timber: a felled plot yields its wood, building fells trees, and a new household's first wood comes from somewhere | - | 3 | S | Wood stops appearing and vanishing: a plot's felled trees build its cottage and fill woodpiles, a cottage on open ground is built of felled timber, and a new household's first wood is taken from the homes its members leave. |
 
 ## Blocked
 
