@@ -79,11 +79,8 @@ VB['sim/stores'] = (() => {
   }
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
-    for (const v of st.villages) if (v.grain > 0) {
-      // Keep the original multiplication, including its floating-point rounding.
-      const after = v.grain * Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS);
-      record(st, v, 'grain', after - v.grain, 'spoilage'); v.grain = after;
-    }
+    const share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS); // the day's share of the year's loss
+    for (const v of st.villages) if (v.grain > 0) take(st, v, 'grain', v.grain * share, 'spoilage');
   }
   // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
   // ledger was emptied when it dissolved (close).
