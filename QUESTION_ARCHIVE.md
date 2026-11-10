@@ -2,6 +2,15 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-242)
+
+## VB-242 and VB-280: a village a step, the order of villages and what stays island-wide (raised 10 November 2026, by VB-242)
+Kim decided on 10 November that each village holds its meeting and its round in its own step, in the order of village id, with a village's own men and women from anywhere (`design.md`, Leaving home: A village's round). VB-242's survey and numbers are in `backlog/VB-242.md`. The plan proceeds on both proposals. Only VB-280 waits.
+1. Should the first village turn from year to year? Measured with a static matcher on 38 states (populous small, seeds 1 to 6, years 5 to 30, plus `small-y40` and `medium-ref`), the same men asking under each order: by village id, the first third of villages' men lose the woman they score best 21% of the times they ask, against 38% today, and marry 44% of the times against 36%. The middle third lose 48% (43% today) and marry 36% (41%). So village 0 and its neighbours in id order, the oldest and largest villages, always ask first. **P:** yes, VB-280: the villages' steps of the round and of the meetings start at village `year mod villages` and go on in id order, wrapping. It is deterministic, draws nothing, and costs one modulo a step. In the study this evens the advantage out over the years. If no, VB-280 is closed, and the advantage of the first villages is part of the design.
+   **A (Kim, 10 Nov):** Yes: the starting village turns by the year (start at village year mod count); VB-280 no longer waits for Kim.
+2. Are demand, claims on empty farms, plots, settlement and service also a village's own? Kim's decisions name the matching and the steps, not these. They reach between villages by design: claims within `CLAIMS.farmReach` of the farm, service within `SERVICE.reach`, and settlers to another village's land. Each is within 60 ms as an island-wide step (VB-201: at most 22 to 36 ms). **P:** no. They stay island-wide, on fixed steps once every village has held its round (18:00 to 18:12 of the round's day), so a village's round is its marriages, its handovers and its kin pressure (VB-277). If yes, a later task splits them, and claims and service read the other villages' demand as each village's step leaves it.
+   **A (Kim, 10 Nov):** Neither as proposed: what reaches between villages should be governed by the distance between them. Mixing is easy for villages close to each other, but preparing for a long trip is not cheap, and the pawn should physically travel. (Orchestrator's reading: a plan task, VB-281; until it lands VB-277 leaves demand, claims, settlement and service as they are today, island-wide.)
+
 # Archived 10 November 2026 (VB-227)
 
 ## VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)

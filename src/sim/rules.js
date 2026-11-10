@@ -174,7 +174,7 @@ VB['sim/rules'] = (() => {
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
     milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
-    butter: { worth: 1, keeps: HERD.butterDays, source: null, raw: true },
+    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', raw: true },
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
