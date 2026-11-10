@@ -46,6 +46,7 @@
     "pawn.tieT": "sim/relations",
     "pawn.homeHours": "sim/relations",
     "pawn.rel": "sim/relations",
+    "pawn.bands": "sim/relations",
     "pawn.goodwill": "sim/relations",
     "household.askedIn": "sim/help",
     "pawn.att": "culture",
