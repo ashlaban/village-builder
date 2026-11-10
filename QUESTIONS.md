@@ -12,41 +12,13 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173). Questions 1 to 4 were answered on 3 November (`QUESTION_ARCHIVE.md`): the vision's text approved as written. Questions 1 to 5 and 7 were answered on 3 November (`QUESTION_ARCHIVE.md`).
 6. Reads and writes. The review asks that no module expose its collections (Rule 2). **P:** reads stay free, since `st` is plain data for saves and the page reads it every frame; every field has one owner module, which alone writes it, and other modules call its operations; a static check enforces it (VB-173). The rule goes into `AGENTS.md` with VB-173.
 
-### VB-261: gates become targets with residuals (raised 10 November 2026)
-The survey and the mechanism are in `docs/gates.md`: 30 checks, 15 proposed to stay hard (correctness), 13 to become targets reported
-with their residuals, 2 process rules reworded. The follow-up tasks wait for these answers.
-1. Which checks stay hard? **P:** those of correctness only: the build, the lint's rules and size baselines, ownership, dependencies, the
-   backlog, determinism and plain data, the rule tests, the golden file (an unlisted change fails; a listed re-record is fine), saves,
-   invariants (daily, and the invariants band), the late fixtures loading, the page's functional tests, and the counters' structure. Cost,
-   balance, demography and timing become targets (`docs/gates.md`, section 1, rows 14 to 28).
-2. Do the cost baselines stop being ratchets? **P:** yes. `tests/cost-baseline.json` is retired; `tests/scaling.js` (1.15) and
-   `tests/history.js` (1.25) report each counter's ratio, its target and its residual to `docs/bench/targets.jsonl` and never fail. The lint
-   and ownership baselines stay ratchets: they count a rule's sites, which only a change's own code adds.
-3. The ceilings added on 10 November (oppAsk 1.35, planReview 1.34, cookFarm 1.39 in `history`) and recordFold, left failing at 1.56:
-   **P:** all four become residuals with the rest (routeExpand, routeRefresh, walkTies, roundPairs, heirRank, roundRank), each line naming
-   the task that closes it in `docs/bench/closure.md`: oppAsk, planReview and cookFarm VB-249 (planning days, a due-queue), the routes
-   VB-236 or a task of their own, roundPairs, heirRank and roundRank VB-242; recordFold a new small task to find why the fold's slots grow
-   faster than the living.
-4. Do the counters of `tests/counters.json` (±10% on the tiny probe) and the reduced bands' ranges become targets? **P:** yes, both. The
-   counters one-sided (more than 10% over is a residual; less is re-recorded with the golden file); the bands go back to their full-strength
-   ranges (hunger deaths 2%, hungry households 30%), since a target need not be widened to pass (at `aea615a` seeds 3 and 42 would show
-   residuals of 0.18 and 0.16 on the 30%); the invariants band stays hard.
-5. How is a timing or seeded measure judged against noise? **P:** a residual within the noise is reported as `noise`, not `out`: for seeds,
-   twice the standard error over the seeds (the demographic gate becomes a target this way, with its 12 seeds); for timings, a system's
-   share of the whole step in the same run, and paired, alternated runs of before and after, three each, against the range of "before"
-   (this answers VB-227's second question too).
-6. Do Checks come back on pull requests? **P:** yes, failing only on the hard checks of question 1, with the targets out printed in the job
-   summary; the late-game job (fixtures and history) runs as targets and never fails.
-7. Are the acceptance criteria of open tasks that are worded as lines ("at most 30 ms", "under 0.5 s", "`npm run verify` passes")
-   reworded in one pass? **P:** yes, by one small task: a cost or balance line becomes "towards the target, with the residual reported,
-   and who closes what is left"; "verify passes" becomes "its hard checks pass". A target itself changes only by Kim's decision.
-
 ## Priority 2
 
 ### VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)
 The order-preserving cuts (golden file unchanged; numbers in `backlog/VB-227.md`) make the line 6 to 7% cheaper and the review 15%: on `tools/bench.js` at `medium-ref` it measures 25.4 to 32.8 ms a game day after (mean 28.7), against 25.1 to 34.7 before (mean 28.2) on a noisy machine about 15% faster than on 9 November, where the line was 35.1; on that scale it is now about 33. The rest is the review polling every holder 14 times a day and matching rebidding every idle pawn every six minutes, which only rules 4 and 5 cut, with a change of behaviour.
 1. Does VB-227 land as it stands and its last 3 ms wait? **P:** yes: merge the cuts, keep VB-227 open (or close it with criteria 3 and 4 moved), and make "jobs refresh and matching at most 30 ms at `medium-ref`, paired bench runs" an acceptance criterion of VB-249, whose planning days and due-queue take the review off its hourly pass.
 2. Is the bench's absolute ms the right gate on this machine? **P:** gate on the line's share of the whole simulation in paired runs (here 17.0% to 16.1%) beside the ms, since the whole step varied 146 to 211 ms a day between runs of the same code.
+   **A (Kim, 10 Nov):** As VB-261's question 5, accepted as proposed: timings are judged by their share of the whole step in paired, alternated runs, beside the ms.
 
 ### VB-212: the wishes the survey could not sort (raised 10 November 2026)
 VB-212 built the player's wishes for the moving round (`st.player.wishes`: `out`, `claim`, `serve`; the survey is in `backlog/VB-212.md`). Three wants in the round need a design choice, and each is left a rule, as the task's note asks. None blocks slice 2's wrap-up.
