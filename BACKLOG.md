@@ -21,6 +21,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-234](backlog/VB-234.md) | Skip to the next event that concerns the player's pawn | life | 2 | S | Run ahead at the uncapped speed until something notable to the played pawn, its household or its line happens, then pause there. |
 | [VB-235](backlog/VB-235.md) | The clock counts whole six-minute ticks | - | 2 | M | st.t is a float advanced by 0.1: hours fire a step late from year 2 and a run depends on how advance is chunked; count integer ticks instead. |
 | [VB-240](backlog/VB-240.md) | Opinion is derived: compatibility shown by familiarity, and memories only of what happened | - | 2 | M | Talk writes 99% of opinion's memories and they restate the fixed compatibility; derive opinion from standing, compatibility and the tie, keep memories for events, and record only close friends and enemies. |
+| [VB-242](backlog/VB-242.md) | The meetings and the moving round, a village a step: survey and tasks | - | 2 | S | The round matches the whole map in one step, which is why its heir cache exists; Kim decided each village holds its meeting and round in its own step. Survey the code and write the tasks. |
 | [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
@@ -35,6 +36,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-237](backlog/VB-237.md) | Refactor: stores refuses a holder that is not a household, a village or a pawn | - | 3 | S | type() in sim/stores takes anything that is not a household or a village for a pawn, and writes a stake onto it; test for the pawn and throw otherwise. |
 | [VB-238](backlog/VB-238.md) | Refactor: a tie's eviction and floor in sim/relations, written as plain cases | - | 3 | S | put and raiseTie in sim/relations fold three cases into one nested condition and a double negation; write them as the cases they are. |
 | [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
+| [VB-241](backlog/VB-241.md) | Refactor: the calendar, one ordered table of what runs each step, hour, day, season and year | - | 3 | M | What runs when is spread over a dozen date tests in eight modules; gather it in one ordered table in sim/clock, with behaviour unchanged. |
 
 ## Waiting for Kim
 
