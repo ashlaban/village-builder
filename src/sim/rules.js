@@ -122,7 +122,7 @@ VB['sim/rules'] = (() => {
     // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
     // when the pawn's ties are put back on today's scale, every `renorm` years.
     ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
-    affinity: { weight: 0.6, known: 16 },
+    affinity: { weight: 0.6, known: 8 },
     friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.45, enemy: -0.5,
     seek: 0.5, seekSample: 4,
   };

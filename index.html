@@ -2405,7 +2405,7 @@ VB['sim/rules'] = (() => {
     // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
     // when the pawn's ties are put back on today's scale, every `renorm` years.
     ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
-    affinity: { weight: 0.6, known: 16 },
+    affinity: { weight: 0.6, known: 8 },
     friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.45, enemy: -0.5,
     seek: 0.5, seekSample: 4,
   };
@@ -13990,7 +13990,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'dfb267ea87', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '24029a98ba', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
