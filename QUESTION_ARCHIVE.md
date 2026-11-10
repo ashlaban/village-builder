@@ -2,6 +2,26 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-201)
+
+## VB-201: the demographic gate fails on chaos alone (raised 10 November 2026)
+The spread is built and measured in `0bc77a3` (reverted in the next commit; the task file has the numbers). At `medium-ref`, a whole year: the culture's drift a settlement a 6-minute step after midnight and the moving round in four phases from noon (marriages and handovers; demand, claims, plots; settlement; service, what is owed, prestige) leave every midnight at most 48 ms and every round phase at most 36 ms; only the meetings' step (VB-206) is over 60. Nothing is saved for either. Over 30 populous-small years, marriages a year move -4.7% at seed 7 and -11.3% at seed 42 (the gate is 10%); first-marriage age and the never-married share pass. Over 8 more seeds (1 to 10 but 3 and 7) the mean does not move (5.863 before, 5.858 after; the culture's spread alone 5.863), and one seed's marriages a year vary about 5% between equivalent schedules (the round split as 0|1|2|3, 0|123, 01|23 or 012|3 phases), so the seed-42 result is the divergence of a changed run, not a bias. Choosing the schedule whose seed 42 passes would be tuning randomness to the gate.
+1. Which demographic gate holds for a scheduling change? **P:** the three measures' means over 12 seeds (populous small, 30 years) within 5%, each seed's never-married count reported; seeds 7 and 42 reported, not gating. Then `0bc77a3` lands as it is, with the golden file re-recorded and the customs' drift checked by `npm run calibrate`.
+   **A (Kim, 10 Nov):** as proposed (P): the means over 12 seeds within 5%; seeds 7 and 42 reported, not gating.
+2. Does a split of the round by phase (each phase whole, in today's order, on its own step) meet the criterion "spread village marriages, handovers and claims across steps in village order"? The marriages fit one step (about 25 ms at `medium-ref`), so the village order and its per-man decision state were not needed. **P:** yes; the village order waits until the marriage phase alone nears 60 ms.
+   **A (Kim, 10 Nov):** yes, as proposed (P): whole phases suffice; the village order waits until the marriage phase alone nears 60 ms.
+
+# Archived 10 November 2026 (VB-199)
+
+## VB-199: bounded history (raised 3 November 2026, the plan of slice 0)
+Bounded history was brought into slice 0 in the session that ran VB-181. Rule 9 of the Rules for cost (Decided) says the record keeps notable events in full and folds routine ones into yearly counts after a generation, and that a pawn's events are an index into the record. Measured at year 40 of populous small (seed 7): 110,278 events in `st.record`, of which `friend` 52,201 and `fellOut` 36,598 (81%); each pawn carries copies of its own events (80.6 on average, 8.1 MB of a 29 MB save); writing the save takes 1.6 s and reading it 0.9 s, against a budget of 0.5 s each. The answers make VB-199 `ready`.
+1. Which kinds of event are notable, kept in full? **P:** those that make up a life and a place, which are also VB-098's list: births, marriages, deaths (with their cause), inheritances and handovers, moves and leaving, farms, plots, cottages and meadows made, claimed or left, customs changed and causes argued at the meeting, and inheritance shares paid. The rest are routine and folded: `friend`, `fellOut`, `gift`, `harvest`, `hay`, `frost`, `herdBirths`, `herdDeath`, `slaughter`, `spoiled` and `putOff`.
+   **A (Kim, 10 Nov):** as proposed (P).
+2. When do `friend` and `fellOut` fold? Folded after a generation (25 years), they still fill the save at the late reference: year 60 would keep 35 years of them. **P:** after 2 years, since a pawn's present friends and enemies are kept in its relations anyway, and slice 7 replaces them with stories; the other routine kinds after a generation, as rule 9 says.
+   **A (Kim, 10 Nov):** as proposed (P): friend and fellOut fold after 2 years, the other routine kinds after a generation.
+3. If the save still takes over 0.5 s once history is bounded? **P:** VB-199 measures each part (encode, stringify, gzip; parse, decode) and proposes the next step in its PR rather than building it: pawn records in columns, or saving from a structured clone in a worker (roadmap, section 5.5).
+   **A (Kim, 10 Nov):** as proposed (P); already answered on 9 November (VB-203's questions: VB-199 first, then VB-226 for what is left).
+
 # Archived 9 November 2026 (the gameplay review)
 
 ## VB-233: marriage as a negotiation (raised 9 November 2026, gameplay review)
