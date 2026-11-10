@@ -79,4 +79,4 @@
   // size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
   const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
   if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
-  else showGenScreen();
+  else showLanding();

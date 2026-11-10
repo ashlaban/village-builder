@@ -32,7 +32,7 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
   await page.route(/^https?:\/\//, (r) => (/pixi(\.min)?\.js/.test(r.request().url())
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
   await page.goto('file://' + page_);
-  await page.waitForFunction(() => !document.getElementById('genScreen').hidden, null, { timeout: 60000 });
+  await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
   await page.evaluate(([sz, sd, sc]) => {
     document.getElementById('genScenario').value = sc; document.getElementById('genSize').value = sz; document.getElementById('genSeed').value = sd;
     document.getElementById('genForm').dispatchEvent(new Event('submit', { cancelable: true }));

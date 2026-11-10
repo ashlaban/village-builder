@@ -14,26 +14,32 @@
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
+  // The landing page: New archipelago (the generation screen) and Load archipelago (the Saves overlay; page/saves). A game that is open
+  // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
+  function showLanding() {
+    $('landBack').hidden = !w; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
+  }
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
-    $('genCancel').hidden = !w;
-    $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
+    $('landing').hidden = true; $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
-  async function build(seed, scenario, size) {
+  // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  async function build(seed, scenario, size, save = null) {
     choice = { seed, scenario, size };
-    $('genScreen').hidden = true;
+    $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('regen').disabled = true;
     loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
-    setLoad('Settling the founders', 0.52); await frame();
+    setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = Sim.seed(wd, seed, scenario); } catch (e) { console.warn('No settlement on this map for this scenario', e); }
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('regen').disabled = false;
-      showGenScreen('This map has no room for that scenario. Pick another seed, size or scenario.');
+      showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
@@ -95,7 +101,7 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    offerPlay();
+    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('regen').disabled = false;
   }
 

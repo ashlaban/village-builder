@@ -33,6 +33,19 @@ VB['sim/hunger'] = (() => {
     hh.larder = hh.larder.filter((l) => l.n > 1e-9);
     return got;
   }
+  // The groups a short meal is served in, one after the other, by the household's feedOrder: its children or its workers first and then
+  // the rest, or everyone together. mem: its living members, as pawns.
+  function feedGroups(st, hh, mem) {
+    const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
+    const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
+    const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
+    return first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem];
+  }
+  // The members a short meal reaches last, as pawn ids: the feed order's last group with anyone in it. Reads only.
+  function servedLast(st, hh) {
+    const groups = feedGroups(st, hh, hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null)).filter((g) => g.length);
+    return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
+  }
   // Feeds a household for the day: larder food about to spoil first, then cooked rations and grain above the seed reserve, then the rest
   // of the larder; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
@@ -47,11 +60,8 @@ VB['sim/hunger'] = (() => {
       const left = Math.max(0, rest - late), cooked = Math.min(hh.rations, left); Stores.take(st, hh, 'rations', cooked, 'meal');
       Stores.take(st, hh, 'grain', Math.max(0, left - cooked), 'meal'); }
     else {
-      const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
-      const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
-      const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
       let left = avail + early + late;
-      for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
+      for (const group of feedGroups(st, hh, mem)) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
@@ -82,5 +92,5 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
-  return { feedHousehold, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+  return { feedHousehold, feedGroups, servedLast, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();

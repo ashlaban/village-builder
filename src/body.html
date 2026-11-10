@@ -22,7 +22,8 @@
       <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
       <details class="notices"><summary>Notifications</summary><div id="noticeList"></div></details>
       <div class="actions">
-        <button class="primary" id="regen" type="button">New archipelago</button>
+        <button class="primary" id="regen" type="button">Main menu</button>
+        <button id="savesBtn" type="button">Saves</button>
         <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
       </div>
     </div>
@@ -48,11 +49,22 @@
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
+  <button id="actionsBtn" type="button" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet" hidden>Actions</button>
   <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
   <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
   <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
   <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
 </nav>
+<aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
+  <div class="sheet-head">
+    <h2 id="actionTitle">Actions</h2>
+    <button type="button" class="sheet-expand" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent">Collapse</button>
+    <button id="actionClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="actionContent">
+    <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
+  </div>
+</aside>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
     <h2 id="peopleTitle">People &amp; households</h2>
@@ -97,7 +109,7 @@
         <span id="tileExtra" hidden></span>
         <span id="tileMore" hidden></span>
         <div id="tileRest"></div>
-        <div id="playBox" class="play" hidden></div>
+        <div id="cardPlay" class="play" hidden></div>
         <div id="tileLinks" class="links" hidden></div>
         <div id="tileList" class="roster" hidden></div>
         <button type="button" id="personFamily" hidden>View family records</button>
@@ -132,10 +144,19 @@
   </div>
 </div>
 
+<div class="genscreen" id="landing" hidden>
+  <div class="panel landing">
+    <h1>Village builder</h1>
+    <button class="primary" id="landNew" type="button">New archipelago</button>
+    <button id="landLoad" type="button">Load archipelago</button>
+    <button id="landBack" type="button" hidden>Back to game</button>
+  </div>
+</div>
+
 <div class="genscreen" id="genScreen" hidden>
   <form class="panel" id="genForm" autocomplete="off">
     <h1>New archipelago</h1>
-    <button id="genCancel" type="button" hidden>Back to game</button>
+    <button id="genCancel" type="button">Back</button>
     <label>Map size
       <select id="genSize">
         <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -157,6 +178,13 @@
       <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
       <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </form>
+</div>
+
+<div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
+  <div class="panel">
+    <div class="saves-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
+    <div class="saves-body" id="savesBody"></div>
+  </div>
 </div>
 
 <div class="loader" id="loader">

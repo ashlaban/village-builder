@@ -240,7 +240,7 @@
     const rest = lines.slice(4).map((line) => `<span>${esc(line)}</span>`).join('');
     if ($('tileRest').innerHTML !== rest) $('tileRest').innerHTML = rest;
     $('personFamily').hidden = selPawn < 0;
-    $('tileRel').hidden = true; $('relationsDetails').hidden = true; $('playBox').hidden = true;
+    $('tileRel').hidden = true; $('relationsDetails').hidden = true; $('cardPlay').hidden = true;
     $('tile').hidden = activePanel !== 'tile';
     syncTabs();
   }

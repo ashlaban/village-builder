@@ -21,7 +21,7 @@
   const clockOf = (t) => { const m = Math.floor(Sim.cal(t).hour * 60 + 1e-6); return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
   const holderName = (o) => (!o ? '' : o.type === 'village' ? st.villages[o.id].name : st.farmsteads[st.households[o.id].farmstead].name);
   const VERB_WORDS = { work: 'Work', walkTo: 'Walk to a tile', goHome: 'Go home', idle: 'Idle', argue: 'Argue for a cause', dropCause: 'Drop the cause',
-    leave: 'Move out to new land', claim: 'Claim an empty farm', serve: 'Take service' };
+    leave: 'Move out to new land', claim: 'Claim an empty farm', serve: 'Take service', give: 'Give grain' };
   // A command in words: a queued one, or an opportunity (which also has its kind and holder).
   function commandWords(c) {
     if (c.verb === 'work') {
@@ -33,6 +33,7 @@
     if (c.verb === 'argue') { const d = Culture.DIMS[c.args.dim]; return `${d.label}: ${d.opts[c.args.option][1].toLowerCase()}`; }
     if (c.verb === 'dropCause') return `Drop the cause: ${Culture.DIMS[c.args.dim].label.toLowerCase()}`;
     if (c.verb === 'claim') return `Claim ${st.farmsteads[c.target].name}`;
+    if (c.verb === 'give' && Number.isInteger(c.target)) return `Give ${c.args.n} grain to ${st.farmsteads[st.households[c.target].farmstead].name}`;
     if (c.verb === 'serve') return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
     return VERB_WORDS[c.verb] || c.verb;
   }
@@ -88,25 +89,45 @@
     const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
-  // The played pawn's part of its card, after card() has hidden it: rebuilt with the card (at most four times a second, page/animate), and
-  // Sim.opportunities is called once per rebuild, only for the played pawn.
+  // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
+  // panel): the played pawn's card leads to its actions; after its death, its own card says so and a living pawn the player may go on
+  // as offers it (the list is the succession box's, below).
+  let cardPlayHTML = '';
   function renderPlay(id) {
     const p = st.pawns[id], pl = st.player;
     let h = '';
     if (pl && st.pawns[pl.pawn].died !== null) {
-      // the played pawn has died: its own card says so, and a living pawn the player may go on as offers it (the list is page/play's box)
       const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
       if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
-      else if (may) h = `<button type="button" class="primary" id="playAs" data-play="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
-    } else if (!pl || pl.pawn !== id) {
-      if (p.age >= ADULT &&
-        p.died === null) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
-    } else {
+      else if (may) h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
+    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Its actions</button></p>';
+    if (h !== cardPlayHTML) { cardPlayHTML = h; $('cardPlay').innerHTML = h; }
+    $('cardPlay').hidden = !h;
+  }
+  $('cardPlay').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-card]');
+    if (!b || !st || selPawn < 0) return;
+    if (b.dataset.card === 'actions') { openPanel('actions'); return; }
+    const id = selPawn, r = Sim.succeed(st, id);
+    succAt = 0; playMsg = r === true ? null : { id, text: r };
+    if (r === true) openPanel('actions'); else showPawn(id);
+  });
+  // The Actions sheet (the bottom bar's Actions, shown while a pawn is played): all that the player does through its pawn. In two parts,
+  // top and h, with the gift's box between them (below). Rebuilt while it is open, at most four times a second (page/animate), and
+  // Sim.opportunities is called once per rebuild.
+  function renderActions() {
+    const id = played(), pl = st && st.player;
+    if ($('actionsBtn').hidden !== id < 0) $('actionsBtn').hidden = id < 0;
+    if (id < 0) { if (activePanel === 'actions') openPanel(null); return; }
+    if (activePanel !== 'actions') return;
+    const p = st.pawns[id];
+    let h = '', top = '';
+    {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
       const food = !hh ? '' : ` ${esc(f.name)}: food for ${days === null ? 'no one' : `${days} ${days === 1 ? 'day' : 'days'}`}, firewood ${wood} ${
         wood === 1 ? 'load' : 'loads'}.`;
-      h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="stop">Stop playing</button></div>`;
+      h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
       h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%, health ${Math.round(p.health)}.${food}</p>`;
       h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
       h += `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>`
@@ -119,6 +140,7 @@
           'Nothing queued, and its automatic behaviour is off: it waits, and goes home at dark.'}</p>`;
       if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
         pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
+      top = h; h = '';
       const opps = Sim.opportunities(st, id), groups = { work: [], going: [], causes: [], round: [] };
       for (const o of opps) {
         const g = o.when === 'round' ? 'round' : o.verb === 'work' ? 'work' : o.verb === 'argue' || o.verb === 'dropCause' ? 'causes' : 'going';
@@ -135,8 +157,96 @@
       if (groups.round.length) h += roundBox(id, groups.round, pl.wishes);
     }
     if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
-    if (h !== playHTML) { playHTML = h; $('playBox').innerHTML = h; }
-    $('playBox').hidden = !h;
+    if (top + '\n' + h !== playHTML) { playHTML = top + '\n' + h; $('playTop').innerHTML = top; $('playRest').innerHTML = h; }
+    renderGive(id);
+  }
+  // ---- the player's gift (VB-221): while it plays a holder, grain to any household, by the verb give; below the floor it is warned ----
+  // The draft: to (a household id), n (whole rations), pick (the next click on the map chooses the household), warn (Sim.giftWarning's
+  // answer, waiting for the player to confirm) and msg. The box is its own element beside the play box, redrawn only when its words
+  // change and never while the player types in it, so the amount and the choice are not lost to the card's refresh.
+  const newGift = () => ({ of: st, to: null, n: 10, pick: false, warn: null, msg: '' });
+  let gift = newGift(), giveHTML = '';
+  const householdName = (hh) => {
+    const holder = hh.holder !== null ? Sim.fullName(st.pawns[hh.holder]) : 'no holder';
+    return `${st.farmsteads[hh.farmstead].name} (${holder})`;
+  };
+  // The household the played pawn gives for, or null: the one it holds.
+  const givesFor = (id) => (st.player && st.player.pawn === id && st.pawns[id].died === null ? Sim.holdingOf(st, id) : null);
+  function renderGive(id, force = false) {
+    const box = $('giveBox'), hh = givesFor(id);
+    if (gift.of !== st) gift = newGift();
+    if (!hh) { box.hidden = true; giveHTML = ''; gift.pick = false; return; }
+    if (gift.to !== null && (st.households[gift.to].dissolved || gift.to === hh.id)) gift.to = null;
+    const max = Math.max(0, Math.floor(hh.grain - Sim.seedReserve(st, hh))), f = st.farmsteads[hh.farmstead];
+    const kin = Sim.kinHouseholds(st, hh), village = st.liveHouseholds.filter((k) => k !== hh.id && !kin.includes(k)
+      && st.farmsteads[st.households[k].farmstead].village === f.village);
+    const opt = (k) => `<option value="${k}">${esc(householdName(st.households[k]))}</option>`;
+    const group = (label, ids) => (ids.length ? `<optgroup label="${label}">${ids.map(opt).join('')}</optgroup>` : '');
+    const chosen = gift.to !== null && !kin.includes(gift.to) && !village.includes(gift.to) ? [gift.to] : [];
+    const to = gift.to !== null ? st.households[gift.to] : null;
+    let h = `<h3>Give grain</h3><p class="hint">${esc(f.name)} holds ${max} ${max === 1 ? 'ration' : 'rations'} of grain above its seed.</p>`;
+    h += `<div class="give-row"><label>To <select id="giveTo"><option value="">Choose a household</option>${group('Kin', kin)}${
+      group('Of the village', village)}${group('Chosen on the map', chosen)}</select></label>`
+      + `<label>Rations <input id="giveN" type="number" inputmode="numeric" min="1" max="${max}" step="1"></label></div>`;
+    if (to && to.holder === null) h += `<p class="hint">${esc(
+      st.farmsteads[to.farmstead].name)} has no holder: the gift is given, but no goodwill is owed for it.</p>`;
+    if (gift.warn) {
+      const names = gift.warn.hungry.map((k) => Sim.fullName(st.pawns[k])).join(', ');
+      h += `<p class="refused" role="alert">This leaves ${esc(f.name)} ${Math.ceil(
+        gift.warn.below)} rations short of its floor, ${gift.warn.days} days of food `
+        + `beside the seed. If food runs short, the last to be served ${gift.warn.hungry.length === 1 ? 'is' : 'are'} ${esc(names)}.</p>`
+        + '<div class="switches"><button type="button" data-give="confirm">Give all the same</button>'
+        + '<button type="button" data-give="cancel">Cancel</button></div>';
+    } else {
+      h += `<div class="switches"><button type="button" data-give="pick" aria-pressed="${gift.pick}">${
+        gift.pick ? 'Click a farm or one of its people, or cancel' : 'Choose on the map'}</button>`
+        + '<button type="button" class="primary" data-give="go">Give</button></div>';
+    }
+    if (gift.msg) h += `<p class="hint" role="status">${esc(gift.msg)}</p>`;
+    box.hidden = false;
+    if (h === giveHTML || (!force && box.contains(document.activeElement) && giveHTML)) return;
+    giveHTML = h; box.innerHTML = h;
+    $('giveTo').value = gift.to === null ? '' : String(gift.to); $('giveN').value = String(gift.n);
+  }
+  $('giveBox').addEventListener('change', (e) => {
+    if (e.target.id === 'giveTo') { gift.to = e.target.value === '' ? null : +e.target.value; gift.warn = null; gift.msg = ''; renderGive(played(), true); }
+  });
+  $('giveBox').addEventListener('input', (e) => {
+    if (e.target.id !== 'giveN') return;
+    gift.n = +e.target.value;
+    if (gift.warn || gift.msg) { gift.warn = null; gift.msg = ''; renderGive(played(), true); $('giveN').focus(); }
+  });
+  function queueGift(id) {
+    const r = Sim.queue(st, { actor: id, verb: 'give', target: gift.to, args: { good: 'grain', n: gift.n } });
+    gift.msg = r === true ? `Queued: ${gift.n} grain to ${st.farmsteads[st.households[gift.to].farmstead].name}.` : r;
+    gift.warn = null;
+  }
+  $('giveBox').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-give]'), id = st ? played() : -1, hh = b && id >= 0 ? givesFor(id) : null;
+    if (!hh) return;
+    const act = b.dataset.give, max = Math.max(0, Math.floor(hh.grain - Sim.seedReserve(st, hh)));
+    e.stopPropagation();
+    gift.msg = '';
+    if (act === 'pick') { gift.pick = !gift.pick; walkPick = false; }
+    else if (act === 'cancel') gift.warn = null;
+    else if (gift.to === null) gift.msg = 'Choose a household to give to.';
+    else if (!(Number.isInteger(gift.n) && gift.n >= 1 && gift.n <= max)) gift.msg = `Give a whole number of rations, from 1 to ${max}.`;
+    else if (act === 'confirm') queueGift(id);
+    else { gift.warn = Sim.giftWarning(st, hh, gift.n); if (!gift.warn) queueGift(id); }
+    renderActions(); renderGive(id, true);
+  });
+  // "Choose on the map": the next click names the household, by one of its people, its farm's name, or a tile of its land or its house
+  // (page/tileinfo asks first). Anything else says so and waits for another click.
+  function pickGift(pw, named, i) {
+    const id = played(), own = givesFor(id);
+    if (!own) { gift.pick = false; return; }
+    const land = i >= 0 ? Sim.ownerOf(st, i) : null, house = i >= 0 ? st.farmsteads.find((f) => f.house === i) : null;
+    const k = pw >= 0 ? st.pawns[pw].household : named && named.farm !== undefined ? st.farmsteads[named.farm].household
+      : house ? house.household : land && land.type === 'household' ? land.id : null;
+    if (k === null || k === undefined || st.households[k].dissolved ||
+      k === own.id) gift.msg = 'No other household there: click a farm, its land or one of its people.';
+    else { gift.to = k; gift.pick = false; gift.warn = null; gift.msg = ''; }
+    renderGive(id, true);
   }
   function playAs(id) {
     const r = Sim.inhabit(st, id);
@@ -145,15 +255,14 @@
   }
   $('playBox').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-play]');
-    if (!b || !st || selPawn < 0) return;
-    const id = selPawn, act = b.dataset.play;
+    const id = played();
+    if (!b || !st || id < 0) return;
+    const act = b.dataset.play;
     let r = true;
-    if (act === 'inhabit') r = playAs(id);
-    else if (act === 'succeed') { r = Sim.succeed(st, id); succAt = 0; }
-    else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
+    if (act === 'find') { focusPawn(id); openPanel('actions'); }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
     else if (act === 'follow') followPlayed = !followPlayed;
-    else if (act === 'walk') walkPick = !walkPick;
+    else if (act === 'walk') { walkPick = !walkPick; gift.pick = false; }
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
     else if (act === 'wish') r = Sim.wish(st, b.dataset.kind, JSON.parse(b.dataset.value));
     else if (act === 'do') {
@@ -161,7 +270,7 @@
       r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
     }
     playMsg = r === true ? null : { id, text: r };
-    showPawn(id);
+    renderActions();
   });
   // "Walk here": the next tile clicked on the map, if open; a closed one says why and waits for another (page/tileinfo asks first).
   function pickWalk(i) {
@@ -170,7 +279,7 @@
     const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
     if (!o || o.why) playMsg = { id, text: `${o ? o.why : 'no one can walk there'}: choose an open tile` };
     else { const r = Sim.queue(st, { actor: id, verb: 'walkTo', target: i }); walkPick = false; playMsg = r === true ? null : { id, text: r }; }
-    if (selPawn === id) showPawn(id);
+    renderActions();
   }
   // Follow: the camera stays on the played pawn, or its house while it is indoors; dragging the map lets go (page/input).
   function followCamera() {
@@ -216,7 +325,7 @@
     if (!b || !st) return;
     const id = +b.dataset.succeed, r = Sim.succeed(st, id);
     succAt = 0;
-    if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
+    if (r === true) { playMsg = null; focusPawn(id); openPanel('actions'); } // refused only if it died meanwhile: the list is read again at once
   });
   // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
   // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
@@ -255,6 +364,6 @@
   $('playOfferYes').addEventListener('click', () => {
     const id = +$('playOffer').dataset.pawn;
     if (!st || !st.pawns[id]) return;
-    if (playAs(id) === true) focusPawn(id);
+    if (playAs(id) === true) { focusPawn(id); openPanel('actions'); }
   });
   $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });

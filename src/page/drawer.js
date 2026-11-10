@@ -94,6 +94,7 @@
       <h3 class="dh3">Selected person</h3>
       <p class="dm" id="dbgSel"></p>
       <div class="dbg-row"><button type="button" data-act="kill">Kill</button><button type="button" data-act="retire">Retire and hand over</button></div>
+      <div class="dbg-row"><button type="button" data-act="play">Play as them</button><button type="button" data-act="unplay">Stop playing</button></div>
       <div class="dbg-row"><select id="advDim" aria-label="Custom">${dims}</select><select id="advOpt" aria-label="Option"></select></div>
       <div class="dbg-row"><button type="button" data-act="advP">Make them argue for it</button><button
         type="button" data-act="advV">Rally a fifth of the village</button></div>
@@ -141,6 +142,14 @@
       case 'skip10': skipYears(10); break;
       case 'meet': Sim.holdMeetings(st); dmsg(st.meetingLog[0] ? st.meetingLog[0].text : ''); break;
       case 'move': Sim.movingRound(st); dmsg(`Moving round done; ${st.demand.length} want to move out.`); break;
+      case 'play': {
+        if (!p) { dmsg('Select a living person first.'); break; }
+        const res = playAs(id);
+        if (res === true) openPanel('actions'); else dmsg(`Not done: ${res}.`);
+        break; }
+      case 'unplay': {
+        const res = Sim.uninhabit(st); followPlayed = false; walkPick = false;
+        dmsg(res === true ? 'No pawn is played.' : `Not done: ${res}.`); break; }
       case 'kill': {
         if (!p) { dmsg('Select a living person first.'); break; }
         const res = Sim.command(st, { actor: id, verb: 'kill', source: 'debug' });

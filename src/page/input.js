@@ -90,8 +90,11 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showGenScreen(); } });
-  $('genCancel').addEventListener('click', () => { $('genScreen').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
+  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  $('genCancel').addEventListener('click', () => showLanding());
+  $('landNew').addEventListener('click', () => showGenScreen());
+  $('landLoad').addEventListener('click', () => showSaves(true));
+  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
@@ -117,6 +120,7 @@
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
     if (panel) $('playOffer').hidden = true;
+    $('actionSheet').hidden = panel !== 'actions'; $('actionsBtn').setAttribute('aria-pressed', String(panel === 'actions'));
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
@@ -129,6 +133,7 @@
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
+    if (panel === 'actions' && st) renderActions();
   }
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
@@ -153,6 +158,8 @@
   $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
   $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
+  $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
+  $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
   $('peopleClose').addEventListener('click', () => { openPanel(null); $('settlersBtn').focus(); });
   $('tileClose').addEventListener('click', () => {
     selPawn = -1; sel = -1; selVillage = -1; selFarm = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();

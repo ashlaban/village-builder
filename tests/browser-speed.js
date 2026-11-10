@@ -21,7 +21,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
     await page.route(/https:\/\/(cdn\.jsdelivr\.net|fonts\.)/, (r) => /pixi(\.min)?\.js/.test(r.request().url())
       ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
     await page.goto('https://village.test/');
-    await page.waitForFunction(() => !document.getElementById('genScreen').hidden);
+    await page.waitForFunction(() => !document.getElementById('landing').hidden); await page.click('#landNew');
     await page.selectOption('#genScenario', 'populous'); await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
     await page.locator('#genForm').evaluate((form) => form.dispatchEvent(new Event('submit', { cancelable: true })));
     await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 120000 });

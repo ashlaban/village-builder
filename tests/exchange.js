@@ -42,6 +42,29 @@ let checks = 0;
   assert(Math.abs(b.grain - (floorOf(st, b) - 10)) < 1e-9, 'it gave below the floor');
   checks++;
 }
+{ // the player's gift (VB-221): beyond the allowance and below the floor it settles; the warning names the feed order's last group
+  const { giftWarning } = VB['sim/exchange'], { feedGroups, servedLast } = VB['sim/hunger'];
+  const { st, a, b } = fresh();
+  b.grain = floorOf(st, b) + 10;
+  assert.strictEqual(giftWarning(st, b, 10), null, 'a gift down to the floor has no warning');
+  const w = giftWarning(st, b, 30), before = JSON.stringify(Sim.save(st));
+  assert(w && Math.abs(w.below - 20) < 1e-9 && w.days === HELP.floorDays, `the warning says how far below the floor: ${JSON.stringify(w)}`);
+  const mem = b.members.map((id) => st.pawns[id]).filter((p) => p.died === null), groups = feedGroups(st, b, mem).filter((g) => g.length);
+  assert.deepStrictEqual(w.hungry, groups[groups.length - 1].map((p) => p.id), 'it names the members the feed order serves last');
+  assert(w.hungry.length > 0 && w.hungry.every((id) => b.members.includes(id)), 'who are members of the giving household');
+  // with a child in the house and children fed first, the last group is the grown
+  const kid = mem.find((p) => p.age < 14);
+  if (kid && st.cenv) {
+    const f = st.farmsteads[b.farmstead], order = Sim.farmPractice(st, f).feedOrder;
+    if (order === 'children') assert(!servedLast(st, b).includes(kid.id), 'children fed first are not served last');
+  }
+  giftWarning(st, b, 30);
+  assert.strictEqual(JSON.stringify(Sim.save(st)), before, 'the warning writes nothing');
+  const a0 = a.grain;
+  assert.strictEqual(give(st, b, a, 30, 'player'), true, "the player's gift below the floor settles");
+  assert(Math.abs(a.grain - a0 - 30) < 1e-9 && Math.abs(b.grain - (floorOf(st, b) - 20)) < 1e-9, 'and moves the grain');
+  checks++;
+}
 { // the village store gives what it holds and takes the yearly filling; malformed gifts are refused
   const { st, a, b } = fresh(), v = st.villages[st.farmsteads[a.farmstead].village];
   v.grain = 30;

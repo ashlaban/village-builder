@@ -154,6 +154,7 @@
       tAcc = 0;
       if (!$('settlers').hidden) renderSettlers();
       if (drawerTab) renderDrawer();
+      if (st) renderActions();
       if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
         if (selPawn >= 0) showPawn(selPawn);
         else if (selVillage >= 0) showVillage(selVillage);
