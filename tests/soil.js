@@ -29,7 +29,7 @@ check(near(hh0.manure, S.cattle * cattle + S.sheep * sheep), `fodder: ${hh0.manu
 check(hh0.fodderDay === 40, 'fodder does not mark the day');
 
 // --- carting: spring days 1-6 only, a load or more on the heap, the poorest field not yet sown; a load raises it 0.04 to the cap
-for (const [k, q] of f0.fields.entries()) { q.stage = 'stubble'; q.soil = [0.9, 0.8, 1.1][k] ?? 1; }
+for (const [k, q] of f0.fields.entries()) { q.stage = 'stubble'; q.soil = [0.9, 0.8, 1.1][k] ?? 1.1; }
 hh0.manure = 3;
 const w = F.manureWanted(f0, hh0, cal(2));
 check(w && w[0] === f0.fields[1] && near(w[1], 3), `carting: wanted ${w && w[0].id}, ${w && w[1]} loads; wanted field 1, 3 loads`);

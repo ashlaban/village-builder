@@ -28,17 +28,29 @@ VB['gen/paths'] = (() => {
   // Worn tiles lie in patches as well as in lines (round a house, where ways part), and a trail to every worn neighbour would draw a
   // mesh of triangles there. So of three worn tiles that all touch, the weakest link is not drawn: strength is the lower stage of the two
   // tiles, and a fixed number by pair settles ties. The rule looks no further than a tile's own neighbours, so a tile that changes
-  // stage changes only the trails of the tiles round it (the page repaints that far).
+  // stage changes only the trails of the tiles within two steps of it (the page repaints that far).
   const pairHash = (i, j) => { const a = Math.min(i, j), b = Math.max(i, j); return (Math.imul(a ^ 0x9e3779b9, 2654435761) ^ Math.imul(b, 40503)) >>> 0; };
   const stronger = (w, a, b, c, d) => { // is the link a-b stronger than c-d?
     const s = Math.min(w.worn[a], w.worn[b]), t = Math.min(w.worn[c], w.worn[d]);
     return s !== t ? s > t : pairHash(a, b) > pairHash(c, d);
   };
-  // Trail tiles i and its neighbour j in direction k are linked unless a tile touching both has stronger links to each.
-  function linked(w, i, j, k) {
+  // Trail tiles i and its neighbour j in direction k are joined unless a tile touching both has stronger links to each.
+  function joined(w, i, j, k) {
     for (const d of [1, 5]) {
       const m = w.nb[i * 6 + ((k + d) % 6)];
       if (trail(w, m) && stronger(w, i, m, i, j) && stronger(w, m, j, i, j)) return false;
+    }
+    return true;
+  }
+  // That leaves rings of four (two rows of worn tiles side by side draw as a ladder): of four joined trail tiles in a ring, the weakest
+  // side is not drawn either. i and j are linked when they are joined and their link is the weakest side of no such ring. The four
+  // rings with i-j as a side have their other side one step away in direction k + 1, k + 2, k + 4 or k + 5.
+  function linked(w, i, j, k) {
+    if (!joined(w, i, j, k)) return false;
+    for (const d of [1, 2, 4, 5]) {
+      const q = (k + d) % 6, a = w.nb[i * 6 + q], b = w.nb[j * 6 + q]; // the ring i, j, b, a
+      if (!trail(w, a) || !trail(w, b) || !joined(w, i, a, q) || !joined(w, j, b, q) || !joined(w, a, b, k)) continue;
+      if (stronger(w, i, a, i, j) && stronger(w, j, b, i, j) && stronger(w, a, b, i, j)) return false;
     }
     return true;
   }
@@ -52,6 +64,7 @@ VB['gen/paths'] = (() => {
       if (j < 0 || w.water[j]) continue;
       if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
+      else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
       else if (w.dev[j] === 1) built.push(k);
     }
     while (out.length < 2 && built.length) {
@@ -73,13 +86,24 @@ VB['gen/paths'] = (() => {
   // of a joint have the same width, the mean of the two tiles' widths. Every way out runs one smooth curve to the way most nearly
   // opposite it, bent towards the tile's own bend: so a trail through many tiles flows, and at a fork the side way swings into the
   // main one as a footpath does, with no spokes. A dead end runs from its joint to the bend, narrowing.
+  // A green (w.dev 2) wears no path of its own, but the ways that run into it cross it: each from its joint, round the well in the
+  // middle, on to the way most nearly opposite, at that way's width and stage.
   function segments(w, i) {
-    if (!trail(w, i)) return [];
-    const s = w.worn[i], [bx, by] = bend(w, i), ends = [];
-    for (const k of exits(w, i)) {
+    const green = i >= 0 && w.dev[i] === 2;
+    if (!green && !trail(w, i)) return [];
+    const s = w.worn[i], [bx, by] = green ? [w.hx[i] + 0.3 * w.R, w.hy[i] + 0.34 * w.R] : bend(w, i), ends = [];
+    const end = (x, y, wd, st) => { const l = Math.hypot(x - bx, y - by) || 1; ends.push([x, y, wd, st, (x - bx) / l, (y - by) / l]); };
+    if (green) {
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[i * 6 + k];
+        if (!trail(w, j) || !exits(w, j).includes((k + 3) % 6)) continue;
+        const [jx, jy] = bend(w, j);
+        end((jx + w.hx[i]) / 2, (jy + w.hy[i]) / 2, LOOK.width[w.worn[j]], w.worn[j]);
+      }
+      if (!ends.length) return [];
+    } else for (const k of exits(w, i)) {
       const j = w.nb[i * 6 + k], t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]];
-      const wd = t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], x = (bx + jx) / 2, y = (by + jy) / 2, l = Math.hypot(x - bx, y - by) || 1;
-      ends.push([x, y, wd, t ? Math.min(s, w.worn[j]) : s, (x - bx) / l, (y - by) / l]);
+      end((bx + jx) / 2, (by + jy) / 2, t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], t ? Math.min(s, w.worn[j]) : s);
     }
     if (!ends.length) return [[bx - 2, by, bx, by + 1, bx + 2, by, LOOK.width[s] * 0.8, s]];
     if (ends.length === 1) {
@@ -115,7 +139,7 @@ VB['gen/paths'] = (() => {
     const segs = [];
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
       const i = row * COLS + col;
-      if (w.worn[i] && LOOK.level[w.worn[i]] >= l) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+      if ((w.worn[i] && LOOK.level[w.worn[i]] >= l) || (w.dev && w.dev[i] === 2)) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
     }
     if (!segs.length) return;
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);

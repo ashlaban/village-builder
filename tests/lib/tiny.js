@@ -41,7 +41,8 @@ function tinyWorld(rows, opt = {}) {
   const land = N - water.reduce((s, x) => s + x, 0), CN = CW * CH;
   return {
     seed: opt.seed ?? 1, name: 'Tiny', R, COLS, ROWS, RR: 7, W, H, HW, AP, N, STEP, CW, CH, KS: W / 3264,
-    elev: new Float32Array(CN), shade: new Float32Array(CN).fill(1), macro: new Float32Array(CN).fill(0.5), cdist: new Float32Array(CN), chex: new Int32Array(CN),
+    elev: new Float32Array(CN), shade: new Float32Array(CN).fill(1), macro: new Float32Array(CN).fill(0.5), cdist: new Float32Array(CN),
+      chex: new Int32Array(CN),
     csample: () => 0.5, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
     region: new Int32Array(N), regions: [{ cq: 0, cr: 0, tiles: N, land, label: 1 }],
     tr: new Float32Array(N), tg: new Float32Array(N), tb: new Float32Array(N), ang: new Float32Array(2 * N), trees, treesMax, stones,
@@ -52,7 +53,8 @@ function tinyWorld(rows, opt = {}) {
 const tileAt = (w, col, row) => row * w.COLS + col;
 
 // A state on world w with villages at given tiles: [{at: [col, row], farms, sizes: [household sizes]}], built as the populous scenario builds
-// its villages (houses round the green, each farm's fields one block beyond the yards), with its households, culture and owners.
+// its villages (houses along a street through the green, or close round it, each farm's fields one block beyond the yards), with its
+// households, culture and owners.
 // opt.seed (default 1); opt.customs: practice to set in every village, e.g. {dispute: 'kin'}; opt.herds: the populous herds and meadows;
 // opt.outland: true (default) the villages hold their outland, 'claimed' they have only claimed it, false neither. Nothing is advanced: st.t is the start of year 1.
 function tinyState(w, villages, opt = {}) {
