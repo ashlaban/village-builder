@@ -13,7 +13,6 @@
   "RR": "abe2dc39d2c99da5",
   "STEP": "4824469e43a87861",
   "W": "0b0f5c29652e9d8e",
-  "ang": "9096a60d45ba04ce",
   "biome": "34162f351cd33954",
   "cdist": "fb93124221794464",
   "chex": "eadd83292e685550",
@@ -37,10 +36,10 @@
   "seed": "abe2dc39d2c99da5",
   "shade": "c75ff5ebfe49ff53",
   "stones": "d6e5ac9e29663bec",
-  "tb": "297f545c833dfab8",
-  "tg": "d8fce39a5b894398",
+  "tb": "3c8a3590115e5a51",
+  "tg": "178f3a125cc423af",
   "tile": "9bbaf44b4788241e",
-  "tr": "735c8b1d5fd2d77a",
+  "tr": "bf35885037a499b8",
   "trees": "090ac4d29c0cf582",
   "treesMax": "090ac4d29c0cf582",
   "water": "0df856568eabf4db"
@@ -423,7 +422,6 @@
   "RR": "abe2dc39d2c99da5",
   "STEP": "4824469e43a87861",
   "W": "0b0f5c29652e9d8e",
-  "ang": "8abddfd5248fe18f",
   "biome": "2884214a2feed609",
   "cdist": "993bdf0e597c841f",
   "chex": "eadd83292e685550",
@@ -447,10 +445,10 @@
   "seed": "94e4413d7d69280d",
   "shade": "7e69db705c5819db",
   "stones": "c53268055628f1e0",
-  "tb": "36ecb43e96eefbe8",
-  "tg": "a21bf46844f97dc1",
+  "tb": "56c4065b81ac1b05",
+  "tg": "3226c1deb4f95585",
   "tile": "1bf7837d8e44b27c",
-  "tr": "121714e689d4eaba",
+  "tr": "39bc48a343b7fb37",
   "trees": "92a95097bc3bccfd",
   "treesMax": "92a95097bc3bccfd",
   "water": "98478fd09613f34f"
@@ -822,7 +820,7 @@
  "calibrate": "8926a1da1f5dba1c",
  "apiKeys": {
   "Sim": "58f337b3342a7391",
-  "ArchGen": "d585f7c62d7c1e37",
+  "ArchGen": "6a7c0ff793cbeb2f",
   "Culture": "0c36dc99f5e53af0"
  }
 }

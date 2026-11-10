@@ -1,4 +1,4 @@
-// @sys gen: seeded terrain, hex tiles, regions and the painterly chunk bake
+// @sys gen: seeded terrain, hex tiles, regions and the chunk bake, painted as a church mural's ground
 // ===== Archipelago generator: seeded terrain, hex tiles, regions, chunked painterly bake =====
 const ArchGen = (() => {
   const SQ3 = Math.sqrt(3);
@@ -76,20 +76,22 @@ const ArchGen = (() => {
 
   // ---- Biomes ----
   const B = { DEEP: 0, SEA: 1, SHALLOW: 2, LAKE: 3, BEACH: 4, MEADOW: 5, HEATH: 6, FOREST: 7, PINE: 8, MARSH: 9, HILLS: 10, MOUNTAIN: 11, SNOW: 12 };
+  // Land colours are the earth pigments of a painted vault (yellow ochre, green earth, red oxide, limewash), from c to c2 by the macro
+  // tint; shade: how strongly the light of the relief tells on the biome.
   const BIOMES = [
     { key: 'deep', name: 'Open sea', water: 1 },
     { key: 'sea', name: 'Sea', water: 1 },
     { key: 'shallow', name: 'Shallows', water: 1 },
     { key: 'lake', name: 'Lake', water: 1 },
-    { key: 'beach', name: 'Sandy shore', c: [226, 210, 166], c2: [210, 190, 146], shade: 0.4, bevel: 0.7 },
-    { key: 'meadow', name: 'Meadow', c: [139, 176, 84], c2: [172, 182, 90], shade: 0.6, bevel: 1 },
-    { key: 'heath', name: 'Heath', c: [162, 154, 100], c2: [148, 120, 110], shade: 0.6, bevel: 1 },
-    { key: 'forest', name: 'Broadleaf forest', c: [78, 116, 58], c2: [102, 128, 62], shade: 0.7, bevel: 1 },
-    { key: 'pine', name: 'Pine forest', c: [58, 90, 64], c2: [72, 96, 60], shade: 0.95, bevel: 1 },
-    { key: 'marsh', name: 'Marsh', c: [108, 136, 80], c2: [126, 140, 84], shade: 0.4, bevel: 0.8 },
-    { key: 'hills', name: 'Hills', c: [138, 148, 98], c2: [152, 142, 108], shade: 1.1, bevel: 1 },
-    { key: 'mountain', name: 'Mountains', c: [138, 131, 120], c2: [116, 111, 104], shade: 1.45, bevel: 1.1 },
-    { key: 'snow', name: 'Snowfields', c: [234, 239, 242], c2: [212, 222, 232], shade: 1.1, bevel: 1.1 },
+    { key: 'beach', name: 'Sandy shore', c: [234, 212, 156], c2: [226, 198, 138], shade: 0.4 },
+    { key: 'meadow', name: 'Meadow', c: [156, 182, 108], c2: [178, 188, 110], shade: 0.6 },
+    { key: 'heath', name: 'Heath', c: [200, 180, 124], c2: [192, 160, 124], shade: 0.6 },
+    { key: 'forest', name: 'Broadleaf forest', c: [118, 154, 92], c2: [132, 160, 92], shade: 0.7 },
+    { key: 'pine', name: 'Pine forest', c: [96, 134, 98], c2: [106, 138, 94], shade: 0.95 },
+    { key: 'marsh', name: 'Marsh', c: [150, 168, 122], c2: [160, 170, 118], shade: 0.4 },
+    { key: 'hills', name: 'Hills', c: [200, 190, 130], c2: [206, 182, 132], shade: 1.1 },
+    { key: 'mountain', name: 'Mountains', c: [196, 184, 166], c2: [184, 170, 156], shade: 1.1 },
+    { key: 'snow', name: 'Snowfields', c: [240, 236, 222], c2: [228, 226, 216], shade: 1.1 },
   ];
   // neighbour directions for pointy-top odd-r: E, NE, NW, W, SW, SE
   const NX = [1, 0.5, -0.5, -1, -0.5, 0.5], NY = [0, -0.866, -0.866, 0, 0.866, 0.866];
@@ -198,8 +200,7 @@ const ArchGen = (() => {
         const i = row * COLS + col;
         hx[i] = HW * (col + 0.5 * (row & 1)) + AP; hy[i] = 1.5 * R * row + R;
         let s = 2 * csample(elev, hx[i], hy[i]);
-        for (let d = 0; d < 6;
-          d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
+        for (let d = 0; d < 6; d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
         he[i] = s / 8;
         const u = hx[i] / S, v = hy[i] / S;
         hm[i] = csample(moist, hx[i], hy[i]) + 0.14 * fbm(n4, u * 30 + 5, v * 30 - 9, 2);
@@ -305,13 +306,12 @@ const ArchGen = (() => {
       .sort((a, b) => (regions[a].cr - regions[b].cr) || (regions[a].cq - regions[b].cq));
     order.forEach((id, k) => { regions[id].label = k + 1; });
 
-    // per-tile base colour (biome colour, macro variation, tile tint) and brush direction
-    const tr = new Float32Array(N), tg = new Float32Array(N), tb = new Float32Array(N), ang = new Float32Array(N * 2);
+    // per-tile base colour (biome colour, macro variation, tile tint)
+    const tr = new Float32Array(N), tg = new Float32Array(N), tb = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       const bi = BIOMES[biome[i]];
-      const a = (hrnd[i] - 0.5) * 1.4 + 0.5; ang[i * 2] = Math.cos(a); ang[i * 2 + 1] = Math.sin(a);
       if (bi.water) continue;
-      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), t = 1 + (hrnd[i] - 0.5) * 0.07;
+      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), t = 1 + (hrnd[i] - 0.5) * 0.03;
       tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t; tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t; tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
     }
 
@@ -327,15 +327,13 @@ const ArchGen = (() => {
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2);
-        if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
+      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2); if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
       cdist[k] = v;
     }
     for (let cy = CH - 1; cy >= 0; cy--) for (let cx = CW - 1; cx >= 0; cx--) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-      if (cy < CH - 1) {
-        v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
+      if (cy < CH - 1) { v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
@@ -356,14 +354,13 @@ const ArchGen = (() => {
     // @state w.region: Int32Array per tile; index into w.regions
     // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
     // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
-    // @state w.ang: Float32Array, 2 per tile; texture direction (cos, sin)
     // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
     // @state w.stones: Uint8Array per tile; stones on meadow tiles, 30..255 (few < 85, some < 170, many above); 0 elsewhere and on fields
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
-      region, regions, tr, tg, tb, ang, trees, treesMax, stones, ...rivers,
+      region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -384,33 +381,12 @@ const ArchGen = (() => {
     };
   }
 
-  // PROTOTYPE: the look, chosen by globalThis.VB_STYLE = {ground: old|soft|mural, deco: old|mural, sea: old|mural, clouds: old|mural|none}
-  const STY = () => (typeof globalThis !== 'undefined' && globalThis.VB_STYLE) || {};
-  const INK = [44, 32, 28];
-  // earth pigments of a painted vault: yellow ochre, green earth, red oxide, limewash
-  const PIG = [];
-  PIG[4] = { c: [234, 212, 156], c2: [226, 198, 138] }; PIG[5] = { c: [156, 182, 108], c2: [178, 188, 110] };
-  PIG[6] = { c: [204, 178, 118], c2: [198, 156, 120] }; PIG[7] = { c: [118, 154, 92], c2: [132, 160, 92] };
-  PIG[8] = { c: [96, 134, 98], c2: [106, 138, 94] }; PIG[9] = { c: [150, 168, 122], c2: [160, 170, 118] };
-  PIG[10] = { c: [200, 190, 130], c2: [206, 182, 132] }; PIG[11] = { c: [196, 184, 166], c2: [184, 170, 156] };
-  PIG[12] = { c: [240, 236, 222], c2: [228, 226, 216] };
-
   // Low-resolution water colour layer, one texel per coarse cell.
   function bakeWater(w, ctx) {
     const { CW, CH, elev, tile, KS } = w;
     const img = ctx.createImageData(CW, CH), D = img.data;
     const stops = [[0, [122, 196, 186]], [0.1, [84, 164, 176]], [0.32, [48, 122, 156]], [0.68, [30, 84, 124]], [1, [22, 58, 96]]];
     const lake = [[0, [104, 168, 160]], [1, [48, 104, 118]]];
-    const mural = STY().sea === 'mural';
-    const bands = [[158, 190, 178], [118, 160, 162], [88, 132, 146], [68, 108, 130], [56, 90, 116]];
-    const banded = (t) => {
-      const u = Math.max(0, Math.min(0.9999, t)) * (bands.length - 1), k = Math.floor(u + 0.5), fr = u + 0.5 - k;
-      const a = bands[Math.max(0, k - 1)], b = bands[k];
-      let m = fr < 0.12 ? 0.5 + fr / 0.24 : 1; if (k === 0) m = 1;
-      const prev = k > 0 && fr < 0.12; // a narrow blend at each band's edge
-      const q = prev ? m : 1;
-      return [a[0] + (b[0] - a[0]) * q, a[1] + (b[1] - a[1]) * q, a[2] + (b[2] - a[2]) * q];
-    };
     const grad = (st, t) => {
       for (let s = 1; s < st.length; s++) if (t <= st[s][0]) {
         const a = st[s - 1], b = st[s], k = (t - a[0]) / (b[0] - a[0]);
@@ -424,11 +400,7 @@ const ArchGen = (() => {
       const d = w.cdist[k];
       const nz = tile[(cy & 255) * 256 + (cx & 255)] - 0.5;
       let c;
-      if (mural && isLake) c = [126, 164, 164];
-      else if (mural) {
-        const dp = 0.85 * (1 - Math.exp(-d / (170 * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5); c = banded(dp); D[k * 4] = c[0];
-        D[k * 4 + 1] = c[1]; D[k * 4 + 2] = c[2]; D[k * 4 + 3] = 255; continue; }
-      else if (isLake) c = grad(lake, Math.min(1, 1 - Math.exp(-d / 70)));
+      if (isLake) c = grad(lake, Math.min(1, 1 - Math.exp(-d / 70)));
       else {
         const depth = 0.85 * (1 - Math.exp(-d / ((95 + w.macro[k] * 120) * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5) + nz * 0.04;
         c = grad(stops, Math.max(0, Math.min(1, depth)));
@@ -441,23 +413,20 @@ const ArchGen = (() => {
 
   // One chunk of the land layer at level l (0 = full detail). Transparent over open water.
   // Generator: yields every 16 texel rows so the caller can spread work across frames.
+  const INK = [44, 32, 28]; // the contour's colour (page/farmart's MP.line)
   function* bakeChunk(w, l, cx, cy, img) {
-    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, csample, tr, tg, tb, ang } = w;
+    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, csample, tr, tg, tb } = w;
     const lv = LV[l], inv = 1 / lv.scale, x0 = cx * lv.size, y0 = cy * lv.size;
     const full = l === 0, far = l === 2;
     const D = img.data, loc = hexLocator(w), o = [0, 0], pr = new Float32Array(6);
-    const LX = -0.62, LY = -0.78, BV = 3.4, SEAM = full ? 0.8 : 1.6;
-    const gs = STY().ground || 'old', mural = gs === 'mural', pig = gs !== 'old', macro = w.macro;
-    const CW_ = Math.max(1.5, 0.8 * inv), SW_ = Math.max(0.6, 0.45 * inv); // contour of the coast and seam between biomes, in map units
+    const LX = -0.62, LY = -0.78;
+    // the contour of the coast and the seam where two biomes meet, in map units: at least most of a texel wide, blended over half a texel
+    const COAST = Math.max(1.5, 0.8 * inv), SEAM = Math.max(0.6, 0.45 * inv), SOFT = 0.5 * inv;
     const tn = (x, y) => {
       const xf = Math.floor(x), yf = Math.floor(y), tx = x - xf, ty = y - yf;
       const x0 = xf & 255, y0 = yf & 255, x1 = (x0 + 1) & 255, y1 = (y0 + 1) & 255;
       const a = tile[y0 * 256 + x0], b = tile[y0 * 256 + x1], c = tile[y1 * 256 + x0], d = tile[y1 * 256 + x1];
       return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
-    };
-    const crag = (X, Y) => {
-      const a = 1 - Math.abs(2 * tn(X * 0.3 + 13, Y * 0.3 + 57) - 1), c = 1 - Math.abs(2 * tn(X * 0.71 + 91, Y * 0.71 + 7) - 1);
-      return a * a + c * c * 0.45;
     };
     for (let ty = 0; ty < TEX; ty++) {
       const y = y0 + (ty + 0.5) * inv;
@@ -494,142 +463,34 @@ const ArchGen = (() => {
             if (full) { const ring = Math.abs(md - 8.5); if (ring < 1.1 && nz > 0.42) a = Math.max(a, (1 - ring / 1.1) * 0.32); }
             if (!ocean[i]) a *= 0.6;
             const sa2 = sd < 9 ? Math.pow(1 - sd / 9, 1.5) * 0.32 * sl : 0;
-            if (mural) {
-              // a limewash band along the shore and one fine line off it
-              const band = md < 3.2 ? 0.86 : 0, ring = full || l === 1 ? Math.max(0, 1 - Math.abs(md - 7.6) / (0.55 * Math.max(1, inv * 0.6))) * 0.5 : 0;
-              const A2 = Math.max(band, ring) * (ocean[i] ? 1 : 0.7);
-              if (A2 > 0.002) { D[p] = 238; D[p + 1] = 238; D[p + 2] = 222; D[p + 3] = A2 * 255; }
-              continue;
-            }
             const A = a + sa2 * (1 - a);
             if (A > 0.002) {
-              D[p] = (244 * a + 12 * sa2 * (1 - a)) / A; D[p + 1] = (250 * a + 36 * sa2 * (1 - a)) / A; D[p + 2] = (247 * a + 52 * sa2 * (1 - a)) / A;
-                D[p + 3] = A * 255;
+              D[p] = (244 * a + 12 * sa2 * (1 - a)) / A; D[p + 1] = (250 * a + 36 * sa2 * (1 - a)) / A; D[p + 2] = (247 * a + 52 * sa2 * (1 - a)) / A; D[p + 3] = A * 255;
             }
           }
           continue;
         }
-        const bt = biome[i], bi = BIOMES[bt];
-        let r = tr[i], g = tg[i], b = tb[i];
-        let f = 1;
-        if (pig) {
-          const P = PIG[bt], mc = Math.max(0, Math.min(1, csample(macro, x, y)));
-          r = P.c[0] + (P.c2[0] - P.c[0]) * mc; g = P.c[1] + (P.c2[1] - P.c[1]) * mc; b = P.c[2] + (P.c2[2] - P.c[2]) * mc;
-        }
-        if (mural) {
-          // flat colour with the mottling of old plaster; no light, no bevel: relief is drawn as marks (decorateChunk)
-          f += (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07 + (far ? 0 : (tn(x * 0.8, y * 0.8) - 0.5) * 0.035);
-          if (STY().shade) {
-            // the light of the land's own relief, over the flat colour
-            let sh = csample(shade, x, y) - 1;
-            sh = sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh;
-            f *= 1 + sh * Math.min(1.1, bi.shade) * STY().shade;
-          }
-          if (far && (bt === B.FOREST || bt === B.PINE)) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9;
-          if (far && bt === B.MOUNTAIN) f *= crag(x, y) > 0.75 ? 1.06 : 0.9;
-          const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
-          let mp, dir;
-          if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else {
-            mp = ac; dir = pc > 0 ? 2 : 5; }
-          const ed = AP - mp, jn = nb[i * 6 + dir];
-          let k = 0;
-          if (jn >= 0 && water[jn]) k = Math.min(1, Math.max(0, (CW_ - ed) / (0.5 * inv)) ) * (far ? 0.8 : 1);
-          else if (jn >= 0 && !far && biome[jn] !== bt) k = Math.min(1, Math.max(0, (SW_ - ed) / (0.5 * inv))) * 0.3;
-          r = r * f; g = g * f; b = b * f;
-          D[p] = r + (INK[0] - r) * k; D[p + 1] = g + (INK[1] - g) * k; D[p + 2] = b + (INK[2] - b) * k; D[p + 3] = 255;
-          continue;
-        }
-        if (!far) {
-          const ca = ang[i * 2], sa = ang[i * 2 + 1];
-          f += (tn((x * ca + y * sa) * 0.42 + hrnd[i] * 80, (-x * sa + y * ca) * 0.085) - 0.5) * (pig ? 0.08 : 0.2);
-        } else if (bt === B.FOREST || bt === B.PINE) {
-          // far view: canopy texture stands in for the individual trees
-          f *= 0.78 + 0.35 * tn(x * 0.12, y * 0.12);
-        }
-        let sh = csample(shade, x, y) - 1;
-        const rocky = bt === B.MOUNTAIN || bt === B.SNOW;
-        const lo = rocky ? -0.55 : -0.45, hi = rocky ? 0.45 : 0.32;
-        sh = sh < lo ? lo : sh > hi ? hi : sh;
-        if (rocky) {
-          const h0r = crag(x, y), gx = (crag(x + 1.5, y) - h0r) * 6, gy = (crag(x, y + 1.5) - h0r) * 6;
-          let mi = (-gx * -0.55 - gy * -0.6 + 0.58) / Math.sqrt(gx * gx + gy * gy + 1) / 0.58 - 1;
-          mi = mi < -0.7 ? -0.7 : mi > 0.45 ? 0.45 : mi;
-          f *= 1 + mi * (far ? 0.3 : 0.42);
-          if (bt === B.SNOW) { const k = Math.min(1, Math.max(0, (-0.1 - sh - mi * 0.35) * 3)); r += (128 - r) * k; g += (124 - g) * k; b += (128 - b) * k; }
-        }
-        f *= 1 + sh * bi.shade;
-        if (!far) {
-          const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
-          let mp, dir;
-          if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else {
-            mp = ac; dir = pc > 0 ? 2 : 5; }
-          const ed = AP - mp;
-          const jn = nb[i * 6 + dir], coastEdge = jn >= 0 && water[jn];
-          const bw = coastEdge ? BV * 1.5 : BV;
-          if (ed < bw) {
-            const k = 1 - ed / bw, lit = NX[dir] * LX + NY[dir] * LY;
-            f *= 1 + lit * k * (coastEdge ? 0.28 : 0.11) * bi.bevel;
-            if (coastEdge && bt !== B.BEACH && lit < 0) f *= 1 - k * 0.25;
-            if (coastEdge && bt === B.BEACH) { r -= k * 26; g -= k * 22; b -= k * 12; }
-            if (ed < SEAM && !coastEdge) f *= full ? 0.91 : 0.95;
-          }
-          if (pig && coastEdge && ed < CW_) {
-            const k = Math.min(1, (CW_ - ed) / (0.5 * inv)); r = r * f; g = g * f; b = b * f; f = 1; r += (INK[0] - r) * k; g += (INK[1] - g) * k;
-            b += (INK[2] - b) * k; }
-        }
-        D[p] = r * f; D[p + 1] = g * f; D[p + 2] = b * f; D[p + 3] = 255;
+        // Land, as a mural's ground: the tile's flat pigment with the mottling of old plaster, under the light of the land's own relief
+        // (so that height reads), with no bevel round a tile: one dark contour along the coast and a faint seam where two biomes meet.
+        const bt = biome[i];
+        let f = 1 + (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07;
+        if (!far) f += (tn(x * 0.8, y * 0.8) - 0.5) * 0.035;
+        else if (bt === B.FOREST || bt === B.PINE) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9; // far view: canopy stands in for the trees
+        const sh = csample(shade, x, y) - 1;
+        f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
+        const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
+        let mp, dir;
+        if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else { mp = ac; dir = pc > 0 ? 2 : 5; }
+        const ed = AP - mp, jn = nb[i * 6 + dir];
+        let k = 0;
+        if (jn >= 0 && water[jn]) k = Math.min(1, Math.max(0, (COAST - ed) / SOFT)) * (far ? 0.8 : 1);
+        else if (jn >= 0 && !far && biome[jn] !== bt) k = Math.min(1, Math.max(0, (SEAM - ed) / SOFT)) * 0.3;
+        const r = tr[i] * f, g = tg[i] * f, b = tb[i] * f;
+        D[p] = r + (INK[0] - r) * k; D[p + 1] = g + (INK[1] - g) * k; D[p + 2] = b + (INK[2] - b) * k; D[p + 3] = 255;
       }
       if ((ty & 15) === 15) yield ty / TEX;
     }
   }
-  // ---- Decoration sprites (pre-rendered small canvases) ----
-  function makeSprites(makeCanvas) {
-    const S = {};
-    const mk = (w, h, fn) => { const c = makeCanvas(w, h); fn(c.getContext('2d')); return c; };
-    const rgb = (c, f = 1, a = 1) => `rgba(${(c[0] * f) | 0},${(c[1] * f) | 0},${(c[2] * f) | 0},${a})`;
-    S.broad = [];
-    const leafs = [[72, 112, 52], [86, 124, 54], [64, 102, 56], [98, 128, 58], [110, 120, 50]];
-    for (let v = 0; v < 10; v++) {
-      const rnd = mulberry32(1000 + v), col = leafs[v % leafs.length];
-      S.broad.push(mk(28, 30, (g) => {
-        g.fillStyle = 'rgba(70,48,30,1)'; g.fillRect(13, 18, 2.4, 8);
-        const blobs = 4 + ((rnd() * 3) | 0);
-        const pts = [];
-        for (let k = 0; k < blobs; k++) pts.push([14 + (rnd() - 0.5) * 10, 13 + (rnd() - 0.5) * 8, 4.5 + rnd() * 3]);
-        for (const [x, y, r] of pts) { g.fillStyle = rgb(col, 0.68); g.beginPath(); g.arc(x + 0.8, y + 1, r, 0, 7); g.fill(); }
-        for (const [x, y, r] of pts) { g.fillStyle = rgb(col, 1); g.beginPath(); g.arc(x, y, r * 0.9, 0, 7); g.fill(); }
-        for (const [x, y, r] of pts) { g.fillStyle = rgb(col, 1.28, 0.9); g.beginPath(); g.arc(x - r * 0.3, y - r * 0.35, r * 0.45, 0, 7); g.fill(); }
-        for (let k = 0; k < 6; k++) { g.fillStyle = rgb(col, 1.5, 0.5); g.beginPath(); g.arc(9 + rnd() * 10, 7 + rnd() * 9, 0.9, 0, 7); g.fill(); }
-      }));
-    }
-    S.pine = [];
-    const needles = [[48, 84, 58], [56, 92, 60], [42, 76, 62], [62, 90, 54]];
-    for (let v = 0; v < 8; v++) {
-      const rnd = mulberry32(2000 + v), col = needles[v % needles.length], tall = 0.85 + rnd() * 0.3;
-      S.pine.push(mk(20, 34, (g) => {
-        g.fillStyle = 'rgba(66,44,30,1)'; g.fillRect(9, 26, 2, 6);
-        const tiers = 3, top = 34 - 30 * tall;
-        for (let t = 0; t < tiers; t++) {
-          const y0 = top + (t * (28 * tall)) / tiers, y1 = y0 + (14 * tall), hw = 3.5 + t * 2.3;
-          g.fillStyle = rgb(col, 1.18); g.beginPath(); g.moveTo(10, y0); g.lineTo(10 - hw, y1); g.lineTo(10, y1 - 1); g.closePath(); g.fill();
-          g.fillStyle = rgb(col, 0.72); g.beginPath(); g.moveTo(10, y0); g.lineTo(10 + hw, y1); g.lineTo(10, y1 - 1); g.closePath(); g.fill();
-        }
-      }));
-    }
-    S.shrub = [];
-    for (let v = 0; v < 4; v++) {
-      const rnd = mulberry32(3000 + v), col = [[112, 104, 66], [96, 98, 60], [128, 100, 84], [104, 86, 70]][v];
-      S.shrub.push(mk(12, 10, (g) => {
-        for (let k = 0; k < 3; k++) {
-          const x = 4 + rnd() * 4, y = 5 + rnd() * 2, r = 2 + rnd() * 1.5;
-          g.fillStyle = rgb(col, 0.75); g.beginPath(); g.arc(x + 0.5, y + 0.6, r, 0, 7); g.fill();
-          g.fillStyle = rgb(col, 1.1); g.beginPath(); g.arc(x, y, r * 0.8, 0, 7); g.fill();
-        }
-      }));
-    }
-    return S;
-  }
-
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
   // a chunk edge are drawn identically on both sides.
   // Density stage of a tile's trees: 4 (more than 75% of max left) down to 1 (25% or less), 0 when none are left.
@@ -641,7 +502,7 @@ const ArchGen = (() => {
   function setBiome(w, i, b) {
     const bi = BIOMES[b];
     w.biome[i] = b;
-    const mc = Math.max(0, Math.min(1, w.csample(w.macro, w.hx[i], w.hy[i]))), t = 1 + (w.hrnd[i] - 0.5) * 0.07;
+    const mc = Math.max(0, Math.min(1, w.csample(w.macro, w.hx[i], w.hy[i]))), t = 1 + (w.hrnd[i] - 0.5) * 0.03;
     w.tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
     w.tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;
     w.tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
@@ -651,8 +512,6 @@ const ArchGen = (() => {
     const { R, HW, AP, COLS, ROWS, hx, hy, biome, seed } = w;
     const lv = LV[l], sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size;
     const full = l === 0, M = 36, items = [];
-    const sty = STY(), relief = sty.ground === 'mural', md = (sty.deco || (sty.ground && sty.ground !== 'old' ? 'mural' : 'old')) === 'mural';
-    const LWK = full ? 1 : 1.9, ink = `rgb(${INK})`;
     const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R)) - 1), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)) + 1);
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW) - 1), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW) + 1);
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
@@ -683,18 +542,12 @@ const ArchGen = (() => {
         if (full && rnd() < 0.5) { const [x, y] = spot(0.6); items.push({ t: 'stone', x, y, r: 2 + rnd() * 2 }); }
       } else if (b === B.HILLS) {
         if (rnd() < 0.12) { const [x, y] = spot(0.5); items.push({ t: 'pine', x, y, sc: 0.85, v: (rnd() * 8) | 0 }); }
-        if (full) { const n = 1 + ((rnd() * 3) | 0);
-          for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
-        if (relief) {
-          const n = 1 + ((rnd() * 2) | 0);
-          for (let k = 0; k < n; k++) {
-          const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.34 + rnd() * 0.2), h: R * (0.16 + rnd() * 0.1) }); } }
-      } else if (relief && (b === B.MOUNTAIN || b === B.SNOW)) {
-        const n = 2 + ((rnd() * 2) | 0), big = b === B.SNOW ? 1.25 : 1;
-        for (let k = 0; k < n; k++) {
-          const [x, y] = spot(0.6), wd = R * (0.3 + rnd() * 0.22) * big;
-          items.push({
-            t: 'rock', x, y: y + R * 0.25, wd, h: wd * (1.05 + rnd() * 0.6), snow: b === B.SNOW || (w.he && w.he[i] > 0.78 && rnd() < 0.5), v: rnd() });
+        if (full) { const n = 1 + ((rnd() * 3) | 0); for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
+        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) { const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.36 + rnd() * 0.2), h: R * (0.17 + rnd() * 0.1) }); }
+      } else if (b === B.MOUNTAIN || b === B.SNOW) {
+        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) {
+          const [x, y] = spot(0.5), wd = R * (0.42 + rnd() * 0.2) * (b === B.SNOW ? 1.15 : 1);
+          items.push({ t: 'crag', x, y: y + R * 0.3, wd, h: wd * (1.25 + rnd() * 0.35), snow: b === B.SNOW, v: rnd() });
         }
       } else if (b === B.MARSH) {
         items.push({ t: 'marsh', x: hx[i], y: hy[i], s: (rnd() * 1e9) >>> 0 });
@@ -704,117 +557,11 @@ const ArchGen = (() => {
     }
     VB['gen/paths'].thin(w, VB['gen/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    ctx.fillStyle = 'rgba(28,36,24,0.26)';
-    for (const it of items) {
-      if (it.t === 'broad' || it.t === 'pine') { ctx.beginPath(); ctx.ellipse(it.x + 3, it.y + 1, 6 * it.sc, 2.8 * it.sc, -0.3, 0, 7); ctx.fill(); }
-    }
-    for (const it of items) {
-      if (it.t === 'broad') { const c = S.broad[it.v], k = it.sc * 0.74; ctx.drawImage(c, it.x - 14 * k, it.y - 26 * k, 28 * k, 30 * k); }
-      else if (it.t === 'pine') { const c = S.pine[it.v % 8], k = it.sc * 0.72; ctx.drawImage(c, it.x - 10 * k, it.y - 32 * k, 20 * k, 34 * k); }
-      else if (it.t === 'shrub') ctx.drawImage(S.shrub[it.v], it.x - 6, it.y - 7, 12, 10);
-      else if (it.t === 'rock') {
-        const { x, y, wd, h } = it, px = x - wd * 0.12, py = y - h;
-        const body = () => { ctx.beginPath(); ctx.moveTo(x - wd, y); ctx.bezierCurveTo(x - wd * 0.92, y - h * 0.5, x - wd * 0.5, py, px, py);
-          ctx.bezierCurveTo(x + wd * 0.4, py, x + wd * 0.95, y - h * 0.45, x + wd, y); ctx.closePath(); };
-        body(); ctx.fillStyle = it.v < 0.5 ? 'rgb(214,204,186)' : 'rgb(206,192,172)'; ctx.fill();
-        ctx.save(); body(); ctx.clip();
-        // the shaded flank, right of a fold that runs from the peak
-        ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(x + wd * 0.02, y - h * 0.5, x + wd * 0.3, y); ctx.lineTo(x + wd * 1.2, y);
-          ctx.lineTo(x + wd * 1.2, py); ctx.closePath();
-        ctx.fillStyle = it.v < 0.5 ? 'rgb(168,150,136)' : 'rgb(176,146,128)'; ctx.fill();
-        if (it.snow) {
-          const yc = y - h * 0.52, s3 = wd * 0.36;
-          ctx.beginPath(); ctx.moveTo(x - wd * 1.2, py - 2); ctx.lineTo(x - wd * 1.2, yc);
-          for (let q = -3; q < 3; q++) ctx.quadraticCurveTo(x + (q + 0.5) * s3, yc + s3 * 0.7, x + (q + 1) * s3, yc);
-          ctx.lineTo(x + wd * 1.2, py - 2); ctx.closePath(); ctx.fillStyle = 'rgb(248,246,236)'; ctx.fill();
-          ctx.strokeStyle = ink; ctx.lineWidth = 0.6 * LWK; ctx.stroke();
-        }
-        ctx.strokeStyle = ink; ctx.lineWidth = 0.7 * LWK;
-        ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(x + wd * 0.02, y - h * 0.5, x + wd * 0.3, y); ctx.stroke();
-        ctx.restore();
-        body(); ctx.strokeStyle = ink; ctx.lineWidth = 1.3 * LWK; ctx.lineJoin = 'round'; ctx.stroke();
-      } else if (it.t === 'hump') {
-        const { x, y, wd, h } = it;
-        ctx.beginPath(); ctx.moveTo(x - wd, y); ctx.quadraticCurveTo(x - wd * 0.1, y - h * 2.3, x + wd, y); ctx.closePath();
-        ctx.fillStyle = 'rgb(216,204,140)'; ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x - wd, y); ctx.quadraticCurveTo(x - wd * 0.1, y - h * 2.3, x + wd, y);
-        ctx.strokeStyle = ink; ctx.lineWidth = 1.05 * LWK; ctx.lineCap = 'round'; ctx.stroke();
-        ctx.strokeStyle = 'rgb(140,110,70)'; ctx.lineWidth = 0.7 * LWK; ctx.beginPath();
-        for (let q = 0; q < 3; q++) {
-          const hx2 = x + wd * (0.25 + q * 0.22), hy2 = y - h * (0.78 - q * 0.26); ctx.moveTo(hx2, hy2); ctx.lineTo(hx2 + wd * 0.1, hy2 + h * 0.5); }
-        ctx.stroke();
-      } else if (md && it.t === 'stone') {
-        ctx.beginPath(); ctx.ellipse(it.x, it.y, it.r * 1.05, it.r * 0.74, 0, 0, 7); ctx.fillStyle = 'rgb(222,214,198)'; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 0.75; ctx.stroke();
-      } else if (md && it.t === 'flowers') {
-        const rnd = mulberry32(it.s), cols = ['rgb(250,246,232)', 'rgb(232,190,70)', 'rgb(190,64,46)'], c0 = cols[(rnd() * 3) | 0];
-        // sprigs of three strokes in green earth, and flowers as trefoils of three dots on a stalk
-        ctx.strokeStyle = 'rgb(84,116,70)'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
-        for (let k = 0; k < 6; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.72, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9;
-          ctx.beginPath(); ctx.moveTo(x - 1.8, y - 2.6); ctx.lineTo(x, y); ctx.lineTo(x, y - 3.4); ctx.moveTo(x, y); ctx.lineTo(x + 1.8, y - 2.6); ctx.stroke();
-        }
-        for (let k = 0; k < 4; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.7, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9;
-          ctx.strokeStyle = 'rgb(84,116,70)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 3); ctx.stroke();
-          ctx.fillStyle = rnd() < 0.75 ? c0 : cols[(rnd() * 3) | 0];
-          for (const [ox, oy] of [[-1.1, -3.4], [1.1, -3.4], [0, -5]]) { ctx.beginPath(); ctx.arc(x + ox, y + oy, 1.05, 0, 7); ctx.fill(); }
-        }
-      } else if (md && it.t === 'marsh') {
-        const rnd = mulberry32(it.s), n = 1 + ((rnd() * 2) | 0);
-        for (let k = 0; k < n; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.45, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9, rw = 4.5 + rnd() * 5;
-          ctx.beginPath(); ctx.ellipse(x, y, rw, rw * 0.48, 0, 0, 7); ctx.fillStyle = 'rgb(124,160,164)'; ctx.fill(); ctx.strokeStyle = ink;
-            ctx.lineWidth = 0.8 * LWK; ctx.stroke();
-          ctx.strokeStyle = 'rgb(232,236,222)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(x - rw * 0.5, y);
-            ctx.quadraticCurveTo(x - rw * 0.25, y - 1.4, x, y); ctx.quadraticCurveTo(x + rw * 0.25, y + 1.4, x + rw * 0.5, y); ctx.stroke();
-        }
-        if (full) for (let k = 0; k < 5; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.7, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9;
-          ctx.strokeStyle = 'rgb(84,116,70)'; ctx.lineWidth = 0.8; ctx.beginPath();
-          for (let s = -1; s <= 1; s++) { ctx.moveTo(x + s * 1.1, y); ctx.lineTo(x + s * 2.2, y - 5); }
-          ctx.stroke();
-          ctx.fillStyle = 'rgb(150,70,48)'; for (let s = -1; s <= 1; s++) { ctx.beginPath(); ctx.ellipse(x + s * 2.2, y - 5.6, 0.7, 1.3, 0, 0, 7); ctx.fill(); }
-        }
-      } else if (it.t === 'stone') {
-        ctx.fillStyle = 'rgba(40,40,44,0.25)'; ctx.beginPath(); ctx.ellipse(it.x + 1, it.y + 0.8, it.r * 1.15, it.r * 0.6, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = 'rgb(150,146,138)'; ctx.beginPath(); ctx.ellipse(it.x, it.y, it.r, it.r * 0.68, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = 'rgba(214,210,200,0.8)'; ctx.beginPath(); ctx.ellipse(it.x - it.r * 0.3, it.y - it.r * 0.25, it.r * 0.4, it.r * 0.22, 0, 0, 7);
-          ctx.fill();
-      } else if (it.t === 'flowers') {
-        const rnd = mulberry32(it.s), cols = ['rgba(250,250,240,0.85)', 'rgba(244,214,92,0.85)', 'rgba(222,140,170,0.8)', 'rgba(170,150,220,0.8)'];
-        const c0 = cols[(rnd() * 4) | 0];
-        for (let k = 0; k < 9; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.72;
-          ctx.fillStyle = rnd() < 0.7 ? c0 : cols[(rnd() * 4) | 0];
-          ctx.beginPath(); ctx.arc(it.x + Math.cos(a) * d, it.y + Math.sin(a) * d * 0.9, 0.9 + rnd() * 0.5, 0, 7); ctx.fill();
-        }
-        ctx.strokeStyle = 'rgba(70,104,48,0.5)'; ctx.lineWidth = 0.9;
-        for (let k = 0; k < 5; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.7, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9;
-          ctx.beginPath(); ctx.moveTo(x - 2, y - 2.5); ctx.lineTo(x, y); ctx.lineTo(x + 1.8, y - 3); ctx.stroke();
-        }
-      } else if (it.t === 'marsh') {
-        const rnd = mulberry32(it.s);
-        const n = 1 + ((rnd() * 2) | 0);
-        for (let k = 0; k < n; k++) {
-          const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.45, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9, rw = 4 + rnd() * 5;
-          ctx.fillStyle = 'rgba(86,132,138,0.9)'; ctx.beginPath(); ctx.ellipse(x, y, rw, rw * 0.5, 0, 0, 7); ctx.fill();
-          ctx.fillStyle = 'rgba(170,206,206,0.6)'; ctx.beginPath(); ctx.ellipse(x - rw * 0.25, y - rw * 0.12, rw * 0.45, rw * 0.18, 0, 0, 7); ctx.fill();
-        }
-        if (full) {
-          ctx.strokeStyle = 'rgba(92,96,52,0.85)'; ctx.lineWidth = 0.9;
-          for (let k = 0; k < 5; k++) {
-            const a = rnd() * 6.283, d = Math.sqrt(rnd()) * R * 0.7, x = it.x + Math.cos(a) * d, y = it.y + Math.sin(a) * d * 0.9;
-            for (let s = -1; s <= 1; s++) { ctx.beginPath(); ctx.moveTo(x + s * 1.2, y); ctx.lineTo(x + s * 2, y - 4 - rnd() * 2); ctx.stroke(); }
-          }
-        }
-      }
-    }
+    VB['gen/marks'].draw(ctx, items, S, R, full, mulberry32);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  return { generate, bakeWater, bakeChunk, decorateChunk, makeSprites, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32, treeStage, setBiome };
+  return { generate, bakeWater, bakeChunk, decorateChunk, hexLocator, BIOMES, B, NX, NY, LV, TEX, mulberry32, treeStage, setBiome };
 })();
 VB['gen'] = ArchGen;
 if (typeof module !== 'undefined') module.exports = ArchGen;
