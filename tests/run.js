@@ -1,4 +1,4 @@
-// Test runner: scripts in parallel, one per core; real browsers run alone to avoid software-GPU contention on small runners.
+// Test runner: scripts in parallel, one per core; the real browsers share one lane, one at a time (they render sparsely: tests/lib/browser.js).
 // Prints a failing script's full output and the summary; a passing script's last line only with `--list` or in a terminal (agents
 // read the output, so a run that passes costs one line).
 // `node tests/run.js test` runs the cheap checks; `node tests/run.js verify` runs those and the long verification runs.
@@ -27,9 +27,13 @@ const VERIFY = [
 const suite = process.argv[2], verbose = process.argv.includes('--verbose'), list = process.argv.includes('--list') || process.stdout.isTTY;
 const cmds = { test: TEST, verify: VERIFY }[suite];
 if (!cmds) { console.error('usage: node tests/run.js test|verify [--list] [--verbose]'); process.exit(2); }
-// longest first, so the slow scripts do not start last
-const SLOW = ['bands', 'populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
-const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
+// The static checks first, since they fail most often and cost seconds; then longest first, so the slow scripts do not start last.
+const FIRST = ['build.py', 'lint', 'ownership', 'dependencies', 'backlog.js'];
+const SLOW = ['smoke', 'tools', 'populous', 'saves', 'golden', 'births', 'invariants', 'bands', 'health', 'paths', 'fixtures.js', 'indexes'];
+const rank = (c) => {
+  const name = c.join(' '), first = FIRST.some((s) => name.includes(s)), k = SLOW.findIndex((s) => name.includes(s));
+  return first ? -1 : k < 0 ? SLOW.length : k;
+};
 const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile)?\.js$/.test(a));
 const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
 const t0 = Date.now(), failed = [];
@@ -47,10 +51,13 @@ function run(cmd) {
   });
 }
 const jobs = Number(process.env.VB_TEST_JOBS) || os.cpus().length;
-const lanes = Math.max(1, Math.min(jobs, queue.length));
+// The browsers take one lane, one after another, beside the other scripts; that lane joins the queue when they are done.
+const lanes = Math.max(1, Math.min(jobs, queue.length + (browsers.length ? 1 : 0)));
 (async () => {
-  for (const cmd of browsers) await run(cmd);
-  await Promise.all(Array.from({ length: lanes }, async () => { while (queue.length) await run(queue.shift()); }));
+  await Promise.all(Array.from({ length: lanes }, async (_, k) => {
+    if (k === 0) while (browsers.length) await run(browsers.shift());
+    while (queue.length) await run(queue.shift());
+  }));
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   if (failed.length) { console.log(`${suite}: ${failed.length} failed (${failed.join(', ')}) in ${secs} s`); process.exit(1); }
   console.log(`${suite}: ${cmds.length} scripts passed in ${secs} s`);
