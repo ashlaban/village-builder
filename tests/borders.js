@@ -1,6 +1,7 @@
 // Borders (VB-157, sim/territory) on tiny worlds: a village short of outland presses a neighbour that holds more a farm; the Disputed claims
 // custom settles it at the next meeting; cairns mark the border and keep the loser off those tiles for a while; the losers remember it.
 const VB = require('../src/load.js'), Sim = VB.sim, T = VB['sim/territory'], CL = VB['sim/claims'], R = VB['sim/relations'];
+const { moveClock } = require('./lib/clock.js');
 const { CLAIMS, YEAR } = VB['sim/rules'], { setOwner } = VB['sim/ownership'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -25,11 +26,11 @@ for (const [rule, winner] of [['first', 0], ['strongest', 0], ['kin', 0], ['meet
   let free = 0; for (let t = 0; t < st.w.N; t++) if (st.owner[t] === 0) free++;
   check(free === 0, `${rule}: all the land is held (${free} free)`);
   check(T.outlandOf(st, small).length > 4, `${rule}: the small village holds outland`);
-  st.t += YEAR / 2; T.landMeeting(st);
+  moveClock(st, YEAR / 2); T.landMeeting(st);
   const tiles = pressed(st, big);
   check(tiles.length === CLAIMS.pressPerMeeting && tiles.every((t) => st.owner[t] === -small.id - 1), `${rule}: the big village presses ${tiles.length} of the small one's tiles`);
   const before = opinion(st, winner ? small : big, winner ? big : small), nEvents = Sim.villageLog(st, Infinity).length;
-  st.t += YEAR; T.landMeeting(st);
+  moveClock(st, YEAR); T.landMeeting(st);
   const want = winner ? big.id : small.id, lose = winner ? small.id : big.id;
   check(tiles.every((t) => st.owner[t] === -want - 1), `${rule}: the tiles are ${winner ? 'taken by the big village' : 'kept by the small one'}`);
   check(tiles.every((t) => st.cairns.get(t) && st.cairns.get(t).a === want && st.cairns.get(t).b === lose), `${rule}: cairns mark the settled tiles`);
@@ -48,10 +49,10 @@ for (const [rule, winner] of [['first', 0], ['strongest', 0], ['kin', 0], ['meet
 // a village whose farms all stand empty has nobody to defend its outland: it goes to the claimant under any custom
 {
   const { st, small, big } = scene('first');
-  st.t += YEAR / 2; T.landMeeting(st);
+  moveClock(st, YEAR / 2); T.landMeeting(st);
   const tiles = pressed(st, big);
   VB['sim/heirs'].extinct(st, homes(st, small)[0]);
-  st.t += YEAR; T.landMeeting(st);
+  moveClock(st, YEAR); T.landMeeting(st);
   check(tiles.length && tiles.every((t) => st.owner[t] === -big.id - 1), 'a deserted village\'s outland goes to its neighbour');
 }
 // the rule between two villages: the practice they share, else their culture's custom

@@ -2305,6 +2305,9 @@ VB['sim/rules'] = (() => {
   const { B } = VB['gen'];
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
   const DAY = 24, SEASON_DAYS = 12, YEAR_DAYS = SEASON_DAYS * 4, YEAR = YEAR_DAYS * DAY;
+  // The clock counts whole 6-minute steps (st.tick, sim/clock; VB-235): TICKS of them an hour. The hour, the day and the year the clock is
+  // working through are found from the count, never by adding a tolerance to st.t.
+  const TICKS = 10;
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   const cal = (t) => {
     const day = Math.floor(t / DAY), y = Math.floor(day / YEAR_DAYS), doy = day - y * YEAR_DAYS;
@@ -2545,7 +2548,8 @@ VB['sim/rules'] = (() => {
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS,
+    SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
@@ -3812,7 +3816,7 @@ VB['sim/records'] = (() => {
 // people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
@@ -3831,7 +3835,7 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties, SPREAD = 73; // 192 / φ², prime to 192 days: ids next to each other renormalise far apart, any run of days evenly
+  const TIES = SOCIAL.ties;
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
   const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
   function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
@@ -3879,7 +3883,7 @@ VB['sim/relations'] = (() => {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) {
       const p = st.pawns[id]; p.homeHours = 0;
-      if ((day + id * SPREAD) % every === 0) renormalise(st, p);
+      if ((day - id) % every === 0) renormalise(st, p); // pawn id on day id, and every TIES.renorm years after
       if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) floorKin(st, id, q);
     }
   }
@@ -4025,15 +4029,12 @@ VB['sim/relations'] = (() => {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents, ids = st.living, n = ids.length;
     for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
-    const start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the living, and on round them from there
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
-    // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
-    let lo = 0, hi = n;
-    while (lo < hi) { const mid = (lo + hi) >>> 1; if (ids[mid] < start) lo = mid + 1; else hi = mid; }
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
-      const a = ag[ids[(lo + k) % n]];
+      const a = ag[ids[(start + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
@@ -4077,7 +4078,7 @@ VB['sim/relations'] = (() => {
   const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
   function idlersBy(st) {
     let c = st.idlers;
-    const hour = Math.floor(st.t);
+    const hour = Math.floor(st.tick / TICKS);
     if (!c || c.hour !== hour) {
       c = { hour, by: new Map() };
       for (const liveId of st.living) {
@@ -4674,7 +4675,7 @@ VB['sim/forest'] = (() => {
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, HERD } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -4691,7 +4692,9 @@ VB['sim/herds'] = (() => {
     'Gullhorn', 'Krona', 'Rödkulla', 'Svärta', 'Brokros', 'Ljusa', 'Smörblomma', 'Hjärtros'];
   const BULLS = ['Brante', 'Bläsen', 'Stolt', 'Ståtlig', 'Raske', 'Bjälle', 'Prydler', 'Pålle', 'Dunder', 'Grålle', 'Svarten', 'Bråke', 'Rödingen',
     'Kalle'];
-  const years = (st, h, t = st.t) => (t - h.born) / YEAR;
+  // An animal's age in years, from whole 6-minute steps (VB-235): born is a whole hour (an older save's may have drifted, hence the round),
+  // so an age of whole years is exact and compares with no tolerance.
+  const years = (st, h) => (st.tick - Math.round(h.born * TICKS)) / (YEAR * TICKS);
   // A herd's daily hay in the byre, and a household's need for a whole stall period.
   function dailyHay(herd) {
     if (herd.species === 'sheep') return (herd.ewes + herd.rams) * HERD.hay.ewe + herd.lambs * HERD.hay.lamb;
@@ -4744,7 +4747,7 @@ VB['sim/herds'] = (() => {
       if (herd.species !== 'cattle' || herd.household === null) continue;
       const d = hexSteps(st.w, house, houseOf(st, herd));
       if (d > HERD.reach) continue;
-      for (const h of herd.head) if (h.kind === 'bull' && years(st, h) >= minAge - 1e-6) out.push({ herd, head: h, d });
+      for (const h of herd.head) if (h.kind === 'bull' && years(st, h) >= minAge) out.push({ herd, head: h, d });
     }
     return out.sort((a, b) => a.d - b.d || a.herd.id - b.herd.id || a.head.id - b.head.id);
   }
@@ -4756,7 +4759,7 @@ VB['sim/herds'] = (() => {
   function ageCattle(st, herd) {
     const house = houseOf(st, herd);
     for (const h of herd.head) {
-      const a = years(st, h) + 1e-6;
+      const a = years(st, h);
       if (h.kind === 'calf' && a >= 1) {
         // a bull calf is kept as a bull when no bull within reach is young enough to serve for years; otherwise it is gelded
         if (h.sex === 'f') h.kind = 'heifer';
@@ -4774,7 +4777,7 @@ VB['sim/herds'] = (() => {
       if (herd.species === 'cattle') {
         ageCattle(st, herd);
         herd.head = herd.head.filter((h) => {
-          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
+          const gone = years(st, h) >= HERD.maxAge || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
           if (gone) note(herd).died.push(h.name);
           return !gone;
         });
@@ -4962,7 +4965,7 @@ VB['sim/herds'] = (() => {
     return {
       household: hh.id, farm: st.farmsteads[hh.farmstead].name, hay: Math.round(hh.hay), winterNeed: Math.round(winterNeed(st, hh)),
       herds: herdsOf(st, hh).map((hd) => (hd.species === 'cattle'
-        ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
+        ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h)) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
@@ -4981,12 +4984,12 @@ VB['sim/herds'] = (() => {
 <script>
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, TICKS } = VB['sim/rules'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
-  // The calendar year (as cal(hour).year) of the hour the clock is working through: midnight's work belongs to the day it starts.
-  const yearOf = (t) => Math.floor(Math.floor(t + 1e-9) / YEAR) + 1;
+  // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
+  const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
   function fold(holder, year, kind, good, n) {
     const T = holder.totals;
@@ -5006,7 +5009,7 @@ VB['sim/stores'] = (() => {
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const kind = type(holder), hh = kind === 'pawn' ? st.households[holder.household] : holder;
-    if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearOf(st.t), detail.kind, good, n);
+    if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearNow(st), detail.kind, good, n);
     else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };
       if (kind === 'village') villageEntry(holder, entry);
@@ -5060,16 +5063,13 @@ VB['sim/stores'] = (() => {
   }
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
-    for (const v of st.villages) if (v.grain > 0) {
-      // Keep the original multiplication, including its floating-point rounding.
-      const after = v.grain * Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS);
-      record(st, v, 'grain', after - v.grain, 'spoilage'); v.grain = after;
-    }
+    const share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS); // the day's share of the year's loss
+    for (const v of st.villages) if (v.grain > 0) take(st, v, 'grain', v.grain * share, 'spoilage');
   }
   // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
   // ledger was emptied when it dissolved (close).
   function prune(st) {
-    const keep = yearOf(st.t) - 3, recent = (e) => st.t - e.t < YEAR * 3, kept = (x) => x.year >= keep;
+    const keep = yearNow(st) - 3, recent = (e) => st.t - e.t < YEAR * 3, kept = (x) => x.year >= keep;
     VB.count.storeWalk += st.liveHouseholds.length + st.villages.length;
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
@@ -5085,7 +5085,7 @@ VB['sim/stores'] = (() => {
   function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
-  return { KINDS, ROUTINE, yearOf, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
 })();
 </script>
 <script>
@@ -6852,7 +6852,7 @@ VB['sim/kinds'] = (() => {
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { cal, DAY, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
+  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
@@ -7028,7 +7028,7 @@ VB['sim/agents'] = (() => {
   //   they wake it (add it here); a death takes it out. `at` is the step's place in ids, kept right when an agent is woken mid-step.
   //   Read by stepAgents only, so an agent left out is one the step would have passed over.
   function awake(st) {
-    const hour = Math.floor(st.t + 1e-9);
+    const hour = Math.floor(st.tick / TICKS);
     if (st.awake && st.awake.hour === hour) return st.awake;
     const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], ids = [];
     VB.count.walkAwake += st.living.length;
@@ -7427,7 +7427,7 @@ VB['sim/commands'] = (() => {
 <script>
 // @sys sim/plans: holders' plans (design.md, section 7; VB-258): one standing plan per live household and per village, made and dropped with its holder
 VB['sim/plans'] = (() => {
-  const { WORK, DAY } = VB['sim/rules'];
+  const { WORK, DAY, TICKS } = VB['sim/rules'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan}; a plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours)}. One standing plan per undissolved household
   //   and per village; a dissolved household's plan is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review
@@ -7444,7 +7444,7 @@ VB['sim/plans'] = (() => {
   const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
   // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load).
   function makePlan(st, type, id) {
-    const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(st.t - 1) };
+    const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(Math.floor(st.tick / TICKS) - 1) };
     mapOf(st, type).set(id, plan);
     return plan;
   }
@@ -7458,7 +7458,7 @@ VB['sim/plans'] = (() => {
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
   // A plan reviewed now: its next review is the next review hour.
-  function reviewed(st, plan) { VB.count.planReview++; plan.nextReview = reviewAfter(st.t); }
+  function reviewed(st, plan) { VB.count.planReview++; plan.nextReview = reviewAfter(Math.floor(st.tick / TICKS)); }
   return { reviewHour, makePlan, dropPlan, planOf, seedPlans, reviewed };
 })();
 </script>
@@ -9142,7 +9142,7 @@ VB['sim/lifecycle'] = (() => {
       let best = null, bs = -Infinity;
       const pm = place(m.id);
       // With land residence and no place of his own, only women with a place can be candidates.
-      // Keep the original order and random draws; skip pairs whose homeFor would return null.
+      // So the pairs whose homeFor would return null are not visited (no draw is made for them either way).
       if (cu.residence === 'land' && pm === null && !housed) housed = women.filter((p) => place(p.id) !== null);
       for (const f of cu.residence === 'land' && pm === null ? housed : women) {
         pairs++;
@@ -9347,7 +9347,7 @@ VB['sim/people'] = (() => {
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, FERTILITY, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -9503,7 +9503,7 @@ VB['sim/scenarios'] = (() => {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
-    // @state st.t: number; game time in hours since the start of year 1 (negative before it)
+    // @state st.t: number; game time in hours since the start of year 1 (negative before it): (st.tick + st.tickPart) / TICKS (sim/clock)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
@@ -9581,7 +9581,7 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, tick: 6 * TICKS, tickPart: 0, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
       recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
@@ -9626,7 +9626,7 @@ VB['sim/scenarios'] = (() => {
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, TICKS, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
   const { log, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
@@ -9709,33 +9709,52 @@ VB['sim/clock'] = (() => {
     // Historical ledgers of dissolved households still expire at the new year.
     Stores.prune(st);
   }
-  const TICKS = 10; // 6-minute steps an hour
-  function advance(st, hours) {
-    let left = hours;
-    while (left > 1e-9) {
-      const step = Math.min(left, 0.1);
-      const before = Math.floor(st.t + 1e-9), tick = Math.floor(st.t * TICKS + 1e-4);
-      st.t += step; left -= step;
-      const after = Math.floor(st.t + 1e-9), ticked = Math.floor(st.t * TICKS + 1e-4);
-      for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      // The 6-minute steps of the day that began in this advance (sim/lifecycle): the night's culture, a settlement a step after midnight (VB-201);
-      // from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from noon of day 11, the moving round's phases (VB-201).
-      // The step of the day says what is due, so a save between two of them goes on.
-      if (st.cenv) for (let k = tick + 1; k <= ticked; k++) {
-        const n = ((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS), r = n - 12 * TICKS;
-        nightCulture(st, n);
-        if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
-          const kc = cal(k / TICKS);
-          if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
-          else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
-        }
-      }
-      playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
-      const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
-      if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+  // ---- the clock (VB-235) ----
+  // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
+  //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
+  // @state st.tickPart: number in [0, 1); the part of the next step that frame-sized advances of the page have asked for so far (0 headless).
+  // @state st.t is (st.tick + st.tickPart) / TICKS, written here only.
+  const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
+  // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
+  // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
+  // noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
+  function stepEnds(st) {
+    const k = st.tick, hour = Math.floor(k / TICKS);
+    if (k % TICKS === 0) onHour(st, mod(hour, DAY), cal(hour));
+    if (!st.cenv) return;
+    const n = mod(k, STEPS_A_DAY), r = n - 12 * TICKS;
+    nightCulture(st, n);
+    if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
+      const kc = cal(hour);
+      if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
+      else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
     }
   }
-  return { onHour, endOfDay, newYear, advance };
+  // The clock's arithmetic: moves st by `hours`, a pass at a time, each to the end of the current 6-minute step or less, and calls
+  // each(st, part, ends) after each pass with the share of a step it moved and whether it ended the step. Whole steps headless; a part of
+  // one when the page asks for a frame's worth (the agents move by the part; the step's work is done when its last part arrives). A
+  // request of whole steps is whole steps, though hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole
+  // number it is meant to be, so a run is the same by any chunks of whole steps.
+  function ticking(st, hours, each) {
+    let left = hours * TICKS;
+    const whole = Math.round(left);
+    if (Math.abs(left - whole) < 1e-6) left = whole;
+    while (left > 0) {
+      const rest = 1 - st.tickPart, ends = left >= rest, part = ends ? rest : left;
+      left = ends ? left - rest : 0;
+      if (ends) { st.tick++; st.tickPart = 0; } else st.tickPart += part;
+      st.t = (st.tick + st.tickPart) / TICKS;
+      each(st, part, ends);
+    }
+  }
+  function step(st, part, ends) {
+    if (ends) stepEnds(st);
+    playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
+    const c = cal(st.t), all = stepAgents(st, part / TICKS, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
+    if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+  }
+  const advance = (st, hours) => ticking(st, hours, step);
+  return { onHour, endOfDay, newYear, advance, ticking };
 })();
 </script>
 <script>
@@ -9748,6 +9767,7 @@ VB['sim/saves'] = (() => {
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans } = VB['sim/plans'];
+  const { TICKS } = VB['sim/rules'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -9884,6 +9904,8 @@ VB['sim/saves'] = (() => {
     if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
     const st = decode(enc);
     st.w = w;
+    // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
@@ -11975,7 +11997,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The clock shown is the UI's own state: simulation time floored to 5 game minutes, redrawn only when that value changes.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const step = Math.floor(st.t * 12 + 1e-9);
+    const step = Math.floor((st.tick + st.tickPart) * 6 / 5); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
@@ -13571,7 +13593,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'd50faa865a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd4325c5cfa', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

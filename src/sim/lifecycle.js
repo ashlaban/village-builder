@@ -235,7 +235,7 @@ VB['sim/lifecycle'] = (() => {
       let best = null, bs = -Infinity;
       const pm = place(m.id);
       // With land residence and no place of his own, only women with a place can be candidates.
-      // Keep the original order and random draws; skip pairs whose homeFor would return null.
+      // So the pairs whose homeFor would return null are not visited (no draw is made for them either way).
       if (cu.residence === 'land' && pm === null && !housed) housed = women.filter((p) => place(p.id) !== null);
       for (const f of cu.residence === 'land' && pm === null ? housed : women) {
         pairs++;

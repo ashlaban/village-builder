@@ -13,11 +13,11 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
   }
   if (key === 'sim/lifecycle') {
     const phase = mod.roundPhase;
-    mod.roundPhase = (st, n) => { calls.push({ kind: 'round', t: st.t, n }); return phase(st, n); };
+    mod.roundPhase = (st, n) => { calls.push({ kind: 'round', t: st.t, tick: st.tick, n }); return phase(st, n); };
   }
 }
 const VB = globalThis.VB, Sim = VB.sim, G = VB.gen, { canon } = require('./lib/canon.js');
-const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_PHASES, MEETING_STAGES } = VB['sim/lifecycle'];
+const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_PHASES, MEETING_STAGES } = VB['sim/lifecycle'];
 const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
 const TINY = { cols: 120, rows: 85 };
 const st = Sim.seed(world(7, TINY), 7, 'populous');
@@ -31,8 +31,8 @@ for (let i = 0, end = start + 3 * DAY; st.t < end - 1e-9; i++) Sim.advance(st, M
 const round = calls.filter((c) => c.kind === 'round');
 assert.deepStrictEqual(round.map((c) => c.n), [...Array(ROUND_PHASES).keys()], 'each phase of the round runs once, in order');
 for (const c of round) {
-  const at = c.t - (start + DAY);
-  assert(at >= 12 + c.n * 0.1 && at < 12 + (c.n + 1) * 0.1 + 2.5, `phase ${c.n} runs on its step from noon, not before (at ${at} h)`);
+  const at = c.tick - (start + DAY) * TICKS; // in 6-minute steps since the round's midnight (sim/clock counts them, VB-235)
+  assert(at === 12 * TICKS + c.n, `phase ${c.n} runs on its step from noon (at step ${at} of the day)`);
 }
 const nights = [start + DAY, start + 2 * DAY];
 const villages = st.cenv.settlements.length;

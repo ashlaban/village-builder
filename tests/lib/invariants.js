@@ -13,6 +13,11 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t agrees with it within a step
+  const TICKS = globalThis.VB['sim/rules'].TICKS;
+  if (!Number.isInteger(st.tick) || st.tick < 0) bad.push(`tick: ${st.tick} is not a non-negative integer`);
+  else if (!(Math.abs(st.t - st.tick / TICKS) <= 1 / TICKS)) bad.push(`t: ${st.t} disagrees with tick ${st.tick} by more than a step`);
+  if (st.tickPart !== undefined && !(st.tickPart >= 0 && st.tickPart < 1)) bad.push(`tickPart: ${st.tickPart} is not in [0, 1)`);
   // the standing plans (VB-258): exactly one per undissolved household and per village, none of a dissolved household
   if (st.plans) {
     for (const [type, map, live] of [['household', st.plans.households, st.liveHouseholds], ['village', st.plans.villages, st.villages.map((v) => v.id)]]) {
@@ -131,7 +136,7 @@ function checkState(st) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
     // VB-204: routine kinds are yearly totals, one per year, kind and good, in year order, none after this year or before the last three
-    const S = globalThis.VB['sim/stores'], year = S.yearOf(st.t), seen = new Set();
+    const S = globalThis.VB['sim/stores'], year = S.yearNow(st), seen = new Set();
     if (!Array.isArray(holder.totals)) { bad.push(`stores[${holder.id}]: missing totals`); continue; }
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;

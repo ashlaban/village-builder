@@ -7,6 +7,7 @@ VB['sim/saves'] = (() => {
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans } = VB['sim/plans'];
+  const { TICKS } = VB['sim/rules'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -143,6 +144,8 @@ VB['sim/saves'] = (() => {
     if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
     const st = decode(enc);
     st.w = w;
+    // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
