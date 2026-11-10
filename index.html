@@ -652,14 +652,20 @@ VB.resetCounts();
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['gen/paths'] = (() => {
-  // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, the colours of its flattened edge and bare core,
-  // and the coarsest level of detail (ArchGen.LV index) that still shows it: trodden ground only up close, paths and lanes at the middle
-  // level too. The overview shows none, so a path that changes stage never repaints it (a full overview chunk takes about 60 ms).
+  // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, and the coarsest level of detail (ArchGen.LV
+  // index) that still shows it: trodden ground only up close, paths and lanes at the middle level too. The overview shows none, so a path
+  // that changes stage never repaints it (a full overview chunk takes about 60 ms).
+  // A trail is painted in layers, widest first, each [times the width, colour by stage]: the verge of dry, flattened grass, the darker
+  // rim where the turf breaks, the bare earth, and on paths and lanes a paler middle where the ground is packed hardest.
   const LOOK = {
-    width: [0, 5, 7, 10],
-    edge: [null, 'rgba(124,128,70,0.22)', 'rgba(122,112,70,0.34)', 'rgba(114,98,62,0.46)'],
-    core: [null, 'rgba(176,164,110,0.34)', 'rgba(170,146,100,0.72)', 'rgba(166,138,94,0.88)'],
+    width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
+    layers: [
+      [2.3, [null, 'rgba(150,146,78,0.16)', 'rgba(150,140,78,0.22)', 'rgba(146,132,76,0.28)']],
+      [1.35, [null, 'rgba(98,92,52,0.20)', 'rgba(92,78,46,0.38)', 'rgba(86,70,42,0.48)']],
+      [1, [null, 'rgba(172,154,104,0.50)', 'rgba(178,150,104,0.86)', 'rgba(182,152,106,0.95)']],
+      [0.42, [null, null, 'rgba(206,182,134,0.40)', 'rgba(212,188,140,0.55)']],
+    ],
   };
   // Where the trail bends in tile i: a fixed offset by tile, up to 0.22 R from the centre, so trails wander a little.
   function bend(w, i) {
@@ -668,26 +674,111 @@ VB['gen/paths'] = (() => {
   }
   // A worn tile that draws its own trail: worn land that is not a house, field, green or river.
   const trail = (w, i) => i >= 0 && w.worn[i] > 0 && !w.dev[i] && !w.water[i] && !w.river[i];
-  // What a trail runs on to: another trail, a worn ford, or a house, field or green (the end of the way, drawn by the settlement layer).
-  const leadsTo = (w, j) => j >= 0 && !w.water[j] && (trail(w, j) || (w.river[j] ? w.crossing[j] > 0 && w.worn[j] > 0 : w.dev[j] === 1));
-  // The trail of tile i as curves [x0, y0, cx, cy, x1, y1, width, stage] (quadratic, cx, cy the control point). Each way out of the tile
-  // ends at its joint with the neighbour it leads to, halfway to that neighbour's bend (its centre if it draws no trail). A tile with two
-  // ways out runs one smooth curve from joint to joint, bent towards its own bend, so a trail through many tiles flows; a lone end or a
-  // fork runs straight from the bend to each joint. Both sides of a joint have the same width, the mean of the two tiles' widths.
-  function segments(w, i) {
-    if (!trail(w, i)) return [];
-    const s = w.worn[i], [bx, by] = bend(w, i), ends = [];
+  // ---- which ways a trail leaves its tile ----
+  // Worn tiles lie in patches as well as in lines (round a house, where ways part), and a trail to every worn neighbour would draw a
+  // mesh of triangles there. So of three worn tiles that all touch, the weakest link is not drawn: strength is the lower stage of the two
+  // tiles, and a fixed number by pair settles ties. The rule looks no further than a tile's own neighbours, so a tile that changes
+  // stage changes only the trails of the tiles within two steps of it (the page repaints that far).
+  const pairHash = (i, j) => { const a = Math.min(i, j), b = Math.max(i, j); return (Math.imul(a ^ 0x9e3779b9, 2654435761) ^ Math.imul(b, 40503)) >>> 0; };
+  const stronger = (w, a, b, c, d) => { // is the link a-b stronger than c-d?
+    const s = Math.min(w.worn[a], w.worn[b]), t = Math.min(w.worn[c], w.worn[d]);
+    return s !== t ? s > t : pairHash(a, b) > pairHash(c, d);
+  };
+  // Trail tiles i and its neighbour j in direction k are joined unless a tile touching both has stronger links to each.
+  function joined(w, i, j, k) {
+    for (const d of [1, 5]) {
+      const m = w.nb[i * 6 + ((k + d) % 6)];
+      if (trail(w, m) && stronger(w, i, m, i, j) && stronger(w, m, j, i, j)) return false;
+    }
+    return true;
+  }
+  // That leaves rings of four (two rows of worn tiles side by side draw as a ladder): of four joined trail tiles in a ring, the weakest
+  // side is not drawn either. i and j are linked when they are joined and their link is the weakest side of no such ring. The four
+  // rings with i-j as a side have their other side one step away in direction k + 1, k + 2, k + 4 or k + 5.
+  function linked(w, i, j, k) {
+    if (!joined(w, i, j, k)) return false;
+    for (const d of [1, 2, 4, 5]) {
+      const q = (k + d) % 6, a = w.nb[i * 6 + q], b = w.nb[j * 6 + q]; // the ring i, j, b, a
+      if (!trail(w, a) || !trail(w, b) || !joined(w, i, a, q) || !joined(w, j, b, q) || !joined(w, a, b, k)) continue;
+      if (stronger(w, i, a, i, j) && stronger(w, j, b, i, j) && stronger(w, a, b, i, j)) return false;
+    }
+    return true;
+  }
+  // The directions (0..5) in which tile i's trail leaves it: to each linked trail neighbour and worn ford; and, when that makes it a
+  // dead end, on into the house, field or green that lies straightest ahead, since that is where the way was going. A lone worn tile
+  // between built tiles joins the two most opposite. So a way along a row of fields does not send a spur into each.
+  function exits(w, i) {
+    const out = [], built = [];
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
-      if (!leadsTo(w, j)) continue;
-      const t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]], wd = t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s];
-      ends.push([(bx + jx) / 2, (by + jy) / 2, wd, t ? Math.min(s, w.worn[j]) : s]);
+      if (j < 0 || w.water[j]) continue;
+      if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
+      else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
+      else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
+      else if (w.dev[j] === 1) built.push(k);
     }
-    if (!ends.length) return [[bx, by, bx, by, bx + 0.01, by, LOOK.width[s], s]];
-    if (ends.length !== 2) return ends.map(([x, y, wd, st]) => [bx, by, (bx + x) / 2, (by + y) / 2, x, y, wd, st]);
-    // the curve from joint a through the bend to joint b, split at its middle m so each half keeps the width of its own joint
-    const [a, b] = ends, mx = (a[0] + 2 * bx + b[0]) / 4, my = (a[1] + 2 * by + b[1]) / 4;
-    return [[a[0], a[1], (a[0] + bx) / 2, (a[1] + by) / 2, mx, my, a[2], a[3]], [mx, my, (bx + b[0]) / 2, (by + b[1]) / 2, b[0], b[1], b[2], b[3]]];
+    while (out.length < 2 && built.length) {
+      // the built neighbour most opposite the ways out so far (the first: the lowest fixed number by pair)
+      let best = 0, bs = -Infinity;
+      for (let n = 0; n < built.length; n++) {
+        let s = pairHash(i, w.nb[i * 6 + built[n]]) / 2 ** 34; // under a quarter: only settles ties
+        for (const k of out) { const turn = Math.abs(((built[n] - k + 9) % 6) - 3); s += 3 - turn; } // 3 straight on, 0 back the same way
+        if (s > bs) { bs = s; best = n; }
+      }
+      const k = built.splice(best, 1)[0];
+      if (out.length && Math.abs(((k - out[0] + 9) % 6) - 3) > 1) break; // nothing ahead: the way ends here
+      out.push(k);
+    }
+    return out;
+  }
+  // The trail of tile i as curves [x0, y0, cx, cy, x1, y1, width, stage] (quadratic, cx, cy the control point). Each way out of the tile
+  // ends at its joint with the neighbour it leads to, halfway to that neighbour's bend (its centre if it draws no trail), and both sides
+  // of a joint have the same width, the mean of the two tiles' widths. Every way out runs one smooth curve to the way most nearly
+  // opposite it, bent towards the tile's own bend: so a trail through many tiles flows, and at a fork the side way swings into the
+  // main one as a footpath does, with no spokes. A dead end runs from its joint to the bend, narrowing.
+  // A green (w.dev 2) wears no path of its own, but the ways that run into it cross it: each from its joint, round the well in the
+  // middle, on to the way most nearly opposite, at that way's width and stage.
+  function segments(w, i) {
+    const green = i >= 0 && w.dev[i] === 2;
+    if (!green && !trail(w, i)) return [];
+    const s = w.worn[i], [bx, by] = green ? [w.hx[i] + 0.3 * w.R, w.hy[i] + 0.34 * w.R] : bend(w, i), ends = [];
+    const end = (x, y, wd, st) => { const l = Math.hypot(x - bx, y - by) || 1; ends.push([x, y, wd, st, (x - bx) / l, (y - by) / l]); };
+    if (green) {
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[i * 6 + k];
+        if (!trail(w, j) || !exits(w, j).includes((k + 3) % 6)) continue;
+        const [jx, jy] = bend(w, j);
+        end((jx + w.hx[i]) / 2, (jy + w.hy[i]) / 2, LOOK.width[w.worn[j]], w.worn[j]);
+      }
+      if (!ends.length) return [];
+    } else for (const k of exits(w, i)) {
+      const j = w.nb[i * 6 + k], t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]];
+      end((bx + jx) / 2, (by + jy) / 2, t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], t ? Math.min(s, w.worn[j]) : s);
+    }
+    if (!ends.length) return [[bx - 2, by, bx, by + 1, bx + 2, by, LOOK.width[s] * 0.8, s]];
+    if (ends.length === 1) {
+      const [x, y, wd, st] = ends[0], mx = (x + bx) / 2, my = (y + by) / 2;
+      return [[x, y, (x + mx) / 2, (y + my) / 2, mx, my, wd, st], [mx, my, (mx + bx) / 2, (my + by) / 2, bx, by, wd * 0.7, st]];
+    }
+    const out = [], done = new Set();
+    for (let a = 0; a < ends.length; a++) {
+      let b = -1, bd = Infinity;
+      for (let c = 0; c < ends.length; c++) { // the way most nearly opposite: the lowest cosine between them, seen from the bend
+        if (c === a) continue;
+        const d = ends[a][4] * ends[c][4] + ends[a][5] * ends[c][5];
+        if (d < bd) { bd = d; b = c; }
+      }
+      const key = a < b ? a * 8 + b : b * 8 + a;
+      if (done.has(key)) continue;
+      done.add(key);
+      // the curve from joint A to joint B, its control point the bend, drawn in towards the chord where the two ways are close together
+      // (a sharp turn rounds off instead of doubling back); split at its middle so each half keeps the width and stage of its own joint
+      const A = ends[a], B = ends[b], pull = Math.max(0, 0.5 + bd) * 0.6;
+      const qx = bx + ((A[0] + B[0]) / 2 - bx) * pull, qy = by + ((A[1] + B[1]) / 2 - by) * pull, mx = (A[0] + 2 * qx + B[0]) / 4,
+        my = (A[1] + 2 * qy + B[1]) / 4;
+      out.push([A[0], A[1], (A[0] + qx) / 2, (A[1] + qy) / 2, mx, my, A[2], A[3]], [mx, my, (qx + B[0]) / 2, (qy + B[1]) / 2, B[0], B[1], B[2], B[3]]);
+    }
+    return out;
   }
   // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
   function drawChunk(w, ctx, lv, cx, cy, l) {
@@ -698,19 +789,24 @@ VB['gen/paths'] = (() => {
     const segs = [];
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
       const i = row * COLS + col;
-      if (w.worn[i] && LOOK.level[w.worn[i]] >= l) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+      if ((w.worn[i] && LOOK.level[w.worn[i]] >= l) || (w.dev && w.dev[i] === 2)) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
     }
     if (!segs.length) return;
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
-    for (const [layer, k] of [['edge', 1.6], ['core', 1]]) for (let s = 1; s <= 3; s++) {
-      ctx.strokeStyle = LOOK[layer][s];
-      for (const g of segs) {
-        if (g[7] !== s) continue;
-        ctx.lineWidth = Math.max(minW, g[6] * k);
-        ctx.beginPath(); ctx.moveTo(g[0], g[1]); ctx.quadraticCurveTo(g[2], g[3], g[4], g[5]); ctx.stroke();
+    for (const [k, colours] of LOOK.layers) for (let s = 1; s <= 3; s++) {
+      if (!colours[s]) continue;
+      ctx.strokeStyle = colours[s];
+      // one path a layer and stage for each width, so curves that meet or cross blend as one stroke, with no darker overlaps
+      const byWidth = new Map();
+      for (const g of segs) if (g[7] === s) { if (!byWidth.has(g[6])) byWidth.set(g[6], []); byWidth.get(g[6]).push(g); }
+      for (const [wd, gs] of byWidth) {
+        ctx.lineWidth = Math.max(minW, wd * k);
+        ctx.beginPath();
+        for (const g of gs) { ctx.moveTo(g[0], g[1]); ctx.quadraticCurveTo(g[2], g[3], g[4], g[5]); }
+        ctx.stroke();
       }
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -746,7 +842,7 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, segments, drawChunk, thin };
+  return { LOOK, bend, exits, segments, drawChunk, thin };
 })();
 </script>
 <script>
@@ -2323,9 +2419,10 @@ VB['sim/rules'] = (() => {
   // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
   // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
-  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set from grown runs.
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set so a new village has the paths a
+  // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
-    wornYears: 3, trips: { field: 0.25, water: 1, stroll: 0.5, wood: 0.45 } };
+    wornYears: 3, trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 } };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
@@ -2883,7 +2980,7 @@ VB['sim/paths'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/layout: placing villages, farmsteads, fields and fences on the map
+// @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, farmable, byRiver, fertility } = VB['sim/rules'];
@@ -2995,36 +3092,129 @@ VB['sim/layout'] = (() => {
     }
     return best;
   }
-  // A cluster village (VB-113): houses grow round the green one by one, each touching the green, an earlier house or an earlier house's
-  // yard, preferring tiles that touch more houses, near the green, off stony and wet ground, never next to a field; then each house, the
-  // first first, takes its block of fields beyond the yards (placeFields). A house whose fields find no room is not built.
-  // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
+  // ---- the form of a village: a street, and houses along it ----
+  // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
+  // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
+  // opposite sides and a village of ten or more farms sending a side lane off as a third. An arm grows a tile at a time, straight on or
+  // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
+  // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
+  // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
+  const STREET = { from: 4, perFarm: 0.7, lane: 10, level: 14, straight: 0.35, hook: 1.2, room: 0.25, wander: 0.9 };
+  function layStreet(w, used, rand, center, need, arms, taken) {
+    const street = new Set(), level = w.hp[center];
+    const open = (t) => t >= 0 && farmable(w, t) && !used.has(t) && !street.has(t) && !w.river[t] && !taken.has(t) && !nextTo(w, t, taken);
+    const worth = (t) => {
+      let room = 0;
+      for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && farmable(w, j) && !used.has(j) && !street.has(j)) room++; }
+      const b = w.biome[t];
+      return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
+    };
+    const heads = []; // the directions the arms left the green in
+    for (let a = 0; a < arms && street.size < need; a++) {
+      const len = Math.ceil((need - street.size) / (arms - a));
+      let at = center, dir = -1, bent = 0;
+      for (let n = 0; n < len; n++) {
+        let pick = -1, pd = -1, ps = -Infinity;
+        for (let k = 0; k < 6; k++) {
+          const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
+          if (dir >= 0 && Math.abs(turn) > 1) continue;
+          // a new arm leaves the green well away from the others: opposite the first, or between them
+          if (dir < 0 && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
+          const t = w.nb[at * 6 + k];
+          if (!open(t)) continue;
+          let doubled = false; // touching the street anywhere but where it came from
+          for (let q = 0; q < 6; q++) { const j = w.nb[t * 6 + q]; if (j !== at && (street.has(j) || (j === center && at !== center))) doubled = true; }
+          if (doubled) continue;
+          const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
+          if (sc > ps) { ps = sc; pick = t; pd = k; }
+        }
+        if (pick < 0) break;
+        if (dir < 0) heads.push(pd); else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
+        street.add(pick); at = pick; dir = pd;
+      }
+    }
+    return street;
+  }
+  // A village laid out (VB-113, revised): the green, its street (layStreet), if it has one, and houses one by one along them. A house
+  // stands on a tile touching the street or the green, or, where those are full or there is no street, an earlier house's yard; it
+  // hangs together with the houses so far (its tile or a neighbour is one of their yards); it keeps off stony and wet ground and never
+  // stands next to a field. It would rather have open ground on most sides than neighbours on all: touching one house costs nothing,
+  // each one more costs `crowd`, so the village is a loose row with gaps (yards, a tree, a way through to the fields), not a block.
+  // Then each house takes its block of fields beyond the yards and the street (placeFields); a house whose fields find no room is
+  // not built, and another site is tried in its place. fieldsAt, yards (tiles next to a house or green, and street tiles) and homes (houses and greens) are
+  // kept by the settlement generator across villages.
+  const HOUSE = { reach: 8, far: 0.3, crowd: 0.9, offStreet: 1.4, wander: 1.6, better: 0.15, land: 2.4 };
+  // The form follows the site: where the street village comes out short of its farms (a neck of land, where the street and its row take
+  // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
+  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
+    if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
+    const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
+    const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
+    const before = keep(), row = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, true);
+    if (row.farmsteads.length >= nFarms) return row;
+    const withRow = keep();
+    back(before);
+    const close = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
+    if (close.farmsteads.length > row.farmsteads.length) return close;
+    back(withRow);
+    return row;
+  }
+  function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
     const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: true, well: true };
     used.add(center);
-    const built = new Set([center]), near = new Set(), houses = [];
-    const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
+    const taken = new Set([...fieldsAt, ...homes]);
+    const street = !withStreet ? new Set()
+      : layStreet(w, used, rand, center, Math.ceil(nFarms * STREET.perFarm) + 1, nFarms >= STREET.lane ? 3 : 2, taken);
+    const mine = new Set([center]), near = new Set();
+    const build = (t) => { mine.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
     build(center);
-    const reach = bfs(w, center, 6, walkable(w)).dist;
-    for (let n = 0; n < nFarms; n++) {
-      let pick = -1, ps = -Infinity;
+    // fields keep off the street, and off the tiles along it, which are the house sites, so they lie behind the row; where a house
+    // finds no fields so (a narrow neck of land), fields may take the sites along the street that no house has taken
+    const sides = new Set(yards);
+    for (const t of street) { yards.add(t); sides.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) sides.add(j); } }
+    for (const t of near) { yards.add(t); sides.add(t); }
+    const front = new Set([center, ...street]), reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    // the house sites still open, best first
+    const sites = () => {
+      const out = [];
       for (const [t, d] of reach) {
-        if (d < 1 || used.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
-        let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[t * 6 + k])) touch++;
-        const b = w.biome[t], s = 0.5 * Math.min(touch, 3) - 0.5 * d - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * 1.6;
-        if (s > ps) { ps = s; pick = t; }
+        if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        let touch = 0; for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
+        const b = w.biome[t];
+        out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (nextTo(w, t, front) ? 0 : HOUSE.offStreet) - (1.5 * w.stones[t]) / 255
+          - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * HOUSE.wander]);
       }
-      if (pick < 0) break;
-      houses.push(pick); used.add(pick); build(pick);
-    }
-    for (const t of near) yards.add(t);
-    for (const h of houses) {
-      const fields = placeFields(w, used, h, 3, yards);
-      if (!fields) { used.delete(h); continue; }
-      const f = makeFarmstead(w, farmsteads.length, h, fields, village, used);
-      farmsteads.push(f); village.farmsteads.push(f.id);
-      for (const t of fields) fieldsAt.add(t);
+      return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
+    };
+    const stand = (t) => { used.add(t); build(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) { yards.add(j); sides.add(j); } } };
+    // the farm of the house at t, if it finds its fields: behind the row, unless the unbuilt sites along the street give clearly
+    // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
+    const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
+    const farm = (t) => {
+      const behind = placeFields(w, used, t, 3, sides), any = placeFields(w, used, t, 3, yards);
+      const fields = worth(any) > worth(behind) + HOUSE.better ? any : behind;
+      if (!fields || worth(fields) < HOUSE.land) return false; // ground too poor to feed a household is no room for a farm
+      const f = makeFarmstead(w, farmsteads.length, t, fields, village, used);
+      farmsteads.push(f); village.farmsteads.push(f.id); homes.add(t);
+      for (const j of fields) fieldsAt.add(j);
+      return true;
+    };
+    // first the houses, so that no field takes a house's place; then each house's fields, the first house first; then, for the houses
+    // that found none, other sites one at a time, each kept only if its fields find room
+    const houses = [];
+    for (let n = 0; n < nFarms; n++) { const t = sites()[0]; if (t === undefined) break; houses.push(t); stand(t); }
+    // a house is kept if it still hangs together with the houses kept before it, and finds its fields
+    mine.clear(); near.clear(); build(center);
+    for (const t of houses) { if ((near.has(t) || nextTo(w, t, near)) && farm(t)) build(t); else used.delete(t); }
+    while (village.farmsteads.length < nFarms) {
+      let done = false;
+      for (const t of sites()) {
+        used.add(t); // placeFields takes no used tile, and makeFarmstead marks the house
+        if (farm(t)) { stand(t); done = true; break; }
+        used.delete(t);
+      }
+      if (!done) break;
     }
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
@@ -3063,6 +3253,7 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
+    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w);
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
@@ -3108,11 +3299,11 @@ VB['sim/layout'] = (() => {
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
   // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
   function settlementGenerator(w, rand, bare = false) {
-    const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set();
+    const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
       used, farmsteads, villages,
       addVillage(center, nFarms) {
-        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards);
+        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
       },
       addField(fid) {
@@ -3136,7 +3327,7 @@ VB['sim/layout'] = (() => {
   }
   return {
     settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
+    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
   };
 })();
 </script>
@@ -9630,7 +9821,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
   // the frame budget; the overview shows no paths.
   function refreshPaths() {
-    const reach = 2 * w.R;
+    const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (gen/paths)
     for (const tile of st.pathDirty) for (const l of [0, 1]) {
       const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
       for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));

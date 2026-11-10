@@ -19,7 +19,7 @@ class Obj { constructor(o) { this.children = []; this.scale = P(); this.position
   get width() { return 400 * this.scale.x; }
   addChild(c) { this.children.push(c); c.parent = this; return c; } removeChildren() { const c = this.children; this.children = []; return c; }
   destroy() { destroyed++; this._dead = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }
-class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'rect', 'fill', 'clear', 'ellipse'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
+class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'rect', 'roundRect', 'fill', 'clear', 'ellipse'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
 const tickers = []; let APP;
 class Application { constructor() { APP = this; } async init(o) { this.canvas = origCreate('div'); this.screen = { width: 1440, height: 900 }; this.renderer = { gl: null }; this.ticker = { add: (f) => tickers.push(f) }; this.stage = new Obj(); } }
 class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w, height: h }); } }

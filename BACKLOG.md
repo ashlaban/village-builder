@@ -16,7 +16,10 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-221](backlog/VB-221.md) | The player's gift from the pawn panel, with the floor's warning | life | 2 | S | While playing a pawn, give grain to any household by the verb `give` (source `player`), unbound by allowance; below the floor, a warning that names who goes hungry. |
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
 | [VB-233](backlog/VB-233.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
-| [VB-055](backlog/VB-055.md) | Type checking of the JavaScript with checkJs | yardstick | 3 | M | Run the TypeScript checker over the plain JavaScript, with JSDoc types for `st` and `w`, to catch misspelt fields. |
+| [VB-235](backlog/VB-235.md) | The clock counts whole six-minute ticks | - | 2 | M | st.t is a float advanced by 0.1: hours fire a step late from year 2 and a run depends on how advance is chunked; count integer ticks instead. |
+| [VB-240](backlog/VB-240.md) | Opinion is derived: compatibility shown by familiarity, and memories only of what happened | - | 2 | M | Talk writes 99% of opinion's memories and they restate the fixed compatibility; derive opinion from standing, compatibility and the tie, keep memories for events, and record only close friends and enemies. |
+| [VB-242](backlog/VB-242.md) | The meetings and the moving round, a village a step: survey and tasks | - | 2 | S | The round matches the whole map in one step, which is why its heir cache exists; Kim decided each village holds its meeting and round in its own step. Survey the code and write the tasks. |
+| [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
 | [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
@@ -26,6 +29,15 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-230](backlog/VB-230.md) | The dependency check by layer, with a baseline that only falls | - | 3 | S | Each module names its layer; the check lists calls that go upward outside the declared channels, against a baseline that only falls (29 on 9 November). |
 | [VB-231](backlog/VB-231.md) | Refactor: the customs in force, read from the kernel layer | - | 3 | M | A kernel-layer `inForce` is the one door to custom; the four modules that index practice arrays ask it, and `culture` stays the only writer. |
 | [VB-232](backlog/VB-232.md) | Refactor: a rule's contribution is registered by its source | - | 3 | S | A contribution may be registered before its rule is declared, in a declared order; a lint holds `source` to the registering module; the hunger and goodwill terms move home. |
+| [VB-236](backlog/VB-236.md) | The route cache is cleared when a tile's cost changes | - | 3 | S | The nightly selective refresh of 30,000 cached routes costs as much as the searches it saves: clear the cache on a change and lower its bound. |
+| [VB-237](backlog/VB-237.md) | Refactor: stores refuses a holder that is not a household, a village or a pawn | - | 3 | S | type() in sim/stores takes anything that is not a household or a village for a pawn, and writes a stake onto it; test for the pawn and throw otherwise. |
+| [VB-238](backlog/VB-238.md) | Refactor: a tie's eviction and floor in sim/relations, written as plain cases | - | 3 | S | put and raiseTie in sim/relations fold three cases into one nested condition and a double negation; write them as the cases they are. |
+| [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
+| [VB-241](backlog/VB-241.md) | Refactor: the calendar, one ordered table of what runs each step, hour, day, season and year | - | 3 | M | What runs when is spread over a dozen date tests in eight modules; gather it in one ordered table in sim/clock, with behaviour unchanged. |
+| [VB-243](backlog/VB-243.md) | The ownership scan's unresolved writes, a baseline that only falls | - | 3 | S | A write whose receiver the scan cannot place is listed, not checked, and up to 20 are allowed; make the list a baseline that only falls and place the 19 there are. |
+| [VB-245](backlog/VB-245.md) | Idle pawns wait 2 to 4 hours before strolling again | - | 3 | S | Idle strolls cost about 40 ms of the 204 ms simulation day at the late reference; an idle pawn waits 2 to 4 hours, not 0.75 to 2. |
+| [VB-246](backlog/VB-246.md) | A benchmark that shows the three engine workarounds still pay | - | 3 | S | Three places are shaped by how V8 stores objects and compiles loops, each by a comment and one old measurement; a benchmark in verify notices when one stops helping. |
+| [VB-247](backlog/VB-247.md) | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
 
 ## Waiting for Kim
 
@@ -98,6 +110,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-190](backlog/VB-190.md) | Plan: roads, boats and ice (slice 10) | roads | 3 | S | VB-189 | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. |
 | [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-136, VB-139, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | VB-136 | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
+| [VB-244](backlog/VB-244.md) | The page runs whole steps and draws pawns between them | - | 2 | M | VB-235 | A step in the page is as long as a frame, so the frame rate changes the run; the page asks for whole six-minute steps and interpolates each pawn's place between the last two. |
 
 ## Archs
 

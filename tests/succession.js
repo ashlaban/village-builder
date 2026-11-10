@@ -5,7 +5,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], Rel = VB['sim/relations'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
-const make = () => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 4 });
+const make = (seed = 4) => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const ids = (list) => list.map((s) => s.id), whys = (list, why) => list.filter((s) => s.why === why).map((s) => s.id);
@@ -52,10 +52,14 @@ const playerEvents = (st, id) => st.pawns[id].events.filter((e) => e.kind === 'p
 
 // 2. Kin by blood and by marriage, each with its link, nearest degree first; those the pawn thought friends come last.
 {
-  const st = make(), hh = st.households[2];
-  // a grown child of household 2 who is not its holder: no farm, so no heirs; its parents, siblings and their spouses are its kin
-  const id = hh.members.find((m) => m !== hh.holder && st.pawns[m].age >= 18 && st.pawns[m].father !== null && R.siblingsOf(st, m).length > 0);
-  assert.ok(id !== undefined, 'the scene: a grown child with siblings');
+  // a grown child of a household who is not its holder: no farm, so no heirs; its parents, siblings and their spouses are its kin. The
+  // first seed whose village has one (the generated households change with the generator).
+  const grown = (st, hh) => hh.members.find((m) => m !== hh.holder && st.pawns[m].age >= 18 && st.pawns[m].father !== null
+    && R.spouseOf(st, m) === null && R.siblingsOf(st, m).length > 1);
+  let st = null, hh = null;
+  for (let seed = 1; seed < 40 && !hh; seed++) { st = make(seed); hh = st.households.find((h) => grown(st, h) !== undefined) || null; }
+  assert.ok(hh, 'the scene: a grown child with siblings');
+  const id = grown(st, hh);
   const p = st.pawns[id], apart = (q) => st.pawns[q].household !== hh.id && !Number.isFinite(R.kinDegree(st, id, q));
   // marry a sibling to an outsider, and make a friend of someone from another farm
   const outsider = st.living.find((q) => apart(q) && R.spouseOf(st, q) === null && st.pawns[q].age >= 14);

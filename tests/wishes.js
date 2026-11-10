@@ -12,8 +12,9 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
 const ask = (st, id) => O.forPawn(st, O.actorView(st, id), id).filter((o) => o.when === 'round');
 const NONE = { out: null, claim: null, serve: null };
 // Four farms: household 2 has grown children; household 3's holder is left alone; household 1 dies out and its farm stands empty.
+let SEED = 1;
 function scene() {
-  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 4 });
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: SEED });
   const empty = st.farmsteads[st.households[1].farmstead], lone = st.households[3];
   H.extinct(st, st.households[1]);
   for (const id of [...lone.members]) if (id !== lone.holder) Sim.killPawn(st, id, 'illness');
@@ -22,7 +23,7 @@ function scene() {
 }
 // the scene's cast, the same in every copy of it: who the round gives the empty farm, who it sends into service, an heir, a holder, and
 // an unmarried adult who wants out, for whom the round starts a plot (a married one moves with its spouse, whose wish is its own)
-const cast = (() => {
+const castOf = () => {
   const { st, empty, lone } = scene();
   const claimant = FC.claimants(st, empty)[0];
   const round = scene().st; Sim.movingRound(round);
@@ -32,8 +33,12 @@ const cast = (() => {
   S.takeServants(st);
   const servant = lone.members.find((id) => id !== lone.holder);
   return { claimant, heir, holder, child, servant, single };
-})();
-assert.ok([cast.claimant, cast.heir, cast.servant, cast.child, cast.single].every((id) => id !== undefined), `the scene's cast: ${JSON.stringify(cast)}`);
+};
+// the first seed whose village has the whole cast (the generated households change with the generator)
+const whole = (c) => [c.claimant, c.heir, c.servant, c.child, c.single].every((id) => id !== undefined);
+let cast = null;
+for (SEED = 1; SEED < 40; SEED++) { cast = castOf(); if (whole(cast)) break; }
+assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
 
 // 1. A wish is set on the player, checked for its shape only, and kept until changed; playing another pawn starts with none.
 {
