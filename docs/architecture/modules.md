@@ -51,8 +51,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
   The player (VB-169) is one more source: `st.player` holds the inhabited pawn and its queue, written by `Sim.inhabit`, `uninhabit`, `queue`,
   `unqueue` and `setAuto`; `playerStep` issues the queue's head each step, and the planner's sites ask `commanded` and `unplanned` before they
-  move a pawn (`tests/player.js`). The page plays it in `src/page/play.js` (VB-210): Play as, the played pawn's part of its card with
-  `Sim.opportunities` once per rebuild, Walk here, Follow and its mark on the map; Follow and the tile being chosen are page state, never `st`.
+  move a pawn (`tests/player.js`). The page plays it in `src/page/play.js` (VB-210, VB-221): the Actions sheet of the bottom bar, shown
+  while a pawn is played, with `Sim.opportunities` once per rebuild while it is open, Walk here, Give grain (the verb `give`, after
+  `Sim.giftWarning`), Follow and its mark on the map; Play as and Stop playing are the Debug panel's. Follow, the tile or household being
+  chosen and the gift's draft are page state, never `st`.
 - Membership (VB-175): `sim/records` alone writes household members, a pawn's household and service (`joinHousehold`,
   `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the

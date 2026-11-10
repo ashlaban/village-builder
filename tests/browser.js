@@ -7,6 +7,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }), page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(60000);
+  // Play as and Stop playing are the Debug panel's (VB-221): the played pawn is fixed but for it and for a death
+  const playSelected = async () => { await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); };
+  const stopPlaying = async () => { await page.click('#debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#debugBtn'); };
   page.on('console', (m) => { if (m.type() === 'error') fail('console.error: ' + m.text()); });
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
@@ -25,11 +28,11 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(1000);
   // a new game offers the scenario's suggestion, a holder (VB-210); taking it plays that pawn and opens its card
   await page.waitForSelector('#playOffer:not([hidden])');
-  await page.click('#playOfferYes'); await page.waitForSelector('#playBox [data-play="stop"]');
+  await page.click('#playOfferYes'); await page.waitForSelector('#playBox [data-play="auto"]');
   if (!(await page.evaluate(() => { const { st, Sim } = window.__play; return !!st.player && Sim.isHolder(st, st.player.pawn); }))) {
     fail('the suggestion is not a holder');
   }
-  await page.click('#playBox [data-play="stop"]');
+  await stopPlaying();
   await page.click('#debugBtn');
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
@@ -53,8 +56,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     const { st } = window.__play, hh = st.households.find((h) => !h.dissolved && h.holder !== null && st.pawns[h.holder].age >= 18);
     window.__play.focusPawn(hh.holder); return hh.holder;
   });
-  await page.click('#tabFacts'); await page.click('#playAs');
-  await page.waitForSelector('#playBox [data-play="auto"]');
+  await playSelected();
   if ((await page.evaluate(() => window.__play.st.player && window.__play.st.player.pawn)) !== played) fail('Play as did not inhabit the pawn');
   const workable = `#playBox button[data-play="do"]:not([disabled])[data-cmd*='"verb":"work"']`;
   await page.click('[data-speed="30"]');
@@ -98,11 +100,11 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
   await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
-  await page.click('#playBox [data-play="stop"]');
+  await stopPlaying();
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop
   if (await page.locator('#skipBtn').isVisible()) fail('Skip is offered with no pawn played');
-  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  await playSelected();
   const skipT = await page.evaluate(() => window.__play.st.t);
   await page.click('#skipBtn');
   await page.waitForSelector('#skipNote', { timeout: 240000 });
@@ -115,9 +117,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (skipped.paused !== 'true' || skipped.pressed !== 'false') fail(`the page is not paused after the skip: ${JSON.stringify(skipped)}`);
   if (!(skipped.t > skipT) || skipped.t - skipT > 1153) fail(`the skip ran from ${skipT} to ${skipped.t}`);
   await page.click('#skipNote');
-  await page.click('#playBox [data-play="stop"]');
+  await stopPlaying();
   // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
-  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  await playSelected();
   await page.click('[data-speed="1"]');
   await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#debugBtn');
   await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
@@ -130,14 +132,14 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id || !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
   if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
   await page.click('#succession button[data-succeed]');
-  await page.waitForSelector('#playBox [data-play="stop"]');
+  await page.waitForSelector('#playBox [data-play="auto"]');
   const after = await page.evaluate((dead) => {
     const { st } = window.__play;
     return { pawn: st.player.pawn, events: st.pawns[dead].events.filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
   }, played);
   if (after.pawn !== offer.heir.id || !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
   await page.waitForFunction(() => document.getElementById('succession').hidden);
-  await page.click('#playBox [data-play="stop"]');
+  await stopPlaying();
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }

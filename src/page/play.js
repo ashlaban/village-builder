@@ -89,25 +89,45 @@
     const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
-  // The played pawn's part of its card, after card() has hidden it: rebuilt with the card (at most four times a second, page/animate), and
-  // Sim.opportunities is called once per rebuild, only for the played pawn.
+  // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
+  // panel): the played pawn's card leads to its actions; after its death, its own card says so and a living pawn the player may go on
+  // as offers it (the list is the succession box's, below).
+  let cardPlayHTML = '';
   function renderPlay(id) {
     const p = st.pawns[id], pl = st.player;
-    let h = '', top = ''; // the played pawn's card is in two parts, top and h, with the gift's box between them (below)
+    let h = '';
     if (pl && st.pawns[pl.pawn].died !== null) {
-      // the played pawn has died: its own card says so, and a living pawn the player may go on as offers it (the list is page/play's box)
       const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
       if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
-      else if (may) h = `<button type="button" class="primary" id="playAs" data-play="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
-    } else if (!pl || pl.pawn !== id) {
-      if (p.age >= ADULT &&
-        p.died === null) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
-    } else {
+      else if (may) h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
+    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Its actions</button></p>';
+    if (h !== cardPlayHTML) { cardPlayHTML = h; $('cardPlay').innerHTML = h; }
+    $('cardPlay').hidden = !h;
+  }
+  $('cardPlay').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-card]');
+    if (!b || !st || selPawn < 0) return;
+    if (b.dataset.card === 'actions') { openPanel('actions'); return; }
+    const id = selPawn, r = Sim.succeed(st, id);
+    succAt = 0; playMsg = r === true ? null : { id, text: r };
+    if (r === true) openPanel('actions'); else showPawn(id);
+  });
+  // The Actions sheet (the bottom bar's Actions, shown while a pawn is played): all that the player does through its pawn. In two parts,
+  // top and h, with the gift's box between them (below). Rebuilt while it is open, at most four times a second (page/animate), and
+  // Sim.opportunities is called once per rebuild.
+  function renderActions() {
+    const id = played(), pl = st && st.player;
+    if ($('actionsBtn').hidden !== id < 0) $('actionsBtn').hidden = id < 0;
+    if (id < 0) { if (activePanel === 'actions') openPanel(null); return; }
+    if (activePanel !== 'actions') return;
+    const p = st.pawns[id];
+    let h = '', top = '';
+    {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
       const food = !hh ? '' : ` ${esc(f.name)}: food for ${days === null ? 'no one' : `${days} ${days === 1 ? 'day' : 'days'}`}, firewood ${wood} ${
         wood === 1 ? 'load' : 'loads'}.`;
-      h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="stop">Stop playing</button></div>`;
+      h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
       h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%, health ${Math.round(p.health)}.${food}</p>`;
       h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
       h += `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>`
@@ -138,7 +158,6 @@
     }
     if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
     if (top + '\n' + h !== playHTML) { playHTML = top + '\n' + h; $('playTop').innerHTML = top; $('playRest').innerHTML = h; }
-    $('playBox').hidden = !(top || h);
     renderGive(id);
   }
   // ---- the player's gift (VB-221): while it plays a holder, grain to any household, by the verb give; below the floor it is warned ----
@@ -190,12 +209,12 @@
     $('giveTo').value = gift.to === null ? '' : String(gift.to); $('giveN').value = String(gift.n);
   }
   $('giveBox').addEventListener('change', (e) => {
-    if (e.target.id === 'giveTo') { gift.to = e.target.value === '' ? null : +e.target.value; gift.warn = null; gift.msg = ''; renderGive(selPawn, true); }
+    if (e.target.id === 'giveTo') { gift.to = e.target.value === '' ? null : +e.target.value; gift.warn = null; gift.msg = ''; renderGive(played(), true); }
   });
   $('giveBox').addEventListener('input', (e) => {
     if (e.target.id !== 'giveN') return;
     gift.n = +e.target.value;
-    if (gift.warn || gift.msg) { gift.warn = null; gift.msg = ''; renderGive(selPawn, true); $('giveN').focus(); }
+    if (gift.warn || gift.msg) { gift.warn = null; gift.msg = ''; renderGive(played(), true); $('giveN').focus(); }
   });
   function queueGift(id) {
     const r = Sim.queue(st, { actor: id, verb: 'give', target: gift.to, args: { good: 'grain', n: gift.n } });
@@ -203,7 +222,7 @@
     gift.warn = null;
   }
   $('giveBox').addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-give]'), id = selPawn, hh = b && st && id >= 0 ? givesFor(id) : null;
+    const b = e.target.closest('button[data-give]'), id = st ? played() : -1, hh = b && id >= 0 ? givesFor(id) : null;
     if (!hh) return;
     const act = b.dataset.give, max = Math.max(0, Math.floor(hh.grain - Sim.seedReserve(st, hh)));
     e.stopPropagation();
@@ -214,7 +233,7 @@
     else if (!(Number.isInteger(gift.n) && gift.n >= 1 && gift.n <= max)) gift.msg = `Give a whole number of rations, from 1 to ${max}.`;
     else if (act === 'confirm') queueGift(id);
     else { gift.warn = Sim.giftWarning(st, hh, gift.n); if (!gift.warn) queueGift(id); }
-    showPawn(id); renderGive(id, true);
+    renderActions(); renderGive(id, true);
   });
   // "Choose on the map": the next click names the household, by one of its people, its farm's name, or a tile of its land or its house
   // (page/tileinfo asks first). Anything else says so and waits for another click.
@@ -236,12 +255,11 @@
   }
   $('playBox').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-play]');
-    if (!b || !st || selPawn < 0) return;
-    const id = selPawn, act = b.dataset.play;
+    const id = played();
+    if (!b || !st || id < 0) return;
+    const act = b.dataset.play;
     let r = true;
-    if (act === 'inhabit') r = playAs(id);
-    else if (act === 'succeed') { r = Sim.succeed(st, id); succAt = 0; }
-    else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
+    if (act === 'find') { focusPawn(id); openPanel('actions'); }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') { walkPick = !walkPick; gift.pick = false; }
@@ -252,7 +270,7 @@
       r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
     }
     playMsg = r === true ? null : { id, text: r };
-    showPawn(id);
+    renderActions();
   });
   // "Walk here": the next tile clicked on the map, if open; a closed one says why and waits for another (page/tileinfo asks first).
   function pickWalk(i) {
@@ -261,7 +279,7 @@
     const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
     if (!o || o.why) playMsg = { id, text: `${o ? o.why : 'no one can walk there'}: choose an open tile` };
     else { const r = Sim.queue(st, { actor: id, verb: 'walkTo', target: i }); walkPick = false; playMsg = r === true ? null : { id, text: r }; }
-    if (selPawn === id) showPawn(id);
+    renderActions();
   }
   // Follow: the camera stays on the played pawn, or its house while it is indoors; dragging the map lets go (page/input).
   function followCamera() {
@@ -307,7 +325,7 @@
     if (!b || !st) return;
     const id = +b.dataset.succeed, r = Sim.succeed(st, id);
     succAt = 0;
-    if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
+    if (r === true) { playMsg = null; focusPawn(id); openPanel('actions'); } // refused only if it died meanwhile: the list is read again at once
   });
   // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
   // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
@@ -346,6 +364,6 @@
   $('playOfferYes').addEventListener('click', () => {
     const id = +$('playOffer').dataset.pawn;
     if (!st || !st.pawns[id]) return;
-    if (playAs(id) === true) focusPawn(id);
+    if (playAs(id) === true) { focusPawn(id); openPanel('actions'); }
   });
   $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });

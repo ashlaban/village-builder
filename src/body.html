@@ -49,11 +49,22 @@
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
+  <button id="actionsBtn" type="button" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet" hidden>Actions</button>
   <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
   <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
   <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
   <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
 </nav>
+<aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
+  <div class="sheet-head">
+    <h2 id="actionTitle">Actions</h2>
+    <button type="button" class="sheet-expand" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent">Collapse</button>
+    <button id="actionClose" type="button">Close</button>
+  </div>
+  <div class="sheet-content" id="actionContent">
+    <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
+  </div>
+</aside>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
     <h2 id="peopleTitle">People &amp; households</h2>
@@ -98,7 +109,7 @@
         <span id="tileExtra" hidden></span>
         <span id="tileMore" hidden></span>
         <div id="tileRest"></div>
-        <div id="playBox" class="play" hidden><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
+        <div id="cardPlay" class="play" hidden></div>
         <div id="tileLinks" class="links" hidden></div>
         <div id="tileList" class="roster" hidden></div>
         <button type="button" id="personFamily" hidden>View family records</button>

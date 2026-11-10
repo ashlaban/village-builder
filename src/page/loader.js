@@ -101,7 +101,7 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) selectPawn(sim.player.pawn);
+    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('regen').disabled = false;
   }
 
