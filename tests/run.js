@@ -19,7 +19,7 @@ const TEST = [
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'],
+  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'], ['node', 'tests/browser-saves.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
   ['node', 'tests/bands.js'],
@@ -34,7 +34,7 @@ const rank = (c) => {
   const name = c.join(' '), first = FIRST.some((s) => name.includes(s)), k = SLOW.findIndex((s) => name.includes(s));
   return first ? -1 : k < 0 ? SLOW.length : k;
 };
-const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile)?\.js$/.test(a));
+const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile|-saves)?\.js$/.test(a));
 const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
 const t0 = Date.now(), failed = [];
 function run(cmd) {
