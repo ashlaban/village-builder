@@ -31,42 +31,50 @@ VB['sim/saves'] = (() => {
   // objects, with no key starting with "$") is returned as it is, not copied: the save shares those parts with the state, so it is
   // written out (JSON.stringify) before the state changes. A Map is {"$kv": [k, v, k, v, ...]} (format 2; "$map" is still read).
   const UNDEF = Object.freeze({ $undef: 1 });
-  const odd = (v) => (Number.isNaN(v) ? { $num: 'NaN' } : !Number.isFinite(v) ? { $num: v > 0 ? 'Infinity' : '-Infinity' } : { $num: '-0' });
   // pack: a Map of an object to {as, data}; the object is written as {"$as": as, "v": data} and decode(..., revive) makes it again with
   // revive[as](data). The object and what it holds are not walked: they must be reached from nowhere else.
+  // A value JSON writes as it is: a string, a boolean or a finite number other than -0 (null is checked apart).
+  const asIs = (x) => typeof x === 'string' || typeof x === 'boolean' || (typeof x === 'number' && x === x && x !== Infinity && x !== -Infinity
+    && (x !== 0 || 1 / x > 0));
   function encode(root, stop = null, pack = null) {
-    // pass 1: which objects are reached more than once
+    // pass 1: which objects are reached more than once. count holds 1, 2... for an object reached once, twice...; a packed object starts
+    // at -1 and goes down (-2 reached once, -3 or less shared), so neither pass looks it up in pack.
     const count = new Map(), stack = [root];
+    if (pack) for (const o of pack.keys()) count.set(o, -1);
     while (stack.length) {
-      const v = stack.pop();
-      if (v === null || typeof v !== 'object') continue;
-      const n = (count.get(v) || 0) + 1; count.set(v, n);
-      if (n > 1 || ArrayBuffer.isView(v) || (pack && pack.has(v))) continue;
-      if (v instanceof Map) for (const [k, x] of v) stack.push(k, x);
-      else if (v instanceof Set) for (const x of v) stack.push(x);
-      else if (Array.isArray(v)) for (const x of v) stack.push(x);
-      else for (const k of Object.keys(v)) stack.push(v[k]);
+      const v = stack.pop(), c = count.get(v);
+      if (c !== undefined) { count.set(v, c < 0 ? c - 1 : c + 1); continue; }
+      count.set(v, 1);
+      if (ArrayBuffer.isView(v)) continue;
+      if (v instanceof Map) {
+        for (const [k, x] of v) {
+          if (k !== null && typeof k === 'object') stack.push(k);
+          if (x !== null && typeof x === 'object') stack.push(x);
+        }
+      } else if (v instanceof Set) { for (const x of v) if (x !== null && typeof x === 'object') stack.push(x); }
+      else if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) { const x = v[i]; if (x !== null && typeof x === 'object') stack.push(x); } }
+      else for (const k in v) { const x = v[k]; if (x !== null && typeof x === 'object' && Object.hasOwn(v, k)) stack.push(x); }
     }
     // pass 2: write it out; the path to the value being written is kept as (kind, key) pairs and spelled out only for an error
     const ids = new Map(), path = [];
     const SPELL = [(x) => `[${x}]`, (x) => `.${x}`, (x) => `<key ${x}>`, (x) => `.get(${x})`, (x) => `{${x}}`];
     const where = () => { let s = 'st'; for (let i = 0; i < path.length; i += 2) s += SPELL[path[i]](path[i + 1]); return s; };
+    const tagged = (id, o) => (id < 0 ? o : { $id: id, ...o });
     const enc = (v) => {
-      if (typeof v === 'number') return v === v && v !== Infinity && v !== -Infinity && (v !== 0 || 1 / v > 0) ? v : odd(v);
-      if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
+      if (v === null || asIs(v)) return v;
+      if (typeof v === 'number') return Number.isNaN(v) ? { $num: 'NaN' } : !Number.isFinite(v) ? { $num: v > 0 ? 'Infinity' : '-Infinity' } : { $num: '-0' };
       if (v === undefined) return UNDEF;
       if (typeof v !== 'object') throw new Error(`save: a ${typeof v} at ${where()}`);
       if (stop && stop.has(v)) throw new Error(`save: ${where()} reaches an object that is not saved with the state`);
-      const shared = count.get(v) > 1;
+      const c = count.get(v), shared = c > 1 || c < -2;
       if (shared && ids.has(v)) return { $ref: ids.get(v) };
       const id = shared ? ids.size : -1;
       if (shared) ids.set(v, id);
-      const tag = (o) => (shared ? { $id: id, ...o } : o);
-      if (pack && pack.has(v)) { const p = pack.get(v); return tag({ $as: p.as, v: enc(p.data) }); }
+      if (c < 0) { const p = pack.get(v); return tagged(id, { $as: p.as, v: enc(p.data) }); }
       if (ArrayBuffer.isView(v)) {
         const type = v.constructor.name;
         if (TYPED[type] !== v.constructor) throw new Error(`save: a ${type} at ${where()}`);
-        return tag({ $ta: type, b64: bytesToB64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) });
+        return tagged(id, { $ta: type, b64: bytesToB64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) });
       }
       if (v instanceof Map) {
         const a = [];
@@ -76,21 +84,24 @@ VB['sim/saves'] = (() => {
           path[path.length - 2] = 3; path[path.length - 1] = k; a.push(enc(x));
           path.length -= 2;
         }
-        return tag({ $kv: a });
+        return tagged(id, { $kv: a });
       }
       if (v instanceof Set) {
         const a = [];
         let i = 0;
         for (const x of v) { path.push(4, i++); a.push(enc(x)); path.length -= 2; }
-        return tag({ $set: a });
+        return tagged(id, { $set: a });
       }
       if (Array.isArray(v)) {
         let a = null;
         for (let i = 0; i < v.length; i++) {
-          let e = UNDEF;
-          if (i in v) { path.push(0, i); e = enc(v[i]); path.length -= 2; }
+          const x = v[i];
+          let e = x;
+          if (!(x === null || asIs(x))) {
+            if (i in v) { path.push(0, i); e = enc(x); path.length -= 2; } else e = UNDEF;
+          }
           if (a !== null) a.push(e);
-          else if (e === UNDEF || e !== v[i]) { a = v.slice(0, i); a.push(e); }
+          else if (e !== x || e === UNDEF) { a = v.slice(0, i); a.push(e); }
         }
         return shared ? { $id: id, $arr: a || v } : a || v;
       }
@@ -99,9 +110,8 @@ VB['sim/saves'] = (() => {
       let o = shared ? { $id: id } : null;
       for (let j = 0; j < keys.length; j++) {
         const k = keys[j], x = v[k];
-        path.push(1, k);
-        const e = enc(x);
-        path.length -= 2;
+        let e = x;
+        if (!(x === null || asIs(x))) { path.push(1, k); e = enc(x); path.length -= 2; }
         if (o === null) {
           if (e === x && k.charCodeAt(0) !== 36) continue;
           o = {};
