@@ -13,7 +13,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-261](backlog/VB-261.md) | Plan: gates become targets with residuals | - | 1 | S | No hard gates in this phase of development (Kim, 10 Nov): survey every gate (cost baselines, bands, the demographic gate, bench shares, Checks) and propose how each is reported as a target and its residual. |
-| [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | The moving-round day and midnight under 60 ms on `medium-ref` and `small-y40` (the medium-y60 allowance ended on 7 November), with deterministic saves and demographic gates. |
+| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-233](backlog/VB-233.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
 | [VB-235](backlog/VB-235.md) | The clock counts whole six-minute ticks | - | 2 | M | st.t is a float advanced by 0.1: hours fire a step late from year 2 and a run depends on how advance is chunked; count integer ticks instead. |
@@ -59,7 +59,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
 | [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
-| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-233 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
 | [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | VB-252 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
