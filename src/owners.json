@@ -10,6 +10,8 @@
     "st.claims": "sim/claims",
     "st.player": "sim/commands",
     "st.plans": "sim/plans",
+    "st.offers": "sim/lifecycle",
+    "st.offerSeq": "sim/lifecycle",
     "household.grain": "sim/stores",
     "household.meals": "sim/stores",
     "household.unthreshed": "sim/stores",

@@ -89,7 +89,7 @@ VB['sim/notable'] = (() => {
   // The kinds a history is filtered by, in the order the page offers them.
   const CHRONICLE = {
     life: { label: 'Births and deaths', kinds: ['born', 'died'] },
-    marriage: { label: 'Marriages', kinds: ['married', 'putOff'] },
+    marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
       'plotStarted', 'field', 'meadow', 'stake', 'border', 'service', 'guardian'] },
     custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
@@ -143,6 +143,7 @@ VB['sim/notable'] = (() => {
     farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
     custom: 'A change of custom in its village',
     hunger: 'Hunger in its household',
+    offer: 'A marriage offer that waits for its answer',
     refused: 'A command refused',
     idle: 'Nothing queued, with its automatic behaviour off',
     round: 'The eve of the moving round',
@@ -155,12 +156,16 @@ VB['sim/notable'] = (() => {
   }
   // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
   // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
-  // already)}; null when no pawn is played.
+  // already), offer (the id the next offer will have, VB-272: the offers open when it began, and any older, do not stop it, and each
+  // that does stops it once)}; null when no pawn is played.
   function skipFrom(st) {
     const pl = st.player; if (!pl) return null;
     const hid = st.pawns[pl.pawn].household, hh = hid !== null ? st.households[hid] : null;
-    return { t: st.t, n: st.record.length, eve: roundEve(st.t), homeId: hid, short: hh ? hh.hungryDays : 0, hungry: !!hh && hh.hunger > 0 };
+    return { t: st.t, n: st.record.length, eve: roundEve(st.t), homeId: hid, short: hh ? hh.hungryDays : 0, hungry: !!hh && hh.hunger > 0,
+      offer: st.offerSeq };
   }
+  // Does the open offer o wait for pawn id's answer.
+  const waitsFor = (o, id) => o.answers.some((a) => a.by === id && a.yes === null);
   // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
   function stopsFor(st, ev, about, hid, vid) {
     if (!told(ev)) return null;
@@ -185,6 +190,11 @@ VB['sim/notable'] = (() => {
     if (hh && hh.hungryDays > from.short) {
       from.short = hh.hungryDays;
       if (!from.hungry) { from.hungry = true; return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` }; }
+    }
+    for (const o of st.offers) {
+      if (!(o.id >= from.offer) || !waitsFor(o, pl.pawn)) continue;
+      from.offer = o.id + 1;
+      return { why: 'offer', text: `A match waits for an answer: ${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}.` };
     }
     if (pl.refused && pl.refused.t > from.t) return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
     if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };

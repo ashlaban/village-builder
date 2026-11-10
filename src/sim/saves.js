@@ -242,6 +242,7 @@ VB['sim/saves'] = (() => {
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
+    if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-272: nor marriage offers
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

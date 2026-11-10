@@ -225,6 +225,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
+    // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units
@@ -246,7 +247,7 @@ VB['sim/scenarios'] = (() => {
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
-      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
+      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0,
     };
     rebuildLiving(st);
     seedPlans(st);

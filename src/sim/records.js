@@ -24,7 +24,8 @@ VB['sim/records'] = (() => {
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
-    stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0,
+    stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
+    matchRefused: 0, offerLapsed: 0,
     // routine
     friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION, herdBirths: GENERATION,
     herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION,
@@ -258,6 +259,17 @@ VB['sim/records'] = (() => {
   // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
   // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
   const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
+  // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-272): the holder of its household when it
+  // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
+  // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
+  function spokesmanOf(st, id) {
+    const p = st.pawns[id];
+    if (p.household === null || p.servant) return id;
+    const hh = st.households[p.household], h = hh.holder;
+    if (hh.dissolved || h === null || h === id) return id;
+    const hp = st.pawns[h], sp = spouseOf(st, h), of = (q) => q !== null && (q === h || q === sp || q === hp.father || q === hp.mother);
+    return of(p.father) || of(p.mother) ? h : id;
+  }
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -360,6 +372,6 @@ VB['sim/records'] = (() => {
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
-    noteLine, householdsOfLine, ancestorsOf, wishOf,
+    noteLine, householdsOfLine, ancestorsOf, wishOf, spokesmanOf,
   };
 })();
