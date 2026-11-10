@@ -45,7 +45,7 @@ VB['sim/clock'] = (() => {
     }
     if (h === 0) {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
-      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-272)
+      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }

@@ -171,11 +171,11 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   position, and slice 3 designs it (below).
 - Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-233", "VB-234", "VB-099"): an offer waits 7 game days;
   a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
-- VB-233's plan (10 Nov) wrote marriage's tasks: VB-272 (each match an offer both households answer, kept in `st.offers` with a
+- VB-233's plan (10 Nov) wrote marriage's tasks: VB-293 (each match an offer both households answer, kept in `st.offers` with a
   due time when the player must answer; no player, no change), VB-273 (the offer in the page), VB-274 (the wish for a match), and
   VB-275 (opinion in the answers, waiting for Kim's answer in `QUESTIONS.md`). The terms are VB-276, in slice 4; courting's part is
   VB-036's, in slice 7. Cost: no stored offer without a player, about 0.06 a household a year with one, nothing polled between rounds.
-- An offer is made in the man's village's round. VB-242's plan (10 Nov) makes the round a village a step (VB-277, after VB-272;
+- An offer is made in the man's village's round. VB-242's plan (10 Nov) makes the round a village a step (VB-277, after VB-293;
   `design.md`, Leaving home: A village's round), so a pair held by an offer is not free to a later village's men the same day.
 - **Distance between villages governs what reaches between them, and the pawn travels** (Kim, 10 Nov; `design.md`, Between
   villages). VB-281's plan: VB-286 (walking hours between villages, a table a village a step), VB-287 (journeys: a mover walks,

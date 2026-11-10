@@ -157,7 +157,7 @@ VB['sim/notable'] = (() => {
   }
   // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
   // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
-  // already), offer (the id the next offer will have, VB-272: the offers open when it began, and any older, do not stop it, and each
+  // already), offer (the id the next offer will have, VB-293: the offers open when it began, and any older, do not stop it, and each
   // that does stops it once)}; null when no pawn is played.
   function skipFrom(st) {
     const pl = st.player; if (!pl) return null;

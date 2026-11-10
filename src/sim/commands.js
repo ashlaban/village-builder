@@ -95,7 +95,7 @@ VB['sim/commands'] = (() => {
           : !home(st, c.args && c.args.home) ? `there is no household ${c.args && c.args.home}` : null),
       run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
     },
-    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-272),
+    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-293),
     // all its answers in it at once; the offer closes at a no, or when all have said yes
     answer: {
       check: (st, c) => (!st.player || st.player.pawn !== c.actor ? `pawn ${c.actor} is not the player's pawn` : living(st, c.actor)
@@ -342,7 +342,7 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  // The played pawn answers the open marriage offer offerId (VB-272; the first question asked through Decisions.answer, which slice 5's
+  // The played pawn answers the open marriage offer offerId (VB-293; the first question asked through Decisions.answer, which slice 5's
   // Decisions module takes over): true, or why not.
   function answer(st, offerId, yes) {
     if (!st.player) return 'no pawn is played';

@@ -260,7 +260,7 @@ VB['sim/records'] = (() => {
   // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
   // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
   const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
-  // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-272): the holder of its household when it
+  // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-293): the holder of its household when it
   // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
   // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
   function spokesmanOf(st, id) {

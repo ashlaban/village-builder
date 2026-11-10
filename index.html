@@ -2395,7 +2395,7 @@ VB['sim/rules'] = (() => {
       bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
       border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
       claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
-      // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-272)
+      // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
@@ -2427,7 +2427,7 @@ VB['sim/rules'] = (() => {
     // when stores are at their highest, and at 1 the check seldom bound (births and hunger as before); at 1.5, over four tiny-map runs of 80
     // years, deaths from hunger fell by about 40% and women married 2 to 3 years later.
     means: 1.5,
-    // an offer the player must answer stays open this many days; unanswered, it is answered as the pawn would unplayed (VB-272)
+    // an offer the player must answer stays open this many days; unanswered, it is answered as the pawn would unplayed (VB-293)
     offerDays: 7,
   };
 
@@ -3719,7 +3719,7 @@ VB['sim/records'] = (() => {
   // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
   // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
   const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
-  // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-272): the holder of its household when it
+  // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-293): the holder of its household when it
   // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
   // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
   function spokesmanOf(st, id) {
@@ -5639,7 +5639,7 @@ VB['sim/notable'] = (() => {
   }
   // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
   // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
-  // already), offer (the id the next offer will have, VB-272: the offers open when it began, and any older, do not stop it, and each
+  // already), offer (the id the next offer will have, VB-293: the offers open when it began, and any older, do not stop it, and each
   // that does stops it once)}; null when no pawn is played.
   function skipFrom(st) {
     const pl = st.player; if (!pl) return null;
@@ -7292,7 +7292,7 @@ VB['sim/commands'] = (() => {
           : !home(st, c.args && c.args.home) ? `there is no household ${c.args && c.args.home}` : null),
       run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
     },
-    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-272),
+    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-293),
     // all its answers in it at once; the offer closes at a no, or when all have said yes
     answer: {
       check: (st, c) => (!st.player || st.player.pawn !== c.actor ? `pawn ${c.actor} is not the player's pawn` : living(st, c.actor)
@@ -7539,7 +7539,7 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  // The played pawn answers the open marriage offer offerId (VB-272; the first question asked through Decisions.answer, which slice 5's
+  // The played pawn answers the open marriage offer offerId (VB-293; the first question asked through Decisions.answer, which slice 5's
   // Decisions module takes over): true, or why not.
   function answer(st, offerId, yes) {
     if (!st.player) return 'no pawn is played';
@@ -9084,7 +9084,7 @@ VB['sim/settle'] = (() => {
 </script>
 <script>
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and its marriage offers, and the daily life step
-// @state st.offers[]: the open marriage offers (VB-272; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
+// @state st.offers[]: the open marriage offers (VB-293; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
 //   ids), home (the household they would live in), village (the man's settlement), made, due (made + MARRIAGE.offerDays days; game hours),
 //   answers[] ({key: 'man' | 'woman' | 'manSide' | 'womanSide', by (the one to marry, or its spokesman when the offer was made), yes: null
 //   | true | false})}. Only offers that wait for the player's answer are kept, so with no player it stays empty. Plain data, saved.
@@ -9264,7 +9264,7 @@ VB['sim/lifecycle'] = (() => {
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
-    // A pawn in an open offer is not free to anyone, and counts as matched (VB-272): `taken` holds the matched women and the held.
+    // A pawn in an open offer is not free to anyone, and counts as matched (VB-293): `taken` holds the matched women and the held.
     const taken = new Set(), played = st.player ? st.player.pawn : null;
     for (const o of st.offers) { taken.add(o.man); taken.add(o.woman); }
     // Where a couple would live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one
@@ -9344,7 +9344,7 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id);
-      // The match is an offer the two and their spokesmen answer (VB-272): a side with no player says yes at once, and the round marries
+      // The match is an offer the two and their spokesmen answer (VB-293): a side with no player says yes at once, and the round marries
       // them here; one that waits for the player's answer is kept, the two held, and the round goes on without it.
       if (played !== null) {
         const answers = answersOf(st, m.id, best.f.id);
@@ -9379,7 +9379,7 @@ VB['sim/lifecycle'] = (() => {
   }
   // The handover by custom that a marriage brings, for one household: when its first heir (rank(h)[0], `rank` a ranking function of
   // household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is 60. The round runs it for
-  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-272), a village's round for its farms
+  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-293), a village's round for its farms
   // (VB-277). The heir it is handed to, or null.
   function handover(st, hh, rank) {
     if (hh.dissolved) return null;
@@ -9391,7 +9391,7 @@ VB['sim/lifecycle'] = (() => {
     issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' });
     return heir;
   }
-  // ---- marriage offers (VB-272; design.md, Marriage as a negotiation): each match is answered by the two who marry and their spokesmen ----
+  // ---- marriage offers (VB-293; design.md, Marriage as a negotiation): each match is answered by the two who marry and their spokesmen ----
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them.
   const answersOf = (st, man, woman) => [['man', man], ['woman', woman]].flatMap(([key, id]) => {
     const s = spokesmanOf(st, id), own = { key, by: id, yes: null };
@@ -9925,7 +9925,7 @@ VB['sim/clock'] = (() => {
     }
     if (h === 0) {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
-      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-272)
+      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
@@ -10258,7 +10258,7 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
-    if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-272: nor marriage offers
+    if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }
@@ -13990,7 +13990,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '24029a98ba', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a13744f2c8', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

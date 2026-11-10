@@ -1,5 +1,5 @@
 // @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and its marriage offers, and the daily life step
-// @state st.offers[]: the open marriage offers (VB-272; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
+// @state st.offers[]: the open marriage offers (VB-293; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
 //   ids), home (the household they would live in), village (the man's settlement), made, due (made + MARRIAGE.offerDays days; game hours),
 //   answers[] ({key: 'man' | 'woman' | 'manSide' | 'womanSide', by (the one to marry, or its spokesman when the offer was made), yes: null
 //   | true | false})}. Only offers that wait for the player's answer are kept, so with no player it stays empty. Plain data, saved.
@@ -179,7 +179,7 @@ VB['sim/lifecycle'] = (() => {
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
-    // A pawn in an open offer is not free to anyone, and counts as matched (VB-272): `taken` holds the matched women and the held.
+    // A pawn in an open offer is not free to anyone, and counts as matched (VB-293): `taken` holds the matched women and the held.
     const taken = new Set(), played = st.player ? st.player.pawn : null;
     for (const o of st.offers) { taken.add(o.man); taken.add(o.woman); }
     // Where a couple would live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one
@@ -259,7 +259,7 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id);
-      // The match is an offer the two and their spokesmen answer (VB-272): a side with no player says yes at once, and the round marries
+      // The match is an offer the two and their spokesmen answer (VB-293): a side with no player says yes at once, and the round marries
       // them here; one that waits for the player's answer is kept, the two held, and the round goes on without it.
       if (played !== null) {
         const answers = answersOf(st, m.id, best.f.id);
@@ -294,7 +294,7 @@ VB['sim/lifecycle'] = (() => {
   }
   // The handover by custom that a marriage brings, for one household: when its first heir (rank(h)[0], `rank` a ranking function of
   // household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is 60. The round runs it for
-  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-272), a village's round for its farms
+  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-293), a village's round for its farms
   // (VB-277). The heir it is handed to, or null.
   function handover(st, hh, rank) {
     if (hh.dissolved) return null;
@@ -306,7 +306,7 @@ VB['sim/lifecycle'] = (() => {
     issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' });
     return heir;
   }
-  // ---- marriage offers (VB-272; design.md, Marriage as a negotiation): each match is answered by the two who marry and their spokesmen ----
+  // ---- marriage offers (VB-293; design.md, Marriage as a negotiation): each match is answered by the two who marry and their spokesmen ----
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them.
   const answersOf = (st, man, woman) => [['man', man], ['woman', woman]].flatMap(([key, id]) => {
     const s = spokesmanOf(st, id), own = { key, by: id, yes: null };

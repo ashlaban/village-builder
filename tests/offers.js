@@ -1,4 +1,4 @@
-// Marriage offers (VB-272; design.md, Marriage as a negotiation): each match of the moving round is an offer that the two who marry and
+// Marriage offers (VB-293; design.md, Marriage as a negotiation): each match of the moving round is an offer that the two who marry and
 // their spokesmen answer. With no player every side says yes at once and nothing is stored (the golden file and the counters show the run
 // unchanged). A match that waits for the played pawn's answer is kept in st.offers with its due time, the two held out of the round: yes
 // marries them in the round's home and the handover follows; no leaves both unmarried, and a young pawn that refuses its head's match costs

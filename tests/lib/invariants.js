@@ -340,7 +340,7 @@ function checkState(st) {
       || !(ws.claim === null || ws.claim === false || (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
-  // the open marriage offers (VB-272): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
+  // the open marriage offers (VB-293): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
   // unique, no pawn in two; the answers are the man's and the woman's (by them) and at most one spokesman's a side (by another pawn: a
   // spokesman who is the one to marry gives one answer), none a no and one at least still to give (an offer closes at a no or at all yes).
   // Who spoke for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since.
