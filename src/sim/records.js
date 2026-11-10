@@ -27,8 +27,8 @@ VB['sim/records'] = (() => {
     stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
     matchRefused: 0, offerLapsed: 0,
     // routine
-    friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION, herdBirths: GENERATION,
-    herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION,
+    closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
+    herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record

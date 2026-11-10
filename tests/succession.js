@@ -65,12 +65,12 @@ const playerEvents = (st, id) => Sim.recordOf(st, { pawn: id, life: true }).filt
   // marry a sibling to an outsider, and make a friend of someone from another farm
   const outsider = st.living.find((q) => apart(q) && R.spouseOf(st, q) === null && st.pawns[q].age >= 14);
   const sib = R.siblingsOf(st, id).find((q) => st.pawns[q].alive && R.spouseOf(st, q) === null && st.pawns[q].sex !== st.pawns[outsider].sex);
-  const friend = st.living.find((q) => apart(q) && q !== outsider);
+  const friend = st.living.find((q) => apart(q) && q !== outsider && Rel.compat(st, id, q) > 0.5); // compatible, to grow familiar with
   assert.ok(outsider !== undefined && sib !== undefined && friend !== undefined, 'the scene: an outsider to marry in and a friend');
   R.marry(st, sib, outsider, 1);
   const inLaw = R.spouseOf(st, sib), FRIEND = VB['sim/rules'].SOCIAL.friend;
   assert.strictEqual(inLaw, outsider, 'the scene: the sibling is married');
-  for (let n = 0; n < 40 && Rel.opinionOf(st, id, friend) < FRIEND; n++) Rel.remember(st, id, friend, 'goodTalk');
+  Rel.addTie(st, id, friend, VB['sim/rules'].SOCIAL.affinity.known); // known well: the affinity whole (VB-240)
   assert.ok(Rel.opinionOf(st, id, friend) >= FRIEND, `the scene: a friend (${Rel.opinionOf(st, id, friend)})`);
   Sim.inhabit(st, id); Sim.killPawn(st, id, 'illness');
   const list = Sim.successors(st, id), at = (q) => list.find((s) => s.id === q), pos = (q) => ids(list).indexOf(q);

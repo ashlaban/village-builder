@@ -174,11 +174,12 @@ VB['sim/saves'] = (() => {
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
+  // Since VB-240 a record has no band (pawn.bands holds them): its slot is written 0 and not read.
   const FORMAT = 3, READS = [3];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
-      a.push(j, r.band, 0);
+      a.push(j, 0, 0);
       const at = a.length - 1;
       for (const kind in r.mem) { const m = r.mem[kind]; a.push(kind, m.v, m.t); a[at]++; }
     }
@@ -187,10 +188,10 @@ VB['sim/saves'] = (() => {
   function unpackRel(a) {
     const rel = new Map();
     for (let i = 0; i < a.length;) {
-      const j = a[i], band = a[i + 1], n = a[i + 2], mem = {};
+      const j = a[i], n = a[i + 2], mem = {};
       i += 3;
       for (let q = 0; q < n; q++, i += 3) mem[a[i]] = { v: a[i + 1], t: a[i + 2] };
-      rel.set(j, { mem, band });
+      rel.set(j, { mem });
     }
     return rel;
   }
@@ -246,7 +247,7 @@ VB['sim/saves'] = (() => {
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-272: nor marriage offers
-    migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
+    migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }
   return { encode, decode, save, load, FORMAT, READS };
