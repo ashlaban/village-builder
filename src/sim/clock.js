@@ -16,7 +16,7 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { meetingStage, MEETING_STAGES, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
@@ -26,7 +26,6 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
-    if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const id of st.living) {
         const a = st.agents[id];
@@ -94,11 +93,17 @@ VB['sim/clock'] = (() => {
       st.t += step; left -= step;
       const after = Math.floor(st.t + 1e-9), ticked = Math.floor(st.t * TICKS + 1e-4);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      // The autumn meetings (customs, then the outland), a stage on each of the 6-minute steps from noon of autumn day 10 (sim/lifecycle, VB-206);
-      // the step of the day says what is due, so a save between two stages goes on.
+      // The 6-minute steps of the day that began in this advance (sim/lifecycle): the night's culture, a settlement a step after midnight (VB-201);
+      // from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from noon of day 11, the moving round's phases (VB-201).
+      // The step of the day says what is due, so a save between two of them goes on.
       if (st.cenv) for (let k = tick + 1; k <= ticked; k++) {
-        const r = (((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS)) - 12 * TICKS;
-        if (r >= 0 && r < MEETING_STAGES) { const kc = cal(k / TICKS); if (kc.season === 2 && kc.sday === 9) meetingStage(st, r); }
+        const n = ((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS), r = n - 12 * TICKS;
+        nightCulture(st, n);
+        if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
+          const kc = cal(k / TICKS);
+          if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
+          else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
+        }
       }
       playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
       const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;

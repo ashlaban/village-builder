@@ -166,6 +166,25 @@ const Culture = (() => {
     }
     VB.count.walkDaily += walked;
   }
+  // One settlement's part of the day's step (VB-201: the night's steps take a settlement each): its mean, then its people in id order, as
+  // hooks.membersOf gives them. s null drifts the living of no settlement, against no local mean.
+  function settlementStep(env, hooks, dt, rand, s) {
+    const mul = env.driftMul || 1, means = new Map();
+    let walked = 0, people;
+    if (s) {
+      people = hooks.membersOf(s);
+      const m = new Float32Array(TOTAL); let n = 0;
+      for (const p of people) { walked++; if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
+      if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
+      means.set(s.id, { mean: n ? m : null, anchor: P.anchor[s.kind] || P.anchor.village, rate: P.kind[s.kind] });
+    } else {
+      people = [];
+      for (const id of hooks.living) { walked++; const p = hooks.byId(id); if (!hooks.settlementOf(p)) people.push(p); }
+    }
+    const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
+    for (const p of people) { walked++; driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq); }
+    VB.count.walkDaily += walked;
+  }
 
   // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
   function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
@@ -315,7 +334,7 @@ const Culture = (() => {
   }
 
   const api = {
-    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, settlementStep,
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.

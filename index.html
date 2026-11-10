@@ -2120,6 +2120,25 @@ const Culture = (() => {
     }
     VB.count.walkDaily += walked;
   }
+  // One settlement's part of the day's step (VB-201: the night's steps take a settlement each): its mean, then its people in id order, as
+  // hooks.membersOf gives them. s null drifts the living of no settlement, against no local mean.
+  function settlementStep(env, hooks, dt, rand, s) {
+    const mul = env.driftMul || 1, means = new Map();
+    let walked = 0, people;
+    if (s) {
+      people = hooks.membersOf(s);
+      const m = new Float32Array(TOTAL); let n = 0;
+      for (const p of people) { walked++; if (!p.alive || p.age < 12) continue; for (let k = 0; k < TOTAL; k++) m[k] += p.att[k]; n++; }
+      if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
+      means.set(s.id, { mean: n ? m : null, anchor: P.anchor[s.kind] || P.anchor.village, rate: P.kind[s.kind] });
+    } else {
+      people = [];
+      for (const id of hooks.living) { walked++; const p = hooks.byId(id); if (!hooks.settlementOf(p)) people.push(p); }
+    }
+    const tgt = new Float32Array(TOTAL), press = new Float32Array(TOTAL), sq = Math.sqrt(dt * mul);
+    for (const p of people) { walked++; driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq); }
+    VB.count.walkDaily += walked;
+  }
 
   // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
   function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
@@ -2269,7 +2288,7 @@ const Culture = (() => {
   }
 
   const api = {
-    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep,
+    DIMS, OFF, NOPT, TOTAL, IDX, P, ARCHETYPES, NAME_PREFS, optIndex, makeCulture, fromArchetype, seedAttitude, dailyStep, settlementStep,
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
@@ -9020,7 +9039,26 @@ VB['sim/lifecycle'] = (() => {
     raiseTie(st, mId, fId, 2); raiseTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
-  function movingRound(st) {
+  // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:
+  // 0, the marriages and the handovers; 1, demand, claims on empty farms and plots; 2, settlement; 3, service, what is owed and prestige.
+  // No phase keeps anything for the next (each builds its own ranking view), so nothing is saved: the step of the day says which is due.
+  const ROUND_PHASES = 4;
+  function movingRound(st) { for (let n = 0; n < ROUND_PHASES; n++) roundPhase(st, n); }
+  function roundPhase(st, n) {
+    if (n === 0) marriageRound(st);
+    else if (n === 1) {
+      countDemand(st, roundHeirs(st).rank); // who wants out: landless adults with no prospect of a farm
+      claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
+      startPlots(st, (id) => claimableFarm(st, id) === null);
+    } else if (n === 2) settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
+    else if (n === 3) {
+      takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
+      payOwed(st);
+      refreshPrestige(st);
+    }
+    st.visualDirty = true;
+  }
+  function marriageRound(st) {
     let pairs = 0;
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.living.map((id) => st.pawns[id]);
@@ -9153,16 +9191,7 @@ VB['sim/lifecycle'] = (() => {
       }
     }
     refreshRoles(st);
-    // who wants out: landless adults with no prospect of a farm
-    countDemand(st, heirs.rank);
-    claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
-    startPlots(st, (id) => claimableFarm(st, id) === null);
-    settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
-    takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
-    payOwed(st);
-    refreshPrestige(st);
     VB.count.roundPairs += pairs;
-    st.visualDirty = true;
   }
   function dailyLife(st, c) {
     const env = st.cenv;
@@ -9172,8 +9201,6 @@ VB['sim/lifecycle'] = (() => {
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
     if (c.sday === 0) fadeRelations(st);
-    env.t = st.t / YEAR; env.driftMul = st.driftMul;
-    Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) {
       VB.count.walkDaily += st.living.length;
       // Death splices the live index; visit the original ids once, in the original order.
@@ -9183,7 +9210,21 @@ VB['sim/lifecycle'] = (() => {
       }
     }
   }
-  return { killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, dailyLife };
+  // The day's drift of attitudes (VB-201) runs over the night's 6-minute steps after midnight, a settlement a step (Rules for cost, 5):
+  // settlement k of the culture on step 1 + k % NIGHT_STEPS of the day, the living of no settlement on step 1. Nothing is saved: the step of
+  // the day says what is due, so a run loaded between two steps does the rest.
+  const NIGHT_STEPS = 40;
+  function nightCulture(st, step) {
+    if (step < 1 || step > NIGHT_STEPS) return;
+    const env = st.cenv, hk = hooks(st), rand = drawer(st.rng.culture);
+    env.t = st.t / YEAR; env.driftMul = st.driftMul;
+    if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
+    for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
+  }
+  return {
+    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture,
+    NIGHT_STEPS,
+  };
 })();
 </script>
 <script>
@@ -9600,7 +9641,7 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { meetingStage, MEETING_STAGES, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
@@ -9610,7 +9651,6 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
-    if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const id of st.living) {
         const a = st.agents[id];
@@ -9678,11 +9718,17 @@ VB['sim/clock'] = (() => {
       st.t += step; left -= step;
       const after = Math.floor(st.t + 1e-9), ticked = Math.floor(st.t * TICKS + 1e-4);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      // The autumn meetings (customs, then the outland), a stage on each of the 6-minute steps from noon of autumn day 10 (sim/lifecycle, VB-206);
-      // the step of the day says what is due, so a save between two stages goes on.
+      // The 6-minute steps of the day that began in this advance (sim/lifecycle): the night's culture, a settlement a step after midnight (VB-201);
+      // from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from noon of day 11, the moving round's phases (VB-201).
+      // The step of the day says what is due, so a save between two of them goes on.
       if (st.cenv) for (let k = tick + 1; k <= ticked; k++) {
-        const r = (((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS)) - 12 * TICKS;
-        if (r >= 0 && r < MEETING_STAGES) { const kc = cal(k / TICKS); if (kc.season === 2 && kc.sday === 9) meetingStage(st, r); }
+        const n = ((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS), r = n - 12 * TICKS;
+        nightCulture(st, n);
+        if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
+          const kc = cal(k / TICKS);
+          if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
+          else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
+        }
       }
       playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
       const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
@@ -13525,7 +13571,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '008c0b7654', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd50faa865a', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
