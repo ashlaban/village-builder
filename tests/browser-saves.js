@@ -87,6 +87,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
 
   // 3. Main menu, then Back to game, leaves the state as it was.
   await page.click('#regen'); await landing(); await shot('landing-game.png');
+  check(await page.locator('.hud.top').evaluate((e) => getComputedStyle(e).visibility) === 'hidden', 'the game\'s interface shows behind the main menu');
   await page.click('#landBack'); await page.waitForFunction(() => document.getElementById('landing').hidden);
   check((await hash()) === h3b, 'Back to game changed the state');
 

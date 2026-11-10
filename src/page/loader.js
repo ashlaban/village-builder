@@ -19,7 +19,8 @@
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   let demo = false, demoJob = null, demoAt = null;
-  const DEMO = { seed: 7, cols: 56, rows: 40, speed: 3 };
+  // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
+  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
@@ -119,9 +120,10 @@
   // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
   // behind the main menu without the loader. The camera rests on its largest village and drifts (page/frame); the run goes on at 3x.
   async function buildDemo() {
-    const wd = await drive(G.generate(DEMO.seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
+    const seed = DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0]; // a visit's island: the page's choice, as the offered seed is
+    const wd = await drive(G.generate(seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
     let sim = null;
-    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, DEMO.seed, sc); } catch (e) { /* no room: the next */ } }
+    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, seed, sc); } catch (e) { /* no room: the next */ } }
     if (!sim) return; // the menu stays on the plain sea
     const painted = await paintOverview(wd, () => {});
     demo = true; document.body.classList.add('demo');

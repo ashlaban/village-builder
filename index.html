@@ -184,8 +184,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Behind them the stage shows through a veil of sea: the showcase island (body.demo), or the game that waits, paused. */
 .genscreen { position: fixed; inset: 0; z-index: 11; display: grid; place-items: center; padding: 16px;
   background: radial-gradient(ellipse at 50% 45%, rgba(22, 57, 95, 0.22) 0%, rgba(13, 38, 66, 0.62) 100%); }
-body.demo .hud, body.demo .navigation, body.demo .sheet, body.demo .lod, body.demo .toasts, body.demo .play-offer, body.demo #menuBtn,
-body.demo #uiToggle { visibility: hidden; pointer-events: none; }
+/* the interface of the stage is put away while a menu screen is up */
+body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .navigation, body:has(.genscreen:not([hidden])) .sheet,
+body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
+body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 .genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
@@ -10727,7 +10729,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   let demo = false, demoJob = null, demoAt = null;
-  const DEMO = { seed: 7, cols: 56, rows: 40, speed: 3 };
+  // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
+  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
@@ -10827,9 +10830,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
   // behind the main menu without the loader. The camera rests on its largest village and drifts (page/frame); the run goes on at 3x.
   async function buildDemo() {
-    const wd = await drive(G.generate(DEMO.seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
+    const seed = DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0]; // a visit's island: the page's choice, as the offered seed is
+    const wd = await drive(G.generate(seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
     let sim = null;
-    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, DEMO.seed, sc); } catch (e) { /* no room: the next */ } }
+    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, seed, sc); } catch (e) { /* no room: the next */ } }
     if (!sim) return; // the menu stays on the plain sea
     const painted = await paintOverview(wd, () => {});
     demo = true; document.body.classList.add('demo');
@@ -14035,7 +14039,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '832ea60abb', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '0dc542e91b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
