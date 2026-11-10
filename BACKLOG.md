@@ -21,6 +21,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-283](backlog/VB-283.md) | Plan: a lone survivor or a ward with fields is taken in before it starves | year | 2 | S | 90 of the 114 seed-blocked hungry household-years are households of one, 25 have a holder under 16: plan how kin or service takes them in and who holds the fields, with design rows for Kim and implement tasks. |
 | [VB-284](backlog/VB-284.md) | Food balance, first pass: families short before harvest, measured | animals | 2 | M | VB-048's measuring step, runnable now: tools/balance.js at populous small, four seeds, 15 years, per household size and farm, against the 166 short rows of VB-270's replay; tuning proposals for Kim, no values committed. |
 | [VB-299](backlog/VB-299.md) | Goods for the fair: quanta, three classes and keeping goods | fair | 2 | M | - | The goods registry for what the fair trades: each good's quantum, class (food; animals, cloth and labour; land) and whether it is a keeping good. |
+| [VB-307](backlog/VB-307.md) | The village's wood is an area: each firewood trip fells a tree on a random tile of it | - | 2 | M | The commons wood becomes an allotment of wooded tiles sized to the village's hearths, so cutting spreads and regrowth can meet it; a trip's tile is drawn at random. |
 | [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. |
@@ -48,6 +49,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-268](backlog/VB-268.md) | recordFold grows faster than the living from small-y5 to small-y40 | - | 3 | S | The fold of the record passes 1.56 times the slots per living pawn-day at small-y40 as at small-y5 (target 1.25): find why and whether rule 1 or 8 is broken, then cut it or name the cause. |
 | [VB-285](backlog/VB-285.md) | st.tickPart dropped from the state | - | 3 | S | VB-244 made advance take whole steps only; st.tickPart is now always 0 and stays only because removing it re-records one golden key. Drop it and re-record. |
 | [VB-306](backlog/VB-306.md) | A well-kept house gives prestige, up to a cap; tar helps | fair | 3 | S | - | A house has a condition that upkeep raises and time wears; its holder's prestige follows it up to a cap; a tarred house has a slightly higher cap and decays more slowly. |
+| [VB-310](backlog/VB-310.md) | No pawn walks where there is no route: a job with no way by land is refused | - | 3 | S | A pawn bids for no job it has no route to; the straight walk over water stays only as a counted error that an invariant holds at 0. |
+| [VB-311](backlog/VB-311.md) | A home that took in a spouse at the round gives no settlers' provisions in it | - | 3 | S | The grain a marriage was allowed on is not given away the same afternoon: provisions skip households that gained a spouse in this round. |
 
 ## Waiting for Kim
 
@@ -55,10 +58,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-307](backlog/VB-307.md) | The village's wood is an area: each firewood trip fells a tree on a random tile of it | - | 2 | M | The commons wood becomes an allotment of wooded tiles sized to the village's hearths, so cutting spreads and regrowth can meet it; a trip's tile is drawn at random. |
-| [VB-308](backlog/VB-308.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
-| [VB-309](backlog/VB-309.md) | Timber: a felled plot yields its wood, building fells trees, and a new household's first wood comes from somewhere | - | 3 | S | Wood stops appearing and vanishing: a plot's felled trees build its cottage and fill woodpiles, a cottage on open ground is built of felled timber, and a new household's first wood is taken from the homes its members leave. |
 
 ## Blocked
 
@@ -140,7 +140,9 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-289](backlog/VB-289.md) | The suitor's visit: a match beyond a day's walk needs a winter journey first | - | 2 | M | VB-287, VB-288 | A man who found no one at his village's round may walk in winter to the nearest village beyond a day's walk that holds a free woman, at his household's cost in food and days; only villages he visited put their women in his pool at the next round, besides those within a day's walk. |
 | [VB-290](backlog/VB-290.md) | The round's other acts reach by walking hours: claims, service, guardians and the tie | - | 2 | M | VB-286 | Claims on empty farms and service reach villages within a day's walk (12 h) in place of 15 hex steps; the nearest village for an orphan's service home, guardians and kin homes read hours; the tie to the centre reads the table in place of its own search. |
 | [VB-291](backlog/VB-291.md) | Kin help over distance: a gift from far kin is carried on a journey | - | 2 | S | VB-287 | Kin within a day's walk give as today; kin further away are asked after the village store, and one of the giving household's adults carries the grain on a journey, so it arrives after the walk; kin over the sea are not asked. |
+| [VB-308](backlog/VB-308.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | VB-307 | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | - | 3 | S | VB-277 | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
+| [VB-309](backlog/VB-309.md) | Timber: a felled plot yields its wood, building fells trees, and a new household's first wood comes from somewhere | - | 3 | S | VB-307 | Wood stops appearing and vanishing: a plot's felled trees build its cottage and fill woodpiles, a cottage on open ground is built of felled timber, and a new household's first wood is taken from the homes its members leave. |
 
 ## Archs
 
