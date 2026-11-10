@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const rawHTML = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
   'let st = null, speed = 1, selPawn = -1; window.__speedTest = { get st() { return st; }, get speed() { return speed; }, '
-  + 'get rigs() { return rigs; }, village() { app.ticker.maxFPS = 12; stopIntro(); const tile = st.villages[0].center; '
+  + 'get rigs() { return rigs; }, between() { return { drawX, drawY, prevX, prevY, prevIn, prevN, drawBetween }; }, village() { app.ticker.maxFPS = 12; stopIntro(); const tile = st.villages[0].center; '
   + 'cam.x = w.hx[tile]; cam.y = w.hy[tile]; cam.z = zt = 0.8; vel.x = vel.y = 0; } };');
 const html = browserHTML(rawHTML);
 assert(html.includes('window.__speedTest'), 'page hook exists');
@@ -47,14 +47,21 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
               if (+date[2] < 1 || +date[2] > Sim.SEASON_DAYS || +shown[2] >= 24 || +shown[3] >= 60) faults.push('clock range');
               const hours = (+shown[1] - 1) * Sim.YEAR + (season * Sim.SEASON_DAYS + +date[2] - 1) * Sim.DAY
                 + +shown[2] + +shown[3] / 60, lag = st.t - hours;
-              // Allow floating-point noise at midnight, while catching a stale day, season or year.
-              if (+shown[3] % 5 || lag < -1e-8 || lag > 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
+              // Allow floating-point noise at midnight, while catching a stale day, season or year. The clock shows the time the pawns
+              // are drawn at, at most a 6-minute step behind st.t while they are drawn between steps (VB-244), floored to 5 minutes.
+              if (+shown[3] % 5 || lag < -1e-8 || lag > 0.1 + 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
             }
+            // each visible pawn is drawn on the segment between its place before the last step and its own (VB-244), or where it is
+            const d = window.__speedTest.between(), R = VB['sim/rules'], far = (R.SPEED * st.w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
             for (const a of st.agents) {
-              const rig = rigs[a.id];
+              const rig = rigs[a.id], i = a.id;
               if (!rig.root.visible) continue;
               positions++;
-              if (rig.root.position.x !== a.x || rig.root.position.y !== a.y) faults.push('position');
+              const x = rig.root.position.x, y = rig.root.position.y;
+              if (x !== d.drawX[i] || y !== d.drawY[i]) faults.push('position not the drawn place');
+              const seg = i < d.prevN && !d.prevIn[i] ? Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) : Infinity;
+              if (seg > far) { if (x !== a.x || y !== a.y) faults.push('position'); }
+              else if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x, a.y - y) > seg + 1e-3) faults.push('position off its segment');
             }
             if (++frames < 8) return requestAnimationFrame(frame);
             clearTimeout(timeout); resolve({ faults, positions });

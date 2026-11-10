@@ -297,7 +297,7 @@
     if (id < 0 || document.body.classList.contains('ui-hidden')) return;
     const p = st.pawns[id], a = st.agents[id], f = farmOf(p), k = 1 / Math.max(cam.z, 0.12);
     if (a.inside && !f) return;
-    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] - 16 : a.y - 22 * PAWN_S * sizeAt(p.age);
+    const x = a.inside ? w.hx[f.house] : drawX[id], y = a.inside ? w.hy[f.house] - 16 : drawY[id] - 22 * PAWN_S * sizeAt(p.age);
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }

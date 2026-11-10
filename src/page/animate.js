@@ -10,6 +10,7 @@
       const oxen = milking ? Sim.herdsOf(st, hh).flatMap((hd) => Sim.inMilk(st, hd, c)).slice(0, 1) : Sim.withOxen(st, a) ? Sim.team(st, hh) : null;
       if (!oxen || !oxen.length) continue;
       used.add(a.id); for (const h of oxen) teamOut.add(h.id);
+      const ax = drawX[a.id], ay = drawY[a.id]; // where its driver is drawn (VB-244)
       let e = teamDraw.get(a.id);
       if (!e) {
         e = { oxen: [0, 1].map(() => { const sp = new PIXI.Sprite(art.cow[0][1]); sp.anchor.set(0.5, 0.92); L.objects.addChild(sp); return sp; }),
@@ -20,7 +21,7 @@
         const sp = e.oxen[0], tex = art.cow[(hash(oxen[0].id * 7 + 3) * COATS.length) | 0][Math.sin(time * 0.5 + a.id) > 0.3 ? 1 : 0];
         for (const q of e.oxen) q.visible = false;
         if (sp.texture !== tex) sp.texture = tex;
-        sp.visible = true; sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow); sp.position.set(a.x + a.face * 8, a.y - 1.5); sp.zIndex = a.y - 1.5;
+        sp.visible = true; sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow); sp.position.set(ax + a.face * 8, ay - 1.5); sp.zIndex = ay - 1.5;
         e.g.clear(); continue;
       }
       const dir = a.face, sway = Math.sin(time * 3 + a.id) * 0.6;
@@ -28,10 +29,10 @@
         const sp = e.oxen[k], tex = art.cow[(hash(h.id * 7 + 3) * COATS.length) | 0][1];
         if (sp.texture !== tex) sp.texture = tex;
         sp.visible = true; sp.scale.set(dir * COW_SCALE.ox, COW_SCALE.ox);
-        sp.position.set(a.x + dir * (21 + k * 2), a.y - 3 + k * 5 + sway); sp.zIndex = a.y - 3 + k * 5;
+        sp.position.set(ax + dir * (21 + k * 2), ay - 3 + k * 5 + sway); sp.zIndex = ay - 3 + k * 5;
       });
-      e.g.clear().moveTo(a.x + dir * 2, a.y - 8).lineTo(a.x + dir * 12, a.y - 6).stroke({ width: 1.1, color: 0x5a4128 });
-      e.g.zIndex = a.y + 0.1;
+      e.g.clear().moveTo(ax + dir * 2, ay - 8).lineTo(ax + dir * 12, ay - 6).stroke({ width: 1.1, color: 0x5a4128 });
+      e.g.zIndex = ay + 0.1;
     }
     for (const [id, e] of teamDraw) if (!used.has(id)) { for (const sp of e.oxen) sp.visible = false; e.g.clear(); }
   }
@@ -62,11 +63,32 @@
       }
     }
   }
+  // ---- where each pawn is drawn this frame (VB-244): between its place before the last step (page/speed) and its own, by the share of
+  // the next step the frames have asked for; a pawn that went indoors, came out or was placed (moved more than a step's walk at the
+  // fastest, on a lane) is drawn where it is. Page state only: nothing of it is written to st. ----
+  let drawX = new Float64Array(0), drawY = new Float64Array(0), drawStride = new Float64Array(0);
+  function placePawns() {
+    const n = st.agents.length, R = VB['sim/rules'];
+    if (drawX.length < n) { const cap = Math.max(64, n * 2); drawX = new Float64Array(cap); drawY = new Float64Array(cap); drawStride = new Float64Array(cap); }
+    const s = drawBetween && stepSt === st ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
+    for (let i = 0; i < n; i++) {
+      const a = st.agents[i];
+      let x = a.x, y = a.y, stride = a.stride || 0;
+      if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
+        const dx = a.x - prevX[i], dy = a.y - prevY[i];
+        if (dx * dx + dy * dy <= far2) { x = prevX[i] + dx * s; y = prevY[i] + dy * s; stride = prevStride[i] + (stride - prevStride[i]) * s; }
+      }
+      drawX[i] = x; drawY[i] = y; drawStride[i] = stride;
+    }
+  }
   let tAcc = 0;
-  // The clock shown is the UI's own state: simulation time floored to 5 game minutes, redrawn only when that value changes.
+  // The clock shown is the UI's own state: the time the pawns are drawn at, floored to 5 game minutes, redrawn only when that value
+  // changes. While the pawns are drawn between steps (VB-244) that is the step before the last and the share of a step gone, so the
+  // clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const step = Math.floor((st.tick + st.tickPart) * 6 / 5); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
+    const drawn = drawBetween && stepSt === st ? st.tick - 1 + stepShare : st.tick;
+    const step = Math.floor(drawn * 6 / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
@@ -92,6 +114,7 @@
     for (const o of meadowSprites) if (o.m.stage !== o.stage) { o.stage = o.m.stage; o.sp.texture = fieldTex['meadow-' + o.stage]; }
     for (const f of fences) if (f.s.dirty) { drawFence(f.g, f.s); f.s.dirty = false; }
     const c = Sim.cal(st.t), show = cam.z > 0.28, winter = c.season === 3;
+    placePawns();
     for (const a of st.agents) {
       const R = rigs[a.id];
       const pp = st.pawns[a.id];
@@ -100,15 +123,15 @@
       const k = sizeAt(pp.age);
       // an idle pawn that stands talking faces the other
       const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
-      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
-      R.root.position.set(a.x, a.y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = a.y;
-      pose(R, a, time, winter);
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face, x = drawX[a.id], y = drawY[a.id];
+      R.root.position.set(x, y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = y;
+      pose(R, a, time, winter, drawStride[a.id]);
     }
     drawTeams(show); drawHerds(c, show);
     ring.clear();
     if (selPawn >= 0 && rigs[selPawn].root.visible) {
-      const a = st.agents[selPawn];
-      ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
+      const x = drawX[selPawn], y = drawY[selPawn];
+      ring.ellipse(x, y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = y - 0.5;
     }
     drawTalk(show); drawLens(); drawPlayMark(); offerSuccession();
     // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the

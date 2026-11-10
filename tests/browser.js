@@ -16,7 +16,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.route('https://village.test/', (r) => r.fulfill({
     contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
-      .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn };')),
+      .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
+        + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
+        + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween }; } };')),
   }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
@@ -26,6 +28,61 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   });
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 90000 });
   await page.waitForTimeout(1000);
+  // Whole steps, drawn between (VB-244): from the new game's state, a game day run by the page's own pacing (advanceSimulation) at two frame
+  // rates ends in the state Sim.advance gives headless, here in node; and each frame draws every pawn on the segment between its two
+  // last places (or where it is, indoors, come out or placed). The ticker is stopped meanwhile, so only the frames given here run.
+  {
+    const data = await page.evaluate(() => { window.__play.ticker().stop(); return JSON.stringify(window.__play.Sim.save(window.__play.st)); });
+    const runs = [];
+    for (const [fps, speed] of [[60, 30], [24, 10]]) {
+      runs.push(await page.evaluate(([fps, speed, data]) => {
+        const P = window.__play, { Sim } = P, home = P.st, R = VB['sim/rules'], w = P.world();
+        const st = Sim.load(w, JSON.parse(data)), tick0 = st.tick, faults = [];
+        const far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
+        P.st = st; P.setSpeed(speed);
+        let frames = 0, between = 0;
+        try {
+          while (st.tick < tick0 + Sim.DAY * R.TICKS) {
+            P.advance(1 / fps); frames++;
+            const d = P.place();
+            for (const a of st.agents) {
+              if (st.pawns[a.id].died !== null) continue;
+              const x = d.drawX[a.id], y = d.drawY[a.id], i = a.id;
+              const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) <= far;
+              if (!ok) { if (x !== a.x || y !== a.y) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
+              const seg = Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]);
+              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x, a.y - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
+              else if (seg > 0 && d.stepShare > 0) between++;
+            }
+          }
+        } finally { P.st = home; P.setSpeed(0); }
+        const hs = Sim.load(w, JSON.parse(data)); Sim.advance(hs, (st.tick - tick0) / R.TICKS); // headless, as many whole steps
+        return { fps, speed, frames, steps: st.tick - tick0, between, faults: faults.slice(0, 5), save: JSON.stringify(Sim.save(st)), headless: JSON.stringify(Sim.save(hs)) };
+      }, [fps, speed, data]));
+    }
+    await page.evaluate(() => window.__play.ticker().start());
+    // Headless in node too: the same but for a pawn's stride, whose last bits differ between node's V8 and Chromium's (a float of a Math
+    // function; reported, not failed: the engines' arithmetic is not this task's, VB-244).
+    const VB = require('../src/load.js'), { sha } = require('./lib/canon.js'), d0 = JSON.parse(data);
+    const it = VB.gen.generate(d0.seed, { cols: d0.cols, rows: d0.rows }); let r; while (!(r = it.next()).done);
+    const lines = [];
+    for (const run of runs) {
+      const same = run.save === run.headless;
+      if (!same) fail(`the page at ${run.fps} frames a second, ${run.speed}x, ends ${run.steps} steps on in another state than Sim.advance headless`);
+      if (run.faults.length) fail(`drawn between steps at ${run.fps} fps: ${run.faults.join('; ')}`);
+      if (!run.between) fail(`at ${run.fps} fps no pawn was drawn between two places`);
+      const st = VB.sim.load(r.value, JSON.parse(data));
+      VB.sim.advance(st, run.steps / VB['sim/rules'].TICKS);
+      const want = VB.sim.save(st), got = JSON.parse(run.save), fields = new Set();
+      for (const k of Object.keys(want.state)) if (JSON.stringify(want.state[k]) !== JSON.stringify(got.state[k])) fields.add(k);
+      if (fields.has('agents')) {
+        want.state.agents.forEach((x, i) => { for (const f of Object.keys(x || {})) if (JSON.stringify(x[f]) !== JSON.stringify((got.state.agents[i] || {})[f])) fields.add('agents.' + f); });
+      }
+      lines.push(`${run.fps} fps ${run.speed}x: ${run.frames} frames, ${run.steps} steps, ${same ? 'the' : 'not the'} headless state (${sha(run.save)}), `
+        + `${run.between} pawn-frames drawn between; node: ${fields.size ? 'differs in ' + [...fields].join(', ') : 'the same'}`);
+    }
+    console.log(`browser: whole steps: ${lines.join('; ')}`);
+  }
   // a new game offers the scenario's suggestion, a holder (VB-210); taking it plays that pawn and opens its card
   await page.waitForSelector('#playOffer:not([hidden])');
   await page.click('#playOfferYes'); await page.waitForSelector('#playBox [data-play="auto"]');

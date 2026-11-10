@@ -7066,9 +7066,11 @@ VB['sim/agents'] = (() => {
     const i = place(w.ids, id); if (w.ids[i] !== id) return;
     w.ids.splice(i, 1); if (i <= w.at) w.at--;
   }
-  // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock).
-  function stepAgents(st, dt, c) {
-    const w = awake(st), ids = w.ids, out = [];
+  // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock). A whole
+  // 6-minute step, always: the page draws the pawns between steps (VB-244).
+  const STEP_HOURS = 1 / TICKS;
+  function stepAgents(st, c) {
+    const w = awake(st), ids = w.ids, out = [], dt = STEP_HOURS;
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
@@ -7106,7 +7108,7 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
@@ -7293,9 +7295,14 @@ VB['sim/commands'] = (() => {
         for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
       },
     },
-    // skip({hours}): the world goes on for that long (no actor)
+    // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
     skip: {
-      check: (st, c) => (c.args && c.args.hours > 0 && Number.isFinite(c.args.hours) ? null : `cannot skip ${c.args && c.args.hours} hours`),
+      check: (st, c) => {
+        const h = c.args && c.args.hours;
+        if (!(h > 0 && Number.isFinite(h))) return `cannot skip ${h} hours`;
+        const x = h * TICKS;
+        return Math.abs(x - Math.round(x)) < 1e-6 ? null : `cannot skip ${h} hours: not a whole number of 6-minute steps`;
+      },
       run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };
@@ -9513,7 +9520,7 @@ VB['sim/scenarios'] = (() => {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
-    // @state st.t: number; game time in hours since the start of year 1 (negative before it): (st.tick + st.tickPart) / TICKS (sim/clock)
+    // @state st.t: number; game time in hours since the start of year 1 (negative before it): st.tick / TICKS (sim/clock)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
@@ -9722,8 +9729,9 @@ VB['sim/clock'] = (() => {
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
-  // @state st.tickPart: number in [0, 1); the part of the next step that frame-sized advances of the page have asked for so far (0 headless).
-  // @state st.t is (st.tick + st.tickPart) / TICKS, written here only.
+  // @state st.tickPart: 0 always. VB-235's part of a step went back to the page (VB-244); the field stays only so the golden file is
+  //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
+  // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
   // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
@@ -9740,31 +9748,27 @@ VB['sim/clock'] = (() => {
       else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
     }
   }
-  // The clock's arithmetic: moves st by `hours`, a pass at a time, each to the end of the current 6-minute step or less, and calls
-  // each(st, part, ends) after each pass with the share of a step it moved and whether it ended the step. Whole steps headless; a part of
-  // one when the page asks for a frame's worth (the agents move by the part; the step's work is done when its last part arrives). A
-  // request of whole steps is whole steps, though hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole
-  // number it is meant to be, so a run is the same by any chunks of whole steps.
-  function ticking(st, hours, each) {
-    let left = hours * TICKS;
-    const whole = Math.round(left);
-    if (Math.abs(left - whole) < 1e-6) left = whole;
-    while (left > 0) {
-      const rest = 1 - st.tickPart, ends = left >= rest, part = ends ? rest : left;
-      left = ends ? left - rest : 0;
-      if (ends) { st.tick++; st.tickPart = 0; } else st.tickPart += part;
-      st.t = (st.tick + st.tickPart) / TICKS;
-      each(st, part, ends);
-    }
+  // The clock's arithmetic: moves st by `hours`, which must be whole 6-minute steps, a step at a time, calling each(st) after each. The
+  // page keeps the part of a step its frames have asked for and draws the pawns between steps (VB-244), so a seed is the same run in the
+  // page at any frame rate as headless. hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole number it is
+  // meant to be, so a run is the same by any chunks of whole steps. Any other number of hours, or a negative one, is refused with an
+  // error, not rounded (the orchestrator's choice for Kim, VB-244).
+  function stepsIn(hours) {
+    const x = hours * TICKS, n = Math.round(x);
+    if (!(Math.abs(x - n) < 1e-6) || n < 0) throw new Error(`advance: ${hours} hours is not a whole number of 6-minute steps`);
+    return n;
   }
-  function step(st, part, ends) {
-    if (ends) stepEnds(st);
+  function ticking(st, hours, each) {
+    for (let n = stepsIn(hours); n > 0; n--) { st.tick++; st.t = st.tick / TICKS; each(st); }
+  }
+  function step(st) {
+    stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
-    const c = cal(st.t), all = stepAgents(st, part / TICKS, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
+    const c = cal(st.t), all = stepAgents(st, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
     if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
   }
   const advance = (st, hours) => ticking(st, hours, step);
-  return { onHour, endOfDay, newYear, advance, ticking };
+  return { onHour, endOfDay, newYear, advance, ticking, stepsIn };
 })();
 </script>
 <script>
@@ -9999,6 +10003,8 @@ VB['sim/saves'] = (() => {
     st.w = w;
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
     if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
+    // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
+    if (st.tickPart) { st.tickPart = 0; st.t = st.tick / TICKS; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
@@ -11114,8 +11120,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // Poses: angles in radians. Arm 0 hangs down, negative swings forward and up. Upper body leans forward with positive angles.
   const swing = (t, a, b) => a + (b - a) * (0.5 - 0.5 * Math.cos(t));
   function strike(t) { const u = t % 1; return u < 0.7 ? u / 0.7 : 1 - (u - 0.7) / 0.3; } // slow lift, fast blow
-  function pose(R, a, t, winter) {
-    const s = a.stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim === 'hoe' && Sim.withOxen(st, a) ? 'plough' : a.anim;
+  function pose(R, a, t, winter, stride = a.stride) {
+    const s = stride * Math.PI, walking = !!a.path, anim = walking ? 'walk' : a.anim === 'hoe' && Sim.withOxen(st, a) ? 'plough' : a.anim;
     let legF = 0, legB = 0, armF = 0.05, armB = 0.05, lean = 0, bob = 0, headR = 0;
     let tool = null, toolR = 0, back = null, shoulder = null, heldF = null, heldB = null;
     if (walking || anim === 'sow' || anim === 'plough') {
@@ -11570,12 +11576,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     let n = 0;
     if (show) for (const a of st.agents) {
       const tk = a.talk;
-      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible || a.x < x0 || a.x > x1 || a.y < y0 || a.y > y1) continue;
+      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible) continue;
+      const ax = drawX[a.id], ay = drawY[a.id]; // where the pawn is drawn (page/animate, VB-244)
+      if (ax < x0 || ax > x1 || ay < y0 || ay > y1) continue;
       let b = bubblePool[n];
       if (!b) { b = new PIXI.Sprite(bubbleTex.chat); b.anchor.set(0.25, 1); bubbles.addChild(b); bubblePool.push(b); }
       const f = clamp(Math.min(st.t - tk.at, tk.until - st.t) / ((tk.until - tk.at) / 6), 0, 1);
       b.texture = bubbleTex[tk.kind]; b.alpha = (tk.kind === 'chat' ? 0.5 : 0.95) * f; b.visible = true;
-      b.position.set(a.x + 1.5, a.y - 22 * PAWN_S * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
+      b.position.set(ax + 1.5, ay - 22 * PAWN_S * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
       n++;
     }
     for (let i = n; i < bubblePool.length; i++) bubblePool[i].visible = false;
@@ -11589,9 +11597,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const x of Sim.relationsOf(st, selPawn).slice(0, 20)) {
       const b = st.agents[x.id], f = farmOf(st.pawns[x.id]);
       if (b.inside && !f) continue;
-      const bx = b.inside ? w.hx[f.house] : b.x, by = b.inside ? w.hy[f.house] : b.y - 6, s = Math.min(1, x.tie / 10);
+      const bx = b.inside ? w.hx[f.house] : drawX[x.id], by = b.inside ? w.hy[f.house] : drawY[x.id] - 6, s = Math.min(1, x.tie / 10);
       const col = x.opinion >= 0.25 ? 0x3f9a5c : x.opinion <= -0.2 ? 0xc8553d : 0xf2ead8;
-      lens.moveTo(a.x, a.y - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
+      lens.moveTo(drawX[selPawn], drawY[selPawn] - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
       lens.ellipse(bx, by, 2.4 / z, 2.4 / z).fill({ color: col, alpha: 0.8 });
     }
   }
@@ -11984,9 +11992,34 @@ if (typeof module !== 'undefined') module.exports = Sim;
     speedSampleAt = performance.now(); speedSampleHours = 0;
     if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
   }
+  // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
+  // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
+  // each agent's place before the last step, and page/animate draws each pawn between that place and its own by stepShare. ----
+  let stepShare = 0, stepSt = null, drawBetween = false;
+  let prevX = new Float64Array(0), prevY = new Float64Array(0), prevStride = new Float64Array(0), prevIn = new Uint8Array(0), prevN = 0;
+  // the run changed (a new game, a load): nothing of the last run's steps is drawn
+  function syncSteps() { if (stepSt !== st) { stepSt = st; stepShare = 0; prevN = 0; drawBetween = false; } }
+  // copies each agent's place before a step: once a frame at most, before the frame's last step
+  function notePlaces() {
+    const n = st.agents.length;
+    if (prevX.length < n) {
+      const cap = Math.max(64, n * 2);
+      prevX = new Float64Array(cap); prevY = new Float64Array(cap); prevStride = new Float64Array(cap); prevIn = new Uint8Array(cap);
+    }
+    for (let i = 0; i < n; i++) { const a = st.agents[i]; prevX[i] = a.x; prevY[i] = a.y; prevStride[i] = a.stride || 0; prevIn[i] = a.inside ? 1 : 0; }
+    prevN = n;
+  }
+  // runs n whole steps, noting the places before the last, so the frame draws the last step's walk
+  function runSteps(n) {
+    for (let k = 0; k < n; k++) { if (k === n - 1) notePlaces(); Sim.advance(st, SIM_SLICE_HOURS); }
+    if (n > 0) drawBetween = true;
+  }
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
+    syncSteps();
     const before = st.t;
+    // a skip or the uncapped speed runs many steps a frame: the pawns are drawn where the last step left them
+    if (skipCursor || speed === Infinity) { stepShare = 0; drawBetween = false; }
     if (skipCursor) {
       // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
       const deadline = performance.now() + SIM_BUDGET_MS;
@@ -12003,7 +12036,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
         uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
         speedSampleAt = now; speedSampleHours = 0;
       }
-    } else Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    } else {
+      stepShare += (dt * speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
+      const n = Math.floor(stepShare);
+      stepShare -= n;
+      runSteps(n);
+    }
   }
   function syncBackgroundRun() {
     if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }
@@ -12033,6 +12071,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const oxen = milking ? Sim.herdsOf(st, hh).flatMap((hd) => Sim.inMilk(st, hd, c)).slice(0, 1) : Sim.withOxen(st, a) ? Sim.team(st, hh) : null;
       if (!oxen || !oxen.length) continue;
       used.add(a.id); for (const h of oxen) teamOut.add(h.id);
+      const ax = drawX[a.id], ay = drawY[a.id]; // where its driver is drawn (VB-244)
       let e = teamDraw.get(a.id);
       if (!e) {
         e = { oxen: [0, 1].map(() => { const sp = new PIXI.Sprite(art.cow[0][1]); sp.anchor.set(0.5, 0.92); L.objects.addChild(sp); return sp; }),
@@ -12043,7 +12082,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         const sp = e.oxen[0], tex = art.cow[(hash(oxen[0].id * 7 + 3) * COATS.length) | 0][Math.sin(time * 0.5 + a.id) > 0.3 ? 1 : 0];
         for (const q of e.oxen) q.visible = false;
         if (sp.texture !== tex) sp.texture = tex;
-        sp.visible = true; sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow); sp.position.set(a.x + a.face * 8, a.y - 1.5); sp.zIndex = a.y - 1.5;
+        sp.visible = true; sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow); sp.position.set(ax + a.face * 8, ay - 1.5); sp.zIndex = ay - 1.5;
         e.g.clear(); continue;
       }
       const dir = a.face, sway = Math.sin(time * 3 + a.id) * 0.6;
@@ -12051,10 +12090,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
         const sp = e.oxen[k], tex = art.cow[(hash(h.id * 7 + 3) * COATS.length) | 0][1];
         if (sp.texture !== tex) sp.texture = tex;
         sp.visible = true; sp.scale.set(dir * COW_SCALE.ox, COW_SCALE.ox);
-        sp.position.set(a.x + dir * (21 + k * 2), a.y - 3 + k * 5 + sway); sp.zIndex = a.y - 3 + k * 5;
+        sp.position.set(ax + dir * (21 + k * 2), ay - 3 + k * 5 + sway); sp.zIndex = ay - 3 + k * 5;
       });
-      e.g.clear().moveTo(a.x + dir * 2, a.y - 8).lineTo(a.x + dir * 12, a.y - 6).stroke({ width: 1.1, color: 0x5a4128 });
-      e.g.zIndex = a.y + 0.1;
+      e.g.clear().moveTo(ax + dir * 2, ay - 8).lineTo(ax + dir * 12, ay - 6).stroke({ width: 1.1, color: 0x5a4128 });
+      e.g.zIndex = ay + 0.1;
     }
     for (const [id, e] of teamDraw) if (!used.has(id)) { for (const sp of e.oxen) sp.visible = false; e.g.clear(); }
   }
@@ -12085,11 +12124,32 @@ if (typeof module !== 'undefined') module.exports = Sim;
       }
     }
   }
+  // ---- where each pawn is drawn this frame (VB-244): between its place before the last step (page/speed) and its own, by the share of
+  // the next step the frames have asked for; a pawn that went indoors, came out or was placed (moved more than a step's walk at the
+  // fastest, on a lane) is drawn where it is. Page state only: nothing of it is written to st. ----
+  let drawX = new Float64Array(0), drawY = new Float64Array(0), drawStride = new Float64Array(0);
+  function placePawns() {
+    const n = st.agents.length, R = VB['sim/rules'];
+    if (drawX.length < n) { const cap = Math.max(64, n * 2); drawX = new Float64Array(cap); drawY = new Float64Array(cap); drawStride = new Float64Array(cap); }
+    const s = drawBetween && stepSt === st ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
+    for (let i = 0; i < n; i++) {
+      const a = st.agents[i];
+      let x = a.x, y = a.y, stride = a.stride || 0;
+      if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
+        const dx = a.x - prevX[i], dy = a.y - prevY[i];
+        if (dx * dx + dy * dy <= far2) { x = prevX[i] + dx * s; y = prevY[i] + dy * s; stride = prevStride[i] + (stride - prevStride[i]) * s; }
+      }
+      drawX[i] = x; drawY[i] = y; drawStride[i] = stride;
+    }
+  }
   let tAcc = 0;
-  // The clock shown is the UI's own state: simulation time floored to 5 game minutes, redrawn only when that value changes.
+  // The clock shown is the UI's own state: the time the pawns are drawn at, floored to 5 game minutes, redrawn only when that value
+  // changes. While the pawns are drawn between steps (VB-244) that is the step before the last and the share of a step gone, so the
+  // clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const step = Math.floor((st.tick + st.tickPart) * 6 / 5); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
+    const drawn = drawBetween && stepSt === st ? st.tick - 1 + stepShare : st.tick;
+    const step = Math.floor(drawn * 6 / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;
@@ -12115,6 +12175,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const o of meadowSprites) if (o.m.stage !== o.stage) { o.stage = o.m.stage; o.sp.texture = fieldTex['meadow-' + o.stage]; }
     for (const f of fences) if (f.s.dirty) { drawFence(f.g, f.s); f.s.dirty = false; }
     const c = Sim.cal(st.t), show = cam.z > 0.28, winter = c.season === 3;
+    placePawns();
     for (const a of st.agents) {
       const R = rigs[a.id];
       const pp = st.pawns[a.id];
@@ -12123,15 +12184,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const k = sizeAt(pp.age);
       // an idle pawn that stands talking faces the other
       const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
-      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
-      R.root.position.set(a.x, a.y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = a.y;
-      pose(R, a, time, winter);
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face, x = drawX[a.id], y = drawY[a.id];
+      R.root.position.set(x, y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = y;
+      pose(R, a, time, winter, drawStride[a.id]);
     }
     drawTeams(show); drawHerds(c, show);
     ring.clear();
     if (selPawn >= 0 && rigs[selPawn].root.visible) {
-      const a = st.agents[selPawn];
-      ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
+      const x = drawX[selPawn], y = drawY[selPawn];
+      ring.ellipse(x, y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = y - 0.5;
     }
     drawTalk(show); drawLens(); drawPlayMark(); offerSuccession();
     // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
@@ -12953,7 +13014,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (id < 0 || document.body.classList.contains('ui-hidden')) return;
     const p = st.pawns[id], a = st.agents[id], f = farmOf(p), k = 1 / Math.max(cam.z, 0.12);
     if (a.inside && !f) return;
-    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] - 16 : a.y - 22 * PAWN_S * sizeAt(p.age);
+    const x = a.inside ? w.hx[f.house] : drawX[id], y = a.inside ? w.hy[f.house] - 16 : drawY[id] - 22 * PAWN_S * sizeAt(p.age);
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }
@@ -13686,7 +13747,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '4ec3f57f69', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd23e071b84', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

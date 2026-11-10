@@ -4,7 +4,7 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
@@ -191,9 +191,14 @@ VB['sim/commands'] = (() => {
         for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
       },
     },
-    // skip({hours}): the world goes on for that long (no actor)
+    // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
     skip: {
-      check: (st, c) => (c.args && c.args.hours > 0 && Number.isFinite(c.args.hours) ? null : `cannot skip ${c.args && c.args.hours} hours`),
+      check: (st, c) => {
+        const h = c.args && c.args.hours;
+        if (!(h > 0 && Number.isFinite(h))) return `cannot skip ${h} hours`;
+        const x = h * TICKS;
+        return Math.abs(x - Math.round(x)) < 1e-6 ? null : `cannot skip ${h} hours: not a whole number of 6-minute steps`;
+      },
       run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };

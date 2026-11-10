@@ -158,7 +158,7 @@ VB['sim/scenarios'] = (() => {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
-    // @state st.t: number; game time in hours since the start of year 1 (negative before it): (st.tick + st.tickPart) / TICKS (sim/clock)
+    // @state st.t: number; game time in hours since the start of year 1 (negative before it): st.tick / TICKS (sim/clock)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
