@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-206](backlog/VB-206.md) | The meetings spread, so no step goes over 60 ms | yardstick | 2 | S | The meetings' step (276 ms at year 60, 41 at year 5) measured at the new reference and spread a village per step if over 60 ms. |
 | [VB-210](backlog/VB-210.md) | Playing a pawn in the page: Play as, what it may do, the queue and the switch | life | 2 | M | The pawn panel to play by: needs, activity, the queue, the automatic switch, what it may do as buttons, Follow; browser checks and screenshots. |
 | [VB-214](backlog/VB-214.md) | Saves in the page, named by their build | life | 2 | M | Save by hand and when hidden (IndexedDB, last 3), to and from a file; each save names its build, and another build's is refused with delete-and-start-new. |
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
@@ -48,7 +47,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
 | [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
-| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201, VB-206 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
+| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | VB-199 | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-211](backlog/VB-211.md) | The player argues for a cause | life | 2 | S | VB-210 | Advocacy, the player's one door to the meeting: `argue` and `dropCause` for the played pawn, and how the village leans on its cause. |

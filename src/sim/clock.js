@@ -15,7 +15,7 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { holdMeetings, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, movingRound, dailyLife } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
@@ -23,10 +23,8 @@ VB['sim/clock'] = (() => {
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
-  const { landMeeting } = VB['sim/territory'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
-    if (st.cenv && c.season === 2 && c.sday === 9 && h === 12) { holdMeetings(st); landMeeting(st); } // customs, then the outland (sim/territory)
     if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const id of st.living) {
@@ -85,14 +83,21 @@ VB['sim/clock'] = (() => {
     // Historical ledgers of dissolved households still expire at the new year.
     Stores.prune(st);
   }
+  const TICKS = 10; // 6-minute steps an hour
   function advance(st, hours) {
     let left = hours;
     while (left > 1e-9) {
       const step = Math.min(left, 0.1);
-      const before = Math.floor(st.t + 1e-9);
+      const before = Math.floor(st.t + 1e-9), tick = Math.floor(st.t * TICKS + 1e-4);
       st.t += step; left -= step;
-      const after = Math.floor(st.t + 1e-9);
+      const after = Math.floor(st.t + 1e-9), ticked = Math.floor(st.t * TICKS + 1e-4);
       for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
+      // The autumn meetings (customs, then the outland), a stage on each of the 6-minute steps from noon of autumn day 10 (sim/lifecycle, VB-206);
+      // the step of the day says what is due, so a save between two stages goes on.
+      if (st.cenv) for (let k = tick + 1; k <= ticked; k++) {
+        const r = (((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS)) - 12 * TICKS;
+        if (r >= 0 && r < MEETING_STAGES) { const kc = cal(k / TICKS); if (kc.season === 2 && kc.sday === 9) meetingStage(st, r); }
+      }
       playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
       const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
       if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }

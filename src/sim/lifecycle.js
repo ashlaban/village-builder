@@ -2,6 +2,7 @@
 VB['sim/lifecycle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
+  const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
   const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
@@ -43,9 +44,15 @@ VB['sim/lifecycle'] = (() => {
     const r = heirRanking(st, hh); if (!r.length) return false;
     transfer(st, hh, r[0], 'retirement'); refreshRoles(st); refreshPrestige(st); return true;
   }
-  function holdMeetings(st) {
+  // The year's meetings, in four stages on four 6-minute steps from noon (VB-206, rule 5): the whole-population refreshes, then the ties, then the
+  // year's entrepreneurs, each settlement's meeting and each culture's year, then the land meeting. The step of the day says what is due, so a
+  // save between two stages goes on; the draws keep their order. `holdMeetings` is the first three at once (the drawer's button, the tests).
+  const MEETING_STAGES = 4;
+  function meetingStage(st, n) {
     const env = st.cenv, hk = hooks(st); env.t = st.t / YEAR;
-    refreshRoles(st); refreshPrestige(st); refreshInterests(st); updateTies(st);
+    if (n === 0) { refreshRoles(st); refreshPrestige(st); refreshInterests(st); return; }
+    if (n === 1) { updateTies(st); return; }
+    if (n === 3) { landMeeting(st); return; }
     const starters = Culture.entrepreneurs(env, hk, drawer(st.rng.culture));
     for (const p of starters) {
       personEvent(st, p.id, 'cause',
@@ -71,6 +78,7 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
   }
+  function holdMeetings(st) { for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n); } // not the land meeting
   // the closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry
   const kinOk = (st, a, b, cu, opt = cu.kinLimit) => {
     const d = kinDegree(st, a, b);
@@ -286,5 +294,5 @@ VB['sim/lifecycle'] = (() => {
       }
     }
   }
-  return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };
+  return { killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, dailyLife };
 })();
