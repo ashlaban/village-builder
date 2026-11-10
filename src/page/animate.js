@@ -70,7 +70,7 @@
   function placePawns() {
     const n = st.agents.length, R = VB['sim/rules'];
     if (drawX.length < n) { const cap = Math.max(64, n * 2); drawX = new Float64Array(cap); drawY = new Float64Array(cap); drawStride = new Float64Array(cap); }
-    const s = drawBetween && stepSt === st ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
+    const s = drawingBetween() ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
     for (let i = 0; i < n; i++) {
       const a = st.agents[i];
       let x = a.x, y = a.y, stride = a.stride || 0;
@@ -87,7 +87,7 @@
   // clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const drawn = drawBetween && stepSt === st ? st.tick - 1 + stepShare : st.tick;
+    const drawn = drawingBetween() ? st.tick - 1 + stepShare : st.tick;
     const step = Math.floor(drawn * 6 / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;

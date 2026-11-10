@@ -15,7 +15,7 @@
   // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
   // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
   // each agent's place before the last step, and page/animate draws each pawn between that place and its own by stepShare. ----
-  let stepShare = 0, stepSt = null, drawBetween = false;
+  let stepShare = 0, stepSt = null, stepTick = -1, drawBetween = false;
   let prevX = new Float64Array(0), prevY = new Float64Array(0), prevStride = new Float64Array(0), prevIn = new Uint8Array(0), prevN = 0;
   // the run changed (a new game, a load): nothing of the last run's steps is drawn
   function syncSteps() { if (stepSt !== st) { stepSt = st; stepShare = 0; prevN = 0; drawBetween = false; } }
@@ -32,8 +32,10 @@
   // runs n whole steps, noting the places before the last, so the frame draws the last step's walk
   function runSteps(n) {
     for (let k = 0; k < n; k++) { if (k === n - 1) notePlaces(); Sim.advance(st, SIM_SLICE_HOURS); }
-    if (n > 0) drawBetween = true;
+    if (n > 0) { drawBetween = true; stepTick = st.tick; }
   }
+  // whether this frame draws between steps: the run is the one stepped here and nothing else (a load, a debug skip) moved its clock since
+  const drawingBetween = () => drawBetween && stepSt === st && st.tick === stepTick;
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
     syncSteps();

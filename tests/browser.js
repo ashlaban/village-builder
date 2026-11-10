@@ -18,7 +18,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
       .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
-        + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween }; } };')),
+        + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween: drawingBetween() }; } };')),
   }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });

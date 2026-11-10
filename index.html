@@ -11995,7 +11995,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
   // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
   // each agent's place before the last step, and page/animate draws each pawn between that place and its own by stepShare. ----
-  let stepShare = 0, stepSt = null, drawBetween = false;
+  let stepShare = 0, stepSt = null, stepTick = -1, drawBetween = false;
   let prevX = new Float64Array(0), prevY = new Float64Array(0), prevStride = new Float64Array(0), prevIn = new Uint8Array(0), prevN = 0;
   // the run changed (a new game, a load): nothing of the last run's steps is drawn
   function syncSteps() { if (stepSt !== st) { stepSt = st; stepShare = 0; prevN = 0; drawBetween = false; } }
@@ -12012,8 +12012,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // runs n whole steps, noting the places before the last, so the frame draws the last step's walk
   function runSteps(n) {
     for (let k = 0; k < n; k++) { if (k === n - 1) notePlaces(); Sim.advance(st, SIM_SLICE_HOURS); }
-    if (n > 0) drawBetween = true;
+    if (n > 0) { drawBetween = true; stepTick = st.tick; }
   }
+  // whether this frame draws between steps: the run is the one stepped here and nothing else (a load, a debug skip) moved its clock since
+  const drawingBetween = () => drawBetween && stepSt === st && st.tick === stepTick;
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
     syncSteps();
@@ -12131,7 +12133,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function placePawns() {
     const n = st.agents.length, R = VB['sim/rules'];
     if (drawX.length < n) { const cap = Math.max(64, n * 2); drawX = new Float64Array(cap); drawY = new Float64Array(cap); drawStride = new Float64Array(cap); }
-    const s = drawBetween && stepSt === st ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
+    const s = drawingBetween() ? stepShare : 1, far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6, far2 = far * far;
     for (let i = 0; i < n; i++) {
       const a = st.agents[i];
       let x = a.x, y = a.y, stride = a.stride || 0;
@@ -12148,7 +12150,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const drawn = drawBetween && stepSt === st ? st.tick - 1 + stepShare : st.tick;
+    const drawn = drawingBetween() ? st.tick - 1 + stepShare : st.tick;
     const step = Math.floor(drawn * 6 / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
@@ -13747,7 +13749,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'd23e071b84', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a23121a1f2', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
