@@ -58,6 +58,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
   `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
 - `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
+- Saves in the page (VB-214) are `src/page/saves.js`: `{build, savedAt, label, save: Sim.save(st)}`, gzipped, in IndexedDB (an auto slot and
+  three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
+  page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
