@@ -5863,11 +5863,14 @@ VB['sim/farmclaims'] = (() => {
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // A pawn of `ids` (st.demand: landless adults who want out) who may claim a farm at all: alive and grown, with no farm, no claim under way,
   // no plot coming (sim/expansion) and no ward to keep.
-  const free = (st, id) => {
+  // barred says which of these stands in the way, or null.
+  const barred = (st, id) => {
     const p = st.pawns[id];
-    return p.alive && p.age >= 18 && p.household !== null && !landed(st, id) && !claimOf(st, id) && !hasPlot(st, id) && !awaitsCottage(st, id)
-      && !guardian(st, id);
+    return !p.alive || p.age < 18 ? 'under 18' : p.household === null ? 'has no home' : landed(st, id) ? 'holds a farm, or is married to its holder'
+      : claimOf(st, id) ? 'restoring a farm it claimed' : hasPlot(st, id) || awaitsCottage(st, id) ? 'has a plot coming' : guardian(st, id) ? 'keeps a ward'
+        : null;
   };
+  const free = (st, id) => barred(st, id) === null;
   // The farm whose claim pawn id, or their spouse, has under way, or null.
   function claimOf(st, id) {
     const sp = spouseOf(st, id);
@@ -6022,7 +6025,7 @@ VB['sim/farmclaims'] = (() => {
   }
   return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
     restored,
-    lapsedFarmClaims, moveIn };
+    lapsedFarmClaims, moveIn, barred };
 })();
 </script>
 <script>
@@ -6988,22 +6991,23 @@ VB['sim/jobs'] = (() => {
     const m = Math.ceil((((t % 24) + 24) % 24) * 60);
     return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
+  // Pawn p's fit for a job it may take: {bid (noise-free, null when it would not bid), reason (why not, or null)}.
+  function fit(st, p, j, c) {
+    const pr = prioOf(st, p, j), row = { bid: null, reason: null };
+    if (!isOpen(j)) row.reason = 'taken';
+    else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+    else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
+      row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
+    } else {
+      const here = st.farmsteads[st.households[p.household].farmstead].house;
+      row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+      if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; } else row.bid *= MATCH.join ** j.claims.length;
+    }
+    return row;
+  }
   function explainIdle(st, id) {
     const p = st.pawns[id], c = cal(st.t), out = [];
-    const here = st.farmsteads[st.households[p.household].farmstead].house;
-    for (const j of st.jobs.values()) {
-      if (!mayTake(st, p, j)) continue;
-      const pr = prioOf(st, p, j), row = { job: j.key, kind: j.kind, bid: null, reason: null };
-      if (!isOpen(j)) row.reason = 'taken';
-      else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
-      else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
-        row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
-      } else {
-        row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-        if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; } else row.bid *= MATCH.join ** j.claims.length;
-      }
-      out.push(row);
-    }
+    for (const j of st.jobs.values()) if (mayTake(st, p, j)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -7059,7 +7063,7 @@ VB['sim/jobs'] = (() => {
     }
     issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine };
+  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();
 </script>
 <script>
@@ -7439,17 +7443,17 @@ VB['sim/heirs'] = (() => {
     }
     return out;
   }
-  // own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function wantsOut(st, p, heirs = null, own = null, rank = null) {
-    if (!p.alive || p.age < 18 || p.retired) return false;
-    if (isHolder(st, p.id)) return false;
-    const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id, own, rank) !== null) return false;
-    if (claimOf(st, p.id)) return false; // restoring an empty farm they claimed (sim/farmclaims)
-    if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
-    else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return false;
-    return true;
+  // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
+  function staysWhy(st, p, heirs = null, own = null, rank = null) {
+    if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
+    const sp = spouseOf(st, p.id); if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
+    if (placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
+    if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
+    if (heirs) { if (heirs.has(p.id)) return 'heir to a farm'; } // heir somewhere else
+    else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return 'heir to a farm';
+    return null;
   }
+  const wantsOut = (st, p, heirs = null, own = null, rank = null) => staysWhy(st, p, heirs, own, rank) === null;
   // st.demand: the living pawns who want to move out (landless adults with no prospect of a farm), in id order
   function countDemand(st, rank = null) {
     const own = rank ? null : ownFirstOf(st);
@@ -7457,7 +7461,7 @@ VB['sim/heirs'] = (() => {
     st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own, rank));
   }
   return {
-    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf,
+    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, staysWhy, countDemand, firstHeirs, ownFirstOf,
       setGuardian,
       handOn,
     heirFor, roundHeirs,
@@ -7567,24 +7571,32 @@ VB['sim/service'] = (() => {
     log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
       kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
   }
+  // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
+  function unfit(st, q) {
+    if (!free(st, q)) return !adult(q) ? 'under 18' : q.retired ? 'retired' : q.household === null ? 'has no home' : hasPlot(st, q.id) ? 'has a plot coming'
+      : isGuardian(st, q.id) ? 'keeps a ward' : 'holds a farm, or is married to its holder';
+    if (spouseOf(st, q.id) !== null) return 'married';
+    return q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0] ? `service is for those of ${SERVICE.ages[0]} to ${SERVICE.ages[1]}` : null;
+  }
+  // The working hands q's household keeps without it; -1 when it has no household to leave (dissolved, or q alone in it).
+  function handsLeft(st, q) {
+    const from = st.households[q.household];
+    return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
+  }
   function takeServants(st) {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
     const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    const available = st.demand.filter((id) => {
-      const q = st.pawns[id];
-      return free(st, q) && spouseOf(st, id) === null && q.age <= SERVICE.ages[1] && q.age >= SERVICE.ages[0];
-    });
+    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
       let best = null, bs = null;
       for (const id of available) {
         const q = st.pawns[id];
-        const from = st.households[q.household]; if (from.dissolved || from.members.length < 2) continue;
-        const left = hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0); if (left < SERVICE.keepHands) continue;
+        const from = st.households[q.household], left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
         const u = st.villages[village(from)], d = u.id === v.id ? 0 : hexSteps(st.w, u.center, v.center);
         if (d > SERVICE.reach) continue;
         const s = [d, -left, q.born];
@@ -7595,7 +7607,133 @@ VB['sim/service'] = (() => {
     }
     refreshRoles(st); st.visualDirty = true;
   }
-  return { careForOrphans, takeServants, enterService, hands };
+  return { careForOrphans, takeServants, enterService, hands, unfit, handsLeft };
+})();
+</script>
+<script>
+// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209)
+VB['sim/opportunities'] = (() => {
+  const Culture = VB['culture'];
+  const { cal, SERVICE } = VB['sim/rules'];
+  const { walkable } = VB['sim/routes'];
+  const { villageOf, settlementIdOf, fullName } = VB['sim/records'];
+  const { ASK } = VB['sim/kinds'];
+  const { claimable, barred: claimBar } = VB['sim/farmclaims'];
+  const { VERBS } = VB['sim/commands'];
+  const { mayTake, fit, jobsFor } = VB['sim/jobs'];
+  const { staysWhy, heirRanking } = VB['sim/heirs'];
+  const { unfit, handsLeft } = VB['sim/service'];
+  // What pawn `id` may read of the state. It filters nothing for now: every pawn knows everything (design.md, What a pawn knows). It is
+  // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
+  const actorView = (st) => st;
+  // An opportunity is a command the pawn could be given, with who it would be for and why it may not be taken now:
+  //   {verb, target, args, holder ({type: 'household' | 'village', id}, or null for its own acts), basis ('member', 'servant', 'villager'
+  //   or 'self'), fit (the planner's noise-free bid for work, else null), why (null when the command would be accepted now), kind (a job's
+  //   kind, for work), when ('now', or 'round': an act the moving round carries out, by its rules, for a pawn that wishes it)}.
+  const item = (verb, target, args, why, more = {}) => ({ verb, target, args, holder: null, basis: 'self', fit: null, why, kind: null, when: 'now', ...more });
+  // What the verb's own check says of the command, for pawn id.
+  const check = (view, id, verb, target, args) => VERBS[verb].check(view, { actor: id, verb, target, args, source: 'player' });
+
+  // ---- work: where each kind is available for its household and its village, matched to the posted job, with the planner's fit ----
+  function work(view, p, c, out) {
+    const hh = view.households[p.household], f = view.farmsteads[hh.farmstead], vid = villageOf(view, p), a = view.agents[p.id];
+    const owners = [{ type: 'household', id: hh.id }, { type: 'village', id: vid }], seen = new Set(), list = [];
+    const add = (key, kind, owner, j) => {
+      if (seen.has(key) || !mayTake(view, p, { owner })) return;
+      seen.add(key);
+      const basis = owner.type === 'village' ? 'villager' : p.servant ? 'servant' : 'member';
+      const row = j ? fit(view, p, j, c) : { bid: null, reason: 'not given out yet: work is given out in working hours' };
+      const why = j && a.job === j ? 'doing it now' : row.reason || check(view, p.id, 'work', key, null);
+      list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind }));
+    };
+    // as refreshJobs asks the kinds (sim/jobs), for this farm and this village only; `put` posts nothing
+    let kind = null, own = owners[0];
+    const put = (key, site, extra, k = kind, owner = own) => add(key, k, owner, view.jobs.get(key) || null);
+    const ask = (rules, holder, at, farm) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](view, holder, at, c, put, farm); } };
+    for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
+    ask(ASK.farm, hh, f, f); ask(ASK.farmAfterPlans, hh, f, f);
+    own = owners[1]; ask(ASK.village, view.villages[vid], view.villages[vid]);
+    // and the posted jobs of the two that are asked island-wide (a plot's steps, a claimed farm's restoration) or are still being worked
+    for (const j of jobsFor(view, p)) add(j.key, j.kind, j.owner, j);
+    // those it may take first, best fit first; then the rest, in the order asked
+    list.sort((x, y) => (x.why === null ? 0 : 1) - (y.why === null ? 0 : 1) || (y.fit ?? -Infinity) - (x.fit ?? -Infinity));
+    for (const o of list) out.push(o);
+  }
+
+  // ---- its own acts: go home, idle, and walk to the tile asked about, if the walking rule opens it ----
+  function own(view, p, near, out) {
+    out.push(item('goHome', null, null, view.agents[p.id].inside ? 'at home already' : check(view, p.id, 'goHome', null, null)));
+    const until = view.t + 1;
+    out.push(item('idle', null, { until }, check(view, p.id, 'idle', null, { until })));
+    if (near === null || near === undefined) return;
+    const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);
+    out.push(item('walkTo', near, null, open ? check(view, p.id, 'walkTo', near, null) : 'no one can walk there'));
+  }
+
+  // ---- a cause: each custom's options other than its village's practice, and dropping the cause it has ----
+  function causes(view, p, out) {
+    if (!view.cenv) return;
+    const s = view.cenv.settlements[settlementIdOf(view, p)], adv = p.advocate || null;
+    if (!s) return;
+    for (let dim = 0; dim < Culture.DIMS.length; dim++) for (let option = 0; option < Culture.NOPT[dim]; option++) {
+      if (s.practice[dim] === option) continue;
+      const args = { dim, option }, mine = adv && adv.dim === dim && adv.opt === option;
+      out.push(item('argue', null, args, mine ? 'argues for it already' : check(view, p.id, 'argue', null, args)));
+    }
+    if (adv) out.push(item('dropCause', null, { dim: adv.dim }, null));
+  }
+
+  // ---- the moving round's acts: the pawn's wish stands in at the round, which decides by its rules (VB-212) ----
+  function round(view, p, out) {
+    const vid = villageOf(view, p), v = view.villages[vid], atRound = { when: 'round' };
+    // Heir to a farm? One the round last counted as wanting out (st.demand) was not, and is not asked again: ranking a village's heirs is
+    // the costly part (0.6 ms at small-y40). Else the first heirs of its own village's farms are ranked, once, and only if the cheaper
+    // bars all pass; an heir to a farm elsewhere is found at the round, which ranks every household.
+    let ranked = null;
+    const firsts = () => {
+      ranked = new Set();
+      for (const k of v.farmsteads) {
+        const f = view.farmsteads[k], hh = f.household === null ? null : view.households[f.household];
+        if (hh && !hh.dissolved) { const first = heirRanking(view, hh)[0]; if (first !== undefined) ranked.add(first); }
+      }
+      return ranked;
+    };
+    const heirs = { has: (id) => !view.demand.includes(id) && (ranked || firsts()).has(id) };
+    const stays = staysWhy(view, p, heirs);
+    out.push(item('leave', null, null, stays, atRound));
+    // an empty farm of its village: the round gives it to the first claimant among those who want out
+    const bar = stays || claimBar(view, p.id);
+    for (const k of v.farmsteads) {
+      const f = view.farmsteads[k];
+      if (f.household !== null) continue;
+      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar;
+      out.push(item('claim', f.id, null, why || check(view, p.id, 'claim', f.id, null), atRound));
+    }
+    // service with a holder of its village who lives alone
+    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null);
+    let lone = 0;
+    for (const k of v.farmsteads) {
+      const f = view.farmsteads[k], hh = f.household === null ? null : view.households[f.household];
+      if (!hh || hh.dissolved || hh.members.length !== 1 || hh.id === p.household || view.pawns[hh.holder].age < 18) continue;
+      lone++;
+      out.push(item('serve', hh.id, null, spare || check(view, p.id, 'serve', hh.id, null), { ...atRound, holder: { type: 'household', id: hh.id } }));
+    }
+    if (!lone) out.push(item('serve', null, null, spare || 'no holder of the village lives alone', atRound));
+  }
+
+  // What pawn `id` may do here (and at tile `near`, if given): its work, its own acts, a cause, and the round's acts; nothing for marriage
+  // (Decided, 8 Nov). Read-only: it writes nothing and draws no random number. `view` is actorView's; every read of the world goes through it.
+  function forPawn(st, view, id, near = null) {
+    const p = view.pawns[id], out = [];
+    if (!p || p.died !== null || !view.agents[id]) return out;
+    const housed = p.household !== null && view.households[p.household] && !view.households[p.household].dissolved;
+    if (housed) work(view, p, cal(view.t), out);
+    own(view, p, near, out);
+    causes(view, p, out);
+    if (housed) round(view, p, out);
+    return out;
+  }
+  return { actorView, forPawn };
 })();
 </script>
 <script>
@@ -9025,6 +9163,9 @@ const Sim = (() => {
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto } = VB['sim/commands'];
+  const { actorView, forPawn } = VB['sim/opportunities'];
+  // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
+  const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { explainAllowance } = VB['sim/exchange'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
@@ -9037,7 +9178,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, cal, age, birthYear, fullName, spouseOf, childrenOf, siblingsOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, opportunities, cal, age, birthYear, fullName, spouseOf,
+      childrenOf, siblingsOf,
       kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,
       YEAR,

@@ -122,22 +122,23 @@ VB['sim/jobs'] = (() => {
     const m = Math.ceil((((t % 24) + 24) % 24) * 60);
     return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
+  // Pawn p's fit for a job it may take: {bid (noise-free, null when it would not bid), reason (why not, or null)}.
+  function fit(st, p, j, c) {
+    const pr = prioOf(st, p, j), row = { bid: null, reason: null };
+    if (!isOpen(j)) row.reason = 'taken';
+    else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+    else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
+      row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
+    } else {
+      const here = st.farmsteads[st.households[p.household].farmstead].house;
+      row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+      if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; } else row.bid *= MATCH.join ** j.claims.length;
+    }
+    return row;
+  }
   function explainIdle(st, id) {
     const p = st.pawns[id], c = cal(st.t), out = [];
-    const here = st.farmsteads[st.households[p.household].farmstead].house;
-    for (const j of st.jobs.values()) {
-      if (!mayTake(st, p, j)) continue;
-      const pr = prioOf(st, p, j), row = { job: j.key, kind: j.kind, bid: null, reason: null };
-      if (!isOpen(j)) row.reason = 'taken';
-      else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
-      else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
-        row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
-      } else {
-        row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-        if (row.bid + MATCH.noise <= 0) { row.reason = 'not worth the walk'; row.bid = null; } else row.bid *= MATCH.join ** j.claims.length;
-      }
-      out.push(row);
-    }
+    for (const j of st.jobs.values()) if (mayTake(st, p, j)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -193,5 +194,5 @@ VB['sim/jobs'] = (() => {
     }
     issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine };
+  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();

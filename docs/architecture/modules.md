@@ -38,6 +38,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
+- Opportunities (VB-209): `Sim.opportunities(st, id, near)` (`src/sim/opportunities.js`) lists what a pawn may do here, each a command with its
+  holder, basis and the rule that bars it: its household's and village's work (from the kinds' `available`, with the planner's fit), its own
+  acts, a cause, and the moving round's acts. Computed when asked, never stored; it reads through `actorView`, which filters nothing yet. A rule
+  it shows says why not itself (`staysWhy`, `barred`, `unfit`, `fit`): a new bar is added to the rule, not here.
 - The chronicle (VB-099): `Sim.chronicle(st, {pawn | farm | village}, group)` and `Sim.villageLog(st, n)`, also in `src/sim/notable.js`, are the
   record as a history, newest first, and as the village log (`st.events` is gone: `log` writes the record only). `CHRONICLE` names the
   filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
