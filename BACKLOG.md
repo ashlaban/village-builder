@@ -26,6 +26,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-242](backlog/VB-242.md) | The meetings and the moving round, a village a step: survey and tasks | - | 2 | S | The round matches the whole map in one step, which is why its heir cache exists; Kim decided each village holds its meeting and round in its own step. Survey the code and write the tasks. |
 | [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
+| [VB-160](backlog/VB-160.md) | Plan: what raised yields over the centuries, and a model for it | animals | 3 | S | Survey the historical causes of rising grain yields, their size and timescale, and propose a model in which a gain follows a change in farming; no code. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
 | [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
 | [VB-207](backlog/VB-207.md) | death.hazard: the cause read from its contributions | yardstick | 3 | S | `deathRoll` takes a death's cause from the contributions of `death.hazard`, not by calling all extra risk hunger; golden unchanged. |
@@ -51,8 +52,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
-| [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Record the text of the page's panels and compare it, as the golden file does for the state, so a wording or number change shows. |
-| [VB-160](backlog/VB-160.md) | The soil's cap rises with a village's years of farming | animals | 3 | S | Yields rise slightly over a game as the soil's cap rises with years of farming; the mechanism is to be researched before a model and rate. |
 | [VB-165](backlog/VB-165.md) | Inspect the map from the keyboard, and lists beside the canvas | - | 3 | M | A keyboard-driven list of villages, households and people that selects on the map, with keys to step between them and announced selections. |
 
 ## Blocked

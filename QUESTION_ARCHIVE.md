@@ -2,6 +2,30 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-160)
+
+## VB-160: research the mechanism for long-term yield increase (reopened 5 November 2026)
+The user asked to skip implementation: the mechanism for long-term yield increase needs better research.
+The previous village-age manure cap (+0.1 per century) is reopened, and the task is `needs-review`.
+1. Which historical mechanisms explain sustained yield increases in the game's medieval Nordic setting,
+   and what evidence supports their magnitude and timescale (soil management, tools, practice or other changes)?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+2. Which mechanisms should the game represent, and should gains follow actual changes in farming rather than village age?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+3. After researching these questions, what model, rates and acceptance criteria should replace the current proposal?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+
+# Archived 10 November 2026 (VB-057)
+
+## VB-057: motivation for panel text snapshots (raised 5 November 2026)
+The user questioned whether this task is necessary; it is `needs-review` pending better motivation.
+1. What concrete, consequential UI regressions have escaped the existing smoke and browser checks?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+2. Would focused assertions cover those failures with less maintenance than whole-panel snapshots?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+3. What benefit justifies the baseline updates and review noise from intentional wording and simulation changes?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+
 # Archived 10 November 2026 (VB-201)
 
 ## VB-201: the demographic gate fails on chaos alone (raised 10 November 2026)

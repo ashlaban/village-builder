@@ -46,6 +46,7 @@ From `docs/review-work.md` (survey, proposed `design.md` section 7, cost, tasks)
    **A (Kim, 10 Nov):** yes, as proposed (P).
 9. Sowing first (VB-023): the rule is not in `plow.available` although its question says it is built. **P:** make it the order within the seasonal plan in the plan task (hoe one, sow it, hoe the next), and give the old question's "at least 1 crop in years 1 to 3 at seeds 3, 7, 11 and 42" as that task's criterion.
 10. Order. **P:** the implement tasks as in `docs/review-work.md`, section 5, in that order: plans and cache, hidden plans explicit (both golden unchanged), windows and planning days (golden re-recorded), eligibility, attention, seasonal plans and the player as head, the panel, the village's routines, fishing and gathering, the wrap-up.
+   **A (Kim, 10 Nov):** as proposed (P), with two new tasks after "seasonal plans and the player as head" and before the panel: foresight (stand-in traits, the bias and the horizon), then projects (the menu, weighted by values).
 
 ### Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
 VB-033 was answered with the claims review and is built; the order of work, VB-127 and VB-129 were answered in the second pass (`QUESTION_ARCHIVE.md`). Measured in `REVIEW.md`, review of 2 November, second pass.
@@ -128,20 +129,6 @@ No two pawns of different villages ever meet today, so courting would keep marri
 
 ## Priority 3
 
-### VB-057: motivation for panel text snapshots (raised 5 November 2026)
-The user questioned whether this task is necessary; it is `needs-review` pending better motivation.
-1. What concrete, consequential UI regressions have escaped the existing smoke and browser checks?
-2. Would focused assertions cover those failures with less maintenance than whole-panel snapshots?
-3. What benefit justifies the baseline updates and review noise from intentional wording and simulation changes?
-
-
-### VB-160: research the mechanism for long-term yield increase (reopened 5 November 2026)
-The user asked to skip implementation: the mechanism for long-term yield increase needs better research.
-The previous village-age manure cap (+0.1 per century) is reopened, and the task is `needs-review`.
-1. Which historical mechanisms explain sustained yield increases in the game's medieval Nordic setting,
-   and what evidence supports their magnitude and timescale (soil management, tools, practice or other changes)?
-2. Which mechanisms should the game represent, and should gains follow actual changes in farming rather than village age?
-3. After researching these questions, what model, rates and acceptance criteria should replace the current proposal?
 
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
