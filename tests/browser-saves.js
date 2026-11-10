@@ -22,7 +22,8 @@ const check = (ok, m) => { if (!ok) fail(m); };
     .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
   const shot = async (name) => { if (out) await page.screenshot({ path: path.join(out, name) }); };
   const done = () => page.waitForFunction(() => document.getElementById('loader').classList.contains('done') && !!window.__play.st
-    && document.getElementById('genScreen').hidden && document.getElementById('landing').hidden, null, { timeout: 90000 });
+    && document.getElementById('genScreen').hidden && document.getElementById('landing').hidden
+    && !document.body.classList.contains('demo'), null, { timeout: 90000 }); // a game, not the menu's showcase island (VB-307)
   const pause = () => page.evaluate(() => document.querySelector('[data-speed="0"]').click());
   const hash = () => page.evaluate(() => {
     const { st, Sim } = window.__play, t = JSON.stringify(Sim.save(st)); let h = 0;
@@ -97,9 +98,19 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await oldBuild(`${P7}:3`); await oldBuild(`${P7}:auto`);
 
   // 5. Reload: Load archipelago and Continue match; another build's save is refused, Delete it removes it, Start a new game regenerates.
-  await reload(); await landing(); await shot('landing.png');
+  // With no game open the showcase island plays behind the menu (VB-307): it is no game to go back to or to save.
+  await reload(); await landing();
+  await page.waitForFunction(() => document.body.classList.contains('demo') && !!window.__play.st, null, { timeout: 30000 });
+  const demoT = await page.evaluate(() => window.__play.st.t);
+  await page.waitForFunction((t) => window.__play.st.t > t, demoT, { timeout: 10000 });
+  check(await page.locator('#landBack').isHidden(), 'the showcase island is offered as a game to go back to');
+  check(await page.locator('.hud.top').evaluate((e) => getComputedStyle(e).visibility) === 'hidden', 'the interface shows over the showcase island');
+  await shot('landing.png');
   await savesOpen(); await shot('saves-landing.png');
   const text = await body();
+  check(!text.includes('the game open now') && !(await page.locator('#savesBody [data-save]').count()), 'the showcase island can be saved: ' + text);
+  check(await page.locator('#savesTitle').innerText() === 'Load archipelago' && await page.locator('#savesClose').innerText() === 'Back',
+    'from the main menu the Saves overlay is not titled Load archipelago, with Back');
   check(text.includes(OTHER), 'no message for a save of another build: ' + text);
   await pause();
   await page.click(`#savesBody [data-load="${P7}:1"]`); await done(); await pause();

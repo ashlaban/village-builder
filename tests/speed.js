@@ -9,7 +9,7 @@ const ctx = {
   document: { hidden: false, hasFocus: () => true, querySelector: () => button, addEventListener: listen('document') },
   window: { addEventListener: listen('window') }, performance: { now: () => now },
   $: (id) => id === 'backgroundRun' ? checkbox : screen,
-  st: { t: 6, agents: [] }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2,
+  st: { t: 6, agents: [] }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2, demo: false, DEMO: { speed: 3 }, reduceMotion: false,
   // whole 6-minute steps only (VB-244): the page keeps the part of a step its frames have asked for
   Sim: { advance(st, hours) { assert.strictEqual(hours, 0.1, 'the page asks for whole steps, one at a time'); calls++; st.t += hours; now += cost; } },
   setInterval: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; }, clearInterval: (id) => timers.delete(id),

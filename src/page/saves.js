@@ -35,7 +35,7 @@
   const listSaves = () => saveTx('readonly', (m) => m.getAll());
   const deleteSaves = (keys) => saveTx('readwrite', (m, b) => { for (const k of keys) { m.delete(k); b.delete(k); } });
   async function storeSave(slot) {
-    if (!st || building || !SAVE_SLOTS.includes(slot)) return null;
+    if (!st || demo || building || !SAVE_SLOTS.includes(slot)) return null;
     const s = st, arch = archOf(s), key = `${arch}:${slot}`, p = await packSave(s);
     const line = { key, arch, slot, build: BUILD, savedAt: p.savedAt, label: p.label, name: s.w.name, scenario: s.scenario, seed: s.w.seed,
       size: sizeKey(s.w.COLS, s.w.ROWS), bytes: p.blob.size };
@@ -61,7 +61,7 @@
   }
   const loadStored = async (key) => { const rec = await saveTx('readonly', (m, b) => b.get(key)); return loadBlob(rec && rec.blob); };
   async function saveToFile() {
-    if (!st || building) return;
+    if (!st || demo || building) return;
     const s = st, p = await packSave(s), a = document.createElement('a'), url = URL.createObjectURL(p.blob);
     a.href = url; a.download = `${s.w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${s.scenario}-${s.w.seed}-year${Sim.cal(s.t).year}.json.gz`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -81,9 +81,10 @@
         : saveBtn('del', l.key, 'Delete it') + saveBtn('new', l.key, 'Start a new game'));
     return `<div class="save-slot"><b>${slotName(slot)}</b><span>${what}</span><div class="save-acts">${acts}</div></div>`;
   }
+  const stOpen = () => st; // the game open, which the showcase island is not
   let saveMsg = '', saveLines = [];
   async function drawSaves() {
-    const box = $('savesBody');
+    const box = $('savesBody'), st = demo ? null : stOpen();
     try { saveLines = await listSaves(); } catch (e) { box.innerHTML = '<p class="save-msg">Saves are not available in this browser.</p>'; return; }
     const archs = new Map(), open = st ? archOf(st) : null;
     for (const l of saveLines) { if (!archs.has(l.arch)) archs.set(l.arch, []); archs.get(l.arch).push(l); }
@@ -137,7 +138,7 @@
   // When the page is hidden the run is saved to its auto slot, unless nothing has passed since the last one.
   let autoAt = -1, autoOf = null;
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden' || !st || building || skipping || (autoOf === st && autoAt === st.t)) return;
+    if (document.visibilityState !== 'hidden' || !st || demo || building || skipping || (autoOf === st && autoAt === st.t)) return;
     autoOf = st; autoAt = st.t;
     storeSave('auto').catch((err) => console.warn('autosave failed', err));
   });

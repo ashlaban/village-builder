@@ -37,6 +37,14 @@
   // whether this frame draws between steps: the run is the one stepped here and nothing else (a load, a debug skip) moved its clock since
   const drawingBetween = () => drawBetween && stepSt === st && st.tick === stepTick;
   function advanceSimulation(dt) {
+    // behind the menu a game waits, paused; the showcase island (page/loader) goes on at its own speed, unless motion is to be reduced
+    if (demo) {
+      if (st && !building && !reduceMotion) {
+        syncSteps(); stepShare += (dt * DEMO.speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
+        const n = Math.floor(stepShare); stepShare -= n; runSteps(n);
+      }
+      return;
+    }
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
     syncSteps();
     const before = st.t;

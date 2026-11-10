@@ -28,6 +28,11 @@
       if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
     }
     if (followPlayed && st && !intro && !drag && !pinch) followCamera();
+    // the showcase island behind the menu: the camera drifts slowly about its village
+    if (demo && demoAt) {
+      const k = reduceMotion ? 0 : 1;
+      cam.x = demoAt.x + k * demoAt.r * Math.sin(time * 0.045); cam.y = demoAt.y + k * demoAt.r * 0.6 * Math.sin(time * 0.031 + 1);
+    }
     clampCam();
     world.scale.set(cam.z);
     world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);
@@ -75,4 +80,4 @@
   // size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
   const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
   if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
-  else showLanding();
+  else { showLanding(); startDemo(); }
