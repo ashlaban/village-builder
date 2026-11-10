@@ -205,9 +205,11 @@ VB['sim/agents'] = (() => {
     const i = place(w.ids, id); if (w.ids[i] !== id) return;
     w.ids.splice(i, 1); if (i <= w.at) w.at--;
   }
-  // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock).
-  function stepAgents(st, dt, c) {
-    const w = awake(st), ids = w.ids, out = [];
+  // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock). A whole
+  // 6-minute step, always: the page draws the pawns between steps (VB-244).
+  const STEP_HOURS = 1 / TICKS;
+  function stepAgents(st, c) {
+    const w = awake(st), ids = w.ids, out = [], dt = STEP_HOURS;
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];

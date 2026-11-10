@@ -1,9 +1,9 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS, TICKS } = VB['sim/rules'];
-  const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
+  const { YEAR, YEAR_DAYS, TICKS, FOODS } = VB['sim/rules'];
+  const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
-  const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
+  const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -35,13 +35,13 @@ VB['sim/stores'] = (() => {
   function field(holder, good) {
     const kind = type(holder);
     if (kind === 'pawn' && good === 'grain') return 'stake';
-    if (good === 'grain' || kind === 'household' && good === 'rations') return good;
+    if (good === 'grain' || kind === 'household' && good === 'meals') return good;
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
-  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.rations = n; }
+  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n) {
     const kind = type(holder);
     if (kind === 'pawn') setStake(holder, n);
@@ -60,7 +60,10 @@ VB['sim/stores'] = (() => {
     amount(n); field(from, good); field(to, good);
     const got = take(st, from, good, n, why); put(st, to, good, got, why); return got;
   }
-  function cook(st, hh, n) { const got = take(st, hh, 'grain', n, 'cooking'); put(st, hh, 'rations', got, 'cooking'); }
+  // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
+  const mealsFrom = (food, n) => n * FOODS[food].worth;
+  // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
+  function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest'); hh.unthreshed.push(n);
   }
@@ -69,10 +72,10 @@ VB['sim/stores'] = (() => {
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed.
-  function start(st, hh, grain, rations = 0) {
-    amount(grain); amount(rations); type(hh);
-    hh.grain = grain; hh.rations = rations;
-    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'rations', rations, 'provisions');
+  function start(st, hh, grain, meals = 0) {
+    amount(grain); amount(meals); type(hh);
+    hh.grain = grain; hh.meals = meals;
+    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'meals', meals, 'provisions');
   }
   function spoil(st, hh, n) {
     const lost = take(st, hh, 'grain', n, 'spoilage'); hh.spoilt = (hh.spoilt || 0) + lost;
@@ -101,5 +104,36 @@ VB['sim/stores'] = (() => {
   function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
-  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
+  // two plans do not spend it twice and the holder's free stock is the rest. A count per holder, good and plan, kept on the plan (st.plans,
+  // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
+  // @state plan.reserved: {[good]: n}: the plan's reservation of a good, as counted at its last reserve (the plan's review); plan.reasons:
+  //   {[good]: why}, one of RESERVE. A reservation whose reason follows the plan's needs between reviews (FOLLOWS) is counted at read by its rule.
+  const RESERVE = ['seed'];
+  // Rules that count a following reservation at read, by reason, given before the first seed (like sim/registry's): seed follows the
+  // fields as they are sown (sim/hunger). Stored counts lag a sowing or a stage change by up to an hour, and the readers of the seed
+  // (the cook, the meal, help, deals, provisions, the means to marry) read it within the hour, so the count is read where it is wanted.
+  const FOLLOWS = {};
+  function follow(why, count) { if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`); FOLLOWS[why] = count; }
+  function reason(why) { if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`); }
+  // The plan of a holder's that a reservation is kept on: today its standing plan (sim/plans), the only plan a holder has.
+  const planFor = (st, holder) => (type(holder) === 'household' ? st.plans.households : st.plans.villages).get(holder.id);
+  function reserve(st, holder, plan, good, n, why) {
+    amount(n); reason(why); field(holder, good);
+    if (plan !== planFor(st, holder)) throw new Error('stores: a reservation names its holder\'s plan');
+    plan.reserved[good] = n; plan.reasons[good] = why;
+  }
+  function release(st, holder, plan, good, why) {
+    reason(why);
+    if (plan !== planFor(st, holder) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
+    delete plan.reserved[good]; delete plan.reasons[good];
+  }
+  // What the holder's plans hold back of a good; a following reservation counted now. Allocates nothing (the review reads it hourly).
+  function reserved(st, holder, good) {
+    const plan = st.plans && planFor(st, holder), why = plan && plan.reasons[good];
+    if (!why) return 0;
+    return FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+  }
+  return { KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
+    follow, reserve, release, reserved };
 })();

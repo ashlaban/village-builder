@@ -71,7 +71,7 @@ const FARMER = 0, WIFE = 1;
 // 4. The call to cook (sim/jobs, callCooks): the wife is called off the field at 14:00; on the player's command she stays, and the
 // next cook is called.
 {
-  const hungry = (st) => { st.households[0].rations = 0; Sim.advance(st, 0.6); };
+  const hungry = (st) => { st.households[0].meals = 0; Sim.advance(st, 0.6); };
   const plain = make(7.5), st = make(7.5), a = st.agents[WIFE];
   hungry(plain); assert.strictEqual(plain.agents[WIFE].job.kind, 'cook', 'unplayed, the wife is called to cook');
   const field = a.job;
@@ -98,7 +98,7 @@ const FARMER = 0, WIFE = 1;
 
 // 6. A walk under way at the end of work is carried out, not cut off; then the pawn goes home, as needs have it.
 {
-  const st = make(WORK[1] - 6 - 0.15), a = st.agents[FARMER], far = 11 * st.w.COLS + 1; // the far corner of the map
+  const st = make(WORK[1] - 6 - 0.2), a = st.agents[FARMER], far = 11 * st.w.COLS + 1; // the far corner of the map
   Sim.inhabit(st, FARMER);
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: far });
   Sim.advance(st, 0.3);

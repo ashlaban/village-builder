@@ -9,18 +9,23 @@ const ctx = {
   document: { hidden: false, hasFocus: () => true, querySelector: () => button, addEventListener: listen('document') },
   window: { addEventListener: listen('window') }, performance: { now: () => now },
   $: (id) => id === 'backgroundRun' ? checkbox : screen,
-  st: { t: 6 }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2,
-  Sim: { advance(st, hours) { calls++; st.t += hours; now += cost; } },
+  st: { t: 6, agents: [] }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2,
+  // whole 6-minute steps only (VB-244): the page keeps the part of a step its frames have asked for
+  Sim: { advance(st, hours) { assert.strictEqual(hours, 0.1, 'the page asks for whole steps, one at a time'); calls++; st.t += hours; now += cost; } },
   setInterval: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; }, clearInterval: (id) => timers.delete(id),
   updateClock: () => clocks++,
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/speed.js'), 'utf8'), ctx);
 const tick = () => { now += 100; for (const fn of timers.values()) fn(); };
+const share = () => vm.runInContext('stepShare', ctx);
 for (const speed of [1, 3, 10, 30]) {
-  ctx.speed = speed; const before = ctx.st.t;
-  ctx.advanceSimulation(0.016);
-  assert(Math.abs(ctx.st.t - before - 0.016 * speed / 2) < 1e-9, 'fixed speed uses elapsed time');
+  ctx.speed = speed; const before = ctx.st.t + share() * 0.1;
+  for (let k = 0; k < 50; k++) {
+    ctx.advanceSimulation(0.016);
+    assert(share() >= 0 && share() < 1, 'the part of a step kept is under a step');
+  }
+  assert(Math.abs(ctx.st.t + share() * 0.1 - before - 50 * 0.016 * speed / 2) < 1e-9, 'fixed speed uses elapsed time, steps and the part kept');
 }
 ctx.speed = Infinity; ctx.resetSpeedSample(); calls = 0;
 const before = now; ctx.advanceSimulation(0.016);
@@ -40,8 +45,8 @@ listeners['window:blur'](); assert(vm.runInContext('simulationAway()', ctx)); as
 checkbox.checked = true; listeners['checkbox:change'](); assert.strictEqual(timers.size, 1);
 for (let i = 0; i < 3; i++) { listeners['window:blur'](); listeners['document:visibilitychange'](); }
 assert.strictEqual(timers.size, 1, 'repeated focus/visibility notifications never stack timers');
-ctx.speed = 30; const t0 = ctx.st.t; tick(); assert(Math.abs(ctx.st.t - t0 - 1.5) < 1e-9); assert(clocks > 0);
-now += 60000; const t1 = ctx.st.t; tick(); assert(Math.abs(ctx.st.t - t1 - 3.75) < 1e-9, 'no accumulated catch-up');
+ctx.speed = 30; const t0 = ctx.st.t + share() * 0.1; tick(); assert(Math.abs(ctx.st.t + share() * 0.1 - t0 - 1.5) < 1e-9); assert(clocks > 0);
+now += 60000; const t1 = ctx.st.t + share() * 0.1; tick(); assert(Math.abs(ctx.st.t + share() * 0.1 - t1 - 3.75) < 1e-9, 'no accumulated catch-up');
 ctx.speed = 0; const t2 = ctx.st.t; tick(); assert.strictEqual(ctx.st.t, t2, 'pause also stops background progress');
 listeners['window:focus'](); assert(!vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 0, 'one driver at a time');
 ctx.document.hidden = true; listeners['document:visibilitychange'](); assert(vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 1);

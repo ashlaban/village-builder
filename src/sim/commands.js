@@ -4,7 +4,7 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
@@ -94,6 +94,14 @@ VB['sim/commands'] = (() => {
         : spouseOf(st, c.actor) !== null || spouseOf(st, c.target) !== null ? 'one of them is married'
           : !home(st, c.args && c.args.home) ? `there is no household ${c.args && c.args.home}` : null),
       run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
+    },
+    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-293),
+    // all its answers in it at once; the offer closes at a no, or when all have said yes
+    answer: {
+      check: (st, c) => (!st.player || st.player.pawn !== c.actor ? `pawn ${c.actor} is not the player's pawn` : living(st, c.actor)
+        || (!(c.args && typeof c.args.yes === 'boolean') ? `cannot answer ${JSON.stringify(c.args && c.args.yes)}`
+          : later('sim/lifecycle').cannotAnswer(st, c.actor, c.target))),
+      run: (st, c) => later('sim/lifecycle').answerOffer(st, c.actor, c.target, c.args.yes),
     },
     // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
     handOn: {
@@ -191,9 +199,14 @@ VB['sim/commands'] = (() => {
         for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
       },
     },
-    // skip({hours}): the world goes on for that long (no actor)
+    // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
     skip: {
-      check: (st, c) => (c.args && c.args.hours > 0 && Number.isFinite(c.args.hours) ? null : `cannot skip ${c.args && c.args.hours} hours`),
+      check: (st, c) => {
+        const h = c.args && c.args.hours;
+        if (!(h > 0 && Number.isFinite(h))) return `cannot skip ${h} hours`;
+        const x = h * TICKS;
+        return Math.abs(x - Math.round(x)) < 1e-6 ? null : `cannot skip ${h} hours: not a whole number of 6-minute steps`;
+      },
       run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };
@@ -329,5 +342,13 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep, playerDied, goOnAs, TIES_MAX };
+  // The played pawn answers the open marriage offer offerId (VB-293; the first question asked through Decisions.answer, which slice 5's
+  // Decisions module takes over): true, or why not.
+  function answer(st, offerId, yes) {
+    if (!st.player) return 'no pawn is played';
+    return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
+  }
+  return {
+    issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, playerStep, playerDied, goOnAs, TIES_MAX,
+  };
 })();

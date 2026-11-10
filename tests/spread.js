@@ -26,7 +26,7 @@ assert.strictEqual(YEAR, YEAR_H);
 const roundDay = 2 * SEASON_DAYS + 10, start = Math.floor(st.t / YEAR) * YEAR + (roundDay - 1) * DAY;
 Sim.advance(st, start + 23 - st.t);
 calls.length = 0;
-const sizes = [0.05, 0.37, 1.3, 0.1, 0.02, 2.5, 0.1, 0.1, 0.33];
+const sizes = [0.2, 0.4, 1.3, 0.1, 0.3, 2.5, 0.1, 0.1, 0.7]; // whole steps of uneven sizes (VB-244)
 for (let i = 0, end = start + 3 * DAY; st.t < end - 1e-9; i++) Sim.advance(st, Math.min(sizes[i % sizes.length], end - st.t));
 const round = calls.filter((c) => c.kind === 'round');
 assert.deepStrictEqual(round.map((c) => c.n), [...Array(ROUND_PHASES).keys()], 'each phase of the round runs once, in order');
@@ -47,7 +47,7 @@ for (const night of nights) {
 }
 // Saved between two phases of the round, and in the middle of the night: the loaded run matches the run that was never saved.
 const saved = [];
-for (const [label, at] of [['between the round\'s phases', start + DAY + 12.15], ['in the night\'s culture', start + 2 * DAY + 0.55]]) {
+for (const [label, at] of [['between the round\'s phases', start + DAY + 12.1], ['in the night\'s culture', start + 2 * DAY + 0.5]]) {
   const a = Sim.seed(world(7, TINY), 7, 'populous');
   Sim.advance(a, at - a.t);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(world(data.seed, { cols: data.cols, rows: data.rows }), data);
@@ -60,14 +60,14 @@ for (const [label, at] of [['between the round\'s phases', start + DAY + 12.15],
 const mday = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + YEAR; // next year's autumn day 10
 const m = Sim.seed(world(7, TINY), 7, 'populous');
 Sim.advance(m, mday + 11.5 - m.t);
-const seen = [], msizes = [0.05, 0.37, 0.1, 0.02, 0.33];
+const seen = [], msizes = [0.2, 0.4, 0.1, 0.3, 0.7];
 for (let i = 0, end = mday + 13; m.t < end - 1e-9; i++) {
   const before = m.lastMeeting; Sim.advance(m, Math.min(msizes[i % msizes.length], end - m.t));
   if (m.lastMeeting !== before) seen.push(m.lastMeeting - mday);
 }
 assert.strictEqual(seen.length, 1, 'the customs run once');
 assert(seen[0] >= 12.19 && seen[0] <= 12.31, `on the third step from noon (at ${seen[0]})`);
-for (const at of [12.05, 12.15, 12.25]) {
+for (const at of [12, 12.1, 12.2]) {
   const a = Sim.seed(world(7, TINY), 7, 'populous');
   Sim.advance(a, mday + at - a.t);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(world(data.seed, { cols: data.cols, rows: data.rows }), data);

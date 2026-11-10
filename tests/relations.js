@@ -1,5 +1,6 @@
-// Relationships (sim/relations): compatibility, timed memories within their caps, opinion, friend and dislike bands told once,
-// memories that fade and are forgotten (once a season), and death ending relationships.
+// Relationships (sim/relations): compatibility, opinion derived from standing, affinity (compatibility shown as a tie grows) and timed
+// memories within their caps (VB-240), close friend and enemy bands told once and checked again each season, memories that fade and are
+// forgotten (once a season), and death ending relationships.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RELATIONS FAIL:', m); } };
@@ -23,48 +24,53 @@ for (const x of adults) for (const y of adults) if (!a && x.household !== y.hous
 check(a && b, 'two unrelated adults of different households');
 check(R.opinionOf(st, a.id, b.id) === 0 && !a.rel.has(b.id), 'strangers start at opinion 0 with no record');
 
-// good talks raise opinion up to the memory's cap, and becoming friends is told once
-const K = SOCIAL.memories;
-for (let k = 0; k < 20; k++) R.remember(st, a.id, b.id, 'goodTalk');
-check(Math.abs(a.rel.get(b.id).mem.goodTalk.v - K.goodTalk.cap) < 1e-9, `good talks capped at ${K.goodTalk.cap}: ${a.rel.get(b.id).mem.goodTalk.v}`);
-check(Math.abs(R.opinionOf(st, a.id, b.id) - K.goodTalk.cap) < 1e-9, 'opinion is the memory');
-check(R.opinionOf(st, b.id, a.id) === 0, 'opinion has a direction: b remembers nothing');
-const told = (p, kind) => Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.kind === kind).length;
-check(told(a, 'friend') === 1 && a.rel.get(b.id).band === 1, `became friends told ${told(a, 'friend')} times`);
-check(R.opinionWord(R.opinionOf(st, a.id, b.id)) === 'friend', `word ${R.opinionWord(R.opinionOf(st, a.id, b.id))}`);
-
-// cross words pull it down to the sum of both caps: no longer friends, which is not news
-for (let k = 0; k < 20; k++) R.remember(st, a.id, b.id, 'crossWords');
-const o = R.opinionOf(st, a.id, b.id);
-check(Math.abs(o - (K.goodTalk.cap + K.crossWords.cap)) < 1e-9, `opinion ${o}, wanted the sum of both caps`);
-check(a.rel.get(b.id).band === 0 && told(a, 'fellOut') === 0, `band ${a.rel.get(b.id).band} after leaving friendship`);
-check(R.reasonsOf(st, a.id, b.id).map((x) => x.label).join() === 'Cross words,A good talk', 'reasons, largest first');
-// with nothing good to remember, cross words make a pair fall out, told once
-const c = adults.find((x) => x !== a && x !== b && x.household !== a.household && R.standing(st, a.id, x.id) === null);
-for (let k = 0; k < 20; k++) R.remember(st, a.id, c.id, 'crossWords');
-check(told(a, 'fellOut') === 1 && a.rel.get(c.id).band === -1, `fell out told ${told(a, 'fellOut')} times, band ${a.rel.get(c.id).band}`);
-check(R.opinionWord(R.opinionOf(st, a.id, c.id)) === 'enemy', `word ${R.opinionWord(R.opinionOf(st, a.id, c.id))}`);
+// affinity: the pair's compatibility, shown in full once a's tie to b reaches SOCIAL.affinity.known (VB-240)
+const K = SOCIAL.memories, AF = SOCIAL.affinity, told = (p, kind) => Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.kind === kind).length;
+const cab = R.compat(st, a.id, b.id);
+R.addTie(st, a.id, b.id, AF.known / 2);
+check(Math.abs(R.opinionOf(st, a.id, b.id) - AF.weight * cab / 2) < 1e-9, `half known: ${R.opinionOf(st, a.id, b.id)}, compat ${cab}`);
+R.addTie(st, a.id, b.id, AF.known);
+check(Math.abs(R.opinionOf(st, a.id, b.id) - AF.weight * cab) < 1e-9, `known well, the whole affinity: ${R.opinionOf(st, a.id, b.id)}`);
+check(R.opinionOf(st, b.id, a.id) === 0 && !a.rel.has(b.id), 'opinion has a direction: b does not know a; a tie makes no record');
+// a compatible stranger met at work: close friends once known well enough, told once
+const unrelated = (x) => x.alive && x !== a && x !== b && x.household !== a.household && R.standing(st, a.id, x.id) === null;
+const cf = adults.find((x) => unrelated(x) && R.compat(st, a.id, x.id) > SOCIAL.closeFriend / AF.weight + 0.02);
+check(cf, 'a stranger compatible enough to be a close friend');
+for (let k = 0; k < 2 * AF.known / SOCIAL.ties.work; k++) R.workedTogether(st, [a.id, cf.id]);
+check(told(a, 'closeFriend') === 1 && a.bands.get(cf.id) === 1, `became close friends told ${told(a, 'closeFriend')} times`);
+check(R.opinionWord(R.opinionOf(st, a.id, cf.id)) === 'close friend', `word ${R.opinionWord(R.opinionOf(st, a.id, cf.id))}`);
+// with nothing touching the pair, the tie fades; the season's pass checks the band again, and leaving it is no news
+a.tieT -= 3 * YEAR_DAYS * DAY; R.fadeRelations(st);
+check(!a.bands.has(cf.id) && told(a, 'closeFriend') === 1, `left close friendship at ${R.opinionOf(st, a.id, cf.id)}`);
+a.tieT += 3 * YEAR_DAYS * DAY;
+// memories of things that happened, each within its cap; enough of them make an enemy, told once
+const c = adults.find((x) => unrelated(x) && x !== cf);
+for (let k = 0; k < 5; k++) { R.remember(st, a.id, c.id, 'claim'); R.remember(st, a.id, c.id, 'refusedMatch'); }
+check(Math.abs(a.rel.get(c.id).mem.claim.v - K.claim.cap) < 1e-9, `claims capped at ${K.claim.cap}: ${a.rel.get(c.id).mem.claim.v}`);
+const o = R.opinionOf(st, a.id, c.id), aff = AF.weight * R.compat(st, a.id, c.id) * Math.min(1, R.tieOf(st, a.id, c.id) / AF.known);
+check(Math.abs(o - Math.max(-1, K.claim.cap + K.refusedMatch.cap + aff)) < 1e-9, `opinion ${o}, wanted the sum of both caps and affinity ${aff}`);
+check(told(a, 'enemy') === 1 && a.bands.get(c.id) === -1, `became the enemy told ${told(a, 'enemy')} times, band ${a.bands.get(c.id)}`);
+check(R.opinionWord(o) === 'enemy', `word ${R.opinionWord(o)}`);
+check(R.reasonsOf(st, a.id, c.id).slice(0, 2).map((x) => x.label).join() === 'Took our claim,Refused the match I made', 'reasons, largest first');
 
 // standing: kin and housemates start above 0
 const hh = st.households.find((h) => !h.dissolved && h.members.length >= 3), [h0, h1] = hh.members;
 check(R.opinionOf(st, h0, h1) > 0 && R.standing(st, h0, h1) !== null, `housemates ${h0}, ${h1}: ${R.standing(st, h0, h1)}`);
 
 // memories fade linearly and are forgotten once gone
-const half = R.memNow(st, 'crossWords', { v: -0.6, t: st.t - K.crossWords.days * DAY / 2 });
-check(Math.abs(half + 0.3) < 1e-9, `half-way through, a memory is at half: ${half}`);
-R.remember(st, a.id, b.id, 'chat');
-Sim.advance(st, (K.chat.days + 1) * DAY); R.fadeRelations(st);
-check(!('chat' in a.rel.get(b.id).mem), 'a chat is forgotten after its days');
-Sim.advance(st, (K.goodTalk.days - K.chat.days) * DAY); R.fadeRelations(st);
+const half = R.memNow(st, 'claim', { v: -0.4, t: st.t - K.claim.days * DAY / 2 });
+check(Math.abs(half + 0.2) < 1e-9, `half-way through, a memory is at half: ${half}`);
+R.remember(st, a.id, b.id, 'bull');
+Sim.advance(st, (K.bull.days + 1) * DAY); R.fadeRelations(st);
 check(!a.rel.has(b.id), 'a record with no memories left is dropped');
 check(checkState(st).length === 0, 'invariants: ' + checkState(st).slice(0, 3).join('; '));
 
 // death ends the relationships of others with the dead
-R.remember(st, a.id, b.id, 'goodTalk'); R.remember(st, b.id, a.id, 'goodTalk');
+R.remember(st, a.id, b.id, 'bull'); R.remember(st, b.id, a.id, 'bull'); b.bands.set(a.id, 1); a.bands.set(b.id, 1);
 Sim.killPawn(st, b.id, 'killed');
-check(!a.rel.has(b.id) && b.rel.size === 0, 'death ends relationships');
+check(!a.rel.has(b.id) && b.rel.size === 0 && !a.bands.has(b.id) && b.bands.size === 0, 'death ends relationships');
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
-// talk (VB-061): two pawns standing together outdoors in waking hours talk, both remember it, and their tie grows by SOCIAL.ties.talk
+// talk (VB-061): two pawns standing together outdoors in waking hours talk, and their tie grows by SOCIAL.ties.talk; it leaves no memory
 const S = VB['sim/society'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
 const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); g.inside = false; g.path = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
 const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
@@ -73,7 +79,8 @@ let hours = 0;
 ta.talk = null;
 while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st)); hours++; }
 check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
-check(pair[0].rel.has(pair[1].id) && pair[1].rel.has(pair[0].id), 'both remember the talk');
+check(!pair[0].rel.has(pair[1].id) && !pair[1].rel.has(pair[0].id), 'a talk leaves no memory (VB-240)');
+check(['chat', 'goodTalk', 'crossWords'].includes(ta.talk.kind) && ta.talk.kind === tb.talk.kind, `the bubble's kind: ${ta.talk.kind}`);
 const grew = (R.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
 check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
@@ -93,12 +100,14 @@ const [x, fr, foe] = (() => {
   for (const p of adults) {
     if (!p.alive) continue;
     const same = adults.filter((q) => q.alive && q !== p && vill(q) === vill(p) && R.standing(st, p.id, q.id) === null);
-    if (same.length >= 2) return [p, same[0], same[1]];
+    const liked = same.find((q) => R.compat(st, p.id, q.id) > 0.2), other = same.find((q) => q !== liked);
+    if (liked && other) return [p, liked, other];
   }
   return [];
 })();
 check(x && fr && foe, 'three unrelated adults of one village');
-for (let k = 0; k < 10; k++) { R.remember(st, x.id, fr.id, 'goodTalk'); R.remember(st, x.id, foe.id, 'crossWords'); }
+R.addTie(st, x.id, fr.id, AF.known);
+for (let k = 0; k < 5; k++) { R.remember(st, x.id, foe.id, 'claim'); R.remember(st, x.id, foe.id, 'refusedMatch'); }
 const home = st.farmsteads[st.households[x.household].farmstead].house, hx = st.w.hx[home], hy = st.w.hy[home];
 for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
 const idleAt = (p, dx) => { const g = st.agents[p.id]; VB['sim/agents'].release(st, g); g.inside = false; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };

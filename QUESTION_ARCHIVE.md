@@ -2,6 +2,86 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-240)
+
+## VB-240: derived opinion, the numbers against the expectation (raised 10 November 2026)
+VB-240 built opinion as Kim's formula with Kim's constants (weight 0.6, known 16, close friend 0.45). Measured per pawn of 12 and over (numbers in `backlog/VB-240.md`): at `medium-ref` after 4 years, friends median 2, disliked median 1 (37% dislike nobody), no close friend 59%, no enemy 96%; populous small at seeds 3, 7, 11, 42 after 15 years, friends 2 to 3, disliked 1, no enemy 96 to 98%. The task expected about 3 friends and 4 disliked. The formula read on the fixtures as loaded gives the same (friends 2, disliked 1 at both `medium-ref` and `small-y40`, ties read as they are now), so the gap is in the constants, not in the run. The orchestrator (Kim's delegate for this run) did not tune them.
+1. Should a tie show the whole compatibility sooner? **P:** `SOCIAL.affinity.known` 8, weight 0.6 and the lines unchanged. A trial run (not committed): at `medium-ref` after 4 years, friends 3, disliked 3, no close friend 53%, no enemy 92%; at `small-y40`, friends 3, disliked 4, no enemy 89%; populous small seed 7 after 15 years, friends 3, disliked 4, no enemy 84%. Enemy events rise from 0.007 to 0.07 a living pawn-year at `small-y40`, against 2.4 friend and 1.8 fell-out events before VB-240.
+   **A (Kim, 10 Nov):** Yes: SOCIAL.affinity.known is 8; the weight and the lines stay.
+
+# Archived 10 November 2026 (VB-281)
+
+## VB-281: reaching another village (raised 10 November 2026)
+Kim decided on 10 November that distance between villages governs what passes between them: easy mixing for close villages, a long trip not cheap, the pawn physically travelling (`QUESTION_ARCHIVE.md`, "VB-242", question 2). VB-281's plan (`backlog/VB-281.md`: survey and numbers) writes `design.md`'s Between villages as Proposed rows and tasks VB-286 to VB-292. The distance is the walking hours between two greens: at `medium-ref` (29 villages) the median pair is 41 h apart, a village's nearest neighbour 3.6 to 16 h (median 5.2), and 138 of 406 pairs have no route by land; at `small-y40` (23 villages) 27 h, 3.6 to 9.6 h (median 6.2) and 60 of 253. The plan proceeds on the proposals below; only the tasks named wait for the answers.
+1. Does a wife from a village beyond a day's walk need a suitor's visit first? It matters because the round's lowest accepted score (-1.5) lets almost any pair through, so a distance term in the score only ranks the women: without a cost, a man with no free woman nearby still marries two days away at no cost, and "preparing for a long trip is not cheap" has nothing to bite on. In the fixtures' last ten years 56 of 118 marriages at `medium-ref` and 41 of 70 at `small-y40` joined villages more than a day's walk apart or over the sea. **P:** yes. Women of villages within a day's walk (12 h) are in a man's pool as today, nearer ones preferred by the score; a woman further away only if he visited her village since the last round. A man who found no one at his village's round, and whose home has the means, sets out in winter (the farm's slack season, on its stored food) for the nearest village beyond a day's walk that holds a free woman: 5 days away for 13 to 24 hours of walking, 9 for 41, 13 for 67, a ration a day from his household, and his hands lost for those days (VB-289; at `medium-ref` 1 to 2 men a year would go).
+   **A (Kim, 10 Nov):** Yes, beyond 12 h: a woman of a village further than a day's walk can be matched only after the man's winter visit to her village, paid in rations carried and days of work (VB-289).
+2. Do demand, claims, plots, settlement and service become a village's own steps once travel exists (they stay island-wide at 18:00, 18:06 and 18:12 under VB-277)? It matters for the theme of locally supported community and for order: a village's own step would let the first village's landless claim first. **P:** no. They stay island-wide, on fixed steps after the villages' rounds; what changes is the distance they read: claims within 6 walking hours (there and back in a day, since the claimant mends the farm from home), service within a day's walk (12 h; the servant walks there), close to today's 15 hex steps (3.6 to 10.8 h measured). Every phase is within 60 ms today, and the acts are now bounded by distance anyway (VB-290).
+   **A (Kim, 10 Nov):** As proposed: they stay island-wide steps and read walking hours (claims within 6 h, service within 12 h; VB-290).
+3. Can the player send a pawn on a journey? It matters for parity of command (section 15, 10 Nov): the visit is an act the round gives to unmatched men. **P:** yes: the played pawn, or as head an unmarried son or daughter of the house, may set out on a visit to a village beyond a day's walk, at the same cost and in the same season; a played woman's visit puts her in that village's men's pool (VB-292, slice 2, after VB-289).
+   **A (Kim, 10 Nov):** Yes: the played pawn, or as head an unmarried child of the house, may make a visit, at the same cost as anyone (VB-292).
+4. What of villages with no route by land (another island; or beyond 67 hours, the route search's reach)? It matters because a pawn cannot walk over the sea, and boats and ice are slice 10's (VB-190). **P:** they do not mix until slice 10: no marriage, claim, service or help across the sea. No village is cut off by it: in both fixtures every village has a neighbour by land within 16 h. It removes 22 of 118 marriages of the last ten years at `medium-ref` and 8 of 70 at `small-y40` (VB-288 proceeds on this; a "no" changes one test in its pool).
+   **A (Kim, 10 Nov):** No mixing over the sea until boats and ice (slice 10): no marriage, claim, service or help between villages with no route by land.
+5. Does kin help in hunger also follow distance? It matters for food: help is the hungry household's first source, and much of it comes from far: of one year's kin gifts, 34 of 116 at `medium-ref` and 49 of 80 at `small-y40` came from beyond a day's walk or over the sea. **P:** yes: kin within a day's walk give as today; then the village store; then kin further away, whose gift one of their adults carries on a journey (at most 60 rations a load), so it arrives after the walk; kin over the sea are not asked until slice 10. VB-291 reports whether any household is worse off.
+   **A (Kim, 10 Nov):** Yes: near kin give as today, then the village store, then kin further away, whose gift is carried on a journey (VB-291).
+
+# Archived 10 November 2026 (VB-270)
+
+## VB-270: the hunger floors, what the diagnosis found (raised 10 November 2026, by VB-270)
+VB-270 replayed the ten full runs (`docs/bench/closure.md`, "The hunger floors"; the replay is `docs/bench/hunger-causes.js`). Of 141 hunger
+deaths after year 3, 91 are in households whose stores still held a day's food behind the seed reserve (`seedReserve`; design.md, Seed, Agreed:
+"a household keeps back seed for all its fields before it eats"), mostly a lone adult or an heir with 3 to 5 fields; 49 are real shortage.
+1. May a household that cannot feed itself eat its seed? **P:** yes, as the last step of a short day: when the meal falls short, the grain
+   below the seed reserve is taken for the meal too, and the fields it leaves unsown are the price (the log says so). Design.md's line
+   becomes "keeps back seed before it eats, unless it would go hungry". At the recorded runs this would take at most 91 of the 141 hunger deaths
+   away (the share of deaths after year 3 would read 0.022, 0.023, 0.058, 0.012 on populous, 0.000, 0.033, 0.037, 0.094 on founders and 0.000,
+   0.048 on heirs: 3 of 10 runs in); the share of household-years over 0.3 hungry would fall from 0.006 to 0.085 to 0.002 to 0.057. It is
+   an upper bound: a household that eats its seed sows less the next year. VB-270-a builds it and measures the true numbers. If no, the
+   residual stays and the floors' hunger-deaths band is raised or dropped for the reserve's households (Kim's choice).
+   **A (Kim, 10 Nov):** Yes, as the last step of a short day: grain below the seed reserve is eaten when the meal falls short, and the unsown fields are logged (VB-282).
+2. Should the band "hungry-households" read the worst household? It is an extreme value: it grows with the number of households and is
+   1.00 on six of the ten runs. **P:** read the share of household-years after year 3 in which a household (present 12 days or more) was
+   hungry over 0.3 of its days, at most 0.05; the worst household stays in the report. Today's values read 0.006 to 0.085: 9 of 10 runs in
+   (founders 42 is out at 0.085, heirs 42 in at 0.047), against none in today.
+   **A (Kim, 10 Nov):** Yes: the band reads the share of household-years after year 3 (present 12 days or more) hungry on over 0.3 of their days, at most 0.05; the worst household stays in the report (VB-282 changes the band).
+
+# Archived 10 November 2026 (VB-242)
+
+## VB-242 and VB-280: a village a step, the order of villages and what stays island-wide (raised 10 November 2026, by VB-242)
+Kim decided on 10 November that each village holds its meeting and its round in its own step, in the order of village id, with a village's own men and women from anywhere (`design.md`, Leaving home: A village's round). VB-242's survey and numbers are in `backlog/VB-242.md`. The plan proceeds on both proposals. Only VB-280 waits.
+1. Should the first village turn from year to year? Measured with a static matcher on 38 states (populous small, seeds 1 to 6, years 5 to 30, plus `small-y40` and `medium-ref`), the same men asking under each order: by village id, the first third of villages' men lose the woman they score best 21% of the times they ask, against 38% today, and marry 44% of the times against 36%. The middle third lose 48% (43% today) and marry 36% (41%). So village 0 and its neighbours in id order, the oldest and largest villages, always ask first. **P:** yes, VB-280: the villages' steps of the round and of the meetings start at village `year mod villages` and go on in id order, wrapping. It is deterministic, draws nothing, and costs one modulo a step. In the study this evens the advantage out over the years. If no, VB-280 is closed, and the advantage of the first villages is part of the design.
+   **A (Kim, 10 Nov):** Yes: the starting village turns by the year (start at village year mod count); VB-280 no longer waits for Kim.
+2. Are demand, claims on empty farms, plots, settlement and service also a village's own? Kim's decisions name the matching and the steps, not these. They reach between villages by design: claims within `CLAIMS.farmReach` of the farm, service within `SERVICE.reach`, and settlers to another village's land. Each is within 60 ms as an island-wide step (VB-201: at most 22 to 36 ms). **P:** no. They stay island-wide, on fixed steps once every village has held its round (18:00 to 18:12 of the round's day), so a village's round is its marriages, its handovers and its kin pressure (VB-277). If yes, a later task splits them, and claims and service read the other villages' demand as each village's step leaves it.
+   **A (Kim, 10 Nov):** Neither as proposed: what reaches between villages should be governed by the distance between them. Mixing is easy for villages close to each other, but preparing for a long trip is not cheap, and the pawn should physically travel. (Orchestrator's reading: a plan task, VB-281; until it lands VB-277 leaves demand, claims, settlement and service as they are today, island-wide.)
+
+# Archived 10 November 2026 (VB-227)
+
+## VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)
+The order-preserving cuts (golden file unchanged; numbers in `backlog/VB-227.md`) make the line 6 to 7% cheaper and the review 15%: on `tools/bench.js` at `medium-ref` it measures 25.4 to 32.8 ms a game day after (mean 28.7), against 25.1 to 34.7 before (mean 28.2) on a noisy machine about 15% faster than on 9 November, where the line was 35.1; on that scale it is now about 33. The rest is the review polling every holder 14 times a day and matching rebidding every idle pawn every six minutes, which only rules 4 and 5 cut, with a change of behaviour.
+1. Does VB-227 land as it stands and its last 3 ms wait? **P:** yes: merge the cuts, keep VB-227 open (or close it with criteria 3 and 4 moved), and make "jobs refresh and matching at most 30 ms at `medium-ref`, paired bench runs" an acceptance criterion of VB-249, whose planning days and due-queue take the review off its hourly pass.
+   **A (Kim, 10 Nov):** Close VB-227 with its residual recorded (about +3 ms); the 30 ms target, by share in paired runs, moves to VB-249.
+2. Is the bench's absolute ms the right gate on this machine? **P:** gate on the line's share of the whole simulation in paired runs (here 17.0% to 16.1%) beside the ms, since the whole step varied 146 to 211 ms a day between runs of the same code.
+   **A (Kim, 10 Nov):** As VB-261's question 5, accepted as proposed: timings are judged by their share of the whole step in paired, alternated runs, beside the ms.
+
+# Archived 10 November 2026 (VB-270)
+
+## VB-270: the hunger floors, out on every full run (raised 10 November 2026)
+Slice 0's wrap-up (VB-200) ran the full bands at `7205992`: 31 in, 19 out. All 19 are the hunger floors and one population floor:
+hungry-households out on all ten runs (the worst household hungry on 0.48 to 1.0 of its days after year 3, line 0.30), hunger-deaths on
+eight (0.024 to 0.286, line 0.02), heirs seed 42 at 0.72 of its start. The day's earlier records read the same (17 out). No task owns them.
+1. Who takes them? **P:** VB-270 first, small: name the households behind each worst share and each hunger death, and say which are food
+   (then VB-048 or a slice-3 task) and which the probe (a short-lived household read as hungry on all its days; then a band change for you).
+   **A (Kim, 10 Nov):** Yes: VB-270 runs now, as a diagnosis only (no balance change).
+2. Until then, are they residuals to report, not a reason to stop a slice's wrap-up? **P:** yes, as `docs/gates.md` row 21 proposes for
+   the reduced runs; the invariants band stays hard.
+   **A (Kim, 10 Nov):** Yes: the floors are residuals to report, not a reason to stop a wrap-up; the invariants band stays hard.
+
+# Archived 10 November 2026 (VB-275)
+
+## VB-275: opinion in the negotiation of a marriage (raised 10 November 2026, by VB-233)
+Kim (10 Nov, code review): marriage is where opinion first changes a decision, and VB-233's plan says where it enters and with what weight. In the first version (VB-293) every side without a player says yes, as Kim accepted on 9 November ("a side with no player answers yes, so a run with no player is unchanged"). So opinion can enter only in a task after it, which changes the run. The opinion meant is VB-240's derived value: kin standing, plus compatibility shown with familiarity, plus memories of what happened.
+1. Where does opinion enter, and with what weight? **P:** in two places, in slice 2 after VB-240 (VB-275). Between the two young: the matcher's score gains 1.0 × the mean of their opinions of each other (strangers count 0; the same-village bonus is 2 and the noise 1.5), and a young pawn refuses an offer when its opinion of the other is at enmity (-0.5) or below. Between the spokesmen: a spokesman refuses when its opinion of the other side's spokesman is at enmity or below. A young pawn who refuses its spokesman's match costs that spokesman's opinion of it (-0.2, as for the player in VB-293), now for unplayed pawns too. Heads that look for matches themselves, weighing land, stores and standing, stay later, as agreed.
+   **A (Kim, 10 Nov):** As proposed: liking weighs 1.0 in the matcher's score, and the young and the spokesmen refuse at enmity (-0.5).
+
 # Archived 10 November 2026 (VB-261)
 
 ## VB-261: gates become targets with residuals (raised 10 November 2026)
@@ -55,6 +135,9 @@ Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind 
    *8 Nov 2026:* superseded by VB-182, question 2 (answered, archived): a gift colours opinion through goodwill's curves, not a memory; slice 4 switches them on.
 2. Help with work (VB-106). **P:** the helper and each adult of the helped household remember "Worked together", +0.05 per job, cap +0.3, fading over a year, both ways (the accepted +0.05 × (1 − opinion) becomes a plain +0.05 under a cap).
    **A (Kim, 10 Nov):** as proposed (P): a memory "Worked together", +0.05 a task, cap +0.3, fading over a year, both ways.
+   *10 Nov 2026 (VB-240):* work done together already grows the tie (`SOCIAL.ties.work`, 0.5 a job), and since VB-240 the tie carries the
+   pair's compatibility into opinion (affinity), so working together moves opinion without a memory: talk's memories went for this reason.
+   A "Worked together" memory would count the same dealing twice; for Kim to confirm it is no longer wanted.
 
 # Archived 10 November 2026 (VB-120)
 

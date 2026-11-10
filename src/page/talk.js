@@ -31,12 +31,14 @@
     let n = 0;
     if (show) for (const a of st.agents) {
       const tk = a.talk;
-      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible || a.x < x0 || a.x > x1 || a.y < y0 || a.y > y1) continue;
+      if (!tk || st.t < tk.at || st.t >= tk.until || !rigs[a.id].root.visible) continue;
+      const ax = drawX[a.id], ay = drawY[a.id]; // where the pawn is drawn (page/animate, VB-244)
+      if (ax < x0 || ax > x1 || ay < y0 || ay > y1) continue;
       let b = bubblePool[n];
       if (!b) { b = new PIXI.Sprite(bubbleTex.chat); b.anchor.set(0.25, 1); bubbles.addChild(b); bubblePool.push(b); }
       const f = clamp(Math.min(st.t - tk.at, tk.until - st.t) / ((tk.until - tk.at) / 6), 0, 1);
       b.texture = bubbleTex[tk.kind]; b.alpha = (tk.kind === 'chat' ? 0.5 : 0.95) * f; b.visible = true;
-      b.position.set(a.x + 1.5, a.y - 22 * PAWN_S * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
+      b.position.set(ax + 1.5, ay - 22 * PAWN_S * sizeAt(st.pawns[a.id].age)); b.scale.set(0.25);
       n++;
     }
     for (let i = n; i < bubblePool.length; i++) bubblePool[i].visible = false;
@@ -50,9 +52,9 @@
     for (const x of Sim.relationsOf(st, selPawn).slice(0, 20)) {
       const b = st.agents[x.id], f = farmOf(st.pawns[x.id]);
       if (b.inside && !f) continue;
-      const bx = b.inside ? w.hx[f.house] : b.x, by = b.inside ? w.hy[f.house] : b.y - 6, s = Math.min(1, x.tie / 10);
+      const bx = b.inside ? w.hx[f.house] : drawX[x.id], by = b.inside ? w.hy[f.house] : drawY[x.id] - 6, s = Math.min(1, x.tie / 10);
       const col = x.opinion >= 0.25 ? 0x3f9a5c : x.opinion <= -0.2 ? 0xc8553d : 0xf2ead8;
-      lens.moveTo(a.x, a.y - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
+      lens.moveTo(drawX[selPawn], drawY[selPawn] - 6).lineTo(bx, by).stroke({ width: (1 + 1.5 * s) / z, color: col, alpha: 0.35 + 0.5 * s });
       lens.ellipse(bx, by, 2.4 / z, 2.4 / z).fill({ color: col, alpha: 0.8 });
     }
   }

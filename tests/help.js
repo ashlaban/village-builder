@@ -8,7 +8,7 @@ const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => {
   const st = Sim.seed(r.value, 7, 'founders');
   for (const f of st.farmsteads) if (f.project) f.project = null;
-  for (const hh of st.households) { hh.grain = seedReserve(st, hh); hh.rations = 0; }
+  for (const hh of st.households) { hh.grain = seedReserve(st, hh); hh.meals = 0; }
   return st;
 };
 for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.bufferDays[0] && p.buffer <= HELP.bufferDays[1], 'buffer drawn from 20..60 days');

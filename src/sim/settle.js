@@ -4,7 +4,7 @@ VB['sim/settle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
-  const { seedReserve } = VB['sim/hunger'];
+  const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
@@ -73,7 +73,7 @@ VB['sim/settle'] = (() => {
     for (const h of new Set(all.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !all.includes(m)), holder = st.pawns[hh.holder];
-      const keep = seedReserve(st, hh) + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
+      const keep = reserved(st, hh, 'grain') + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
       if (give > 0) { gifts.push([h, give]); have += give; }
     }

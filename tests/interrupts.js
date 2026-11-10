@@ -25,7 +25,7 @@ function morning() {
   check(farmer.job && farmer.job.kind === 'plow' && farmer.phase === 'work', 'the farmer is not hoeing by 15:00');
   const field = son.job, done = field.done;
   hh.wood = 5;
-  Sim.advance(st, 0.55); // past the full hour, when working pawns look up
+  Sim.advance(st, 0.6); // past the full hour, when working pawns look up, and a step after it (whole steps, VB-244)
   check(son.job && son.job.kind === 'wood', `the son did not leave the field for the woods (${son.job && son.job.kind})`);
   check(st.jobs.get(field.key) === field && field.done >= done && !field.claims.includes(son.id), 'the field job lost its place or progress');
   check(farmer.job && farmer.job.kind === 'plow', `the farmer left hoeing (${farmer.job && farmer.job.kind})`);
@@ -38,7 +38,7 @@ function morning() {
   // 0.8 h of work left when the hour turns (after the 6-minute steps before it), under an hour at the son's rate (1)
   field.done = hours - 0.8 - (Math.ceil(st.t) - st.t - 0.1) * rate;
   hh.wood = 5;
-  Sim.advance(st, 0.55);
+  Sim.advance(st, 0.6);
   check(son.job === field && field.done < hours, `the son left a field he would finish within the hour (${son.job && son.job.kind}, ${field.done} of ${hours})`);
 }
 console.log('interrupts ok');

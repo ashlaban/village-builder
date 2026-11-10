@@ -171,6 +171,17 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   position, and slice 3 designs it (below).
 - Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-233", "VB-234", "VB-099"): an offer waits 7 game days;
   a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
+- VB-233's plan (10 Nov) wrote marriage's tasks: VB-293 (each match an offer both households answer, kept in `st.offers` with a
+  due time when the player must answer; no player, no change), VB-273 (the offer in the page), VB-274 (the wish for a match), and
+  VB-275 (opinion in the answers, waiting for Kim's answer in `QUESTIONS.md`). The terms are VB-276, in slice 4; courting's part is
+  VB-036's, in slice 7. Cost: no stored offer without a player, about 0.06 a household a year with one, nothing polled between rounds.
+- An offer is made in the man's village's round. VB-242's plan (10 Nov) makes the round a village a step (VB-277, after VB-293;
+  `design.md`, Leaving home: A village's round), so a pair held by an offer is not free to a later village's men the same day.
+- **Distance between villages governs what reaches between them, and the pawn travels** (Kim, 10 Nov; `design.md`, Between
+  villages). VB-281's plan: VB-286 (walking hours between villages, a table a village a step), VB-287 (journeys: a mover walks,
+  a leg a day), VB-288 (the round's pool within reach, nearer women preferred; after VB-277), VB-289 (the suitor's visit, waiting
+  for Kim), VB-290 (claims, service and the tie read hours), VB-291 (kin help carried, waiting for Kim) and VB-292 (the player's
+  visit, waiting for Kim). They run beside the slices, after VB-241, as VB-277 to VB-280 do; only VB-292 is slice 2's.
 - The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year
@@ -227,8 +238,8 @@ The cities review's phase 1, and the loans of its phase 2.
   - `Culture.norm`, with fixed rates first;
   - Obligations as a module, now that it has its second kind (grain loans after the heirs' shares);
   - encounters at the venue, so villages mix.
-- **Takes over:** VB-126 (occasions), VB-140 (livestock in shares), the probe of VB-130 (hoarding); the cities questions in
-  `QUESTIONS.md`.
+- **Takes over:** VB-126 (occasions), VB-140 (livestock in shares), VB-276 (marriage terms: a dowry and a morning gift, from VB-233),
+  the probe of VB-130 (hoarding); the cities questions in `QUESTIONS.md`.
 - **Design pass:**
   - goods and their quanta;
   - the worth table: a cow 40 rations, a sheep 6, a day's work 3, from the cities review;
@@ -451,6 +462,11 @@ its line; its wrap-up measures it.
 **8 November update (Kim, VB-202):** `medium-y60` is dropped from the fixtures, the bench and the budget, replacing its stress role;
 `medium-ref` is the only late medium fixture. The fixtures move to release assets and a nightly GitHub workflow remakes them (VB-223).
 
+**10 November update (Kim, VB-261):** the lines of this section are targets with residuals, not gates: the nightly records each in
+`docs/bench/targets.jsonl` (read with `node tools/targets.js`), and a check that is out reports its residual and never fails. The history
+line (1.25) and the 60 ms step stay as targets. A task whose criterion is a line is done when it has moved towards it and reports the
+residual, naming who closes what is left (`docs/bench/closure.md`). Timings are judged against noise (`docs/gates.md`, section 2).
+
 **10 November update (Kim, VB-272):** the fixtures are no longer published: they are a local cache keyed by the simulation's sources,
 made on demand (one run a map, about 2 minutes), so none is stale and none is stored on GitHub; the release and the workflow go.
 
@@ -498,7 +514,8 @@ Decided (Kim, 3 Nov), and in `AGENTS.md` (Rules for cost) in short form. Each sl
 - **Indexes of the living:** `st.living`, live households and live agents, kept by their owners. The step, `dailyLife` and the 17
   full loops then walk them. Behaviour is preserved if the order is kept, so the golden file is unchanged.
 - **Lazy decay of ties and the kin floor:** part of VB-127, or before it.
-- **The moving round spread over days in the late game,** measured on the fixture.
+- **The moving round spread over days in the late game,** measured on the fixture. VB-201 spread it over four phases; Kim decided
+  on 10 November that each village holds its own round and meeting, a village a step (VB-242's plan: VB-277 to VB-280).
 - **Bounded history:** pawn events as an index into `st.record`; a compaction rule for routine events. A small design question:
   what counts as notable (VB-098 asks the same).
 - **The route cache bounded** (VB-097's first criterion).
@@ -517,11 +534,11 @@ Timing is noisy, depends on the machine and needs long runs. Most of what matter
 
 | Measure | What it catches | Cost | Where it runs |
 |---|---|---|---|
-| **Work counters:** nodes a route search expands, pairs talk considers, records a loop walks, opportunities computed, rule values read, deals assessed, stories picked | A loop that does more work than it should | Nil. Deterministic, so asserted with tight bands at tiny scale and never flaky | `npm test` |
-| **Scaling exponent:** the same scenario at two sizes (tiny and small, or populous at one and two times the density) | Work per day growing faster than the people (exponent over 1.15) | Two tiny runs, seconds | `npm test` |
-| **History check:** work per living pawn at year 5 and at the late fixture | Loops over history (rule 1) | One fixture year from counters | `npm run verify` |
+| **Work counters:** nodes a route search expands, pairs talk considers, records a loop walks, opportunities computed, rule values read, deals assessed, stories picked | A loop that does more work than it should | Nil. Deterministic, so reported with tight targets at tiny scale (exact residuals, never flaky); their structure stays asserted | `npm test`; targets in `docs/bench/targets.jsonl` |
+| **Scaling exponent:** the same scenario at two sizes (tiny and small, or populous at one and two times the density) | Work per day growing faster than the people (target: exponent at most 1.15; the residual is reported) | Two tiny runs, seconds | `npm test`; reported as a target |
+| **History check:** work per living pawn at year 5 and at the late fixture | Loops over history (rule 1; target 1.25, residual reported) | One fixture year from counters | `npm run verify`; reported as a target |
 | **Late fixtures:** saves at year 40 (small) and year 60 (medium), made by the nightly long runs and regenerated when the save format or the golden file changes | Late-only costs such as the moving round's 899 ms | 11 s for a year on small, against 4 minutes to get there | verify (small), nightly (medium) |
-| **Bench history:** ms a game day per calendar step, worst step, heap, save time and size, per commit, appended to `docs/bench/history.jsonl` | Drift over many commits | One nightly run | Nightly; reported, never failing; a jump of 20% over the median of the last five is flagged |
+| **Bench history:** ms a game day per calendar step, worst step, heap, save time and size, per commit, appended to `docs/bench/history.jsonl` | Drift over many commits | One nightly run | Nightly; reported to `targets.jsonl`, never failing; a jump of 20% over the median of the last five is flagged |
 | **Microbenchmarks:** `Rules.value`, the `move.cost` grid, A*, opportunities for one holder | A hot path's cost in ns per call | Seconds | Nightly |
 | **Synthetic stress:** a scenario with 2,000 living pawns, 8,000 dead with families, 10,000 obligations and 50,000 goodwill pairs | Data structures beyond what play reaches yet | Seconds, no simulation to get there | On demand |
 | **Frames:** VB-166 | Drawing | 30 s in headless Chromium | On demand; required for page drawing changes |

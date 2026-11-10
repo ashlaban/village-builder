@@ -11,6 +11,7 @@ const SYSTEM_BUDGETS = {
 };
 const RESERVE = 200 - Object.values(SYSTEM_BUDGETS).reduce((a, b) => a + b, 0);
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
+const { target } = require('../tests/lib/targets.js');
 const { fork } = require('child_process'), { performance } = require('perf_hooks');
 const F = require('../tests/lib/fixtures.js');
 const DIR = path.join(F.root, 'docs/bench'), HISTORY = path.join(DIR, 'history.jsonl');
@@ -207,6 +208,29 @@ function report(run) {
   }
   for (const flag of run.flags) console.log(`FLAG ${flag.key}: ${flag.value} vs median ${flag.median}; five values ${JSON.stringify(flag.previous)}`);
 }
+// Target records (docs/gates.md, rows 23 and 24; VB-265), at the late reference: one for each budget line that has a limit and one for each
+// system's share, the ms a game day against its share of the 200. Each carries the share of the whole step in the same run beside the ms,
+// since the machine moves the whole step by a third between runs and a share by a point (VB-227). One run's noise is unknown (kind
+// `runs`, n 1): tools/bench-paired.js gives the spread of before runs, and the nightly's history the spread over nights.
+const LINE_NAMES = { msPerDay: 'mean', longestMs: 'longest-step', saveMainMs: 'save', loadTotalMs: 'load', gzipMB: 'gzip', movingRoundMs: 'moving-round', meetingsMs: 'meetings' };
+function targetRecords(run) {
+  const f = run.fixtures[NAMES[1]];
+  if (!f || f.error) return [];
+  const noise = { kind: 'runs', spread: 0, n: 1 }, where = `${NAMES[1]}, one whole year from the save`, recs = [];
+  for (const [label, key, limit] of LINES) {
+    if (limit === undefined || !Number.isFinite(f[key])) continue;
+    const unit = key.endsWith('MB') ? ' MB' : ' ms';
+    recs.push(target(`bench/${NAMES[1]}/${LINE_NAMES[key] || key}`, { where, unit, dir: 'max', target: limit, measured: f[key], noise,
+      extra: { label, ...(key === 'msPerDay' ? {} : { shareOfDay: f[key] / f.msPerDay }) } }));
+  }
+  for (const [system, budget] of Object.entries(SYSTEM_BUDGETS)) {
+    const row = f.systems.find((r) => r.system === system);
+    if (!row) continue;
+    recs.push(target(`bench/${NAMES[1]}/share/${system}`, { where, unit: ' ms/day', dir: 'max', target: budget, measured: row.msPerDay, noise,
+      extra: { share: row.msPerDay / f.msPerDay, shareTarget: budget / 200, wholeMs: f.msPerDay } }));
+  }
+  return recs;
+}
 async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'budget.md') } = {}) {
   const cpus = os.cpus(), run = { schema: 2, date: new Date().toISOString(),
     commit: F.git(['rev-parse', 'HEAD']).toString().trim(), dirty: !!F.git(['status', '--porcelain']).toString().trim(),
@@ -219,6 +243,7 @@ async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'bu
   fs.mkdirSync(path.dirname(budgetFile), { recursive: true });
   fs.writeFileSync(budgetFile, budget(run));
   report(run);
+  targetRecords(run);
   return run;
 }
 async function main(args) {
@@ -228,14 +253,16 @@ async function main(args) {
     const last = readHistory().at(-1);
     if (!last) console.log('bench: no history yet; run node tools/bench.js first');
     else fs.writeFileSync(path.join(DIR, 'budget.md'), budget(last));
-  } else if (!args.length) await runBench();
-  else console.log(`usage: node tools/bench.js [--budget]
+  } else if (!args.filter((a) => a !== '--record').length) await runBench();
+  else console.log(`usage: node tools/bench.js [--budget] [--record]
   (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing one is made first),
                  appends the run to docs/bench/history.jsonl, rewrites docs/bench/budget.md and prints the report; takes minutes,
                  and times the machine, so run nothing else meanwhile
+  --record       also appends the budget lines and each system's share as target records (with the share of the whole step) to docs/bench/targets.jsonl
+  paired, alternated runs of before and after: node tools/bench-paired.js --help
   --budget       rewrites docs/bench/budget.md from the last run in the history, measuring nothing
   fixtures: node tools/fixtures.js status|make`);
 }
 // Diagnostic failures are visible in output/history, never a reason to fail a nightly run.
 if (require.main === module) main(process.argv.slice(2)).catch((e) => console.error('bench: UNAVAILABLE ' + (e.stack || e.message)));
-module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, SYSTEM_BUDGETS, RESERVE, NAMES, LINES };
+module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, targetRecords, SYSTEM_BUDGETS, RESERVE, NAMES, LINES };

@@ -8,10 +8,9 @@ VB['sim/jobs'] = (() => {
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
-  const { startProject, builtTiles } = VB['sim/fields'];
-  const { startMeadow } = VB['sim/meadows'];
+  const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed } = VB['sim/plans'];
+  const { planOf, reviewed, landStep } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -22,7 +21,7 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
+  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
     VB.count.cookFarm += st.farmsteads.length;
@@ -49,21 +48,20 @@ VB['sim/jobs'] = (() => {
       VB.count.oppAsk += rules.length;
       for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
     };
-    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan); };
+    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan, c); return plan; };
     // The houses and greens no field or meadow is made next to, once for every farm's look for land: no house is built during the
     // review (VB-227: each farm built the set anew, farms times farms a day).
     const looks = st.makeFields && c.hour === WORK[0], built = looks ? builtTiles(st) : null;
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
-      review('household', hh.id);
+      const plan = review('household', hh.id);
       own = { type: 'household', id: hh.id };
       for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
       ask(ASK.farm, hh, f, f);
-      // A choice, not an availability: a household looks for land for a new field, or a meadow once the fields are enough, once a day at
-      // the start of work (balance review: households in every scenario look, and those short of land searched in vain every hour).
-      // These are slice 3's hidden plans (VB-164).
-      if (looks) { startProject(st, f, hh, built); startMeadow(st, f, hh, built); }
+      // A choice, not an availability: the plan's land step, a new field, or a meadow once the fields are enough, once a day at the start
+      // of work (balance review: households in every scenario look, and those short of land searched in vain every hour; sim/plans).
+      if (looks && plan) landStep(st, plan, f, hh, built);
       ask(ASK.farmAfterPlans, hh, f, f);
     }
     own = null;

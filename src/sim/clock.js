@@ -16,7 +16,7 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture, dueOffers } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
@@ -45,7 +45,7 @@ VB['sim/clock'] = (() => {
     }
     if (h === 0) {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
-      if (st.cenv) { dailyLife(st, c); dailyBirths(st); }
+      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
@@ -87,8 +87,9 @@ VB['sim/clock'] = (() => {
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
-  // @state st.tickPart: number in [0, 1); the part of the next step that frame-sized advances of the page have asked for so far (0 headless).
-  // @state st.t is (st.tick + st.tickPart) / TICKS, written here only.
+  // @state st.tickPart: 0 always. VB-235's part of a step went back to the page (VB-244); the field stays only so the golden file is
+  //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
+  // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
   // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
@@ -105,29 +106,25 @@ VB['sim/clock'] = (() => {
       else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
     }
   }
-  // The clock's arithmetic: moves st by `hours`, a pass at a time, each to the end of the current 6-minute step or less, and calls
-  // each(st, part, ends) after each pass with the share of a step it moved and whether it ended the step. Whole steps headless; a part of
-  // one when the page asks for a frame's worth (the agents move by the part; the step's work is done when its last part arrives). A
-  // request of whole steps is whole steps, though hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole
-  // number it is meant to be, so a run is the same by any chunks of whole steps.
-  function ticking(st, hours, each) {
-    let left = hours * TICKS;
-    const whole = Math.round(left);
-    if (Math.abs(left - whole) < 1e-6) left = whole;
-    while (left > 0) {
-      const rest = 1 - st.tickPart, ends = left >= rest, part = ends ? rest : left;
-      left = ends ? left - rest : 0;
-      if (ends) { st.tick++; st.tickPart = 0; } else st.tickPart += part;
-      st.t = (st.tick + st.tickPart) / TICKS;
-      each(st, part, ends);
-    }
+  // The clock's arithmetic: moves st by `hours`, which must be whole 6-minute steps, a step at a time, calling each(st) after each. The
+  // page keeps the part of a step its frames have asked for and draws the pawns between steps (VB-244), so a seed is the same run in the
+  // page at any frame rate as headless. hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole number it is
+  // meant to be, so a run is the same by any chunks of whole steps. Any other number of hours, or a negative one, is refused with an
+  // error, not rounded (the orchestrator's choice for Kim, VB-244).
+  function stepsIn(hours) {
+    const x = hours * TICKS, n = Math.round(x);
+    if (!(Math.abs(x - n) < 1e-6) || n < 0) throw new Error(`advance: ${hours} hours is not a whole number of 6-minute steps`);
+    return n;
   }
-  function step(st, part, ends) {
-    if (ends) stepEnds(st);
+  function ticking(st, hours, each) {
+    for (let n = stepsIn(hours); n > 0; n--) { st.tick++; st.t = st.tick / TICKS; each(st); }
+  }
+  function step(st) {
+    stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
-    const c = cal(st.t), all = stepAgents(st, part / TICKS, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
+    const c = cal(st.t), all = stepAgents(st, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
     if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
   }
   const advance = (st, hours) => ticking(st, hours, step);
-  return { onHour, endOfDay, newYear, advance, ticking };
+  return { onHour, endOfDay, newYear, advance, ticking, stepsIn };
 })();

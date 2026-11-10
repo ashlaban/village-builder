@@ -1,5 +1,5 @@
-// @sys sim/relations: relationships between pawns: compatibility, opinion from kin and timed memories, talk, company for the idle, and the
-// people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
+// @sys sim/relations: relationships between pawns: compatibility, opinion derived from kin, familiarity and memories, talk, company for the idle,
+// and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
@@ -22,7 +22,7 @@ VB['sim/relations'] = (() => {
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
   const TIES = SOCIAL.ties;
-  function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
+  function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.bands = new Map(); p.tieT = st.t; p.homeHours = 0; }
   const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
   function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
   // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
@@ -42,10 +42,11 @@ VB['sim/relations'] = (() => {
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties (one who had dropped its own tie to them keeps theirs, read by
   // nobody, until they renormalise).
   function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }
+  function grow(st, a, b, v) { addTie(st, a, b, v); addTie(st, b, a, v); touch(st, a, b); touch(st, b, a); } // both ties grow; bands checked
   function workedTogether(st, ids) { // the pawns `ids` finished one job together (sim/agents): each pair grows by TIES.work
     VB.count.tiePairs += ids.length * (ids.length - 1) / 2;
     for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
-      const i = ids[x], j = ids[y]; if (st.pawns[i].alive && st.pawns[j].alive) { addTie(st, i, j, TIES.work); addTie(st, j, i, TIES.work); }
+      const i = ids[x], j = ids[y]; if (st.pawns[i].alive && st.pawns[j].alive) grow(st, i, j, TIES.work);
     }
   }
   // p's ties put back on today's scale; those under TIES.forget go, unless to kin (the floor raises them again), and those to the dead
@@ -62,7 +63,7 @@ VB['sim/relations'] = (() => {
       VB.count.tiePairs += m.length * (m.length - 1) / 2;
       for (let x = 0; x < m.length; x++) for (let y = x + 1; y < m.length; y++) {
         const h = Math.min(st.pawns[m[x]].homeHours, st.pawns[m[y]].homeHours) * TIES.home / DAY;
-        if (h > 0) { addTie(st, m[x], m[y], h); addTie(st, m[y], m[x], h); }
+        if (h > 0) grow(st, m[x], m[y], h);
       }
     }
     const day = Math.floor(st.t / DAY), every = TIES.renorm * YEAR_DAYS;
@@ -70,17 +71,23 @@ VB['sim/relations'] = (() => {
     for (const id of st.living) {
       const p = st.pawns[id]; p.homeHours = 0;
       if ((day - id) % every === 0) renormalise(st, p); // pawn id on day id, and every TIES.renorm years after
-      if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) floorKin(st, id, q);
+      if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) { floorKin(st, id, q); touch(st, id, q); }
     }
   }
   // a's tie to its near kin b is raised to the floor and a season's fading: so it stays at the floor or above until a's next turn
   function floorKin(st, a, b) { raiseTie(st, a, b, TIES.kin * Math.pow(2, SEASON_DAYS / YEAR_DAYS)); }
-  // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept.
+  // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept. One before
+  // VB-240 loses the memories of talk (a record left with none goes), and its bands are set from the opinion now, as no news.
   function migrateTies(st) {
     for (const p of st.pawns) if (p.ties && p.tieT === undefined) {
       p.tieT = st.t; p.homeHours = 0;
       if (p.alive && p.ties.size > TIES.cap) { const old = [...p.ties]; p.ties = new Map(); for (const [j, w] of old) put(st, p, j, w); }
       if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) floorKin(st, p.id, q);
+    }
+    const old = st.pawns.filter((p) => p.rel && !p.bands);
+    for (const p of old) { p.bands = new Map(); for (const [j, r] of p.rel) if (!sift(r, (k) => M[k])) p.rel.delete(j); }
+    for (const p of old) if (p.alive) for (const j of new Set([...p.ties.keys(), ...p.rel.keys()])) {
+      const band = st.pawns[j].alive ? bandOf(0, opinionOf(st, p.id, j)) : 0; if (band) p.bands.set(j, band);
     }
   }
   // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
@@ -111,67 +118,59 @@ VB['sim/relations'] = (() => {
   // b as a's husband, mother, brother..., or null
   const standingWord = (st, a, b) => { const k = standing(st, a, b); return k ? WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0] : null; };
 
-  // ---- memories and opinion ----
-  // @state pawn.rel: Map of other pawn id to a's relationship record {mem: {kind: {v, t}}, band}; a record exists while it holds a memory.
-  //   kind is a key of SOCIAL.memories; v the memory's value at its last event, at game hour t; band 1 (friend), 0 or -1 (dislike), as last
-  //   seen, so entering a band is told once (sim/relations). Empty for the dead.
+  // ---- opinion (VB-240; Kim, 10 Nov): derived, never stored: kin standing, plus affinity, plus memories of things that happened ----
+  // @state pawn.rel: Map of other pawn id to a's relationship record {mem: {kind: {v, t}}}; a record exists while it holds a memory of an
+  //   event. kind is a key of SOCIAL.memories; v the memory's value at its last event, at game hour t. Empty for the dead.
+  // @state pawn.bands: Map of other pawn id to a's band towards it as last checked, 1 (close friend) or -1 (enemy), only for pairs in one,
+  //   so reaching one is told once. Checked for the pair touched (touch), never by a pass over pairs; empty for the dead.
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
-  // a's opinion of b, -1..1: the standing's value plus the memories, as they are now
-  function opinionOf(st, a, b) {
+  const A = SOCIAL.affinity, affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
+  // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity (compatibility, shown as the two grow familiar),
+  // plus the memories, as they are now. Goodwill's gratitude (VB-220) is to add to the same sum.
+  function opinionAt(st, a, b, tie) {
     const k = standing(st, a, b), r = st.pawns[a].rel.get(b);
-    let o = k ? SOCIAL.situational[k] : 0;
+    let o = (k ? SOCIAL.situational[k] : 0) + affinity(st, a, b, tie);
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
     return Math.max(-1, Math.min(1, o));
   }
-  // friend (1), dislike (-1) or neither (0): entered at SOCIAL.friend and SOCIAL.dislike, left only SOCIAL.back past them
-  function bandOf(was, o) {
-    if (o >= SOCIAL.friend) return 1;
-    if (o <= SOCIAL.dislike) return -1;
-    if (was === 1 && o >= SOCIAL.friend - SOCIAL.back) return 1;
-    if (was === -1 && o <= SOCIAL.dislike + SOCIAL.back) return -1;
-    return 0;
+  const opinionOf = (st, a, b) => opinionAt(st, a, b, tieOf(st, a, b));
+  // close friend (1), enemy (-1) or neither (0): entered at SOCIAL.closeFriend and SOCIAL.enemy, left only SOCIAL.back past them
+  const bandOf = (was, o) => (o >= SOCIAL.closeFriend || (was === 1 && o >= SOCIAL.closeFriend - SOCIAL.back) ? 1
+    : o <= SOCIAL.enemy || (was === -1 && o <= SOCIAL.enemy + SOCIAL.back) ? -1 : 0);
+  // a's opinion of b may have moved: its tie grew (a talk, a job done together, the day's hours at home, the season's kin floor), a memory
+  // came, or the season's pass. The band is checked for this pair only; reaching close friends or enemies is a life event of a. A line
+  // crossed lazily, as a tie or a memory fades, is told when the pair is next touched, dated then.
+  function touch(st, a, b) {
+    const bands = st.pawns[a].bands, was = bands.get(b) || 0, now = bandOf(was, opinionOf(st, a, b));
+    if (now === was) return;
+    if (now) bands.set(b, now); else bands.delete(b);
+    if (now) personEvent(st, a, now > 0 ? 'closeFriend' : 'enemy', `${now > 0 ? 'Became close friends with' : 'Became the enemy of'} `
+      + fullName(st.pawns[b]), { other: b, village: settlementIdOf(st, st.pawns[a]) });
   }
-  // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now; becoming friends or falling out
-  // is a life event of a.
+  // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now
   function remember(st, a, b, kind) {
-    const rel = st.pawns[a].rel;
-    let r = rel.get(b);
-    if (!r) { r = { mem: {}, band: 0 }; r.band = bandOf(0, opinionOf(st, a, b)); rel.set(b, r); } // a band of standing alone is no news
-    const K = M[kind], m = r.mem[kind], sum = (m ? memNow(st, kind, m) : 0) + K.v, v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
+    const rel = st.pawns[a].rel, r = rel.get(b) || rel.set(b, { mem: {} }).get(b), K = M[kind], m = r.mem[kind];
+    const sum = (m ? memNow(st, kind, m) : 0) + K.v, v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
     if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
-    const was = r.band;
-    r.band = bandOf(was, opinionOf(st, a, b));
-    if (r.band !== was && r.band !== 0) {
-      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`, {
-        other: b, village: settlementIdOf(st, st.pawns[a]) });
-    }
+    touch(st, a, b);
   }
-  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
-  // (A faded memory counts 0 until then.)
+  // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
+  // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
+  function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }
+  // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped (a faded
+  // memory counts 0 until then); the bands are checked again, those to the dead dropped.
   function fadeRelations(st) {
     for (const liveId of st.living) {
-      const p = st.pawns[liveId];
-      if (!p.alive) continue;
-      for (const [j, r] of p.rel) {
-        if (!st.pawns[j].alive) { p.rel.delete(j); continue; }
-        // The memories left are copied in their order to a new record, not deleted from the old one: a deleted key leaves the object a
-        // slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205).
-        let left = false, faded = false;
-        for (const kind in r.mem) { if (memNow(st, kind, r.mem[kind]) === 0) faded = true; else left = true; }
-        if (!left) p.rel.delete(j);
-        else if (faded) {
-          const mem = {};
-          for (const kind in r.mem) if (memNow(st, kind, r.mem[kind]) !== 0) mem[kind] = r.mem[kind];
-          r.mem = mem;
-        }
-      }
+      const p = st.pawns[liveId]; if (!p.alive) continue;
+      for (const [j, r] of p.rel) if (!st.pawns[j].alive || !sift(r, (k) => memNow(st, k, r.mem[k]) !== 0)) p.rel.delete(j);
+      for (const j of p.bands.keys()) if (!st.pawns[j].alive) p.bands.delete(j); else touch(st, liveId, j);
     }
   }
-  // A pawn's death ends the relationships of others with it.
+  // A pawn's death ends the relationships of others with it (a band of one it had no tie to goes at the season's pass).
   function forget(st, id) {
     const p = st.pawns[id];
-    for (const j of p.rel.keys()) { const q = st.pawns[j]; if (q.rel) q.rel.delete(id); }
-    p.rel.clear();
+    for (const m of [p.rel, p.bands, p.ties]) for (const j of m.keys()) { const q = st.pawns[j]; if (q.rel) q.rel.delete(id); if (q.bands) q.bands.delete(id); }
+    p.rel.clear(); p.bands.clear();
   }
 
   // ---- talk: in each waking hour a pawn may start one talk, with a pawn in its house or near it outdoors (VB-061) ----
@@ -206,8 +205,10 @@ VB['sim/relations'] = (() => {
     }
   }
   // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes. sa is a's tie scale (scaleOf).
-  const talkWeight = (st, a, b, ya, sa) => (1 + Math.min((st.pawns[a].ties.get(b) || 0) * sa, 1)) * (1 + opinionOf(st, a, b))
-    * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
+  function talkWeight(st, a, b, ya, sa) {
+    const tie = (st.pawns[a].ties.get(b) || 0) * sa;
+    return (1 + Math.min(tie, 1)) * (1 + opinionAt(st, a, b, tie)) * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
+  }
   // Waking hour h: each pawn in its house counts the hour (pawn.homeHours, for dailyTies); then the pawns, from a random one on, each start a
   // talk at chance T.chance, unless already talking this hour.
   const cand = [], wts = [];
@@ -238,16 +239,16 @@ VB['sim/relations'] = (() => {
     }
     VB.count.talkWeighed += weighed;
   }
-  // A talk is a chat, a good talk or cross words, by the pair's compatibility; both remember it, their tie grows, and a bubble shows.
-  // @state agent.talk: {with (pawn id), kind (a key of SOCIAL.memories), at, until (game hours)} or null; the latest talk, for the page's bubble
+  // A talk is a chat, a good talk or cross words, by the pair's compatibility, for its bubble; it leaves no memory (VB-240): their tie
+  // grows, which shows their compatibility, and their bands are checked.
+  // @state agent.talk: {with (pawn id), kind (chat, goodTalk or crossWords), at, until (game hours)} or null; the latest talk, for the bubble
   function talk(st, a, b) {
     const i = a.id, j = b.id, yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
     const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
     const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1), wc = T.cross * Math.exp(-2 * c), x = rnd(st.rng.talk) * (1 + wg + wc);
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
-    remember(st, i, j, kind); remember(st, j, i, kind);
     const at = st.t + rnd(st.rng.talk) * T.bubbleHours, until = at + T.bubbleHours;
-    addTie(st, i, j, TIES.talk); addTie(st, j, i, TIES.talk);
+    grow(st, i, j, TIES.talk);
     const show = (g, other) => { const s = g.talk || (g.talk = {}); s.with = other; s.kind = kind; s.at = at; s.until = until; };
     show(a, j); show(b, i);
     // an idle pawn outdoors stops where it is until the talk is over
@@ -283,12 +284,13 @@ VB['sim/relations'] = (() => {
     if (rnd(st.rng.talk) >= SOCIAL.seek) return null;
     const v = settlementIdOf(st, st.pawns[a.id]), list = v === null ? null : idlersBy(st).get(v);
     if (!list || !list.length) return null;
+    const p = st.pawns[a.id], sa = scaleOf(st, p);
     let tot = 0; cand.length = 0; wts.length = 0;
     VB.count.companyWeighed += SOCIAL.seekSample;
     for (let k = 0; k < SOCIAL.seekSample; k++) {
       const b = list[Math.floor(rnd(st.rng.talk) * list.length)];
       if (b === a || cand.includes(b) || !idles(st, b)) continue;
-      const w = Math.max(0, 0.05 + opinionOf(st, a.id, b.id)) * (1 + Math.min(tieOf(st, a.id, b.id), 1));
+      const tie = (p.ties.get(b.id) || 0) * sa, w = Math.max(0, 0.05 + opinionAt(st, a.id, b.id, tie)) * (1 + Math.min(tie, 1));
       if (w > 0) { cand.push(b); wts.push(w); tot += w; }
     }
     if (!cand.length) return null;
@@ -385,13 +387,14 @@ VB['sim/relations'] = (() => {
   function reasonsOf(st, a, b) {
     const out = [], k = standing(st, a, b), r = st.pawns[a].rel.get(b);
     if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
+    const f = affinity(st, a, b, tieOf(st, a, b)); if (Math.abs(f) >= 0.005) out.push({ label: f > 0 ? 'Get on well' : 'Do not get on', value: f });
     out.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
   }
   return {
     initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, floorKin, migrateTies,
-    compat, standing, standingWord, memNow, opinionOf, bandOf, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord, relationsOf,
-    reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
+    compat, standing, standingWord, memNow, opinionOf, bandOf, touch, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord,
+    relationsOf, reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
 })();
