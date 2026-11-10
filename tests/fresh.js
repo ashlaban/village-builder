@@ -3,7 +3,8 @@
 // never lowers it. A plot's field broken on fresh ground keeps it when its farmstead is made.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fields'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FRESH FAIL:', m); } };
-const world = (seed, size = [120, 85]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
+const world = (seed, size = [120, 85]) => {
+  const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
 const cal = (doy, hour = 8) => ({ doy, day: doy, season: Math.floor(doy / 12), sday: doy % 12, hour });
 const S = Sim.SOIL, near = (a, b) => Math.abs(a - b) < 1e-9;
 const st = Sim.seed(world(7), 7, 'populous'), w = st.w;
@@ -35,9 +36,10 @@ check(F.manureWanted(f, hh, cal(2)) === null, 'no manure for a field above the c
 F.manureDone(st, fresh, hh, 2);
 check(near(fresh.soil, 1.3), `manure lowered a fresh field's soil to ${fresh.soil}`);
 // a plot's field broken on fresh ground keeps its soil when the cottage makes the farmstead
-const X = VB['sim/expansion'], v = st.villages[0];
+const X = VB['sim/expansion'];
 const landed = (id) => Sim.isHolder(st, id) || (Sim.spouseOf(st, id) !== null && Sim.isHolder(st, Sim.spouseOf(st, id))); // no plot for a holder's spouse
-const ids = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === v.id && !landed(p.id)).map((p) => p.id);
+const landless = (u) => st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === u.id && !landed(p.id)).map((p) => p.id);
+const v = st.villages.find((u) => landless(u).length) || st.villages[0], ids = landless(v); // the first village with an adult without land
 st.demand = ids.slice(0, 1);
 X.startPlots(st);
 const plot = v.plots[v.plots.length - 1];

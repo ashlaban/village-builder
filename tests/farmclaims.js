@@ -17,25 +17,32 @@ const out = [];
 
 // A row of three villages: A (3 farms) and B (2 farms) 11 steps apart, C (1 farm) 33 steps from A. B's second farm (household 4) empties.
 // Its last holder's grown children are the old family: Gunhild 19 (married to Jöns 20 of B's other farm), Olof 21, and Brita 23, gone to
-// serve in A. B's other villagers: Kerstin 23 and Cecilia 26. Gunnar of A, made 30; Per of C, out of reach. Ids as the tiny world draws them.
+// serve in A. B's other villagers: Kerstin 23 and Cecilia 26. Gunnar of A, 30; Per of C, 22, out of reach.
 function scene(rule) {
   const map = Array.from({ length: 10 }, () => '.'.repeat(44));
-  const st = tinyState(tinyWorld(map), [{ at: [5, 5], farms: 3, sizes: [8, 8, 8] }, { at: [16, 5], farms: 2, sizes: [8, 8] }, { at: [38, 5], farms: 1, sizes: [8] }],
+  const st = tinyState(tinyWorld(map),
+    [{ at: [5, 5], farms: 3, sizes: [8, 8, 8] }, { at: [16, 5], farms: 2, sizes: [8, 8] }, { at: [38, 5], farms: 1, sizes: [8] }],
     { seed: 4 });
-  const P = (given, age, v) => {
-    const p = st.pawns.find((q) => q.alive && q.given === given && q.age === age && VB['sim/records'].settlementIdOf(st, q) === v);
-    if (!p) throw new Error(`no ${given} ${age} in village ${v}`);
-    return p.id;
+  // the cast, by their place in the households the tiny world draws, renamed and given the ages of the scene: unmarried grown or
+  // growing children of B's two farms, of A's first and of C's
+  const kids = (hid, sex) => st.households[hid].members.map((id) => st.pawns[id]).filter((q) => q.alive && q.sex === sex && q.id !== st.households[hid].holder
+    && Sim.spouseOf(st, q.id) === null && (q.father === st.households[hid].holder || q.mother === st.households[hid].holder));
+  const hhOf = (v, k) => st.farmsteads[st.villages[v].farmsteads[k]].household;
+  const cast = (q, given, age, days = 0) => {
+    if (!q) throw new Error(`no one to play ${given}: draw the tiny world with another seed`);
+    q.given = given; q.born = st.t - age * YEAR - days * VB['sim/rules'].DAY; q.age = age;
+    return q.id;
   };
-  const who = { gunhild: P('Gunhild', 19, 1), olof: P('Olof', 21, 1), brita: P('Brita', 23, 1), jons: P('Jöns', 20, 1), kerstin: P('Kerstin', 23, 1),
-    cecilia: P('Cecilia', 26, 1), gunnar: P('Gunnar', 19, 0), per: P('Per', 22, 2) };
+  const [d1, d2] = kids(4, 'f'), [s1] = kids(4, 'm'), [b1] = kids(hhOf(1, 0), 'm'), [c1, c2] = kids(hhOf(1, 0), 'f');
+  const who = { gunhild: cast(d1, 'Gunhild', 19), olof: cast(s1, 'Olof', 21), brita: cast(d2, 'Brita', 23, 30), jons: cast(b1, 'Jöns', 20),
+    kerstin: cast(c1, 'Kerstin', 23), cecilia: cast(c2, 'Cecilia', 26), gunnar: cast(kids(hhOf(0, 0), 'm')[0], 'Gunnar', 30),
+    per: cast(kids(hhOf(2, 0), 'm')[0], 'Per', 22) };
   const empty = st.households[4], f = st.farmsteads[empty.farmstead], last = empty.holder;
   H.extinct(st, empty);
   const B0 = st.farmsteads[st.villages[1].farmsteads[0]].household, A0 = st.farmsteads[st.villages[0].farmsteads[0]].household;
   for (const id of [who.gunhild, who.olof]) if (st.pawns[id].household !== B0) H.moveTo(st, id, B0);
   H.moveTo(st, who.brita, A0);
   st.unions.push({ id: st.unions.length, a: who.jons, b: who.gunhild, start: st.t, end: null, kind: 'marriage' });
-  st.pawns[who.gunnar].born -= 11 * YEAR; st.pawns[who.gunnar].age = 30;
   if (rule) setPractice(st, 1, { claims: rule });
   st.demand = Object.values(who).concat(st.households[B0].holder); // a holder among them, who may not claim
   return { st, f, last, who };
@@ -149,7 +156,8 @@ const P = (id) => ({ type: 'pawn', id });
   FC.claimFarms(st);
   VB['sim/lifecycle'].killPawn(st, who.gunhild, 'illness');
   st.t += 10; J.refreshJobs(st, cal(st.t));
-  check(!f.claim && !CL.claimsOn(st, f.house).some((c) => c.why === 'farm') && FC.claimable(f), 'the claim dies with the claimant; the farm is claimable again');
+  check(!f.claim && !CL.claimsOn(st, f.house).some((c) => c.why === 'farm') && FC.claimable(f),
+    'the claim dies with the claimant; the farm is claimable again');
   ok(st, 'died');
   FC.claimFarms(st);
   check(f.claim && f.claim.by === who.brita, `the next claimant takes it (${f.claim && st.pawns[f.claim.by].given})`);

@@ -1,4 +1,4 @@
-// @sys sim/layout: placing villages, farmsteads, fields and fences on the map
+// @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, farmable, byRiver, fertility } = VB['sim/rules'];
@@ -110,36 +110,129 @@ VB['sim/layout'] = (() => {
     }
     return best;
   }
-  // A cluster village (VB-113): houses grow round the green one by one, each touching the green, an earlier house or an earlier house's
-  // yard, preferring tiles that touch more houses, near the green, off stony and wet ground, never next to a field; then each house, the
-  // first first, takes its block of fields beyond the yards (placeFields). A house whose fields find no room is not built.
-  // fieldsAt and yards (tiles next to a house or green) are kept by the settlement generator across villages.
-  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
+  // ---- the form of a village: a street, and houses along it ----
+  // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
+  // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
+  // opposite sides and a village of ten or more farms sending a side lane off as a third. An arm grows a tile at a time, straight on or
+  // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
+  // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
+  // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
+  const STREET = { from: 4, perFarm: 0.7, lane: 10, level: 14, straight: 0.35, hook: 1.2, room: 0.25, wander: 0.9 };
+  function layStreet(w, used, rand, center, need, arms, taken) {
+    const street = new Set(), level = w.hp[center];
+    const open = (t) => t >= 0 && farmable(w, t) && !used.has(t) && !street.has(t) && !w.river[t] && !taken.has(t) && !nextTo(w, t, taken);
+    const worth = (t) => {
+      let room = 0;
+      for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && farmable(w, j) && !used.has(j) && !street.has(j)) room++; }
+      const b = w.biome[t];
+      return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
+    };
+    const heads = []; // the directions the arms left the green in
+    for (let a = 0; a < arms && street.size < need; a++) {
+      const len = Math.ceil((need - street.size) / (arms - a));
+      let at = center, dir = -1, bent = 0;
+      for (let n = 0; n < len; n++) {
+        let pick = -1, pd = -1, ps = -Infinity;
+        for (let k = 0; k < 6; k++) {
+          const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
+          if (dir >= 0 && Math.abs(turn) > 1) continue;
+          // a new arm leaves the green well away from the others: opposite the first, or between them
+          if (dir < 0 && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
+          const t = w.nb[at * 6 + k];
+          if (!open(t)) continue;
+          let doubled = false; // touching the street anywhere but where it came from
+          for (let q = 0; q < 6; q++) { const j = w.nb[t * 6 + q]; if (j !== at && (street.has(j) || (j === center && at !== center))) doubled = true; }
+          if (doubled) continue;
+          const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
+          if (sc > ps) { ps = sc; pick = t; pd = k; }
+        }
+        if (pick < 0) break;
+        if (dir < 0) heads.push(pd); else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
+        street.add(pick); at = pick; dir = pd;
+      }
+    }
+    return street;
+  }
+  // A village laid out (VB-113, revised): the green, its street (layStreet), if it has one, and houses one by one along them. A house
+  // stands on a tile touching the street or the green, or, where those are full or there is no street, an earlier house's yard; it
+  // hangs together with the houses so far (its tile or a neighbour is one of their yards); it keeps off stony and wet ground and never
+  // stands next to a field. It would rather have open ground on most sides than neighbours on all: touching one house costs nothing,
+  // each one more costs `crowd`, so the village is a loose row with gaps (yards, a tree, a way through to the fields), not a block.
+  // Then each house takes its block of fields beyond the yards and the street (placeFields); a house whose fields find no room is
+  // not built, and another site is tried in its place. fieldsAt, yards (tiles next to a house or green, and street tiles) and homes (houses and greens) are
+  // kept by the settlement generator across villages.
+  const HOUSE = { reach: 8, far: 0.3, crowd: 0.9, offStreet: 1.4, wander: 1.6, better: 0.15, land: 2.4 };
+  // The form follows the site: where the street village comes out short of its farms (a neck of land, where the street and its row take
+  // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
+  function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
+    if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
+    const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
+    const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
+    const before = keep(), row = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, true);
+    if (row.farmsteads.length >= nFarms) return row;
+    const withRow = keep();
+    back(before);
+    const close = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
+    if (close.farmsteads.length > row.farmsteads.length) return close;
+    back(withRow);
+    return row;
+  }
+  function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
     const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: true, well: true };
     used.add(center);
-    const built = new Set([center]), near = new Set(), houses = [];
-    const build = (t) => { built.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
+    const taken = new Set([...fieldsAt, ...homes]);
+    const street = !withStreet ? new Set()
+      : layStreet(w, used, rand, center, Math.ceil(nFarms * STREET.perFarm) + 1, nFarms >= STREET.lane ? 3 : 2, taken);
+    const mine = new Set([center]), near = new Set();
+    const build = (t) => { mine.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
     build(center);
-    const reach = bfs(w, center, 6, walkable(w)).dist;
-    for (let n = 0; n < nFarms; n++) {
-      let pick = -1, ps = -Infinity;
+    // fields keep off the street, and off the tiles along it, which are the house sites, so they lie behind the row; where a house
+    // finds no fields so (a narrow neck of land), fields may take the sites along the street that no house has taken
+    const sides = new Set(yards);
+    for (const t of street) { yards.add(t); sides.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) sides.add(j); } }
+    for (const t of near) { yards.add(t); sides.add(t); }
+    const front = new Set([center, ...street]), reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    // the house sites still open, best first
+    const sites = () => {
+      const out = [];
       for (const [t, d] of reach) {
-        if (d < 1 || used.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
-        let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[t * 6 + k])) touch++;
-        const b = w.biome[t], s = 0.5 * Math.min(touch, 3) - 0.5 * d - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * 1.6;
-        if (s > ps) { ps = s; pick = t; }
+        if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        let touch = 0; for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
+        const b = w.biome[t];
+        out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (nextTo(w, t, front) ? 0 : HOUSE.offStreet) - (1.5 * w.stones[t]) / 255
+          - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * HOUSE.wander]);
       }
-      if (pick < 0) break;
-      houses.push(pick); used.add(pick); build(pick);
-    }
-    for (const t of near) yards.add(t);
-    for (const h of houses) {
-      const fields = placeFields(w, used, h, 3, yards);
-      if (!fields) { used.delete(h); continue; }
-      const f = makeFarmstead(w, farmsteads.length, h, fields, village, used);
-      farmsteads.push(f); village.farmsteads.push(f.id);
-      for (const t of fields) fieldsAt.add(t);
+      return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
+    };
+    const stand = (t) => { used.add(t); build(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) { yards.add(j); sides.add(j); } } };
+    // the farm of the house at t, if it finds its fields: behind the row, unless the unbuilt sites along the street give clearly
+    // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
+    const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
+    const farm = (t) => {
+      const behind = placeFields(w, used, t, 3, sides), any = placeFields(w, used, t, 3, yards);
+      const fields = worth(any) > worth(behind) + HOUSE.better ? any : behind;
+      if (!fields || worth(fields) < HOUSE.land) return false; // ground too poor to feed a household is no room for a farm
+      const f = makeFarmstead(w, farmsteads.length, t, fields, village, used);
+      farmsteads.push(f); village.farmsteads.push(f.id); homes.add(t);
+      for (const j of fields) fieldsAt.add(j);
+      return true;
+    };
+    // first the houses, so that no field takes a house's place; then each house's fields, the first house first; then, for the houses
+    // that found none, other sites one at a time, each kept only if its fields find room
+    const houses = [];
+    for (let n = 0; n < nFarms; n++) { const t = sites()[0]; if (t === undefined) break; houses.push(t); stand(t); }
+    // a house is kept if it still hangs together with the houses kept before it, and finds its fields
+    mine.clear(); near.clear(); build(center);
+    for (const t of houses) { if ((near.has(t) || nextTo(w, t, near)) && farm(t)) build(t); else used.delete(t); }
+    while (village.farmsteads.length < nFarms) {
+      let done = false;
+      for (const t of sites()) {
+        used.add(t); // placeFields takes no used tile, and makeFarmstead marks the house
+        if (farm(t)) { stand(t); done = true; break; }
+        used.delete(t);
+      }
+      if (!done) break;
     }
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
@@ -178,6 +271,7 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
+    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w);
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
@@ -223,11 +317,11 @@ VB['sim/layout'] = (() => {
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
   // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
   function settlementGenerator(w, rand, bare = false) {
-    const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set();
+    const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
       used, farmsteads, villages,
       addVillage(center, nFarms) {
-        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards);
+        const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
       },
       addField(fid) {
@@ -251,6 +345,6 @@ VB['sim/layout'] = (() => {
   }
   return {
     settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
+    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
   };
 })();
