@@ -2,7 +2,8 @@
 VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, FOODS, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
+  const { HERD, FOODS, SOIL, WORK, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const Rules = VB['sim/registry'], Culture = VB['culture'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -12,6 +13,37 @@ VB['sim/byre'] = (() => {
 
   // Stall days still to come after the day c, while in the byre.
   const stallLeft = (c) => (!stalled(c) ? 0 : c.doy >= HERD.stall[0] ? 47 - c.doy + HERD.stall[1] : HERD.stall[1] - 1 - c.doy);
+  // ---- need (VB-299; design.md, The fair: Need): an animal is worth 1.5 times its customary worth to a household with none of its kind (the
+  // same kind of cattle; any sheep), its worth otherwise, and nothing if the household's hay will not carry it through the winter: the stall
+  // days still to come, or a whole stall period outside it. Giving one up costs what taking it back would bring. Allocates nothing. ----
+  const ANIMAL = { none: 1.5 };
+  function headsOf(st, hh, good) {
+    let n = 0;
+    for (const id of hh.herds) {
+      const hd = st.herds[id];
+      if (hd.species !== good.kind) continue;
+      if (hd.species === 'sheep') n += hd.ewes + hd.rams + hd.lambs;
+      else for (const h of hd.head) if (h.kind === good.subtype) n++;
+    }
+    return n;
+  }
+  Rules.contribute({ rule: 'need', source: 'sim/byre', key: 'animal', label: 'An animal, and hay for the winter', range: [-1e9, 1e9],
+    tunables: ['HERD.hay', 'HERD.stall'], value: (st, c) => {
+      const kind = c.good.kind;
+      if ((kind !== 'cattle' && kind !== 'sheep') || c.n === 0) return 0;
+      const doy = Math.floor(st.t / DAY) % YEAR_DAYS, inByre = doy >= HERD.stall[0] || doy < HERD.stall[1];
+      const left = !inByre ? HERD.stallDays : doy >= HERD.stall[0] ? YEAR_DAYS - 1 - doy + HERD.stall[1] : HERD.stall[1] - 1 - doy;
+      const hay = kind === 'sheep' ? HERD.hay.ewe : HERD.hay[c.good.subtype], worth = Culture.norm('worth', c.good.id);
+      let daily = 0; for (const id of c.hh.herds) daily += dailyHay(st.herds[id]);
+      const heads = headsOf(st, c.hh, c.good), k = Math.abs(c.n), sign = c.n > 0 ? 1 : -1;
+      let v = 0;
+      for (let i = 0; i < k; i++) {
+        const after = c.n > 0 ? daily + (i + 1) * hay : daily - i * hay; // the herd's day of hay with this head
+        if (c.hh.hay < after * left) break; // hay short: this head, and every further one, is worth nothing to keep
+        v += (c.n > 0 ? heads + i === 0 : heads - 1 - i === 0) ? ANIMAL.none * worth : worth;
+      }
+      return sign * v;
+    } });
   const houseOf = (st, hh) => st.farmsteads[hh.farmstead].house;
   const marked = (herd, head) => (herd.cull || []).some((e) => e.head === head.id);
   // The breeding male a farm relies on: the youngest bull of a year or more within reach not already marked for slaughter (an older one
