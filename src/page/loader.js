@@ -110,7 +110,7 @@
     clouds = [];
     const r = G.mulberry32(wd.seed * 7 + 3), K = wd.KS;
     for (let k = 0; k < 13; k++) {
-      const tex = cloudTex[k % cloudTex.length], s = (1.8 + r() * 1.8) * K;
+      const tex = cloudTex[k % cloudTex.length], s = (1.8 + r() * 1.8) * K * (PSTY.clouds === 'mural' ? 0.5 : 1);
       const spr = new PIXI.Sprite(tex), sh = new PIXI.Sprite(tex);
       spr.anchor.set(0.5); sh.anchor.set(0.5); spr.scale.set(s, s * (0.8 + r() * 0.4)); sh.scale.copyFrom(spr.scale);
       sh.tint = 0x06202c;

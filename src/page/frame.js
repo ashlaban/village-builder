@@ -52,7 +52,9 @@
     // clouds: visible on the overview, thinning out as you descend
     const zm = zMin(), fade = clamp((zm * 2.3 - cam.z) / (zm * 1.3), 0, 1);
     L.clouds.visible = L.shadows.visible = fade > 0.01;
-    L.clouds.alpha = 0.85 * fade; L.shadows.alpha = 0.16 * fade;
+    L.clouds.alpha = (PSTY.clouds === 'mural' ? 1 : 0.85) * fade; L.shadows.alpha = 0.16 * fade;
+    if (PSTY.clouds === 'none') L.clouds.visible = L.shadows.visible = false;
+    if (PSTY.sea === 'mural') { waves[0].alpha = 0.5 * wa; waves[1].alpha = 0; }
     for (const c of clouds) {
       if (!reduceMotion) { c.spr.x += c.vx * dt; c.spr.y += c.vy * dt; }
       const hw = c.spr.width / 2;

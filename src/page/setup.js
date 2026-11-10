@@ -55,6 +55,34 @@
     }
     return c;
   }
+  const PSTY = globalThis.VB_STYLE || {}; // PROTOTYPE
+  // ordered rows of wave scrolls, as a painted sea
+  function waveCanvasMural() {
+    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d');
+    g.lineCap = 'round'; g.strokeStyle = 'rgba(236,240,226,1)'; g.lineWidth = 1.5;
+    for (let row = 0; row < 4; row++) for (let k = 0; k < 2; k++) {
+      const x = k * 128 + (row % 2) * 64 + 18, y = row * 64 + 30;
+      for (const ox of [-S, 0]) {
+        g.beginPath(); g.moveTo(x + ox, y); g.quadraticCurveTo(x + ox + 9, y - 9, x + ox + 18, y); g.quadraticCurveTo(x + ox + 27, y - 9, x + ox + 36, y);
+        g.quadraticCurveTo(x + ox + 45, y - 9, x + ox + 54, y); g.stroke(); }
+    }
+    return c;
+  }
+  // a flat cloud of scallops inside one contour
+  function cloudCanvasMural(seed) {
+    const c = makeCanvas(400, 240), g = c.getContext('2d'), r = G.mulberry32(seed), pts = [];
+    for (let k = 0; k < 9; k++) {
+      const u = k / 8; pts.push([70 + u * 260 + (r() - 0.5) * 16, 150 - Math.sin(u * Math.PI) * (26 + r() * 22), 30 + Math.sin(u * Math.PI) * 26 + r() * 10]); }
+    g.save(); g.beginPath(); g.rect(0, 0, 400, 164); g.clip();
+    g.strokeStyle = '#2c201c'; g.lineWidth = 7; for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); }
+    g.fillStyle = 'rgb(244,240,226)'; for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill(); }
+    g.strokeStyle = 'rgba(120,130,140,0.7)'; g.lineWidth = 2.2;
+    for (const [x, y, rad] of pts) { g.beginPath(); g.arc(x, y + 3, rad * 0.6, Math.PI * 1.1, Math.PI * 1.75); g.stroke(); }
+    g.restore();
+    g.strokeStyle = '#2c201c'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(pts[0][0] - pts[0][2], 164);
+      g.lineTo(pts[8][0] + pts[8][2], 164); g.stroke();
+    return c;
+  }
   function cloudCanvas(seed) {
     const c = makeCanvas(400, 240), g = c.getContext('2d'), r = G.mulberry32(seed);
     for (let k = 0; k < 28; k++) {
@@ -66,9 +94,9 @@
     }
     return c;
   }
-  const waveTexA = texFrom(waveCanvas(11, 34, 0.9), { addressMode: 'repeat' });
+  const waveTexA = texFrom(PSTY.sea === 'mural' ? waveCanvasMural() : waveCanvas(11, 34, 0.9), { addressMode: 'repeat' });
   const waveTexB = texFrom(waveCanvas(23, 22, 0.8), { addressMode: 'repeat' });
-  const cloudTex = [1, 2, 3, 4].map((s) => texFrom(cloudCanvas(s * 97)));
+  const cloudTex = [1, 2, 3, 4].map((s) => texFrom(PSTY.clouds === 'mural' ? cloudCanvasMural(s * 97) : cloudCanvas(s * 97)));
 
   // ---- state ----
   let w = null, loc = null;

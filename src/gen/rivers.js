@@ -320,13 +320,20 @@ VB['gen/rivers'] = (() => {
     const minH = (full ? 0.35 : 0.45) / sc; // a half-width of at least this many texels, so brooks still show on the overview
     const dry = all.map((pts) => pts.filter((p) => p[3] === 1));
     // [colour, half-width at a point, land only]: damp ground, then mud and gravel at the edge, shallows, the channel and its deepest part
-    const layers = [
+    let layers = [
       ['rgba(64,84,44,0.2)', (p) => p[2] / 2 + 5 + 2.2 * noise(w, p[0] / 6, p[1] / 6, 7), true],
       ['rgba(126,114,78,0.45)', (p) => Math.max(minH * 1.5, p[2] / 2 + 1.8 + noise(w, p[0] / 4, p[1] / 4, 8)), true],
       ['rgb(108,172,168)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)), false],
       ['rgb(70,136,154)', (p) => (p[2] / 2) * (0.58 + 0.12 * noise(w, p[0] / 9, p[1] / 9, 10)) * p[3] - 0.3, false],
       ['rgb(54,114,138)', (p) => ((p[2] / 2) * (0.3 + 0.12 * noise(w, p[0] / 11, p[1] / 11, 11)) - 1.5) * p[3], false],
     ];
+    if (typeof globalThis !== 'undefined' && globalThis.VB_STYLE && globalThis.VB_STYLE.sea === 'mural') {
+      // PROTOTYPE: a flat stream inside a dark contour, with a pale line down its middle
+      const lw = Math.max(0.9, 0.6 / sc);
+      layers.length = 0;
+      layers.push(['rgb(44,32,28)', (p) => Math.max(minH, p[2] / 2) + lw, true], ['rgb(126,166,166)', (p) => Math.max(minH, p[2] / 2), false],
+        ['rgb(226,232,218)', (p) => (p[2] > 5 ? 0.45 : 0) * p[3], false]);
+    }
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.globalCompositeOperation = 'source-atop';
     // a small pool where each river rises
