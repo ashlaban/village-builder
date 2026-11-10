@@ -61,7 +61,7 @@ const control = (id) => {
 const input = {
   stage: { addEventListener() {} }, window: { addEventListener: (event, fn) => { keyHandlers[event] = fn; } },
   document: { querySelectorAll: () => [], addEventListener() {}, body: { classList: { toggle() {} } } },
-  matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {},
+  matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {}, cancelSkip() {},
 };
 vm.createContext(input);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/input.js'), 'utf8'), input);

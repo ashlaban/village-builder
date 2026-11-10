@@ -6,6 +6,7 @@
   let speedSampleAt = 0, speedSampleHours = 0;
   // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
   let skipCursor = null;
+  function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;

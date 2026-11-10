@@ -10236,7 +10236,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
-    if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } // choosing a speed, or pausing, ends a skip
+    cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
     $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
     $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
@@ -11346,6 +11346,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let speedSampleAt = 0, speedSampleHours = 0;
   // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
   let skipCursor = null;
+  function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
