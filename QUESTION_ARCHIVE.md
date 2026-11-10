@@ -2,6 +2,15 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-298)
+
+## VB-298: the gathering and Between villages, where the two designs of 10 November meet (raised at their merge)
+Two designs were agreed on the same day on separate branches: Between villages (VB-281's plan: walking hours, journeys, the suitor's visit) and the gathering (VB-183's plan). Merged, they agree on most (one measure of distance, a day's walk of 12 hours, journeys on foot, nothing over the sea) and differ on two points.
+1. Marriages between villages. Between villages lets the round pair villages by distance (near ones mix easily) and asks a suitor's visit beyond a day's walk. The gathering's first rule allowed a match between villages only if both pawns were at one gathering within 3 years, which would undo the easy mixing of close villages. **P:** keep Between villages as the rule, and let the gathering add to it: having been at the same gathering within 3 years counts as the visit (two villages of one gathering can be up to 24 hours apart), and adds a small term to the matcher's score; a match agreed at the gathering is concluded there. The suitor's winter visit (from winter day 1) and the gathering (winter days 1 to 3) then fall together, and a man looking for a wife goes to the gathering first.
+   **A (Kim, 10 Nov):** P.
+2. A load. The fair has a back load of 30 rations' worth and a cart of 90; kin help over distance carries at most 60 rations a load (VB-291). **P:** one number for what a pawn carries on a journey, 30, with a cart and two oxen 90; VB-291's gift is then a cart's load or two trips.
+   **A (Kim, 10 Nov):** P.
+
 # Archived 10 November 2026 (VB-220)
 
 ## Slice 4: two points left by its plan (VB-220 and VB-295; raised 10 November 2026)
