@@ -2,6 +2,7 @@
 // breaking the ground makes it the household's; an unworked stake lapses and ends its project; a household that dissolves drops its stakes;
 // a household with no free tile may contest a weakened stake, and the village's Disputed claims custom settles it.
 const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], T = VB['sim/territory'], S = VB['sim/stakes'], F = VB['sim/fields'];
+const { moveClock } = require('./lib/clock.js');
 const R = VB['sim/relations'], { KINDS } = VB['sim/kinds'], J = VB['sim/jobs'], A = VB['sim/agents'];
 const { CLAIMS, YEAR, DAY, cal, SOCIAL } = VB['sim/rules'], { setOwner } = VB['sim/ownership'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
@@ -14,7 +15,7 @@ const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms at 10:00 on the first day: household 0 (8 people) and 2 (6) want a fourth field, household 1 (3) does not.
 function scene(dispute = 'first') {
   const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 4, customs: { dispute } });
-  st.t += 10;
+  moveClock(st, 10);
   const hh = st.households, f = hh.map((h) => st.farmsteads[h.farmstead]);
   return { st, hh, f };
 }
@@ -38,7 +39,7 @@ const out = [];
     F.finishClear(st, f[2], hh[2]); F.finishBreak(st, f[2]);
   }
   ok(st, 'staked');
-  st.t += YEAR;
+  moveClock(st, YEAR);
   KINDS.clear.worked(st, { site: t, owner: H(0) });
   check(CL.strength(st, c) === 1, 'an hour of work renews the stake');
   F.finishClear(st, f[0], hh[0]);
@@ -54,10 +55,10 @@ const out = [];
   const { st, hh, f } = scene();
   F.startProject(st, f[0], hh[0]);
   const t = f[0].project.tile, n = Sim.villageLog(st, Infinity).length;
-  st.t += CLAIMS.years * YEAR - DAY;
+  moveClock(st, CLAIMS.years * YEAR - DAY);
   S.lapsedStakes(st, CL.lapseClaims(st));
   check(f[0].project && CL.claimOf(st, t, H(0)), 'still staked a day before 3 years');
-  st.t += DAY;
+  moveClock(st, DAY);
   S.lapsedStakes(st, CL.lapseClaims(st));
   check(!f[0].project && !st.claims.has(t), 'lapsed after 3 years unworked: the project ends');
   check(events(st, n, /gives up its stake/).length === 1, 'the log tells it');

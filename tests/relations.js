@@ -66,7 +66,7 @@ check(!a.rel.has(b.id) && b.rel.size === 0, 'death ends relationships');
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
 // talk (VB-061): two pawns standing together outdoors in waking hours talk, both remember it, and their tie grows by SOCIAL.ties.talk
 const S = VB['sim/society'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
-const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { g.inside = false; g.path = null; g.job = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
+const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); g.inside = false; g.path = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
 const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
@@ -101,13 +101,13 @@ check(x && fr && foe, 'three unrelated adults of one village');
 for (let k = 0; k < 10; k++) { R.remember(st, x.id, fr.id, 'goodTalk'); R.remember(st, x.id, foe.id, 'crossWords'); }
 const home = st.farmsteads[st.households[x.household].farmstead].house, hx = st.w.hx[home], hy = st.w.hy[home];
 for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
-const idleAt = (p, dx) => { const g = st.agents[p.id]; g.inside = false; g.job = null; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };
-idleAt(fr, 40); st.t += 0.01;
+const idleAt = (p, dx) => { const g = st.agents[p.id]; VB['sim/agents'].release(st, g); g.inside = false; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };
+idleAt(fr, 40); st.idlers = null; // the hour's idlers are a cache (sim/relations): the test placed them by hand
 const ax = st.agents[x.id];
 VB['sim/jobs'].idleAbout(st, ax); // the planner's idle choice (VB-168)
 const end = ax.path[ax.path.length - 1];
 check(Math.abs(end[0] - (hx + 40)) <= 8 && Math.abs(end[1] - hy) <= 4, `walks to the friend: ends at ${end.slice(0, 2).map(Math.round)}, friend at ${hx + 40},${hy}`);
-st.agents[fr.id].inside = true; idleAt(foe, 40); st.t += 0.01;
+st.agents[fr.id].inside = true; idleAt(foe, 40); st.idlers = null;
 check(R.companyFor(st, ax) === null, 'never joins someone it dislikes');
 SOCIAL.seek = seek0;
 

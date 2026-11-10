@@ -2,6 +2,7 @@
 // season, for food until the next harvest (VB-222); stores fill from surpluses.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { setClock, moveClock } = require('./lib/clock.js');
 const { shareFood, fillStores, surplus, askDaysAt } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => {
@@ -38,7 +39,7 @@ for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.
   assert(Math.abs(v.grain - (1000 - (askDaysAt(st) * need - 2 * need))) < 1e-6, 'the village store covered the rest');
 }
 { // the amount: until the next harvest (the start of autumn), at least a season's; in autumn a season's
-  const st = fresh(), at = (doy) => { st.t = doy * Sim.DAY; return askDaysAt(st); };
+  const st = fresh(), at = (doy) => { setClock(st, doy * Sim.DAY); return askDaysAt(st); };
   assert.deepStrictEqual([at(0), at(11), at(23), at(24), at(35), at(36), at(47)], [24, 13, 12, 12, 12, 36, 25], 'days asked by date');
 }
 { // at most once a season: short again in the same season, a household waits for the next
@@ -47,7 +48,7 @@ for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.
   v.grain = 1e5;
   shareFood(st); const first = a.grain; assert(first > 0, 'the store gave');
   a.grain = 0; shareFood(st); assert.strictEqual(a.grain, 0, 'no second ask in the season');
-  st.t += 12 * Sim.DAY; shareFood(st); assert(a.grain > 0, 'asks again next season');
+  moveClock(st, 12 * Sim.DAY); shareFood(st); assert(a.grain > 0, 'asks again next season');
 }
 { // stores fill at the moving round from surpluses only
   const st = fresh(), a = st.households[0], v = st.villages[st.farmsteads[a.farmstead].village];

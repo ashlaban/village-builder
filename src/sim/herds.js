@@ -2,7 +2,7 @@
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, HERD } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -19,7 +19,9 @@ VB['sim/herds'] = (() => {
     'Gullhorn', 'Krona', 'Rödkulla', 'Svärta', 'Brokros', 'Ljusa', 'Smörblomma', 'Hjärtros'];
   const BULLS = ['Brante', 'Bläsen', 'Stolt', 'Ståtlig', 'Raske', 'Bjälle', 'Prydler', 'Pålle', 'Dunder', 'Grålle', 'Svarten', 'Bråke', 'Rödingen',
     'Kalle'];
-  const years = (st, h, t = st.t) => (t - h.born) / YEAR;
+  // An animal's age in years, from whole 6-minute steps (VB-235): born is a whole hour (an older save's may have drifted, hence the round),
+  // so an age of whole years is exact and compares with no tolerance.
+  const years = (st, h) => (st.tick - Math.round(h.born * TICKS)) / (YEAR * TICKS);
   // A herd's daily hay in the byre, and a household's need for a whole stall period.
   function dailyHay(herd) {
     if (herd.species === 'sheep') return (herd.ewes + herd.rams) * HERD.hay.ewe + herd.lambs * HERD.hay.lamb;
@@ -72,7 +74,7 @@ VB['sim/herds'] = (() => {
       if (herd.species !== 'cattle' || herd.household === null) continue;
       const d = hexSteps(st.w, house, houseOf(st, herd));
       if (d > HERD.reach) continue;
-      for (const h of herd.head) if (h.kind === 'bull' && years(st, h) >= minAge - 1e-6) out.push({ herd, head: h, d });
+      for (const h of herd.head) if (h.kind === 'bull' && years(st, h) >= minAge) out.push({ herd, head: h, d });
     }
     return out.sort((a, b) => a.d - b.d || a.herd.id - b.herd.id || a.head.id - b.head.id);
   }
@@ -84,7 +86,7 @@ VB['sim/herds'] = (() => {
   function ageCattle(st, herd) {
     const house = houseOf(st, herd);
     for (const h of herd.head) {
-      const a = years(st, h) + 1e-6;
+      const a = years(st, h);
       if (h.kind === 'calf' && a >= 1) {
         // a bull calf is kept as a bull when no bull within reach is young enough to serve for years; otherwise it is gelded
         if (h.sex === 'f') h.kind = 'heifer';
@@ -102,7 +104,7 @@ VB['sim/herds'] = (() => {
       if (herd.species === 'cattle') {
         ageCattle(st, herd);
         herd.head = herd.head.filter((h) => {
-          const gone = years(st, h) >= HERD.maxAge - 1e-6 || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
+          const gone = years(st, h) >= HERD.maxAge || (wintered && h.kind !== 'calf' && rnd(st.rng.herds) < HERD.death.cattle);
           if (gone) note(herd).died.push(h.name);
           return !gone;
         });
@@ -290,7 +292,7 @@ VB['sim/herds'] = (() => {
     return {
       household: hh.id, farm: st.farmsteads[hh.farmstead].name, hay: Math.round(hh.hay), winterNeed: Math.round(winterNeed(st, hh)),
       herds: herdsOf(st, hh).map((hd) => (hd.species === 'cattle'
-        ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h) + 1e-6) })) }
+        ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h)) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']

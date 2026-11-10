@@ -1,5 +1,6 @@
 // Claims on tiles (VB-042, sim/claims): adding, renewing, fading and lapsing, realising, each Disputed claims option, grievances and land held.
 const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], { YEAR, CLAIMS } = VB['sim/rules'];
+const { moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('CLAIMS FAIL:', m); } };
@@ -27,13 +28,13 @@ const c0 = CL.addClaim(st, tile, H(0), 'field');
 check(CL.claimOf(st, tile, H(0)) === c0 && c0.state === 'unrealised' && CL.strength(st, c0) === 1, 'a new claim is at full strength');
 check(st.landDirty.has(tile), 'a new claim marks the tile for the overlay');
 check(CL.addClaim(st, tile, H(0), 'meadow') === c0 && CL.claimsOn(st, tile).length === 1 && c0.why === 'meadow', 'claiming again renews, not doubles');
-st.t += 1.5 * YEAR;
+moveClock(st, 1.5 * YEAR);
 check(Math.abs(CL.strength(st, c0) - 0.5) < 1e-6, `half strength after a year and a half (${CL.strength(st, c0)})`);
 CL.renewClaim(st, tile, H(0));
 check(CL.strength(st, c0) === 1, 'renewed to full strength');
-st.t += CLAIMS.years * YEAR - 1;
+moveClock(st, CLAIMS.years * YEAR - 1);
 check(!CL.lapseClaims(st).length && CL.claimsOn(st, tile).length === 1, 'still standing just before 3 years');
-st.t += 1;
+moveClock(st, 1);
 const gone = CL.lapseClaims(st);
 check(gone.length === 1 && gone[0][0] === tile && !st.claims.has(tile), 'lapsed after 3 years without work');
 const t2 = tileAt(st.w, 9, 8);
@@ -42,7 +43,7 @@ CL.addClaim(st, t2, { type: 'pawn', id: 0 }, 'birthright', { state: 'realised', 
 CL.realise(st, t2, H(1));
 check(Sim.ownerOf(st, t2) && Sim.ownerOf(st, t2).id === 1 && !CL.claimOf(st, t2, H(1)), 'realised: owned, and the claim gone');
 check(CL.claimsOn(st, t2).length === 1 && CL.strength(st, CL.claimsOn(st, t2)[0]) === 1, 'a realised claim stays at full strength');
-st.t += 2 * YEAR;
+moveClock(st, 2 * YEAR);
 check(CL.lapseClaims(st).length === 1 && !st.claims.has(t2), 'a realised claim ends at its until');
 let threw = false; try { CL.realise(st, t2, { type: 'pawn', id: 0 }); } catch (e) { threw = true; }
 check(threw, 'a pawn cannot own land');

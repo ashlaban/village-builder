@@ -1,7 +1,7 @@
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { cal, DAY, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
+  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
@@ -177,7 +177,7 @@ VB['sim/agents'] = (() => {
   //   they wake it (add it here); a death takes it out. `at` is the step's place in ids, kept right when an agent is woken mid-step.
   //   Read by stepAgents only, so an agent left out is one the step would have passed over.
   function awake(st) {
-    const hour = Math.floor(st.t + 1e-9);
+    const hour = Math.floor(st.tick / TICKS);
     if (st.awake && st.awake.hour === hour) return st.awake;
     const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], ids = [];
     VB.count.walkAwake += st.living.length;

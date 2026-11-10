@@ -2,6 +2,7 @@
 // follows the farm across households: every holder, handover, empty spell and claim since the start; the personal events stay with their pawn.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { record, log, personEvent, atFarm } = VB['sim/records'];
+const { moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 7 });
@@ -31,10 +32,10 @@ assert.ok(log0.every((e) => e.text && e.ev && st.record.includes(e.ev)), 'every 
 
 // the farm stands empty for three years, is claimed, and its new holder moves in: told on the farm, whoever the household
 const emptied = st.t; log(st, `${f.name} stands empty.`, { kind: 'empty', ...atFarm(f) });
-st.t += 3 * Sim.YEAR + Sim.DAY;
+moveClock(st, 3 * Sim.YEAR + Sim.DAY);
 const other = st.households[1].holder;
 log(st, `${Sim.fullName(st.pawns[other])} claims the empty farm ${f.name}.`, { kind: 'claim', pawn: other, ...atFarm(f) });
-st.t += Sim.DAY;
+moveClock(st, Sim.DAY);
 log(st, `${Sim.fullName(st.pawns[other])} moves into ${f.name}.`, { kind: 'moved', pawn: other, household: 1, farm: f.id, village: f.village });
 personEvent(st, other, 'moved', `Moved to ${f.name}`, { household: 1, farm: f.id, village: f.village, kind: 'joined' });
 personEvent(st, other, 'friend', 'Became friends with a neighbour', { other: heir });
@@ -46,7 +47,7 @@ assert.ok(!kindsOf(Sim.chronicle(st, { farm: f.id })).some((k) => k === 'friend'
 // while it stands empty the note counts to now
 {
   const g = st.farmsteads[st.households[2].farmstead]; log(st, `${g.name} stands empty.`, { kind: 'empty', ...atFarm(g) });
-  st.t += Sim.YEAR + Sim.DAY;
+  moveClock(st, Sim.YEAR + Sim.DAY);
   assert.strictEqual(Sim.chronicle(st, { farm: g.id }, 'land')[0].note, 'Empty since, 1 year');
 }
 

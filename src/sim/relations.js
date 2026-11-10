@@ -2,7 +2,7 @@
 // people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
@@ -267,7 +267,7 @@ VB['sim/relations'] = (() => {
   const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
   function idlersBy(st) {
     let c = st.idlers;
-    const hour = Math.floor(st.t);
+    const hour = Math.floor(st.tick / TICKS);
     if (!c || c.hour !== hour) {
       c = { hour, by: new Map() };
       for (const liveId of st.living) {
