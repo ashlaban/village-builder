@@ -41,6 +41,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. The nightly workflow
   (`.github/workflows/fixtures.yml`) remakes and publishes them, so a PR that changes the golden file need not; `npm run nightly` fetches
   them, remakes locally what is still stale and runs the bench (minutes).
+- Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (verify) asserts each band's reduced run, populous on
+  the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous and founders small, heirs), prints each band
+  as in or out and appends to `docs/bench/bands.jsonl`, never failing (about 15 to 20 minutes; `npm run nightly` runs it for a new commit).
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
@@ -105,6 +108,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, on every PR: a task is not done until
   both of its jobs pass, and a failure there is fixed on the PR.
 - Rebuild `index.html` before committing; both suites check it.
+- A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
+  loop, an `assert`.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
 - A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,

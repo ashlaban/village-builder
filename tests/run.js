@@ -22,12 +22,13 @@ const VERIFY = [
   ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
+  ['node', 'tests/bands.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose'), list = process.argv.includes('--list') || process.stdout.isTTY;
 const cmds = { test: TEST, verify: VERIFY }[suite];
 if (!cmds) { console.error('usage: node tests/run.js test|verify [--list] [--verbose]'); process.exit(2); }
 // longest first, so the slow scripts do not start last
-const SLOW = ['populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
+const SLOW = ['bands', 'populous', 'browser', 'smoke', 'golden', 'births', 'hunger', 'stones'];
 const rank = (c) => { const k = SLOW.findIndex((s) => c.join(' ').includes(s)); return k < 0 ? SLOW.length : k; };
 const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile)?\.js$/.test(a));
 const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
