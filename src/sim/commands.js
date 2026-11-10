@@ -162,10 +162,23 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
     },
-    // argue({dim, option}): the pawn takes up the cause for ten years
+    // argue({dim, option}): the pawn takes up the cause for ten years (the debug's, and the player's for its pawn: VB-211); it replaces any cause held
     argue: {
       check: (st, c) => living(st, c.actor) || option(c),
-      run: (st, c) => { Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10); },
+      run: (st, c) => {
+        const d = Culture.DIMS[c.args.dim];
+        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10);
+        personEvent(st, c.actor, 'cause', `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`);
+      },
+    },
+    // dropCause: the pawn lays down the cause it argues
+    dropCause: {
+      check: (st, c) => living(st, c.actor) || (st.pawns[c.actor].advocate ? null : 'the pawn argues no cause'),
+      run: (st, c) => {
+        const p = st.pawns[c.actor], d = Culture.DIMS[p.advocate.dim];
+        Culture.advocate(p, null);
+        personEvent(st, c.actor, 'cause', `Dropped the cause: ${d.label.toLowerCase()}`);
+      },
     },
     // rally({dim, option}): a fifth of the settlement's voices, the most esteemed first, take up the cause
     rally: {

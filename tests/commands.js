@@ -188,3 +188,22 @@ for (const [cmd, why] of [
 ]) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
 assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
 console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 16 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);
+// the player's cause (VB-211): the same advocate slot as a natural cause, so the same pull on the pawn's attitude and its ties'; dropCause ends it
+{
+  const make = () => { const s = Sim.seed(hw, 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
+  const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
+  assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
+  Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
+  Sim.advance(a, 0.2);
+  assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
+  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + 10)) < 0.05, 'for ten years');
+  assert.ok(a.pawns[id].events.some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
+  Sim.uninhabit(a); b.pawns[id].advocate = { dim, opt, until: b.cenv.t + 10, natural: true }; // as a natural cause, the same slot
+  b.pawns[id].advocate.until = a.pawns[id].advocate.until;
+  Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
+  const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
+  assert.ok(Math.abs(pa.att[o] - pb.att[o]) < 0.05, 'the player\'s cause pulls as a natural one does');
+  assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);
+  assert.strictEqual(pa.advocate, null); assert.ok(pa.events.some((e) => /^Dropped the cause/.test(e.text)));
+  assert.ok(typeof issue(a, { actor: id, verb: 'dropCause', source: 'player' }) === 'string', 'refused again');
+}

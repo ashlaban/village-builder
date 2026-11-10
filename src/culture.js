@@ -143,7 +143,7 @@ const Culture = (() => {
     p.att = att; p.anc = Float32Array.from(p.att);
     p.prestige = 1; p.interest = null; p.advocate = null;
   }
-  function advocate(p, dim, opt, until) { p.advocate = { dim, opt, until }; }
+  function advocate(p, dim, opt, until) { p.advocate = dim === null ? null : { dim, opt, until }; } // dim null: lays the cause down
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
