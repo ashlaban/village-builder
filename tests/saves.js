@@ -9,7 +9,7 @@ let failed = 0; const out = [];
 // earlier in it (st.idlers). Both runs make the same advance calls after the save: steps of 6 minutes add up differently in other chunks.
 const Y = Sim.YEAR, TINY = { cols: 120, rows: 85 };
 for (const [scenario, seed, size, before, after] of [['founders', 7, null, 2 * Y, Y], ['founders', 42, null, 2 * Y, Y], ['heirs', 7, null, 2 * Y, Y],
-  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.75, 30 * Sim.DAY]]) {
+  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.7, 30 * Sim.DAY]]) {
   const st = Sim.seed(world(seed, size || undefined), seed, scenario);
   Sim.advance(st, before);
   const text = JSON.stringify(Sim.save(st));
