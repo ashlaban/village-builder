@@ -181,11 +181,9 @@ VB['sim/jobs'] = (() => {
     return lo;
   }
   function planRound(st, idle, c) {
-    const bids = [], lists = new Map(); // a household's jobs, looked up once a round for all its idle members (VB-227); bids post nothing
+    const bids = [];
     for (const a of idle) {
-      const p = st.pawns[a.id];
-      let js = lists.get(p.household);
-      if (!js) lists.set(p.household, (js = jobsFor(st, p)));
+      const js = jobsFor(st, st.pawns[a.id]);
       VB.count.matchBid += js.length ?? js.size;
       for (const j of js) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
     }

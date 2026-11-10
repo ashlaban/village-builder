@@ -5084,7 +5084,9 @@ VB['sim/hunger'] = (() => {
   // What the household's living members eat in a day, in rations.
   function dailyNeed(st, hh) {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
-    return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
+    let s = 0; // a loop, not map, filter and reduce: the job review asks it every hour from 14:00 for every household (VB-227)
+    for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) s += age(st, p) >= 14 ? adult : child; }
+    return s;
   }
   // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
   const floorOf = (st, hh) => seedReserve(st, hh) + HELP.floorDays * dailyNeed(st, hh);
@@ -5093,7 +5095,7 @@ VB['sim/hunger'] = (() => {
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
-  const larderOf = (hh, kind) => hh.larder.reduce((s, l) => s + (!kind || l.kind === kind ? l.n : 0), 0);
+  function larderOf(hh, kind) { let s = 0; for (const l of hh.larder) s += !kind || l.kind === kind ? l.n : 0; return s; } // the review asks it hourly
   // Takes up to `want` rations from the larder, the lots that spoil first first; only those within `soon` hours of spoiling when soon is
   // given. Returns what it took.
   function takeFood(st, hh, want, soon = Infinity) {
@@ -7625,11 +7627,9 @@ VB['sim/jobs'] = (() => {
     return lo;
   }
   function planRound(st, idle, c) {
-    const bids = [], lists = new Map(); // a household's jobs, looked up once a round for all its idle members (VB-227); bids post nothing
+    const bids = [];
     for (const a of idle) {
-      const p = st.pawns[a.id];
-      let js = lists.get(p.household);
-      if (!js) lists.set(p.household, (js = jobsFor(st, p)));
+      const js = jobsFor(st, st.pawns[a.id]);
       VB.count.matchBid += js.length ?? js.size;
       for (const j of js) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
     }
@@ -13525,7 +13525,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'f96415a772', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '008c0b7654', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
