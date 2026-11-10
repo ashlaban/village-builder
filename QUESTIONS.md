@@ -14,6 +14,15 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-270: the hunger floors, out on every full run (raised 10 November 2026)
+Slice 0's wrap-up (VB-200) ran the full bands at `7205992`: 31 in, 19 out. All 19 are the hunger floors and one population floor:
+hungry-households out on all ten runs (the worst household hungry on 0.48 to 1.0 of its days after year 3, line 0.30), hunger-deaths on
+eight (0.024 to 0.286, line 0.02), heirs seed 42 at 0.72 of its start. The day's earlier records read the same (17 out). No task owns them.
+1. Who takes them? **P:** VB-270 first, small: name the households behind each worst share and each hunger death, and say which are food
+   (then VB-048 or a slice-3 task) and which the probe (a short-lived household read as hungry on all its days; then a band change for you).
+2. Until then, are they residuals to report, not a reason to stop a slice's wrap-up? **P:** yes, as `docs/gates.md` row 21 proposes for
+   the reduced runs; the invariants band stays hard.
+
 ### VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)
 The order-preserving cuts (golden file unchanged; numbers in `backlog/VB-227.md`) make the line 6 to 7% cheaper and the review 15%: on `tools/bench.js` at `medium-ref` it measures 25.4 to 32.8 ms a game day after (mean 28.7), against 25.1 to 34.7 before (mean 28.2) on a noisy machine about 15% faster than on 9 November, where the line was 35.1; on that scale it is now about 33. The rest is the review polling every holder 14 times a day and matching rebidding every idle pawn every six minutes, which only rules 4 and 5 cut, with a change of behaviour.
 1. Does VB-227 land as it stands and its last 3 ms wait? **P:** yes: merge the cuts, keep VB-227 open (or close it with criteria 3 and 4 moved), and make "jobs refresh and matching at most 30 ms at `medium-ref`, paired bench runs" an acceptance criterion of VB-249, whose planning days and due-queue take the review off its hourly pass.

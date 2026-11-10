@@ -370,35 +370,45 @@ month and a half.
 
 ### 5.1 What it costs today
 
-Populous small at seed 7, `tools/sim.js` (year-by-year ms per game day, one run):
+Populous small at seed 7, `tools/sim.js` (year-by-year ms per game day, one run). The last three columns are slice 0's wrap-up
+(VB-200, 10 November, at `7205992`: one run of 41 years, and year 41 from the year-40 fixture made at that commit):
 
-| Year | Living | Pawn records | ms a game day | ms per living pawn-day |
-|---|---|---|---|---|
-| 1 | 352 | about 355 | 68 | 0.19 |
-| 10 | 424 | | 82 | 0.19 |
-| 20 | 500 | | 132 | 0.26 |
-| 30 | 610 | | 153 | 0.25 |
-| 41 (from the year-40 save) | 729 | 1,274 | 227 | 0.31 |
+| Year | Living | Pawn records | ms a game day | ms per living pawn-day | 10 Nov: living | 10 Nov: ms a game day | 10 Nov: ms per living pawn-day |
+|---|---|---|---|---|---|---|---|
+| 1 | 352 | about 355 | 68 | 0.19 | 323 | 35.5 | 0.11 |
+| 10 | 424 | | 82 | 0.19 | 393 | 44.4 | 0.11 |
+| 20 | 500 | | 132 | 0.26 | 459 | 49.8 | 0.11 |
+| 30 | 610 | | 153 | 0.25 | 558 | 88.0 | 0.16 |
+| 41 (from the year-40 save) | 729 | 1,274 | 227 | 0.31 | 695 (1,210 records at year 40) | 105.6 | 0.15 |
+
+On 10 November the cost per living pawn-day still grows with the years (0.11 to 0.15, 1.4 times from year 1 to 41, against 1.6 before),
+but the work counters say most of it is not history: 19 of 25 grow no faster than the living from `small-y5` to `small-y40`, and the wall
+clock of those two windows is 1.10 (`tests/history.js`; `docs/bench/closure.md`, "Cost growth").
 
 Populous medium at seed 7, years 1 to 4, `--report perf`: 807 to 859 living, 184 to 196 ms a game day. That figure includes the
 timing wrapper and a second run sharing the machine; `REVIEW.md` measured 97 ms on another machine. The early reference is
-therefore already near a budget of 160.
+therefore already near a budget of 160. On 10 November (VB-200, `tools/bench.js`, a whole year from each fixture, three runs):
+`medium-y5`, 895 living, 135 ms a game day (121 to 143); `medium-ref`, 1,019 living, 165 ms (161 to 170), against Kim's 200.
 
 Where a game day went in year 41, from the year-40 save (ms, with the share of the day):
 
-| System | Years 1 to 8 (352 to 420 living) | Year 41 (729 living) | Growth, for 1.9 times the people |
-|---|---|---|---|
-| Agents and walking | 20.4 | 72.2 (32%) | 3.5× |
-| Talk and contacts | 26.9 | 62.0 (27%) | 2.3× |
-| Daily life and births | 9.3 | 36.8 (16%) | 4.0× |
-| Jobs refresh and matching | 12.5 | 29.5 (13%) | 2.4× |
-| The moving round (one call) | 72.7 longest | **899** | 12× |
+| System | Years 1 to 8 (352 to 420 living) | Year 41 (729 living) | Growth, for 1.9 times the people | 10 Nov: year 41 (695 living) |
+|---|---|---|---|---|
+| Agents and walking | 20.4 | 72.2 (32%) | 3.5× | 41.1 (39%): idle strolls 21.9, walking and working 16.3, the rest 2.9 |
+| Talk and contacts | 26.9 | 62.0 (27%) | 2.3× | 25.8 (24%) |
+| Daily life and births | 9.3 | 36.8 (16%) | 4.0× | 14.8 (14%); its longest call 14.9 |
+| Jobs refresh and matching | 12.5 | 29.5 (13%) | 2.4× | 16.5 (16%) |
+| The moving round (one call) | 72.7 longest | **899** | 12× | 16.7 longest (a phase; VB-201) |
 
 The year-40 state:
 - 0.76 dead records per living pawn (perhaps 4 to 5 by year 150, after 5 to 6 generations);
 - 110,000 events in `st.record` (12 MB of the save), and pawn records of 14 MB, each with 80 events of its own;
 - 29 MB of JSON, 5.2 MB gzipped;
 - 2.7 s to save and 0.27 s to load.
+
+On 10 November (`7205992`): 1,210 pawn records for 689 living (still 0.76 dead a living pawn), 110,090 events in the record, folded
+by VB-199; 12.0 MB of JSON, 3.1 MB gzipped. At `medium-ref` the save blocks the main thread 0.32 s (0.29 to 0.33) and loads in 0.22 s
+(0.17 to 0.27), against 0.5 s each (VB-199, VB-204, VB-226).
 
 An autosave in the page by the same codec would freeze it for nearly three seconds.
 
