@@ -12,13 +12,15 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-233](backlog/VB-233.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
-| [VB-235](backlog/VB-235.md) | The clock counts whole six-minute ticks | - | 2 | M | st.t is a float advanced by 0.1: hours fire a step late from year 2 and a run depends on how advance is chunked; count integer ticks instead. |
 | [VB-240](backlog/VB-240.md) | Opinion is derived: compatibility shown by familiarity, and memories only of what happened | - | 2 | M | Talk writes 99% of opinion's memories and they restate the fixed compatibility; derive opinion from standing, compatibility and the tie, keep memories for events, and record only close friends and enemies. |
 | [VB-242](backlog/VB-242.md) | The meetings and the moving round, a village a step: survey and tasks | - | 2 | S | The round matches the whole map in one step, which is why its heir cache exists; Kim decided each village holds its meeting and round in its own step. Survey the code and write the tasks. |
+| [VB-244](backlog/VB-244.md) | The page runs whole steps and draws pawns between them | - | 2 | M | A step in the page is as long as a frame, so the frame rate changes the run; the page asks for whole six-minute steps and interpolates each pawn's place between the last two. |
 | [VB-248](backlog/VB-248.md) | The hidden plans made explicit: targets, the land step and the seed's reservation, golden unchanged | year | 2 | M | woodGoal, ENOUGH, fieldsWanted and the cull are read from the plan record; startProject and startMeadow become its land step; seedReserve its first reservation. |
 | [VB-259](backlog/VB-259.md) | Meals and foods: a ration is only the unit | year | 2 | M | The household's cooked store is renamed from rations to meals, and every food gets a row in one table (worth in rations, shelf life, source); behaviour unchanged. |
+| [VB-264](backlog/VB-264.md) | Counters and the reduced bands as targets | - | 2 | S | tests/counters.js reports each counter over +10% of counters.json as a residual (structure asserts stay hard); tests/bands.js reports the balance bands at full strength as targets, the invariants band stays hard. |
+| [VB-265](backlog/VB-265.md) | Bench, bands and demography write target records, with noise | - | 2 | S | tools/bench.js (lines and system shares, each also as a share of the whole step), tools/bands.js and tools/marriage-demography.js append target records with their noise (runs, seeds); paired, alternated runs for before and after. |
+| [VB-267](backlog/VB-267.md) | Targets in the rules: AGENTS.md, roadmap 5 and 6, BACKLOG.md, open criteria reworded | - | 2 | S | AGENTS.md, docs/roadmap.md sections 5.2 and 6 and BACKLOG.md's rules say which checks are hard and how targets are reported; open tasks' criteria worded as gates are reworded towards targets. |
 | [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-160](backlog/VB-160.md) | Plan: what raised yields over the centuries, and a model for it | animals | 3 | S | Survey the historical causes of rising grain yields, their size and timescale, and propose a model in which a gain follows a change in farming; no code. |
@@ -41,6 +43,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-245](backlog/VB-245.md) | Idle pawns wait 2 to 4 hours before strolling again | - | 3 | S | Idle strolls cost about 40 ms of the 204 ms simulation day at the late reference; an idle pawn waits 2 to 4 hours, not 0.75 to 2. |
 | [VB-246](backlog/VB-246.md) | A benchmark that shows the three engine workarounds still pay | - | 3 | S | Three places are shaped by how V8 stores objects and compiles loops, each by a comment and one old measurement; a benchmark in verify notices when one stops helping. |
 | [VB-247](backlog/VB-247.md) | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
+| [VB-268](backlog/VB-268.md) | recordFold grows faster than the living from small-y5 to small-y40 | - | 3 | S | The fold of the record passes 1.56 times the slots per living pawn-day at small-y40 as at small-y5 (target 1.25): find why and whether rule 1 or 8 is broken, then cut it or name the cause. |
 
 ## Waiting for Kim
 
@@ -48,8 +51,9 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | The moving-round day and midnight under 60 ms on `medium-ref` and `small-y40` (the medium-y60 allowance ended on 7 November), with deterministic saves and demographic gates. |
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
+| [VB-270](backlog/VB-270.md) | The hunger floors out on every full run: who is hungry, and which task closes each | animals | 2 | S | The full bands (VB-163) at 7205992: hungry-households out on all 10 runs, hunger-deaths on 8, heirs seed 42 shrinking; no task owns them. |
+| [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 
 ## Blocked
 
@@ -58,7 +62,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
 | [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
-| [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-233 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
 | [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | VB-252 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
@@ -115,7 +118,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-190](backlog/VB-190.md) | Plan: roads, boats and ice (slice 10) | roads | 3 | S | VB-189 | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. |
 | [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-136, VB-139, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | VB-136 | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
-| [VB-244](backlog/VB-244.md) | The page runs whole steps and draws pawns between them | - | 2 | M | VB-235 | A step in the page is as long as a frame, so the frame rate changes the run; the page asks for whole six-minute steps and interpolates each pawn's place between the last two. |
+| [VB-266](backlog/VB-266.md) | Checks back on pull requests, hard checks only | - | 2 | S | VB-264 | The Checks workflow runs on pull requests again and fails only on the hard checks; targets out are printed in the job summary; the late-game job reports and never fails. |
 
 ## Archs
 

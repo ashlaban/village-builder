@@ -1,5 +1,6 @@
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js');
+const { setClock, moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, YEAR, SEASON_DAYS, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'], { endOfDay } = VB['sim/clock'];
@@ -19,20 +20,20 @@ KINDS.sow.done(st, j, hh, cal(0));
 assert.equal(hh.grain, 0, 'sowing consumes the seed');
 
 // Growth opens weeding on day 3, repeats only when due, and counts a missed round once.
-st.t = 3 * DAY; fieldsDay(st, cal(st.t));
+setClock(st, 3 * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'growing');
 assert.equal(fd.weedOpen, true);
 KINDS.weed.done(st, j);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.weedOpen, false, 'finishing weeding must not reopen it the same day');
-st.t += st.ECON.weedEvery * DAY; fieldsDay(st, cal(st.t));
+moveClock(st, st.ECON.weedEvery * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.weedMiss, 0, 'completed weeding does not count as missed');
-st.t += st.ECON.weedEvery * DAY; fieldsDay(st, cal(st.t));
+moveClock(st, st.ECON.weedEvery * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.weedMiss, 1, 'an unfinished round counts when the next falls due');
 
 // Sheaves already delivered survive frost; those still in the field are lost, even after reaping.
 const c = cal((3 * SEASON_DAYS - 1) * DAY);
-st.t = c.day * DAY;
+setClock(st, c.day * DAY);
 KINDS.reap.done(st, j, hh, c);
 const held = fd.held;
 assert(held > 0);
@@ -50,14 +51,14 @@ assert.equal(st.record.filter((e) => e.kind === 'frost').length, frostBefore + 1
 // A claimant suspends overgrowth; after the claim ends, nearby woodland can reclaim the field.
 f.household = null; f.emptySince = 0; f.claim = { by: hh.holder };
 fd.stage = 'stubble'; fd.sown = null;
-st.t = 2 * YEAR;
+setClock(st, 2 * YEAR);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowth');
 f.claim = null;
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
 fd.tile = tileAt(w, 12, 10); w.biome[tileAt(w, 13, 10)] = VB.gen.B.FOREST;
-st.t = 9 * YEAR;
+setClock(st, 9 * YEAR);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'scrub', 'woodland within two steps spreads into the abandoned field');
 console.log('crops ok: seed shortage, weeding cadence, frost delivery boundary and claimed-farm overgrowth');

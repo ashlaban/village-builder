@@ -1,7 +1,8 @@
-// Deterministic cost checks. Timing is diagnostic only; excess work is ratcheted down, never accepted by --update.
-const assert = require('assert'), fs = require('fs'), path = require('path');
+// Deterministic cost measures. Growth is a target (docs/gates.md, rows 16 and 17): each counter's ratio is reported through
+// tests/lib/targets.js with its residual and never fails; that every counter is exercised stays a hard check. Timing is diagnostic only.
+const assert = require('assert');
 const VB = require('../../src/load.js'), Sim = VB.sim, { livingPawnDays } = require('../../tools/counts.js');
-const BASE = path.join(__dirname, '../cost-baseline.json');
+const { target } = require('./targets.js');
 const LIMITS = { scaling: 1.15, history: 1.25 };
 const NAMES = [...Object.keys(VB.COUNTERS), 'roundRank'];
 
@@ -40,31 +41,13 @@ function growth(early, late, scaling = false) {
   }));
 }
 
-function check(kind, values, { file = BASE, update = false, print = console.log } = {}) {
+// Reports every counter's growth as a target (at most LIMITS[kind]) and returns the records; never throws for a value out.
+function report(kind, values) {
   assert(Object.hasOwn(LIMITS, kind), `unknown cost check: ${kind}`);
   assert.deepStrictEqual(Object.keys(values).sort(), [...NAMES].sort(), 'cost check must cover every counter');
-  const base = JSON.parse(fs.readFileSync(file, 'utf8')), limit = LIMITS[kind], errors = [];
-  for (const [section, entries] of Object.entries(base)) {
-    assert(Object.hasOwn(LIMITS, section), `unknown baseline check: ${section}`);
-    for (const [name, ceiling] of Object.entries(entries)) {
-      assert(NAMES.includes(name) && Number.isFinite(ceiling) && ceiling > LIMITS[section], `invalid baseline: ${section}.${name}`);
-    }
-  }
-  const ceilings = base[kind] || {}, next = {};
-  for (const name of NAMES) {
-    const value = values[name], allowed = ceilings[name] ?? limit;
-    const ok = Number.isFinite(value) && value <= allowed + 1e-9;
-    print(`${kind} ${name}: ${Number.isFinite(value) ? value.toFixed(6) : value} ${kind === 'scaling' ? 'exponent' : 'ratio'}`
-      + `; limit ${limit}${ceilings[name] === undefined ? '' : `, baseline ${allowed}`} ${ok ? 'PASS' : 'FAIL'}`);
-    if (!ok) errors.push(`${kind}.${name}: ${value} exceeds ${allowed}`);
-    if (value > limit && ceilings[name] !== undefined) next[name] = Math.min(ceilings[name], value);
-  }
-  assert.deepStrictEqual(errors, [], 'cost regression (baseline may only go down): ' + errors.join('; '));
-  if (update) {
-    base[kind] = next;
-    fs.writeFileSync(file, JSON.stringify(base, null, 2) + '\n');
-    print(`cost-baseline.json: lowered ${kind} ceilings; other checks unchanged`);
-  }
+  const where = kind === 'scaling' ? 'tests/scaling.js: exponent of work, 2 to 4 villages'
+    : 'tests/history.js: work per living pawn-day, small-y40 over small-y5';
+  return NAMES.map((name) => target(`${kind}.${name}`, { where, dir: 'max', target: LIMITS[kind], measured: values[name] }));
 }
 
 function timing(label, result) {
@@ -76,4 +59,4 @@ function timing(label, result) {
     console.log(`  hour ${step.hour.toFixed(1)} -> ${(step.hour + 0.1).toFixed(1)}: ${step.ms.toFixed(3)} ms`);
   }
 }
-module.exports = { measure, growth, check, timing, LIMITS, NAMES };
+module.exports = { measure, growth, report, timing, LIMITS, NAMES };

@@ -14,14 +14,20 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-270: the hunger floors, out on every full run (raised 10 November 2026)
+Slice 0's wrap-up (VB-200) ran the full bands at `7205992`: 31 in, 19 out. All 19 are the hunger floors and one population floor:
+hungry-households out on all ten runs (the worst household hungry on 0.48 to 1.0 of its days after year 3, line 0.30), hunger-deaths on
+eight (0.024 to 0.286, line 0.02), heirs seed 42 at 0.72 of its start. The day's earlier records read the same (17 out). No task owns them.
+1. Who takes them? **P:** VB-270 first, small: name the households behind each worst share and each hunger death, and say which are food
+   (then VB-048 or a slice-3 task) and which the probe (a short-lived household read as hungry on all its days; then a band change for you).
+2. Until then, are they residuals to report, not a reason to stop a slice's wrap-up? **P:** yes, as `docs/gates.md` row 21 proposes for
+   the reduced runs; the invariants band stays hard.
+
 ### VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)
 The order-preserving cuts (golden file unchanged; numbers in `backlog/VB-227.md`) make the line 6 to 7% cheaper and the review 15%: on `tools/bench.js` at `medium-ref` it measures 25.4 to 32.8 ms a game day after (mean 28.7), against 25.1 to 34.7 before (mean 28.2) on a noisy machine about 15% faster than on 9 November, where the line was 35.1; on that scale it is now about 33. The rest is the review polling every holder 14 times a day and matching rebidding every idle pawn every six minutes, which only rules 4 and 5 cut, with a change of behaviour.
 1. Does VB-227 land as it stands and its last 3 ms wait? **P:** yes: merge the cuts, keep VB-227 open (or close it with criteria 3 and 4 moved), and make "jobs refresh and matching at most 30 ms at `medium-ref`, paired bench runs" an acceptance criterion of VB-249, whose planning days and due-queue take the review off its hourly pass.
 2. Is the bench's absolute ms the right gate on this machine? **P:** gate on the line's share of the whole simulation in paired runs (here 17.0% to 16.1%) beside the ms, since the whole step varied 146 to 211 ms a day between runs of the same code.
-
-### VB-201: the never-married measure of the demographic gate (raised 10 November 2026)
-The spread (`0bc77a3`, restored on VB-206's meeting stages in `509d45e`, reverted in `613c108`; numbers in `backlog/VB-201.md`) leaves no step over 38 ms at `medium-ref` and none over 31 at `small-y40` in a whole year (before: 84.9 and 72.8 ms). The 12-seed gate (populous small, 30 years, seeds 1 to 12): marriages a year +1.05%, first-marriage age +0.25%, both within 5%; the never-married share of women 45 to 54 falls from 3.22% to 1.97% (-39%): 8 of 204 women before, 6 of 220 after, two women fewer over 12 seeds. On a count this small, 5% relative can only be met by an equal count, so the gate as written turns on chance.
-1. How is the never-married share gated? **P:** in absolute terms, as the zero case already is: the after mean within 1 woman in 50 (2 percentage points) of the before mean, each seed's count reported. Here -1.25 points passes, and `509d45e` lands as it is: golden file re-recorded, counters ratcheted (`walkDaily` 5 to 6), `tests/record.js`'s heirs-7 anchor re-recorded (230 to 219 events: behaviour, not format), `tools/perf.js` counting `nightCulture` in daily life and births, then `npm run calibrate` and `npm run verify`.
+   **A (Kim, 10 Nov):** As VB-261's question 5, accepted as proposed: timings are judged by their share of the whole step in paired, alternated runs, beside the ms.
 
 ### VB-212: the wishes the survey could not sort (raised 10 November 2026)
 VB-212 built the player's wishes for the moving round (`st.player.wishes`: `out`, `claim`, `serve`; the survey is in `backlog/VB-212.md`). Three wants in the round need a design choice, and each is left a rule, as the task's note asks. None blocks slice 2's wrap-up.

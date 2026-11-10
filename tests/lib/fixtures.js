@@ -10,6 +10,8 @@ const FIXTURES = {
 const hash = (data) => crypto.createHash('sha256').update(data).digest('hex');
 const goldenHash = () => hash(fs.readFileSync(path.join(root, 'tests/golden.json')));
 const format = () => require('../../src/load.js')['sim/saves'].FORMAT;
+// A save of an older format the build still reads (VB-226) is used, as stale, until the nightly workflow remakes it.
+const readable = (f) => require('../../src/load.js')['sim/saves'].READS.includes(f);
 function spec(name) { if (!Object.hasOwn(FIXTURES, name)) throw new Error(`unknown fixture ${name}`); return FIXTURES[name]; }
 function files(name, dir = DIR) { spec(name); return { save: path.join(dir, name + '.gz'), stamp: path.join(dir, name + '.json') }; }
 function validateStamp(name, stamp) {
@@ -100,11 +102,11 @@ function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {
   let info = status(name, { dir });
   if (info.status === 'missing' && fetch && !fetched) { fetched = true; fetchFixtures({ dir, notice }); info = status(name, { dir }); }
   if (info.status === 'missing') { notice(`${name}: missing; skipped (run node tools/fixtures.js make ${name})`); return null; }
-  if (info.stamp.format !== format()) throw new Error(`${name}: save format ${info.stamp.format}, expected ${format()}; remake the fixtures`);
+  if (!readable(info.stamp.format)) throw new Error(`${name}: save format ${info.stamp.format}, expected ${format()}; remake the fixtures`);
   const compressed = fs.readFileSync(files(name, dir).save);
   if (hash(compressed) !== info.stamp.saveHash) throw new Error(`${name}: save checksum differs; remake the fixtures`);
   const data = JSON.parse(zlib.gunzipSync(compressed).toString('utf8')), def = spec(name);
-  if (data.format !== format()) throw new Error(`${name}: incompatible save format; remake the fixtures`);
+  if (data.format !== info.stamp.format) throw new Error(`${name}: incompatible save format; remake the fixtures`);
   if (data.seed !== 7 || data.scenario !== 'populous' || data.cols !== def.cols || data.rows !== def.rows) {
     throw new Error(`${name}: wrong scenario, seed or map; remake the fixtures`);
   }
@@ -116,7 +118,7 @@ function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {
   if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length < stamp.events
       || st.pawns.filter((p) => p.alive).length !== stamp.living) throw new Error(`${name}: stamp does not match state; remake the fixtures`);
   const stale = info.status === 'stale';
-  if (stale) notice(`${name}: stale golden hash; using the saved state`);
+  if (stale) notice(`${name}: stale (golden hash${info.stamp.format !== format() ? `, format ${info.stamp.format}` : ''}); using the saved state`);
   return { st, stamp, stale };
 }
 module.exports = { root, DIR, FIXTURES, MANIFEST, hash, goldenHash, format, spec, files, status, writeFixture, fetchFixtures, loadFixture, git,

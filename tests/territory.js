@@ -1,6 +1,7 @@
 // The village's outland (VB-156, sim/territory), on tiny worlds: claimed by need, its own a year and a day later, grown with its farms; no
 // household or plot takes in another village's land; settlers keep to wilderness; the commons wood comes from the village's own land.
 const VB = require('../src/load.js'), Sim = VB.sim, T = VB['sim/territory'], CL = VB['sim/claims'], { CLAIMS, YEAR } = VB['sim/rules'];
+const { moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TERRITORY FAIL:', m); } };
@@ -46,7 +47,7 @@ const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${la
   check(claimed.length === 2 * CLAIMS.outPerFarm - T.tally(st).held[0], `claimed on arrival: ${claimed.length}`);
   T.landMeeting(st); // the same day: too soon
   check(claimed.every((t) => st.owner[t] === 0), 'not the village\'s before a year has passed');
-  st.t += YEAR;
+  moveClock(st, YEAR);
   const taken = claimed[3]; VB['sim/ownership'].setOwner(st, taken, { type: 'household', id: 0 }); // taken in meanwhile
   T.landMeeting(st);
   check(claimed.filter((t) => t !== taken).every((t) => st.owner[t] === -1), 'the village\'s a year later');

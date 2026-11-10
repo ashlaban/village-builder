@@ -2,6 +2,51 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-261)
+
+## VB-261: gates become targets with residuals (raised 10 November 2026)
+The survey and the mechanism are in `docs/gates.md`: 30 checks, 15 proposed to stay hard (correctness), 13 to become targets reported
+with their residuals, 2 process rules reworded. The follow-up tasks wait for these answers.
+1. Which checks stay hard? **P:** those of correctness only: the build, the lint's rules and size baselines, ownership, dependencies, the
+   backlog, determinism and plain data, the rule tests, the golden file (an unlisted change fails; a listed re-record is fine), saves,
+   invariants (daily, and the invariants band), the late fixtures loading, the page's functional tests, and the counters' structure. Cost,
+   balance, demography and timing become targets (`docs/gates.md`, section 1, rows 14 to 28).
+   **A (Kim, 10 Nov):** Accepted as proposed.
+2. Do the cost baselines stop being ratchets? **P:** yes. `tests/cost-baseline.json` is retired; `tests/scaling.js` (1.15) and
+   `tests/history.js` (1.25) report each counter's ratio, its target and its residual to `docs/bench/targets.jsonl` and never fail. The lint
+   and ownership baselines stay ratchets: they count a rule's sites, which only a change's own code adds.
+   **A (Kim, 10 Nov):** Accepted as proposed.
+3. The ceilings added on 10 November (oppAsk 1.35, planReview 1.34, cookFarm 1.39 in `history`) and recordFold, left failing at 1.56:
+   **P:** all four become residuals with the rest (routeExpand, routeRefresh, walkTies, roundPairs, heirRank, roundRank), each line naming
+   the task that closes it in `docs/bench/closure.md`: oppAsk, planReview and cookFarm VB-249 (planning days, a due-queue), the routes
+   VB-236 or a task of their own, roundPairs, heirRank and roundRank VB-242; recordFold a new small task to find why the fold's slots grow
+   faster than the living.
+   **A (Kim, 10 Nov):** Accepted as proposed.
+4. Do the counters of `tests/counters.json` (±10% on the tiny probe) and the reduced bands' ranges become targets? **P:** yes, both. The
+   counters one-sided (more than 10% over is a residual; less is re-recorded with the golden file); the bands go back to their full-strength
+   ranges (hunger deaths 2%, hungry households 30%), since a target need not be widened to pass (at `aea615a` seeds 3 and 42 would show
+   residuals of 0.18 and 0.16 on the 30%); the invariants band stays hard.
+   **A (Kim, 10 Nov):** Accepted as proposed.
+5. How is a timing or seeded measure judged against noise? **P:** a residual within the noise is reported as `noise`, not `out`: for seeds,
+   twice the standard error over the seeds (the demographic gate becomes a target this way, with its 12 seeds); for timings, a system's
+   share of the whole step in the same run, and paired, alternated runs of before and after, three each, against the range of "before"
+   (this answers VB-227's second question too).
+   **A (Kim, 10 Nov):** Accepted as proposed.
+6. Do Checks come back on pull requests? **P:** yes, failing only on the hard checks of question 1, with the targets out printed in the job
+   summary; the late-game job (fixtures and history) runs as targets and never fails.
+   **A (Kim, 10 Nov):** Accepted as proposed.
+7. Are the acceptance criteria of open tasks that are worded as lines ("at most 30 ms", "under 0.5 s", "`npm run verify` passes")
+   reworded in one pass? **P:** yes, by one small task: a cost or balance line becomes "towards the target, with the residual reported,
+   and who closes what is left"; "verify passes" becomes "its hard checks pass". A target itself changes only by Kim's decision.
+   **A (Kim, 10 Nov):** Accepted as proposed.
+
+# Archived 10 November 2026 (VB-201)
+
+## VB-201: the never-married measure of the demographic gate (raised 10 November 2026)
+The spread (`0bc77a3`, restored on VB-206's meeting stages in `509d45e`, reverted in `613c108`; numbers in `backlog/VB-201.md`) leaves no step over 38 ms at `medium-ref` and none over 31 at `small-y40` in a whole year (before: 84.9 and 72.8 ms). The 12-seed gate (populous small, 30 years, seeds 1 to 12): marriages a year +1.05%, first-marriage age +0.25%, both within 5%; the never-married share of women 45 to 54 falls from 3.22% to 1.97% (-39%): 8 of 204 women before, 6 of 220 after, two women fewer over 12 seeds. On a count this small, 5% relative can only be met by an equal count, so the gate as written turns on chance.
+1. How is the never-married share gated? **P:** in absolute terms, as the zero case already is: the after mean within 1 woman in 50 (2 percentage points) of the before mean, each seed's count reported. Here -1.25 points passes, and `509d45e` lands as it is: golden file re-recorded, counters ratcheted (`walkDaily` 5 to 6), `tests/record.js`'s heirs-7 anchor re-recorded (230 to 219 events: behaviour, not format), `tools/perf.js` counting `nightCulture` in daily life and births, then `npm run calibrate` and `npm run verify`.
+   **A (Kim, 10 Nov):** Gate the never-married share within 2 percentage points.
+
 # Archived 10 November 2026 (VB-039)
 
 ## VB-039 and VB-106: help as memories (relationships review)

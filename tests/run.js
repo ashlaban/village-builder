@@ -7,14 +7,14 @@ const { spawn } = require('child_process'), os = require('os'), path = require('
 const root = path.join(__dirname, '..');
 const TEST = [
   ['node', 'tests/marriage-demography.js'],
-  ['node', 'tests/spread.js'], ['node', 'tests/dependencies.js'], ['node', 'tests/stores.js'], ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
+  ['node', 'tests/spread.js'], ['node', 'tests/clock.js'], ['node', 'tests/dependencies.js'], ['node', 'tests/stores.js'], ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
   ['node', 'tests/fixture-tools.js'],
   ['node', 'tests/bench.js'],
   ['node', 'tests/speed.js'],
   ['node', '--expose-gc', 'tests/registry.js'],
   ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
   ['node', 'tests/cacheowners.js'], ['node', 'tests/living.js'],
-  ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/notable.js'], ['node', 'tests/counters.js'], ['node', 'tests/rng.js'], ['node', 'tests/plaindata.js'], ['node', 'tests/codec.js'], ['node', 'tests/record.js'], ['node', 'tests/commands.js'], ['node', 'tests/player.js'], ['node', 'tests/wishes.js'], ['node', 'tests/succession.js'], ['node', 'tests/skip.js'], ['node', 'tests/chronicle.js'], ['node', 'tests/opportunities.js'], ['node', 'tests/backlog.js'], ['node', 'tests/backlog-tool.js'], ['node', 'tests/doc-tool.js'], ['node', 'tests/questions-tool.js'], ['node', 'tests/agent-usage.js'], ['node', 'tests/regress.js'], ['node', 'tests/names.js'], ['node', 'tests/guardians.js'], ['node', 'tests/marriage.js'], ['node', 'tests/spacing.js'],
+  ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/notable.js'], ['node', 'tests/counters.js'], ['node', 'tests/rng.js'], ['node', 'tests/plaindata.js'], ['node', 'tests/codec.js'], ['node', 'tests/record.js'], ['node', 'tests/commands.js'], ['node', 'tests/player.js'], ['node', 'tests/wishes.js'], ['node', 'tests/succession.js'], ['node', 'tests/skip.js'], ['node', 'tests/chronicle.js'], ['node', 'tests/opportunities.js'], ['node', 'tests/backlog.js'], ['node', 'tests/backlog-tool.js'], ['node', 'tests/targets-tool.js'], ['node', 'tests/doc-tool.js'], ['node', 'tests/questions-tool.js'], ['node', 'tests/agent-usage.js'], ['node', 'tests/regress.js'], ['node', 'tests/names.js'], ['node', 'tests/guardians.js'], ['node', 'tests/marriage.js'], ['node', 'tests/spacing.js'],
   ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'],
 ];
 const VERIFY = [
@@ -36,12 +36,14 @@ const rank = (c) => {
 };
 const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile|-saves)?\.js$/.test(a));
 const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
-const t0 = Date.now(), failed = [];
+const t0 = Date.now(), failed = [], targets = [];
+const { parse } = require('./lib/targets.js');
 function run(cmd) {
   return new Promise((done) => {
     const t = Date.now(), p = spawn(cmd[0], cmd.slice(1), { cwd: root }); let out = '';
     p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
     p.on('close', (code) => {
+      targets.push(...parse(out));
       const name = cmd.slice(1).join(' '), secs = ((Date.now() - t) / 1000).toFixed(1), lines = out.trim().split('\n');
       if (code) { failed.push(name); console.log(`FAIL ${name} (${secs} s)\n${out.trim()}\n`); }
       else if (verbose) console.log(`ok   ${name} (${secs} s)\n${out.trim()}\n`);
@@ -60,5 +62,8 @@ const lanes = Math.max(1, Math.min(jobs, queue.length + (browsers.length ? 1 : 0
   }));
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   if (failed.length) { console.log(`${suite}: ${failed.length} failed (${failed.join(', ')}) in ${secs} s`); process.exit(1); }
-  console.log(`${suite}: ${cmds.length} scripts passed in ${secs} s`);
+  // targets are reported, never gating: the summary names those out (docs/gates.md, section 2)
+  const outs = targets.filter((t) => t.status === 'out');
+  const more = outs.length ? `; ${outs.length} targets out (${outs.slice(0, 6).map((t) => `${t.name} +${t.residual}`).join(', ')}${outs.length > 6 ? ', ...' : ''})` : '';
+  console.log(`${suite}: ${cmds.length} scripts passed in ${secs} s${more}`);
 })();

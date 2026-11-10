@@ -1,7 +1,7 @@
 // @sys sim/clock: the hourly step, end of day, new year and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, TICKS, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
   const { log, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
@@ -16,7 +16,7 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { meetingStage, MEETING_STAGES, movingRound, dailyLife } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay } = VB['sim/herds'];
   const { meadowsDay } = VB['sim/meadows'];
@@ -26,7 +26,6 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
-    if (st.cenv && c.season === 2 && c.sday === 10 && h === 12) movingRound(st);
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
       for (const id of st.living) {
         const a = st.agents[id];
@@ -85,25 +84,50 @@ VB['sim/clock'] = (() => {
     // Historical ledgers of dissolved households still expire at the new year.
     Stores.prune(st);
   }
-  const TICKS = 10; // 6-minute steps an hour
-  function advance(st, hours) {
-    let left = hours;
-    while (left > 1e-9) {
-      const step = Math.min(left, 0.1);
-      const before = Math.floor(st.t + 1e-9), tick = Math.floor(st.t * TICKS + 1e-4);
-      st.t += step; left -= step;
-      const after = Math.floor(st.t + 1e-9), ticked = Math.floor(st.t * TICKS + 1e-4);
-      for (let hh = before + 1; hh <= after; hh++) onHour(st, ((hh % DAY) + DAY) % DAY, cal(hh));
-      // The autumn meetings (customs, then the outland), a stage on each of the 6-minute steps from noon of autumn day 10 (sim/lifecycle, VB-206);
-      // the step of the day says what is due, so a save between two stages goes on.
-      if (st.cenv) for (let k = tick + 1; k <= ticked; k++) {
-        const r = (((k % (DAY * TICKS)) + DAY * TICKS) % (DAY * TICKS)) - 12 * TICKS;
-        if (r >= 0 && r < MEETING_STAGES) { const kc = cal(k / TICKS); if (kc.season === 2 && kc.sday === 9) meetingStage(st, r); }
-      }
-      playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
-      const c = cal(st.t), all = stepAgents(st, step, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
-      if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+  // ---- the clock (VB-235) ----
+  // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
+  //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
+  // @state st.tickPart: number in [0, 1); the part of the next step that frame-sized advances of the page have asked for so far (0 headless).
+  // @state st.t is (st.tick + st.tickPart) / TICKS, written here only.
+  const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
+  // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
+  // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
+  // noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
+  function stepEnds(st) {
+    const k = st.tick, hour = Math.floor(k / TICKS);
+    if (k % TICKS === 0) onHour(st, mod(hour, DAY), cal(hour));
+    if (!st.cenv) return;
+    const n = mod(k, STEPS_A_DAY), r = n - 12 * TICKS;
+    nightCulture(st, n);
+    if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
+      const kc = cal(hour);
+      if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
+      else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
     }
   }
-  return { onHour, endOfDay, newYear, advance };
+  // The clock's arithmetic: moves st by `hours`, a pass at a time, each to the end of the current 6-minute step or less, and calls
+  // each(st, part, ends) after each pass with the share of a step it moved and whether it ended the step. Whole steps headless; a part of
+  // one when the page asks for a frame's worth (the agents move by the part; the step's work is done when its last part arrives). A
+  // request of whole steps is whole steps, though hours * TICKS is a float (0.7 * 10 is 7.000000000000001): it is taken as the whole
+  // number it is meant to be, so a run is the same by any chunks of whole steps.
+  function ticking(st, hours, each) {
+    let left = hours * TICKS;
+    const whole = Math.round(left);
+    if (Math.abs(left - whole) < 1e-6) left = whole;
+    while (left > 0) {
+      const rest = 1 - st.tickPart, ends = left >= rest, part = ends ? rest : left;
+      left = ends ? left - rest : 0;
+      if (ends) { st.tick++; st.tickPart = 0; } else st.tickPart += part;
+      st.t = (st.tick + st.tickPart) / TICKS;
+      each(st, part, ends);
+    }
+  }
+  function step(st, part, ends) {
+    if (ends) stepEnds(st);
+    playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
+    const c = cal(st.t), all = stepAgents(st, part / TICKS, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
+    if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+  }
+  const advance = (st, hours) => ticking(st, hours, step);
+  return { onHour, endOfDay, newYear, advance, ticking };
 })();

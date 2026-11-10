@@ -2,7 +2,7 @@
 // people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn) and relationship records
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, SOCIAL, GOODWILL } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
@@ -21,7 +21,7 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties, SPREAD = 73; // 192 / φ², prime to 192 days: ids next to each other renormalise far apart, any run of days evenly
+  const TIES = SOCIAL.ties;
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
   const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
   function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
@@ -69,7 +69,7 @@ VB['sim/relations'] = (() => {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) {
       const p = st.pawns[id]; p.homeHours = 0;
-      if ((day + id * SPREAD) % every === 0) renormalise(st, p);
+      if ((day - id) % every === 0) renormalise(st, p); // pawn id on day id, and every TIES.renorm years after
       if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) floorKin(st, id, q);
     }
   }
@@ -215,15 +215,12 @@ VB['sim/relations'] = (() => {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents, ids = st.living, n = ids.length;
     for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
-    const start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the living, and on round them from there
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
-    // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
-    let lo = 0, hi = n;
-    while (lo < hi) { const mid = (lo + hi) >>> 1; if (ids[mid] < start) lo = mid + 1; else hi = mid; }
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
-      const a = ag[ids[(lo + k) % n]];
+      const a = ag[ids[(start + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
@@ -267,7 +264,7 @@ VB['sim/relations'] = (() => {
   const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
   function idlersBy(st) {
     let c = st.idlers;
-    const hour = Math.floor(st.t);
+    const hour = Math.floor(st.tick / TICKS);
     if (!c || c.hour !== hour) {
       c = { hour, by: new Map() };
       for (const liveId of st.living) {

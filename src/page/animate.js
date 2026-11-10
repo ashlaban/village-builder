@@ -66,7 +66,7 @@
   // The clock shown is the UI's own state: simulation time floored to 5 game minutes, redrawn only when that value changes.
   let uiClock = null, uiClockSt = null;
   function updateClock() {
-    const step = Math.floor(st.t * 12 + 1e-9);
+    const step = Math.floor((st.tick + st.tickPart) * 6 / 5); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
     if (step === uiClock && st === uiClockSt) return;
     uiClock = step; uiClockSt = st;
     const c = Sim.cal(step / 12), minutes = ((step * 5) % 1440 + 1440) % 1440;

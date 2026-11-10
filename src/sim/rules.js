@@ -3,6 +3,9 @@ VB['sim/rules'] = (() => {
   const { B } = VB['gen'];
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
   const DAY = 24, SEASON_DAYS = 12, YEAR_DAYS = SEASON_DAYS * 4, YEAR = YEAR_DAYS * DAY;
+  // The clock counts whole 6-minute steps (st.tick, sim/clock; VB-235): TICKS of them an hour. The hour, the day and the year the clock is
+  // working through are found from the count, never by adding a tolerance to st.t.
+  const TICKS = 10;
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   const cal = (t) => {
     const day = Math.floor(t / DAY), y = Math.floor(day / YEAR_DAYS), doy = day - y * YEAR_DAYS;
@@ -248,7 +251,8 @@ VB['sim/rules'] = (() => {
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS,
+    SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };

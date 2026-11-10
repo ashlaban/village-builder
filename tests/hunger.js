@@ -1,6 +1,7 @@
 // Hunger: each rule on constructed households, then a report of hungry days, deaths by cause and marriages (reported, not asserted).
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
+const { moveClock } = require('./lib/clock.js');
 const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = (scenario = 'founders') => {
@@ -89,7 +90,7 @@ for (const h of [0, 1]) {
 {
   const { dailyBirths } = VB['sim/births'], st = fresh();
   for (const p of st.pawns) p.hunger = 1;
-  for (let d = 0; d < 400; d++) { st.t += 24; dailyBirths(st); }
+  for (let d = 0; d < 400; d++) { moveClock(st, 24); dailyBirths(st); }
   assert(!st.pawns.some((p) => p.pregnantUntil !== null), 'no conception when starving');
 }
 

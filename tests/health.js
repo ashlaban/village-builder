@@ -2,6 +2,7 @@
 // The deaths by cause per decade of the 50-year founders runs are in the report of tests/births.js.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { moveClock } = require('./lib/clock.js');
 const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = () => Sim.seed(w7, 7, 'founders');
@@ -44,7 +45,7 @@ for (const health of [100, 50, 0]) {
 {
   const st = fresh(), hh = st.households[0], ids = hh.members.filter((m) => st.pawns[m].alive); hh.grain = 0;
   for (const f of st.farmsteads[hh.farmstead].fields) f.stage = 'growing';
-  for (let d = 0; d < 36; d++) { st.t += 24; if (!hh.dissolved) feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
+  for (let d = 0; d < 36; d++) { moveClock(st, 24); if (!hh.dissolved) feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
   assert(ids.every((m) => !st.pawns[m].alive), 'nobody survives 36 days without food');
 }
 console.log('health ok');

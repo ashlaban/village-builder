@@ -1,6 +1,7 @@
 // Meals: cooked rations are eaten first, grain covers a missed cook, the cook makes the next meal and may leave other work after 14:00.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { setClock } = require('./lib/clock.js');
 const { feedHousehold, dailyNeed, seedReserve } = VB['sim/hunger'], { callCooks, refreshJobs } = VB['sim/jobs'], { complete, start } = VB['sim/agents'];
 const { DAY, cal } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
@@ -37,7 +38,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
 }
 { // from 14:00 a household short of rations calls its best cook off other work; the job it leaves keeps its progress
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead]; setup(st, hh);
-  st.t = Math.floor(st.t / DAY) * DAY + 14; st.jobs.clear();
+  setClock(st, Math.floor(st.t / DAY) * DAY + 14); st.jobs.clear();
   const c = cal(st.t), mate = hh.members.filter((m) => st.pawns[m].role === 'wife')[0], a = st.agents[mate];
   hh.rations = 0; hh.grain = 100; hh.cookDay = -1;
   const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: f.woodlot, done: 1.5, claims: [], posted: st.t, farm: f, live: true };

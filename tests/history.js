@@ -1,6 +1,6 @@
 // VB-088: history growth at fixed fixture windows; clocks are read here, never by simulation modules.
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
-const F = require('./lib/fixtures.js'), { measure, growth, check, timing, NAMES } = require('./lib/cost.js');
+const F = require('./lib/fixtures.js'), { measure, growth, report, timing, NAMES } = require('./lib/cost.js');
 if (!isMainThread) {
   const notices = [], fixture = F.loadFixture(workerData, { fetch: false, notice: (s) => notices.push(s) });
   parentPort.postMessage(fixture ? { notices, stamp: fixture.stamp, stale: fixture.stale, result: measure(fixture.st, { timed: true }) }
@@ -34,12 +34,12 @@ async function main() {
   }
   if (results.length !== 2) console.log('history: skipped comparison; both small-y5 and small-y40 are required');
   else {
-    check('history', growth(...results), { update: process.argv.includes('--update') });
+    const out = report('history', growth(...results)).filter((t) => t.status === 'out').length;
     // Kim's line (7 November) on the wall clock: reported only, since both windows run at once on a shared machine (VB-203).
     const [early, late] = results.map((r) => r.ms / r.pawnDays);
     console.log(`history: ${early.toFixed(4)} and ${late.toFixed(4)} ms a living pawn-day, round included; wall-clock ratio`
       + ` ${(late / early).toFixed(3)} against the line's 1.25 (reported only)`);
-    console.log(`history: ${NAMES.length} counters pass (including known excesses); timings reported only;`
+    console.log(`history: ${NAMES.length} counters reported as targets, ${out} out; timings reported only;`
       + ` ${((performance.now() - started) / 1000).toFixed(1)} s elapsed`);
   }
 }

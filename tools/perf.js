@@ -9,7 +9,7 @@ const fs = require('fs'), path = require('path');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'callCooks', 'lookUp', 'planRound'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/society': ['outdoors'] },
-  'daily life and births': { 'sim/lifecycle': ['dailyLife'], 'sim/births': ['dailyBirths'] },
+  'daily life and births': { 'sim/lifecycle': ['dailyLife', 'nightCulture'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },
   // Slice 1, kin help booked (VB-219): what it added to help, the gift's check (the floor and the allowance) and goodwill's booking,
   // handovers and ends. Help's daily ask and the gift's moves and events (settleGift, help's gift until VB-216) stay in hunger and meals.
@@ -19,7 +19,7 @@ const SYSTEMS = {
   'meadows': { 'sim/meadows': ['meadowsDay'] },
   'paths and routes': { 'sim/paths': ['fadeWear'], 'sim/routes': ['refreshRoutes'] },
   'trees': { 'sim/forest': ['growTrees'] },
-  'the moving round': { 'sim/lifecycle': ['movingRound'] },
+  'the moving round': { 'sim/lifecycle': ['roundPhase'] }, // a phase a step (VB-201)
   'meetings': { 'sim/lifecycle': ['meetingStage'] },
   // VB-205: the agents' six-minute step (walking, working, and who wants work), and the strolls of those the planner found nothing for.
   'agents: walking and working': { 'sim/agents': ['stepAgents'] },

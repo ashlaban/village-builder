@@ -4,6 +4,7 @@
 // a retirement, end at a death, and survive a save.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { moveClock } = require('./lib/clock.js');
 const R = VB['sim/relations'], { issue } = VB['sim/commands'], { killPawn, retireHolder } = VB['sim/lifecycle'];
 const { floorOf } = VB['sim/hunger'], { GOODWILL } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
@@ -30,15 +31,15 @@ ok(st, 'after gifts');
   for (const years of [2, 4, 20]) {
     GOODWILL.halfLife = years; R.book(s, x, y, 40);
     const before = s.pawns[x].goodwill.get(y);
-    s.t += years * Sim.YEAR; near(R.balance(s, x, y), 20, `halved in ${years} years`, 1e-9);
+    moveClock(s, years * Sim.YEAR); near(R.balance(s, x, y), 20, `halved in ${years} years`, 1e-9);
     assert.strictEqual(s.pawns[x].goodwill.get(y), before, 'reading writes nothing');
     R.addGoodwill(s, x, y, -R.balance(s, x, y)); assert(!s.pawns[x].goodwill.has(y), 'cancelled to nothing, dropped');
   }
   GOODWILL.halfLife = half;
-  R.book(s, x, y, 100); R.book(s, x, z, 10); s.t += Sim.YEAR;
+  R.book(s, x, y, 100); R.book(s, x, z, 10); moveClock(s, Sim.YEAR);
   near((100 - R.balance(s, x, y)) / (10 - R.balance(s, x, z)), 10, 'a large balance loses more, in proportion');
   // under a ration it reads as 0 and is still stored, until x books again
-  R.book(s, x, u, 1.5); s.t += 4 * Sim.YEAR; // 1.5 halves to 0.75
+  R.book(s, x, u, 1.5); moveClock(s, 4 * Sim.YEAR); // 1.5 halves to 0.75
   assert.strictEqual(R.balance(s, x, u), 0, 'forgotten reads as 0'); assert(s.pawns[x].goodwill.has(u), 'not yet dropped');
   assert(!R.goodwillOf(s, x).some((g) => g.other === u), 'not listed');
   R.book(s, x, y, 5); assert(!s.pawns[x].goodwill.has(u) && !s.pawns[u].goodwill.has(x), 'dropped, on both sides, when x booked');

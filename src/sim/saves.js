@@ -7,6 +7,7 @@ VB['sim/saves'] = (() => {
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans } = VB['sim/plans'];
+  const { TICKS } = VB['sim/rules'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -27,55 +28,103 @@ VB['sim/saves'] = (() => {
     for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
     return out;
   }
-  function encode(root, stop = null) {
-    // pass 1: which objects are reached more than once
+  // VB-226: what JSON already writes as it is (a plain object or array, not shared, of finite numbers, strings, booleans, null and such
+  // objects, with no key starting with "$") is returned as it is, not copied: the save shares those parts with the state, so it is
+  // written out (JSON.stringify) before the state changes. A Map is {"$kv": [k, v, k, v, ...]} (format 2; "$map" is still read).
+  const UNDEF = Object.freeze({ $undef: 1 });
+  // pack: a Map of an object to {as, data}; the object is written as {"$as": as, "v": data} and decode(..., revive) makes it again with
+  // revive[as](data). The object and what it holds are not walked: they must be reached from nowhere else.
+  // A value JSON writes as it is: a string, a boolean or a finite number other than -0 (null is checked apart).
+  const asIs = (x) => typeof x === 'string' || typeof x === 'boolean' || (typeof x === 'number' && x === x && x !== Infinity && x !== -Infinity
+    && (x !== 0 || 1 / x > 0));
+  function encode(root, stop = null, pack = null) {
+    // pass 1: which objects are reached more than once. count holds 1, 2... for an object reached once, twice...; a packed object starts
+    // at -1 and goes down (-2 reached once, -3 or less shared), so neither pass looks it up in pack.
     const count = new Map(), stack = [root];
+    if (pack) for (const o of pack.keys()) count.set(o, -1);
     while (stack.length) {
-      const v = stack.pop();
-      if (v === null || typeof v !== 'object') continue;
-      const n = (count.get(v) || 0) + 1; count.set(v, n);
-      if (n > 1 || ArrayBuffer.isView(v)) continue;
-      if (v instanceof Map) for (const [k, x] of v) stack.push(k, x);
-      else if (v instanceof Set) for (const x of v) stack.push(x);
-      else if (Array.isArray(v)) for (const x of v) stack.push(x);
-      else for (const k of Object.keys(v)) stack.push(v[k]);
+      const v = stack.pop(), c = count.get(v);
+      if (c !== undefined) { count.set(v, c < 0 ? c - 1 : c + 1); continue; }
+      count.set(v, 1);
+      if (ArrayBuffer.isView(v)) continue;
+      if (v instanceof Map) {
+        for (const [k, x] of v) {
+          if (k !== null && typeof k === 'object') stack.push(k);
+          if (x !== null && typeof x === 'object') stack.push(x);
+        }
+      } else if (v instanceof Set) { for (const x of v) if (x !== null && typeof x === 'object') stack.push(x); }
+      else if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) { const x = v[i]; if (x !== null && typeof x === 'object') stack.push(x); } }
+      else for (const k in v) { const x = v[k]; if (x !== null && typeof x === 'object' && Object.hasOwn(v, k)) stack.push(x); }
     }
-    // pass 2: write it out
-    const ids = new Map();
-    const enc = (v, where) => {
-      if (v === undefined) return { $undef: 1 };
-      if (typeof v === 'number') {
-        if (Number.isNaN(v)) return { $num: 'NaN' };
-        if (!Number.isFinite(v)) return { $num: v > 0 ? 'Infinity' : '-Infinity' };
-        return Object.is(v, -0) ? { $num: '-0' } : v;
-      }
-      if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
-      if (typeof v !== 'object') throw new Error(`save: a ${typeof v} at ${where}`);
-      if (stop && stop.has(v)) throw new Error(`save: ${where} reaches an object that is not saved with the state`);
-      if (ids.has(v)) return { $ref: ids.get(v) };
-      const shared = count.get(v) > 1, id = shared ? ids.size : -1;
+    // pass 2: write it out; the path to the value being written is kept as (kind, key) pairs and spelled out only for an error
+    const ids = new Map(), path = [];
+    const SPELL = [(x) => `[${x}]`, (x) => `.${x}`, (x) => `<key ${x}>`, (x) => `.get(${x})`, (x) => `{${x}}`];
+    const where = () => { let s = 'st'; for (let i = 0; i < path.length; i += 2) s += SPELL[path[i]](path[i + 1]); return s; };
+    const tagged = (id, o) => (id < 0 ? o : { $id: id, ...o });
+    const enc = (v) => {
+      if (v === null || asIs(v)) return v;
+      if (typeof v === 'number') return Number.isNaN(v) ? { $num: 'NaN' } : !Number.isFinite(v) ? { $num: v > 0 ? 'Infinity' : '-Infinity' } : { $num: '-0' };
+      if (v === undefined) return UNDEF;
+      if (typeof v !== 'object') throw new Error(`save: a ${typeof v} at ${where()}`);
+      if (stop && stop.has(v)) throw new Error(`save: ${where()} reaches an object that is not saved with the state`);
+      const c = count.get(v), shared = c > 1 || c < -2;
+      if (shared && ids.has(v)) return { $ref: ids.get(v) };
+      const id = shared ? ids.size : -1;
       if (shared) ids.set(v, id);
-      const tag = (o) => (shared ? { $id: id, ...o } : o);
+      if (c < 0) { const p = pack.get(v); return tagged(id, { $as: p.as, v: enc(p.data) }); }
       if (ArrayBuffer.isView(v)) {
         const type = v.constructor.name;
-        if (TYPED[type] !== v.constructor) throw new Error(`save: a ${type} at ${where}`);
-        return tag({ $ta: type, b64: bytesToB64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) });
+        if (TYPED[type] !== v.constructor) throw new Error(`save: a ${type} at ${where()}`);
+        return tagged(id, { $ta: type, b64: bytesToB64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) });
       }
-      if (v instanceof Map) return tag({ $map: [...v].map(([k, x], i) => [enc(k, `${where}<key ${i}>`), enc(x, `${where}.get(${k})`)]) });
-      if (v instanceof Set) return tag({ $set: [...v].map((x, i) => enc(x, `${where}{${i}}`)) });
-      if (Array.isArray(v)) {
+      if (v instanceof Map) {
         const a = [];
-        for (let i = 0; i < v.length; i++) a.push(i in v ? enc(v[i], `${where}[${i}]`) : { $undef: 1 });
-        return shared ? { $id: id, $arr: a } : a;
+        let i = 0;
+        for (const [k, x] of v) {
+          path.push(2, i++); a.push(enc(k));
+          path[path.length - 2] = 3; path[path.length - 1] = k; a.push(enc(x));
+          path.length -= 2;
+        }
+        return tagged(id, { $kv: a });
       }
-      if (!isPlain(v)) throw new Error(`save: a ${v.constructor ? v.constructor.name : 'object'} at ${where}`);
-      const o = shared ? { $id: id } : {};
-      for (const k of Object.keys(v)) o[k[0] === '$' ? '$' + k : k] = enc(v[k], `${where}.${k}`);
-      return o;
+      if (v instanceof Set) {
+        const a = [];
+        let i = 0;
+        for (const x of v) { path.push(4, i++); a.push(enc(x)); path.length -= 2; }
+        return tagged(id, { $set: a });
+      }
+      if (Array.isArray(v)) {
+        let a = null;
+        for (let i = 0; i < v.length; i++) {
+          const x = v[i];
+          let e = x;
+          if (!(x === null || asIs(x))) {
+            if (i in v) { path.push(0, i); e = enc(x); path.length -= 2; } else e = UNDEF;
+          }
+          if (a !== null) a.push(e);
+          else if (e !== x || e === UNDEF) { a = v.slice(0, i); a.push(e); }
+        }
+        return shared ? { $id: id, $arr: a || v } : a || v;
+      }
+      if (!isPlain(v)) throw new Error(`save: a ${v.constructor ? v.constructor.name : 'object'} at ${where()}`);
+      const keys = Object.keys(v);
+      let o = shared ? { $id: id } : null;
+      for (let j = 0; j < keys.length; j++) {
+        const k = keys[j], x = v[k];
+        let e = x;
+        if (!(x === null || asIs(x))) { path.push(1, k); e = enc(x); path.length -= 2; }
+        if (o === null) {
+          if (e === x && k.charCodeAt(0) !== 36) continue;
+          o = {};
+          for (let q = 0; q < j; q++) o[keys[q]] = v[keys[q]];
+        }
+        o[k.charCodeAt(0) === 36 ? '$' + k : k] = e;
+      }
+      return o === null ? v : o;
     };
-    return enc(root, 'st');
+    return enc(root);
   }
-  function decode(data) {
+  function decode(data, revive = {}) {
     const byId = [];
     const dec = (d) => {
       if (d === null || typeof d !== 'object') return d;
@@ -88,6 +137,15 @@ VB['sim/saves'] = (() => {
         const T = TYPED[d.$ta], bytes = b64ToBytes(d.b64);
         if (!T) throw new Error(`load: unknown typed array ${d.$ta}`);
         return keep(new T(bytes.buffer, 0, bytes.byteLength / T.BYTES_PER_ELEMENT));
+      }
+      if ('$as' in d) {
+        if (!Object.hasOwn(revive, d.$as)) throw new Error(`load: no way to make a packed ${d.$as}`);
+        return keep(revive[d.$as](dec(d.v)));
+      }
+      if ('$kv' in d) {
+        const m = keep(new Map()), a = d.$kv;
+        for (let i = 0; i < a.length; i += 2) { const key = dec(a[i]); m.set(key, dec(a[i + 1])); }
+        return m;
       }
       if ('$map' in d) { const m = keep(new Map()); for (const [k, x] of d.$map) { const key = dec(k); m.set(key, dec(x)); } return m; }
       if ('$set' in d) { const s = keep(new Set()); for (const x of d.$set) s.add(dec(x)); return s; }
@@ -113,18 +171,43 @@ VB['sim/saves'] = (() => {
   // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
   // also recomputes the tile's colours from it; dev, wear and worn are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn'];
-  const FORMAT = 1;
+  // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
+  // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked. Format 1 is still read.
+  const FORMAT = 2, READS = [1, 2];
+  function packRel(rel) {
+    const a = [];
+    for (const [j, r] of rel) {
+      a.push(j, r.band, 0);
+      const at = a.length - 1;
+      for (const kind in r.mem) { const m = r.mem[kind]; a.push(kind, m.v, m.t); a[at]++; }
+    }
+    return a;
+  }
+  function unpackRel(a) {
+    const rel = new Map();
+    for (let i = 0; i < a.length;) {
+      const j = a[i], band = a[i + 1], n = a[i + 2], mem = {};
+      i += 3;
+      for (let q = 0; q < n; q++, i += 3) mem[a[i]] = { v: a[i + 1], t: a[i + 2] };
+      rel.set(j, { mem, band });
+    }
+    return rel;
+  }
+  const REVIVE = { rel: unpackRel };
   // A save: the format, what makes the world (scenario, seed, size), the tiles above and the whole state, with st.w as null in its place.
+  // It shares parts with the state (encode): write it out before the state changes.
   function save(st) {
     const w = st.w, state = {};
     for (const k of Object.keys(st)) state[k] = k === 'w' ? null : st[k];
     const world = {};
     for (const k of WORLD) if (w[k]) world[k] = encode(w[k]);
-    return { format: FORMAT, scenario: st.scenario, seed: w.seed, cols: w.COLS, rows: w.ROWS, world, state: encode(state, new Set([w])) };
+    const pack = new Map();
+    for (const p of st.pawns) if (p.rel instanceof Map) pack.set(p.rel, { as: 'rel', data: packRel(p.rel) });
+    return { format: FORMAT, scenario: st.scenario, seed: w.seed, cols: w.COLS, rows: w.ROWS, world, state: encode(state, new Set([w]), pack) };
   }
   // A state from a save, on w: a world freshly generated from the save's seed and size.
   function load(w, data) {
-    if (!data || data.format !== FORMAT) throw new Error(`load: format ${data && data.format}, this build reads ${FORMAT}`);
+    if (!data || !READS.includes(data.format)) throw new Error(`load: format ${data && data.format}, this build reads ${READS.join(' and ')}`);
     if (w.seed !== data.seed || w.COLS !== data.cols || w.ROWS !== data.rows) {
       throw new Error(`load: the save is of seed ${data.seed}, ${data.cols} by ${data.rows}; the world is seed ${w.seed}, ${w.COLS} by ${w.ROWS}`);
     }
@@ -141,8 +224,10 @@ VB['sim/saves'] = (() => {
     let enc = data.state;
     // VB-099: nor the 40-line text log (st.events), which the record replaces.
     if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
-    const st = decode(enc);
+    const st = decode(enc, REVIVE);
     st.w = w;
+    // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
@@ -159,5 +244,5 @@ VB['sim/saves'] = (() => {
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
-  return { encode, decode, save, load, FORMAT };
+  return { encode, decode, save, load, FORMAT, READS };
 })();
