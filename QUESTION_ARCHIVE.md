@@ -2,6 +2,165 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-039)
+
+## VB-039 and VB-106: help as memories (relationships review)
+Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind gains a value per event, up to a cap, and fades to 0 over its days. The gains Kim accepted for help become memories; their caps and durations are new.
+1. A gift of food (VB-039). **P:** the receiving holder remembers "A gift of food", +0.1 per gift, cap +0.4, fading over 3 years; the giver gains nothing beyond the tie.
+   *8 Nov 2026:* superseded by VB-182, question 2 (answered, archived): a gift colours opinion through goodwill's curves, not a memory; slice 4 switches them on.
+2. Help with work (VB-106). **P:** the helper and each adult of the helped household remember "Worked together", +0.05 per job, cap +0.3, fading over a year, both ways (the accepted +0.05 × (1 − opinion) becomes a plain +0.05 under a cap).
+   **A (Kim, 10 Nov):** as proposed (P): a memory "Worked together", +0.05 a task, cap +0.3, fading over a year, both ways.
+
+# Archived 10 November 2026 (VB-120)
+
+## VB-120: village work days (job review, second pass)
+1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.
+   **A (Kim, 10 Nov):** as proposed (P).
+2. What does staying away cost? **P:** a household with no adult working 2 hours on the day loses 0.1 of its holder's prestige for the year; each adult who works gains 0.05.
+   **A (Kim, 10 Nov):** prestige as proposed, and a memory: the other holders of the village remember the absent holder's staying away, a small negative memory fading over a year.
+
+# Archived 10 November 2026 (VB-100)
+
+## VB-100: common fields (planning)
+Fields can be private or common (Decided); nothing makes a common field yet.
+1. When does a village make a common field? **P:** at the moving round, a village of 3 or more occupied farms whose store holds less than 10 days of food for its members, with a free meadow tile within 3 steps of the green; at most one common field per 3 farms.
+   **A (Kim, 10 Nov):** as proposed (P), as a routine the meeting may choose when the condition holds.
+2. Who works it, and where does the harvest go? **P:** the village's adults, at the village-duty priorities of the green and well (VB-058); seed from the village store and the harvest into it (VB-039).
+   **A (Kim, 10 Nov):** as proposed (the village's adults; seed from and harvest into the village store), but the priority of work on the commons is a custom of the culture, not a fixed number; and having been given food when hungry leans a person towards a higher priority for the commons.
+
+# Archived 10 November 2026 (VB-119)
+
+## VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
+Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
+5. When does a source count in a meal? **P:** when it gives at least a fifth of what is eaten that day; grain and flour are one source.
+   **A (Kim, 10 Nov):** changed: a ration is only the unit (one adult's food for a day); the cook makes meals from foods, and variety is judged in the pot, at cooking, by the foods that each give at least a fifth of the pot.
+6. VB-009 was blocked because a missed cooking left people hungry although there was grain. **P:** the meal eats fresh food, then rations, then grain (as today), so milling makes food go further without new hungry days.
+   **A (Kim, 10 Nov):** changed: the cook puts in what spoils first; people eat meals; with no meals a household eats uncooked grain at a penalty.
+
+# Archived 10 November 2026 (VB-117 and VB-118)
+
+## VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass) (questions 1, 2, 3 and 4)
+Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
+1. Fishing grounds and catch. **P:** a shore tile within 6 steps of the house; a 3-hour trip brings 4 rations × the water tile's stock; a trip lowers a river or small lake tile's stock by 0.1 and it recovers 0.02 a day; the sea and lakes of 20 tiles or more never run down; no fishing in winter.
+   **A (Kim, 10 Nov):** as proposed (P).
+2. Gathering. **P:** forest and heath tiles within 5 steps, from summer day 6 to the end of autumn; a 3-hour trip brings 2.5 rations × the tile's stock and lowers it by 0.2; stocks refill each spring.
+   **A (Kim, 10 Nov):** as proposed (P).
+3. Urgency. **P:** 0.2 while grain above the seed reserve covers 24 days or more of the household's need, rising linearly to 2.0 at none; one job of each per household, two when under 12 days.
+   **A (Kim, 10 Nov):** as proposed (P).
+4. Who. **P:** a new type of work, foraging: farmer 3, wife 4, farmhand 6, maid 5, son 7, daughter 6, retired 3, child 5; fishing 2 for wife, maid and daughter, gathering 3 for son and farmhand.
+   **A (Kim, 10 Nov):** as proposed (P).
+
+# Archived 10 November 2026 (VB-162 and VB-165)
+
+## VB-162, VB-163 and VB-165: the external review's new tasks (raised 2 November 2026) (questions 3 and 4)
+From the external review (`docs/review-external.md`). The task files hold the draft criteria; the answers below make them `ready`. VB-162 and VB-165 are page features, so they wait for the feature freeze to lift; VB-163 is tooling and may run during it. Questions 1 and 2 were taken up by slice 0's plan (VB-181, 3 November): the roadmap, whose slices Kim decided, makes the floors of question 1 the first asserted bands, and Kim's decision 9 (target-v2, section 8) replaces question 2 (reduced scenarios asserted in verify, the long runs reported nightly). VB-163 is rewritten and `ready`; answer "P" to move them to the archive, or change a floor.
+3. VB-162: what does the village overview show? **P:** as in the task file: food in store in days of need, this year's harvest against a year's need, people by age band and the change in a year, hungry households in the last 30 days, idle share of adult work hours; four warnings (food short of the next harvest, a household hungry 5 of 30 days, a holder over 60 with no heir at home, a farm short of hands), each naming its households. Social tensions (grudges, disputes) wait for VB-062 and the record of events (VB-075).
+   **A (Kim, 10 Nov):** as proposed (P).
+4. VB-165: keyboard and lists. **P:** a Lists panel on `L` (villages, households, people as buttons; Enter selects and centres as a click does); `[` `]` step between villages, `,` `.` between households of the selected village, `Escape` clears; the selection is announced in an `aria-live` region. Full screen-reader play of the map is not a goal; reading every panel and selecting every pawn, household and village without a pointer is.
+   **A (Kim, 10 Nov):** closed: VB-165 is not built; reopen if accessibility becomes a goal.
+
+# Archived 10 November 2026 (VB-255)
+
+## VB-255: the barn as a project (raised 10 November 2026, by slice 3's tasks)
+Kim agreed a barn on slice 3's menu of projects (VB-164, question 1). No barn exists as a building: grain, sheaves and hay are held by the farm, and "the barn" is a word in the spoilage rules. The answers take `Kim` off VB-255's `Waits for:` line.
+1. What does a barn do, and what does it cost? **P:** a second store building on the farm's block, built as a cottage is (the steps of a plot's cottage, 40 timber and its hours). A farm with a barn loses half as much grain to spoilage (`ECON.storeLoss`) and half as much barn hay, so it pays for a head who keeps more than a year's need. One per farm; shown on the map beside the house.
+   **A (Kim, 10 Nov):** as proposed (P): built as a cottage is, 40 timber; half the spoilage of grain and of barn hay; one per farm.
+2. Base weights of the four projects, before the head's lean? **P:** 1 each, so only ambition and generosity tell them apart; the wrap-up (VB-108) reports the mix and proposes a tuning.
+   **A (Kim, 10 Nov):** 1 each, but the heir's farm weighs 2 when the head has more than one potential heir (read as: two or more who could inherit, so that one would be left without the home farm).
+
+# Archived 10 November 2026 (VB-164)
+
+## VB-164: may slice 3's plan run before slice 2's? (raised 7 November 2026, backlog review)
+The rule of 3 November says a later slice's plan waits for the plan of the slice before it (now in `BACKLOG.md`, "How this backlog works"; slices 1 and 2 run side by side). VB-164, slice 3's plan, is `ready` at priority 2, so the nightly run takes it after VB-077, VB-127 and VB-163, while slice 2's plan (VB-079) is not done; its file names no exception, as VB-127's does for running ahead of its slice.
+1. Should VB-164 wait for VB-079? **P:** yes, as the rule says: set it `blocked` with `Waits for: VB-079`, so the plans run in slice order (roadmap, section 4: "0, then 1 and 2 side by side, then 3"), since slices 1 and 2 "test the pieces every later slice uses", among them "opportunities and the player". If running it early was meant, say so and its file gets a note giving the reason.
+   *8 Nov 2026:* VB-079 is done (slice 2's plan), so the plans now run in slice order whatever the answer; "P" closes this.
+   **A (Kim, 10 Nov):** moot: slice 2's plan (VB-079) is done, and slice 3's plan ran on 10 November.
+
+## VB-164: the household's year, slice 3's design (raised 10 November 2026)
+From `docs/review-work.md` (survey, proposed `design.md` section 7, cost, tasks). Nothing below changes the golden file: the first two implement tasks reproduce today's posting. Questions 1 to 4 and 7 are needed before the behaviour-changing tasks.
+1. How does a holder choose a plan? **P:** a seasonal template from the culture (a table of season by routine, with a target for each store: woodpile, hay, seed, fields per hand), adjusted by urgency and stores at each review; the choice is among the plan's routines and steps, never an optimiser. Today's fixed numbers (`woodGoal`, `ENOUGH`, `fieldsWanted`) become the template's first values.
+   **A (Kim, 10 Nov):** not the template alone, nor a needs-driven ranking: three layers. (1) The year: the culture's template, season by routine with a target per store, today's numbers its first values. (2) Foresight: the head reads an estimate of the need, not the need; wits, husbandry and years as head set how far ahead it looks (a poor head reacts when a store crosses its target, a good one projects a season ahead) and a persistent bias, drawn once at succession from a seeded stream. (3) Projects: with the year's targets met and labour and stores to spare, the head takes one project at a time from a short menu of what is open to it, weighted by its values (ambition: more land; generosity: a farm for the heir, help, village work); slice 3's menu is what needs no new system: more fields than needed, a claim on land, a farm or cottage for the heir, a barn; alderman and other offices wait for the slice that builds offices. Traits are slice 7's: slice 3 reads stand-ins, one drawn number per pawn for each trait it needs, which slice 7 replaces. Still not an optimiser: a weighted choice among at most about six projects, when one ends or once a year. Projects are the pawns' own, apart from the player's ambitions, which stay postponed.
+2. Which bases of eligibility are built in slice 3? **P:** `member` (servants as `servant`), `villager`, `helper` (an adult of the village with no work of their own, for a task waiting 2 hours; a gift, kin and friends first) and `self`; `debtor` and `hired` wait for slice 5, when obligations and wages exist.
+   **A (Kim, 10 Nov):** as proposed (P): member, villager, helper and self now; debtor and hired with slice 5.
+3. The planning day's cadence by diligence. **P:** a diligent holder reviews daily, an average one every second day, a slack one every third; staggered by id; also at once when a window is closing or a store crosses a target. Time-of-day kinds (water, cook, milk, fodder) and the haul once the stooks are dry are opened by a due-queue, not by a review, so no task waits for a planning day.
+   **A (Kim, 10 Nov):** as proposed (P).
+4. The meeting's routines, and a meeting that fails to decide (also `Target architecture v2: decisions waiting`, question 4). **P:** the list is drawn from the village work available: the fence stretches, a common field, the green and well, work days; at most four a year. When the meeting does not decide (no quorum, a tie), the practice says what follows, "nothing" by default (no village work that year, and the cattle in the crops become a story), with "as last year" a practice a culture may hold.
+   **A (Kim, 10 Nov):** as proposed (P): a practice says what follows, "nothing" by default, "as last year" a practice a culture may hold.
+5. Which kinds are partial or background work? **P:** in slice 3 only herding is background (VB-136: the herder minds the herd while doing a partial task); fodder, milking and cooking stay full-attention; spinning and weaving (partial and background) come with slice 6.
+   **A (Kim, 10 Nov):** as proposed (P): only herding is background in slice 3.
+6. The idle-hour target (40 to 60% in the slack seasons). **P:** not a tuning target of this slice: today's farmers are 40 to 48% idle in spring and summer, 60 to 65% in autumn and 67 to 76% in winter (four seeds, populous small); the missing sink is textiles (slice 6). The wrap-up requires "not worse than today" and reports the share.
+   **A (Kim, 10 Nov):** no hard limit. Possible work is introduced as development and design go on; at some point Kim will ask for a review, and the system is tuned then. The wrap-up reports the idle share by season and requires nothing of it.
+7. What does the plan panel show, and which choices may the player make as head? **P:** the panel shows the routines and targets, the next steps, what is reserved, and who holds which task; the player may change a target (more hay, fewer fields), choose the tile of the next field or meadow, and set the order of the season's work, under the checks that bind any holder (claims, reach, the farm's block); where no choice is made the holder's rule runs. A player in a pawn that is not the holder acts on opportunities but cannot change the plan (asking the holder is a later verb).
+   **A (Kim, 10 Nov):** every act a pawn may take is the player's to command, unless there is a well-motivated gameplay reason not to: the command system is how pawns and the player alike act on the world. So as head the player may take over every choice of the plan (targets, tiles, the order of the season's work, the project), under the checks that bind any holder. The player may have a richer set of options than a pawn's own logic uses, because a complex AI for 1,000 pawns is not feasible; not the reverse. Written into design.md and target-v2.
+8. Reservations (Test C, a barn): **P:** a plan reserves what it will spend in the household's store, a count kept against the plan, and the household's free stock is the rest; `seedReserve` is the first reservation. A step made impossible by a lost store or a lost right triggers a review at once, and the reservation is released if the plan is dropped.
+   **A (Kim, 10 Nov):** yes, as proposed (P).
+9. Sowing first (VB-023): the rule is not in `plow.available` although its question says it is built. **P:** make it the order within the seasonal plan in the plan task (hoe one, sow it, hoe the next), and give the old question's "at least 1 crop in years 1 to 3 at seeds 3, 7, 11 and 42" as that task's criterion.
+   **A (Kim, 10 Nov):** A now, B later. The seasonal-plan task makes sow-first the template's order (hoe one, sow it, hoe the next) with the criterion of at least 1 crop in years 1 to 3 at seeds 3, 7, 11 and 42; the foresight task then lets only the poorest heads (about the bottom tenth of the stand-in) depart from it, the criterion re-checked for average heads.
+10. Order. **P:** the implement tasks as in `docs/review-work.md`, section 5, in that order: plans and cache, hidden plans explicit (both golden unchanged), windows and planning days (golden re-recorded), eligibility, attention, seasonal plans and the player as head, the panel, the village's routines, fishing and gathering, the wrap-up.
+   **A (Kim, 10 Nov):** as proposed (P), with two new tasks after "seasonal plans and the player as head" and before the panel: foresight (stand-in traits, the bias and the horizon), then projects (the menu, weighted by values).
+
+## Target architecture v2: decisions waiting (raised 3 November 2026) (question 4)
+From `docs/architecture/target-v2.md`, section 10.1. None blocks slice 0, 1 or 2; each is needed by the slice named. Question 3 was answered on 3 November (`QUESTION_ARCHIVE.md`).
+4. A meeting that fails to decide its yearly routines (no quorum, a tie; needed in slice 3). **P:** a practice says what follows, "nothing" or "as last year", with "nothing" the default, which keeps Kim's decision that routines are decided afresh each year: a failed meeting means no common fence work that year, and the cattle in the crops become a story.
+   **A (Kim, 10 Nov):** as proposed (P); answered with VB-164's question 4.
+
+# Archived 10 November 2026 (VB-123)
+
+## VB-123: job steps (job review, second pass)
+1. When? **P:** with the first building task (VB-032), so the steps are shaped by a real use; today's three shapes become step lists with behaviour unchanged.
+   **A (Kim, 10 Nov):** with slice 3's project plans: VB-123 is rewritten as the project plan (steps, reservations, reconsideration); a job's own fetch and carry steps wait for slice 6's buildings.
+
+# Archived 10 November 2026 (VB-023)
+
+## VB-023: sowing a hoed field before the next (raised by the nightly run of 30 October; gathered in the review of 31 October)
+The rule is built (no `plow` job while another field is hoed and its seed is in the house), but it does not bring in a crop in year 2 at seeds 7 and 11: a lone bachelor sows his first field only on spring day 4–7, after water, wood and cooking, so the stooks are lost to frost on summer day 11, and crops in year 3 fall from 3 to 0–1.
+1. What should give? **P:** lower the assertion, since the lone bachelor of the founders scenario is a harsh case: at least 1 crop in years 1–3 taken together at each of seeds 3, 7, 11 and 42 (the run reports them per year); and sow before wood and water for any household with a hoed field and seed in the house (a one-line priority change in `ROLES`), as it is the one chore with a closing date.
+   **A (Kim, 10 Nov):** superseded by VB-164's question 9: sowing first is the seasonal plan's order (A now), which the poorest heads may leave once foresight is built (B later); the criterion is at least 1 crop in years 1 to 3 taken together at seeds 3, 7, 11 and 42. VB-023 is rewritten.
+
+# Archived 10 November 2026 (VB-160)
+
+## VB-160: research the mechanism for long-term yield increase (reopened 5 November 2026)
+The user asked to skip implementation: the mechanism for long-term yield increase needs better research.
+The previous village-age manure cap (+0.1 per century) is reopened, and the task is `needs-review`.
+1. Which historical mechanisms explain sustained yield increases in the game's medieval Nordic setting,
+   and what evidence supports their magnitude and timescale (soil management, tools, practice or other changes)?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+2. Which mechanisms should the game represent, and should gains follow actual changes in farming rather than village age?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+3. After researching these questions, what model, rates and acceptance criteria should replace the current proposal?
+   **A (Kim, 10 Nov):** this is now VB-160's own work: the task is rewritten as a survey (no code) that answers it and returns with a model and questions.
+
+# Archived 10 November 2026 (VB-057)
+
+## VB-057: motivation for panel text snapshots (raised 5 November 2026)
+The user questioned whether this task is necessary; it is `needs-review` pending better motivation.
+1. What concrete, consequential UI regressions have escaped the existing smoke and browser checks?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+2. Would focused assertions cover those failures with less maintenance than whole-panel snapshots?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+3. What benefit justifies the baseline updates and review noise from intentional wording and simulation changes?
+   **A (Kim, 10 Nov):** closed (Kim, in the backlog review): no escaped regression is on record; a focused assertion goes into tests/smoke.js when a real one escapes.
+
+# Archived 10 November 2026 (VB-201)
+
+## VB-201: the demographic gate fails on chaos alone (raised 10 November 2026)
+The spread is built and measured in `0bc77a3` (reverted in the next commit; the task file has the numbers). At `medium-ref`, a whole year: the culture's drift a settlement a 6-minute step after midnight and the moving round in four phases from noon (marriages and handovers; demand, claims, plots; settlement; service, what is owed, prestige) leave every midnight at most 48 ms and every round phase at most 36 ms; only the meetings' step (VB-206) is over 60. Nothing is saved for either. Over 30 populous-small years, marriages a year move -4.7% at seed 7 and -11.3% at seed 42 (the gate is 10%); first-marriage age and the never-married share pass. Over 8 more seeds (1 to 10 but 3 and 7) the mean does not move (5.863 before, 5.858 after; the culture's spread alone 5.863), and one seed's marriages a year vary about 5% between equivalent schedules (the round split as 0|1|2|3, 0|123, 01|23 or 012|3 phases), so the seed-42 result is the divergence of a changed run, not a bias. Choosing the schedule whose seed 42 passes would be tuning randomness to the gate.
+1. Which demographic gate holds for a scheduling change? **P:** the three measures' means over 12 seeds (populous small, 30 years) within 5%, each seed's never-married count reported; seeds 7 and 42 reported, not gating. Then `0bc77a3` lands as it is, with the golden file re-recorded and the customs' drift checked by `npm run calibrate`.
+   **A (Kim, 10 Nov):** as proposed (P): the means over 12 seeds within 5%; seeds 7 and 42 reported, not gating.
+2. Does a split of the round by phase (each phase whole, in today's order, on its own step) meet the criterion "spread village marriages, handovers and claims across steps in village order"? The marriages fit one step (about 25 ms at `medium-ref`), so the village order and its per-man decision state were not needed. **P:** yes; the village order waits until the marriage phase alone nears 60 ms.
+   **A (Kim, 10 Nov):** yes, as proposed (P): whole phases suffice; the village order waits until the marriage phase alone nears 60 ms.
+
+# Archived 10 November 2026 (VB-199)
+
+## VB-199: bounded history (raised 3 November 2026, the plan of slice 0)
+Bounded history was brought into slice 0 in the session that ran VB-181. Rule 9 of the Rules for cost (Decided) says the record keeps notable events in full and folds routine ones into yearly counts after a generation, and that a pawn's events are an index into the record. Measured at year 40 of populous small (seed 7): 110,278 events in `st.record`, of which `friend` 52,201 and `fellOut` 36,598 (81%); each pawn carries copies of its own events (80.6 on average, 8.1 MB of a 29 MB save); writing the save takes 1.6 s and reading it 0.9 s, against a budget of 0.5 s each. The answers make VB-199 `ready`.
+1. Which kinds of event are notable, kept in full? **P:** those that make up a life and a place, which are also VB-098's list: births, marriages, deaths (with their cause), inheritances and handovers, moves and leaving, farms, plots, cottages and meadows made, claimed or left, customs changed and causes argued at the meeting, and inheritance shares paid. The rest are routine and folded: `friend`, `fellOut`, `gift`, `harvest`, `hay`, `frost`, `herdBirths`, `herdDeath`, `slaughter`, `spoiled` and `putOff`.
+   **A (Kim, 10 Nov):** as proposed (P).
+2. When do `friend` and `fellOut` fold? Folded after a generation (25 years), they still fill the save at the late reference: year 60 would keep 35 years of them. **P:** after 2 years, since a pawn's present friends and enemies are kept in its relations anyway, and slice 7 replaces them with stories; the other routine kinds after a generation, as rule 9 says.
+   **A (Kim, 10 Nov):** as proposed (P): friend and fellOut fold after 2 years, the other routine kinds after a generation.
+3. If the save still takes over 0.5 s once history is bounded? **P:** VB-199 measures each part (encode, stringify, gzip; parse, decode) and proposes the next step in its PR rather than building it: pawn records in columns, or saving from a structured clone in a worker (roadmap, section 5.5).
+   **A (Kim, 10 Nov):** as proposed (P); already answered on 9 November (VB-203's questions: VB-199 first, then VB-226 for what is left).
+
 # Archived 9 November 2026 (the gameplay review)
 
 ## VB-233: marriage as a negotiation (raised 9 November 2026, gameplay review)

@@ -1,6 +1,6 @@
 // Saves in the page (VB-214), by hand: `node tests/browser-saves.js OUTDIR` plays a tiny map in real Chromium, saves to slots and a file,
 // continues after a reload, deletes a save and an archipelago's saves, loads the file and a file of another build, and prints each result
-// with screenshots in OUTDIR. It asserts nothing and is not in tests/run.js yet: VB-248 turns it into a test of verify.
+// with screenshots in OUTDIR. It asserts nothing and is not in tests/run.js yet: VB-260 turns it into a test of verify.
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), out = process.argv[2] || require('os').tmpdir();
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));

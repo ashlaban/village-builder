@@ -26,6 +26,11 @@ class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w
 class Text extends Obj { constructor(o) { super(o); this.text = o.text; } }
 win.PIXI = { Rectangle, Text, Application, Container: Obj, Sprite: Obj, TilingSprite: Obj, Graphics, Texture: class { constructor(o) { this.o = o; } }, CanvasSource: class { constructor(o) { if (!o.resource) throw new Error('no resource'); } } };
 for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) win.eval(m[1].replace(/^const (\w+) =/gm, 'var $1 ='));
+// Terrain pixels are painted in full for the first three chunks of each level of detail and left blank after that: nothing here reads
+// them, and painting every chunk the page asks for (it repaints as trees and fields change) was three fifths of this test's time.
+// The rest of a chunk's job (rivers, paths, decoration, the texture) runs for every chunk; the Chromium tests paint them all.
+const baked = [0, 0, 0]; let blank = 0;
+{ const G = win.ArchGen, bake = G.bakeChunk; G.bakeChunk = function* (w, l, cx, cy, img) { if (baked[l]++ < 3) yield* bake(w, l, cx, cy, img); else blank++; }; }
 let simSt = null; { const adv = win.Sim.advance; win.Sim.advance = (st, h) => { simSt = st; return adv(st, h); }; }
 const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds'];
 const state = () => { const lay = APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
@@ -42,7 +47,7 @@ const iv = setInterval(async () => {
     if (doc.getElementById('landing').hidden) return;
     const docs = [...doc.querySelectorAll('#genDocs a')].map((a) => a.getAttribute('href')).join(' ');
     if (docs !== 'docs/roadmap.html BACKLOG.html QUESTIONS.html') fail(`the generation screen links "${docs}", not the roadmap, backlog and open questions`);
-    started = true; generate('heirs', 'm', '7'); return;
+    started = true; generate('heirs', 't', '7'); return;
   }
   if (!doc.getElementById('loader').classList.contains('done')) { if (Date.now() - start > 90000) { fail('loader timeout'); process.exit(1); } return; }
   clearInterval(iv); if (globalThis.__ran) return; globalThis.__ran = 1;
@@ -252,7 +257,8 @@ function notices() {
   // three deaths of one day in one village share a toast, and no more than 3 toasts show
   tick(400);
   for (const id of ids.slice(1, 4)) kill(id);
-  tick(2); console.log('merged:', texts());
+  tick(2); console.log('chunks asked for by level:', baked.join(', '), '| painted in full', baked.reduce((n, x) => n + x, 0) - blank, '| left blank', blank); if (!baked[2] || !baked[0]) fail('no chunk was painted in full');
+  console.log('merged:', texts());
   if (!shown().some((b) => b.textContent === `3 deaths in ${v.name}`)) fail(`3 deaths in a day did not merge: ${texts()}`);
   if (shown().length > 3) fail(`${shown().length} toasts at once`);
   // every kind turned off: no toast, and the choice is kept
