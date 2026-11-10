@@ -38,6 +38,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
 | [VB-241](backlog/VB-241.md) | Refactor: the calendar, one ordered table of what runs each step, hour, day, season and year | - | 3 | M | What runs when is spread over a dozen date tests in eight modules; gather it in one ordered table in sim/clock, with behaviour unchanged. |
 | [VB-243](backlog/VB-243.md) | The ownership scan's unresolved writes, a baseline that only falls | - | 3 | S | A write whose receiver the scan cannot place is listed, not checked, and up to 20 are allowed; make the list a baseline that only falls and place the 19 there are. |
+| [VB-245](backlog/VB-245.md) | Idle pawns wait 2 to 4 hours before strolling again | - | 3 | S | Idle strolls cost about 40 ms of the 204 ms simulation day at the late reference; an idle pawn waits 2 to 4 hours, not 0.75 to 2. |
+| [VB-246](backlog/VB-246.md) | A benchmark that shows the three engine workarounds still pay | - | 3 | S | Three places are shaped by how V8 stores objects and compiles loops, each by a comment and one old measurement; a benchmark in verify notices when one stops helping. |
+| [VB-247](backlog/VB-247.md) | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
 
 ## Waiting for Kim
 
@@ -110,6 +113,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-190](backlog/VB-190.md) | Plan: roads, boats and ice (slice 10) | roads | 3 | S | VB-189 | Design carts, sledges and boats, climate and ice, built ways, passage and upkeep. |
 | [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-136, VB-139, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | VB-136 | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
+| [VB-244](backlog/VB-244.md) | The page runs whole steps and draws pawns between them | - | 2 | M | VB-235 | A step in the page is as long as a frame, so the frame rate changes the run; the page asks for whole six-minute steps and interpolates each pawn's place between the last two. |
 
 ## Archs
 
