@@ -33,6 +33,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-236](backlog/VB-236.md) | The route cache is cleared when a tile's cost changes | - | 3 | S | The nightly selective refresh of 30,000 cached routes costs as much as the searches it saves: clear the cache on a change and lower its bound. |
 | [VB-237](backlog/VB-237.md) | Refactor: stores refuses a holder that is not a household, a village or a pawn | - | 3 | S | type() in sim/stores takes anything that is not a household or a village for a pawn, and writes a stake onto it; test for the pawn and throw otherwise. |
 | [VB-238](backlog/VB-238.md) | Refactor: a tie's eviction and floor in sim/relations, written as plain cases | - | 3 | S | put and raiseTie in sim/relations fold three cases into one nested condition and a double negation; write them as the cases they are. |
+| [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
 
 ## Waiting for Kim
 
