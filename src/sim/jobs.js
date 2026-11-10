@@ -25,6 +25,7 @@ VB['sim/jobs'] = (() => {
   // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
+    VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
       const hh = f.household === null ? null : st.households[f.household];
       const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
@@ -123,6 +124,7 @@ VB['sim/jobs'] = (() => {
       const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
+        VB.count.lookUpJob++;
         if (k === j || !isOpen(k)) continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
@@ -179,8 +181,14 @@ VB['sim/jobs'] = (() => {
     return lo;
   }
   function planRound(st, idle, c) {
-    const bids = [];
-    for (const a of idle) for (const j of jobsFor(st, st.pawns[a.id])) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    const bids = [], lists = new Map(); // a household's jobs, looked up once a round for all its idle members (VB-227); bids post nothing
+    for (const a of idle) {
+      const p = st.pawns[a.id];
+      let js = lists.get(p.household);
+      if (!js) lists.set(p.household, (js = jobsFor(st, p)));
+      VB.count.matchBid += js.length ?? js.size;
+      for (const j of js) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
     for (let i = 0; i < bids.length; i++) {

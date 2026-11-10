@@ -694,6 +694,9 @@ VB.COUNTERS = {
   ruleValue: 'Rule values read (explanations excluded)',
   oppAsk: 'Calls of a kind\'s `available` rule by the hourly review of the standing plans (sim/jobs, refreshJobs; VB-258)',
   planReview: 'Standing plans reviewed, one per live household on a farm and per village each review hour (sim/plans, VB-258)',
+  matchBid: 'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
+  lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
+  cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -7466,6 +7469,7 @@ VB['sim/jobs'] = (() => {
   // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
+    VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
       const hh = f.household === null ? null : st.households[f.household];
       const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
@@ -7564,6 +7568,7 @@ VB['sim/jobs'] = (() => {
       const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
+        VB.count.lookUpJob++;
         if (k === j || !isOpen(k)) continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
@@ -7620,8 +7625,14 @@ VB['sim/jobs'] = (() => {
     return lo;
   }
   function planRound(st, idle, c) {
-    const bids = [];
-    for (const a of idle) for (const j of jobsFor(st, st.pawns[a.id])) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    const bids = [], lists = new Map(); // a household's jobs, looked up once a round for all its idle members (VB-227); bids post nothing
+    for (const a of idle) {
+      const p = st.pawns[a.id];
+      let js = lists.get(p.household);
+      if (!js) lists.set(p.household, (js = jobsFor(st, p)));
+      VB.count.matchBid += js.length ?? js.size;
+      for (const j of js) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
     for (let i = 0; i < bids.length; i++) {
@@ -13514,7 +13525,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '4a0b26e499', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'f96415a772', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
