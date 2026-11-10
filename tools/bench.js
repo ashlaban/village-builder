@@ -78,9 +78,9 @@ function microbench(VB, st) {
 function measure(name) {
   // Load wrappers before the fixture loader imports src/load.js and downstream modules capture exports.
   const perf = require('./perf.js'), VB = perf.load(), Sim = VB.sim;
-  const fixture = F.loadFixture(name, { fetch: false });
-  if (!fixture) return { error: 'missing fixture; run node tools/fixtures.js fetch or make' };
-  const { st, stamp, stale } = fixture;
+  const fixture = F.loadFixture(name, { make: false });
+  if (!fixture) return { error: 'missing fixture; run node tools/fixtures.js make' };
+  const { st, stamp } = fixture;
   // A whole game year (VB-203, Kim, 9 November): winter, the meetings and the moving round fall inside the window, in their own steps.
   perf.reset();
   const from = st.t, steps = [], days = VB['sim/rules'].YEAR_DAYS;
@@ -104,7 +104,7 @@ function measure(name) {
   const it = VB.gen.generate(7, { cols: F.spec(name).cols, rows: F.spec(name).rows });
   let r; while (!(r = it.next()).done);
   const load = timed(() => Sim.load(r.value, parse.value));
-  return { stamp, stale, days, from, to: st.t, pawnDays, meanLiving: pawnDays / days,
+  return { stamp, days, from, to: st.t, pawnDays, meanLiving: pawnDays / days,
     msPerDay: totalMs / days, msPerPawnDay: totalMs / pawnDays, ...stepStats(steps),
     movingRoundMs, meetingsMs, heapMB, saveMs: save.ms, stringifyMs: stringify.ms, gzipMs: gzip.ms,
     saveTotalMs: save.ms + stringify.ms + gzip.ms, saveMainMs: save.ms + stringify.ms, jsonMB: jsonBytes / 1e6, gzipMB: gzip.value.length / 1e6,
@@ -181,22 +181,22 @@ function budget(run) {
     + `Measured ${run.date}; commit \`${run.commit}\`${run.dirty ? ' (working tree changes)' : ''}; ${run.node}; ${run.cpu.model} (${run.cpu.cores} cores).\n\n`
     + NAMES.map((name) => {
       const f = run.fixtures[name];
-      return f && !f.error ? `${name}: ${f.stale ? '**stale golden hash**' : 'fresh'}, saved after year ${yearOf(f)}`
+      return f && !f.error ? `${name}: saved after year ${yearOf(f)}`
         + `${f.stamp?.reached === false ? ' (**never reached its target**)' : ''}, ${f.stamp?.living ?? 'unknown'} starting living,`
-        + ` stamp \`${f.stamp?.commit ?? 'unknown'}\`.` : `${name}: unavailable.`;
+        + ` made at \`${f.stamp?.commit ?? 'unknown'}\`${f.stamp?.key ? `, key \`${f.stamp.key}\`` : ''}.` : `${name}: unavailable.`;
     }).join('\n\n') + '\n\n'
     + `| Measure | Budget (at medium-ref) | ${column(NAMES[0])} | ${column(NAMES[1])} |\n|---|---|---|---|\n` + rows.join('\n')
     + `\n\nSystem shares sum to ${+(200 - RESERVE).toFixed(1)} ms; ${+RESERVE.toFixed(1)} ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in \`closure.md\`.\n\n`
     + 'A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead.'
     + ' The round and the meetings run inside the window; their lines are that one call, inclusive.\n'
     + 'Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.\n'
-    + 'Fixture stamps, staleness, five longest step hours, codec stages and microbenchmarks are in `history.jsonl`.\n';
+    + 'Fixture stamps, five longest step hours, codec stages and microbenchmarks are in `history.jsonl`.\n';
 }
 function report(run) {
   console.log(`bench: ${run.date}, ${run.commit}, ${run.cpu.model}, ${run.node}`);
   for (const [name, f] of Object.entries(run.fixtures)) {
     if (f.error) { console.log(`${name}: UNAVAILABLE ${f.error}`); continue; }
-    console.log(`${name}: ${f.stale ? 'STALE' : 'fresh'} stamp ${f.stamp.commit}; ${f.msPerDay.toFixed(2)} ms/day,`
+    console.log(`${name}: fixture ${f.stamp.key ?? ''} made at ${f.stamp.commit}; ${f.msPerDay.toFixed(2)} ms/day,`
       + ` ${f.msPerPawnDay.toFixed(4)} ms/living pawn-day; mean ${f.meanLiving.toFixed(1)} living`);
     console.log(`  steps: longest ${f.longestMs.toFixed(3)} ms, p99 ${f.p99Ms.toFixed(3)} ms; top five ${JSON.stringify(f.longest)}`);
     console.log(`  moving round ${f.movingRoundMs.toFixed(3)} ms; meetings ${f.meetingsMs.toFixed(3)} ms; heap ${f.heapMB.toFixed(2)} MB`);
@@ -235,6 +235,7 @@ async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'bu
   const cpus = os.cpus(), run = { schema: 2, date: new Date().toISOString(),
     commit: F.git(['rev-parse', 'HEAD']).toString().trim(), dirty: !!F.git(['status', '--porcelain']).toString().trim(),
     node: process.version, cpu: { model: cpus[0]?.model || 'unknown', cores: cpus.length }, fixtures: {} };
+  F.ensure(NAMES); // made here if missing, before anything is timed
   for (const name of NAMES) run.fixtures[name] = await worker(name);
   run.flags = flags(run, readHistory(historyFile));
   fs.mkdirSync(path.dirname(historyFile), { recursive: true });
@@ -254,13 +255,13 @@ async function main(args) {
     else fs.writeFileSync(path.join(DIR, 'budget.md'), budget(last));
   } else if (!args.filter((a) => a !== '--record').length) await runBench();
   else console.log(`usage: node tools/bench.js [--budget] [--record]
-  (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing or stale one is reported, not made),
+  (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing one is made first),
                  appends the run to docs/bench/history.jsonl, rewrites docs/bench/budget.md and prints the report; takes minutes,
                  and times the machine, so run nothing else meanwhile
   --record       also appends the budget lines and each system's share as target records (with the share of the whole step) to docs/bench/targets.jsonl
   paired, alternated runs of before and after: node tools/bench-paired.js --help
   --budget       rewrites docs/bench/budget.md from the last run in the history, measuring nothing
-  fixtures first: node tools/fixtures.js status|fetch|make`);
+  fixtures: node tools/fixtures.js status|make`);
 }
 // Diagnostic failures are visible in output/history, never a reason to fail a nightly run.
 if (require.main === module) main(process.argv.slice(2)).catch((e) => console.error('bench: UNAVAILABLE ' + (e.stack || e.message)));

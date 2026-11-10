@@ -39,7 +39,7 @@ assert.strictEqual(B.SYSTEM_BUDGETS['kin help and goodwill'], 0.1);
 assert(table.includes('| talk and contacts (ms/day) | 55 |') || !table.includes('talk and contacts'));
 assert(table.includes('| Save: encode + stringify, main thread (ms) | 500 |') && table.includes('| Parse + load (ms) | 500 |'));
 assert(table.includes('| Measure | Budget (at medium-ref) | medium-y5 (year 5, 880 living) | medium-ref (year 14, 1005 living) |'));
-assert(table.includes('medium-ref: fresh, saved after year 14, 1005 starting living'));
+assert(table.includes('medium-ref: saved after year 14, 1005 starting living'));
 assert(table.includes('| Cost per living pawn-day / medium-y5 | reported; the line is small-y40 / small-y5 (tests/history.js) | 1.000 | 1.250 |'));
 const short = run(100);
 short.fixtures['medium-ref'].stamp = { year: 60, living: 950, target: 1000, reached: false };
@@ -76,7 +76,7 @@ const child = spawnSync(process.execPath, ['-e', `
     const ns = globalThis.VB, it = ns.gen.generate(7, {cols:120,rows:85});
     let r; while (!(r=it.next()).done);
     st = ns.sim.seed(r.value,7,'populous');
-    return {st, stamp:{commit:'reduced-test'}, stale:true};
+    return {st, stamp:{commit:'reduced-test'}};
   };
   fixtures.spec = () => ({cols:120,rows:85});
   const result = B.measure('medium-y5');

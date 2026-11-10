@@ -1,101 +1,106 @@
-// Late-game fixture lifecycle (VB-193): made here, published as the assets of one release (VB-223); no checkout or index changes.
+// Late-game fixtures (VB-193), made here and kept under tests/fixtures/<key>/ (VB-272): one run a map, each fixture saved as it passes.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), os = require('os');
 const { spawn } = require('child_process');
 const F = require('../tests/lib/fixtures.js');
-// Whole years from seeding: `def.year` of them, or (VB-202) until the first year's end with at least `def.living` alive, by
-// `def.maxYear` at the latest. Returns the number of years advanced.
-function advanceYears(Sim, st, def, report = () => {}) {
-  const last = def.year ?? def.maxYear, enough = () => def.living !== undefined && st.pawns.filter((p) => p.alive).length >= def.living;
+const KEEP = 3; // keys kept by a make, the newest first; about 15 MB each with all four saves
+const livingOf = (st) => st.pawns.filter((p) => p.alive).length;
+// One run from seeding, a year at a time, until each of `defs` ({name: def}) has fallen due: after `def.year` whole years, or (VB-202)
+// at the first year's end with at least `def.living` alive, by `def.maxYear` at the latest. `due(name, year)` is called as each does.
+function runYears(Sim, st, defs, due = () => {}, report = () => {}) {
+  const pending = new Set(Object.keys(defs));
   let year = 0;
-  while (year < last && !(year > 0 && enough())) { Sim.advance(st, Sim.YEAR); year++; report(year, last); }
+  while (pending.size) {
+    Sim.advance(st, Sim.YEAR); year++; report(year);
+    for (const name of [...pending]) {
+      const def = defs[name];
+      if (def.living !== undefined ? livingOf(st) >= def.living || year >= def.maxYear : year >= def.year) { pending.delete(name); due(name, year); }
+    }
+  }
   return year;
 }
-function makeOne(name) {
-  const def = F.spec(name), VB = require('../src/load.js'), Sim = VB.sim;
-  // The stamp names a commit, so uncommitted simulation changes cannot be its provenance.
-  F.git(['diff', '--exit-code', 'HEAD', '--', 'src', 'tests/golden.json'], { stdio: 'ignore' });
-  const started = Date.now(), golden = F.goldenHash(), commit = F.git(['rev-parse', 'HEAD']).toString().trim();
-  const it = VB.gen.generate(7, { cols: def.cols, rows: def.rows }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, 7, 'populous'), living = () => st.pawns.filter((p) => p.alive).length;
-  const year = advanceYears(Sim, st, def, (y, last) => console.log(`${name}: year ${y}/${last}, ${living()} living,`
-    + ` ${((Date.now() - started) / 60000).toFixed(2)} min`));
-  const data = Sim.save(st), json = Buffer.from(JSON.stringify(data)), compressed = zlib.gzipSync(json);
-  F.git(['diff', '--exit-code', 'HEAD', '--', 'src', 'tests/golden.json'], { stdio: 'ignore' });
-  if (golden !== F.goldenHash() || commit !== F.git(['rev-parse', 'HEAD']).toString().trim()) throw new Error('source changed during make; remake the fixtures');
-  const stamp = { name, commit, format: data.format, goldenHash: golden, year,
-    ...(def.living !== undefined ? { target: def.living, reached: living() >= def.living } : {}),
-    living: living(), pawnRecords: st.pawns.length, events: st.record.length,
-    minutes: (Date.now() - started) / 60000, jsonBytes: json.length, gzipBytes: compressed.length, saveHash: F.hash(compressed) };
-  F.writeFixture(name, compressed, stamp);
-  if (stamp.reached === false) console.log(`${name}: NOT REACHED: ${stamp.living} living after year ${year}, short of ${def.living}`);
-  console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min at year ${year}; ${(json.length / 1e6).toFixed(2)} MB JSON,`
-    + ` ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
-  return stamp;
+// The map's run, as far as the last of `names`; the map's other fixtures are saved too where the run passes them.
+function makeMap(map, names) {
+  const VB = require('../src/load.js'), Sim = VB.sim, key = F.key(), started = Date.now();
+  const wanted = Object.fromEntries(names.map((name) => [name, F.spec(name)])), { cols, rows } = Object.values(wanted)[0];
+  const others = Object.entries(F.FIXTURES).filter(([name, def]) => def.map === map && !wanted[name]);
+  let commit = 'unknown';
+  try {
+    commit = F.git(['rev-parse', 'HEAD']).toString().trim();
+    if (F.git(['status', '--porcelain', '--', 'src']).toString().trim()) commit += '-dirty';
+  } catch { /* the key names the sources; the commit is only for the reader */ }
+  const it = VB.gen.generate(F.SEED, { cols, rows }); let r; while (!(r = it.next()).done);
+  const st = Sim.seed(r.value, F.SEED, F.SCENARIO), minutes = () => (Date.now() - started) / 60000;
+  const save = (name, year) => {
+    const def = F.spec(name), data = Sim.save(st), json = Buffer.from(JSON.stringify(data)), compressed = zlib.gzipSync(json);
+    if (key !== F.key()) throw new Error('the sources changed during the make; make the fixtures again');
+    const stamp = { name, key, commit, format: data.format, year,
+      ...(def.living !== undefined ? { target: def.living, reached: livingOf(st) >= def.living } : {}),
+      living: livingOf(st), pawnRecords: st.pawns.length, events: st.record.length,
+      minutes: minutes(), jsonBytes: json.length, gzipBytes: compressed.length, saveHash: F.hash(compressed) };
+    F.writeFixture(name, compressed, stamp);
+    if (stamp.reached === false) console.log(`${name}: NOT REACHED: ${stamp.living} living after year ${year}, short of ${def.living}`);
+    console.log(`${name}: made in ${stamp.minutes.toFixed(2)} min at year ${year}; ${(json.length / 1e6).toFixed(2)} MB JSON,`
+      + ` ${(compressed.length / 1e6).toFixed(2)} MB gzip`);
+  };
+  // A fixture not asked for falls due as the others do, and is saved only if the run is still going: it never lengthens the run.
+  const passing = new Map(others);
+  runYears(Sim, st, wanted, save, (year) => {
+    for (const [name, def] of passing) {
+      if (def.living !== undefined ? livingOf(st) >= def.living || year >= def.maxYear : year >= def.year) { passing.delete(name); save(name, year); }
+    }
+    console.log(`${map}: year ${year}, ${livingOf(st)} living, ${minutes().toFixed(2)} min`);
+  });
+}
+// Old keys go, the newest KEEP stay, and whatever else lies in the directory (the saves of before VB-272, at its top).
+function clean({ dir = F.DIR, keep = KEEP, notice = console.log } = {}) {
+  if (!fs.existsSync(dir)) return [];
+  const now = F.key(), entries = fs.readdirSync(dir, { withFileTypes: true });
+  const keys = entries.filter((e) => e.isDirectory() && /^[a-f0-9]{16}$/.test(e.name))
+    .map((e) => ({ name: e.name, at: e.name === now ? Infinity : fs.statSync(path.join(dir, e.name)).mtimeMs })).sort((a, b) => b.at - a.at);
+  const gone = [...keys.slice(Math.max(keep, 0)).map((k) => k.name), ...entries.map((e) => e.name).filter((n) => !keys.some((k) => k.name === n))];
+  for (const name of gone) fs.rmSync(path.join(dir, name), { recursive: true, force: true });
+  if (gone.length) notice(`fixtures: removed ${gone.join(', ')}`);
+  return gone;
 }
 async function make(names = Object.keys(F.FIXTURES)) {
   names.forEach(F.spec);
-  const queue = [...new Set(names)], failed = [];
-  const lanes = Math.min(os.availableParallelism(), queue.length);
+  const maps = new Map(), failed = [];
+  for (const name of new Set(names)) maps.set(F.spec(name).map, [...(maps.get(F.spec(name).map) || []), name]);
+  const queue = [...maps], lanes = Math.min(os.availableParallelism(), queue.length);
   await Promise.all(Array.from({ length: lanes }, async () => {
     while (queue.length) {
-      const name = queue.shift();
+      const [map, list] = queue.shift();
       await new Promise((resolve) => {
-        const child = spawn(process.execPath, [__filename, '--make-one', name], { stdio: 'inherit' });
-        child.on('error', (e) => { failed.push(`${name}: ${e.message}`); resolve(); });
-        child.on('exit', (code, signal) => { if (code !== 0) failed.push(`${name}: ${signal || code}`); resolve(); });
+        const child = spawn(process.execPath, [__filename, '--make-map', map, ...list], { stdio: 'inherit' });
+        child.on('error', (e) => { failed.push(`${map}: ${e.message}`); resolve(); });
+        child.on('exit', (code, signal) => { if (code !== 0) failed.push(`${map}: ${signal || code}`); resolve(); });
       });
     }
   }));
   if (failed.length) throw new Error('fixture make failed: ' + failed.join(', '));
-}
-// The saves and stamps first, then the manifest naming their hashes, which fetch reads first (VB-223); every fixture must be fresh.
-function publish({ dir = F.DIR, release = F.githubRelease(), notice = console.log } = {}) {
-  const paths = [], manifest = { commit: F.git(['rev-parse', 'HEAD']).toString().trim(), fixtures: {} };
-  for (const name of Object.keys(F.FIXTURES)) {
-    const info = F.status(name, { dir });
-    if (info.status !== 'fresh') throw new Error(`${name} is ${info.status}; make all fixtures before publishing`);
-    const f = F.files(name, dir), compressed = fs.readFileSync(f.save);
-    if (F.hash(compressed) !== info.stamp.saveHash) throw new Error(`${name}: damaged fixture; remake the fixtures`);
-    manifest.fixtures[name] = { gz: F.hash(compressed), json: F.hash(fs.readFileSync(f.stamp)), commit: info.stamp.commit };
-    paths.push(f.save, f.stamp);
-  }
-  const current = () => { try { return release.read(F.MANIFEST).toString('utf8'); } catch { return null; } };
-  const before = current();
-  release.write(paths);
-  // Another publisher finished meanwhile, and its saves may be mixed with these: leave its manifest, which fetch then refuses as mixed.
-  if (current() !== before) throw new Error('another publisher replaced the set during this publish; publish again');
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-fixtures-')), file = path.join(tmp, F.MANIFEST);
-  try {
-    fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
-    release.write([file]);
-  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
-  notice(`fixtures: published ${paths.length / 2} saves and ${F.MANIFEST} to ${release.where}`);
-  return manifest;
-}
-// The nightly remake (VB-223): fetch the published set, remake what is stale or missing, and publish only if something was remade.
-async function refresh({ publishing = true, notice = console.log } = {}) {
-  try { F.fetchFixtures({ notice }); } catch (e) { notice(`fixtures: ${e.message}; remaking`); } // a damaged set is remade, not kept
-  const remake = Object.keys(F.FIXTURES).filter((name) => F.status(name).status !== 'fresh');
-  if (!remake.length) { notice('fixtures: all fresh; nothing to remake or publish'); return remake; }
-  notice(`fixtures: remaking ${remake.join(', ')}`);
-  await make(remake);
-  if (publishing) publish({ notice });
-  else notice('fixtures: remade here and not published (no GH_TOKEN); the nightly workflow publishes them');
-  return remake;
+  clean();
 }
 const USAGE = `usage: node tools/fixtures.js <command>
-  status         each fixture: fresh, stale or missing, with its stamp (year, living, minutes to make, size)
-  fetch          download the published fixtures (the assets of the release "fixtures") into tests/fixtures/
-  make [name...] make the named fixtures here, or all (${Object.keys(F.FIXTURES).join(', ')}); minutes each; needs src/ and
-                 tests/golden.json committed, since the stamp names the commit
-  refresh        fetch, remake what is stale, publish (the nightly workflow's command)
-  publish        replace the release's assets with the local fixtures; needs GH_TOKEN
-  in a test: require('./lib/fixtures.js').loadFixture(name) gives {st, stamp, stale}, or null with a notice`;
+  status         the key of the sources as they are, and each fixture under it: made (year, living, minutes to make, size) or missing
+  make [name...] make the named fixtures, or all (${Object.keys(F.FIXTURES).join(', ')}), into tests/fixtures/<key>/: one run a map
+                 (small about 2 minutes, medium about 1.5, side by side), saving each fixture as the run passes it; keeps the
+                 newest ${KEEP} keys
+  make-missing name...  make those of the named fixtures that the current key lacks (verify's first step)
+  clean          remove every key but the current one
+  The key hashes the modules of src/manifest.json: a fixture is made for the sources as they are and is never stale. Nothing is
+  fetched or published. In a test or a tool, require('./lib/fixtures.js').loadFixture(name) gives {st, stamp}, making a missing one
+  first; npm run verify makes the small pair beside its other scripts.`;
 async function main(args) {
   const [command, ...names] = args;
   if (command === 'make') return make(names.length ? names : undefined);
-  if (command === '--make-one' && names.length === 1) return makeOne(names[0]);
+  if (command === 'make-missing' && names.length) {
+    const missing = names.filter((name) => F.status(name).status === 'missing');
+    if (missing.length) await make(missing);
+    return console.log(`fixtures: key ${F.key()}; ${missing.length ? 'made ' + missing.join(', ') : 'nothing to make'}`);
+  }
+  if (command === '--make-map' && names.length > 1) return makeMap(names[0], names.slice(1));
   if (command === 'status' && !names.length) {
+    console.log(`key ${F.key()}`);
     for (const name of Object.keys(F.FIXTURES)) {
       const info = F.status(name), s = info.stamp;
       console.log(`${name}: ${info.status}${s ? ` (year ${s.year}, ${s.living} living${s.reached === false ? ', target NOT REACHED' : ''},`
@@ -103,11 +108,9 @@ async function main(args) {
     }
     return;
   }
-  if (command === 'fetch' && !names.length) return F.fetchFixtures();
-  if (command === 'publish' && !names.length) return publish();
-  if (command === 'refresh' && !names.length) return refresh();
+  if (command === 'clean' && !names.length) return clean({ keep: 1 });
   if (command === '--help' || command === '-h' || command === 'help') return console.log(USAGE);
   throw new Error(USAGE);
 }
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error(e.message); process.exitCode = 1; });
-module.exports = { make, makeOne, publish, refresh, advanceYears };
+module.exports = { make, makeMap, clean, runYears };

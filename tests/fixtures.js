@@ -1,10 +1,12 @@
-// Verify present late-game states, including stale golden hashes. Offline absence is a reported skip.
+// Verify late-game states: the small pair, made here if missing (verify's runner makes it first), and the medium ones where made.
 const assert = require('assert'), F = require('./lib/fixtures.js'), { checkState } = require('./lib/invariants.js');
 const VB = require('../src/load.js'), Sim = VB.sim, { compareRankings } = require('./lib/heir-rankings.js');
+const SMALL = ['small-y5', 'small-y40'];
+assert(F.ensure(SMALL), 'the small fixtures could not be made');
 let loaded = 0;
 for (const name of Object.keys(F.FIXTURES)) {
-  const fixture = F.loadFixture(name);
-  if (!fixture) continue;
+  if (F.status(name).status === 'missing') continue;
+  const fixture = F.loadFixture(name, { make: false });
   // Check the optimized multi-source occupancy against independent per-mark radius searches on late worlds.
   const st = fixture.st, { bfs } = VB['sim/hex'], { SETTLE } = VB['sim/rules'];
   const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fields'].builtTiles(st);
@@ -23,8 +25,8 @@ for (const name of Object.keys(F.FIXTURES)) {
   Sim.advance(st, Sim.DAY);
   const bad = checkState(fixture.st);
   assert.deepStrictEqual(bad, [], `${name}: ${bad.slice(0, 8).join('; ')}`);
-  console.log(`${name}: loaded${fixture.stale ? ' (stale)' : ''}; ${ranks.checked} rankings by line match the full list (a claim mattered in`
+  console.log(`${name}: loaded (key ${fixture.stamp.key}); ${ranks.checked} rankings by line match the full list (a claim mattered in`
     + ` ${ranks.claimed}); advanced one day; invariants pass`); loaded++;
 }
 const total = Object.keys(F.FIXTURES).length;
-console.log(`fixtures: ${loaded}/${total} saves checked; ${total - loaded} missing`);
+console.log(`fixtures: ${loaded}/${total} saves checked; ${total - loaded} not made (node tools/fixtures.js make)`);
