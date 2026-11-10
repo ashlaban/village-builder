@@ -21,7 +21,7 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties, SPREAD = 73; // 192 / φ², prime to 192 days: ids next to each other renormalise far apart, any run of days evenly
+  const TIES = SOCIAL.ties;
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.tieT = st.t; p.homeHours = 0; }
   const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
   function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
@@ -69,7 +69,7 @@ VB['sim/relations'] = (() => {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) {
       const p = st.pawns[id]; p.homeHours = 0;
-      if ((day + id * SPREAD) % every === 0) renormalise(st, p);
+      if ((day - id) % every === 0) renormalise(st, p); // pawn id on day id, and every TIES.renorm years after
       if ((day + id) % SEASON_DAYS === 0) for (const q of kinNear(st, id)) if (st.pawns[q].alive) floorKin(st, id, q);
     }
   }
