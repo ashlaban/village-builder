@@ -40,8 +40,9 @@ VB['sim/fields'] = (() => {
   // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
   // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
   // household may take a tile in (a stake it may contest, for sim/stakes).
-  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village)) {
-    const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
+  // `built`: builtTiles(st), when the caller has it (the review asks every farm in one hour, VB-227).
+  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
+    const w = st.w, own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
@@ -52,11 +53,11 @@ VB['sim/fields'] = (() => {
   }
   // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
   // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
-  function startProject(st, f, hh) {
+  function startProject(st, f, hh, built = builtTiles(st)) {
     if (f.project || f.fields.length >= fieldsWanted(st, hh)) return;
-    let tile = chooseTile(st, f);
+    let tile = chooseTile(st, f, undefined, built);
     if (tile < 0) {
-      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
     }
     stake(st, hh, tile, 'field');

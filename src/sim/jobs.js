@@ -8,7 +8,7 @@ VB['sim/jobs'] = (() => {
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
-  const { startProject } = VB['sim/fields'];
+  const { startProject, builtTiles } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { planOf, reviewed } = VB['sim/plans'];
@@ -49,6 +49,9 @@ VB['sim/jobs'] = (() => {
       for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
     };
     const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan); };
+    // The houses and greens no field or meadow is made next to, once for every farm's look for land: no house is built during the
+    // review (VB-227: each farm built the set anew, farms times farms a day).
+    const looks = st.makeFields && c.hour === WORK[0], built = looks ? builtTiles(st) : null;
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
@@ -59,7 +62,7 @@ VB['sim/jobs'] = (() => {
       // A choice, not an availability: a household looks for land for a new field, or a meadow once the fields are enough, once a day at
       // the start of work (balance review: households in every scenario look, and those short of land searched in vain every hour).
       // These are slice 3's hidden plans (VB-164).
-      if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
+      if (looks) { startProject(st, f, hh, built); startMeadow(st, f, hh, built); }
       ask(ASK.farmAfterPlans, hh, f, f);
     }
     own = null;
@@ -103,7 +106,11 @@ VB['sim/jobs'] = (() => {
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
-  const jobsFor = (st, p) => mergeById(st.jobsBy.get(`household:${p.household}`) || none, st.jobsBy.get(`village:${villageOf(st, p)}`) || none);
+  // When one of the two is empty, the other as it stands (VB-227: most villages post nothing of their own); callers only read it.
+  function jobsFor(st, p) {
+    const x = st.jobsBy.get(`household:${p.household}`) || none, y = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
+    return y.size === 0 ? x : x.size === 0 ? y : mergeById(x, y);
+  }
   // VB-107: at each full hour of the working day, a pawn at work (not walking there, not carrying home) looks up from its job. When an open
   // job it may take bids, without noise, above switchRatio × its own job's bid + switchMargin, it leaves its job, which keeps its progress,
   // and starts the other. A job it would finish within the hour at its own rate is not left. Draws no random numbers.

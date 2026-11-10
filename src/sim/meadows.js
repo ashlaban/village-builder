@@ -28,8 +28,8 @@ VB['sim/meadows'] = (() => {
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
   // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
-  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village)) {
-    const w = st.w, built = builtTiles(st), own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
+  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
+    const w = st.w, own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
@@ -48,11 +48,11 @@ VB['sim/meadows'] = (() => {
   }
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
   // with no free tile within reach, it may contest a stake another household of its village left unworked.
-  function startMeadow(st, f, hh) {
+  function startMeadow(st, f, hh, built = builtTiles(st)) {
     if (f.project || !wantsMeadow(st, f, hh)) return;
-    let tile = chooseMeadow(st, f);
+    let tile = chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
-      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
     }
     stake(st, hh, tile, 'meadow');
@@ -94,12 +94,15 @@ VB['sim/meadows'] = (() => {
     return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < ENOUGH * need;
   }
   // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
-  // wanted (`want`); hay already mown is always carried in.
+  // wanted (`want`: a boolean, or a function asked only when a raking or mowing could be posted, VB-227); hay already mown is always carried in.
   function meadowJobs(f, m, c, want = true) {
-    const k = `f${f.id}.m${m.id}`, out = [];
-    if (want && m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
-    if (want && m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
-    if (m.stage === 'mown' && c.day >= m.mown + DRY_DAYS) out.push(['hay:' + k, 'hay']);
+    const out = [], rake = m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS, mow = m.stage === 'grass' && hayDay(c) >= 0;
+    const hay = m.stage === 'mown' && c.day >= m.mown + DRY_DAYS;
+    if (!rake && !mow && !hay) return out;
+    const k = `f${f.id}.m${m.id}`, wanted = (rake || mow) && (typeof want === 'function' ? want() : want);
+    if (wanted && rake) out.push(['rake:' + k, 'rake']);
+    if (wanted && mow) out.push(['mow:' + k, 'mow']);
+    if (hay) out.push(['hay:' + k, 'hay']);
     return out;
   }
   // Mown: the meadow holds its year's hay, by site, weather and raking.
