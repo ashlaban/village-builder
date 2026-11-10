@@ -24,4 +24,4 @@ On phones and tablets, the bottom bar opens People, Family records, Customs, or 
 
 **Hide UI** leaves the map visible and keeps time running at the chosen speed; **Show UI** restores the previous panel and selection. On a keyboard, H toggles the UI, Space pauses/resumes, and 1–5 choose speeds.
 
-For software-rendered CI, `VB_SOFTWARE_RENDER=1` renders each generated world once in browser fixtures while simulation and UI updates keep their normal test cadence. `VB_TEST_JOBS=2` limits test workers; `VB_CHROMIUM` optionally selects a Chromium executable.
+The browser tests render each generated world once and then a frame a second, while simulation and UI updates keep their normal cadence; `VB_FULL_RENDER=1` renders every frame. `VB_TEST_JOBS=2` limits test workers; `VB_CHROMIUM` optionally selects a Chromium executable.

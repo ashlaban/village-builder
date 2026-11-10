@@ -101,7 +101,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#playBox [data-play="stop"]');
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop
-  if (await page.locator('#skipBtn').isVisible()) fail('Skip is offered with no pawn played');
+  // the button follows the page's next refresh, not the click
+  await page.locator('#skipBtn').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => fail('Skip is offered with no pawn played'));
   await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
   const skipT = await page.evaluate(() => window.__play.st.t);
   await page.click('#skipBtn');
