@@ -40,11 +40,14 @@ VB['sim/farmclaims'] = (() => {
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // A pawn of `ids` (st.demand: landless adults who want out) who may claim a farm at all: alive and grown, with no farm, no claim under way,
   // no plot coming (sim/expansion) and no ward to keep.
-  const free = (st, id) => {
+  // barred says which of these stands in the way, or null.
+  const barred = (st, id) => {
     const p = st.pawns[id];
-    return p.alive && p.age >= 18 && p.household !== null && !landed(st, id) && !claimOf(st, id) && !hasPlot(st, id) && !awaitsCottage(st, id)
-      && !guardian(st, id);
+    return !p.alive || p.age < 18 ? 'under 18' : p.household === null ? 'has no home' : landed(st, id) ? 'holds a farm, or is married to its holder'
+      : claimOf(st, id) ? 'restoring a farm it claimed' : hasPlot(st, id) || awaitsCottage(st, id) ? 'has a plot coming' : guardian(st, id) ? 'keeps a ward'
+        : null;
   };
+  const free = (st, id) => barred(st, id) === null;
   // The farm whose claim pawn id, or their spouse, has under way, or null.
   function claimOf(st, id) {
     const sp = spouseOf(st, id);
@@ -199,5 +202,5 @@ VB['sim/farmclaims'] = (() => {
   }
   return { birthright, birthrightOn, restoreHours, claimable, startClaim, claimOf, claimants, claimFarms, claimableFarm, claimJobs, claimPrio, workClaim,
     restored,
-    lapsedFarmClaims, moveIn };
+    lapsedFarmClaims, moveIn, barred };
 })();

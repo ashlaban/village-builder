@@ -374,17 +374,17 @@ VB['sim/heirs'] = (() => {
     }
     return out;
   }
-  // own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function wantsOut(st, p, heirs = null, own = null, rank = null) {
-    if (!p.alive || p.age < 18 || p.retired) return false;
-    if (isHolder(st, p.id)) return false;
-    const sp = spouseOf(st, p.id); if (sp !== null && isHolder(st, sp)) return false;
-    if (placeIfMarried(st, p.id, own, rank) !== null) return false;
-    if (claimOf(st, p.id)) return false; // restoring an empty farm they claimed (sim/farmclaims)
-    if (heirs) { if (heirs.has(p.id)) return false; } // heir somewhere else
-    else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return false;
-    return true;
+  // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
+  function staysWhy(st, p, heirs = null, own = null, rank = null) {
+    if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
+    const sp = spouseOf(st, p.id); if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
+    if (placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
+    if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
+    if (heirs) { if (heirs.has(p.id)) return 'heir to a farm'; } // heir somewhere else
+    else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return 'heir to a farm';
+    return null;
   }
+  const wantsOut = (st, p, heirs = null, own = null, rank = null) => staysWhy(st, p, heirs, own, rank) === null;
   // st.demand: the living pawns who want to move out (landless adults with no prospect of a farm), in id order
   function countDemand(st, rank = null) {
     const own = rank ? null : ownFirstOf(st);
@@ -392,7 +392,7 @@ VB['sim/heirs'] = (() => {
     st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own, rank));
   }
   return {
-    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, countDemand, firstHeirs, ownFirstOf,
+    heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, staysWhy, countDemand, firstHeirs, ownFirstOf,
       setGuardian,
       handOn,
     heirFor, roundHeirs,

@@ -71,24 +71,32 @@ VB['sim/service'] = (() => {
     log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
       kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
   }
+  // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
+  function unfit(st, q) {
+    if (!free(st, q)) return !adult(q) ? 'under 18' : q.retired ? 'retired' : q.household === null ? 'has no home' : hasPlot(st, q.id) ? 'has a plot coming'
+      : isGuardian(st, q.id) ? 'keeps a ward' : 'holds a farm, or is married to its holder';
+    if (spouseOf(st, q.id) !== null) return 'married';
+    return q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0] ? `service is for those of ${SERVICE.ages[0]} to ${SERVICE.ages[1]}` : null;
+  }
+  // The working hands q's household keeps without it; -1 when it has no household to leave (dissolved, or q alone in it).
+  function handsLeft(st, q) {
+    const from = st.households[q.household];
+    return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
+  }
   function takeServants(st) {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
     const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    const available = st.demand.filter((id) => {
-      const q = st.pawns[id];
-      return free(st, q) && spouseOf(st, id) === null && q.age <= SERVICE.ages[1] && q.age >= SERVICE.ages[0];
-    });
+    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
       let best = null, bs = null;
       for (const id of available) {
         const q = st.pawns[id];
-        const from = st.households[q.household]; if (from.dissolved || from.members.length < 2) continue;
-        const left = hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0); if (left < SERVICE.keepHands) continue;
+        const from = st.households[q.household], left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
         const u = st.villages[village(from)], d = u.id === v.id ? 0 : hexSteps(st.w, u.center, v.center);
         if (d > SERVICE.reach) continue;
         const s = [d, -left, q.born];
@@ -99,5 +107,5 @@ VB['sim/service'] = (() => {
     }
     refreshRoles(st); st.visualDirty = true;
   }
-  return { careForOrphans, takeServants, enterService, hands };
+  return { careForOrphans, takeServants, enterService, hands, unfit, handsLeft };
 })();
