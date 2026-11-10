@@ -30,6 +30,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-230](backlog/VB-230.md) | The dependency check by layer, with a baseline that only falls | - | 3 | S | Each module names its layer; the check lists calls that go upward outside the declared channels, against a baseline that only falls (29 on 9 November). |
 | [VB-231](backlog/VB-231.md) | Refactor: the customs in force, read from the kernel layer | - | 3 | M | A kernel-layer `inForce` is the one door to custom; the four modules that index practice arrays ask it, and `culture` stays the only writer. |
 | [VB-232](backlog/VB-232.md) | Refactor: a rule's contribution is registered by its source | - | 3 | S | A contribution may be registered before its rule is declared, in a declared order; a lint holds `source` to the registering module; the hunger and goodwill terms move home. |
+| [VB-236](backlog/VB-236.md) | The route cache is cleared when a tile's cost changes | - | 3 | S | The nightly selective refresh of 30,000 cached routes costs as much as the searches it saves: clear the cache on a change and lower its bound. |
+| [VB-237](backlog/VB-237.md) | Refactor: stores refuses a holder that is not a household, a village or a pawn | - | 3 | S | type() in sim/stores takes anything that is not a household or a village for a pawn, and writes a stake onto it; test for the pawn and throw otherwise. |
+| [VB-238](backlog/VB-238.md) | Refactor: a tie's eviction and floor in sim/relations, written as plain cases | - | 3 | S | put and raiseTie in sim/relations fold three cases into one nested condition and a double negation; write them as the cases they are. |
 
 ## Waiting for Kim
 
