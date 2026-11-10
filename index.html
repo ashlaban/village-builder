@@ -1806,6 +1806,12 @@ const ArchGen = (() => {
         if (mural) {
           // flat colour with the mottling of old plaster; no light, no bevel: relief is drawn as marks (decorateChunk)
           f += (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07 + (far ? 0 : (tn(x * 0.8, y * 0.8) - 0.5) * 0.035);
+          if (STY().shade) {
+            // the light of the land's own relief, over the flat colour
+            let sh = csample(shade, x, y) - 1;
+            sh = sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh;
+            f *= 1 + sh * Math.min(1.1, bi.shade) * STY().shade;
+          }
           if (far && (bt === B.FOREST || bt === B.PINE)) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9;
           if (far && bt === B.MOUNTAIN) f *= crag(x, y) > 0.75 ? 1.06 : 0.9;
           const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
@@ -13716,7 +13722,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '25bfd63b92', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '72fc5ac681', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

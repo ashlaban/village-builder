@@ -519,6 +519,12 @@ const ArchGen = (() => {
         if (mural) {
           // flat colour with the mottling of old plaster; no light, no bevel: relief is drawn as marks (decorateChunk)
           f += (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07 + (far ? 0 : (tn(x * 0.8, y * 0.8) - 0.5) * 0.035);
+          if (STY().shade) {
+            // the light of the land's own relief, over the flat colour
+            let sh = csample(shade, x, y) - 1;
+            sh = sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh;
+            f *= 1 + sh * Math.min(1.1, bi.shade) * STY().shade;
+          }
           if (far && (bt === B.FOREST || bt === B.PINE)) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9;
           if (far && bt === B.MOUNTAIN) f *= crag(x, y) > 0.75 ? 1.06 : 0.9;
           const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
