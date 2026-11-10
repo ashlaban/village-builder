@@ -177,6 +177,11 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   VB-036's, in slice 7. Cost: no stored offer without a player, about 0.06 a household a year with one, nothing polled between rounds.
 - An offer is made in the man's village's round. VB-242's plan (10 Nov) makes the round a village a step (VB-277, after VB-272;
   `design.md`, Leaving home: A village's round), so a pair held by an offer is not free to a later village's men the same day.
+- **Distance between villages governs what reaches between them, and the pawn travels** (Kim, 10 Nov; `design.md`, Between
+  villages). VB-281's plan: VB-286 (walking hours between villages, a table a village a step), VB-287 (journeys: a mover walks,
+  a leg a day), VB-288 (the round's pool within reach, nearer women preferred; after VB-277), VB-289 (the suitor's visit, waiting
+  for Kim), VB-290 (claims, service and the tie read hours), VB-291 (kin help carried, waiting for Kim) and VB-292 (the player's
+  visit, waiting for Kim). They run beside the slices, after VB-241, as VB-277 to VB-280 do; only VB-292 is slice 2's.
 - The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year
