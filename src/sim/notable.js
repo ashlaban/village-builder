@@ -1,9 +1,35 @@
 // @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
-// skip to the next event that concerns the played pawn (VB-234); read-only views, no state
+// skip to the next event that concerns the played pawn (VB-234); queries of the record and a pawn's life (VB-199); read-only views, no state
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES } = VB['sim/deaths'];
   const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
+  // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
+  // recorded beside it (`self`), which only its life reads.
+  const told = (e) => typeof e === 'object' && !e.self;
+  // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
+  // With {pawn, life: true}: the pawn's own events, read through its positions on the record (lifeOf).
+  function recordOf(st, q = {}) {
+    if (q.life) return lifeOf(st, q.pawn);
+    const kinds = q.kinds ? new Set(q.kinds) : null;
+    const out = st.record.filter((e) => told(e) && (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
+      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
+      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
+      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
+    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+  }
+  // A pawn's life in its own words, in the order it was written: {t, kind, text, at (the position on the record)}, a death with its
+  // `cause` and told as "Died of ...", a birth with no text; an event since folded is {t (its year's start), kind, at, folded (the count
+  // of its kind, village and year)}, with no text.
+  function lifeOf(st, id) {
+    return st.pawns[id].events.map((at) => {
+      const e = st.record[at];
+      if (typeof e !== 'object') { const y = st.recordYears[e]; return { t: y.year * YEAR, kind: y.kind, at, folded: y.tally }; }
+      if (e.kind === 'born') return { t: e.t, kind: 'born', at }; // the village's line is the mother's telling
+      if (e.kind !== 'died') return { t: e.t, kind: e.kind, text: e.text, at };
+      return { t: e.t, kind: 'died', text: CAUSES[e.text] ? CAUSES[e.text].event : undefined, cause: e.text, at };
+    });
+  }
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
     family: "Births, marriages and deaths in the selected person's household or line",
@@ -33,6 +59,7 @@ VB['sim/notable'] = (() => {
   // The reasons a record event is notable, as keys of NOTABLE, or null when it is routine. `about` is the pawn the player follows (the
   // selected pawn; the played one once the player plays a pawn, VB-210), or null. Most events are routine: they cost one switch.
   function notable(st, ev, about = null) {
+    if (!told(ev)) return null;
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
@@ -79,7 +106,7 @@ VB['sim/notable'] = (() => {
   // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
   function chronicle(st, q, group = null) {
     const kinds = group ? new Set(CHRONICLE[group].kinds) : null, rows = [], mine = q.pawn !== undefined;
-    const base = st.record.filter((e) => (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
+    const base = st.record.filter((e) => told(e) && (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
       && (q.farm === undefined || e.farm === q.farm) && (q.village === undefined || e.village === q.village));
     const list = base.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
     for (let i = 0; i < list.length; i++) {
@@ -104,7 +131,7 @@ VB['sim/notable'] = (() => {
     const out = [];
     for (let i = st.record.length - 1; i >= 0 && out.length < n; i--) {
       const e = st.record[i];
-      if (PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
+      if (!told(e) || PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
       out.push({ t: e.t, text: eventLine(st, e), ev: e });
     }
     return out;
@@ -136,6 +163,7 @@ VB['sim/notable'] = (() => {
   }
   // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
   function stopsFor(st, ev, about, hid, vid) {
+    if (!told(ev)) return null;
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
@@ -162,5 +190,5 @@ VB['sim/notable'] = (() => {
     if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
     return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
   }
-  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
+  return { recordOf, lifeOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
 })();

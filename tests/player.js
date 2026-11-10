@@ -4,6 +4,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { WORK } = VB['sim/rules'], { QUEUE_MAX } = VB['sim/commands'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { dropKind } = require('./lib/record.js');
 // One village of three farms under a forest; household 0 is a farmer (pawn 0), his wife (1), a son and three daughters, all hoeing in spring.
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = (hours = 0) => { const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 7 }); if (hours) Sim.advance(st, hours); return st; };
@@ -24,10 +25,9 @@ const FARMER = 0, WIFE = 1;
   for (const st of [plain, played]) Sim.advance(st, 5 * Sim.DAY);
   sound(played, 'inhabited and left alone');
   const marks = (list) => list.filter((e) => e.kind === 'player');
-  assert.strictEqual(marks(played.record).length, 1); assert.strictEqual(marks(played.pawns[FARMER].events).length, 1);
+  assert.strictEqual(marks(played.record).length, 1); assert.strictEqual(marks(Sim.recordOf(played, { pawn: FARMER, life: true })).length, 1);
   assert.strictEqual(marks(played.record)[0].text, 'Played by the player');
-  played.record = played.record.filter((e) => e.kind !== 'player');
-  played.pawns[FARMER].events = played.pawns[FARMER].events.filter((e) => e.kind !== 'player');
+  dropKind(played, 'player');
   played.player = null;
   assert.strictEqual(hash(played), hash(plain), 'an inhabited pawn with no commands changes nothing in five days');
   assert.ok(typeof Sim.inhabit(plain, 9999) === 'string', 'only a living pawn is inhabited');
@@ -139,7 +139,7 @@ const FARMER = 0, WIFE = 1;
   assert.strictEqual(st.player.queue.length, QUEUE_MAX - 1, 'refusals leave the queue as it was');
   // the player moves on: the pawn is its own again, and both are on record
   assert.strictEqual(Sim.inhabit(st, WIFE), true);
-  assert.deepStrictEqual(st.pawns[FARMER].events.filter((e) => e.kind === 'player').map((e) => e.text),
+  assert.deepStrictEqual(Sim.recordOf(st, { pawn: FARMER, life: true }).filter((e) => e.kind === 'player').map((e) => e.text),
     ['Played by the player', 'No longer played by the player']);
   assert.strictEqual(Sim.uninhabit(st), true); assert.strictEqual(st.player, null);
   assert.ok(typeof Sim.uninhabit(st) === 'string');

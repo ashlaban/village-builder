@@ -12,7 +12,7 @@ for (const [age, cause] of [[0, 'infancy'], [5, 'childhood'], [30, 'illness'], [
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'founders'), id = st.households[0].members[0];
 Sim.killPawn(st, id, 'illness');
-const e = st.pawns[id].events.find((x) => x.kind === 'died');
+const e = Sim.recordOf(st, { pawn: id, life: true }).find((x) => x.kind === 'died');
 assert.strictEqual(e.text, CAUSES.illness.event); assert.strictEqual(e.cause, 'illness');
 assert(Sim.villageLog(st, Infinity).some((x) => x.text.includes(CAUSES.illness.log)), 'the log names the cause');
 for (const [k, c] of Object.entries(CAUSES)) assert(c.event && c.log, `${k} has both texts`);

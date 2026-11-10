@@ -29,7 +29,7 @@ for (let k = 0; k < 20; k++) R.remember(st, a.id, b.id, 'goodTalk');
 check(Math.abs(a.rel.get(b.id).mem.goodTalk.v - K.goodTalk.cap) < 1e-9, `good talks capped at ${K.goodTalk.cap}: ${a.rel.get(b.id).mem.goodTalk.v}`);
 check(Math.abs(R.opinionOf(st, a.id, b.id) - K.goodTalk.cap) < 1e-9, 'opinion is the memory');
 check(R.opinionOf(st, b.id, a.id) === 0, 'opinion has a direction: b remembers nothing');
-const told = (p, kind) => p.events.filter((e) => e.kind === kind).length;
+const told = (p, kind) => Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.kind === kind).length;
 check(told(a, 'friend') === 1 && a.rel.get(b.id).band === 1, `became friends told ${told(a, 'friend')} times`);
 check(R.opinionWord(R.opinionOf(st, a.id, b.id)) === 'friend', `word ${R.opinionWord(R.opinionOf(st, a.id, b.id))}`);
 

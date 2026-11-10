@@ -3,7 +3,7 @@ VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
   const { trimRoutes } = VB['sim/routes'];
-  const { rebuildLiving } = VB['sim/records'];
+  const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
   // ---- encoding a graph of plain data ----
@@ -143,6 +143,7 @@ VB['sim/saves'] = (() => {
     const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
+    indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.

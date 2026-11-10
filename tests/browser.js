@@ -135,8 +135,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#succession button[data-succeed]');
   await page.waitForSelector('#playBox [data-play="auto"]');
   const after = await page.evaluate((dead) => {
-    const { st } = window.__play;
-    return { pawn: st.player.pawn, events: st.pawns[dead].events.filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
+    const { st, Sim } = window.__play;
+    return { pawn: st.player.pawn, events: Sim.recordOf(st, { pawn: dead, life: true }).filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
   }, played);
   if (after.pawn !== offer.heir.id || !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
   await page.waitForFunction(() => document.getElementById('succession').hidden);

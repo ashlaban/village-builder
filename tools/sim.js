@@ -44,7 +44,7 @@ function plain(v, seen = new Map(), where = '$') {
 const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1] });
 let r; while (!(r = it.next()).done);
 const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
-const causeOf = (p) => { const e = p.events.find((x) => x.kind === 'died'); return e ? e.cause : null; };
+const causeOf = (p) => { const e = Sim.recordOf(st, { pawn: p.id, life: true }).find((x) => x.kind === 'died'); return e ? e.cause : null; };
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
 const start = Math.floor(st.t / Sim.YEAR), last = opt('at', null) !== null ? years : start + years; // years done before, and the last to run
 say(`${scenario} seed ${seedNum} ${map} map (${r.value.N} tiles), ${loaded ? `from the save ${loadFrom} at year ${start}, ` : ''}to year ${last}`);
@@ -165,10 +165,12 @@ const tables = {
   },
 };
 let out = null;
-if (pawnId !== null) { const p = st.pawns[+pawnId]; if (!p) { console.error('no such pawn'); process.exit(1); } out = { ...plain(p), name: Sim.fullName(p) }; }
-else if (hhId !== null) {
+if (pawnId !== null) {
+  const p = st.pawns[+pawnId]; if (!p) { console.error('no such pawn'); process.exit(1); }
+  out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
+} else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
-  out = { ...plain(h), farm: plain(st.farmsteads[h.farmstead]), people: h.members.map((m) => ({ ...pawnRow(st.pawns[m]), events: st.pawns[m].events })) };
+  out = { ...plain(h), farm: plain(st.farmsteads[h.farmstead]), people: h.members.map((m) => ({ ...pawnRow(st.pawns[m]), events: Sim.recordOf(st, { pawn: m, life: true }) })) };
 } else if (report) out = plain(tables[report]());
 if (out !== null && report === 'idle' && !json) {
   console.log('share of work hours (%): working / walking / carrying / idle');

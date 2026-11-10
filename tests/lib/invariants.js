@@ -17,13 +17,45 @@ function checkState(st) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
-  const from = checked.get(st.record) || 0;
+  // (a slot folded since, VB-199, is the index of a count of st.recordYears)
+  const from = checked.get(st.record) || 0, Y = st.recordYears || [];
   for (let i = from; i < (st.record || []).length; i++) {
     const e = st.record[i], ids = { pawn: st.pawns, other: st.pawns, household: st.households, farm: st.farmsteads, village: st.villages };
+    if (typeof e === 'number') { if (!(Number.isInteger(e) && e >= 0 && e < Y.length)) bad.push(`record[${i}]: folded into no count, ${e}`); continue; }
     if (typeof e.kind !== 'string' || !e.kind || !(e.t <= st.t)) bad.push(`record[${i}]: ${JSON.stringify(e)}`);
+    if ('self' in e && (e.self !== true || !('pawn' in e))) bad.push(`record[${i}].self: ${JSON.stringify(e)}`);
     for (const [k, list] of Object.entries(ids)) if (k in e && !(Number.isInteger(e[k]) && e[k] >= 0 && e[k] < list.length)) bad.push(`record[${i}].${k}: ${e[k]}`);
   }
   if (st.record) checked.set(st.record, st.record.length);
+  // the folded counts (VB-199), those made since the last check: a routine kind, a whole year at least two before now, a village that exists
+  // or none, a count of at least one, and one count per kind, village and year; and the fold's positions within the record
+  if (st.recordYears) {
+    const R = globalThis.VB['sim/records'], YEAR = globalThis.VB['sim/rules'].YEAR, seen = checked.get(Y) || { n: 0, keys: new Set() };
+    for (; seen.n < Y.length; seen.n++) {
+      const y = Y[seen.n], key = `${y.kind}|${y.village}|${y.year}`;
+      if (!(R.HISTORY[y.kind] > 0) || !Number.isInteger(y.year) || y.year > Math.floor(st.t / YEAR) - 2
+        || !(Number.isInteger(y.tally) && y.tally >= 1)
+        || ('village' in y && !(Number.isInteger(y.village) && y.village >= 0 && y.village < st.villages.length)) || seen.keys.has(key)) {
+        bad.push(`recordYears[${seen.n}]: ${JSON.stringify(y)}`);
+      }
+      seen.keys.add(key);
+    }
+    checked.set(Y, seen);
+    const F = st.recordFold, P = F && F.pass, pos = (x) => Number.isInteger(x) && x >= 0 && x <= st.record.length;
+    if (!F || !pos(F.shortAt) || !pos(F.longAt) || (P && !(pos(P.shortEnd) && pos(P.longEnd) && P.shortEnd >= F.shortAt && P.longEnd >= F.longAt
+      && P.next >= 0 && P.next <= P.none))) bad.push(`recordFold: ${JSON.stringify(F)}`);
+  }
+  // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
+  for (const p of st.pawns) {
+    const ev = p.events, n0 = checked.get(ev) || 0;
+    for (let k = n0; k < ev.length; k++) {
+      const at = ev[k], e = st.record[at];
+      if (!Number.isInteger(at) || at < 0 || at >= st.record.length || (typeof e === 'object' && e.pawn !== p.id)) {
+        bad.push(`pawn ${p.id}.events[${k}]: ${JSON.stringify(at)} is not one of its events`);
+      }
+    }
+    checked.set(ev, ev.length);
+  }
   // the idle pawns of the hour (VB-074): built this hour or before, each an agent of a living pawn
   if (st.idlers) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);

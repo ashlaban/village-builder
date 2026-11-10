@@ -36,7 +36,7 @@ let report = '';
   check(!adultsOf(st, c.hh).length && c.hh.members.length && R.isHolder(st, c.hh.holder) && st.pawns[c.hh.holder].age < 18, 'setup: a minor heir alone');
   S.careForOrphans(st);
   check(c.sib.household === c.hh.id && c.hh.guardian === c.sib.id && c.hh.ward === c.hh.holder, `the relative is guardian (${c.hh.guardian})`);
-  check(c.sib.events.some((e) => e.kind === 'guardian'), 'a life event says so');
+  check(Sim.recordOf(st, { pawn: c.sib.id, life: true }).some((e) => e.kind === 'guardian'), 'a life event says so');
   const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   report = `${R.fullName(c.sib)} came as guardian of ${c.kids.length} at ${st.farmsteads[c.hh.farmstead].name}`;
 }

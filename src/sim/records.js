@@ -1,34 +1,116 @@
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the record of
+// events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
-  // st.record: every notable event, appended in play: {t, kind, pawn, other, household, farm, village, n, text}, the fields that do not
+  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self}, the fields that do not
   // apply absent. log and personEvent write their event as they write their text; `false` for ev says another call records the event.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text'];
+  // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
+  // routine event, once folded, becomes the index of its count in st.recordYears.
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
     st.record.push(e);
     return e;
   }
+  // How many years each kind of event stays on the record in full (Kim, 10 November 2026; QUESTION_ARCHIVE.md, "VB-199"): 0 for the
+  // notable ones, kept for good; the routine ones are folded into one count per kind, village and year once that old. A kind not listed
+  // is kept; tests/record.js checks that every kind on the record is listed.
+  const GENERATION = 25, SHORT = 2;
+  const HISTORY = {
+    // notable: births, marriages and deaths; inheritances and handovers; moves and leaving; farms, plots, cottages and meadows; customs
+    // and causes; shares paid; and the kinds no task has called routine yet
+    born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
+    stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
+    stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0,
+    // routine
+    friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION, herdBirths: GENERATION,
+    herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION,
+  };
+  // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
+  //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
+  //   events, so a gift between two holders counts twice. Appended only, by foldHistory.
+  // @state st.recordFold: {shortAt, longAt, pass}: how far through st.record the fold has come, as positions, for the kinds kept SHORT
+  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, next (the village folded next; `none` for the events
+  //   of none), none (the villages when it began), made (the counts made in this pass, by "kind|village|year")}, else null.
+  // At the year's turn the fold marks the events old enough (appended in time order, so it stops at the first that is not), and folds
+  // them over the year's first days, a village a day and then the events of none (rule 5). Each event is passed by each end once, and
+  // by each day of its pass; it touches st.record only, never the pawns.
+  function foldHistory(st, c) {
+    const F = st.recordFold, R = st.record;
+    if (!F.pass && c.doy === 0) {
+      const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
+        for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
+        return i;
+      };
+      const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
+      if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, next: 0, none: st.villages.length, made: {} };
+    }
+    const P = F.pass; if (!P) return;
+    const fold = (from, to, short) => {
+      for (let i = from; i < to; i++) {
+        const e = R[i]; VB.count.recordFold++;
+        if (typeof e !== 'object') continue;
+        const years = HISTORY[e.kind];
+        if (!years || (years === SHORT) !== short || (e.village === undefined ? P.none : e.village) !== P.next) continue;
+        const year = Math.floor(e.t / YEAR), key = `${e.kind}|${e.village === undefined ? '' : e.village}|${year}`;
+        let k = P.made[key];
+        if (k === undefined) {
+          k = P.made[key] = st.recordYears.length;
+          st.recordYears.push(e.village === undefined ? { year, kind: e.kind, tally: 0 }
+            : { year, kind: e.kind, village: e.village, tally: 0 });
+        }
+        st.recordYears[k].tally++; R[i] = k;
+      }
+    };
+    fold(F.shortAt, P.shortEnd, true); fold(F.longAt, P.longEnd, false);
+    if (++P.next > P.none) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
+  }
+  // Pawn id's own events gain the event at position `at` of the record (a birth or a death, which the log's line records).
+  function lifeEvent(st, id, at) { st.pawns[id].events.push(at); }
+  // Older saves kept a copy of each event on its pawn: each copy becomes the position of its event on the record (the same pawn, time
+  // and text, whatever its kind: a move told as `joined`; a birth or death by pawn, time and kind). A copy told beside another event
+  // (personEvent with `false`) has none: it is written to the record's end as the pawn's own (`self`), unless it is of a routine kind
+  // (a gift given), which is dropped, as its fold would drop it. One pass over the record, at load, and only for such a save.
+  function indexEvents(st) {
+    if (!st.recordYears) st.recordYears = [];
+    if (!st.recordFold) st.recordFold = { shortAt: 0, longAt: 0, pass: null };
+    let by = null;
+    for (const p of st.pawns) {
+      if (!p.events.some((x) => typeof x === 'object')) continue;
+      if (!by) {
+        by = new Map();
+        st.record.forEach((e, i) => {
+          if (typeof e !== 'object' || e.pawn === undefined) return;
+          const key = `${e.pawn}|${e.t}`, l = by.get(key);
+          if (l) l.push(i); else by.set(key, [i]);
+        });
+      }
+      const out = [];
+      for (const x of p.events) {
+        if (typeof x !== 'object') { out.push(x); continue; }
+        const l = by.get(`${p.id}|${x.t}`) || [], vital = x.kind === 'born' || x.kind === 'died';
+        const j = l.findIndex((i) => (vital ? st.record[i].kind === x.kind : st.record[i].text === x.text));
+        if (j >= 0) { out.push(l[j]); l.splice(j, 1); continue; }
+        if (HISTORY[x.kind]) continue;
+        record(st, { kind: x.kind, pawn: p.id, text: x.text, self: true }, x.t); out.push(st.record.length - 1);
+      }
+      p.events = out;
+    }
+  }
   // where an event of household hh or farm f happened
   const atHousehold = (st, hh) => ({ household: hh.id, farm: hh.farmstead, village: st.farmsteads[hh.farmstead].village });
   const atFarm = (f) => ({ household: f.household, farm: f.id, village: f.village });
-  // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
-  function recordOf(st, q = {}) {
-    const kinds = q.kinds ? new Set(q.kinds) : null;
-    const out = st.record.filter((e) => (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
-      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
-      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
-      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
-    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
-  }
   // A line of the village log: its event goes on the record, and the log is a view of the record (sim/notable, villageLog; VB-099).
-  // Every line names its event (tests/record.js checks each call), or false when another call records the same happening.
+  // Every line names its event (tests/record.js checks each call), or false when another call records the same happening. It gives the
+  // event's position on the record, or -1.
   const log = (st, text, ev) => {
     if (ev === undefined) throw new Error(`log without an event: ${text}`);
-    if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
+    if (!ev) return -1;
+    record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
+    return st.record.length - 1;
   };
   // @state st.living: sorted ids of living pawns; a cache owned here.
   // @state st.liveHouseholds: sorted ids of undissolved households; a cache owned here.
@@ -182,9 +264,11 @@ VB['sim/records'] = (() => {
     return out;
   };
   const farmPractice = (st, f) => practice(st, f.village);
+  // An event of pawn id in its own words: one event on the record, and its position on the pawn (VB-199). With `false` for ev another
+  // call records the happening, and this is the pawn's own telling of it (`self`), which only the pawn's life reads.
   function personEvent(st, id, kind, text, ev = {}) {
-    st.pawns[id].events.push({ t: st.t, kind, text });
-    if (ev) record(st, { kind, pawn: id, text, ...ev });
+    record(st, ev ? { kind, pawn: id, text, ...ev } : { kind, pawn: id, text, village: settlementIdOf(st, st.pawns[id]), self: true });
+    st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
@@ -271,8 +355,8 @@ VB['sim/records'] = (() => {
   }
   return {
     rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
-      record,
-      recordOf, atHousehold, atFarm, age,
+      record, HISTORY, foldHistory, lifeEvent, indexEvents,
+      atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,

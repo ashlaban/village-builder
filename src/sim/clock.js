@@ -2,7 +2,7 @@
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
@@ -47,6 +47,7 @@ VB['sim/clock'] = (() => {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); }
       if (c.doy === 0) newYear(st, c);
+      foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
   }
   function endOfDay(st, c) {

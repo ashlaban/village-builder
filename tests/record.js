@@ -1,5 +1,6 @@
 // The record of events (VB-075): after 10 founders years at seed 7, every pawn ever born has a born event, every dead pawn a died event and
-// every union a married event; recordOf filters by pawn, place, kind and time and returns time order.
+// every union a married event; recordOf filters by pawn, place, kind and time and returns time order. VB-199: a pawn's events are
+// positions in the record and read as they did, every kind is in HISTORY, and the routine kinds fold into yearly counts.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
@@ -24,24 +25,71 @@ for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 's
   }
 }
 assert.deepStrictEqual(missing, [], `log calls without an event: ${missing.join(', ')}`);
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'founders');
-Sim.advance(st, 10 * Sim.YEAR);
-const of = (kind) => { const m = new Map(); for (const e of st.record) if (e.kind === kind) m.set(e.pawn, (m.get(e.pawn) || 0) + 1); return m; };
+// every kind of event a call writes is in the table of how long each kind is kept (VB-199): the literal kinds of personEvent, and of
+// the events of log and record calls
+const H = VB['sim/records'].HISTORY, written = new Set();
+for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x)) {
+  const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  for (const m of src.matchAll(/personEvent\(st, [^,]+, '(\w+)'/g)) written.add(m[1]);
+  for (const m of src.matchAll(/\b(?:log|record)\(st, [^;]*?\{[^;]*?kind: '(\w+)'/g)) written.add(m[1]);
+}
+const unlisted = [...written].filter((k) => !(k in H));
+assert.deepStrictEqual(unlisted, [], `kinds written but not in HISTORY (sim/records): ${unlisted.join(', ')}`);
+const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).done); return r.value; };
+// A pawn's life reads as it did when each pawn kept copies of its events: the times and texts of every pawn's events, heirs at seed 7
+// after two and a half years (before any fold), hash as the copies did at 7812253, the commit before VB-199.
+{
+  const st = Sim.seed(world(), 7, 'heirs');
+  Sim.advance(st, 2.5 * Sim.YEAR);
+  const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
+  const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 230, 'heirs 7 at 2.5 years: 230 events on its pawns');
+  assert.strictEqual(hash, '79786b701a98b8a7', 'a pawn\'s life reads as it did with copies');
+}
+const st = Sim.seed(world(), 7, 'founders');
+Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
+const live = st.record.filter((e) => typeof e === 'object'), told = live.filter((e) => !e.self);
+const of = (kind) => { const m = new Map(); for (const e of told) if (e.kind === kind) m.set(e.pawn, (m.get(e.pawn) || 0) + 1); return m; };
 const born = of('born'), died = of('died');
 for (const p of st.pawns) {
   assert.strictEqual(born.get(p.id), 1, `pawn ${p.id} has ${born.get(p.id) || 0} born events`);
   assert.strictEqual(died.get(p.id) || 0, p.died === null ? 0 : 1, `pawn ${p.id} (died ${p.died}) has ${died.get(p.id) || 0} died events`);
 }
-const wed = new Set(st.record.filter((e) => e.kind === 'married').map((e) => `${e.pawn}-${e.other}`));
+const wed = new Set(told.filter((e) => e.kind === 'married').map((e) => `${e.pawn}-${e.other}`));
 for (const u of st.unions) assert.ok(wed.has(`${u.a}-${u.b}`), `union ${u.id} (${u.a} and ${u.b}) has no married event`);
-for (const e of st.record) {
+for (const e of live) {
   assert.ok(typeof e.kind === 'string' && Number.isFinite(e.t) && e.t <= st.t, `bad event ${JSON.stringify(e)}`);
+  assert.ok(e.kind in H, `the kind ${e.kind} is not in HISTORY (sim/records)`);
   for (const k of Object.keys(e)) assert.ok(e[k] !== undefined && e[k] !== null, `event ${JSON.stringify(e)}: ${k} is empty`);
+}
+// the fold: a routine event is kept its years, then its slot is the index of its count, and each count is as many slots
+const Y = Math.floor(st.t / Sim.YEAR), slots = new Map();
+assert.strictEqual(st.recordFold.pass, null, 'the fold has ended');
+for (const e of live) {
+  if (H[e.kind]) assert.ok(e.t >= (Y - H[e.kind]) * Sim.YEAR, `a ${e.kind} event of year ${Math.floor(e.t / Sim.YEAR)} not folded in year ${Y}`);
+}
+st.record.forEach((e) => { if (typeof e === 'number') slots.set(e, (slots.get(e) || 0) + 1); });
+assert.ok(st.recordYears.length && st.recordYears.every((c) => H[c.kind] === 2), 'ten years fold friends and fallings-out only');
+st.recordYears.forEach((c, k) => assert.strictEqual(slots.get(k), c.tally, `count ${k} ${JSON.stringify(c)}: ${slots.get(k)} slots`));
+const keys = new Set(st.recordYears.map((c) => `${c.kind}|${c.village}|${c.year}`));
+assert.strictEqual(keys.size, st.recordYears.length, 'one count per kind, village and year');
+const kept = st.pawns.find((p) => p.events.some((at) => typeof st.record[at] === 'number'));
+const gone = Sim.recordOf(st, { pawn: kept.id, life: true }).find((e) => e.folded);
+assert.ok(gone && gone.text === undefined && H[gone.kind] && gone.folded === st.recordYears[st.record[gone.at]].tally, 'a folded event reads as its count');
+// a save in the middle of a fold goes on as the run does
+{
+  const a = Sim.seed(world(), 7, 'heirs');
+  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first village folded
+  assert.ok(a.recordFold.pass && a.recordFold.pass.next === 1, `a fold under way: ${JSON.stringify(a.recordFold)}`);
+  const b = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
+  for (const s of [a, b]) Sim.advance(s, 6 * Sim.DAY);
+  assert.strictEqual(a.recordFold.pass, null);
+  assert.strictEqual(JSON.stringify([b.record, b.recordYears, b.recordFold]), JSON.stringify([a.record, a.recordYears, a.recordFold]),
+    'loaded, the fold ends as it would have');
 }
 // queries
 const all = Sim.recordOf(st);
-assert.strictEqual(all.length, st.record.length);
+assert.strictEqual(all.length, told.length);
 for (let i = 1; i < all.length; i++) assert.ok(all[i - 1].t <= all[i].t, 'recordOf returns time order');
 const kid = st.pawns.find((p) => p.born > 0 && p.mother !== null), mine = Sim.recordOf(st, { pawn: kid.mother });
 assert.ok(mine.some((e) => e.kind === 'born' && e.pawn === kid.id), 'a mother finds the birth of her child (as other)');
@@ -49,6 +97,28 @@ const v0 = Sim.recordOf(st, { village: 0, kinds: ['died'] });
 assert.ok(v0.every((e) => e.village === 0 && e.kind === 'died'));
 const y5 = Sim.recordOf(st, { from: 4 * Sim.YEAR, to: 5 * Sim.YEAR });
 assert.ok(y5.length && y5.every((e) => e.t >= 4 * Sim.YEAR && e.t < 5 * Sim.YEAR));
-const kinds = {}; for (const e of st.record) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
-console.log(`record ok: founders 7 after 10 years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events `
-  + `(${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')})`);
+const kinds = {}; for (const e of live) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
+const folded = st.recordYears.reduce((a, c) => a + c.tally, 0);
+console.log(`record ok: founders 7 after 10 years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events, ${folded} `
+  + `folded into ${st.recordYears.length} counts (${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')})`);
+// An older save, with a copy of each event on its pawn (the late fixture small-y5, where it is at hand and older than VB-199): loaded,
+// each pawn's life reads as its copies did, in their order, but for the copies of routine kinds told only on the pawn (gifts given).
+{
+  const { loadFixture, files } = require('./lib/fixtures.js'), zlib = require('zlib');
+  const old = loadFixture('small-y5', { fetch: false });
+  const data = old && JSON.parse(zlib.gunzipSync(fs.readFileSync(files('small-y5').save)).toString('utf8'));
+  const pawns = data && (data.state.pawns.$arr || data.state.pawns);
+  if (pawns && pawns.some((p) => p.events.some((x) => typeof x === 'object'))) {
+    let n = 0, dropped = 0;
+    for (const p of pawns) {
+      const life = Sim.recordOf(old.st, { pawn: p.id, life: true }), line = (e) => `${e.t}|${e.kind === 'born' ? '' : e.text}`;
+      let k = 0;
+      for (const x of p.events) {
+        if (k < life.length && line(life[k]) === line(x)) { k++; n++; continue; }
+        assert.ok(H[x.kind], `pawn ${p.id}: the copy ${JSON.stringify(x)} is not in its life`); dropped++;
+      }
+      assert.strictEqual(k, life.length, `pawn ${p.id}: its life has events its copies did not`);
+    }
+    console.log(`record ok: small-y5, saved with copies: ${n} events of its pawns read as they did; ${dropped} routine copies dropped`);
+  }
+}

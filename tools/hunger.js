@@ -27,7 +27,7 @@ module.exports = (Sim, st) => {
   function result() {
     const { y0, days0, seasons, at } = last, live = st.households.filter((h) => !h.dissolved);
     const starved = (p) => p.died !== null && p.died >= y0 && p.died < st.t
-      && p.events.some((e) => e.kind === 'died' && (e.cause === 'hunger' || e.cause === 'starvation'));
+      && Sim.recordOf(st, { pawn: p.id, life: true }).some((e) => e.kind === 'died' && (e.cause === 'hunger' || e.cause === 'starvation'));
     const rows = [];
     for (const h of live) {
       const days = h.hungryDays - (days0.get(h.id) || 0);
