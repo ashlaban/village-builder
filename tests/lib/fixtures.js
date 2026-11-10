@@ -111,8 +111,9 @@ function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {
   const VB = require('../../src/load.js'), it = VB.gen.generate(data.seed, { cols: data.cols, rows: data.rows });
   let r; while (!(r = it.next()).done);
   const st = VB.sim.load(r.value, data), stamp = info.stamp;
-  // Scenarios start at 06:00; fixtures are made after N complete years, with floating-point step error allowed.
-  if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length !== stamp.events
+  // Scenarios start at 06:00; fixtures are made after N complete years, with floating-point step error allowed. A save from before
+  // VB-199 gains, as it loads, the events its pawns told beside another (sim/records, indexEvents), at the record's end.
+  if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length < stamp.events
       || st.pawns.filter((p) => p.alive).length !== stamp.living) throw new Error(`${name}: stamp does not match state; remake the fixtures`);
   const stale = info.status === 'stale';
   if (stale) notice(`${name}: stale golden hash; using the saved state`);

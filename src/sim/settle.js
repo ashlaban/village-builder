@@ -16,6 +16,7 @@ VB['sim/settle'] = (() => {
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
+  const { makePlan } = VB['sim/plans'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
@@ -195,7 +196,7 @@ VB['sim/settle'] = (() => {
     const hs = st.cenv.settlements[home.id];
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
-    st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
+    st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then

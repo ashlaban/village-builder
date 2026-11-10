@@ -4,12 +4,13 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], Rel = VB['sim/relations'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { dropKind } = require('./lib/record.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const make = (seed = 4) => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const ids = (list) => list.map((s) => s.id), whys = (list, why) => list.filter((s) => s.why === why).map((s) => s.id);
-const playerEvents = (st, id) => st.pawns[id].events.filter((e) => e.kind === 'player').map((e) => e.text);
+const playerEvents = (st, id) => Sim.recordOf(st, { pawn: id, life: true }).filter((e) => e.kind === 'player').map((e) => e.text);
 
 // 1. A holder dies: the player keeps it with an empty queue; the heir, who holds the farm now, comes first, then the others in line, then
 // kin nearest first with the widow at their head, and nobody twice.
@@ -119,7 +120,7 @@ const playerEvents = (st, id) => st.pawns[id].events.filter((e) => e.kind === 'p
   const plain = make(), played = make(), other = plain.households[1].holder;
   Sim.inhabit(played, other);
   for (const s of [plain, played]) { Sim.killPawn(s, id, 'illness'); Sim.advance(s, Sim.DAY); }
-  played.record = played.record.filter((e) => e.kind !== 'player'); played.pawns[other].events = played.pawns[other].events.filter((e) => e.kind !== 'player');
+  dropKind(played, 'player');
   played.player = null;
   assert.strictEqual(hash(played), hash(plain), 'another pawn\'s death is the same with a player as without');
 }

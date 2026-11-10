@@ -53,8 +53,10 @@ VB['sim/kinds'] = (() => {
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
   function meadowWork(st, hh, f, c, post) {
-    const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
-    for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(key, m.tile, { meadow: m, farm: f }, kind);
+    // whether hay is wanted, asked once, and only when a meadow could be raked or mown now (VB-227)
+    let hayW = null;
+    const want = () => (hayW === null ? (hayW = hayWanted(st, f, hh)) : hayW);
+    for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
   }
   // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
   function byreWork(st, hh, f, c, post) {

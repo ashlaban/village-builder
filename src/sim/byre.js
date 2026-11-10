@@ -213,15 +213,15 @@ VB['sim/byre'] = (() => {
   function byreJobs(st, hh, c) {
     const out = [];
     if (stalled(c) && hh.fodderDay !== c.day && hasAnimals(st, hh)) out.push([`fodder:h${hh.id}:${c.day}`, 'fodder', { hours: fodderHours(st, hh) }]);
-    for (const herd of herdsOf(st, hh)) for (const e of herd.cull) {
-      out.push([`slaughter:h${hh.id}:${herd.id}.${e.id}`, 'slaughter', { herd, entry: e, hours: HERD.slaughter[herd.species] }]);
+    for (const id of hh.herds) {
+      const herd = st.herds[id];
+      for (const e of herd.cull) out.push([`slaughter:h${hh.id}:${herd.id}.${e.id}`, 'slaughter', { herd, entry: e, hours: HERD.slaughter[herd.species] }]);
     }
-    const meat = larderOf(hh, 'meat');
+    const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
-    const cows = milkCows(st, hh, c); // milking from 6:00 while the herds are out (VB-135)
-    if (cows && hh.milkDay !== c.day && c.hour >= WORK[0]) {
-      out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
-    }
+    // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
+    const cows = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c) ? milkCows(st, hh, c) : 0;
+    if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
   return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };

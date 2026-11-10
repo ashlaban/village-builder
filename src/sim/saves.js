@@ -3,9 +3,10 @@ VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
   const { trimRoutes } = VB['sim/routes'];
-  const { rebuildLiving } = VB['sim/records'];
+  const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
+  const { seedPlans } = VB['sim/plans'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -143,6 +144,7 @@ VB['sim/saves'] = (() => {
     const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
+    indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
@@ -153,6 +155,7 @@ VB['sim/saves'] = (() => {
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

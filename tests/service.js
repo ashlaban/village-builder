@@ -20,7 +20,7 @@ for (const id of ids) {
 // The first to leave has no kin elsewhere and goes into service; the rest follow their kin (the first) there.
 const first = st.pawns[ids.find((id) => st.pawns[id].alive)], farm = st.farmsteads[st.households[want].farmstead].name;
 check(first.servant === true, `${first.given} is not a servant`);
-check(first.events.some((e) => e.kind === 'service' && e.text.includes(farm)), `${first.given} has no service event naming ${farm}`);
+check(Sim.recordOf(st, { pawn: first.id, life: true }).some((e) => e.kind === 'service' && e.text.includes(farm)), `${first.given} has no service event naming ${farm}`);
 // A one-farm village: the people go to the nearest village.
 const st2 = Sim.seed(world(7), 7, 'heirs');
 const lone = st2.households.find((h) => st2.households.filter((o) => st2.farmsteads[o.farmstead].village === st2.farmsteads[h.farmstead].village).length === 1);

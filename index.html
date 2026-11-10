@@ -690,7 +690,13 @@ VB.COUNTERS = {
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
+  recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
   ruleValue: 'Rule values read (explanations excluded)',
+  oppAsk: 'Calls of a kind\'s `available` rule by the hourly review of the standing plans (sim/jobs, refreshJobs; VB-258)',
+  planReview: 'Standing plans reviewed, one per live household on a farm and per village each review hour (sim/plans, VB-258)',
+  matchBid: 'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
+  lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
+  cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -3416,37 +3422,119 @@ VB['sim/ownership'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the record of
+// events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
-  // st.record: every notable event, appended in play: {t, kind, pawn, other, household, farm, village, n, text}, the fields that do not
+  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self}, the fields that do not
   // apply absent. log and personEvent write their event as they write their text; `false` for ev says another call records the event.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text'];
+  // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
+  // routine event, once folded, becomes the index of its count in st.recordYears.
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
     st.record.push(e);
     return e;
   }
+  // How many years each kind of event stays on the record in full (Kim, 10 November 2026; QUESTION_ARCHIVE.md, "VB-199"): 0 for the
+  // notable ones, kept for good; the routine ones are folded into one count per kind, village and year once that old. A kind not listed
+  // is kept; tests/record.js checks that every kind on the record is listed.
+  const GENERATION = 25, SHORT = 2;
+  const HISTORY = {
+    // notable: births, marriages and deaths; inheritances and handovers; moves and leaving; farms, plots, cottages and meadows; customs
+    // and causes; shares paid; and the kinds no task has called routine yet
+    born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
+    stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
+    stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0,
+    // routine
+    friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION, herdBirths: GENERATION,
+    herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION,
+  };
+  // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
+  //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
+  //   events, so a gift between two holders counts twice. Appended only, by foldHistory.
+  // @state st.recordFold: {shortAt, longAt, pass}: how far through st.record the fold has come, as positions, for the kinds kept SHORT
+  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, next (the village folded next; `none` for the events
+  //   of none), none (the villages when it began), made (the counts made in this pass, by "kind|village|year")}, else null.
+  // At the year's turn the fold marks the events old enough (appended in time order, so it stops at the first that is not), and folds
+  // them over the year's first days, a village a day and then the events of none (rule 5). Each event is passed by each end once, and
+  // by each day of its pass; it touches st.record only, never the pawns.
+  function foldHistory(st, c) {
+    const F = st.recordFold, R = st.record;
+    if (!F.pass && c.doy === 0) {
+      const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
+        for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
+        return i;
+      };
+      const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
+      if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, next: 0, none: st.villages.length, made: {} };
+    }
+    const P = F.pass; if (!P) return;
+    const fold = (from, to, short) => {
+      for (let i = from; i < to; i++) {
+        const e = R[i]; VB.count.recordFold++;
+        if (typeof e !== 'object') continue;
+        const years = HISTORY[e.kind];
+        if (!years || (years === SHORT) !== short || (e.village === undefined ? P.none : e.village) !== P.next) continue;
+        const year = Math.floor(e.t / YEAR), key = `${e.kind}|${e.village === undefined ? '' : e.village}|${year}`;
+        let k = P.made[key];
+        if (k === undefined) {
+          k = P.made[key] = st.recordYears.length;
+          st.recordYears.push(e.village === undefined ? { year, kind: e.kind, tally: 0 }
+            : { year, kind: e.kind, village: e.village, tally: 0 });
+        }
+        st.recordYears[k].tally++; R[i] = k;
+      }
+    };
+    fold(F.shortAt, P.shortEnd, true); fold(F.longAt, P.longEnd, false);
+    if (++P.next > P.none) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
+  }
+  // Pawn id's own events gain the event at position `at` of the record (a birth or a death, which the log's line records).
+  function lifeEvent(st, id, at) { st.pawns[id].events.push(at); }
+  // Older saves kept a copy of each event on its pawn: each copy becomes the position of its event on the record (the same pawn, time
+  // and text, whatever its kind: a move told as `joined`; a birth or death by pawn, time and kind). A copy told beside another event
+  // (personEvent with `false`) has none: it is written to the record's end as the pawn's own (`self`), unless it is of a routine kind
+  // (a gift given), which is dropped, as its fold would drop it. One pass over the record, at load, and only for such a save.
+  function indexEvents(st) {
+    if (!st.recordYears) st.recordYears = [];
+    if (!st.recordFold) st.recordFold = { shortAt: 0, longAt: 0, pass: null };
+    let by = null;
+    for (const p of st.pawns) {
+      if (!p.events.some((x) => typeof x === 'object')) continue;
+      if (!by) {
+        by = new Map();
+        st.record.forEach((e, i) => {
+          if (typeof e !== 'object' || e.pawn === undefined) return;
+          const key = `${e.pawn}|${e.t}`, l = by.get(key);
+          if (l) l.push(i); else by.set(key, [i]);
+        });
+      }
+      const out = [];
+      for (const x of p.events) {
+        if (typeof x !== 'object') { out.push(x); continue; }
+        const l = by.get(`${p.id}|${x.t}`) || [], vital = x.kind === 'born' || x.kind === 'died';
+        const j = l.findIndex((i) => (vital ? st.record[i].kind === x.kind : st.record[i].text === x.text));
+        if (j >= 0) { out.push(l[j]); l.splice(j, 1); continue; }
+        if (HISTORY[x.kind]) continue;
+        record(st, { kind: x.kind, pawn: p.id, text: x.text, self: true }, x.t); out.push(st.record.length - 1);
+      }
+      p.events = out;
+    }
+  }
   // where an event of household hh or farm f happened
   const atHousehold = (st, hh) => ({ household: hh.id, farm: hh.farmstead, village: st.farmsteads[hh.farmstead].village });
   const atFarm = (f) => ({ household: f.household, farm: f.id, village: f.village });
-  // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
-  function recordOf(st, q = {}) {
-    const kinds = q.kinds ? new Set(q.kinds) : null;
-    const out = st.record.filter((e) => (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
-      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
-      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
-      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
-    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
-  }
   // A line of the village log: its event goes on the record, and the log is a view of the record (sim/notable, villageLog; VB-099).
-  // Every line names its event (tests/record.js checks each call), or false when another call records the same happening.
+  // Every line names its event (tests/record.js checks each call), or false when another call records the same happening. It gives the
+  // event's position on the record, or -1.
   const log = (st, text, ev) => {
     if (ev === undefined) throw new Error(`log without an event: ${text}`);
-    if (ev) record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
+    if (!ev) return -1;
+    record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
+    return st.record.length - 1;
   };
   // @state st.living: sorted ids of living pawns; a cache owned here.
   // @state st.liveHouseholds: sorted ids of undissolved households; a cache owned here.
@@ -3600,9 +3688,11 @@ VB['sim/records'] = (() => {
     return out;
   };
   const farmPractice = (st, f) => practice(st, f.village);
+  // An event of pawn id in its own words: one event on the record, and its position on the pawn (VB-199). With `false` for ev another
+  // call records the happening, and this is the pawn's own telling of it (`self`), which only the pawn's life reads.
   function personEvent(st, id, kind, text, ev = {}) {
-    st.pawns[id].events.push({ t: st.t, kind, text });
-    if (ev) record(st, { kind, pawn: id, text, ...ev });
+    record(st, ev ? { kind, pawn: id, text, ...ev } : { kind, pawn: id, text, village: settlementIdOf(st, st.pawns[id]), self: true });
+    st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
@@ -3689,8 +3779,8 @@ VB['sim/records'] = (() => {
   }
   return {
     rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
-      record,
-      recordOf, atHousehold, atFarm, age,
+      record, HISTORY, foldHistory, lifeEvent, indexEvents,
+      atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
@@ -3843,7 +3933,8 @@ VB['sim/relations'] = (() => {
     const was = r.band;
     r.band = bandOf(was, opinionOf(st, a, b));
     if (r.band !== was && r.band !== 0) {
-      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`, { other: b });
+      personEvent(st, a, r.band > 0 ? 'friend' : 'fellOut', `${r.band > 0 ? 'Became friends with' : 'Fell out with'} ${fullName(st.pawns[b])}`, {
+        other: b, village: settlementIdOf(st, st.pawns[a]) });
     }
   }
   // Once a season: memories that have faded away are forgotten, and records with none left, or about the dead, are dropped.
@@ -4993,7 +5084,9 @@ VB['sim/hunger'] = (() => {
   // What the household's living members eat in a day, in rations.
   function dailyNeed(st, hh) {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
-    return hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null).reduce((s, p) => s + (age(st, p) >= 14 ? adult : child), 0);
+    let s = 0; // a loop, not map, filter and reduce: the job review asks it every hour from 14:00 for every household (VB-227)
+    for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) s += age(st, p) >= 14 ? adult : child; }
+    return s;
   }
   // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
   const floorOf = (st, hh) => seedReserve(st, hh) + HELP.floorDays * dailyNeed(st, hh);
@@ -5002,7 +5095,7 @@ VB['sim/hunger'] = (() => {
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
-  const larderOf = (hh, kind) => hh.larder.reduce((s, l) => s + (!kind || l.kind === kind ? l.n : 0), 0);
+  function larderOf(hh, kind) { let s = 0; for (const l of hh.larder) s += !kind || l.kind === kind ? l.n : 0; return s; } // the review asks it hourly
   // Takes up to `want` rations from the larder, the lots that spoil first first; only those within `soon` hours of spoiling when soon is
   // given. Returns what it took.
   function takeFood(st, hh, want, soon = Infinity) {
@@ -5284,11 +5377,37 @@ VB['sim/deaths'] = (() => {
 </script>
 <script>
 // @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
-// skip to the next event that concerns the played pawn (VB-234); read-only views, no state
+// skip to the next event that concerns the played pawn (VB-234); queries of the record and a pawn's life (VB-199); read-only views, no state
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES } = VB['sim/deaths'];
   const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
+  // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
+  // recorded beside it (`self`), which only its life reads.
+  const told = (e) => typeof e === 'object' && !e.self;
+  // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
+  // With {pawn, life: true}: the pawn's own events, read through its positions on the record (lifeOf).
+  function recordOf(st, q = {}) {
+    if (q.life) return lifeOf(st, q.pawn);
+    const kinds = q.kinds ? new Set(q.kinds) : null;
+    const out = st.record.filter((e) => told(e) && (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
+      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
+      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
+      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
+    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+  }
+  // A pawn's life in its own words, in the order it was written: {t, kind, text, at (the position on the record)}, a death with its
+  // `cause` and told as "Died of ...", a birth with no text; an event since folded is {t (its year's start), kind, at, folded (the count
+  // of its kind, village and year)}, with no text.
+  function lifeOf(st, id) {
+    return st.pawns[id].events.map((at) => {
+      const e = st.record[at];
+      if (typeof e !== 'object') { const y = st.recordYears[e]; return { t: y.year * YEAR, kind: y.kind, at, folded: y.tally }; }
+      if (e.kind === 'born') return { t: e.t, kind: 'born', at }; // the village's line is the mother's telling
+      if (e.kind !== 'died') return { t: e.t, kind: e.kind, text: e.text, at };
+      return { t: e.t, kind: 'died', text: CAUSES[e.text] ? CAUSES[e.text].event : undefined, cause: e.text, at };
+    });
+  }
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
     family: "Births, marriages and deaths in the selected person's household or line",
@@ -5318,6 +5437,7 @@ VB['sim/notable'] = (() => {
   // The reasons a record event is notable, as keys of NOTABLE, or null when it is routine. `about` is the pawn the player follows (the
   // selected pawn; the played one once the player plays a pawn, VB-210), or null. Most events are routine: they cost one switch.
   function notable(st, ev, about = null) {
+    if (!told(ev)) return null;
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
@@ -5364,7 +5484,7 @@ VB['sim/notable'] = (() => {
   // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
   function chronicle(st, q, group = null) {
     const kinds = group ? new Set(CHRONICLE[group].kinds) : null, rows = [], mine = q.pawn !== undefined;
-    const base = st.record.filter((e) => (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
+    const base = st.record.filter((e) => told(e) && (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
       && (q.farm === undefined || e.farm === q.farm) && (q.village === undefined || e.village === q.village));
     const list = base.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
     for (let i = 0; i < list.length; i++) {
@@ -5389,7 +5509,7 @@ VB['sim/notable'] = (() => {
     const out = [];
     for (let i = st.record.length - 1; i >= 0 && out.length < n; i--) {
       const e = st.record[i];
-      if (PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
+      if (!told(e) || PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
       out.push({ t: e.t, text: eventLine(st, e), ev: e });
     }
     return out;
@@ -5421,6 +5541,7 @@ VB['sim/notable'] = (() => {
   }
   // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
   function stopsFor(st, ev, about, hid, vid) {
+    if (!told(ev)) return null;
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
@@ -5447,7 +5568,7 @@ VB['sim/notable'] = (() => {
     if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
     return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
   }
-  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
+  return { recordOf, lifeOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
 })();
 </script>
 <script>
@@ -5493,8 +5614,9 @@ VB['sim/fields'] = (() => {
   // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
   // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
   // household may take a tile in (a stake it may contest, for sim/stakes).
-  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village)) {
-    const w = st.w, built = builtTiles(st), own = new Set(f.fields.map((fd) => fd.tile));
+  // `built`: builtTiles(st), when the caller has it (the review asks every farm in one hour, VB-227).
+  function chooseTile(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
+    const w = st.w, own = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
@@ -5505,11 +5627,11 @@ VB['sim/fields'] = (() => {
   }
   // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
   // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
-  function startProject(st, f, hh) {
+  function startProject(st, f, hh, built = builtTiles(st)) {
     if (f.project || f.fields.length >= fieldsWanted(st, hh)) return;
-    let tile = chooseTile(st, f);
+    let tile = chooseTile(st, f, undefined, built);
     if (tile < 0) {
-      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
     }
     stake(st, hh, tile, 'field');
@@ -5645,8 +5767,8 @@ VB['sim/meadows'] = (() => {
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
   // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
-  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village)) {
-    const w = st.w, built = builtTiles(st), own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
+  function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
+    const w = st.w, own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
@@ -5665,11 +5787,11 @@ VB['sim/meadows'] = (() => {
   }
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
   // with no free tile within reach, it may contest a stake another household of its village left unworked.
-  function startMeadow(st, f, hh) {
+  function startMeadow(st, f, hh, built = builtTiles(st)) {
     if (f.project || !wantsMeadow(st, f, hh)) return;
-    let tile = chooseMeadow(st, f);
+    let tile = chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
-      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null);
+      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
     }
     stake(st, hh, tile, 'meadow');
@@ -5711,12 +5833,15 @@ VB['sim/meadows'] = (() => {
     return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < ENOUGH * need;
   }
   // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
-  // wanted (`want`); hay already mown is always carried in.
+  // wanted (`want`: a boolean, or a function asked only when a raking or mowing could be posted, VB-227); hay already mown is always carried in.
   function meadowJobs(f, m, c, want = true) {
-    const k = `f${f.id}.m${m.id}`, out = [];
-    if (want && m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS) out.push(['rake:' + k, 'rake']);
-    if (want && m.stage === 'grass' && hayDay(c) >= 0) out.push(['mow:' + k, 'mow']);
-    if (m.stage === 'mown' && c.day >= m.mown + DRY_DAYS) out.push(['hay:' + k, 'hay']);
+    const out = [], rake = m.stage === 'grass' && !m.raked && c.season === 0 && c.sday < RAKE_DAYS, mow = m.stage === 'grass' && hayDay(c) >= 0;
+    const hay = m.stage === 'mown' && c.day >= m.mown + DRY_DAYS;
+    if (!rake && !mow && !hay) return out;
+    const k = `f${f.id}.m${m.id}`, wanted = (rake || mow) && (typeof want === 'function' ? want() : want);
+    if (wanted && rake) out.push(['rake:' + k, 'rake']);
+    if (wanted && mow) out.push(['mow:' + k, 'mow']);
+    if (hay) out.push(['hay:' + k, 'hay']);
     return out;
   }
   // Mown: the meadow holds its year's hay, by site, weather and raking.
@@ -5964,15 +6089,15 @@ VB['sim/byre'] = (() => {
   function byreJobs(st, hh, c) {
     const out = [];
     if (stalled(c) && hh.fodderDay !== c.day && hasAnimals(st, hh)) out.push([`fodder:h${hh.id}:${c.day}`, 'fodder', { hours: fodderHours(st, hh) }]);
-    for (const herd of herdsOf(st, hh)) for (const e of herd.cull) {
-      out.push([`slaughter:h${hh.id}:${herd.id}.${e.id}`, 'slaughter', { herd, entry: e, hours: HERD.slaughter[herd.species] }]);
+    for (const id of hh.herds) {
+      const herd = st.herds[id];
+      for (const e of herd.cull) out.push([`slaughter:h${hh.id}:${herd.id}.${e.id}`, 'slaughter', { herd, entry: e, hours: HERD.slaughter[herd.species] }]);
     }
-    const meat = larderOf(hh, 'meat');
+    const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
-    const cows = milkCows(st, hh, c); // milking from 6:00 while the herds are out (VB-135)
-    if (cows && hh.milkDay !== c.day && c.hour >= WORK[0]) {
-      out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
-    }
+    // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
+    const cows = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c) ? milkCows(st, hh, c) : 0;
+    if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
   return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
@@ -6443,8 +6568,10 @@ VB['sim/kinds'] = (() => {
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
   function meadowWork(st, hh, f, c, post) {
-    const hayW = f.meadows.length ? hayWanted(st, f, hh) : false;
-    for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, hayW)) post(key, m.tile, { meadow: m, farm: f }, kind);
+    // whether hay is wanted, asked once, and only when a meadow could be raked or mown now (VB-227)
+    let hayW = null;
+    const want = () => (hayW === null ? (hayW = hayWanted(st, f, hh)) : hayW);
+    for (const m of f.meadows) for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
   }
   // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
   function byreWork(st, hh, f, c, post) {
@@ -7279,6 +7406,44 @@ VB['sim/commands'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/plans: holders' plans (design.md, section 7; VB-258): one standing plan per live household and per village, made and dropped with its holder
+VB['sim/plans'] = (() => {
+  const { WORK, DAY } = VB['sim/rules'];
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan}; a plan is
+  //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours)}. One standing plan per undissolved household
+  //   and per village; a dissolved household's plan is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review
+  //   is the hourly pass that asks each kind where it is available (refreshJobs, sim/jobs); nothing else reads a plan yet.
+  // The hours a standing plan is reviewed: every hour from one before work starts to the end of work (sim/clock calls refreshJobs then).
+  const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
+  // The first review hour after the hour of time t.
+  function reviewAfter(t) {
+    const day = Math.floor(t / DAY), h = Math.floor(t - day * DAY) + 1;
+    if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
+    if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
+    return day * DAY + h;
+  }
+  const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
+  // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load).
+  function makePlan(st, type, id) {
+    const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(st.t - 1) };
+    mapOf(st, type).set(id, plan);
+    return plan;
+  }
+  // A dissolved household's plan goes with it.
+  function dropPlan(st, type, id) { mapOf(st, type).delete(id); }
+  const planOf = (st, type, id) => mapOf(st, type).get(id);
+  // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
+  function seedPlans(st) {
+    st.plans = { households: new Map(), villages: new Map() };
+    for (const id of st.liveHouseholds) makePlan(st, 'household', id);
+    for (const v of st.villages) makePlan(st, 'village', v.id);
+  }
+  // A plan reviewed now: its next review is the next review hour.
+  function reviewed(st, plan) { VB.count.planReview++; plan.nextReview = reviewAfter(st.t); }
+  return { reviewHour, makePlan, dropPlan, planOf, seedPlans, reviewed };
+})();
+</script>
+<script>
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
@@ -7289,9 +7454,10 @@ VB['sim/jobs'] = (() => {
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
-  const { startProject } = VB['sim/fields'];
+  const { startProject, builtTiles } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { planOf, reviewed } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -7305,6 +7471,7 @@ VB['sim/jobs'] = (() => {
   // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
+    VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
       const hh = f.household === null ? null : st.households[f.household];
       const j = hh && st.jobs.get(`cook:h${hh.id}:${c.day}`);
@@ -7317,27 +7484,36 @@ VB['sim/jobs'] = (() => {
       if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
-  // Each kind says where it is available (sim/kinds, `available`); refreshJobs asks them in the order of ASK, which is the jobs' ids.
+  // The review of every holder's standing plan (sim/plans; VB-258), every review hour: each kind says where it is available for the holder
+  // (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids, and what it reports is posted.
   function refreshJobs(st, c) {
     for (const j of st.jobs.values()) j.live = false;
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
     let kind = null, own = null;
     const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
-    const ask = (rules, holder, at, f) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); } };
+    const ask = (rules, holder, at, f) => {
+      VB.count.oppAsk += rules.length;
+      for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
+    };
+    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan); };
+    // The houses and greens no field or meadow is made next to, once for every farm's look for land: no house is built during the
+    // review (VB-227: each farm built the set anew, farms times farms a day).
+    const looks = st.makeFields && c.hour === WORK[0], built = looks ? builtTiles(st) : null;
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       const hh = st.households[f.household];
+      review('household', hh.id);
       own = { type: 'household', id: hh.id };
       for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
       ask(ASK.farm, hh, f, f);
       // A choice, not an availability: a household looks for land for a new field, or a meadow once the fields are enough, once a day at
       // the start of work (balance review: households in every scenario look, and those short of land searched in vain every hour).
       // These are slice 3's hidden plans (VB-164).
-      if (st.makeFields && c.hour === WORK[0]) { startProject(st, f, hh); startMeadow(st, f, hh); }
+      if (looks) { startProject(st, f, hh, built); startMeadow(st, f, hh, built); }
       ask(ASK.farmAfterPlans, hh, f, f);
     }
     own = null;
-    for (const v of st.villages) ask(ASK.village, v, v);
+    for (const v of st.villages) { review('village', v.id); ask(ASK.village, v, v); }
     ask(ASK.island, null, null); // plots, and empty farms being restored
     // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
     for (const j of st.jobs.values()) {
@@ -7377,7 +7553,11 @@ VB['sim/jobs'] = (() => {
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
-  const jobsFor = (st, p) => mergeById(st.jobsBy.get(`household:${p.household}`) || none, st.jobsBy.get(`village:${villageOf(st, p)}`) || none);
+  // When one of the two is empty, the other as it stands (VB-227: most villages post nothing of their own); callers only read it.
+  function jobsFor(st, p) {
+    const x = st.jobsBy.get(`household:${p.household}`) || none, y = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
+    return y.size === 0 ? x : x.size === 0 ? y : mergeById(x, y);
+  }
   // VB-107: at each full hour of the working day, a pawn at work (not walking there, not carrying home) looks up from its job. When an open
   // job it may take bids, without noise, above switchRatio × its own job's bid + switchMargin, it leaves its job, which keeps its progress,
   // and starts the other. A job it would finish within the hour at its own rate is not left. Draws no random numbers.
@@ -7390,6 +7570,7 @@ VB['sim/jobs'] = (() => {
       const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
+        VB.count.lookUpJob++;
         if (k === j || !isOpen(k)) continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
@@ -7447,7 +7628,11 @@ VB['sim/jobs'] = (() => {
   }
   function planRound(st, idle, c) {
     const bids = [];
-    for (const a of idle) for (const j of jobsFor(st, st.pawns[a.id])) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    for (const a of idle) {
+      const js = jobsFor(st, st.pawns[a.id]);
+      VB.count.matchBid += js.length ?? js.size;
+      for (const j of js) { const s = bid(st, a, j, c); if (s > 0) bids.push([s, a, j, j.claims.length]); }
+    }
     bids.sort((x, y) => y[0] - x[0]);
     const busy = new Set();
     for (let i = 0; i < bids.length; i++) {
@@ -7496,7 +7681,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES, GOODWILL } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds } = VB['sim/herds'];
-  const { abandoned } = VB['sim/fields'];
+  const { abandoned } = VB['sim/fields'], { dropPlan } = VB['sim/plans'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
     VB.count.heirRank++;
@@ -7713,7 +7898,7 @@ VB['sim/heirs'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
     abandoned(f);
-    hh.dissolved = true; noteDissolved(st, hh); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
+    hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
@@ -7886,6 +8071,7 @@ VB['sim/membership'] = (() => {
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
+  const { makePlan } = VB['sim/plans'];
   const { moveTo, refreshRoles } = VB['sim/heirs'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   function foundHousehold(st, f, members, holder, { grain = 0, stakes = false, text = null, followers = [], unhomed = false } = {}) {
@@ -7893,7 +8079,7 @@ VB['sim/membership'] = (() => {
     Stores.start(st, hh, grain);
     if (stakes) for (const id of members) Stores.move(st, st.pawns[id], hh, 'grain', st.pawns[id].stake || 0,
       { kind: 'provisions', pawn: id });
-    st.households.push(hh);
+    st.households.push(hh); makePlan(st, 'household', hh.id);
     for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
       setOwner(st, t, { type: 'household', id: hh.id });
     }
@@ -8461,6 +8647,7 @@ VB['sim/settle'] = (() => {
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
+  const { makePlan } = VB['sim/plans'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
@@ -8640,7 +8827,7 @@ VB['sim/settle'] = (() => {
     const hs = st.cenv.settlements[home.id];
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
-    st.villages.push(v); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
+    st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
@@ -8709,7 +8896,7 @@ VB['sim/lifecycle'] = (() => {
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
-      holdingOf, atHousehold,
+      holdingOf, atHousehold, lifeEvent,
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
@@ -8727,15 +8914,14 @@ VB['sim/lifecycle'] = (() => {
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
-    p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; stillAtDeath(st, a);
     playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     dropTies(st, id);
     if (p.rel) forget(st, id);
-    log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
+    lifeEvent(st, id, log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
       + `${CAUSES[cause].log}, aged ${p.age}.`, {
-        kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) });
+        kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) }));
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
     endGoodwill(st, id); // after succession, which passes a holder's share on
@@ -8897,6 +9083,7 @@ VB['sim/lifecycle'] = (() => {
     const putOff = new Map(); // village -> couples who put off marrying for want of means
     const changedSince = (mark, people, households) => {
       for (const e of st.record.slice(mark)) {
+        if (e.self) continue; // a pawn's own telling of an event recorded beside it (sim/records)
         if (e.household !== undefined && e.household !== null) households.add(e.household);
         for (const id of [e.pawn, e.other]) if (id !== undefined && id !== null) {
           people.add(id); households.add(homes.get(id)); households.add(st.pawns[id].household);
@@ -9004,7 +9191,7 @@ VB['sim/lifecycle'] = (() => {
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold, kinNear } = VB['sim/records'];
+  const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } = VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
@@ -9034,7 +9221,6 @@ VB['sim/births'] = (() => {
     initRelations(st, p);
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { raiseTie(st, id, j, 1); raiseTie(st, j, id, 1); }
     for (const q of kinNear(st, id)) if (st.pawns[q].alive) { floorKin(st, id, q); floorKin(st, q, id); } // kin elsewhere, till their turn (sim/relations)
-    p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
@@ -9042,8 +9228,8 @@ VB['sim/births'] = (() => {
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
-    log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`, {
-      kind: 'born', pawn: id, other: m.id, ...atHousehold(st, hh) });
+    lifeEvent(st, id, log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`, {
+      kind: 'born', pawn: id, other: m.id, ...atHousehold(st, hh) }));
     refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
     if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }
@@ -9128,6 +9314,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
+  const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
@@ -9274,12 +9461,13 @@ VB['sim/scenarios'] = (() => {
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
-    for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
+    for (const p of R.pawns) p.events = p.events || [];
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
@@ -9332,8 +9520,9 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
-    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
-    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
+    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
+    //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
@@ -9353,6 +9542,7 @@ VB['sim/scenarios'] = (() => {
     const st = {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
+      recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -9363,6 +9553,7 @@ VB['sim/scenarios'] = (() => {
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
     };
     rebuildLiving(st);
+    seedPlans(st);
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
@@ -9379,6 +9570,8 @@ VB['sim/scenarios'] = (() => {
     // and who holds each farm at the start, so a farm's history names every holder it has had (VB-099)
     for (const hh of st.households) if (hh.holder !== null && !hh.dissolved) before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
     before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
+    // a living pawn's events begin with its birth (VB-199: positions in the record)
+    st.record.forEach((e, i) => { if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i); });
     return st;
   }
 
@@ -9393,13 +9586,14 @@ VB['sim/scenarios'] = (() => {
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
+  const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
@@ -9423,7 +9617,7 @@ VB['sim/clock'] = (() => {
         if (a.inside && !a.job) placeByDoor(st, a);
       }
     }
-    if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (reviewHour(h)) refreshJobs(st, c); // the review of the standing plans (sim/plans)
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
     if (h === WORK[1]) for (const liveId of st.living) {
@@ -9438,6 +9632,7 @@ VB['sim/clock'] = (() => {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); }
       if (c.doy === 0) newYear(st, c);
+      foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
   }
   function endOfDay(st, c) {
@@ -9503,9 +9698,10 @@ VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
   const { trimRoutes } = VB['sim/routes'];
-  const { rebuildLiving } = VB['sim/records'];
+  const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
+  const { seedPlans } = VB['sim/plans'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -9643,6 +9839,7 @@ VB['sim/saves'] = (() => {
     const st = decode(enc);
     st.w = w;
     rebuildLiving(st);
+    indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
@@ -9653,6 +9850,7 @@ VB['sim/saves'] = (() => {
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -9667,9 +9865,9 @@ const Sim = (() => {
   const { KINDS } = VB['sim/kinds'];
   const {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
-    membersOf, voiceOf, recordOf,
+    membersOf, voiceOf,
   } = VB['sim/records'];
-  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
+  const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
@@ -13019,7 +13217,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
     const kin = sp !== null ? Sim.kinship(st, p.id, sp) : null;
     const spouses = st.unions.filter((u) => u.a === p.id || u.b === p.id).map((u) => (u.a === p.id ? u.b : u.a));
-    const evs = (p.events || []).filter((e) => e.text).slice(-8).reverse().map((e) =>
+    const evs = Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.text).slice(-8).reverse().map((e) =>
       `<li>Year ${yearStr(Math.floor(e.t / Sim.YEAR) + 1)}: ${esc(e.text)}</li>`).join('');
     box.innerHTML = `<h3>${esc(Sim.fullName(p))}</h3>
       <p>${dead ? `Lived from year ${yearStr(Sim.birthYear(p))} to ${yearStr(deathYear(p))}.` :
@@ -13327,7 +13525,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '26d3efdb18', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '008c0b7654', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -2,13 +2,14 @@
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, YEAR, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
-  const { log } = VB['sim/records'];
+  const { log, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
+  const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
@@ -32,7 +33,7 @@ VB['sim/clock'] = (() => {
         if (a.inside && !a.job) placeByDoor(st, a);
       }
     }
-    if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (reviewHour(h)) refreshJobs(st, c); // the review of the standing plans (sim/plans)
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
     if (h === WORK[1]) for (const liveId of st.living) {
@@ -47,6 +48,7 @@ VB['sim/clock'] = (() => {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); }
       if (c.doy === 0) newYear(st, c);
+      foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
   }
   function endOfDay(st, c) {

@@ -6,6 +6,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/heirs'], FC = VB['sim/farmclaims'], S = VB['sim/service'], O = VB['sim/opportunities'];
 const R = VB['sim/records'], X = VB['sim/expansion'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { dropKind } = require('./lib/record.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
@@ -66,8 +67,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const plain = scene().st, played = scene().st;
   Sim.inhabit(played, cast.claimant);
   for (const st of [plain, played]) { Sim.movingRound(st); Sim.advance(st, Sim.DAY); }
-  played.record = played.record.filter((e) => e.kind !== 'player');
-  played.pawns[cast.claimant].events = played.pawns[cast.claimant].events.filter((e) => e.kind !== 'player');
+  dropKind(played, 'player');
   played.player = null;
   assert.strictEqual(hash(played), hash(plain), 'a played pawn with no wishes changes nothing at the round');
 }
