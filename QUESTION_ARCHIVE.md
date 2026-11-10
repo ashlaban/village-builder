@@ -2,6 +2,23 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-120)
+
+## VB-120: village work days (job review, second pass)
+1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.
+   **A (Kim, 10 Nov):** as proposed (P).
+2. What does staying away cost? **P:** a household with no adult working 2 hours on the day loses 0.1 of its holder's prestige for the year; each adult who works gains 0.05.
+   **A (Kim, 10 Nov):** prestige as proposed, and a memory: the other holders of the village remember the absent holder's staying away, a small negative memory fading over a year.
+
+# Archived 10 November 2026 (VB-100)
+
+## VB-100: common fields (planning)
+Fields can be private or common (Decided); nothing makes a common field yet.
+1. When does a village make a common field? **P:** at the moving round, a village of 3 or more occupied farms whose store holds less than 10 days of food for its members, with a free meadow tile within 3 steps of the green; at most one common field per 3 farms.
+   **A (Kim, 10 Nov):** as proposed (P), as a routine the meeting may choose when the condition holds.
+2. Who works it, and where does the harvest go? **P:** the village's adults, at the village-duty priorities of the green and well (VB-058); seed from the village store and the harvest into it (VB-039).
+   **A (Kim, 10 Nov):** as proposed (the village's adults; seed from and harvest into the village store), but the priority of work on the commons is a custom of the culture, not a fixed number; and having been given food when hungry leans a person towards a higher priority for the commons.
+
 # Archived 10 November 2026 (VB-119)
 
 ## VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)

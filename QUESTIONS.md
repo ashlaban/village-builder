@@ -94,10 +94,6 @@ Measured over 20–30 years on the small map (populous seeds 7 and 42, founders 
 2. Empty farms go to singles. Under "with the land" a couple needs a place to marry, so landless couples are rare and nearly every claimant moves in alone (populous seed 7: 8 farms restored, all by one person; most marry there within a few years). Restored households are hungry on more days than others (populous seed 7: 7.8% of household-days against 1.0%; heirs 42: 11% against 5%). **P:** keep; a lone claimant takes a servant at the next moving round like any lone holder (VB-152), and courting (VB-036) is where spouses come from.
 3. Short provisions. A claimant's start is made up from the old households' grain "as far as they can", so one moved in with 23 grain for 4 fields. **P:** keep, as settlers' families give; or, if you want a floor, a claimant whose provisions fall short of seed for one field and 30 days of food waits a year to move in, as settlers do.
 
-### VB-120: village work days (job review, second pass)
-1. Which days, and what work? **P:** set at the autumn meeting: spring day 1, the infield fence (stretches below 0.9); summer day 2, clearing scrub at the edge of the commons wood; village jobs with unlimited hands, at priority 8 for every adult.
-2. What does staying away cost? **P:** a household with no adult working 2 hours on the day loses 0.1 of its holder's prestige for the year; each adult who works gains 0.05.
-
 ### VB-121: winter crafts (job review, second pass)
 1. Tools. **P:** each household's tools from 0 to 1; 0.01 lost per 10 hours of field work; field work at (0.7 + 0.3 × tools) of the rate; a 4-hour craft job restores 0.1, posted in winter below 1 and in autumn below 0.6.
 2. Fence poles. **P:** a 4-hour trip in winter brings 4 poles and fells a tree; mending a stretch uses one; posted while a household has under 8.
@@ -111,8 +107,3 @@ Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oc
 
 ### VB-095: family tree by scope (planning)
 1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
-
-### VB-100: common fields (planning)
-Fields can be private or common (Decided); nothing makes a common field yet.
-1. When does a village make a common field? **P:** at the moving round, a village of 3 or more occupied farms whose store holds less than 10 days of food for its members, with a free meadow tile within 3 steps of the green; at most one common field per 3 farms.
-2. Who works it, and where does the harvest go? **P:** the village's adults, at the village-duty priorities of the green and well (VB-058); seed from the village store and the harvest into it (VB-039).
