@@ -9142,7 +9142,7 @@ VB['sim/lifecycle'] = (() => {
       let best = null, bs = -Infinity;
       const pm = place(m.id);
       // With land residence and no place of his own, only women with a place can be candidates.
-      // Keep the original order and random draws; skip pairs whose homeFor would return null.
+      // So the pairs whose homeFor would return null are not visited (no draw is made for them either way).
       if (cu.residence === 'land' && pm === null && !housed) housed = women.filter((p) => place(p.id) !== null);
       for (const f of cu.residence === 'land' && pm === null ? housed : women) {
         pairs++;
@@ -13593,7 +13593,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '7733f1164c', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd4325c5cfa', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
