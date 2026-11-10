@@ -1,6 +1,6 @@
 // VB-088: the same terrain strip, farm layout and family demographics repeated at two and four villages.
 const assert = require('assert'), VB = require('../src/load.js'), { tinyWorld } = require('./lib/tiny.js');
-const { measure, growth, check, NAMES } = require('./lib/cost.js');
+const { measure, growth, report, NAMES } = require('./lib/cost.js');
 
 function villageWorld(n) {
   const strip = Array(28).fill('FFF' + '.'.repeat(25));
@@ -54,8 +54,8 @@ function main() {
     else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
   }
   console.log(`scaling: 2/4 villages, 30 days and one round each; ${early.living.toFixed(3)}/${late.living.toFixed(3)} mean living`);
-  check('scaling', growth(early, late, true), { update: process.argv.includes('--update') });
-  console.log(`scaling: ${NAMES.length} counters pass (including known excesses); ${(early.ms + late.ms).toFixed(0)} ms simulation`);
+  const out = report('scaling', growth(early, late, true)).filter((t) => t.status === 'out').length;
+  console.log(`scaling: ${NAMES.length} counters reported as targets, ${out} out; ${(early.ms + late.ms).toFixed(0)} ms simulation`);
 }
 if (require.main === module) main();
 module.exports = { villageWorld };

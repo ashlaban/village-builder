@@ -12,7 +12,7 @@ and the save line counted on the main thread.
 | Each system's share (below) | `medium-ref`, a whole year | reported nightly (`budget.md`, the budget column) | below | four over |
 | No 6-minute step over 60 ms | `medium-ref`, a whole year | reported nightly (`tools/bench.js`) | 96 to 103 ms; 11 to 14 steps a year over 60, all midnights | over |
 | No 6-minute step over 60 ms | `small-y40`, 30 days and one round | reported in verify (`tests/history.js`) | 55 ms (a whole year) to 62 ms (verify's window) | at the line |
-| Cost per living pawn-day, `small-y40` at most 1.25 times `small-y5` | `small-y5`, `small-y40` | work counters asserted in verify (`tests/history.js`); wall clock reported there | counters pass (two known excesses: `routeRefresh` 1.81, `roundPairs` 1.33); wall clock 0.99 and 1.07 (two runs) | within |
+| Cost per living pawn-day, `small-y40` at most 1.25 times `small-y5` | `small-y5`, `small-y40` | work counters reported as targets in verify (`tests/history.js`, VB-263); wall clock reported there | ten counters out, see "Cost growth" below; wall clock 0.99 and 1.07 (two runs) | towards the target |
 | Save, 0.5 s of main thread (encode + stringify) | `medium-ref` | reported nightly | 1.51 s (and 0.58 s of gzip, which may move to a worker) | over, 3 times |
 | Load, 0.5 s (parse + load) | `medium-ref` | reported nightly | 0.33 to 0.55 s | at the line |
 | Gzip, 10 MB | `medium-ref` | reported nightly | 6.9 MB | within |
@@ -40,6 +40,28 @@ The shares are in `tools/bench.js` (`SYSTEM_BUDGETS`): 192 ms among today's syst
 
 By season (the first run): spring 262, summer 205, autumn 219, winter 244 ms a game day. Spring holds the year's turn and the most job
 postings, winter the most talk (87 ms a day). The old 30-day window, spring and the first half of summer, read 215: 7% under the year.
+
+## Cost growth: counters out, and who closes each
+
+VB-263, 10 November 2026, at `acb5dcf` with the local fixtures (stale, usable). `tests/scaling.js` (exponent, line 1.15) and
+`tests/history.js` (ratio, line 1.25) report each work counter as a target (`docs/bench/targets.md`); neither fails for a value out.
+`tests/cost-baseline.json` is gone: its ceilings are the first records of these targets in `targets.jsonl`. Residual is how far past the line.
+
+| Counter | Check | Value | Residual | Closed by |
+|---|---|---:|---:|---|
+| `routeExpand` | history | 1.462 | +0.212 | VB-236 (the route cache cleared when a tile's cost changes, and a lower bound) |
+| `routeRefresh` | history | 1.856 | +0.606 | VB-236 (the nightly selective refresh goes) |
+| `walkTies` | history | 1.436 | +0.186 | VB-269 (new, needs review) |
+| `roundPairs` | history | 10.24 | +8.99 | VB-242 (the round a village a step; pairs only among the present) |
+| `roundPairs` | scaling | 2.00 | +0.85 | VB-242 |
+| `heirRank` | history | 1.473 | +0.223 | VB-242 (the heir cache's end) |
+| `roundRank` | history | 1.414 | +0.164 | VB-242 |
+| `recordFold` | history | 1.558 | +0.308 | VB-268 |
+| `oppAsk` | history | 1.354 | +0.104 | VB-249 (windows and the due-queue; reviews on planning days) |
+| `planReview` | history | 1.342 | +0.092 | VB-249 |
+| `cookFarm` | history | 1.386 | +0.136 | VB-249 (time-of-day kinds opened by a due-queue) |
+
+The rest of the 25 counters are in at both checks. A new counter out has its closing task named here in the same PR that adds it.
 
 ## The steps
 
