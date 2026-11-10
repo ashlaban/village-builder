@@ -2,6 +2,91 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-298)
+
+## VB-298: the gathering and Between villages, where the two designs of 10 November meet (raised at their merge)
+Two designs were agreed on the same day on separate branches: Between villages (VB-281's plan: walking hours, journeys, the suitor's visit) and the gathering (VB-183's plan). Merged, they agree on most (one measure of distance, a day's walk of 12 hours, journeys on foot, nothing over the sea) and differ on two points.
+1. Marriages between villages. Between villages lets the round pair villages by distance (near ones mix easily) and asks a suitor's visit beyond a day's walk. The gathering's first rule allowed a match between villages only if both pawns were at one gathering within 3 years, which would undo the easy mixing of close villages. **P:** keep Between villages as the rule, and let the gathering add to it: having been at the same gathering within 3 years counts as the visit (two villages of one gathering can be up to 24 hours apart), and adds a small term to the matcher's score; a match agreed at the gathering is concluded there. The suitor's winter visit (from winter day 1) and the gathering (winter days 1 to 3) then fall together, and a man looking for a wife goes to the gathering first.
+   **A (Kim, 10 Nov):** P.
+2. A load. The fair has a back load of 30 rations' worth and a cart of 90; kin help over distance carries at most 60 rations a load (VB-291). **P:** one number for what a pawn carries on a journey, 30, with a cart and two oxen 90; VB-291's gift is then a cart's load or two trips.
+   **A (Kim, 10 Nov):** P.
+
+# Archived 10 November 2026 (VB-220)
+
+## Slice 4: two points left by its plan (VB-220 and VB-295; raised 10 November 2026)
+Slice 4's plan (VB-183) is closed; these two points still need Kim, and each holds one task.
+1. Opinion in allowance (VB-220). Kim decided on 9 November that opinion feeds allowance beside goodwill (target-v2, decision 30), with its size and a tight range to be written by slice 4. **P:** the giver's opinion of the receiver (−1 to 1) times 10 rations: a liked stranger gets a sack of slack, a disliked one a sack less, and nothing more; switched on with goodwill's term in VB-220 and measured with it.
+   **A (Kim, 10 Nov):** 10 rations, as proposed.
+2. Lodging at the gathering (VB-295). Kim asked where those who come sleep. Historically, at the things and fairs of the North guests lodged with kin and guest-friends, the hosts quartered the rest, and big assemblies raised booths (from the literature as remembered; not checked against a source). **P:** a goer sleeps at home if its village is within 2 hours' walk; else with kin in the host village; else with a pawn there it holds a goodwill balance with; else in a barn the host village gives. A host farm lodges up to 10 guests (4 in the house, 6 in the barn); a village the host cannot lodge goes to its next gathering, so a larger village can host a larger gathering. Lodging a guest who is not kin is booked as a gift of 1 ration a night. Booths on the green come with the market place (slice 9).
+   **A (Kim, 10 Nov):** As proposed.
+
+# Archived 10 November 2026 (VB-126)
+
+## VB-126: occasions (relationships review)
+No two pawns of different villages ever meet today, so courting would keep marriages inside the village.
+1. Which occasions first? **P:** the village meeting (the people with a voice on the green, 10:00 to the meeting at 12:00), the wedding (the day after, 16:00–21:00 at the couple's farm, near kin of both spouses from any village within a day's walk) and the funeral ale (the day after a death, 16:00–21:00 at the farm of the dead, its household and near kin).
+   **A (Kim, 10 Nov):** P (10 November, with slice 4's numbers, question 12).
+2. Do occasions override work? **P:** the meeting and a funeral ale do (work stops for them); a wedding takes those who are free, as it falls in the evening.
+   **A (Kim, 10 Nov):** P (10 November, with slice 4's numbers, question 12).
+
+# Archived 10 November 2026 (VB-183)
+
+## VB-183: the gathering, the fair and goods of place (raised 10 November 2026)
+From the markets review (`docs/review-markets.md`) and Kim's answers of 10 November, now in `design.md` (section 11, The gathering; section 9, The fair; section 8, Goods of place and side crafts). Kim's points are Decided there; these are the proposals written around them. Slice 4's plan (VB-183) writes its tasks from the answers, and still owes its own questions (quanta, the worth table, need curves, loans, boats).
+1. What may be exchanged for what? Today's plan gives every good a worth in rations, so anything may be offered for anything: grain for a cow, a cow for a field. The alternative keeps the one unit of account but sorts goods into three classes (food; animals, cloth and labour; land), and lets custom say which exchanges across classes are proper. **P:** classes: within a class a swap is ordinary; grain for a cow in a good year is admired; a cow taken for grain in a dearth is allowed but remembered as a hard bargain; land is not offered at a fair until slice 5's custom "Debts are paid with" allows it. It costs one small table and keeps the hungry from being stripped at their first fair.
+   **A (Kim, 10 Nov):** Classes.
+2. Which goods of place first? **P:** dried fish (sea shore, lake or river) and tar (pine forest), both made as side crafts with a simple facility; bog iron with tools that wear (VB-121), stone with the mill (slice 6), salt and fine cloth with the ship (slice 8).
+   **A (Kim, 10 Nov):** Yes. Can we add more? What would tar be used for? The value of the goods should be grounded in a pawn's need, or prestige or the like (see questions 9 and 10).
+3. Specialised work as side crafts. **P:** a household stays a farm and takes a craft in its slack hours, aimed by its holder's project at something only the fair gives; skill by hours and one facility a household make a village's fisher or tar burner without a rule naming them; a craft household and a full specialist follow only as the market is held more often (the ladder).
+   **A (Kim, 10 Nov):** Side crafts are a good idea.
+4. How a village comes to host. **P:** a village with a green may offer at its autumn meeting; every village chooses there the gathering it attends next year, by nearness in travel and in customs, kin there, the hosts' prestige and how last year's went; one gathering a village; fewer than three villages and it is not held.
+   **A (Kim, 10 Nov):** Yes.
+5. Who decides a border case at the gathering? **P:** the holders present from the villages not party to it, under the Disputed claims custom of the gathering's villages; two villages of different gatherings settle it as now.
+   **A (Kim, 10 Nov):** Yes. Does this imply a disposition between villages? (see question 11)
+6. Marriages between villages. **P:** the round's matcher may pair pawns of different villages only if both were at the same gathering within the last 3 years; spokesmen negotiate there.
+   **A (Kim, 10 Nov):** Fine, but this system needs revamping later: marriage as a negotiation should take the dowry, for one, into account.
+7. Keeping goods. **P:** butter, dried fish, tar, cloth and a sheep are accepted beyond the taker's own need, at customary worth and up to a cap, to pass on later: barter's way round "you have nothing I want", and the island's nearest thing to money before silver.
+   **A (Kim, 10 Nov):** Yes.
+8. The dates. **P:** autumn days 6 to 8, before the village meetings of day 10.
+   **A (Kim, 10 Nov):** Days 6 to 8 feel early: that would be the middle of harvest. The gathering should be after the harvest (see question 12).
+9. A third good for slice 4, grounded in standing? Kim asked on 10 November for more goods, each grounded in a need or in prestige (`design.md`, What each good is for). **P:** ale: brewed from surplus grain, poured by the host at the gathering and at weddings and funeral ales (VB-126); the guests' opinion of the host rises with what was poured, and prestige gains a small term for it. It gives the plain villages' grain a use and the host a cost. Furs wait for roe deer (VB-139), the rest for slices 6 and 8.
+   **A (Kim, 10 Nov):** Ale sounds good.
+10. Does tar give standing? **P:** yes, a little: a tarred farm counts toward its holder's prestige, as the first answer to the open point "what a more prestigious house brings its owner"; its main use stays the need (boats, timber).
+   **A (Kim, 10 Nov):** A well-maintained house should give prestige, up to a cap. Tar makes it easier to gain prestige from that source: it raises the cap slightly and slows the decay a bit.
+11. Disposition between villages. Judging a border case implies that villages stand in some relation to each other. **P:** no new stored number: it is read from the opinions and goodwill balances the holders of one village already hold toward those of another, border grudges included; it leans a judge, weighs in the choice of gathering, and moves with cases, matches and deals.
+   **A (Kim, 10 Nov):** Ok.
+12. The gathering's days, after the harvest. Fields ripen from autumn day 3 to 12, then are dried and threshed; the meetings are on autumn day 10 and the moving round on day 11. **P:** winter days 1 to 3: the grain is in, the slaughter done, the first snow from day 2. The gathering then follows the meetings and the round: a village chooses its gathering at its meeting a few days before, and a match agreed at the gathering is concluded there, by the same acts the round uses, so the couple does not wait a year.
+   **A (Kim, 10 Nov):** Winter days 1 to 3 is fine.
+13. Grain loans. **A (Kim, 2026-11-10):** move them to slice 5 (debt, VB-184); slice 4's fair is barter only.
+
+## VB-183: slice 4's numbers (raised 10 November 2026)
+The numbers the plan owes before VB-294 to VB-306 can be set ready. All are starting values to tune. For scale, from the game as it is: a year is 48 days, a household of four needs about 190 rations a year and holds 150 to 700 of grain after harvest; a holder's prestige is 1.6, a holder's spouse's 1.3, 0.2 more from 55; a pawn walks 3 tiles an hour, so a day's walk of 30 steps is 10 hours.
+1. Flag: there are no boats. Fishing (VB-117) is from the bank with a rod or net, so tar's main need, tarring a boat, has nothing to act on. **P:** slice 4 adds the fishing boat as a household's facility and nothing more: built as long work from timber (20 work hours), kept on a shore tile, it lets a trip fish the sea and lakes of 20 tiles or more for 8 rations instead of 4; it needs a barrel of tar every second year, fishes at half untarred for two years and is lost after four. Nobody travels in it: travel by water stays slice 10's. It goes into VB-300 (dried fish), which grows from S to M.
+   **A (Kim, 10 Nov):** P.
+2. Does the gathering's reach cross water? **P:** not in slice 4: on foot only (fords and bridges as now). VB-294 reports the share of villages left with no gathering on the reference seeds; if it is over a quarter on medium, travel by boat is pulled forward from slice 10 in the wrap-up's proposals.
+   **A (Kim, 10 Nov):** It is okay for islands to be separated for now.
+3. Quanta and customary worth, in rations. **P:** grain, a sack of 10 rations, worth 10; salt meat, butter and dried fish, a lot of 10 rations, worth 15 (they keep, and add a source to the pot); a barrel of tar 8; a barrel of ale 14 (10 rations of grain and 4 hours' brewing; it keeps one season); a cow 40, an ox 50, a heifer or steer 20, a sheep 6. One table for every culture until norms learn from deals (slice 8). VB-140's shares use the same table (it had a cow at 30 and an ox at 40). Wool and cheese are not goods in the game yet and wait for slice 6.
+   **A (Kim, 10 Nov):** P.
+4. Labour days at the fair. A day's work given later is a promise, and promises are obligations, which moved to slice 5 with the loans. **P:** no labour days in slice 4's fair; the class "animals, cloth and labour" keeps its name and holds only animals for now. Hiring a servant for the year at the gathering fits service (VB-090) and can come with it.
+   **A (Kim, 10 Nov):** P.
+5. Need: what a good is worth to the household taking it, against its customary worth. **P:** food: 1 a ration when its stores reach the next harvest with its reserve, rising in a line to 3 at empty stores and falling to 0.5 for food beyond two years' need; a food the pot lacks counts 1.2 times, up to a fifth of the household's need. An animal: 1.5 times its worth to a household with none of its kind, 1 otherwise, and 0 if its hay will not carry it through the winter. Tar: its worth when a boat or the house is due, else only as a keeping good. Ale: its worth to a household with an occasion ahead (a wedding, a funeral ale, hosting), half otherwise.
+   **A (Kim, 10 Nov):** P.
+6. Loads and who deals. **P:** a back load is 30 rations' worth of weight (3 sacks or lots, or 2 barrels), a cart with two oxen 90; an animal walks. One pawn of the household deals for it (its holder or spokesman), on each of the 3 days proposing to every pawn present it holds a balance with, then to 4 others, in seeded order.
+   **A (Kim, 10 Nov):** P.
+7. Keeping goods' cap. **P:** a household takes keeping goods beyond its own need up to 30 rations' worth held at once: one back load.
+   **A (Kim, 10 Nov):** P.
+8. A village's choice of gathering, counted in hours of walking. **P:** it goes to the host with the fewest effective hours, if under 10: the walk in hours; plus up to 4 for customs that differ (hard customs count double); less half an hour for each household of kin in the villages that went there last year, at most 2; less or plus up to 2 for the disposition between the two villages; less 1 if it was held last year; less up to 1 for the ale its host poured. A host counts its own walk as 0.
+   **A (Kim, 10 Nov):** P, and at most a day's walk away. They need a place to sleep: do they sleep with kin? How did this work historically? (Answered in design.md, The gathering, Lodging: with kin and partners in the host village, the rest in the host's barns; those within two hours go home at night.)
+9. Encounters at the gathering. **P:** at most 6 new contacts a pawn a gathering, among those on the green; talk then goes on as it does anywhere.
+   **A (Kim, 10 Nov):** P.
+10. The well-kept house. **P:** condition from 0 to 1; it wears 0.1 a year, and 4 work hours of upkeep raise it 0.1, offered once it is under 0.8. Prestige gains 0.15 times the condition. Tarred (a barrel lasts 6 years): the wear is 0.067 a year and the term 0.18 times the condition. A holder's spouse gains the same.
+   **A (Kim, 10 Nov):** P.
+11. Ale and standing. **P:** a barrel serves 20 guests. A guest's opinion of the host gains 0.05, fading over 3 years. The host's prestige gains 0.05 a barrel poured in the last 3 years, at most 0.2; at the gathering the gain is shared among the host village's holders by what each poured.
+   **A (Kim, 10 Nov):** P.
+12. The older tasks. **P:** VB-126 (occasions) confirmed, with the gathering as its fourth occasion and its two questions answered as proposed there; VB-140 (livestock in shares) confirmed with question 3's table; VB-220 (goodwill acts) confirmed as written, at the head of the slice.
+   **A (Kim, 10 Nov):** P.
+13. Cost, named before building (budget rule 9), on medium at about 1,000 living: the choice, one reach search a village a year (25 to 30), spread over the meetings; the walk, about 220 households times 2 to 3 goers, once a year, less than the moving round; encounters, at most 6 a pawn present; deals, at most 60 dealing pawns a gathering times about 12 proposals a day for 3 days, about 2,000 a gathering and 12,000 a year, spread over the hours of the fair's days so that no 6-minute step carries more than a few hundred; side crafts, ordinary work on planning days. **P:** the slice claims 2 ms of the 200 ms a game day (a year's mean), and no step over 60 ms on `medium-ref`; the wrap-up measures both.
+   **A (Kim, 10 Nov):** P.
 # Archived 10 November 2026 (VB-240)
 
 ## VB-240: derived opinion, the numbers against the expectation (raised 10 November 2026)
