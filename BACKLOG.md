@@ -13,7 +13,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
-| [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-233](backlog/VB-233.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
 | [VB-240](backlog/VB-240.md) | Opinion is derived: compatibility shown by familiarity, and memories only of what happened | - | 2 | M | Talk writes 99% of opinion's memories and they restate the fixed compatibility; derive opinion from standing, compatibility and the tie, keep memories for events, and record only close friends and enemies. |
 | [VB-242](backlog/VB-242.md) | The meetings and the moving round, a village a step: survey and tasks | - | 2 | S | The round matches the whole map in one step, which is why its heir cache exists; Kim decided each village holds its meeting and round in its own step. Survey the code and write the tasks. |

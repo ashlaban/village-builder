@@ -26,6 +26,21 @@ assert.strictEqual(c.arr, c.arrAgain, 'a shared array stays one array');
 assert.deepStrictEqual(Object.keys(c), Object.keys(v), 'key order is kept');
 assert.throws(() => encode({ f: () => 1 }), /a function at st\.f/);
 assert.throws(() => encode({ d: new Date(0) }), /a Date at st\.d/);
+assert.throws(() => encode({ a: [{ m: new Map([['k', { f: () => 1 }]]) }] }), /a function at st\.a\[0\]\.m\.get\(k\)\.f/, 'the path is spelled out');
+
+// VB-226: what JSON writes as it is comes back as it is, not copied; an object beside an odd value is copied, its plain parts not
+const plain = { a: [1, 'x', { b: true, c: null }], d: { e: 2 } }, mixed = { p: plain.d, q: [NaN, plain.a] };
+assert.strictEqual(encode(plain), plain, 'a plain tree is not copied');
+const em = encode({ ...mixed, p: { ...plain.d } });
+assert.ok(em.q !== mixed.q && em.q[1] === plain.a && em.q[0].$num === 'NaN', 'only the path to an odd value is copied');
+assert.deepStrictEqual(decode(JSON.parse(JSON.stringify(encode({ m: new Map([[1, 2], ['a', [3]]]) })))).m, new Map([[1, 2], ['a', [3]]]));
+assert.deepStrictEqual(JSON.parse(JSON.stringify(encode(new Map([[1, 2]])))), { $kv: [1, 2] }, 'a Map is flat');
+assert.deepStrictEqual(decode({ $map: [[1, { $set: [2] }]] }), new Map([[1, new Set([2])]]), 'a format-1 Map is read');
+// a packed object: written as its data, made again by its reviver, its sharing kept
+const box = { n: [1, 2] }, packed = { one: box, two: box }, pack = new Map([[box, { as: 'box', data: box.n.join(',') }]]);
+const pj = JSON.parse(JSON.stringify(encode(packed, null, pack))), pb = decode(pj, { box: (s) => ({ n: s.split(',').map(Number) }) });
+assert.ok(pj.one.$as === 'box' && pj.two.$ref === pj.one.$id && pb.one === pb.two && pb.one.n[1] === 2, 'a packed object is made again, shared');
+assert.throws(() => decode(pj), /no way to make a packed box/);
 
 // a real state: seeded founders after a year, every key (the world aside) the same canonical text after a trip through JSON
 const it = G.generate(7); let r; while (!(r = it.next()).done);
