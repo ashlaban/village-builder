@@ -451,6 +451,11 @@ its line; its wrap-up measures it.
 **8 November update (Kim, VB-202):** `medium-y60` is dropped from the fixtures, the bench and the budget, replacing its stress role;
 `medium-ref` is the only late medium fixture. The fixtures move to release assets and a nightly GitHub workflow remakes them (VB-223).
 
+**10 November update (Kim, VB-261):** the lines of this section are targets with residuals, not gates: the nightly records each in
+`docs/bench/targets.jsonl` (read with `node tools/targets.js`), and a check that is out reports its residual and never fails. The history
+line (1.25) and the 60 ms step stay as targets. A task whose criterion is a line is done when it has moved towards it and reports the
+residual, naming who closes what is left (`docs/bench/closure.md`). Timings are judged against noise (`docs/gates.md`, section 2).
+
 **9 November update (Kim, VB-203):** the mean is taken over a whole game year from the save (48 days), so winter, the meetings and
 the moving round count; the 30-day window read 7% low. Each system has a share of the 200 ms, 192 ms in all and 8 kept back, in the
 budget column of `tools/bench.js`. The save's line counts the time the main thread is blocked (encode and stringify); gzip may run
@@ -514,11 +519,11 @@ Timing is noisy, depends on the machine and needs long runs. Most of what matter
 
 | Measure | What it catches | Cost | Where it runs |
 |---|---|---|---|
-| **Work counters:** nodes a route search expands, pairs talk considers, records a loop walks, opportunities computed, rule values read, deals assessed, stories picked | A loop that does more work than it should | Nil. Deterministic, so asserted with tight bands at tiny scale and never flaky | `npm test` |
-| **Scaling exponent:** the same scenario at two sizes (tiny and small, or populous at one and two times the density) | Work per day growing faster than the people (exponent over 1.15) | Two tiny runs, seconds | `npm test` |
-| **History check:** work per living pawn at year 5 and at the late fixture | Loops over history (rule 1) | One fixture year from counters | `npm run verify` |
+| **Work counters:** nodes a route search expands, pairs talk considers, records a loop walks, opportunities computed, rule values read, deals assessed, stories picked | A loop that does more work than it should | Nil. Deterministic, so reported with tight targets at tiny scale (exact residuals, never flaky); their structure stays asserted | `npm test`; targets in `docs/bench/targets.jsonl` |
+| **Scaling exponent:** the same scenario at two sizes (tiny and small, or populous at one and two times the density) | Work per day growing faster than the people (target: exponent at most 1.15; the residual is reported) | Two tiny runs, seconds | `npm test`; reported as a target |
+| **History check:** work per living pawn at year 5 and at the late fixture | Loops over history (rule 1; target 1.25, residual reported) | One fixture year from counters | `npm run verify`; reported as a target |
 | **Late fixtures:** saves at year 40 (small) and year 60 (medium), made by the nightly long runs and regenerated when the save format or the golden file changes | Late-only costs such as the moving round's 899 ms | 11 s for a year on small, against 4 minutes to get there | verify (small), nightly (medium) |
-| **Bench history:** ms a game day per calendar step, worst step, heap, save time and size, per commit, appended to `docs/bench/history.jsonl` | Drift over many commits | One nightly run | Nightly; reported, never failing; a jump of 20% over the median of the last five is flagged |
+| **Bench history:** ms a game day per calendar step, worst step, heap, save time and size, per commit, appended to `docs/bench/history.jsonl` | Drift over many commits | One nightly run | Nightly; reported to `targets.jsonl`, never failing; a jump of 20% over the median of the last five is flagged |
 | **Microbenchmarks:** `Rules.value`, the `move.cost` grid, A*, opportunities for one holder | A hot path's cost in ns per call | Seconds | Nightly |
 | **Synthetic stress:** a scenario with 2,000 living pawns, 8,000 dead with families, 10,000 obligations and 50,000 goodwill pairs | Data structures beyond what play reaches yet | Seconds, no simulation to get there | On demand |
 | **Frames:** VB-166 | Drawing | 30 s in headless Chromium | On demand; required for page drawing changes |
