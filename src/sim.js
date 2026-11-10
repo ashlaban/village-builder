@@ -22,7 +22,8 @@ const Sim = (() => {
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
-  const { explainAllowance } = VB['sim/exchange'];
+  const { explainAllowance, giftWarning } = VB['sim/exchange'];
+  const { kinHouseholds } = VB['sim/help'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -45,7 +46,8 @@ const Sim = (() => {
       fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
+    giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop,
   };
 })();

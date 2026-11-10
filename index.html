@@ -4998,6 +4998,19 @@ VB['sim/hunger'] = (() => {
     hh.larder = hh.larder.filter((l) => l.n > 1e-9);
     return got;
   }
+  // The groups a short meal is served in, one after the other, by the household's feedOrder: its children or its workers first and then
+  // the rest, or everyone together. mem: its living members, as pawns.
+  function feedGroups(st, hh, mem) {
+    const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
+    const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
+    const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
+    return first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem];
+  }
+  // The members a short meal reaches last, as pawn ids: the feed order's last group with anyone in it. Reads only.
+  function servedLast(st, hh) {
+    const groups = feedGroups(st, hh, hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null)).filter((g) => g.length);
+    return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
+  }
   // Feeds a household for the day: larder food about to spoil first, then cooked rations and grain above the seed reserve, then the rest
   // of the larder; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
@@ -5012,11 +5025,8 @@ VB['sim/hunger'] = (() => {
       const left = Math.max(0, rest - late), cooked = Math.min(hh.rations, left); Stores.take(st, hh, 'rations', cooked, 'meal');
       Stores.take(st, hh, 'grain', Math.max(0, left - cooked), 'meal'); }
     else {
-      const order = st.cenv ? farmPractice(st, st.farmsteads[hh.farmstead]).feedOrder : 'equal';
-      const worker = (p) => { const a = age(st, p); return a >= 14 && a < 60 && !p.retired; };
-      const first = order === 'children' ? (p) => age(st, p) < 14 : order === 'workers' ? worker : null;
       let left = avail + early + late;
-      for (const group of first ? [mem.filter(first), mem.filter((p) => !first(p))] : [mem]) {
+      for (const group of feedGroups(st, hh, mem)) {
         const gneed = group.reduce((s, p) => s + need.get(p), 0), give = Math.min(left, gneed);
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
@@ -5047,7 +5057,7 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
-  return { feedHousehold, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+  return { feedHousehold, feedGroups, servedLast, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
 </script>
 <script>
@@ -5059,7 +5069,7 @@ VB['sim/exchange'] = (() => {
   const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
-  const { floorOf, dailyNeed } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
@@ -5093,6 +5103,14 @@ VB['sim/exchange'] = (() => {
       : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
     return { floorOk, allowance, accept: why === null, why };
   }
+  // What the player is told before its pawn's household gives n below its floor (VB-221; The gift: the player's gift): null when the
+  // gift leaves the floor whole, else {below (rations under the floor after it), days (the floor's days of need), hungry (the members
+  // its feed order serves last, as pawn ids)}. Reads only; the gift itself is the verb's.
+  function giftWarning(st, from, n) {
+    if (!isHousehold(from)) return null;
+    const below = floorOf(st, from) - (from.grain - n);
+    return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
+  }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,
   // the tie between the two holders, and the goodwill booked between them.
   function receive(st, from, to, n, fromName) {
@@ -5123,7 +5141,7 @@ VB['sim/exchange'] = (() => {
     if (!from || !to || to === from || to.dissolved) return null;
     return Rules.explain(st, 'allowance', { giver, receiver, from, to });
   }
-  return { assessGift, settleGift, explainAllowance };
+  return { assessGift, settleGift, explainAllowance, giftWarning };
 })();
 </script>
 <script>
@@ -9650,7 +9668,8 @@ const Sim = (() => {
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
-  const { explainAllowance } = VB['sim/exchange'];
+  const { explainAllowance, giftWarning } = VB['sim/exchange'];
+  const { kinHouseholds } = VB['sim/help'];
   const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
@@ -9673,7 +9692,8 @@ const Sim = (() => {
       fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
+    giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop,
   };
 })();
@@ -13167,7 +13187,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '1ab10ed009', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a46e37cab4', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

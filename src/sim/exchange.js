@@ -6,7 +6,7 @@ VB['sim/exchange'] = (() => {
   const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
-  const { floorOf, dailyNeed } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
@@ -40,6 +40,14 @@ VB['sim/exchange'] = (() => {
       : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
     return { floorOk, allowance, accept: why === null, why };
   }
+  // What the player is told before its pawn's household gives n below its floor (VB-221; The gift: the player's gift): null when the
+  // gift leaves the floor whole, else {below (rations under the floor after it), days (the floor's days of need), hungry (the members
+  // its feed order serves last, as pawn ids)}. Reads only; the gift itself is the verb's.
+  function giftWarning(st, from, n) {
+    if (!isHousehold(from)) return null;
+    const below = floorOf(st, from) - (from.grain - n);
+    return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
+  }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,
   // the tie between the two holders, and the goodwill booked between them.
   function receive(st, from, to, n, fromName) {
@@ -70,5 +78,5 @@ VB['sim/exchange'] = (() => {
     if (!from || !to || to === from || to.dissolved) return null;
     return Rules.explain(st, 'allowance', { giver, receiver, from, to });
   }
-  return { assessGift, settleGift, explainAllowance };
+  return { assessGift, settleGift, explainAllowance, giftWarning };
 })();
