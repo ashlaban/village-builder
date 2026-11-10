@@ -14,6 +14,22 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-270: the hunger floors, what the diagnosis found (raised 10 November 2026, by VB-270)
+VB-270 replayed the ten full runs (`docs/bench/closure.md`, "The hunger floors"; the replay is `docs/bench/hunger-causes.js`). Of 141 hunger
+deaths after year 3, 91 are in households whose stores still held a day's food behind the seed reserve (`seedReserve`; design.md, Seed, Agreed:
+"a household keeps back seed for all its fields before it eats"), mostly a lone adult or an heir with 3 to 5 fields; 49 are real shortage.
+1. May a household that cannot feed itself eat its seed? **P:** yes, as the last step of a short day: when the meal falls short, the grain
+   below the seed reserve is taken for the meal too, and the fields it leaves unsown are the price (the log says so). Design.md's line
+   becomes "keeps back seed before it eats, unless it would go hungry". At the recorded runs this would take at most 91 of the 141 hunger deaths
+   away (the share of deaths after year 3 would read 0.022, 0.023, 0.058, 0.012 on populous, 0.000, 0.033, 0.037, 0.094 on founders and 0.000,
+   0.048 on heirs: 3 of 10 runs in); the share of household-years over 0.3 hungry would fall from 0.006 to 0.085 to 0.002 to 0.057. It is
+   an upper bound: a household that eats its seed sows less the next year. VB-270-a builds it and measures the true numbers. If no, the
+   residual stays and the floors' hunger-deaths band is raised or dropped for the reserve's households (Kim's choice).
+2. Should the band "hungry-households" read the worst household? It is an extreme value: it grows with the number of households and is
+   1.00 on six of the ten runs. **P:** read the share of household-years after year 3 in which a household (present 12 days or more) was
+   hungry over 0.3 of its days, at most 0.05; the worst household stays in the report. Today's values read 0.006 to 0.085: 9 of 10 runs in
+   (founders 42 is out at 0.085, heirs 42 in at 0.047), against none in today.
+
 ### VB-212: the wishes the survey could not sort (raised 10 November 2026)
 VB-212 built the player's wishes for the moving round (`st.player.wishes`: `out`, `claim`, `serve`; the survey is in `backlog/VB-212.md`). Three wants in the round need a design choice, and each is left a rule, as the task's note asks. None blocks slice 2's wrap-up.
 1. Settling new land. The round draws a chance for each waiting adult of a crowded village (`SETTLE.chance` by rounds waited, `src/sim/settle.js:215`), which reads as the pawn's own willingness, and the wishes have no field for it. Today the player's pawn leads a party only by that draw; a wish to stay (`out: false`) keeps it from leading one. **P:** a fourth wish, `settle`: `true` passes the draw and `false` never leads a party, with the round's other rules (age, provisions, land within reach, the village crowded) deciding as for anyone; a small task in slice 2.
