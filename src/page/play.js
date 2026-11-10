@@ -41,8 +41,23 @@
   function oppRow(o, open) {
     const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
     if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
-    const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target }));
+    const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
     return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  }
+  // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
+  // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
+  function causeNote(p) {
+    const a = p.advocate; if (!a) return '<p class="hint">It argues no cause.</p>';
+    const d = Culture.DIMS[a.dim], s = st.cenv.settlements[Sim.settlementIdOf(st, p)], sup = s && s.lastSupport;
+    let h = `<p class="cause">Argues for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
+      a.until - st.cenv.t).toFixed(1)} more years.`;
+    if (sup) {
+      const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
+      const need = x === a.opt ? 0 : x === cust ? Culture.P.margin + Culture.P.tieMargin * s.tie : a.opt === cust ? Culture.P.returnMargin : Culture.P.margin;
+      h += x === a.opt ? ' It is the village practice.' : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the `
+        + `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
+    } else h += ' The village has not met yet.';
+    return `${h}</p>`;
   }
   // The household's food in days of need: grain above the seed set aside, cooked rations and the larder, over a day's rations of its living.
   function foodDays(hh) {
@@ -87,8 +102,8 @@
       h += `<h4>Going</h4><ul class="opps">${groups.going.map((o) =>
         oppRow(o, true)).join('')}<li><button type="button" class="opp" data-play="walk" aria-pressed="${
         walkPick}">${walkPick ? 'Choose an open tile on the map, or cancel' : 'Walk here'}<i>for itself</i></button></li></ul>`;
-      if (groups.causes.length) h += `<h4>Causes <span>shown only, for now</span></h4><ul class="opps">${groups.causes.map((o) =>
-        oppRow(o, false)).join('')}</ul>`;
+      if (groups.causes.length || p.advocate) h += `<h4>Causes</h4>${causeNote(p)}<ul class="opps">${groups.causes.map((o) =>
+        oppRow(o, true)).join('')}</ul>`;
       if (groups.round.length) h += `<h4>At the moving round <span>shown only, for now</span></h4><ul class="opps">${groups.round.map((o) =>
         oppRow(o, false)).join('')}</ul>`;
     }
@@ -114,7 +129,7 @@
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
     else if (act === 'do') {
       const c = JSON.parse(b.dataset.cmd);
-      r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : null });
+      r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
     }
     playMsg = r === true ? null : { id, text: r };
     showPawn(id);
