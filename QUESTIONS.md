@@ -14,6 +14,10 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-275: opinion in the negotiation of a marriage (raised 10 November 2026, by VB-233)
+Kim (10 Nov, code review): marriage is where opinion first changes a decision, and VB-233's plan says where it enters and with what weight. In the first version (VB-272) every side without a player says yes, as Kim accepted on 9 November ("a side with no player answers yes, so a run with no player is unchanged"). So opinion can enter only in a task after it, which changes the run. The opinion meant is VB-240's derived value: kin standing, plus compatibility shown with familiarity, plus memories of what happened.
+1. Where does opinion enter, and with what weight? **P:** in two places, in slice 2 after VB-240 (VB-275). Between the two young: the matcher's score gains 1.0 × the mean of their opinions of each other (strangers count 0; the same-village bonus is 2 and the noise 1.5), and a young pawn refuses an offer when its opinion of the other is at enmity (-0.5) or below. Between the spokesmen: a spokesman refuses when its opinion of the other side's spokesman is at enmity or below. A young pawn who refuses its spokesman's match costs that spokesman's opinion of it (-0.2, as for the player in VB-272), now for unplayed pawns too. Heads that look for matches themselves, weighing land, stores and standing, stay later, as agreed.
+
 ### VB-270: the hunger floors, out on every full run (raised 10 November 2026)
 Slice 0's wrap-up (VB-200) ran the full bands at `7205992`: 31 in, 19 out. All 19 are the hunger floors and one population floor:
 hungry-households out on all ten runs (the worst household hungry on 0.48 to 1.0 of its days after year 3, line 0.30), hunger-deaths on

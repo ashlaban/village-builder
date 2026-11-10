@@ -171,6 +171,10 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   position, and slice 3 designs it (below).
 - Kim accepted the proposals for all three the same day (`QUESTION_ARCHIVE.md`, "VB-233", "VB-234", "VB-099"): an offer waits 7 game days;
   a skip pauses on what concerns the played pawn, and at the eve of the moving round at the latest; the chronicle is a History tab.
+- VB-233's plan (10 Nov) wrote marriage's tasks: VB-272 (each match an offer both households answer, kept in `st.offers` with a
+  due time when the player must answer; no player, no change), VB-273 (the offer in the page), VB-274 (the wish for a match), and
+  VB-275 (opinion in the answers, waiting for Kim's answer in `QUESTIONS.md`). The terms are VB-276, in slice 4; courting's part is
+  VB-036's, in slice 7. Cost: no stored offer without a player, about 0.06 a household a year with one, nothing polled between rounds.
 - The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year
@@ -227,8 +231,8 @@ The cities review's phase 1, and the loans of its phase 2.
   - `Culture.norm`, with fixed rates first;
   - Obligations as a module, now that it has its second kind (grain loans after the heirs' shares);
   - encounters at the venue, so villages mix.
-- **Takes over:** VB-126 (occasions), VB-140 (livestock in shares), the probe of VB-130 (hoarding); the cities questions in
-  `QUESTIONS.md`.
+- **Takes over:** VB-126 (occasions), VB-140 (livestock in shares), VB-276 (marriage terms: a dowry and a morning gift, from VB-233),
+  the probe of VB-130 (hoarding); the cities questions in `QUESTIONS.md`.
 - **Design pass:**
   - goods and their quanta;
   - the worth table: a cow 40 rations, a sheep 6, a day's work 3, from the cities review;
