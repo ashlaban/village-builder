@@ -47,8 +47,8 @@ VB['sim/kinds'] = (() => {
   // The spring sowing window, when fields are hoed and sown.
   const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
-  // The household has less cooked food than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  // The household has fewer meals than the coming meal needs, and grain to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -167,12 +167,12 @@ VB['sim/kinds'] = (() => {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
       inside: true,
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // grain above the seed reserve becomes the rations still missing for the coming meal
+      // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
       done: (st, j, hh, c) => {
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
-        Stores.cook(st, hh, make); hh.cookDay = c.day;
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - seedReserve(st, hh)));
+        Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
       },
-      // from 14:00 to the end of work, while the household is short of cooked food and has grain to cook (cookWanted)
+      // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
       available: (st, hh, f, c, post) => {
         if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
       },

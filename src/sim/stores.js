@@ -1,6 +1,6 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS, TICKS } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, TICKS, FOODS } = VB['sim/rules'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
@@ -35,13 +35,13 @@ VB['sim/stores'] = (() => {
   function field(holder, good) {
     const kind = type(holder);
     if (kind === 'pawn' && good === 'grain') return 'stake';
-    if (good === 'grain' || kind === 'household' && good === 'rations') return good;
+    if (good === 'grain' || kind === 'household' && good === 'meals') return good;
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
-  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.rations = n; }
+  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n) {
     const kind = type(holder);
     if (kind === 'pawn') setStake(holder, n);
@@ -60,7 +60,10 @@ VB['sim/stores'] = (() => {
     amount(n); field(from, good); field(to, good);
     const got = take(st, from, good, n, why); put(st, to, good, got, why); return got;
   }
-  function cook(st, hh, n) { const got = take(st, hh, 'grain', n, 'cooking'); put(st, hh, 'rations', got, 'cooking'); }
+  // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
+  const mealsFrom = (food, n) => n * FOODS[food].worth;
+  // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
+  function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest'); hh.unthreshed.push(n);
   }
@@ -69,10 +72,10 @@ VB['sim/stores'] = (() => {
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed.
-  function start(st, hh, grain, rations = 0) {
-    amount(grain); amount(rations); type(hh);
-    hh.grain = grain; hh.rations = rations;
-    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'rations', rations, 'provisions');
+  function start(st, hh, grain, meals = 0) {
+    amount(grain); amount(meals); type(hh);
+    hh.grain = grain; hh.meals = meals;
+    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'meals', meals, 'provisions');
   }
   function spoil(st, hh, n) {
     const lost = take(st, hh, 'grain', n, 'spoilage'); hh.spoilt = (hh.spoilt || 0) + lost;
@@ -101,5 +104,5 @@ VB['sim/stores'] = (() => {
   function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
-  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune };
 })();

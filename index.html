@@ -2303,7 +2303,7 @@ VB['sim/rules'] = (() => {
     return [h(DARK_CENTRE - len / 2), h(DARK_CENTRE + len / 2)];
   };
 
-  // ---- economy (rations = one adult's food for one game day) ----
+  // ---- economy (a ration, the unit of food, is one adult's food for one game day; FOODS below) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
     fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
@@ -2447,6 +2447,18 @@ VB['sim/rules'] = (() => {
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
   };
+  // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
+  // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
+  // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
+  // as it is, from the larder, not cooked into meals). Grain goes into the household's grain and is cooked into meals (sim/stores cook);
+  // the rest go into the larder (sim/hunger addFood, from sim/byre). Nothing reads source yet (the pot, VB-119). ----
+  const FOODS = {
+    grain: { worth: 1, keeps: null, source: 'grain', raw: false },
+    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', raw: true }, // fresh, from the slaughter
+    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
+    milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
+    butter: { worth: 1, keeps: HERD.butterDays, source: null, raw: true },
+  };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
   // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
@@ -2538,7 +2550,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
 })();
 </script>
 <script>
@@ -3592,7 +3604,7 @@ VB['sim/records'] = (() => {
     return { rand, pickGiven: (sex) => take(sex === 'm' ? MALE : FEMALE, sex === 'm' ? usedM : usedF), pickFather: () => take(MALE, usedFather) };
   }
   function makeHousehold(R, id, f, members, holder) {
-    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
+    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, haySpoilt: 0,
       larder: [], fodderDay: -1,
       milkDay: -1, manure: 0, spoilt: 0 };
@@ -4979,7 +4991,7 @@ VB['sim/herds'] = (() => {
 <script>
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS, TICKS } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, TICKS, FOODS } = VB['sim/rules'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter'];
@@ -5014,13 +5026,13 @@ VB['sim/stores'] = (() => {
   function field(holder, good) {
     const kind = type(holder);
     if (kind === 'pawn' && good === 'grain') return 'stake';
-    if (good === 'grain' || kind === 'household' && good === 'rations') return good;
+    if (good === 'grain' || kind === 'household' && good === 'meals') return good;
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
-  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.rations = n; }
+  function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n) {
     const kind = type(holder);
     if (kind === 'pawn') setStake(holder, n);
@@ -5039,7 +5051,10 @@ VB['sim/stores'] = (() => {
     amount(n); field(from, good); field(to, good);
     const got = take(st, from, good, n, why); put(st, to, good, got, why); return got;
   }
-  function cook(st, hh, n) { const got = take(st, hh, 'grain', n, 'cooking'); put(st, hh, 'rations', got, 'cooking'); }
+  // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
+  const mealsFrom = (food, n) => n * FOODS[food].worth;
+  // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
+  function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest'); hh.unthreshed.push(n);
   }
@@ -5048,10 +5063,10 @@ VB['sim/stores'] = (() => {
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed.
-  function start(st, hh, grain, rations = 0) {
-    amount(grain); amount(rations); type(hh);
-    hh.grain = grain; hh.rations = rations;
-    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'rations', rations, 'provisions');
+  function start(st, hh, grain, meals = 0) {
+    amount(grain); amount(meals); type(hh);
+    hh.grain = grain; hh.meals = meals;
+    record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'meals', meals, 'provisions');
   }
   function spoil(st, hh, n) {
     const lost = take(st, hh, 'grain', n, 'spoilage'); hh.spoilt = (hh.spoilt || 0) + lost;
@@ -5080,7 +5095,7 @@ VB['sim/stores'] = (() => {
   function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
-  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune };
 })();
 </script>
 <script>
@@ -5107,7 +5122,7 @@ VB['sim/hunger'] = (() => {
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
   Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
-  // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
+  // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: the foods of rules FOODS eaten as they are ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
   function larderOf(hh, kind) { let s = 0; for (const l of hh.larder) s += !kind || l.kind === kind ? l.n : 0; return s; } // the review asks it hourly
   // Takes up to `want` rations from the larder, the lots that spoil first first; only those within `soon` hours of spoiling when soon is
@@ -5134,18 +5149,18 @@ VB['sim/hunger'] = (() => {
     const groups = feedGroups(st, hh, hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null)).filter((g) => g.length);
     return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
   }
-  // Feeds a household for the day: larder food about to spoil first, then cooked rations and grain above the seed reserve, then the rest
+  // Feeds a household for the day: larder food about to spoil first, then meals and grain above the seed reserve, then the rest
   // of the larder; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
-    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
+    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.meals + spare; // meals first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
     if (avail >= rest - late) {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
-      const left = Math.max(0, rest - late), cooked = Math.min(hh.rations, left); Stores.take(st, hh, 'rations', cooked, 'meal');
+      const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left); Stores.take(st, hh, 'meals', cooked, 'meal');
       Stores.take(st, hh, 'grain', Math.max(0, left - cooked), 'meal'); }
     else {
       let left = avail + early + late;
@@ -5154,7 +5169,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      Stores.take(st, hh, 'rations', hh.rations, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
+      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -5892,7 +5907,7 @@ VB['sim/meadows'] = (() => {
 VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
+  const { HERD, FOODS, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -6030,7 +6045,7 @@ VB['sim/byre'] = (() => {
     for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
     const r = cows * HERD.milk, butter = r * HERD.butter;
     if (r <= 0) return;
-    addFood(st, hh, 'milk', r - butter, 1); addFood(st, hh, 'butter', butter, HERD.butterDays);
+    addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps); addFood(st, hh, 'butter', butter, HERD.butterDays);
     Stores.record(st, hh, 'milk', r - butter, 'milk'); Stores.record(st, hh, 'butter', butter, 'butter');
   }
   // Salted: the fresh meat keeps a year.
@@ -6513,7 +6528,7 @@ VB['sim/farmclaims'] = (() => {
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
     issue(st, { actor: holder.id, verb: 'foundHousehold', target: f.id, args: { members, grain }, source: 'restoration' });
     const hh = st.households[f.household];
-    Stores.put(st, hh, 'rations', 2 * dailyNeed(st, hh), 'provisions');
+    Stores.put(st, hh, 'meals', 2 * dailyNeed(st, hh), 'provisions');
     f.claim = null; f.condition = 1; f.emptySince = null;
     CL.clearClaims(st, f.house);
     st.demand = st.demand.filter((id) => !members.includes(id));
@@ -6576,8 +6591,8 @@ VB['sim/kinds'] = (() => {
   // The spring sowing window, when fields are hoed and sown.
   const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
-  // The household has less cooked food than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.rations < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  // The household has fewer meals than the coming meal needs, and grain to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -6696,12 +6711,12 @@ VB['sim/kinds'] = (() => {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
       inside: true,
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // grain above the seed reserve becomes the rations still missing for the coming meal
+      // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
       done: (st, j, hh, c) => {
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.rations, hh.grain - seedReserve(st, hh)));
-        Stores.cook(st, hh, make); hh.cookDay = c.day;
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - seedReserve(st, hh)));
+        Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
       },
-      // from 14:00 to the end of work, while the household is short of cooked food and has grain to cook (cookWanted)
+      // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
       available: (st, hh, f, c, post) => {
         if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
       },
@@ -7482,7 +7497,7 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // From 14:00 a household short of rations calls its best cook off other work, unless that cook is idle (then matching sends them home).
+  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
   // The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
     VB.count.cookFarm += st.farmsteads.length;
@@ -9107,7 +9122,7 @@ VB['sim/lifecycle'] = (() => {
     const means = new Map();
     const affords = (h) => {
       if (!means.has(h)) {
-        const hh = st.households[h], store = hh.grain + hh.rations + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+        const hh = st.households[h], store = hh.grain + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
         const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
         means.set(h, grown < 2 || store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }
@@ -9513,7 +9528,7 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
@@ -9522,7 +9537,7 @@ VB['sim/scenarios'] = (() => {
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
     //   hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
-    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
+    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -9593,7 +9608,7 @@ VB['sim/scenarios'] = (() => {
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
-    for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
+    for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order
     const before = [];
@@ -9927,8 +9942,9 @@ VB['sim/saves'] = (() => {
   // also recomputes the tile's colours from it; dev, wear and worn are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn'];
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
-  // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked. Format 1 is still read.
-  const FORMAT = 2, READS = [1, 2];
+  // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
+  // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
+  const FORMAT = 3, READS = [3];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
@@ -12255,6 +12271,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
         body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
           `<p>Grain ${Math.round(hh.grain)} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
+          <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
@@ -12721,11 +12738,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     } else h += ' The village has not met yet.';
     return `${h}</p>`;
   }
-  // The household's food in days of need: grain above the seed set aside, cooked rations and the larder, over a day's rations of its living.
+  // The household's food in days of need: grain above the seed set aside, meals and the larder, over a day's rations of its living.
   function foodDays(hh) {
     let need = 0;
     for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
-    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
+    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
   // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
@@ -13669,7 +13686,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '343e48daa5', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '4ec3f57f69', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

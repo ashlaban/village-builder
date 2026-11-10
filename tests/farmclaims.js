@@ -141,7 +141,7 @@ const P = (id) => ({ type: 'pawn', id });
   check([f.house, ...f.fields.map((fd) => fd.tile)].every((t) => st.owner[t] === hh.id + 1) && !CL.claimsOn(st, f.house).length,
     'house and fields are theirs; the claim and the birthright are spent');
   const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * st.ECON.seedPerField;
-  check(hh.grain === need && hh.rations > 0 && hh.wood === st.ECON.startWood, `stores: ${hh.grain} grain of ${need}, ${hh.rations} rations, ${hh.wood} wood`);
+  check(hh.grain === need && hh.meals > 0 && hh.wood === st.ECON.startWood, `stores: ${hh.grain} grain of ${need}, ${hh.meals} meals, ${hh.wood} wood`);
   // the fields gone to grass and scrub are cleared again by the new household
   J.refreshJobs(st, cal(st.t));
   const r0 = st.jobs.get(`reclaim:f${f.id}.${f.fields[0].id}`), r1 = st.jobs.get(`reclaim:f${f.id}.${f.fields[1].id}`);

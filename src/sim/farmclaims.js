@@ -194,7 +194,7 @@ VB['sim/farmclaims'] = (() => {
     const years = Math.round((st.t - f.emptySince) / YEAR), grain = provisions(st, f, members);
     issue(st, { actor: holder.id, verb: 'foundHousehold', target: f.id, args: { members, grain }, source: 'restoration' });
     const hh = st.households[f.household];
-    Stores.put(st, hh, 'rations', 2 * dailyNeed(st, hh), 'provisions');
+    Stores.put(st, hh, 'meals', 2 * dailyNeed(st, hh), 'provisions');
     f.claim = null; f.condition = 1; f.emptySince = null;
     CL.clearClaims(st, f.house);
     st.demand = st.demand.filter((id) => !members.includes(id));

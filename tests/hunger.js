@@ -6,7 +6,7 @@ const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { 
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = (scenario = 'founders') => {
   const st = Sim.seed(w7, 7, scenario);
-  for (const hh of st.households) hh.rations = 0; // these checks run on grain alone (tests/meals.js covers rations)
+  for (const hh of st.households) hh.meals = 0; // these checks run on grain alone (tests/meals.js covers meals)
   return st;
 };
 

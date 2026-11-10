@@ -11,7 +11,7 @@
     "st.player": "sim/commands",
     "st.plans": "sim/plans",
     "household.grain": "sim/stores",
-    "household.rations": "sim/stores",
+    "household.meals": "sim/stores",
     "household.unthreshed": "sim/stores",
     "household.ledger": "sim/stores",
     "household.totals": "sim/stores",

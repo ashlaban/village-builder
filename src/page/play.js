@@ -82,11 +82,11 @@
     } else h += ' The village has not met yet.';
     return `${h}</p>`;
   }
-  // The household's food in days of need: grain above the seed set aside, cooked rations and the larder, over a day's rations of its living.
+  // The household's food in days of need: grain above the seed set aside, meals and the larder, over a day's rations of its living.
   function foodDays(hh) {
     let need = 0;
     for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
-    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
+    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
   // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
