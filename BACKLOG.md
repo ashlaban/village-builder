@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-261](backlog/VB-261.md) | Plan: gates become targets with residuals | - | 1 | S | No hard gates in this phase of development (Kim, 10 Nov): survey every gate (cost baselines, bands, the demographic gate, bench shares, Checks) and propose how each is reported as a target and its residual. |
 | [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-233](backlog/VB-233.md) | Plan: marriage as a negotiation between households | life | 2 | S | Design the negotiation: who speaks for whom, consent, the offer, terms, courting's place and the player's answers; write its tasks. |
@@ -116,6 +115,13 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-136, VB-139, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | VB-136 | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-244](backlog/VB-244.md) | The page runs whole steps and draws pawns between them | - | 2 | M | VB-235 | A step in the page is as long as a frame, so the frame rate changes the run; the page asks for whole six-minute steps and interpolates each pawn's place between the last two. |
+| [VB-262](backlog/VB-262.md) | Targets: the record, the residuals file and its reader | - | 2 | S | Kim | One reporter for targets (tests/lib/targets.js), one file of residuals beside the bench's (docs/bench/targets.jsonl), a reader (tools/targets.js) that writes docs/bench/targets.md; the runner sums targets out. |
+| [VB-263](backlog/VB-263.md) | Cost growth as targets: tests/scaling.js and tests/history.js report residuals | - | 2 | S | VB-262, Kim | The scaling exponent (1.15) and the history ratio (1.25) are reported per counter as targets with residuals and never fail; tests/cost-baseline.json is retired and its ceilings become the first records. |
+| [VB-264](backlog/VB-264.md) | Counters and the reduced bands as targets | - | 2 | S | VB-262, Kim | tests/counters.js reports each counter over +10% of counters.json as a residual (structure asserts stay hard); tests/bands.js reports the balance bands at full strength as targets, the invariants band stays hard. |
+| [VB-265](backlog/VB-265.md) | Bench, bands and demography write target records, with noise | - | 2 | S | VB-262, Kim | tools/bench.js (lines and system shares, each also as a share of the whole step), tools/bands.js and tools/marriage-demography.js append target records with their noise (runs, seeds); paired, alternated runs for before and after. |
+| [VB-266](backlog/VB-266.md) | Checks back on pull requests, hard checks only | - | 2 | S | VB-263, VB-264, Kim | The Checks workflow runs on pull requests again and fails only on the hard checks; targets out are printed in the job summary; the late-game job reports and never fails. |
+| [VB-267](backlog/VB-267.md) | Targets in the rules: AGENTS.md, roadmap 5 and 6, BACKLOG.md, open criteria reworded | - | 2 | S | VB-263, Kim | AGENTS.md, docs/roadmap.md sections 5.2 and 6 and BACKLOG.md's rules say which checks are hard and how targets are reported; open tasks' criteria worded as gates are reworded towards targets. |
+| [VB-268](backlog/VB-268.md) | recordFold grows faster than the living from small-y5 to small-y40 | - | 3 | S | Kim | The fold of the record passes 1.56 times the slots per living pawn-day at small-y40 as at small-y5 (target 1.25): find why and whether rule 1 or 8 is broken, then cut it or name the cause. |
 
 ## Archs
 
