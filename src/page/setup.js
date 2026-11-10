@@ -44,7 +44,7 @@
   L.regions.visible = false; L.land.visible = false;
 
   // ---- static textures ----
-  const SPR = G.makeSprites(makeCanvas);
+  let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk
   function waveCanvas(seed, n, alpha) {
     const S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), r = G.mulberry32(seed);
     g.lineCap = 'round';

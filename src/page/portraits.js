@@ -70,22 +70,23 @@
   function farmIcon(f) {
     if (f.booth) return icon('booth', (g) => {
       g.translate(60, 70); g.scale(4.4, 4.4); g.translate(-15, -1);
-      g.fillStyle = '#6b5135'; g.strokeStyle = '#3e2c1c'; g.lineWidth = 1; g.lineJoin = 'round';
+      g.fillStyle = '#cc9a58'; g.strokeStyle = '#2c201c'; g.lineWidth = 1; g.lineJoin = 'round';
       g.beginPath(); g.moveTo(6, 8); g.lineTo(15, -6); g.lineTo(24, 8); g.closePath(); g.fill(); g.stroke();
-      g.strokeStyle = '#4a3524'; g.lineWidth = 1.2;
+      g.strokeStyle = '#96462f'; g.lineWidth = 1.2;
       for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(15 + dx, -6); g.lineTo(15 + dx * 2.6, -10); g.stroke(); }
       g.fillStyle = '#2a1e14'; g.fillRect(13, 2, 4, 6);
     });
     const v = f.id % 3, ruin = f.state === 'ruin';
     return icon(`stuga${v}${ruin ? 'r' : ''}`, (g) => {
       const b = stugaCanvas(v);
-      if (ruin) g.drawImage(b, 8, 100 - b.height * 0.55, b.width, b.height * 0.55); else g.drawImage(b, 8, 100 - b.height);
+      const bw = b.width / ARTK, bh = b.height / ARTK;
+      if (ruin) g.drawImage(b, 8, 100 - bh * 0.55, bw, bh * 0.55); else g.drawImage(b, 8, 100 - bh, bw, bh);
     });
   }
   // A village by a cluster of its buildings: barn and storehouse behind a cottage, and the well sweep where it has a well.
   function villageIcon(v) {
     return icon(`village${v.well ? 'w' : ''}`, (g) => {
-      const at = (b, x, y, s) => g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s);
+      const at = (b, x, y, s0) => { const s = s0 / ARTK; g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s); };
       at(ladaCanvas(), 2, 70, 0.62); at(harbreCanvas(), 78, 80, 0.62);
       if (v.well) at(wellSweepCanvas(), 52, 74, 0.5);
       at(stugaCanvas(1), 18, 114, 0.72);

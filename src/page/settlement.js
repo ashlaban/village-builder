@@ -1,5 +1,11 @@
 // @sys page/settlement: building the settlement layer: farms, pawns, labels, booths, fences and herd sprites
-  const place = (tex, x, y, ax, ay, layer = L.objects, sc = 0.27) => {
+  // World units per art unit, and where a farm's buildings stand from the centre of its house tile: [x, y of the foot]. The yard is one
+  // hex, so the byre and the barn stand at the back, the storehouse and the cottage before them, and the piles in the corners left.
+  const ART_S = 0.2;
+  const YARD = { byre: [-10, -3], lada: [6, -1], harbre: [14, 7], stuga: [-4, 14], wood: [10, 15], stack: [-14.5, 10.5], heap: [-17.5, -1], curb: [1, 19],
+    booth: [10, 6] };
+  const INK = 0x2c201c; // the contour of what is drawn straight onto the map, as MP.line of the farm art
+  const place = (tex, x, y, ax, ay, layer = L.objects, sc = ART_S) => {
     const s = new PIXI.Sprite(tex); s.anchor.set(ax, ay); s.scale.set(sc); s.position.set(x, y); s.zIndex = y; layer.addChild(s); return s; };
 
   function clearSettlement() {
@@ -41,17 +47,24 @@
       else for (const id of v.farmsteads) { const f = st.farmsteads[id]; mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24, { farm: f.id }); }
     }
   }
+  // A cottage in building, by stage: foundation stones, the log walls rising, then the turf roof.
+  function cottageStage(g, x, y, n) {
+    if (n >= 1) for (const [dx, dy] of [[-8, 3], [-3, 5], [3, 5], [8, 3], [-8, -2], [8, -2]]) g.ellipse(x + dx, y + dy, 2.6, 1.7).fill(0xdad2c2).stroke({
+      width: 0.6, color: INK });
+    if (n >= 2) for (let k = 0; k < 3; k++) g.roundRect(x - 8.5, y - 5.4 + k * 2.8, 17, 2.8, 1.1).fill(0xdeac58).stroke({ width: 0.6, color: INK });
+    if (n >= 3) g.poly([x - 10.5, y - 5, x - 7, y - 12.5, x + 7, y - 12.5, x + 10.5, y - 5]).fill(0x7aa258).stroke({ width: 0.9, color: INK, join: 'round' });
+  }
   // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
   // rising log walls, the turf roof; a ring while the work goes on (VB-148).
   function drawBooth(wd, f, empty) {
-    const x = wd.hx[f.house], y = wd.hy[f.house], g = new PIXI.Graphics(), n = f.booth.i;
-    g.poly([x + 6, y + 8, x + 15, y - 6, x + 24, y + 8]).fill(0x6b5135).stroke({ width: 1, color: 0x3e2c1c });
-    for (const dx of [-3, 0, 3]) g.moveTo(x + 15 + dx, y - 6).lineTo(x + 15 + dx * 2.6, y - 10).stroke({ width: 1.2, color: 0x4a3524 });
-    g.rect(x + 13, y + 2, 4, 6).fill(0x2a1e14); // the opening
-    const cx = x - 8, cy = y + 2;
-    if (n >= 1) for (const [dx, dy] of [[-9, 3], [-3, 6], [4, 6], [10, 3], [-9, -3], [10, -3]]) g.ellipse(cx + dx, cy + dy, 3, 2).fill(0x8b8a84);
-    if (n >= 2) g.rect(cx - 9, cy - 7, 19, 12).fill(0x7a5a38).stroke({ width: 1, color: 0x4a3524 });
-    if (!empty) g.ellipse(cx, cy + 2, 16, 9).stroke({ width: 1.5, color: 0xf2e6c4, alpha: 0.7 });
+    const x = wd.hx[f.house], y = wd.hy[f.house], g = new PIXI.Graphics(), n = f.booth.i, bx = x + YARD.booth[0], by = y + YARD.booth[1];
+    for (const dx of [-2.4, 0, 2.4]) g.moveTo(bx + dx, by - 11).lineTo(bx + dx * 2.6, by - 15).stroke({ width: 1.5, color: INK })
+      .moveTo(bx + dx, by - 11).lineTo(bx + dx * 2.6, by - 15).stroke({ width: 0.7, color: 0x96462f });
+    g.poly([bx - 7.5, by, bx, by - 12, bx + 7.5, by]).fill(0xcc9a58).stroke({ width: 0.9, color: INK, join: 'round' });
+    for (const dx of [-3.6, 3.6]) g.moveTo(bx + dx, by - 0.6).lineTo(bx + dx * 0.25, by - 9.5).stroke({ width: 0.5, color: INK, alpha: 0.5 });
+    g.poly([bx - 1.9, by, bx - 1.2, by - 5.4, bx + 1.2, by - 5.4, bx + 1.9, by]).fill(0x30241f); // the opening
+    cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, n);
+    if (!empty) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
     if (empty) g.alpha = 0.55;
     g.zIndex = y + 8; L.objects.addChild(g);
   }
@@ -79,28 +92,36 @@
         const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]); sp.anchor.set(0.5); sp.scale.set(0.5); sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
         L.fields.addChild(sp); meadowSprites.push({ sp, m, stage: m.stage });
       }
-      const yard = place(art.yard, hx, hy + 2, 0.5, 0.5, L.fields); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
+      const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27); if (empty) yard.alpha = ruin ? 0.2 : 0.35;
       const v = f.id % 3;
       // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
       const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
       if (f.booth) drawBooth(wd, f, empty);
       else {
-        const lada = place(art.lada, hx - 3, hy - 13, 0.5, 0.93), harbre = place(art.harbre, hx + 16, hy - 1, 0.5, 0.95),
-          stuga = place(art.stuga[v], hx - 7, hy + 10, 0.5, 0.92);
+        const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
+          harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
+          stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
         for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
-        if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = 0.27 * 0.55; stuga.alpha = 0.85; }
+        if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = ART_S * 0.55; stuga.alpha = 0.85; }
       }
-      const wood = place(art.wood[0], hx + 13, hy + 16, 0.5, 0.9); wood.visible = !empty;
+      const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9); wood.visible = !empty;
       const herds = !empty && st.households[f.household].herds.length > 0;
-      if (herds) place(art.byre, hx - 25, hy + 2, 0.5, 0.92);
-      const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx - 36, hy + 12, 0.5, 0.93) : null;
-      const heap = herds ? place(art.manure[0], hx - 21, hy + 14, 0.5, 0.88) : null; // the dung heap by the byre door (VB-137)
-      if (!st.villages[f.village].well) place(art.curb, hx + 3, hy + 3, 0.5, 0.85);
+      if (herds) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+      const stack = herds || (!empty && st.households[f.household].hay > 0) ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93) : null;
+      const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
+      if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
       if (!empty) {
         const puffs = [];
         for (let k = 0; k < 6; k++) { const p = new PIXI.Sprite(art.puff); p.anchor.set(0.5); p.zIndex = 1e6; L.objects.addChild(p); puffs.push(p); }
-        // smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built
-        houseInfo.push({ f, puffs, wood, stack, heap, cx: f.booth ? hx + 15 : hx - 7 + (67 - 52) * 0.27, cy: f.booth ? hy - 2 : hy + 10 + (9 - 73.6) * 0.27 });
+        // Smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built; and the firelight after dark: the
+        // cottage's openings lit over it, and a warm glow on the ground before the door (before the booth, the glow alone).
+        const sx = hx + YARD.stuga[0], sy = hy + YARD.stuga[1], at = (q) => [sx + (q[0] - STUGA.w / 2) * ART_S, sy + (q[1] - STUGA.h * 0.92) * ART_S];
+        const [cx, cy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13] : at(STUGA.hole);
+        const [gx, gy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]);
+        const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92); if (lit) { lit.zIndex = sy + 0.01; lit.visible = false; }
+        const glow = new PIXI.Sprite(art.glow); glow.anchor.set(0.5); glow.blendMode = 'add'; glow.position.set(gx, gy);
+        glow.scale.set(f.booth ? 0.2 : 0.36, f.booth ? 0.13 : 0.23); glow.zIndex = sy + 0.02; glow.visible = false; L.objects.addChild(glow);
+        houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
       }
       if (f.fence) for (const s2 of f.fence) addFence(s2);
     }
@@ -110,15 +131,13 @@
       for (const plot of v.plots.filter((q) => !q.built)) for (const tr of plot.tiles) {
         // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
         const g = new PIXI.Graphics(), x = wd.hx[tr.tile], y = wd.hy[tr.tile], step = tr.steps[tr.i];
-        if (step === 'grub') for (const [dx, dy] of [[-7, 2], [0, -5], [6, 4], [-2, 8]]) g.ellipse(x + dx, y + dy, 2.2, 2.2).fill(0x5a4128);
-        if (tr.kind === 'field' && tr.i >= tr.steps.length) g.ellipse(x, y + 2, 14, 8).fill({ color: 0x6b4a2e, alpha: 0.85 });
-        if (tr.kind === 'house' && plot.cottage) { // the cottage by stage: foundation stones, rising log walls, then the turf roof
-          const n = plot.cottage.i;
-          if (n >= 1) for (const [dx, dy] of [[-9, 3], [-3, 6], [4, 6], [10, 3], [-9, -3], [10, -3]]) g.ellipse(x + dx, y + dy, 3, 2).fill(0x8b8a84);
-          if (n >= 2) g.rect(x - 9, y - 7, 19, 12).fill(0x7a5a38).stroke({ width: 1, color: 0x4a3524 });
-          if (n >= 3) g.poly([x - 11, y - 6, x, y - 17, x + 12, y - 6]).fill(0x5f7a3a);
-        }
-        if (!plot.done || (plot.cottage && !plot.built)) g.ellipse(x, y + 2, 16, 9).stroke({ width: 1.5, color: 0xf2e6c4, alpha: 0.7 });
+        if (step === 'grub') for (const [dx, dy] of [[-7, 2], [0, -5], [6, 4], [-2, 8]]) {
+          g.ellipse(x + dx, y + dy, 2.2, 1.7).fill(0xf2deac).stroke({ width: 0.7, color: INK });
+            g.ellipse(x + dx, y + dy, 0.9, 0.7).stroke({ width: 0.4, color: 0x96462f }); }
+        if (tr.kind === 'field' && tr.i >= tr.steps.length) g.ellipse(x, y + 2, 14, 8).fill({ color: 0x986846, alpha: 0.9 }).stroke({
+          width: 0.8, color: INK, alpha: 0.6 });
+        if (tr.kind === 'house' && plot.cottage) cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, plot.cottage.i);
+        if (!plot.done || (plot.cottage && !plot.built)) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
         L.fences.addChild(g);
       }
     }
@@ -142,14 +161,14 @@
   // now and then looking up; inside the byre otherwise. Sprites are made per herd and remade only when its animals change.
   const hash = (n) => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
   const SHEEP_TINT = [0xffffff, 0xece6da, 0xbab2a6, 0x8c7c6a, 0x5c5248];
-  const COW_SCALE = { cow: 0.25, bull: 0.29, ox: 0.29, heifer: 0.22, steer: 0.23, calf: 0.16 };
+  const COW_SCALE = { cow: 0.21, bull: 0.245, ox: 0.245, heifer: 0.19, steer: 0.195, calf: 0.135 };
   function herdAnimals(hd) {
     const out = [];
     if (hd.head) for (const h of hd.head) out.push({ id: h.id, key: h.id * 2 + 1, cow: hash(h.id * 7 + 3) * COATS.length | 0, sc: COW_SCALE[h.kind] });
     else {
       const all = hd.ewes + hd.rams + hd.lambs, n = Math.min(10, all), lambs = all ? Math.round((n * hd.lambs) / all) : 0;
       for (let k = 0; k < n;
-        k++) out.push({ key: hd.id * 1000 + k * 2, tint: SHEEP_TINT[(hash(hd.id * 31 + k) * SHEEP_TINT.length) | 0], sc: k < n - lambs ? 0.25 : 0.17 });
+        k++) out.push({ key: hd.id * 1000 + k * 2, tint: SHEEP_TINT[(hash(hd.id * 31 + k) * SHEEP_TINT.length) | 0], sc: k < n - lambs ? 0.21 : 0.145 });
     }
     return out;
   }

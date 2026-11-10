@@ -101,7 +101,7 @@
       // an idle pawn that stands talking faces the other
       const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
       const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face;
-      R.root.position.set(a.x, a.y); R.root.scale.set((face * 0.88 * k) / PX, (0.88 * k) / PX); R.root.zIndex = a.y;
+      R.root.position.set(a.x, a.y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = a.y;
       pose(R, a, time, winter);
     }
     drawTeams(show); drawHerds(c, show);
@@ -111,21 +111,29 @@
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
     drawTalk(show); drawLens();
-    // smoke leaves the smoke hole: thin by day, thick while cooking, in the evening and in winter
-    const evening = c.hour >= Sim.WORK[1] - 1 || c.hour < Sim.WORK[0] + 1;
+    // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
+    // winter; it is banked for the night otherwise. A lit hearth sends smoke out of the smoke hole, and after dark its light shows.
+    const fireHours = (c.hour >= Sim.WORK[1] - 1 && c.hour < 22) || (c.hour >= Sim.WORK[0] - 1 && c.hour < Sim.WORK[0] + 1);
+    const night = lightAt(c.hour, c), ease = Math.min(1, dt * 1.5), near = cam.z > 0.3;
     const cooks = new Set(); // households with someone cooking inside: one pass over the agents, not one per house
     for (const a of st.agents) if (a.job && a.job.kind === 'cook' && a.inside) cooks.add(st.pawns[a.id].household);
     for (const h of houseInfo) {
       const hh = st.households[h.f.household];
       if (!hh) continue;
       const cooking = cooks.has(hh.id);
-      const amt = 0.18 + (evening ? 0.3 : 0) + (winter ? 0.25 : 0) + (cooking ? 0.35 : 0);
+      const fireLit = cooking || (hh.wood > 0.5 && (winter || fireHours));
+      h.smoke += ((fireLit ? 0.55 + (cooking ? 0.3 : 0) + (winter ? 0.15 : 0) : 0) - h.smoke) * ease;
+      h.fire += ((fireLit ? night : 0) - h.fire) * ease;
+      const smoking = near && h.smoke > 0.02;
       h.puffs.forEach((p, k) => {
+        p.visible = smoking; if (!smoking) return;
         const ph = (time * 0.16 + k / h.puffs.length + h.f.id * 0.37) % 1;
-        p.visible = cam.z > 0.3; if (!p.visible) return;
-        p.position.set(h.cx + ph * 10 + Math.sin(ph * 6 + k) * 1.5, h.cy - ph * 24);
-        p.scale.set((0.2 + ph * 0.6) * 0.5); p.alpha = Math.min(0.9, (1 - ph) * amt * (ph < 0.1 ? ph * 10 : 1));
+        p.position.set(h.cx + ph * 9 + Math.sin(ph * 6 + k) * 1.4, h.cy - ph * 20);
+        p.scale.set(0.09 + ph * 0.24); p.alpha = Math.min(0.95, (1 - ph * ph) * 2.2 * h.smoke * (ph < 0.1 ? ph * 10 : 1));
       });
+      const glowing = near && h.fire > 0.02, flicker = reduceMotion ? 1 : 0.86 + 0.14 * Math.sin(time * 7 + h.f.id * 1.7) * Math.sin(time * 2.3 + h.f.id);
+      if (h.lit) { h.lit.visible = glowing; h.lit.alpha = h.fire; }
+      h.glow.visible = glowing; h.glow.alpha = h.fire * 0.75 * flicker;
       const level = hh.wood <= 0.5 ? 0 : hh.wood < 10 ? 1 : hh.wood < 22 ? 2 : 3;
       if (h.wood.texture !== art.wood[level]) h.wood.texture = art.wood[level];
       if (h.stack) {
