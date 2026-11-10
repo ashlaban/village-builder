@@ -3,7 +3,7 @@
 // out and never sets an exit code (tests/run.js sums the lines). dir is max, min or range (target is then [lo, hi]); the residual is how
 // far past the target, positive is worse, 0 when in; noise is {kind: exact|seeds|runs|paired, spread, n}, and a residual up to its spread
 // is `noise`, not `out`. With --record or VB_TARGETS_RECORD=1 the record is appended to docs/bench/targets.jsonl (VB_TARGETS_FILE
-// overrides the file) with commit, dirty, date and machine, as tools/bands.js appends to bands.jsonl.
+// overrides the file; `extra` fields, such as a share or the per-seed values, are kept in the record) with commit, dirty, date and machine, as tools/bands.js appends to bands.jsonl.
 const fs = require('fs'), os = require('os'), path = require('path'), { execFileSync } = require('child_process');
 const root = path.join(__dirname, '..', '..');
 const file = () => process.env.VB_TARGETS_FILE || path.join(root, 'docs/bench/targets.jsonl');
@@ -21,10 +21,10 @@ function residualOf(dir, goal, measured) {
   if (dir === 'range') return Math.max(0, goal[0] - measured, measured - goal[1]);
   return Infinity; // an unknown dir is reported as out, not thrown
 }
-function target(name, { where = '', unit = '', dir = 'max', target: goal, measured, noise = { kind: 'exact', spread: 0, n: 1 } }) {
+function target(name, { where = '', unit = '', dir = 'max', target: goal, measured, noise = { kind: 'exact', spread: 0, n: 1 }, extra = {} }) {
   const residual = residualOf(dir, goal, measured);
   const status = residual <= 0 ? 'in' : residual <= (noise.spread || 0) ? 'noise' : 'out';
-  const rec = { name, where, unit, dir, target: goal, measured: num(measured), residual: num(residual), noise, status };
+  const rec = { name, where, unit, dir, target: goal, measured: num(measured), residual: num(residual), noise, status, ...extra };
   console.log(`TARGET ${name} ${rec.measured}${unit} ${Array.isArray(goal) ? goal.join('..') : goal}${unit} ${residual > 0 ? '+' : ''}${rec.residual} ${status}`);
   if (recording()) {
     const out = file();
