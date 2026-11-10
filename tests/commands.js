@@ -197,13 +197,13 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
   assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + 10)) < 0.05, 'for ten years');
-  assert.ok(a.pawns[id].events.some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
+  assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
   Sim.uninhabit(a); b.pawns[id].advocate = { dim, opt, until: b.cenv.t + 10, natural: true }; // as a natural cause, the same slot
   b.pawns[id].advocate.until = a.pawns[id].advocate.until;
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
   const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
   assert.ok(Math.abs(pa.att[o] - pb.att[o]) < 0.05, 'the player\'s cause pulls as a natural one does');
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);
-  assert.strictEqual(pa.advocate, null); assert.ok(pa.events.some((e) => /^Dropped the cause/.test(e.text)));
+  assert.strictEqual(pa.advocate, null); assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => /^Dropped the cause/.test(e.text)));
   assert.ok(typeof issue(a, { actor: id, verb: 'dropCause', source: 'player' }) === 'string', 'refused again');
 }

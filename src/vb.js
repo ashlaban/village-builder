@@ -24,6 +24,7 @@ VB.COUNTERS = {
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
+  recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
   ruleValue: 'Rule values read (explanations excluded)',
   oppAsk: 'Calls of a kind\'s `available` rule by the hourly review of the standing plans (sim/jobs, refreshJobs; VB-258)',
   planReview: 'Standing plans reviewed, one per live household on a farm and per village each review hour (sim/plans, VB-258)',

@@ -106,7 +106,7 @@ for (const seed of [7, 42]) {
   for (let y = 1; y <= 3; y++) {
     const d0 = st.pawns.filter((p) => p.died !== null).length, h0 = st.households.reduce((s, h) => s + h.hungryDays, 0), u0 = st.unions.length;
     Sim.advance(st, YEAR);
-    const dead = st.pawns.filter((p) => p.died !== null && p.died > st.t - YEAR), hunger = dead.filter((p) => p.events.some((e) => /hunger/.test(e.text || '')));
+    const dead = st.pawns.filter((p) => p.died !== null && p.died > st.t - YEAR), hunger = dead.filter((p) => Sim.recordOf(st, { pawn: p.id, life: true }).some((e) => /hunger/.test(e.text || '')));
     rows.push(`year ${y}: ${st.households.reduce((s, h) => s + h.hungryDays, 0) - h0} hungry days, ${st.pawns.filter((p) => p.died !== null).length - d0} deaths (${hunger.length} of hunger), ${st.unions.length - u0} marriages`);
   }
   console.log(`founders, seed ${seed}:\n  ${rows.join('\n  ')}`);

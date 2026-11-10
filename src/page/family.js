@@ -136,7 +136,7 @@
     const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
     const kin = sp !== null ? Sim.kinship(st, p.id, sp) : null;
     const spouses = st.unions.filter((u) => u.a === p.id || u.b === p.id).map((u) => (u.a === p.id ? u.b : u.a));
-    const evs = (p.events || []).filter((e) => e.text).slice(-8).reverse().map((e) =>
+    const evs = Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.text).slice(-8).reverse().map((e) =>
       `<li>Year ${yearStr(Math.floor(e.t / Sim.YEAR) + 1)}: ${esc(e.text)}</li>`).join('');
     box.innerHTML = `<h3>${esc(Sim.fullName(p))}</h3>
       <p>${dead ? `Lived from year ${yearStr(Sim.birthYear(p))} to ${yearStr(deathYear(p))}.` :

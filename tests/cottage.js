@@ -27,7 +27,7 @@ check(hh && hh.holder === m.id && hh.members.includes(m.id) && hh.members.includ
 check(m.household === hh.id && f.household === hh.id, 'both moved in');
 check(hh.grain === 400 && !m.stake && !f.stake, `stake became grain (${hh.grain})`);
 check(fm.fields.length === 1 && fm.village === v.id && st.farmsteads[fm.id] === fm, 'farmstead has the plot field');
-check(st.pawns[m.id].events.some((e) => /Moved/.test(e.text || e)), 'a moved event');
+check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => /Moved/.test(e.text || '')), 'a moved event');
 check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no more cottage jobs');
 // owed shares are paid from grain above the debtor farm's reserve
 const other = st.households.find((h) => !h.dissolved && h.id !== hh.id), p = st.pawns.find((q) => q.alive && q.household === hh.id && q.id === f.id);

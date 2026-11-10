@@ -98,7 +98,7 @@ function sample(st, year, y) {
     hungryDays: 0, householdDays: 0, worstHungry: 0, invariants: [] };
   if (!y) return out;
   for (let i = y.from; i < st.record.length; i++) {
-    const e = st.record[i];
+    const e = st.record[i]; if (typeof e !== 'object' || e.self) continue; // a folded slot, or a pawn's own telling (VB-199)
     if (e.kind === 'born') out.births++;
     else if (e.kind === 'married') out.marriages++;
     else if (e.kind === 'died') out.deaths[e.text || 'unknown'] = (out.deaths[e.text || 'unknown'] || 0) + 1;

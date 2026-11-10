@@ -157,12 +157,13 @@ VB['sim/scenarios'] = (() => {
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
-    for (const p of R.pawns) { p.events = p.events || []; if (p.died === null) p.events.push({ t: p.born, kind: 'born' }); }
+    for (const p of R.pawns) p.events = p.events || [];
     // @state st.t: number; game time in hours since the start of year 1 (negative before it)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
@@ -215,8 +216,9 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
-    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text}; every notable event, append-only (sim/records, VB-075);
-    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
+    //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
+    //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
@@ -236,6 +238,7 @@ VB['sim/scenarios'] = (() => {
     const st = {
       t: 6, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
+      recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
@@ -263,6 +266,8 @@ VB['sim/scenarios'] = (() => {
     // and who holds each farm at the start, so a farm's history names every holder it has had (VB-099)
     for (const hh of st.households) if (hh.holder !== null && !hh.dissolved) before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
     before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
+    // a living pawn's events begin with its birth (VB-199: positions in the record)
+    st.record.forEach((e, i) => { if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i); });
     return st;
   }
 

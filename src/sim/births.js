@@ -2,7 +2,7 @@
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { joinHousehold, person, personEvent, log, fullName, spouseOf, atHousehold, kinNear } = VB['sim/records'];
+  const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } = VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
   const { placeAtHome } = VB['sim/agents'];
@@ -32,7 +32,6 @@ VB['sim/births'] = (() => {
     initRelations(st, p);
     for (const j of hh.members) if (j !== id && st.pawns[j].alive) { raiseTie(st, id, j, 1); raiseTie(st, j, id, 1); }
     for (const q of kinNear(st, id)) if (st.pawns[q].alive) { floorKin(st, id, q); floorKin(st, q, id); } // kin elsewhere, till their turn (sim/relations)
-    p.events.push({ t: st.t, kind: 'born' });
     personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
@@ -40,8 +39,8 @@ VB['sim/births'] = (() => {
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
-    log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`, {
-      kind: 'born', pawn: id, other: m.id, ...atHousehold(st, hh) });
+    lifeEvent(st, id, log(st, `${fullName(m)} gave birth to ${fullName(p)} at ${st.farmsteads[hh.farmstead].name}.`, {
+      kind: 'born', pawn: id, other: m.id, ...atHousehold(st, hh) }));
     refreshRoles(st); st.rigDirty.add(id); st.rigDirty.add(m.id); st.visualDirty = true;
     if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
   }

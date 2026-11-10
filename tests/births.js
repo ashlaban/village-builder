@@ -12,7 +12,7 @@ const run = (seed) => {
     pawns = st.pawns.length;
     const by = {};
     for (const p of st.pawns) if (p.died !== null && p.died > st.t - 10 * Sim.YEAR) {
-      const e = p.events.find((x) => x.kind === 'died'), c = e ? e.cause : 'unknown'; by[c] = (by[c] || 0) + 1;
+      const e = Sim.recordOf(st, { pawn: p.id, life: true }).find((x) => x.kind === 'died'), c = e ? e.cause : 'unknown'; by[c] = (by[c] || 0) + 1;
     }
     const causes = Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ');
     rows.push(`years ${dec * 10 - 9}-${dec * 10}: ${nb} births, ${nd} deaths${causes ? ` (${causes})` : ''}, ${st.pawns.filter((p) => p.alive).length} alive`);

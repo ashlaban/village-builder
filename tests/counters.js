@@ -16,8 +16,9 @@ const roundRank = VB.count.heirRank - rankBeforeRound, pawnDays = livingPawnDays
 assert(roundRank > 0, 'round must compute heir rankings');
 const values = Object.fromEntries(Object.keys(VB.COUNTERS).map((k) => [k, VB.count[k] / pawnDays]));
 values.roundRank = roundRank / pawnDays;
-assert(Object.entries(VB.count).every(([k, v]) => Number.isFinite(v) && (k === 'routeEvict' ? v === 0 : v > 0)),
-  'fixture must exercise every counter except eviction (the tiny cache fits; routes.js exercises eviction)');
+assert(Object.entries(VB.count).every(([k, v]) => Number.isFinite(v) && (k === 'routeEvict' || k === 'recordFold' ? v === 0 : v > 0)),
+  'fixture must exercise every counter except eviction (the tiny cache fits; routes.js exercises eviction) and the fold of the record '
+  + '(at the year\'s turn; record.js exercises it)');
 const file = path.join(__dirname, 'counters.json');
 if (process.argv.includes('--update')) fs.writeFileSync(file, JSON.stringify(values, null, 2) + '\n');
 const base = JSON.parse(fs.readFileSync(file, 'utf8'));

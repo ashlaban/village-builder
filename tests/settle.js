@@ -67,7 +67,7 @@ check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling stil
 const s = st.cenv.settlements[nv.id];
 check(s && s.id === nv.id && s.culture === st.cenv.settlements[v.id].culture && s.practice.join() === st.cenv.settlements[v.id].practice.join(),
   'the new settlement keeps the mother village\'s culture and practice');
-check(m.events.some((e) => e.kind === 'moved' && e.text.includes(nv.name)), 'a moved event names the new village');
+check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => e.kind === 'joined' && e.text.includes(nv.name)), 'a moved event names the new village');
 check(!st.villages.some((u) => u !== nv && Math.min(...[u.center, ...u.farmsteads.map((id) => st.farmsteads[id].house)]
   .map((t) => VB['sim/hex'].hexSteps(st.w, t, nv.center))) < SETTLE.apart), 'apart from every other village');
 let bad = checkState(st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
