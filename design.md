@@ -107,7 +107,7 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Map size | Four sizes: Tiny 120 × 85, Small 180 × 130, Medium 280 × 200 (56,000 tiles, about 20,000 of them land; the earlier single size), Large 380 × 270 | Decided |
 | Generation screen | The game opens on a screen to set map size, seed and starting scenario, then generates the map; the same seed, size and scenario always give the same world | Decided |
 | Regions | Hexagonal patches of radius 7 (169 tiles, centres 13 tiles apart) | Agreed |
-| Walking and terrain | Routes and walking cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed, in the current route search (backlog VB-096); routes over regions (HPA\*) only if routes then cost too much (VB-097) | Agreed, 30 Oct |
+| Walking and terrain | Routes and walking cost by terrain: meadow, heath, shore and fields 1, forest 1.5, hills and marsh 2, mountains 3, snowfields closed, in the current route search (backlog VB-096). A step also costs more by its slope: 6 for each unit of elevation between its two tiles (elevation runs 0 to 1 over the land), at most 2, the same up and down, so routes keep to flat ground and a pawn walks slower on a steep step; a worn path does not flatten a slope (VB-271; the two numbers are `SLOPE` in `src/sim/rules.js`, to be tuned with the balance). Routes over regions (HPA\*) only if routes then cost too much (VB-097) | Agreed, 30 Oct; slopes Decided, 10 Nov |
 | Uses of regions | Overview, territory, simplified simulation off screen, hierarchical pathfinding for 1,000 pawns (HPA\*, Botea, Müller and Schaeffer 2004) | Agreed |
 
 #### Compression

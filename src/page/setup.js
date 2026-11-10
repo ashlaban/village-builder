@@ -18,7 +18,7 @@
   if (!window.PIXI) { failed('The rendering library didn’t load. Check your connection and reload the page.'); return; }
   const app = new PIXI.Application();
   try {
-    await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2),
+    await app.init({ resizeTo: stage, background: '#385a74', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2),
       preference: 'webgl' });
   } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
   stage.appendChild(app.canvas);
@@ -45,13 +45,15 @@
 
   // ---- static textures ----
   let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk
-  function waveCanvas(seed, n, alpha) {
-    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), r = G.mulberry32(seed);
-    g.lineCap = 'round';
-    for (let k = 0; k < n; k++) {
-      const x = r() * S, y = r() * S, rad = 5 + r() * 9, a0 = Math.PI * (1.2 + r() * 0.1), a1 = Math.PI * (1.68 + r() * 0.12);
-      g.strokeStyle = `rgba(255,255,255,${alpha * (0.5 + r() * 0.5)})`; g.lineWidth = 1 + r() * 0.7;
-      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.beginPath(); g.arc(x + ox, y + oy, rad, a0, a1); g.stroke(); }
+  // the sea's waves: ordered rows of pale scrolls, as on a painted sea
+  function waveCanvas() {
+    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d');
+    g.lineCap = 'round'; g.strokeStyle = 'rgb(236,240,226)'; g.lineWidth = 1.5;
+    for (let row = 0; row < 4; row++) for (let k = 0; k < 2; k++) for (const ox of [-S, 0]) {
+      const x = k * 128 + (row % 2) * 64 + 18 + ox, y = row * 64 + 30;
+      g.beginPath(); g.moveTo(x, y);
+      for (let q = 0; q < 3; q++) g.quadraticCurveTo(x + q * 18 + 9, y - 9, x + q * 18 + 18, y);
+      g.stroke();
     }
     return c;
   }
@@ -66,8 +68,7 @@
     }
     return c;
   }
-  const waveTexA = texFrom(waveCanvas(11, 34, 0.9), { addressMode: 'repeat' });
-  const waveTexB = texFrom(waveCanvas(23, 22, 0.8), { addressMode: 'repeat' });
+  const waveTex = texFrom(waveCanvas(), { addressMode: 'repeat' });
   const cloudTex = [1, 2, 3, 4].map((s) => texFrom(cloudCanvas(s * 97)));
 
   // ---- state ----

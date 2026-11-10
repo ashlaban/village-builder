@@ -198,6 +198,11 @@ VB['sim/rules'] = (() => {
   // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
     wornYears: 3, trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 } };
+  // ---- slopes (sim/routes): a step between two tiles costs more by its rise, up or down alike, on top of the terrain's cost ----
+  // perRise: meadow steps added per unit of elevation difference between the two tiles (w.he, 0 to 1 over the land); max: the cap on a
+  // step's surcharge, which bounds the dearest step (the route cache's refresh needs one). A rise per step is about 0.04 to 0.07 at the
+  // median, 0.10 to 0.18 at the 90th percentile and 0.5 to 0.7 at the most (more on smaller maps). perRise 0 switches slopes off.
+  const SLOPE = { perRise: 6, max: 2 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
@@ -250,5 +255,5 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
 })();

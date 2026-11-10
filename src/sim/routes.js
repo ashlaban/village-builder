@@ -1,8 +1,8 @@
-// @sys sim/routes: walking costs by terrain, the route search (A*) and the route cache with its daily refresh
+// @sys sim/routes: walking costs by terrain and slope, the route search (A*) and the route cache with its daily refresh
 VB['sim/routes'] = (() => {
-  const { TERRAIN, ROUTE, PATHS } = VB['sim/rules'];
+  const { TERRAIN, SLOPE, ROUTE, PATHS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  // ---- walking costs: a step costs the mean of the two tiles' costs, so a route costs the same both ways ----
+  // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112). Houses and fields cost 1. A worn tile is walked faster by its stage (VB-110).
   function tileCost(w, i) {
@@ -14,10 +14,18 @@ VB['sim/routes'] = (() => {
   const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
-  // Cost of the step between neighbouring tiles a and b; a closed end (where a route starts or ends) counts as meadow.
+  // What the slope of the step between a and b adds: SLOPE.perRise for each unit of elevation between them, up or down alike (so the
+  // way back costs what the way there does), at most SLOPE.max. Water lies at sea level; a worn path does not flatten a slope.
+  const slopeCost = (w, a, b) => {
+    if (!w.he) return 0;
+    const ha = w.he[a], hb = w.he[b], s = SLOPE.perRise * Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
+    return s < SLOPE.max ? s : SLOPE.max;
+  };
+  // Cost of the step between neighbouring tiles a and b: the mean of their costs and the slope between them; a closed end (where a
+  // route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
     const ca = tileCost(w, a), cb = tileCost(w, b);
-    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2;
+    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2 + slopeCost(w, a, b);
   };
 
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
@@ -125,9 +133,10 @@ VB['sim/routes'] = (() => {
   // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
   // so a route that costs less than that cannot change because of t.
   // The test is skipped where its outcome is certain without the route's cost: a route of n steps costs at least n minSteps, and at most n
-  // times the dearest step (MAX_STEP), so a changed tile nearer than n - 1 always drops it and one beyond n * MAX_STEP / minStep never does.
+  // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
+  // one beyond n * MAX_STEP / minStep never does.
   // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0];
+  const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0] + SLOPE.max;
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
     const w = st.w, N = w.N, C = w.COLS, n = st.routeDirty.size, dq = new Int32Array(n), dr = new Int32Array(n);
@@ -151,5 +160,5 @@ VB['sim/routes'] = (() => {
     }
     st.routeDirty.clear();
   }
-  return { tileCost, passable, walkable, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes, trimRoutes };
+  return { tileCost, passable, walkable, slopeCost, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes, trimRoutes };
 })();

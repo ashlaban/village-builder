@@ -56,6 +56,33 @@ const grid = (COLS, ROWS) => {
   check(route(st, from, to) !== r1 && r2 === route(st, at(2, 2), at(4, 2)), 'the dropped route is searched again');
 }
 {
+  // slopes: a raised block of meadow between two points is walked round, though its ground is as easy as the rest; the cost is the
+  // same up and down, grows with the rise and stops at the cap
+  const { SLOPE } = VB['sim/rules'], { stepCost, slopeCost } = VB['sim/routes'];
+  const COLS = 30, w = grid(COLS, 30), at = (c, r) => r * COLS + c;
+  w.he = new Float32Array(w.N).fill(0.2);
+  for (let r = 12; r <= 16; r++) for (let c = 11; c <= 18; c++) w.he[at(c, r)] = 0.5;
+  const from = at(8, 14), to = at(21, 14), p = findRoute(w, from, to), flat = (q) => q.every((t) => w.he[t] < 0.3);
+  check(!!p && flat(p) && p.length - 1 > 13, `the route goes round the raised ground (${p && p.length - 1} steps, cost ${p && routeCost(w, p).toFixed(2)})`);
+  const back = findRoute(w, to, from);
+  check(Math.abs(routeCost(w, back) - routeCost(w, p)) < 1e-9, 'the way back costs what the way there does');
+  const a = at(10, 14), b = at(11, 14), rise = Math.abs(w.he[a] - w.he[b]);
+  check(stepCost(w, a, b) === stepCost(w, b, a) && Math.abs(stepCost(w, a, b) - (1 + Math.min(SLOPE.max, SLOPE.perRise * rise))) < 1e-9,
+    `a step up costs what the step down does, the terrain and the rise (${stepCost(w, a, b)})`);
+  check(stepCost(w, at(2, 2), at(3, 2)) === 1 && stepCost(w, at(13, 14), at(14, 14)) === 1, 'level ground, low or high, costs the terrain alone');
+  w.he[b] = 1; check(slopeCost(w, a, b) === SLOPE.max, 'the steepest step costs the cap');
+  w.he[b] = 0.5;
+  // the same rise spread over a ramp of four steps costs the same in all, so a ramp is not dearer than a cliff, and a gentle way up is taken
+  // only where it is shorter overall; with slopes off the raised ground is crossed straight
+  const perRise = SLOPE.perRise; SLOPE.perRise = 0;
+  const q = findRoute(w, from, to);
+  SLOPE.perRise = perRise;
+  check(q.length - 1 === 13 && !flat(q), 'with perRise 0 the raised ground is crossed straight');
+  // water at an end of a route lies at sea level, whatever its sea-floor depth
+  w.he[at(0, 0)] = -0.8; w.he[at(1, 0)] = 0.1;
+  check(Math.abs(slopeCost(w, at(0, 0), at(1, 0)) - SLOPE.perRise * 0.1) < 1e-6, 'a sea floor counts as sea level');
+}
+{
   // two farms with a lane between them that bends round a meadow: the lane is taken when it is quicker than the straight way
   const COLS = 30, w = grid(COLS, 30), at = (c, r) => r * COLS + c;
   w.dev = new Uint8Array(w.N); w.worn = new Uint8Array(w.N);
