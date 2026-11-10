@@ -78,6 +78,10 @@ These are the invariants. Each later section applies them; a change that breaks 
     world acts through the ordinary owners.
 15. **The player is a source.** The player's pawn enters by the same four doors as any pawn (section 4.7), without privileges.
     Traits act on what happens to the player's pawn, never on what the player chooses.
+    Parity of command (Kim, 10 Nov): every act a pawn may take is a verb the player can issue, in whatever position its pawn
+    holds, unless a gameplay reason against it is written beside the verb; a pawn's own logic and the player choose among the
+    same verbs under the same checks. The player may be offered more options than the pawns' logic uses (a cheap chooser must
+    serve 1,000 pawns); never fewer. So a decider's choices are arguments of a command, not branches inside the system.
 16. **Deciders read through an actor view.** Omniscient today; the seam where knowledge will come in. Stories (gossip) are its
     first content.
 17. **Balance loops are declared, measured and tuned, never steered at run time.** Equilibria emerge; a loop's band is a probe's
