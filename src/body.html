@@ -43,6 +43,7 @@
 </div>
 <button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
+<div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
   <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
@@ -94,6 +95,7 @@
         <span id="tileExtra" hidden></span>
         <span id="tileMore" hidden></span>
         <div id="tileRest"></div>
+        <div id="playBox" class="play" hidden></div>
         <div id="tileLinks" class="links" hidden></div>
         <div id="tileList" class="roster" hidden></div>
         <button type="button" id="personFamily" hidden>View family records</button>

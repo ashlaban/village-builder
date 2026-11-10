@@ -27,6 +27,7 @@
       if (keys.has('arrowup') || keys.has('w')) cam.y -= sp * dt;
       if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
     }
+    if (followPlayed && st && !intro && !drag && !pinch) followCamera();
     clampCam();
     world.scale.set(cam.z);
     world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);

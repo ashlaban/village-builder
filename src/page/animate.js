@@ -110,7 +110,7 @@
       const a = st.agents[selPawn];
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
-    drawTalk(show); drawLens();
+    drawTalk(show); drawLens(); drawPlayMark();
     // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
     // winter; it is banked for the night otherwise. A lit hearth sends smoke out of the smoke hole, and after dark its light shows.
     const fireHours = (c.hour >= Sim.WORK[1] - 1 && c.hour < 22) || (c.hour >= Sim.WORK[0] - 1 && c.hour < Sim.WORK[0] + 1);

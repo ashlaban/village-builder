@@ -12,7 +12,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({
     contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
-      .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')),
+      .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
+      .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn };')),
   }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('genScreen').hidden, null, { timeout: 60000 });
@@ -22,6 +23,13 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   });
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 90000 });
   await page.waitForTimeout(1000);
+  // a new game offers the scenario's suggestion, a holder (VB-210); taking it plays that pawn and opens its card
+  await page.waitForSelector('#playOffer:not([hidden])');
+  await page.click('#playOfferYes'); await page.waitForSelector('#playBox [data-play="stop"]');
+  if (!(await page.evaluate(() => { const { st, Sim } = window.__play; return !!st.player && Sim.isHolder(st, st.player.pawn); }))) {
+    fail('the suggestion is not a holder');
+  }
+  await page.click('#playBox [data-play="stop"]');
   await page.click('#debugBtn');
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
@@ -38,8 +46,55 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const kind of await page.$$('#historyKinds button')) await kind.click();
     await page.click('#historyKinds [data-history=""]');
   }
+  // Playing a pawn (VB-210): play as the scenario's suggestion, queue a job and see it carried out, walk to a tile clicked on the map, then
+  // turn the automatic behaviour off and see the pawn idle in working hours.
+  await page.click('[data-speed="0"]');
+  const played = await page.evaluate(() => {
+    const { st } = window.__play, hh = st.households.find((h) => !h.dissolved && h.holder !== null && st.pawns[h.holder].age >= 18);
+    window.__play.focusPawn(hh.holder); return hh.holder;
+  });
+  await page.click('#tabFacts'); await page.click('#playAs');
+  await page.waitForSelector('#playBox [data-play="auto"]');
+  if ((await page.evaluate(() => window.__play.st.player && window.__play.st.player.pawn)) !== played) fail('Play as did not inhabit the pawn');
+  const workable = `#playBox button[data-play="do"]:not([disabled])[data-cmd*='"verb":"work"']`;
+  await page.click('[data-speed="30"]');
+  await page.waitForSelector(workable, { timeout: 120000 });
+  await page.click('[data-speed="0"]');
+  await page.waitForSelector(workable);
+  const target = JSON.parse(await page.locator(workable).first().getAttribute('data-cmd')).target;
+  await page.locator(workable).first().click();
+  if (!(await page.evaluate((k) => window.__play.st.player.queue.some((c) => c.verb === 'work' && c.target === k), target))) fail('the job was not queued');
+  await page.waitForSelector('#playBox .queue li');
+  await page.click('[data-speed="30"]');
+  await page.waitForFunction((k) => {
+    const { st } = window.__play, a = st.agents[st.player.pawn];
+    return !!a.job && a.job.key === k && a.phase === 'work';
+  }, target, { timeout: 120000 });
+  await page.click('[data-speed="0"]');
+  // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile
+  await page.click('#playBox [data-play="follow"]'); await page.waitForTimeout(600);
+  await page.click('#playBox [data-play="walk"]');
+  const box = await page.locator('canvas').first().boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(300);
+  if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
+  // the automatic behaviour off, the queue emptied: in working hours the pawn takes no work once its job in hand is done
+  await page.click('#playBox [data-play="auto"]');
+  while (await page.locator('#playBox [data-play="unqueue"]').count()) await page.locator('#playBox [data-play="unqueue"]').first().click();
+  const idle = await page.evaluate(() => {
+    const { st, Sim } = window.__play, id = st.player.pawn, a = st.agents[id], working = () => { const h = Sim.cal(st.t).hour; return h >= 7 && h < 17; };
+    for (let n = 0; n < 2400 && (a.job || !working()); n++) Sim.advance(st, 0.1);
+    let free = 0;
+    for (let n = 0; n < 40 && working(); n++) { Sim.advance(st, 0.1); if (a.job) return `took ${a.job.kind} at ${Sim.cal(st.t).hour.toFixed(1)}`; free++; }
+    return st.player.auto ? 'the switch is still on' : free >= 10 ? null : `only ${free} steps seen in working hours`;
+  });
+  if (idle) fail(`automatic behaviour off: ${idle}`);
+  await page.waitForTimeout(600);
+  if (!/off/.test(await page.locator('#playBox [data-play="auto"]').textContent())) fail('the switch does not show off');
+  await page.click('#playBox [data-play="stop"]');
+  if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, the automatic behaviour off and the pawn idle in working hours)');
 })().catch((e) => { console.error(e); process.exit(1); });

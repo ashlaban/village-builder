@@ -26,6 +26,7 @@
       pinch.m = { x: mx, y: my }; zt = cam.z;
     } else if (drag) {
       moved += Math.abs(dx) + Math.abs(dy);
+      if (moved >= 8) followPlayed = false; // dragging the map lets go of the played pawn (page/play)
       cam.x -= dx / cam.z; cam.y -= dy / cam.z;
       const now = performance.now(), dt = Math.max(8, now - drag.t) / 1000;
       vel.x = 0.75 * vel.x + 0.25 * (-dx / cam.z / dt); vel.y = 0.75 * vel.y + 0.25 * (-dy / cam.z / dt);
@@ -115,6 +116,7 @@
   }
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
+    if (panel) $('playOffer').hidden = true;
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
