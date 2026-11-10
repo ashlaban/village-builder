@@ -51,6 +51,7 @@
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
     if (inspect && walkPick) { pickWalk(loc(x, y, [0, 0])); return; } // "Walk here" waits for a tile (page/play)
+    if (inspect && gift.pick) { pickGift(pw, labelAt(x, y), loc(x, y, [0, 0])); return; } // so does the gift's "Choose on the map"
     if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
     const named = inspect ? labelAt(x, y) : null; // a click on a name on the map selects the village or the lone farm it names
     if (named) { if (named.village !== undefined) selectVillage(named.village, false); else selectFarm(named.farm, false); return; }
