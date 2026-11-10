@@ -42,11 +42,6 @@ The review (`docs/review-cities.md`) names eight bases of a town; the game has t
 8. The outside world. **P:** ships, the Church and the Crown as actors with fixed rules: ships call in summer at the best shore site with prices set per decade; the Church comes at about 300 people, takes a tenth of the grain and builds a church; the Crown taxes each farm, charters towns and frees masters who serve it from tax (*frälse*).
 9. Scenarios. **P:** first "No land left" (a full island, buildable now: it shows the ceiling and the two problems above), then "The fair meadow" with Phase 1; the other five (`docs/review-cities.md`, section 6) as their phases are built.
 
-### VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
-Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
-5. When does a source count in a meal? **P:** when it gives at least a fifth of what is eaten that day; grain and flour are one source.
-6. VB-009 was blocked because a missed cooking left people hungry although there was grain. **P:** the meal eats fresh food, then rations, then grain (as today), so milling makes food go further without new hungry days.
-
 ### VB-219: slice 1's wrap-up, kin help booked (raised 9 November 2026)
 From the wrap-up's measurements (`backlog/VB-219.md`, notes of 9 November): help as a seasonal ask over 16 runs (seeds 3, 7, 11 and 42,
 populous small, 15 years, four ways of stepping the clock each), the probe of the balances, the slice's cost, and The gift against the

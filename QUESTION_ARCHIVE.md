@@ -2,6 +2,15 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-119)
+
+## VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass)
+Decided on 30 Oct: fishing and gathering are always posted, by urgency; mixed meals go further (2 sources 10% less food, 3 or more 20%); fresh food spoils after 3 days; milling (VB-009) is built with them. The numbers below are proposals for the second pull request.
+5. When does a source count in a meal? **P:** when it gives at least a fifth of what is eaten that day; grain and flour are one source.
+   **A (Kim, 10 Nov):** changed: a ration is only the unit (one adult's food for a day); the cook makes meals from foods, and variety is judged in the pot, at cooking, by the foods that each give at least a fifth of the pot.
+6. VB-009 was blocked because a missed cooking left people hungry although there was grain. **P:** the meal eats fresh food, then rations, then grain (as today), so milling makes food go further without new hungry days.
+   **A (Kim, 10 Nov):** changed: the cook puts in what spoils first; people eat meals; with no meals a household eats uncooked grain at a penalty.
+
 # Archived 10 November 2026 (VB-117 and VB-118)
 
 ## VB-117 to VB-119: fishing, gathering and mixed meals (job review, second pass) (questions 1, 2, 3 and 4)
