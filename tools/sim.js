@@ -136,7 +136,8 @@ const tables = {
       const v = Sim.settlementIdOf(st, p);
       for (const x of [row('all', 'all'), row(v, st.villages[v].name)]) {
         x.people++; if (p.age >= 16) x.adults++;
-        for (const j of p.rel.keys()) {
+        for (const j of new Set([...p.ties.keys(), ...p.rel.keys()])) { // whom it knows or remembers (opinion is derived: VB-240)
+          if (!st.pawns[j].alive) continue;
           const o = R.opinionOf(st, p.id, j), out = st.pawns[j].household !== p.household;
           x.records++; x[WORD[R.opinionWord(o)]]++;
           if (p.age >= 16 && out && o >= VB['sim/rules'].SOCIAL.friend) x.friendsOut++;

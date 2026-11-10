@@ -449,14 +449,33 @@ function checkTies(st, p, bad) {
     if (!(Number.isFinite(w) && w > 0)) bad.push(`pawns[${p.id}].ties<${j}>: ${w}`);
   }
 }
-// Relationship records (sim/relations): about a living other pawn, with known memories within their caps, and none for the dead.
+// Relationship records (sim/relations): about a living other pawn, with known memories within their caps (only of kinds in
+// SOCIAL.memories: talk leaves none, VB-240), and none for the dead. Bands (pawn.bands): 1 or -1, about another pawn, none for the dead,
+// and agreeing with the opinion within SOCIAL.back and the most it can drift with nothing touching the pair between the season's checks
+// (fadeRelations): a tie's affinity fading for a season, each memory fading for a season, and the housemate's standing lost.
 function checkRel(st, p, bad) {
-  const { SOCIAL } = VB['sim/rules'];
-  if (!p.alive) { if (p.rel.size) bad.push(`pawns[${p.id}]: dead with ${p.rel.size} relationship records`); return; }
+  const { SOCIAL, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], R = VB['sim/relations'];
+  if (!p.alive) {
+    if (p.rel.size) bad.push(`pawns[${p.id}]: dead with ${p.rel.size} relationship records`);
+    if (p.bands && p.bands.size) bad.push(`pawns[${p.id}]: dead with ${p.bands.size} bands`);
+    return;
+  }
+  if (!(p.bands instanceof Map)) bad.push(`pawns[${p.id}]: no bands`);
+  else {
+    let drift = SOCIAL.affinity.weight * (1 - Math.pow(2, -SEASON_DAYS / YEAR_DAYS)) + SOCIAL.situational.housemate;
+    for (const k in SOCIAL.memories) drift += Math.abs(SOCIAL.memories[k].cap) * SEASON_DAYS / SOCIAL.memories[k].days;
+    for (const [j, band] of p.bands) {
+      const where = `pawns[${p.id}].bands<${j}>`, q = st.pawns[j];
+      if (j === p.id || !q) { bad.push(`${where}: no such other pawn`); continue; }
+      if (band !== 1 && band !== -1) bad.push(`${where}: band is ${band}`);
+      if (!q.alive) continue; // dropped at the season's pass
+      const o = R.opinionOf(st, p.id, j), slack = SOCIAL.back + drift + 1e-9;
+      if (band === 1 ? o < SOCIAL.closeFriend - slack : o > SOCIAL.enemy + slack) bad.push(`${where}: band ${band} at opinion ${o.toFixed(3)}`);
+    }
+  }
   for (const [j, r] of p.rel) {
     const where = `pawns[${p.id}].rel<${j}>`;
     if (j === p.id || !st.pawns[j]) bad.push(`${where}: no such other pawn`);
-    if (![-1, 0, 1].includes(r.band)) bad.push(`${where}: band is ${r.band}`);
     const kinds = Object.keys(r.mem);
     if (!kinds.length) bad.push(`${where}: no memories`);
     for (const k of kinds) {
