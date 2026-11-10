@@ -2,6 +2,35 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-227)
+
+## VB-227: jobs refresh and matching, short of its 30 ms (raised 10 November 2026)
+The order-preserving cuts (golden file unchanged; numbers in `backlog/VB-227.md`) make the line 6 to 7% cheaper and the review 15%: on `tools/bench.js` at `medium-ref` it measures 25.4 to 32.8 ms a game day after (mean 28.7), against 25.1 to 34.7 before (mean 28.2) on a noisy machine about 15% faster than on 9 November, where the line was 35.1; on that scale it is now about 33. The rest is the review polling every holder 14 times a day and matching rebidding every idle pawn every six minutes, which only rules 4 and 5 cut, with a change of behaviour.
+1. Does VB-227 land as it stands and its last 3 ms wait? **P:** yes: merge the cuts, keep VB-227 open (or close it with criteria 3 and 4 moved), and make "jobs refresh and matching at most 30 ms at `medium-ref`, paired bench runs" an acceptance criterion of VB-249, whose planning days and due-queue take the review off its hourly pass.
+   **A (Kim, 10 Nov):** Close VB-227 with its residual recorded (about +3 ms); the 30 ms target, by share in paired runs, moves to VB-249.
+2. Is the bench's absolute ms the right gate on this machine? **P:** gate on the line's share of the whole simulation in paired runs (here 17.0% to 16.1%) beside the ms, since the whole step varied 146 to 211 ms a day between runs of the same code.
+   **A (Kim, 10 Nov):** As VB-261's question 5, accepted as proposed: timings are judged by their share of the whole step in paired, alternated runs, beside the ms.
+
+# Archived 10 November 2026 (VB-270)
+
+## VB-270: the hunger floors, out on every full run (raised 10 November 2026)
+Slice 0's wrap-up (VB-200) ran the full bands at `7205992`: 31 in, 19 out. All 19 are the hunger floors and one population floor:
+hungry-households out on all ten runs (the worst household hungry on 0.48 to 1.0 of its days after year 3, line 0.30), hunger-deaths on
+eight (0.024 to 0.286, line 0.02), heirs seed 42 at 0.72 of its start. The day's earlier records read the same (17 out). No task owns them.
+1. Who takes them? **P:** VB-270 first, small: name the households behind each worst share and each hunger death, and say which are food
+   (then VB-048 or a slice-3 task) and which the probe (a short-lived household read as hungry on all its days; then a band change for you).
+   **A (Kim, 10 Nov):** Yes: VB-270 runs now, as a diagnosis only (no balance change).
+2. Until then, are they residuals to report, not a reason to stop a slice's wrap-up? **P:** yes, as `docs/gates.md` row 21 proposes for
+   the reduced runs; the invariants band stays hard.
+   **A (Kim, 10 Nov):** Yes: the floors are residuals to report, not a reason to stop a wrap-up; the invariants band stays hard.
+
+# Archived 10 November 2026 (VB-275)
+
+## VB-275: opinion in the negotiation of a marriage (raised 10 November 2026, by VB-233)
+Kim (10 Nov, code review): marriage is where opinion first changes a decision, and VB-233's plan says where it enters and with what weight. In the first version (VB-272) every side without a player says yes, as Kim accepted on 9 November ("a side with no player answers yes, so a run with no player is unchanged"). So opinion can enter only in a task after it, which changes the run. The opinion meant is VB-240's derived value: kin standing, plus compatibility shown with familiarity, plus memories of what happened.
+1. Where does opinion enter, and with what weight? **P:** in two places, in slice 2 after VB-240 (VB-275). Between the two young: the matcher's score gains 1.0 × the mean of their opinions of each other (strangers count 0; the same-village bonus is 2 and the noise 1.5), and a young pawn refuses an offer when its opinion of the other is at enmity (-0.5) or below. Between the spokesmen: a spokesman refuses when its opinion of the other side's spokesman is at enmity or below. A young pawn who refuses its spokesman's match costs that spokesman's opinion of it (-0.2, as for the player in VB-272), now for unplayed pawns too. Heads that look for matches themselves, weighing land, stores and standing, stay later, as agreed.
+   **A (Kim, 10 Nov):** As proposed: liking weighs 1.0 in the matcher's score, and the young and the spokesmen refuse at enmity (-0.5).
+
 # Archived 10 November 2026 (VB-261)
 
 ## VB-261: gates become targets with residuals (raised 10 November 2026)
