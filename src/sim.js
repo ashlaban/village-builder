@@ -7,7 +7,7 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
     membersOf, voiceOf, recordOf,
   } = VB['sim/records'];
-  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog } = VB['sim/notable'];
+  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
@@ -46,6 +46,7 @@ const Sim = (() => {
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
+    SKIP, skipFrom, skipStop,
   };
 })();
 VB['sim'] = Sim;
