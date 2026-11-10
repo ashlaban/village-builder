@@ -83,7 +83,8 @@ body {
 .speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
 .background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .background-run input { margin: 0; accent-color: var(--accent); }
-.speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+#skipBtn { padding: 5px 10px; font-size: 14px; }
+#skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
 .settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
@@ -275,10 +276,16 @@ body:has(.toast) .lod { visibility: hidden; }
 .play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
+.succession ul { flex: 1 1 100%; max-height: 40vh; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.succession li button { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; width: 100%; min-height: 36px;
+  margin: 2px 0; padding: 4px 10px; font-size: 14px; text-align: left; }
+.succession li i { font-style: normal; font-size: 13px; color: var(--muted); }
+@media (pointer: coarse) { .succession li button { min-height: 44px; } }
 body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 130px); }
 .play { margin: 8px 0; }
 .play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.play h5 { margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }
@@ -479,10 +486,12 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
+    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
   </div>
 </div>
 <button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
+<div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
@@ -3533,6 +3542,9 @@ VB['sim/records'] = (() => {
     return null;
   };
   const isHolder = (st, id) => holdingOf(st, id) !== null;
+  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
+  // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
+  const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -3633,7 +3645,7 @@ VB['sim/records'] = (() => {
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
-    noteLine, householdsOfLine, ancestorsOf,
+    noteLine, householdsOfLine, ancestorsOf, wishOf,
   };
 })();
 </script>
@@ -5204,11 +5216,12 @@ VB['sim/deaths'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; read-only views, no state
+// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
+// skip to the next event that concerns the played pawn (VB-234); read-only views, no state
 VB['sim/notable'] = (() => {
-  const { index, ancestorsOf, fullName, age } = VB['sim/records'];
+  const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES } = VB['sim/deaths'];
-  const { YEAR } = VB['sim/rules'];
+  const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
   const NOTABLE = {
     family: "Births, marriages and deaths in the selected person's household or line",
@@ -5314,7 +5327,60 @@ VB['sim/notable'] = (() => {
     }
     return out;
   }
-  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog };
+  // ---- skip to the next event (VB-234): what stops a run ahead, for the played pawn ----
+  // Why a skip stops, in the order they are looked for; the page says the reason's sentence and moves the camera to what happened.
+  const SKIP = {
+    family: 'A birth, marriage or death in its household or line',
+    farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
+    custom: 'A change of custom in its village',
+    hunger: 'Hunger in its household',
+    refused: 'A command refused',
+    idle: 'Nothing queued, with its automatic behaviour off',
+    round: 'The eve of the moving round',
+    none: 'No pawn is played',
+  };
+  // The eve of the next moving round after game hour t: the start of work on the day before it (the round is at noon on day 11 of autumn).
+  function roundEve(t) {
+    const eve = Math.floor(t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + WORK[0];
+    return eve > t ? eve : eve + YEAR;
+  }
+  // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
+  // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
+  // already)}; null when no pawn is played.
+  function skipFrom(st) {
+    const pl = st.player; if (!pl) return null;
+    const hid = st.pawns[pl.pawn].household, hh = hid !== null ? st.households[hid] : null;
+    return { t: st.t, n: st.record.length, eve: roundEve(st.t), homeId: hid, short: hh ? hh.hungryDays : 0, hungry: !!hh && hh.hunger > 0 };
+  }
+  // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
+  function stopsFor(st, ev, about, hid, vid) {
+    const k = ev.kind;
+    if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
+    if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (FARM.has(k)) return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about) ? 'farm' : null;
+    return CUSTOM.has(k) && vid !== null && ev.village === vid ? 'custom' : null;
+  }
+  // Has a skip begun at `from` (skipFrom) reached a stop: null, or {why (a key of SKIP), text (a sentence), ev (the record event, if one)}.
+  // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on), st.player and the clock, and
+  // writes nothing to st, so a skipped run is the run played (rule 7). The eve of the moving round always stops it, within a year.
+  function skipStop(st, from) {
+    const pl = st.player;
+    if (!pl) return { why: 'none', text: 'No pawn is played.' };
+    const p = st.pawns[pl.pawn], hid = p.household, vid = settlementIdOf(st, p), hh = hid !== null ? st.households[hid] : null;
+    while (from.n < st.record.length) {
+      const ev = st.record[from.n++], why = stopsFor(st, ev, pl.pawn, hid, vid);
+      if (why) return { why, text: eventLine(st, ev), ev };
+    }
+    if (hid !== from.homeId) { from.homeId = hid; from.short = hh ? hh.hungryDays : 0; from.hungry = !!hh && hh.hunger > 0; }
+    if (hh && hh.hungryDays > from.short) {
+      from.short = hh.hungryDays;
+      if (!from.hungry) { from.hungry = true; return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` }; }
+    }
+    if (pl.refused && pl.refused.t > from.t) return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
+    if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
+    return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
+  }
+  return { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
 })();
 </script>
 <script>
@@ -6052,7 +6118,7 @@ VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
-    atHousehold } = VB['sim/records'];
+    atHousehold, wishOf } = VB['sim/records'];
   const CL = VB['sim/claims'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
@@ -6107,6 +6173,7 @@ VB['sim/farmclaims'] = (() => {
   //   anyone    any landless adult of a village within reach
   //   assembly  the meeting assigns it to one of its own: most voice-weighted support through ties first (sim/claims, support)
   // Then married couples before singles, then the oldest. One of a married couple stands for both (the first of them).
+  // Which farm a pawn would take is its own wish, any it may, and the player's stands in (st.player.wishes.claim, VB-212); the order is a rule.
   function claimants(st, f, ids = st.demand, rule = practice(st, f.village).claims) {
     const vid = f.village, centre = st.villages[vid].center, right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
@@ -6115,6 +6182,7 @@ VB['sim/farmclaims'] = (() => {
     if (right) for (const id of ids) { const d = kinDegree(st, id, right.by.id); if (Number.isFinite(d)) degree.set(id, d); }
     const keep = (id) => {
       if (!free(st, id)) return false;
+      const wish = wishOf(st, id, 'claim'); if (wish !== null && wish !== f.id) return false; // the player's: no farm, or only the one it names
       if (rule === 'kin') return home(id) === vid || (degree.has(id) && near(id));
       if (rule === 'assembly') return home(id) === vid;
       return near(id);
@@ -6815,7 +6883,8 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -7020,8 +7089,13 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
-  const QUEUE_MAX = 8;
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
+  //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
+  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
+  const QUEUE_MAX = 8, TIES_MAX = 12;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
   const LASTS = {
@@ -7037,7 +7111,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -7046,6 +7120,27 @@ VB['sim/commands'] = (() => {
     personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
     st.player = null;
     return true;
+  }
+  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
+  // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
+  function playerDied(st, id) {
+    const pl = st.player;
+    if (!pl || pl.pawn !== id) return;
+    const held = holdingOf(st, id), friends = relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend);
+    friends.sort((x, y) => y.opinion - x.opinion || x.id - y.id);
+    pl.queue = [];
+    pl.left = { t: st.t, held: held ? held.id : null, spouse: spouseOf(st, id),
+      ties: friends.slice(0, TIES_MAX).map((r) => ({ id: r.id, why: opinionWord(r.opinion) })) };
+  }
+  // The player goes on as pawn id after its pawn's death: `text` is written to the dead pawn's events, and id is played from now, with
+  // nothing queued and no wishes. sim/opportunities' succeed checks who may be chosen; true, or why not.
+  function goOnAs(st, id, text) {
+    const pl = st.player;
+    if (!pl || !pl.left) return 'the played pawn has not died';
+    const dead = living(st, id); if (dead) return dead;
+    personEvent(st, pl.pawn, 'player', text);
+    st.player = null;
+    return inhabit(st, id);
   }
   // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
   function homeAtDark(st, pl) {
@@ -7078,6 +7173,19 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
+  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
+  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  function wish(st, kind, value) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
+    const farm = kind === 'claim' && Number.isInteger(value);
+    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
+      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    }
+    pl.wishes[kind] = value;
+    return true;
+  }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {
@@ -7100,7 +7208,7 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep, playerDied, goOnAs, TIES_MAX };
 })();
 </script>
 <script>
@@ -7310,7 +7418,7 @@ VB['sim/heirs'] = (() => {
     joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
       kinNear,
       isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
-      atHousehold, noteLine, householdsOfLine, ancestorsOf,
+      atHousehold, noteLine, householdsOfLine, ancestorsOf, wishOf,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -7633,7 +7741,8 @@ VB['sim/heirs'] = (() => {
     const claim = keeps ? undefined : st.demand.filter((id) => {
       const q = at(id), sp = spouseOf(st, id);
       return q.alive && q.age >= 18 && q.household !== null && q.household !== hh.id && st.farmsteads[st.households[q.household].farmstead].village === v
-        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
+        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id)
+        && (wishOf(st, id, 'claim') ?? hh.farmstead) === hh.farmstead; // the player's wish: no farm, or only the one it names (VB-212)
     }).sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
     for (const c of childrenOf(st, giver)) {
@@ -7681,11 +7790,12 @@ VB['sim/heirs'] = (() => {
     return out;
   }
   // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function staysWhy(st, p, heirs = null, own = null, rank = null) {
+  function staysWhy(st, p, heirs = null, own = null, rank = null, wish = wishOf(st, p.id, 'out')) {
     if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
     const sp = spouseOf(st, p.id); if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
-    if (placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
+    if (wish !== true && placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
+    if (wish !== null) return wish ? null : 'its player wishes it to stay'; // an heir's wait is the pawn's wish: the player's stands in (VB-212)
     if (heirs) { if (heirs.has(p.id)) return 'heir to a farm'; } // heir somewhere else
     else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return 'heir to a farm';
     return null;
@@ -7699,9 +7809,7 @@ VB['sim/heirs'] = (() => {
   }
   return {
     heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, staysWhy, countDemand, firstHeirs, ownFirstOf,
-      setGuardian,
-      handOn,
-    heirFor, roundHeirs,
+    setGuardian, handOn, heirFor, roundHeirs,
   };
 })();
 </script>
@@ -7738,7 +7846,7 @@ VB['sim/membership'] = (() => {
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
   const { setServant } = VB['sim/records'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
@@ -7826,7 +7934,8 @@ VB['sim/service'] = (() => {
     const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null);
+    // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
+    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
@@ -7848,15 +7957,18 @@ VB['sim/service'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209)
+// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
+// whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
-  const { villageOf, settlementIdOf, fullName } = VB['sim/records'];
+  const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'];
-  const { VERBS } = VB['sim/commands'];
+  const { VERBS, goOnAs } = VB['sim/commands'];
+  const { relationsOf, opinionWord } = VB['sim/relations'];
+  const { SOCIAL } = VB['sim/rules'];
   const { mayTake, fit, jobsFor } = VB['sim/jobs'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { unfit, handsLeft } = VB['sim/service'];
@@ -7936,18 +8048,23 @@ VB['sim/opportunities'] = (() => {
       return ranked;
     };
     const heirs = { has: (id) => !view.demand.includes(id) && (ranked || firsts()).has(id) };
+    // The player's wishes stand in for the pawn's own (st.player.wishes): each act's `why` is as the round would decide with them, and for
+    // the played pawn `own` says what the pawn itself would do about moving out, whatever the player wishes.
+    const pl = view.player, wishes = pl && pl.pawn === p.id ? pl.wishes : null;
     const stays = staysWhy(view, p, heirs);
-    out.push(item('leave', null, null, stays, atRound));
+    out.push(item('leave', null, null, stays, wishes ? { ...atRound, own: staysWhy(view, p, heirs, null, null, null) } : atRound));
     // an empty farm of its village: the round gives it to the first claimant among those who want out
-    const bar = stays || claimBar(view, p.id);
+    const bar = stays || claimBar(view, p.id) || (wishes && wishes.claim === false ? 'its player wishes it to claim no farm' : null);
+    const other = (f) => (wishes && wishes.claim !== null && wishes.claim !== f.id ? 'its player wishes for another farm' : null);
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k];
       if (f.household !== null) continue;
-      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar;
+      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar || other(f);
       out.push(item('claim', f.id, null, why || check(view, p.id, 'claim', f.id, null), atRound));
     }
     // service with a holder of its village who lives alone
-    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null);
+    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null)
+      || (wishes && wishes.serve === false ? 'its player wishes it to take no service' : null);
     let lone = 0;
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k], hh = f.household === null ? null : view.households[f.household];
@@ -7970,7 +8087,87 @@ VB['sim/opportunities'] = (() => {
     if (housed) round(view, p, out);
     return out;
   }
-  return { actorView, forPawn };
+
+  // ---- the player's succession (VB-213): whom it may go on as after its pawn's death ----
+  const KIN = { reach: 4, bySpouse: 2, spouses: 2 }, SUCCESSORS_MAX = 40;
+  const KIN_WORDS = { '0:1': ['son', 'daughter'], '0:2': ['grandson', 'granddaughter'], '1:0': ['father', 'mother'], '2:0': ['grandfather', 'grandmother'],
+    '1:1': ['brother', 'sister'], '1:2': ['nephew', 'niece'], '2:1': ['uncle', 'aunt'], '2:2': ['cousin', 'cousin'] };
+  const sexed = (st, id, pair) => pair[st.pawns[id].sex === 'f' ? 1 : 0];
+  // The blood kin of pawn id within civil degree `reach`, living or dead: Map of pawn id -> {deg, word}. Up to its ancestors and down from
+  // each of them, so the walk is bounded by the family, not by the island.
+  function bloodKin(st, id, reach) {
+    const out = new Map(), ups = new Map([[id, 0]]);
+    for (let g = 1, gen = [id]; g <= reach && gen.length; g++) {
+      const next = [];
+      for (const x of gen) for (const q of [st.pawns[x].father, st.pawns[x].mother]) if (q !== null && !ups.has(q)) { ups.set(q, g); next.push(q); }
+      gen = next;
+    }
+    const note = (q, up, down) => {
+      if (q === id) return false;
+      const was = out.get(q);
+      if (was && was.deg <= up + down) return false;
+      out.set(q, { deg: up + down, word: sexed(st, q, KIN_WORDS[`${up}:${down}`] || ['kin', 'kin']) });
+      return true;
+    };
+    for (const [a, up] of ups) {
+      if (up) note(a, up, 0);
+      for (let down = 1, gen = [a]; up + down <= reach && gen.length; down++) {
+        const next = [];
+        for (const x of gen) for (const c of childrenOf(st, x)) if (!ups.has(c) && note(c, up, down)) next.push(c);
+        gen = next;
+      }
+    }
+    return out;
+  }
+  // The living the player may go on as after pawn id, in order and without repeats, each {id, why}: the heirs of the farm it held (who
+  // holds it now, then heirRanking); its kin by blood (to first cousins) or marriage (its spouse, the spouse's kin to degree KIN.bySpouse,
+  // the spouses of its own kin to degree KIN.spouses), nearest first, of any age; its household; those it thought friends. At most
+  // SUCCESSORS_MAX. For the player's dead pawn the farm, the spouse and the friends are those noted at its death (st.player.left); for
+  // any other pawn they are read now. Read-only; it walks the pawn's family and household, never the island's pawns or records.
+  function successors(st, id) {
+    const p = st.pawns[id], out = [], seen = new Set([id]);
+    if (!p) return out;
+    const left = st.player && st.player.pawn === id ? st.player.left : null;
+    const add = (q, why) => { if (!seen.has(q) && st.pawns[q].alive) { seen.add(q); out.push({ id: q, why }); } };
+    const holding = left ? null : holdingOf(st, id), held = left ? left.held : holding ? holding.id : null;
+    if (held !== null && !st.households[held].dissolved) {
+      const hh = st.households[held];
+      if (hh.holder !== null) add(hh.holder, 'heir');
+      for (const q of heirRanking(st, hh)) add(q, 'heir');
+    }
+    const sp = left ? left.spouse : spouseOf(st, id), kin = [], mine = bloodKin(st, id, KIN.reach);
+    for (const [q, k] of mine) {
+      kin.push({ id: q, deg: k.deg, blood: 0, why: k.word });
+      const qs = k.deg <= KIN.spouses ? spouseOf(st, q) : null;
+      if (qs !== null && qs !== id && !mine.has(qs)) kin.push({ id: qs, deg: k.deg, blood: 1, why: `${k.word}'s ${sexed(st, qs, ['husband', 'wife'])}` });
+    }
+    if (sp !== null) {
+      const spouse = sexed(st, sp, ['husband', 'wife']);
+      kin.push({ id: sp, deg: 0, blood: 1, why: spouse });
+      for (const [q, k] of bloodKin(st, sp, KIN.bySpouse)) if (!mine.has(q)) kin.push({ id: q, deg: k.deg, blood: 1, why: `${spouse}'s ${k.word}` });
+    }
+    kin.sort((x, y) => x.deg - y.deg || x.blood - y.blood || st.pawns[x.id].born - st.pawns[y.id].born || x.id - y.id);
+    for (const k of kin) add(k.id, k.why);
+    const home = p.household !== null ? st.households[p.household] : null;
+    if (home && !home.dissolved) for (const q of home.members) add(q, 'household');
+    const ties = left ? left.ties : relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend)
+      .sort((x, y) => y.opinion - x.opinion || x.id - y.id).map((r) => ({ id: r.id, why: opinionWord(r.opinion) }));
+    for (const t of ties) add(t.id, t.why);
+    return out.slice(0, SUCCESSORS_MAX);
+  }
+  // The player goes on as pawn id, after its pawn's death: one of the successors, or, when none of them is alive, any living adult, which
+  // is a break in the line. Either is written to the dead pawn's events. True, or why not.
+  function succeed(st, id) {
+    const pl = st.player;
+    if (!pl || !pl.left) return 'the played pawn has not died';
+    const q = st.pawns[id], list = successors(st, pl.pawn), pick = list.find((s) => s.id === id);
+    if (!q || !q.alive) return `pawn ${id} is not a living pawn`;
+    if (list.length && !pick) return `${fullName(q)} is not among those ${fullName(st.pawns[pl.pawn])} leaves`;
+    if (!list.length && q.age < 18) return 'only an adult begins a new line';
+    const link = !pick ? null : pick.why === 'heir' ? 'the heir' : pick.why === 'household' ? 'one of its household' : `its ${pick.why}`;
+    return goOnAs(st, id, pick ? `The player went on as ${link}, ${fullName(q)}` : `A break in the line: the player went on as ${fullName(q)}`);
+  }
+  return { actorView, forPawn, successors, succeed };
 })();
 </script>
 <script>
@@ -8458,13 +8655,14 @@ VB['sim/lifecycle'] = (() => {
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
-  const { issue } = VB['sim/commands'];
+  const { issue, playerDied } = VB['sim/commands'];
   const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; stillAtDeath(st, a);
+    playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     dropTies(st, id);
     if (p.rel) forget(st, id);
@@ -9386,6 +9584,8 @@ VB['sim/saves'] = (() => {
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
+    if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+    if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -9402,7 +9602,7 @@ const Sim = (() => {
     age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, settlementIdOf,
     membersOf, voiceOf, recordOf,
   } = VB['sim/records'];
-  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog } = VB['sim/notable'];
+  const { NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
   const { describe } = VB['sim/agents'];
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
@@ -9412,8 +9612,8 @@ const Sim = (() => {
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
-  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto } = VB['sim/commands'];
-  const { actorView, forPawn } = VB['sim/opportunities'];
+  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish } = VB['sim/commands'];
+  const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
@@ -9428,7 +9628,8 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, opportunities, cal, age, birthYear, fullName, spouseOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
+      fullName, spouseOf,
       childrenOf, siblingsOf,
       kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,
@@ -9440,6 +9641,7 @@ const Sim = (() => {
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
+    SKIP, skipFrom, skipStop,
   };
 })();
 VB['sim'] = Sim;
@@ -9846,7 +10048,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     choice = { seed, scenario, size };
     $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null;
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
@@ -10225,6 +10427,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
+    cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
     $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
     $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
@@ -11332,6 +11535,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const backgroundRun = $('backgroundRun');
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
+  // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
+  let skipCursor = null;
+  function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
@@ -11340,7 +11546,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden) { resetSpeedSample(); return; }
     const before = st.t;
-    if (speed === Infinity) {
+    if (skipCursor) {
+      // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
+      const deadline = performance.now() + SIM_BUDGET_MS;
+      let stop = Sim.skipStop(st, skipCursor);
+      while (!stop) { Sim.advance(st, SIM_SLICE_HOURS); stop = Sim.skipStop(st, skipCursor); if (performance.now() >= deadline) break; }
+      if (stop) endSkip(stop);
+    } else if (speed === Infinity) {
       const deadline = performance.now() + SIM_BUDGET_MS;
       // Yield between ordinary six-minute steps; one indivisible step can exceed the budget.
       do { Sim.advance(st, SIM_SLICE_HOURS); } while (performance.now() < deadline);
@@ -11480,7 +11692,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const a = st.agents[selPawn];
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
-    drawTalk(show); drawLens(); drawPlayMark();
+    drawTalk(show); drawLens(); drawPlayMark(); offerSuccession();
     // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
     // winter; it is banked for the night otherwise. A lit hearth sends smoke out of the smoke hole, and after dark its light shows.
     const fireHours = (c.hour >= Sim.WORK[1] - 1 && c.hour < 22) || (c.hour >= Sim.WORK[0] - 1 && c.hour < Sim.WORK[0] + 1);
@@ -12000,10 +12212,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     cardTab = cardTab === 'history' ? 'facts' : 'history'; syncTabs();
     $(cardTab === 'history' ? 'tabHistory' : 'tabFacts').focus(); e.preventDefault();
   });
+// after its death, whom the player may go on as (VB-213)
   // ======== playing a pawn ========
   // Which pawn is played, its queue and its switch are the run's (st.player, written only through Sim.inhabit, uninhabit, queue, unqueue and
   // setAuto). Following it with the camera, choosing a tile to walk to and the last message are the page's own state, never saved.
-  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '';
+  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '', succFor = -1, succAt = 0, succHTML = '';
   const ADULT = 18; // who may be played: any living adult (design.md, Which pawn)
   const playMark = new PIXI.Graphics();
   L.hover.addChild(playMark);
@@ -12037,13 +12250,34 @@ if (typeof module !== 'undefined') module.exports = Sim;
     return VERB_WORDS[c.verb] || c.verb;
   }
   const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
-  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only where its verb is not yet the
-  // player's (causes, VB-211; the round's acts, VB-212).
+  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only for the round's acts, which the
+  // round carries out for a pawn that wishes them (roundBox).
   function oppRow(o, open) {
     const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
     if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
     const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
     return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  }
+  // The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
+  // wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
+  function roundBox(id, acts, wishes) {
+    const pick = (kind, value, label, on = wishes[kind] === value) =>
+      `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
+    const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
+    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
+      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
+      o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
+      esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
+      : '<p class="hint">No farm of its village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+    h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
@@ -12072,8 +12306,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function renderPlay(id) {
     const p = st.pawns[id], pl = st.player;
     let h = '';
-    if (!pl || pl.pawn !== id) {
-      if (p.age >= ADULT) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
+    if (pl && st.pawns[pl.pawn].died !== null) {
+      // the played pawn has died: its own card says so, and a living pawn the player may go on as offers it (the list is page/play's box)
+      const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
+      if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
+      else if (may) h = `<button type="button" class="primary" id="playAs" data-play="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
+    } else if (!pl || pl.pawn !== id) {
+      if (p.age >= ADULT &&
+        p.died === null) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
     } else {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
@@ -12105,8 +12345,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         walkPick}">${walkPick ? 'Choose an open tile on the map, or cancel' : 'Walk here'}<i>for itself</i></button></li></ul>`;
       if (groups.causes.length || p.advocate) h += `<h4>Causes</h4>${causeNote(p)}<ul class="opps">${groups.causes.map((o) =>
         oppRow(o, true)).join('')}</ul>`;
-      if (groups.round.length) h += `<h4>At the moving round <span>shown only, for now</span></h4><ul class="opps">${groups.round.map((o) =>
-        oppRow(o, false)).join('')}</ul>`;
+      if (groups.round.length) h += roundBox(id, groups.round, pl.wishes);
     }
     if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
     if (h !== playHTML) { playHTML = h; $('playBox').innerHTML = h; }
@@ -12123,11 +12362,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const id = selPawn, act = b.dataset.play;
     let r = true;
     if (act === 'inhabit') r = playAs(id);
+    else if (act === 'succeed') { r = Sim.succeed(st, id); succAt = 0; }
     else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') walkPick = !walkPick;
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
+    else if (act === 'wish') r = Sim.wish(st, b.dataset.kind, JSON.parse(b.dataset.value));
     else if (act === 'do') {
       const c = JSON.parse(b.dataset.cmd);
       r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
@@ -12164,6 +12405,57 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }
+  // After the played pawn's death (VB-213): the page pauses once, and a box offers those the player may go on as, the heir first, for as
+  // long as the choice is open; the world does not wait, so the list is read again twice a second. With none alive, any adult's card
+  // offers "Go on as", and the break is recorded. Called each frame (page/animate).
+  function offerSuccession() {
+    const box = $('succession'), pl = st && st.player, dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
+    const noSkip = played() < 0; if ($('skipBtn').hidden !== noSkip) $('skipBtn').hidden = noSkip; // Skip is offered while a pawn is played
+    if (dead < 0) { if (!box.hidden) box.hidden = true; succFor = -1; return; }
+    const now = performance.now();
+    if (succFor !== dead) { succFor = dead; succAt = 0; followPlayed = false; walkPick = false; document.querySelector('[data-speed="0"]').click(); }
+    if (now - succAt < 500 && !box.hidden) return;
+    succAt = now;
+    const list = Sim.successors(st, dead);
+    let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
+      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+    if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
+      esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
+    if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
+    box.hidden = false;
+  }
+  $('succession').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-succeed]');
+    if (!b || !st) return;
+    const id = +b.dataset.succeed, r = Sim.succeed(st, id);
+    succAt = 0;
+    if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
+  });
+  // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
+  // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened
+  // and a note says why, until it is clicked or the next skip begins. The simulation does nothing differently for it.
+  let skipNote = null;
+  function dropSkipNote() { if (skipNote) { skipNote.remove(); skipNote = null; } }
+  function startSkip() {
+    if (played() < 0 || building || skipping) return;
+    const back = speed === 0 ? lastSpeed : speed;
+    dropSkipNote(); setSpeed(Infinity); lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
+    skipCursor = Sim.skipFrom(st); $('skipBtn').setAttribute('aria-pressed', 'true');
+  }
+  function endSkip(stop) {
+    const ev = stop.ev, id = st.player ? st.player.pawn : -1, f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
+    setSpeed(0);
+    if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+    else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
+    else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
+    skipNote = document.createElement('button');
+    skipNote.type = 'button'; skipNote.className = 'toast panel skip-note'; skipNote.id = 'skipNote'; skipNote.dataset.why = stop.why;
+    const c = Sim.cal(st.t);
+    skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
+    skipNote.addEventListener('click', dropSkipNote);
+    $('toasts').appendChild(skipNote);
+  }
+  $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
   // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
   function offerPlay() {
     const id = suggestedPawn(), box = $('playOffer');

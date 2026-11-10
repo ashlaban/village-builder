@@ -39,10 +39,12 @@
       <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
       <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
     </div>
+    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
   </div>
 </div>
 <button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
+<div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">

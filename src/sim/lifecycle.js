@@ -21,13 +21,14 @@ VB['sim/lifecycle'] = (() => {
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
-  const { issue } = VB['sim/commands'];
+  const { issue, playerDied } = VB['sim/commands'];
   const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
     p.events.push({ t: st.t, kind: 'died', text: CAUSES[cause].event, cause });
     const a = st.agents[id]; stillAtDeath(st, a);
+    playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id); if (u) { u.end = st.t; noteUnionEnd(st, u); }
     dropTies(st, id);
     if (p.rel) forget(st, id);

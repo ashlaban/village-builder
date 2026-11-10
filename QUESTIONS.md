@@ -14,6 +14,12 @@ From the architecture review (`docs/review-architecture.md`; ChatGPT's three doc
 
 ## Priority 2
 
+### VB-212: the wishes the survey could not sort (raised 10 November 2026)
+VB-212 built the player's wishes for the moving round (`st.player.wishes`: `out`, `claim`, `serve`; the survey is in `backlog/VB-212.md`). Three wants in the round need a design choice, and each is left a rule, as the task's note asks. None blocks slice 2's wrap-up.
+1. Settling new land. The round draws a chance for each waiting adult of a crowded village (`SETTLE.chance` by rounds waited, `src/sim/settle.js:215`), which reads as the pawn's own willingness, and the wishes have no field for it. Today the player's pawn leads a party only by that draw; a wish to stay (`out: false`) keeps it from leading one. **P:** a fourth wish, `settle`: `true` passes the draw and `false` never leads a party, with the round's other rules (age, provisions, land within reach, the village crowded) deciding as for anyone; a small task in slice 2.
+2. Following a sibling to new land. A waiting unmarried sibling follows a settler by a draw (`SETTLE.follow`, `src/sim/settle.js:53`: "who choose to follow"). **P:** the same `settle` wish answers it: `false` never follows, `true` follows when a sibling leaves, `null` draws as now.
+3. A married couple. The round treats a couple as one: one of them claims for both (`src/sim/farmclaims.js`, `claimants`), a settler's spouse goes along, and each is counted in `st.demand` on its own. So a played pawn wished to stay still moves when its spouse claims a farm or leaves, and a wish for one farm does not bind the spouse. **P:** leave it until marriage as a negotiation (VB-233) says who answers for a couple; then the player's wishes speak for the couple when its pawn heads it, and otherwise the spouse's own wish stands, as now. The pawn panel says so meanwhile.
+
 ### Target architecture v2: decisions waiting (raised 3 November 2026)
 From `docs/architecture/target-v2.md`, section 10.1. None blocks slice 0, 1 or 2; each is needed by the slice named. Question 3 was answered on 3 November (`QUESTION_ARCHIVE.md`).
 1. Bodies: one membership graph with rules per kind (Proposed; it passed the succession probe), or a domain per kind? Kim asked to iterate first. **P:** settle it by measurement in slice 5's plan: build the household cache from the graph at populous medium, and adopt the graph if the build and the updates stay under 50 ms (VB-043's bound).

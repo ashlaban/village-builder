@@ -4,7 +4,8 @@ VB['sim/commands'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
-  const { cal, WORK } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -209,8 +210,13 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
-  const QUEUE_MAX = 8;
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
+  //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
+  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
+  const QUEUE_MAX = 8, TIES_MAX = 12;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
   const LASTS = {
@@ -226,7 +232,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -235,6 +241,27 @@ VB['sim/commands'] = (() => {
     personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
     st.player = null;
     return true;
+  }
+  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
+  // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
+  function playerDied(st, id) {
+    const pl = st.player;
+    if (!pl || pl.pawn !== id) return;
+    const held = holdingOf(st, id), friends = relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend);
+    friends.sort((x, y) => y.opinion - x.opinion || x.id - y.id);
+    pl.queue = [];
+    pl.left = { t: st.t, held: held ? held.id : null, spouse: spouseOf(st, id),
+      ties: friends.slice(0, TIES_MAX).map((r) => ({ id: r.id, why: opinionWord(r.opinion) })) };
+  }
+  // The player goes on as pawn id after its pawn's death: `text` is written to the dead pawn's events, and id is played from now, with
+  // nothing queued and no wishes. sim/opportunities' succeed checks who may be chosen; true, or why not.
+  function goOnAs(st, id, text) {
+    const pl = st.player;
+    if (!pl || !pl.left) return 'the played pawn has not died';
+    const dead = living(st, id); if (dead) return dead;
+    personEvent(st, pl.pawn, 'player', text);
+    st.player = null;
+    return inhabit(st, id);
   }
   // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
   function homeAtDark(st, pl) {
@@ -267,6 +294,19 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
+  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
+  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  function wish(st, kind, value) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
+    const farm = kind === 'claim' && Number.isInteger(value);
+    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
+      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    }
+    pl.wishes[kind] = value;
+    return true;
+  }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {
@@ -289,5 +329,5 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep, playerDied, goOnAs, TIES_MAX };
 })();

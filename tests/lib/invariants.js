@@ -250,6 +250,19 @@ function checkState(st) {
       if (!(c.begun === null || (n === 0 && c.begun <= st.t))) bad.push(`player.queue[${n}]: begun ${c.begun}`);
     });
     const r = pl.refused;
+    // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
+    const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/commands'].TIES_MAX;
+    if (dead !== (lf !== null && lf !== undefined)) bad.push(`player.left: ${JSON.stringify(lf)} for a pawn ${dead ? 'dead' : 'alive'}`);
+    else if (dead) {
+      if (pl.queue.length || !(lf.t <= st.t) || !(lf.held === null || st.households[lf.held]) || !(lf.spouse === null || st.pawns[lf.spouse])
+        || !Array.isArray(lf.ties) || lf.ties.length > TIES_MAX || lf.ties.some((x) => !st.pawns[x.id] || typeof x.why !== 'string')) {
+        bad.push(`player.left: ${JSON.stringify(lf)}, queue ${pl.queue.length}`);
+      }
+    }
+    // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
+    const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
+    if (Object.keys(ws).sort().join() !== 'claim,out,serve' || !tri(ws.out) || !tri(ws.serve)
+      || !(ws.claim === null || ws.claim === false || (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
   return bad;
