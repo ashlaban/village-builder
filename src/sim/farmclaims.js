@@ -7,7 +7,7 @@ VB['sim/farmclaims'] = (() => {
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
     atHousehold, wishOf } = VB['sim/records'];
   const CL = VB['sim/claims'];
-  const { seedReserve, dailyNeed } = VB['sim/hunger'];
+  const { dailyNeed } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
   // @state farmstead.claim: {by (pawn id), since (game hours), hours (to restore, by the condition when claimed), done (hours worked)} or
   //   null: an empty farm a landless adult has claimed and is restoring; the claimant's unrealised claim (`why` 'farm') stands on its house
@@ -171,7 +171,7 @@ VB['sim/farmclaims'] = (() => {
     for (const h of new Set(members.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
-      const keep = seedReserve(st, hh) + st.pawns[hh.holder].buffer * rationsOf(st, stay);
+      const keep = reserved(st, hh, 'grain') + st.pawns[hh.holder].buffer * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
       if (give > 0) { Stores.take(st, hh, 'grain', give, 'provisions'); have += give; }
     }

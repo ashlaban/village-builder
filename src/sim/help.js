@@ -4,7 +4,7 @@ VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
   const { childrenOf, siblingsOf } = VB['sim/records'];
-  const { seedReserve, dailyNeed } = VB['sim/hunger'];
+  const { dailyNeed } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
   // generosity until traits; a household without a holder keeps the most, as surplus does
@@ -14,9 +14,9 @@ VB['sim/help'] = (() => {
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
     const holder = hh.holder !== null ? st.pawns[hh.holder] : null, buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
-    return Math.max(0, hh.grain - seedReserve(st, hh) - buffer);
+    return Math.max(0, hh.grain - reserved(st, hh, 'grain') - buffer);
   };
-  const spare = (st, hh) => Math.max(0, hh.grain - seedReserve(st, hh));
+  const spare = (st, hh) => Math.max(0, hh.grain - reserved(st, hh, 'grain'));
   // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
   function kinHouseholds(st, hh) {
     const rank = new Map();

@@ -34,7 +34,7 @@ const COLL = {
   'st.pawns': 'pawn', 'st.households': 'household', 'st.farmsteads': 'farmstead', 'st.villages': 'village', 'st.herds': 'herd',
   'st.agents': 'agent', 'st.unions': 'union', 'st.jobs': 'job', 'st.cenv.settlements': 'settlement', 'st.cenv.people': 'pawn',
   'st.cenv.cultures': 'culture', 'cenv.settlements': 'settlement', 'cenv.people': 'pawn', 'cenv.cultures': 'culture',
-  'farmstead.fence': 'fence', 'village.fence': 'fence', 'st.claims[]': 'claim',
+  'farmstead.fence': 'fence', 'village.fence': 'fence', 'st.claims[]': 'claim', 'st.plans.households': 'plan', 'st.plans.villages': 'plan',
 };
 // paths that name another record: a job's field is a farm's field, and so on
 const ALIAS = {
@@ -45,7 +45,7 @@ const ALIAS = {
 const CONV = {
   st: 'st', w: 'w', env: 'cenv', cenv: 'cenv', hh: 'household', household: 'household', p: 'pawn', pawn: 'pawn', f: 'farmstead', farm: 'farmstead',
   farmstead: 'farmstead', v: 'village', village: 'village', a: 'agent', agent: 'agent', j: 'job', job: 'job', herd: 'herd',
-  fd: 'farmstead.fields[]', field: 'farmstead.fields[]', meadow: 'farmstead.meadows[]', plot: 'village.plots[]',
+  fd: 'farmstead.fields[]', field: 'farmstead.fields[]', meadow: 'farmstead.meadows[]', plot: 'village.plots[]', plan: 'plan',
 };
 // per module, names whose binding the scan cannot see (parameters, records made at seeding under other names); a judgement, kept short
 const HINTS = {
@@ -56,7 +56,7 @@ const HINTS = {
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-  'sim/commands': { q: 'pawn' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
+  'sim/commands': { q: 'pawn' }, 'sim/plans': { T: 'plan.targets' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };
 const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'case', 'delete', 'void', 'throw', 'await', 'yield', 'if', 'while',

@@ -4,7 +4,7 @@ VB['sim/lifecycle'] = (() => {
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
-  const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
+  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
@@ -207,7 +207,7 @@ VB['sim/lifecycle'] = (() => {
       if (!means.has(h)) {
         const hh = st.households[h], store = hh.grain + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
         const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
-        means.set(h, grown < 2 || store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
+        means.set(h, grown < 2 || store - reserved(st, hh, 'grain') >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }
       return means.get(h);
     };

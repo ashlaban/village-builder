@@ -29,6 +29,27 @@ function checkState(st) {
         }
       }
       if (type === 'household') for (const id of map.keys()) if (!st.households[id] || st.households[id].dissolved) bad.push(`plans: dissolved household ${id} keeps a plan`);
+      // VB-248: reservations live on a live plan (so none names a plan that is gone), one reason and a count >= 0 for each good the
+      // holder can hold; a household's plan has its targets and tiles. (That a reservation never exceeds its holder's stock does not hold
+      // for seed yet: the seed reservation is the fields' need, and a household short of grain reserves more than it holds; VB-252.)
+      const STORES = globalThis.VB['sim/stores'];
+      for (const [id, plan] of map) {
+        if (!plan.reserved || !plan.reasons) { bad.push(`plans: ${type} ${id} has no reservations record`); continue; }
+        const goods = Object.keys(plan.reserved);
+        if (goods.length !== Object.keys(plan.reasons).length) bad.push(`plans: ${type} ${id} reservations and reasons disagree`);
+        for (const good of goods) {
+          const n = plan.reserved[good];
+          if (!(n >= 0) || !Number.isFinite(n) || !STORES.RESERVE.includes(plan.reasons[good]) || (type === 'household' && good !== 'grain' && good !== 'meals')) {
+            bad.push(`plans: ${type} ${id} reserves ${n} ${good} for ${plan.reasons[good]}`);
+          }
+        }
+        if (type !== 'household') continue;
+        const T = plan.targets;
+        if (!T || T.wood.length !== 4 || !T.wood.every((x) => x > 0) || !(T.hayWinters > 0) || !(T.woodSecond >= 0) || !(T.fields >= 0) ||
+          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
+          bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
+        }
+      }
     }
   } else bad.push('plans: missing');
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
