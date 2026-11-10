@@ -12,9 +12,36 @@
     speedSampleAt = performance.now(); speedSampleHours = 0;
     if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
   }
+  // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
+  // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
+  // each agent's place before the last step, and page/animate draws each pawn between that place and its own by stepShare. ----
+  let stepShare = 0, stepSt = null, stepTick = -1, drawBetween = false;
+  let prevX = new Float64Array(0), prevY = new Float64Array(0), prevStride = new Float64Array(0), prevIn = new Uint8Array(0), prevN = 0;
+  // the run changed (a new game, a load): nothing of the last run's steps is drawn
+  function syncSteps() { if (stepSt !== st) { stepSt = st; stepShare = 0; prevN = 0; drawBetween = false; } }
+  // copies each agent's place before a step: once a frame at most, before the frame's last step
+  function notePlaces() {
+    const n = st.agents.length;
+    if (prevX.length < n) {
+      const cap = Math.max(64, n * 2);
+      prevX = new Float64Array(cap); prevY = new Float64Array(cap); prevStride = new Float64Array(cap); prevIn = new Uint8Array(cap);
+    }
+    for (let i = 0; i < n; i++) { const a = st.agents[i]; prevX[i] = a.x; prevY[i] = a.y; prevStride[i] = a.stride || 0; prevIn[i] = a.inside ? 1 : 0; }
+    prevN = n;
+  }
+  // runs n whole steps, noting the places before the last, so the frame draws the last step's walk
+  function runSteps(n) {
+    for (let k = 0; k < n; k++) { if (k === n - 1) notePlaces(); Sim.advance(st, SIM_SLICE_HOURS); }
+    if (n > 0) { drawBetween = true; stepTick = st.tick; }
+  }
+  // whether this frame draws between steps: the run is the one stepped here and nothing else (a load, a debug skip) moved its clock since
+  const drawingBetween = () => drawBetween && stepSt === st && st.tick === stepTick;
   function advanceSimulation(dt) {
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
+    syncSteps();
     const before = st.t;
+    // a skip or the uncapped speed runs many steps a frame: the pawns are drawn where the last step left them
+    if (skipCursor || speed === Infinity) { stepShare = 0; drawBetween = false; }
     if (skipCursor) {
       // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
       const deadline = performance.now() + SIM_BUDGET_MS;
@@ -31,7 +58,12 @@
         uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
         speedSampleAt = now; speedSampleHours = 0;
       }
-    } else Sim.advance(st, (dt * speed) / HOUR_SECONDS);
+    } else {
+      stepShare += (dt * speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
+      const n = Math.floor(stepShare);
+      stepShare -= n;
+      runSteps(n);
+    }
   }
   function syncBackgroundRun() {
     if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }

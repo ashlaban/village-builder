@@ -2,8 +2,8 @@
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const F = require('./lib/fixtures.js'), { measure, growth, report, timing, NAMES } = require('./lib/cost.js');
 if (!isMainThread) {
-  const notices = [], fixture = F.loadFixture(workerData, { fetch: false, notice: (s) => notices.push(s) });
-  parentPort.postMessage(fixture ? { notices, stamp: fixture.stamp, stale: fixture.stale, result: measure(fixture.st, { timed: true }) }
+  const notices = [], fixture = F.loadFixture(workerData, { make: false, notice: (s) => notices.push(s) });
+  parentPort.postMessage(fixture ? { notices, stamp: fixture.stamp, result: measure(fixture.st, { timed: true }) }
     : { notices });
 } else main().catch((e) => { console.error(e); process.exitCode = 1; });
 
@@ -21,14 +21,14 @@ function windowOf(name) {
 }
 async function main() {
   const names = ['small-y5', 'small-y40'], started = performance.now();
-  // Only the parent fetches: concurrent workers never replace the same fixture files.
-  if (names.some((name) => F.status(name).status === 'missing')) F.fetchFixtures();
+  // Only the parent makes what is missing (verify's runner has made it already); the workers load.
+  F.ensure(names);
   const windows = await Promise.all(names.map(windowOf)), results = [];
   for (let i = 0; i < windows.length; i++) {
-    const { notices, result, stamp, stale } = windows[i], name = names[i];
+    const { notices, result, stamp } = windows[i], name = names[i];
     notices.forEach((s) => console.log(s));
     if (!result) continue;
-    console.log(`${name}: ${stale ? 'stale' : 'fresh'} fixture at ${stamp.commit.slice(0, 7)}`);
+    console.log(`${name}: fixture ${stamp.key}, made at ${stamp.commit.slice(0, 7)}`);
     console.log(`${name}: ${result.pawnDays.toFixed(3)} living pawn-days; work ${JSON.stringify(result.work)}`);
     timing(name, result); results.push(result);
   }

@@ -48,9 +48,10 @@ VB['sim/meadows'] = (() => {
   }
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
   // with no free tile within reach, it may contest a stake another household of its village left unworked.
-  function startMeadow(st, f, hh, built = builtTiles(st)) {
+  // The land step of its standing plan (sim/plans, VB-248), after the field's: `given` a tile the plan names in place of chooseMeadow's (-1: none).
+  function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
     if (f.project || !wantsMeadow(st, f, hh)) return;
-    let tile = chooseMeadow(st, f, undefined, built);
+    let tile = given >= 0 ? given : chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
@@ -86,12 +87,12 @@ VB['sim/meadows'] = (() => {
   const RAKE_DAYS = 10, UNRAKED = 0.8, MOW_LAST = 2, DRY_DAYS = 1;
   // Days into the haymaking window, or -1 outside it.
   const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
-  // Hay is wanted while the barn and the hay lying mown hold less than ENOUGH winters' need of the household's animals now; a household with
-  // none mows nothing (balance review: a farm whose herds were gone mowed 3,893 hay that nothing would eat).
-  const ENOUGH = 2;
+  // Hay is wanted while the barn and the hay lying mown hold less than the standing plan's target of winters' need (targets.hayWinters,
+  // sim/plans) of the household's animals now; a household with none mows nothing (balance review: a farm whose herds were gone mowed 3,893
+  // hay that nothing would eat).
   function hayWanted(st, f, hh) {
     const need = winterNeed(st, hh);
-    return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < ENOUGH * need;
+    return need > 0 && hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) < st.plans.households.get(hh.id).targets.hayWinters * need;
   }
   // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
   // wanted (`want`: a boolean, or a function asked only when a raking or mowing could be posted, VB-227); hay already mown is always carried in.
@@ -129,7 +130,7 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, ENOUGH, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
     finishMeadow, placeMeadows,
   };
 })();

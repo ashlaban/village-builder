@@ -21,8 +21,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 3. If it turns out to need a design decision, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm test` and `node tests/golden.js`; for a task of size M or L, or one that touches `src/page/`, `npm run verify`
-   instead, once. Rebuild `index.html` before committing. The Checks workflow is off for pull requests (Kim, 10 November): report what
-   fails and by how much, in the task file and the PR.
+   instead, once. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
+   report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
@@ -36,20 +36,24 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   prints its summary only (`node tests/run.js test --list` prints each script's line).
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
   not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
-- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`; gitignored `tests/fixtures/`, published as the assets of the
-  release `fixtures`): `node tools/fixtures.js status|fetch|make|refresh|publish`. `medium-ref` is saved at the first year's end with 1,000
-  living (by year 60), and its stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp, stale}`,
-  or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. The nightly workflow
-  (`.github/workflows/fixtures.yml`) remakes and publishes them, so a PR that changes the golden file need not; `npm run nightly` fetches
-  them, remakes locally what is still stale and runs the bench (minutes).
+- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
+  lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
+  sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small
+  about 2 minutes, medium 1.5, side by side); `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
+  stamp names the year. `npm run verify` makes the small pair first when the sources lack it, beside its other scripts; in a test or a
+  tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first; `npm run nightly` makes what
+  is missing and runs the bench (minutes).
 - Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (verify) asserts each band's reduced run, populous on
   the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous and founders small, heirs), prints each band
   as in or out and appends to `docs/bench/bands.jsonl`, never failing (about 15 to 20 minutes; `npm run nightly` runs it for a new commit).
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
+- Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
+  (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
 - Cost growth: `node tests/scaling.js` (npm test; population exponent at most 1.15) and `node tests/history.js` (verify, from `small-y5` and
-  `small-y40`; work per living pawn-day at year 40 over year 5 at most 1.25). `--update` only lowers excesses in `tests/cost-baseline.json`.
+  `small-y40`; work per living pawn-day at year 40 over year 5, target 1.25). Both report each counter's ratio, target and residual
+  as targets and never fail.
 - Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
@@ -107,9 +111,15 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. At the end of a task, before its last commit: `node tests/golden.js` (the golden file
   is not in `npm test`), or `npm run verify` once for size M or L and for a change under `src/page/`. The Checks workflow
-  (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, only when started by hand (Kim,
-  10 November: no hard gates in this phase of development; targets and their residuals instead, VB-261). Until VB-261 says how, a PR
-  names each check that fails, its target and its residual, and does not raise a baseline to hide one.
+  (`.github/workflows/checks.yml`) runs verify, which makes the small fixtures it loads, only when started by hand.
+- Hard and soft checks (Kim, 10 November, VB-261; `docs/gates.md`). Hard, and stopping a merge: a red `npm test`, or a hard script of
+  verify (the build, lint rules and size baselines, ownership, dependencies, backlog, determinism and plain data, rule tests, golden
+  file (an unlisted change fails), saves, invariants, fixtures loading, the page's functional tests, the counters' structure). Cost,
+  balance, demography and timing are targets: they print their measure, target and residual, and never set the exit code. A PR has a
+  "Targets" section, one line for each target the change moves or was meant to move (before, after, residual, whether the change is
+  its cause) and one line summing the targets out and not moved ("8 targets out, as on `main`"). A change never raises a target,
+  re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target. The lint and ownership baselines
+  stay ratchets.
 - Rebuild `index.html` before committing; both suites check it.
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.

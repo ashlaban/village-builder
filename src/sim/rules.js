@@ -20,7 +20,7 @@ VB['sim/rules'] = (() => {
     return [h(DARK_CENTRE - len / 2), h(DARK_CENTRE + len / 2)];
   };
 
-  // ---- economy (rations = one adult's food for one game day) ----
+  // ---- economy (a ration, the unit of food, is one adult's food for one game day; FOODS below) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
     fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
@@ -95,23 +95,25 @@ VB['sim/rules'] = (() => {
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 4, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
-  // ---- relationships (sim/relations; docs/review-relationships.md): one pawn's opinion of another (-1..1) is a situational part (kin,
-  // spouse, housemate) plus timed memories. A memory gains v at each event, up to cap, and fades to 0 over `days` from the last one.
+  // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
+  // the standing's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
+  // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
+  // cap, and fades to 0 over `days` from the last one.
   // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
   // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
-  // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates). Two unmarried pawns
-  // aged within `young` count `youngBonus` times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a
-  // bubble for `bubbleHours`. friend and dislike: an opinion entering them is a life event; leaving needs `back` past the line.
+  // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates): its kind is the
+  // bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus` times in both the choice and the good talk.
+  // A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend and enemy: an opinion reaching them is a
+  // life event; leaving needs `back` past the line. friend and dislike are the page's words only.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   const SOCIAL = {
     situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
     memories: {
-      chat: { label: 'Chatted', v: 0.03, cap: 0.2, days: YEAR_DAYS },
-      goodTalk: { label: 'A good talk', v: 0.1, cap: 0.5, days: 3 * YEAR_DAYS },
-      crossWords: { label: 'Cross words', v: -0.12, cap: -0.6, days: 3 * YEAR_DAYS },
       bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
       border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
       claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
+      // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
+      refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       bubbleHours: 0.5 },
@@ -120,7 +122,8 @@ VB['sim/rules'] = (() => {
     // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
     // when the pawn's ties are put back on today's scale, every `renorm` years.
     ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
-    friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.6, enemy: -0.5,
+    affinity: { weight: 0.6, known: 8 },
+    friend: 0.25, dislike: -0.2, back: 0.1, closeFriend: 0.45, enemy: -0.5,
     seek: 0.5, seekSample: 4,
   };
 
@@ -141,6 +144,8 @@ VB['sim/rules'] = (() => {
     // when stores are at their highest, and at 1 the check seldom bound (births and hunger as before); at 1.5, over four tiny-map runs of 80
     // years, deaths from hunger fell by about 40% and women married 2 to 3 years later.
     means: 1.5,
+    // an offer the player must answer stays open this many days; unanswered, it is answered as the pawn would unplayed (VB-293)
+    offerDays: 7,
   };
 
   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
@@ -163,6 +168,18 @@ VB['sim/rules'] = (() => {
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+  };
+  // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
+  // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
+  // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
+  // as it is, from the larder, not cooked into meals). Grain goes into the household's grain and is cooked into meals (sim/stores cook);
+  // the rest go into the larder (sim/hunger addFood, from sim/byre). Nothing reads source yet (the pot, VB-119). ----
+  const FOODS = {
+    grain: { worth: 1, keeps: null, source: 'grain', raw: false },
+    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', raw: true }, // fresh, from the slaughter
+    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
+    milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
+    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', raw: true },
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
@@ -255,5 +272,5 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
 })();

@@ -51,17 +51,17 @@ for (const h of st.households) if (H.milkCows(st, h, cal(10)) > 0) inMilk += H.m
 const outDays = HD.stall[0] - HD.stall[1], milked = milkings / Math.max(1, st.households.filter((h) => H.milkCows(st, h, cal(10)) > 0).length);
 check(milked >= outDays - 2, `milked ${milked.toFixed(1)} of ${outDays} days out a household`);
 check(Math.abs(churned / (fresh + churned) - HD.butter) < 1e-6, 'butter share');
-// the meal drinks the day's milk first: across a summer midnight the milk goes and grain and rations fall by the rest of the need
+// the meal drinks the day's milk first: across a summer midnight the milk goes and grain and meals fall by the rest of the need
 const s2 = Sim.seed(world(7), 7, 'founders');
 Sim.advance(s2, 15 * Sim.DAY + 20 - s2.t); // day 15 (summer), 20:00
 const h2 = s2.households.find((h) => F.larderOf(h, 'milk') > 0);
 check(h2, 'no household with milk in the larder on a summer evening');
 if (h2) {
-  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.rations, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0;
+  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0;
   Sim.advance(s2, 4.5);
-  const used = g0 - (h2.grain + h2.rations) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
+  const used = g0 - (h2.grain + h2.meals) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
   check(F.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
-  check(Math.abs(used - (need - m0)) < 1e-6, `the meal took ${used.toFixed(2)} grain and rations, wanted ${(need - m0).toFixed(2)} (need less milk)`);
+  check(Math.abs(used - (need - m0)) < 1e-6, `the meal took ${used.toFixed(2)} grain and meals, wanted ${(need - m0).toFixed(2)} (need less milk)`);
 }
 check(st.households.some((h) => F.larderOf(h, 'butter') > 1), 'no butter in any larder at the byre');
 const bad = checkState(st); check(!bad.length, bad.slice(0, 3).join('; '));

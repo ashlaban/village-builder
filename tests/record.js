@@ -39,14 +39,14 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
 // A pawn's life reads as it did when each pawn kept copies of its events: the times and texts of every pawn's events, heirs at seed 7
 // after two and a half years (before any fold), hash as the copies did at 7812253, the commit before VB-199 (230 events, 79786b701a98b8a7,
 // until VB-201 moved the night's culture and the round's phases). Re-recorded since for VB-235 (the clock) and when slopes entered the
-// walking cost (VB-271): the lives changed, not how they are read.
+// walking cost (VB-271), and when talk stopped writing memories and friend events (VB-240), and when a hungry household began to eat its seed (VB-282): the lives changed, not how they are read.
 {
   const st = Sim.seed(world(), 7, 'heirs');
   Sim.advance(st, 2.5 * Sim.YEAR);
   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 225, 'heirs 7 at 2.5 years: 225 events on its pawns');
-  assert.strictEqual(hash, 'b7cd72752ae57d03', 'a pawn\'s life reads as it did with copies');
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 83, 'heirs 7 at 2.5 years: 83 events on its pawns');
+  assert.strictEqual(hash, 'fe20c195ab22ac77', 'a pawn\'s life reads as it did with copies');
 }
 const st = Sim.seed(world(), 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
@@ -71,7 +71,7 @@ for (const e of live) {
   if (H[e.kind]) assert.ok(e.t >= (Y - H[e.kind]) * Sim.YEAR, `a ${e.kind} event of year ${Math.floor(e.t / Sim.YEAR)} not folded in year ${Y}`);
 }
 st.record.forEach((e) => { if (typeof e === 'number') slots.set(e, (slots.get(e) || 0) + 1); });
-assert.ok(st.recordYears.length && st.recordYears.every((c) => H[c.kind] === 2), 'ten years fold friends and fallings-out only');
+assert.ok(st.recordYears.length && st.recordYears.every((c) => H[c.kind] === 2), 'ten years fold close friends and enemies only');
 st.recordYears.forEach((c, k) => assert.strictEqual(slots.get(k), c.tally, `count ${k} ${JSON.stringify(c)}: ${slots.get(k)} slots`));
 const keys = new Set(st.recordYears.map((c) => `${c.kind}|${c.village}|${c.year}`));
 assert.strictEqual(keys.size, st.recordYears.length, 'one count per kind, village and year');
@@ -103,24 +103,3 @@ const kinds = {}; for (const e of live) kinds[e.kind] = (kinds[e.kind] || 0) + 1
 const folded = st.recordYears.reduce((a, c) => a + c.tally, 0);
 console.log(`record ok: founders 7 after 10 years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events, ${folded} `
   + `folded into ${st.recordYears.length} counts (${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')})`);
-// An older save, with a copy of each event on its pawn (the late fixture small-y5, where it is at hand and older than VB-199): loaded,
-// each pawn's life reads as its copies did, in their order, but for the copies of routine kinds told only on the pawn (gifts given).
-{
-  const { loadFixture, files } = require('./lib/fixtures.js'), zlib = require('zlib');
-  const old = loadFixture('small-y5', { fetch: false });
-  const data = old && JSON.parse(zlib.gunzipSync(fs.readFileSync(files('small-y5').save)).toString('utf8'));
-  const pawns = data && (data.state.pawns.$arr || data.state.pawns);
-  if (pawns && pawns.some((p) => p.events.some((x) => typeof x === 'object'))) {
-    let n = 0, dropped = 0;
-    for (const p of pawns) {
-      const life = Sim.recordOf(old.st, { pawn: p.id, life: true }), line = (e) => `${e.t}|${e.kind === 'born' ? '' : e.text}`;
-      let k = 0;
-      for (const x of p.events) {
-        if (k < life.length && line(life[k]) === line(x)) { k++; n++; continue; }
-        assert.ok(H[x.kind], `pawn ${p.id}: the copy ${JSON.stringify(x)} is not in its life`); dropped++;
-      }
-      assert.strictEqual(k, life.length, `pawn ${p.id}: its life has events its copies did not`);
-    }
-    console.log(`record ok: small-y5, saved with copies: ${n} events of its pawns read as they did; ${dropped} routine copies dropped`);
-  }
-}

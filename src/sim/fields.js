@@ -24,7 +24,8 @@ VB['sim/fields'] = (() => {
     return Math.floor(hands * FIELDS.perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
-  const fieldsWanted = (st, hh) => Math.max(1, Math.min(fieldsWorkable(st, hh),
+  // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
+  const fieldsWanted = (st, hh, workable = fieldsWorkable(st, hh)) => Math.max(1, Math.min(workable,
     Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * ECON.fieldYield))));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
@@ -53,9 +54,11 @@ VB['sim/fields'] = (() => {
   }
   // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
   // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
-  function startProject(st, f, hh, built = builtTiles(st)) {
-    if (f.project || f.fields.length >= fieldsWanted(st, hh)) return;
-    let tile = chooseTile(st, f, undefined, built);
+  // The land step of its standing plan (sim/plans, VB-248): `wanted` is the plan's target of fields, `given` a tile the plan names in place
+  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first).
+  function startProject(st, f, hh, built = builtTiles(st), wanted = fieldsWanted(st, hh), given = -1) {
+    if (f.project || f.fields.length >= wanted) return;
+    let tile = given >= 0 ? given : chooseTile(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;

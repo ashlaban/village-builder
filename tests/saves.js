@@ -9,7 +9,7 @@ let failed = 0; const out = [];
 // earlier in it (st.idlers). Both runs make the same advance calls after the save: steps of 6 minutes add up differently in other chunks.
 const Y = Sim.YEAR, TINY = { cols: 120, rows: 85 };
 for (const [scenario, seed, size, before, after] of [['founders', 7, null, 2 * Y, Y], ['founders', 42, null, 2 * Y, Y], ['heirs', 7, null, 2 * Y, Y],
-  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.75, 30 * Sim.DAY]]) {
+  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.7, 30 * Sim.DAY]]) {
   const st = Sim.seed(world(seed, size || undefined), seed, scenario);
   Sim.advance(st, before);
   const text = JSON.stringify(Sim.save(st));
@@ -22,6 +22,12 @@ for (const [scenario, seed, size, before, after] of [['founders', 7, null, 2 * Y
   const label = `${scenario} ${seed} at ${(before / Y).toFixed(2)} y`;
   if (bad.length) { failed++; console.error(`SAVES FAIL: ${label}, saved at t=${before} h, ${after} h more: ${bad.join(', ')} differ`); }
   out.push(`${label} ${(text.length / 1024).toFixed(0)} KB`);
+}
+{ // VB-259: a save from before the cooked store was named meals (format 2, hh.rations) is refused, as any other build's
+  const st = Sim.seed(world(7), 7, 'founders'), data = JSON.parse(JSON.stringify(Sim.save(st)));
+  data.format = 2;
+  let why = null; try { Sim.load(world(7), data); } catch (e) { why = e.message; }
+  if (!/format 2, this build reads 3/.test(why || '')) { failed++; console.error(`SAVES FAIL: a format-2 save was not refused (${why})`); }
 }
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);

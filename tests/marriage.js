@@ -17,7 +17,7 @@ function setUp(grain) {
   if (st.pawns[b.holder].sex !== 'f') { killPawn(st, b.holder, 'illness'); } // the wife keeps the farm
   for (const hh of [a, b]) for (const id of [...hh.members]) if (id !== hh.holder) killPawn(st, id, 'illness');
   for (const p of st.pawns) if (p.alive && p.id !== a.holder && p.id !== b.holder) p.hunger = 0.9;
-  for (const hh of [a, b]) { hh.grain = grain; hh.unthreshed = []; hh.larder = []; hh.rations = 0; }
+  for (const hh of [a, b]) { hh.grain = grain; hh.unthreshed = []; hh.larder = []; hh.meals = 0; }
   return { st, a, b, man: st.pawns[a.holder], woman: st.pawns[woman] };
 }
 // 1. Two holders, each alone, with food: they marry, live on one of the farms, and the other passes on; nobody holds two farms.
@@ -54,7 +54,7 @@ for (const grain of [0, 5000]) {
   }
   if (!man) { console.error('MARRIAGE FAIL: no first heir living with grown kin'); process.exit(1); }
   for (const p of st.pawns) if (p.alive && p.id !== man.id && p.id !== woman.id) p.hunger = 0.9;
-  const hh = st.households[man.household]; hh.grain = grain; hh.unthreshed = []; hh.larder = []; hh.rations = 0;
+  const hh = st.households[man.household]; hh.grain = grain; hh.unthreshed = []; hh.larder = []; hh.meals = 0;
   roll(st, () => movingRound(st));
   if (grain) check(R.spouseOf(st, man.id) === woman.id, 'with food in store the heir marries');
   else {

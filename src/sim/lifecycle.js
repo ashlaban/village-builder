@@ -1,14 +1,19 @@
-// @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and the daily life step
+// @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and its marriage offers, and the daily life step
+// @state st.offers[]: the open marriage offers (VB-293; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
+//   ids), home (the household they would live in), village (the man's settlement), made, due (made + MARRIAGE.offerDays days; game hours),
+//   answers[] ({key: 'man' | 'woman' | 'manSide' | 'womanSide', by (the one to marry, or its spokesman when the offer was made), yes: null
+//   | true | false})}. Only offers that wait for the player's answer are kept, so with no player it stays empty. Plain data, saved.
+// @state st.offerSeq: number; the next offer's id; ids are never reused
 VB['sim/lifecycle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
-  const { YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
-  const { dailyNeed, seedReserve, larderOf } = VB['sim/hunger'];
+  const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
+  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
-      holdingOf, atHousehold, lifeEvent,
+      holdingOf, atHousehold, lifeEvent, spokesmanOf,
   } = VB['sim/records'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
@@ -22,7 +27,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -174,7 +179,9 @@ VB['sim/lifecycle'] = (() => {
       return places.get(id);
     };
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
-    const taken = new Set();
+    // A pawn in an open offer is not free to anyone, and counts as matched (VB-293): `taken` holds the matched women and the held.
+    const taken = new Set(), played = st.player ? st.player.pawn : null;
+    for (const o of st.offers) { taken.add(o.man); taken.add(o.woman); }
     // Where a couple would live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one
     // (VB-153): a holder keeps their farm and a spouse who is only first heir steps out of that line; of two holders, the couple lives where
     // the other farm is best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the
@@ -205,9 +212,9 @@ VB['sim/lifecycle'] = (() => {
     const means = new Map();
     const affords = (h) => {
       if (!means.has(h)) {
-        const hh = st.households[h], store = hh.grain + hh.rations + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+        const hh = st.households[h], store = hh.grain + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
         const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
-        means.set(h, grown < 2 || store - seedReserve(st, hh) >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
+        means.set(h, grown < 2 || store - reserved(st, hh, 'grain') >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }
       return means.get(h);
     };
@@ -231,6 +238,7 @@ VB['sim/lifecycle'] = (() => {
     };
     let housed = null;
     for (const m of men) {
+      if (taken.has(m.id)) continue; // held by an open offer
       const sm = settlementIdOf(st, m), cu = practice(st, sm);
       let best = null, bs = -Infinity;
       const pm = place(m.id);
@@ -251,6 +259,13 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id);
+      // The match is an offer the two and their spokesmen answer (VB-293): a side with no player says yes at once, and the round marries
+      // them here; one that waits for the player's answer is kept, the two held, and the round goes on without it.
+      if (played !== null) {
+        const answers = answersOf(st, m.id, best.f.id);
+        for (const a of answers) if (a.by !== played) a.yes = true;
+        if (answers.some((a) => a.yes === null)) { taken.add(m.id); makeOffer(st, m.id, best.f.id, best.home, answers); continue; }
+      }
       const mark = st.record.length;
       issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
       housed = null;
@@ -271,20 +286,81 @@ VB['sim/lifecycle'] = (() => {
     kinPressure(st, men, women, taken, homeFor);
     // handovers by custom: when the heir marries, or when the holder turns 60
     for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved) continue;
-      const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], heir = heirs.rank(hh.id)[0];
-      if (heir === undefined || st.pawns[heir].age < 18) continue;
-      const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
-        : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
-      if (why) {
-        const mark = st.record.length, old = hh.holder;
-        issue(st, { actor: old, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' });
-        changedSince(mark, new Set([old, heir]), new Set([hh.id]));
-      }
+      const hh = st.households[liveId], mark = st.record.length, old = hh.holder, heir = handover(st, hh, heirs.rank);
+      if (heir !== null) changedSince(mark, new Set([old, heir]), new Set([hh.id]));
     }
     refreshRoles(st);
     VB.count.roundPairs += pairs;
+  }
+  // The handover by custom that a marriage brings, for one household: when its first heir (rank(h)[0], `rank` a ranking function of
+  // household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is 60. The round runs it for
+  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-293), a village's round for its farms
+  // (VB-277). The heir it is handed to, or null.
+  function handover(st, hh, rank) {
+    if (hh.dissolved) return null;
+    const f = st.farmsteads[hh.farmstead], cu = farmPractice(st, f), holder = st.pawns[hh.holder], heir = rank(hh.id)[0];
+    if (heir === undefined || st.pawns[heir].age < 18) return null;
+    const why = cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id ? 'marriage'
+      : cu.handover === 'age60' && holder.age >= 60 ? 'retirement' : null;
+    if (!why) return null;
+    issue(st, { actor: hh.holder, verb: 'handOn', target: heir, args: { household: hh.id, reason: why }, source: 'round' });
+    return heir;
+  }
+  // ---- marriage offers (VB-293; design.md, Marriage as a negotiation): each match is answered by the two who marry and their spokesmen ----
+  // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them.
+  const answersOf = (st, man, woman) => [['man', man], ['woman', woman]].flatMap(([key, id]) => {
+    const s = spokesmanOf(st, id), own = { key, by: id, yes: null };
+    return s === id ? [own] : [own, { key: key + 'Side', by: s, yes: null }];
+  });
+  const names = (st, o) => `${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}`;
+  // An offer that waits for the player's answer is kept in st.offers, in order of due time (after those due at the same time), and told.
+  function makeOffer(st, man, woman, home, answers) {
+    const o = { id: st.offerSeq++, man, woman, home, village: settlementIdOf(st, st.pawns[man]), made: st.t, due: st.t + MARRIAGE.offerDays * DAY,
+      answers }, hh = st.households[home];
+    let i = st.offers.length;
+    while (i > 0 && st.offers[i - 1].due > o.due) i--;
+    st.offers.splice(i, 0, o);
+    for (const id of [man, woman]) personEvent(st, id, 'offered', `Offered a match with ${fullName(st.pawns[id === man ? woman : man])}`, false);
+    log(st, `A match is offered: ${names(st, o)}, to live at ${st.farmsteads[hh.farmstead].name}.`, {
+      kind: 'offered', pawn: man, other: woman, ...atHousehold(st, hh) });
+    return o;
+  }
+  const offerOf = (st, id) => st.offers.find((o) => o.id === id) || null;
+  // Why pawn id may not answer offer `offerId`, or null: the offer is open and the pawn has an answer in it still to give.
+  function cannotAnswer(st, id, offerId) {
+    const o = offerOf(st, offerId);
+    if (!o) return `there is no open offer ${offerId}`;
+    return o.answers.some((a) => a.by === id && a.yes === null) ? null : `pawn ${id} has no answer to give to offer ${offerId}`;
+  }
+  // Pawn id answers offer `offerId` (the verb answer, source 'player'), all its answers in it at once. Refusing, as the one to marry, a match
+  // that another made for it costs that spokesman's opinion of it (consent's cost: SOCIAL.memories.refusedMatch); refusing as a spokesman
+  // costs nothing. The offer closes at the first no, or when all have said yes.
+  function answerOffer(st, id, offerId, yes) {
+    const o = offerOf(st, offerId);
+    for (const a of o.answers) if (a.by === id && a.yes === null) a.yes = !!yes;
+    if (!yes) for (const a of o.answers) {
+      const side = a.by === id && (a.key === 'man' || a.key === 'woman') && o.answers.find((b) => b.key === a.key + 'Side');
+      if (side && side.by !== id && st.pawns[side.by].alive) remember(st, side.by, id, 'refusedMatch');
+    }
+    if (o.answers.some((a) => a.yes === false) || o.answers.every((a) => a.yes === true)) closeOffer(st, o);
+  }
+  // Offer o closes: refused at a no; otherwise the marriage, through the marry verb, and the handover it brings to its home, as at the round;
+  // or, if the verb refuses (one of them has died or married), it lapses.
+  function closeOffer(st, o) {
+    st.offers.splice(st.offers.indexOf(o), 1);
+    const hh = st.households[o.home], at = { pawn: o.man, other: o.woman, ...atHousehold(st, hh) }, no = o.answers.find((a) => a.yes === false);
+    const why = no ? null : issue(st, { actor: o.man, verb: 'marry', target: o.woman, args: { home: o.home }, source: 'round' });
+    if (no) log(st, `${fullName(st.pawns[no.by])} refused the match of ${names(st, o)}.`, { kind: 'matchRefused', ...at });
+    else if (why !== true) log(st, `The match of ${names(st, o)} lapsed: ${why}.`, { kind: 'offerLapsed', ...at });
+    else { handover(st, hh, roundHeirs(st).rank); refreshRoles(st); }
+  }
+  // At the day's end: the offers due close, their unanswered answers yes, as the pawns would answer unplayed. Only the first offer's due
+  // time is read, so nothing is polled between rounds (Rules for cost, 4).
+  function dueOffers(st) {
+    while (st.offers.length && st.offers[0].due <= st.t) {
+      for (const a of st.offers[0].answers) if (a.yes === null) a.yes = true;
+      closeOffer(st, st.offers[0]);
+    }
   }
   function dailyLife(st, c) {
     const env = st.cenv;
@@ -316,6 +392,6 @@ VB['sim/lifecycle'] = (() => {
   }
   return {
     killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture,
-    NIGHT_STEPS,
+    NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();

@@ -15,7 +15,7 @@ const TEST = [
   ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
   ['node', 'tests/cacheowners.js'], ['node', 'tests/living.js'],
   ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/notable.js'], ['node', 'tests/counters.js'], ['node', 'tests/rng.js'], ['node', 'tests/plaindata.js'], ['node', 'tests/codec.js'], ['node', 'tests/record.js'], ['node', 'tests/commands.js'], ['node', 'tests/player.js'], ['node', 'tests/wishes.js'], ['node', 'tests/succession.js'], ['node', 'tests/skip.js'], ['node', 'tests/chronicle.js'], ['node', 'tests/opportunities.js'], ['node', 'tests/backlog.js'], ['node', 'tests/backlog-tool.js'], ['node', 'tests/targets-tool.js'], ['node', 'tests/doc-tool.js'], ['node', 'tests/questions-tool.js'], ['node', 'tests/agent-usage.js'], ['node', 'tests/regress.js'], ['node', 'tests/names.js'], ['node', 'tests/guardians.js'], ['node', 'tests/marriage.js'], ['node', 'tests/spacing.js'],
-  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'],
+  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plans.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'], ['node', 'tests/offers.js'],
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
@@ -35,7 +35,13 @@ const rank = (c) => {
   return first ? -1 : k < 0 ? SLOW.length : k;
 };
 const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile|-saves)?\.js$/.test(a));
-const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
+// The late fixtures are a local cache (VB-272): the small pair is made first, when the sources lack it (about 2 minutes on one core,
+// beside the other scripts), and the two scripts that load it follow in the same lane.
+const usesFixtures = (c) => c.some((a) => /^tests\/(?:fixtures|history)\.js$/.test(a));
+const late = cmds.filter(usesFixtures), loose = (c) => !isBrowser(c) && !usesFixtures(c);
+const chains = [cmds.filter(isBrowser), late.length ? [['node', 'tools/fixtures.js', 'make-missing', 'small-y5', 'small-y40'], ...late] : []]
+  .filter((c) => c.length);
+const queue = cmds.filter(loose).sort((a, b) => rank(a) - rank(b));
 const t0 = Date.now(), failed = [], targets = [];
 const { parse } = require('./lib/targets.js');
 function run(cmd) {
@@ -53,11 +59,12 @@ function run(cmd) {
   });
 }
 const jobs = Number(process.env.VB_TEST_JOBS) || os.cpus().length;
-// The browsers take one lane, one after another, beside the other scripts; that lane joins the queue when they are done.
-const lanes = Math.max(1, Math.min(jobs, queue.length + (browsers.length ? 1 : 0)));
+// The browsers take one lane, one after another, beside the other scripts, and the fixture scripts another; a lane joins the queue
+// when its chain is done.
+const lanes = Math.max(1, Math.min(jobs, queue.length + chains.length));
 (async () => {
-  await Promise.all(Array.from({ length: lanes }, async (_, k) => {
-    if (k === 0) while (browsers.length) await run(browsers.shift());
+  await Promise.all(Array.from({ length: lanes }, async () => {
+    while (chains.length) for (const cmd of chains.shift()) await run(cmd);
     while (queue.length) await run(queue.shift());
   }));
   const secs = ((Date.now() - t0) / 1000).toFixed(1);

@@ -75,7 +75,7 @@ let checks = 0;
   assert.strictEqual(issue(st, { actor: b.holder, verb: 'give', target: { village: v.id }, args: { good: 'grain', n: 5 }, source: 'help' }), true);
   assert(v.grain === 5, 'the filling reached the store');
   const bad = [
-    { actor: b.holder, verb: 'give', target: a.id, args: { good: 'rations', n: 5 } },
+    { actor: b.holder, verb: 'give', target: a.id, args: { good: 'meals', n: 5 } },
     { actor: b.holder, verb: 'give', target: a.id, args: { good: 'grain', n: -5 } },
     { actor: b.holder, verb: 'give', target: b.id, args: { good: 'grain', n: 5 } },
     { actor: { household: b.id }, verb: 'give', target: a.id, args: { good: 'grain', n: 5 } },

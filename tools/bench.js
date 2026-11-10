@@ -11,6 +11,7 @@ const SYSTEM_BUDGETS = {
 };
 const RESERVE = 200 - Object.values(SYSTEM_BUDGETS).reduce((a, b) => a + b, 0);
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
+const { target } = require('../tests/lib/targets.js');
 const { fork } = require('child_process'), { performance } = require('perf_hooks');
 const F = require('../tests/lib/fixtures.js');
 const DIR = path.join(F.root, 'docs/bench'), HISTORY = path.join(DIR, 'history.jsonl');
@@ -77,9 +78,9 @@ function microbench(VB, st) {
 function measure(name) {
   // Load wrappers before the fixture loader imports src/load.js and downstream modules capture exports.
   const perf = require('./perf.js'), VB = perf.load(), Sim = VB.sim;
-  const fixture = F.loadFixture(name, { fetch: false });
-  if (!fixture) return { error: 'missing fixture; run node tools/fixtures.js fetch or make' };
-  const { st, stamp, stale } = fixture;
+  const fixture = F.loadFixture(name, { make: false });
+  if (!fixture) return { error: 'missing fixture; run node tools/fixtures.js make' };
+  const { st, stamp } = fixture;
   // A whole game year (VB-203, Kim, 9 November): winter, the meetings and the moving round fall inside the window, in their own steps.
   perf.reset();
   const from = st.t, steps = [], days = VB['sim/rules'].YEAR_DAYS;
@@ -103,7 +104,7 @@ function measure(name) {
   const it = VB.gen.generate(7, { cols: F.spec(name).cols, rows: F.spec(name).rows });
   let r; while (!(r = it.next()).done);
   const load = timed(() => Sim.load(r.value, parse.value));
-  return { stamp, stale, days, from, to: st.t, pawnDays, meanLiving: pawnDays / days,
+  return { stamp, days, from, to: st.t, pawnDays, meanLiving: pawnDays / days,
     msPerDay: totalMs / days, msPerPawnDay: totalMs / pawnDays, ...stepStats(steps),
     movingRoundMs, meetingsMs, heapMB, saveMs: save.ms, stringifyMs: stringify.ms, gzipMs: gzip.ms,
     saveTotalMs: save.ms + stringify.ms + gzip.ms, saveMainMs: save.ms + stringify.ms, jsonMB: jsonBytes / 1e6, gzipMB: gzip.value.length / 1e6,
@@ -180,22 +181,22 @@ function budget(run) {
     + `Measured ${run.date}; commit \`${run.commit}\`${run.dirty ? ' (working tree changes)' : ''}; ${run.node}; ${run.cpu.model} (${run.cpu.cores} cores).\n\n`
     + NAMES.map((name) => {
       const f = run.fixtures[name];
-      return f && !f.error ? `${name}: ${f.stale ? '**stale golden hash**' : 'fresh'}, saved after year ${yearOf(f)}`
+      return f && !f.error ? `${name}: saved after year ${yearOf(f)}`
         + `${f.stamp?.reached === false ? ' (**never reached its target**)' : ''}, ${f.stamp?.living ?? 'unknown'} starting living,`
-        + ` stamp \`${f.stamp?.commit ?? 'unknown'}\`.` : `${name}: unavailable.`;
+        + ` made at \`${f.stamp?.commit ?? 'unknown'}\`${f.stamp?.key ? `, key \`${f.stamp.key}\`` : ''}.` : `${name}: unavailable.`;
     }).join('\n\n') + '\n\n'
     + `| Measure | Budget (at medium-ref) | ${column(NAMES[0])} | ${column(NAMES[1])} |\n|---|---|---|---|\n` + rows.join('\n')
     + `\n\nSystem shares sum to ${+(200 - RESERVE).toFixed(1)} ms; ${+RESERVE.toFixed(1)} ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in \`closure.md\`.\n\n`
     + 'A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead.'
     + ' The round and the meetings run inside the window; their lines are that one call, inclusive.\n'
     + 'Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.\n'
-    + 'Fixture stamps, staleness, five longest step hours, codec stages and microbenchmarks are in `history.jsonl`.\n';
+    + 'Fixture stamps, five longest step hours, codec stages and microbenchmarks are in `history.jsonl`.\n';
 }
 function report(run) {
   console.log(`bench: ${run.date}, ${run.commit}, ${run.cpu.model}, ${run.node}`);
   for (const [name, f] of Object.entries(run.fixtures)) {
     if (f.error) { console.log(`${name}: UNAVAILABLE ${f.error}`); continue; }
-    console.log(`${name}: ${f.stale ? 'STALE' : 'fresh'} stamp ${f.stamp.commit}; ${f.msPerDay.toFixed(2)} ms/day,`
+    console.log(`${name}: fixture ${f.stamp.key ?? ''} made at ${f.stamp.commit}; ${f.msPerDay.toFixed(2)} ms/day,`
       + ` ${f.msPerPawnDay.toFixed(4)} ms/living pawn-day; mean ${f.meanLiving.toFixed(1)} living`);
     console.log(`  steps: longest ${f.longestMs.toFixed(3)} ms, p99 ${f.p99Ms.toFixed(3)} ms; top five ${JSON.stringify(f.longest)}`);
     console.log(`  moving round ${f.movingRoundMs.toFixed(3)} ms; meetings ${f.meetingsMs.toFixed(3)} ms; heap ${f.heapMB.toFixed(2)} MB`);
@@ -207,10 +208,34 @@ function report(run) {
   }
   for (const flag of run.flags) console.log(`FLAG ${flag.key}: ${flag.value} vs median ${flag.median}; five values ${JSON.stringify(flag.previous)}`);
 }
+// Target records (docs/gates.md, rows 23 and 24; VB-265), at the late reference: one for each budget line that has a limit and one for each
+// system's share, the ms a game day against its share of the 200. Each carries the share of the whole step in the same run beside the ms,
+// since the machine moves the whole step by a third between runs and a share by a point (VB-227). One run's noise is unknown (kind
+// `runs`, n 1): tools/bench-paired.js gives the spread of before runs, and the nightly's history the spread over nights.
+const LINE_NAMES = { msPerDay: 'mean', longestMs: 'longest-step', saveMainMs: 'save', loadTotalMs: 'load', gzipMB: 'gzip', movingRoundMs: 'moving-round', meetingsMs: 'meetings' };
+function targetRecords(run) {
+  const f = run.fixtures[NAMES[1]];
+  if (!f || f.error) return [];
+  const noise = { kind: 'runs', spread: 0, n: 1 }, where = `${NAMES[1]}, one whole year from the save`, recs = [];
+  for (const [label, key, limit] of LINES) {
+    if (limit === undefined || !Number.isFinite(f[key])) continue;
+    const unit = key.endsWith('MB') ? ' MB' : ' ms';
+    recs.push(target(`bench/${NAMES[1]}/${LINE_NAMES[key] || key}`, { where, unit, dir: 'max', target: limit, measured: f[key], noise,
+      extra: { label, ...(key === 'msPerDay' ? {} : { shareOfDay: f[key] / f.msPerDay }) } }));
+  }
+  for (const [system, budget] of Object.entries(SYSTEM_BUDGETS)) {
+    const row = f.systems.find((r) => r.system === system);
+    if (!row) continue;
+    recs.push(target(`bench/${NAMES[1]}/share/${system}`, { where, unit: ' ms/day', dir: 'max', target: budget, measured: row.msPerDay, noise,
+      extra: { share: row.msPerDay / f.msPerDay, shareTarget: budget / 200, wholeMs: f.msPerDay } }));
+  }
+  return recs;
+}
 async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'budget.md') } = {}) {
   const cpus = os.cpus(), run = { schema: 2, date: new Date().toISOString(),
     commit: F.git(['rev-parse', 'HEAD']).toString().trim(), dirty: !!F.git(['status', '--porcelain']).toString().trim(),
     node: process.version, cpu: { model: cpus[0]?.model || 'unknown', cores: cpus.length }, fixtures: {} };
+  F.ensure(NAMES); // made here if missing, before anything is timed
   for (const name of NAMES) run.fixtures[name] = await worker(name);
   run.flags = flags(run, readHistory(historyFile));
   fs.mkdirSync(path.dirname(historyFile), { recursive: true });
@@ -218,6 +243,7 @@ async function runBench({ historyFile = HISTORY, budgetFile = path.join(DIR, 'bu
   fs.mkdirSync(path.dirname(budgetFile), { recursive: true });
   fs.writeFileSync(budgetFile, budget(run));
   report(run);
+  targetRecords(run);
   return run;
 }
 async function main(args) {
@@ -227,14 +253,16 @@ async function main(args) {
     const last = readHistory().at(-1);
     if (!last) console.log('bench: no history yet; run node tools/bench.js first');
     else fs.writeFileSync(path.join(DIR, 'budget.md'), budget(last));
-  } else if (!args.length) await runBench();
-  else console.log(`usage: node tools/bench.js [--budget]
-  (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing or stale one is reported, not made),
+  } else if (!args.filter((a) => a !== '--record').length) await runBench();
+  else console.log(`usage: node tools/bench.js [--budget] [--record]
+  (no argument)  times medium-y5 and medium-ref (tests/fixtures/, each in a fresh process; a missing one is made first),
                  appends the run to docs/bench/history.jsonl, rewrites docs/bench/budget.md and prints the report; takes minutes,
                  and times the machine, so run nothing else meanwhile
+  --record       also appends the budget lines and each system's share as target records (with the share of the whole step) to docs/bench/targets.jsonl
+  paired, alternated runs of before and after: node tools/bench-paired.js --help
   --budget       rewrites docs/bench/budget.md from the last run in the history, measuring nothing
-  fixtures first: node tools/fixtures.js status|fetch|make`);
+  fixtures: node tools/fixtures.js status|make`);
 }
 // Diagnostic failures are visible in output/history, never a reason to fail a nightly run.
 if (require.main === module) main(process.argv.slice(2)).catch((e) => console.error('bench: UNAVAILABLE ' + (e.stack || e.message)));
-module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, SYSTEM_BUDGETS, RESERVE, NAMES, LINES };
+module.exports = { runBench, measure, microbench, stepStats, median, metrics, flags, budget, readHistory, appendHistory, targetRecords, SYSTEM_BUDGETS, RESERVE, NAMES, LINES };

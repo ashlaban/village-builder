@@ -158,7 +158,7 @@ VB['sim/scenarios'] = (() => {
     seal();
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
-    // @state st.t: number; game time in hours since the start of year 1 (negative before it): (st.tick + st.tickPart) / TICKS (sim/clock)
+    // @state st.t: number; game time in hours since the start of year 1 (negative before it): st.tick / TICKS (sim/clock)
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
@@ -173,16 +173,16 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), rations (cooked, ready to eat; sim/hunger),
+    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
-    //   hungryDays, hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
-    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter', n, until}: stored food lots;
+    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
@@ -225,6 +225,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
+    // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units
@@ -246,14 +247,14 @@ VB['sim/scenarios'] = (() => {
         ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
-      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(),
+      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0,
     };
     rebuildLiving(st);
     seedPlans(st);
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
-    for (const hh of st.households) hh.rations = 2 * dailyNeed(st, hh); // two days of cooked food to start with
+    for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order
     const before = [];

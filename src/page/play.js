@@ -82,11 +82,11 @@
     } else h += ' The village has not met yet.';
     return `${h}</p>`;
   }
-  // The household's food in days of need: grain above the seed set aside, cooked rations and the larder, over a day's rations of its living.
+  // The household's food in days of need: grain above the seed set aside, meals and the larder, over a day's rations of its living.
   function foodDays(hh) {
     let need = 0;
     for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
-    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
+    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
   // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
@@ -297,7 +297,7 @@
     if (id < 0 || document.body.classList.contains('ui-hidden')) return;
     const p = st.pawns[id], a = st.agents[id], f = farmOf(p), k = 1 / Math.max(cam.z, 0.12);
     if (a.inside && !f) return;
-    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] - 16 : a.y - 22 * PAWN_S * sizeAt(p.age);
+    const x = a.inside ? w.hx[f.house] : drawX[id], y = a.inside ? w.hy[f.house] - 16 : drawY[id] - 22 * PAWN_S * sizeAt(p.age);
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }
