@@ -55,7 +55,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 
 ## Blocked
 
@@ -137,6 +136,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-289](backlog/VB-289.md) | The suitor's visit: a match beyond a day's walk needs a winter journey first | - | 2 | M | VB-287, VB-288 | A man who found no one at his village's round may walk in winter to the nearest village beyond a day's walk that holds a free woman, at his household's cost in food and days; only villages he visited put their women in his pool at the next round, besides those within a day's walk. |
 | [VB-290](backlog/VB-290.md) | The round's other acts reach by walking hours: claims, service, guardians and the tie | - | 2 | M | VB-286 | Claims on empty farms and service reach villages within a day's walk (12 h) in place of 15 hex steps; the nearest village for an orphan's service home, guardians and kin homes read hours; the tie to the centre reads the table in place of its own search. |
 | [VB-291](backlog/VB-291.md) | Kin help over distance: a gift from far kin is carried on a journey | - | 2 | S | VB-287 | Kin within a day's walk give as today; kin further away are asked after the village store, and one of the giving household's adults carries the grain on a journey, so it arrives after the walk; kin over the sea are not asked. |
+| [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | VB-249 | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | - | 3 | S | VB-277 | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
 
 ## Archs
