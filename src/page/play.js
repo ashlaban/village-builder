@@ -1,8 +1,9 @@
-// @sys page/play: playing a pawn (VB-210): Play as, the played pawn's part of its card and what it may do here, Walk here, Follow, its map mark
+// @sys page/play: playing a pawn (VB-210): Play as, the played pawn's part of its card and what it may do here, Walk here, Follow, its map mark;
+// after its death, whom the player may go on as (VB-213)
   // ======== playing a pawn ========
   // Which pawn is played, its queue and its switch are the run's (st.player, written only through Sim.inhabit, uninhabit, queue, unqueue and
   // setAuto). Following it with the camera, choosing a tile to walk to and the last message are the page's own state, never saved.
-  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '';
+  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '', succFor = -1, succAt = 0, succHTML = '';
   const ADULT = 18; // who may be played: any living adult (design.md, Which pawn)
   const playMark = new PIXI.Graphics();
   L.hover.addChild(playMark);
@@ -92,8 +93,14 @@
   function renderPlay(id) {
     const p = st.pawns[id], pl = st.player;
     let h = '';
-    if (!pl || pl.pawn !== id) {
-      if (p.age >= ADULT) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
+    if (pl && st.pawns[pl.pawn].died !== null) {
+      // the played pawn has died: its own card says so, and a living pawn the player may go on as offers it (the list is page/play's box)
+      const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
+      if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
+      else if (may) h = `<button type="button" class="primary" id="playAs" data-play="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
+    } else if (!pl || pl.pawn !== id) {
+      if (p.age >= ADULT &&
+        p.died === null) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
     } else {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
@@ -142,6 +149,7 @@
     const id = selPawn, act = b.dataset.play;
     let r = true;
     if (act === 'inhabit') r = playAs(id);
+    else if (act === 'succeed') { r = Sim.succeed(st, id); succAt = 0; }
     else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
     else if (act === 'follow') followPlayed = !followPlayed;
@@ -184,6 +192,31 @@
     const tip = y - 3 * k, top = tip - 12 * k;
     playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
   }
+  // After the played pawn's death (VB-213): the page pauses once, and a box offers those the player may go on as, the heir first, for as
+  // long as the choice is open; the world does not wait, so the list is read again twice a second. With none alive, any adult's card
+  // offers "Go on as", and the break is recorded. Called each frame (page/animate).
+  function offerSuccession() {
+    const box = $('succession'), pl = st && st.player, dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
+    if (dead < 0) { if (!box.hidden) box.hidden = true; succFor = -1; return; }
+    const now = performance.now();
+    if (succFor !== dead) { succFor = dead; succAt = 0; followPlayed = false; walkPick = false; document.querySelector('[data-speed="0"]').click(); }
+    if (now - succAt < 500 && !box.hidden) return;
+    succAt = now;
+    const list = Sim.successors(st, dead);
+    let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
+      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+    if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
+      esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
+    if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
+    box.hidden = false;
+  }
+  $('succession').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-succeed]');
+    if (!b || !st) return;
+    const id = +b.dataset.succeed, r = Sim.succeed(st, id);
+    succAt = 0;
+    if (r === true) { playMsg = null; focusPawn(id); } // refused only if it died meanwhile: the list is read again at once
+  });
   // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
   function offerPlay() {
     const id = suggestedPawn(), box = $('playOffer');

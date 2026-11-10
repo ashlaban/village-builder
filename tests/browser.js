@@ -100,8 +100,30 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
   await page.click('#playBox [data-play="stop"]');
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
+  // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
+  await page.click('#playAs'); await page.waitForSelector('#playBox [data-play="auto"]');
+  await page.click('[data-speed="1"]');
+  await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#debugBtn');
+  await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
+  const offer = await page.evaluate((dead) => {
+    const { st, Sim } = window.__play, list = Sim.successors(st, dead), first = document.querySelector('#succession button[data-succeed]');
+    return { kept: st.player && st.player.pawn === dead, heir: list[0], shown: +first.dataset.succeed, text: first.textContent,
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') };
+  }, played);
+  if (!offer.kept) fail('the player did not keep its dead pawn until the choice');
+  if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id || !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
+  if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
+  await page.click('#succession button[data-succeed]');
+  await page.waitForSelector('#playBox [data-play="stop"]');
+  const after = await page.evaluate((dead) => {
+    const { st } = window.__play;
+    return { pawn: st.player.pawn, events: st.pawns[dead].events.filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
+  }, played);
+  if (after.pawn !== offer.heir.id || !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
+  await page.waitForFunction(() => document.getElementById('succession').hidden);
+  await page.click('#playBox [data-play="stop"]');
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, its death and going on as its heir)');
 })().catch((e) => { console.error(e); process.exit(1); });
