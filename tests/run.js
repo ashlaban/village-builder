@@ -35,7 +35,13 @@ const rank = (c) => {
   return first ? -1 : k < 0 ? SLOW.length : k;
 };
 const isBrowser = (c) => c.some((a) => /^tests\/browser(?:-speed|-mobile|-saves)?\.js$/.test(a));
-const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c)).sort((a, b) => rank(a) - rank(b));
+// The late fixtures are a local cache (VB-272): the small pair is made first, when the sources lack it (about 2 minutes on one core,
+// beside the other scripts), and the two scripts that load it follow in the same lane.
+const usesFixtures = (c) => c.some((a) => /^tests\/(?:fixtures|history)\.js$/.test(a));
+const late = cmds.filter(usesFixtures), loose = (c) => !isBrowser(c) && !usesFixtures(c);
+const chains = [cmds.filter(isBrowser), late.length ? [['node', 'tools/fixtures.js', 'make-missing', 'small-y5', 'small-y40'], ...late] : []]
+  .filter((c) => c.length);
+const queue = cmds.filter(loose).sort((a, b) => rank(a) - rank(b));
 const t0 = Date.now(), failed = [], targets = [];
 const { parse } = require('./lib/targets.js');
 function run(cmd) {
@@ -53,11 +59,12 @@ function run(cmd) {
   });
 }
 const jobs = Number(process.env.VB_TEST_JOBS) || os.cpus().length;
-// The browsers take one lane, one after another, beside the other scripts; that lane joins the queue when they are done.
-const lanes = Math.max(1, Math.min(jobs, queue.length + (browsers.length ? 1 : 0)));
+// The browsers take one lane, one after another, beside the other scripts, and the fixture scripts another; a lane joins the queue
+// when its chain is done.
+const lanes = Math.max(1, Math.min(jobs, queue.length + chains.length));
 (async () => {
-  await Promise.all(Array.from({ length: lanes }, async (_, k) => {
-    if (k === 0) while (browsers.length) await run(browsers.shift());
+  await Promise.all(Array.from({ length: lanes }, async () => {
+    while (chains.length) for (const cmd of chains.shift()) await run(cmd);
     while (queue.length) await run(queue.shift());
   }));
   const secs = ((Date.now() - t0) / 1000).toFixed(1);

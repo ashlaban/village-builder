@@ -21,9 +21,9 @@ for (const file of JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 
 }
 const VB = globalThis.VB, Sim = VB.sim, { loadFixture } = require('../tests/lib/fixtures.js');
 if (max !== null) VB['sim/rules'].ROUTE.cacheMax = max;
-const fixture = loadFixture(name, { fetch: false, notice: (s) => console.error(s) });
-if (!fixture) throw new Error(`${name}: missing fixture; fetch it first`);
-const { st, stamp, stale } = fixture;
+const fixture = loadFixture(name, { notice: (s) => console.error(s) });
+if (!fixture) throw new Error(`${name}: missing fixture; node tools/fixtures.js make`);
+const { st, stamp } = fixture;
 function size() {
   const json = JSON.stringify(Sim.save(st));
   return { entries: st.pathCache.size, cacheMB: Buffer.byteLength(JSON.stringify(VB['sim/saves'].encode(st.pathCache))) / 1e6,
@@ -35,7 +35,7 @@ VB.resetCounts();
 const start = performance.now();
 for (let day = 0; day < days; day++) Sim.advance(st, Sim.DAY);
 const elapsed = performance.now() - start, counts = { ...VB.count };
-const report = { fixture: name, stamp: stamp.commit, stale, days, loadEvictions, cacheMax: VB['sim/rules'].ROUTE.cacheMax ?? null, before, after: size(),
+const report = { fixture: name, stamp: stamp.commit, key: stamp.key, days, loadEvictions, cacheMax: VB['sim/rules'].ROUTE.cacheMax ?? null, before, after: size(),
   hitRate: counts.routeHit / (counts.routeHit + counts.routeSearch),
   perDay: Object.fromEntries(['routeHit', 'routeSearch', 'routeRefresh', 'routeEvict'].map((key) => [key, (counts[key] ?? 0) / days])),
   refreshMsPerDay: refreshMs / days, simulationMsPerDay: elapsed / days,

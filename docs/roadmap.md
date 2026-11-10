@@ -451,6 +451,9 @@ its line; its wrap-up measures it.
 **8 November update (Kim, VB-202):** `medium-y60` is dropped from the fixtures, the bench and the budget, replacing its stress role;
 `medium-ref` is the only late medium fixture. The fixtures move to release assets and a nightly GitHub workflow remakes them (VB-223).
 
+**10 November update (Kim, VB-272):** the fixtures are no longer published: they are a local cache keyed by the simulation's sources,
+made on demand (one run a map, about 2 minutes), so none is stale and none is stored on GitHub; the release and the workflow go.
+
 **9 November update (Kim, VB-203):** the mean is taken over a whole game year from the save (48 days), so winter, the meetings and
 the moving round count; the 30-day window read 7% low. Each system has a share of the 200 ms, 192 ms in all and 8 kept back, in the
 budget column of `tools/bench.js`. The save's line counts the time the main thread is blocked (encode and stringify); gzip may run

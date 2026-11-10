@@ -2,8 +2,7 @@
 //   the time of each stage of a save and of a load (VB-260), at late fixtures, in Node and in real Chromium (the page's own code and
 //   CompressionStream, IndexedDB); the median of --runs after one warm-up. Save: encode (Sim.save), stringify, gzip, IndexedDB write
 //   (Chromium only). Load: IndexedDB read (Chromium only), gunzip, parse, decode (Sim.load on the world already generated).
-//   Says when a fixture is stale (its golden hash differs from tests/golden.json; the state is still the saved one). The 0.5 s line is
-//   VB-199's and VB-226's, not this tool's. Needs the fixtures (node tools/fixtures.js fetch) and, for Chromium, Playwright.
+//   The 0.5 s line is VB-199's and VB-226's, not this tool's. Makes the fixtures it lacks (minutes); needs Playwright for Chromium.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), { performance } = require('perf_hooks');
 const F = require('../tests/lib/fixtures.js');
@@ -64,16 +63,16 @@ async function chromiumTimes(list) {
 }
 
 (async () => {
-  const stale = {}, res = { node: {}, chromium: {} };
-  for (const n of names) { const s = F.status(n); if (s.status === 'missing') { console.error(`${n}: missing (node tools/fixtures.js fetch)`); process.exit(1); } stale[n] = s.status === 'stale'; }
+  const res = { node: {}, chromium: {} };
+  if (!F.ensure(names, { notice: (s) => console.error(s) })) { console.error('fixtures: could not be made'); process.exit(1); }
   for (const n of names) res.node[n] = nodeTimes(n);
   res.chromium = await chromiumTimes(names);
-  if (asJson) { console.log(JSON.stringify({ stale, ...res }, null, 1)); return; }
+  if (asJson) { console.log(JSON.stringify(res, null, 1)); return; }
   const f = (v) => (v === undefined ? '-' : v.toFixed(0).padStart(6));
   console.log(`Median of ${runs} runs after a warm-up, ms; the 0.5 s line covers the main thread's stages (VB-199, VB-226).`);
   for (const where of ['node', 'chromium']) for (const n of names) {
     const r = res[where][n];
-    console.log(`${where.padEnd(8)} ${n.padEnd(10)}${stale[n] ? ' (stale fixture)' : ''}  JSON ${r.jsonMB.toFixed(1)} MB, gzip ${r.gzipMB.toFixed(2)} MB`);
+    console.log(`${where.padEnd(8)} ${n.padEnd(10)}  JSON ${r.jsonMB.toFixed(1)} MB, gzip ${r.gzipMB.toFixed(2)} MB`);
     console.log('  save: ' + ['encode', 'stringify', 'gzip', 'idbWrite'].map((k) => `${k} ${f(r[k])}`).join(' | '));
     console.log('  load: ' + ['idbRead', 'gunzip', 'parse', 'decode'].map((k) => `${k} ${f(r[k])}`).join(' | '));
   }

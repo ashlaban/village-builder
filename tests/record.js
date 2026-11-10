@@ -103,24 +103,3 @@ const kinds = {}; for (const e of live) kinds[e.kind] = (kinds[e.kind] || 0) + 1
 const folded = st.recordYears.reduce((a, c) => a + c.tally, 0);
 console.log(`record ok: founders 7 after 10 years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events, ${folded} `
   + `folded into ${st.recordYears.length} counts (${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')})`);
-// An older save, with a copy of each event on its pawn (the late fixture small-y5, where it is at hand and older than VB-199): loaded,
-// each pawn's life reads as its copies did, in their order, but for the copies of routine kinds told only on the pawn (gifts given).
-{
-  const { loadFixture, files } = require('./lib/fixtures.js'), zlib = require('zlib');
-  const old = loadFixture('small-y5', { fetch: false });
-  const data = old && JSON.parse(zlib.gunzipSync(fs.readFileSync(files('small-y5').save)).toString('utf8'));
-  const pawns = data && (data.state.pawns.$arr || data.state.pawns);
-  if (pawns && pawns.some((p) => p.events.some((x) => typeof x === 'object'))) {
-    let n = 0, dropped = 0;
-    for (const p of pawns) {
-      const life = Sim.recordOf(old.st, { pawn: p.id, life: true }), line = (e) => `${e.t}|${e.kind === 'born' ? '' : e.text}`;
-      let k = 0;
-      for (const x of p.events) {
-        if (k < life.length && line(life[k]) === line(x)) { k++; n++; continue; }
-        assert.ok(H[x.kind], `pawn ${p.id}: the copy ${JSON.stringify(x)} is not in its life`); dropped++;
-      }
-      assert.strictEqual(k, life.length, `pawn ${p.id}: its life has events its copies did not`);
-    }
-    console.log(`record ok: small-y5, saved with copies: ${n} events of its pawns read as they did; ${dropped} routine copies dropped`);
-  }
-}
