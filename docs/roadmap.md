@@ -82,7 +82,7 @@ first: that design pass is its plan task.
   contributes to that rule later. Indexes of the living take the dead out of the hot loops (section 5.4).
 - **Takes over:** VB-088 (rewritten around counters and fixtures), VB-163 (its floors become the harness's first asserted bands),
   VB-166 (frame times, unchanged), VB-097 (measured on the fixture), VB-173 (the owners check, with target-v2's "cache" category),
-  VB-057 and VB-055 (tooling).
+  VB-055 (tooling); VB-057 was closed, not built, on 10 November.
 - **Design pass:** the late reference state and the budget (section 5.2).
 
 ### 3.1 Kin help, booked
@@ -191,14 +191,18 @@ an occasion (a plan), labour owed is the creditor's opportunity, and a mill is a
   - fishing and gathering as opportunities: the lean year's answer in trace 7.2.
 - **Takes over:** VB-179, VB-164 (its design pass), VB-023, VB-090, VB-106, VB-058, VB-120, VB-100, VB-123, VB-117, VB-118,
   VB-119, VB-136 (herding as background work), VB-162 (the holder's overview).
-- **Design pass:**
-  - how a holder chooses a plan: a seasonal template from the culture, adjusted by urgency and stores, not an optimiser;
-  - each basis of eligibility;
-  - the meeting's routine list, and what happens when it fails to decide (target-v2 10.1);
-  - the idle-hour target (40 to 60% in the slack seasons);
-  - what the plan panel shows.
-- **Done when:** idle share by season, sowing and harvest on time, and hungry household-days are at or better than today, at four
-  seeds; the holder's plan can be read and changed in the page.
+- **Design pass (done, VB-164, 10 November; `design.md`, section 7):**
+  - a holder chooses in three layers: the culture's year as a template, foresight by the head's skill (a horizon and a persistent
+    bias), and one project at a time by its values; never an optimiser. Traits are stand-ins until slice 7;
+  - four bases of eligibility now (`member` with `servant`, `villager`, `helper`, `self`); `debtor` and `hired` with slice 5;
+  - the meeting chooses at most four routines; when it does not decide, a practice says what follows, "nothing" by default;
+  - no limit on idle hours (Kim, 10 November): possible work is added as design goes on, and tuned at a review Kim asks for;
+  - the plan panel shows routines and targets, next steps, the project, reservations and who holds which task; the player as
+    head makes every choice of the plan (parity of command, `design.md`, section 15).
+- **Tasks, in order:** VB-258, VB-248, VB-249, VB-250, VB-251, VB-252, VB-023, VB-123, VB-253, VB-254, VB-255, VB-256, VB-257; then
+  the tasks taken over, and the wrap-up VB-108.
+- **Done when:** sowing and harvest on time and hungry household-days are at or better than today, at four seeds, for the worst
+  household as well as the mean; the idle share by season is reported; the holder's plan can be read and changed in the page.
 - **Cost risk:** opportunities are "computed, never stored". Computing them for every holder every hour would be the largest new
   cost in the game. They should be computed on a holder's planning day and on a change to its rights or stores. They are cached
   per holder by one writer, with a test that the cache equals a fresh computation. Budget line: under 10 ms a game day at the
@@ -273,7 +277,7 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
   - skill curves;
   - who spins and weaves, as a practice;
   - what a mill costs and its toll.
-- **Done when:** the idle share in the slack seasons is inside 40 to 60%; mills are built where they pay; "the smith" emerges by
+- **Done when:** the idle share in the slack seasons has fallen and is reported (no limit is set: Kim, 10 November); mills are built where they pay; "the smith" emerges by
   hours worked.
 
 ### 3.7 Talk travels
@@ -356,7 +360,7 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
 - *Boats with the fair*, since an archipelago's fair should draw across water. This is reasonable if the fair islands of the
   reference seeds are too small; slice 4's plan should measure it.
 
-**Beside the slices:** small tasks that touch nothing above may run at any time: VB-159, VB-160, VB-084 (speeds), VB-165, VB-091.
+**Beside the slices:** small tasks that touch nothing above may run at any time: VB-159, VB-160 (since 10 November a survey of what raised yields), VB-084 (speeds), VB-091 (VB-165 was closed on 10 November).
 They run as long as they do not edit the files of the slice in progress.
 
 **Size.** About 60 to 70 tasks of size S or M. At one task a night, that is two to three months, slices 0 to 4 being the first
