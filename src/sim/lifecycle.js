@@ -124,26 +124,7 @@ VB['sim/lifecycle'] = (() => {
     raiseTie(st, mId, fId, 2); raiseTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
   }
-  // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:
-  // 0, the marriages and the handovers; 1, demand, claims on empty farms and plots; 2, settlement; 3, service, what is owed and prestige.
-  // No phase keeps anything for the next (each builds its own ranking view), so nothing is saved: the step of the day says which is due.
-  const ROUND_PHASES = 4;
-  function movingRound(st) { for (let n = 0; n < ROUND_PHASES; n++) roundPhase(st, n); }
-  function roundPhase(st, n) {
-    if (n === 0) marriageRound(st);
-    else if (n === 1) {
-      countDemand(st, roundHeirs(st).rank); // who wants out: landless adults with no prospect of a farm
-      claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
-      startPlots(st, (id) => claimableFarm(st, id) === null);
-    } else if (n === 2) settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
-    else if (n === 3) {
-      takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
-      payOwed(st);
-      refreshPrestige(st);
-    }
-    st.visualDirty = true;
-  }
-  function marriageRound(st) {
+  function movingRound(st) {
     let pairs = 0;
     const env = st.cenv; refreshRoles(st); fillStores(st);
     const alive = st.living.map((id) => st.pawns[id]);
@@ -275,7 +256,16 @@ VB['sim/lifecycle'] = (() => {
       }
     }
     refreshRoles(st);
+    // who wants out: landless adults with no prospect of a farm
+    countDemand(st, heirs.rank);
+    claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
+    startPlots(st, (id) => claimableFarm(st, id) === null);
+    settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
+    takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
+    payOwed(st);
+    refreshPrestige(st);
     VB.count.roundPairs += pairs;
+    st.visualDirty = true;
   }
   function dailyLife(st, c) {
     const env = st.cenv;
@@ -285,6 +275,8 @@ VB['sim/lifecycle'] = (() => {
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
     if (c.sday === 0) fadeRelations(st);
+    env.t = st.t / YEAR; env.driftMul = st.driftMul;
+    Culture.dailyStep(env, hooks(st), 1 / YEAR_DAYS, drawer(st.rng.culture));
     if (st.naturalDeaths) {
       VB.count.walkDaily += st.living.length;
       // Death splices the live index; visit the original ids once, in the original order.
@@ -294,16 +286,5 @@ VB['sim/lifecycle'] = (() => {
       }
     }
   }
-  // The day's drift of attitudes (VB-201) runs over the night's 6-minute steps after midnight, a settlement a step (Rules for cost, 5):
-  // settlement k of the culture on step 1 + k % NIGHT_STEPS of the day, the living of no settlement on step 1. Nothing is saved: the step of
-  // the day says what is due, so a run loaded between two steps does the rest.
-  const NIGHT_STEPS = 40;
-  function nightCulture(st, step) {
-    if (step < 1 || step > NIGHT_STEPS) return;
-    const env = st.cenv, hk = hooks(st), rand = drawer(st.rng.culture);
-    env.t = st.t / YEAR; env.driftMul = st.driftMul;
-    if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
-    for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
-  }
-  return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture, NIGHT_STEPS };
+  return { killPawn, retireHolder, holdMeetings, kinOk, wed, movingRound, dailyLife };
 })();
