@@ -13,7 +13,7 @@
     if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
   }
   function advanceSimulation(dt) {
-    if (!st || speed === 0 || building || skipping || !$('genScreen').hidden) { resetSpeedSample(); return; }
+    if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
     const before = st.t;
     if (skipCursor) {
       // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop

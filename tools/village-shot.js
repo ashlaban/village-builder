@@ -71,7 +71,7 @@ async function shootSeed(browser, seed) {
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
   await page.addInitScript(`window.__seedVillage = (w, seed) => (${seedVillage.toString()})(w, seed, ${farms});`);
   await page.goto('file://' + page_);
-  await page.waitForFunction(() => !document.getElementById('genScreen').hidden, null, { timeout: 60000 });
+  await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
   await page.evaluate((sd) => {
     const size = document.getElementById('genSize'); size.add(new Option('Shot', 'x')); size.value = 'x';
     document.getElementById('genSeed').value = sd;

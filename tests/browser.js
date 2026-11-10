@@ -16,7 +16,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn };')),
   }));
   await page.goto('https://village.test/');
-  await page.waitForFunction(() => !document.getElementById('genScreen').hidden, null, { timeout: 60000 });
+  await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
   await page.evaluate(() => {
     document.getElementById('genScenario').value = 'populous'; document.getElementById('genSize').value = 't'; document.getElementById('genSeed').value = '7';
     document.getElementById('genForm').dispatchEvent(new Event('submit', { cancelable: true }));

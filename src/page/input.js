@@ -90,8 +90,11 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showGenScreen(); } });
-  $('genCancel').addEventListener('click', () => { $('genScreen').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
+  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  $('genCancel').addEventListener('click', () => showLanding());
+  $('landNew').addEventListener('click', () => showGenScreen());
+  $('landLoad').addEventListener('click', () => showSaves(true));
+  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
