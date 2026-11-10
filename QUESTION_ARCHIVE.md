@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-240)
+
+## VB-240: derived opinion, the numbers against the expectation (raised 10 November 2026)
+VB-240 built opinion as Kim's formula with Kim's constants (weight 0.6, known 16, close friend 0.45). Measured per pawn of 12 and over (numbers in `backlog/VB-240.md`): at `medium-ref` after 4 years, friends median 2, disliked median 1 (37% dislike nobody), no close friend 59%, no enemy 96%; populous small at seeds 3, 7, 11, 42 after 15 years, friends 2 to 3, disliked 1, no enemy 96 to 98%. The task expected about 3 friends and 4 disliked. The formula read on the fixtures as loaded gives the same (friends 2, disliked 1 at both `medium-ref` and `small-y40`, ties read as they are now), so the gap is in the constants, not in the run. The orchestrator (Kim's delegate for this run) did not tune them.
+1. Should a tie show the whole compatibility sooner? **P:** `SOCIAL.affinity.known` 8, weight 0.6 and the lines unchanged. A trial run (not committed): at `medium-ref` after 4 years, friends 3, disliked 3, no close friend 53%, no enemy 92%; at `small-y40`, friends 3, disliked 4, no enemy 89%; populous small seed 7 after 15 years, friends 3, disliked 4, no enemy 84%. Enemy events rise from 0.007 to 0.07 a living pawn-year at `small-y40`, against 2.4 friend and 1.8 fell-out events before VB-240.
+   **A (Kim, 10 Nov):** Yes: SOCIAL.affinity.known is 8; the weight and the lines stay.
+
 # Archived 10 November 2026 (VB-281)
 
 ## VB-281: reaching another village (raised 10 November 2026)
