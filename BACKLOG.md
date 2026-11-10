@@ -20,7 +20,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-259](backlog/VB-259.md) | Meals and foods: a ration is only the unit | year | 2 | M | The household's cooked store is renamed from rations to meals, and every food gets a row in one table (worth in rations, shelf life, source); behaviour unchanged. |
 | [VB-264](backlog/VB-264.md) | Counters and the reduced bands as targets | - | 2 | S | tests/counters.js reports each counter over +10% of counters.json as a residual (structure asserts stay hard); tests/bands.js reports the balance bands at full strength as targets, the invariants band stays hard. |
 | [VB-265](backlog/VB-265.md) | Bench, bands and demography write target records, with noise | - | 2 | S | tools/bench.js (lines and system shares, each also as a share of the whole step), tools/bands.js and tools/marriage-demography.js append target records with their noise (runs, seeds); paired, alternated runs for before and after. |
-| [VB-267](backlog/VB-267.md) | Targets in the rules: AGENTS.md, roadmap 5 and 6, BACKLOG.md, open criteria reworded | - | 2 | S | AGENTS.md, docs/roadmap.md sections 5.2 and 6 and BACKLOG.md's rules say which checks are hard and how targets are reported; open tasks' criteria worded as gates are reworded towards targets. |
 | [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-160](backlog/VB-160.md) | Plan: what raised yields over the centuries, and a model for it | animals | 3 | S | Survey the historical causes of rising grain yields, their size and timescale, and propose a model in which a gain follows a change in farming; no code. |
@@ -186,10 +185,13 @@ v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so 
 says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
-- Behaviour is unchanged: `node tests/golden.js` passes with `tests/golden.json` (VB-011) unchanged, and the PR's Checks pass. Rebuild `index.html` before committing.
+- Behaviour is unchanged: `node tests/golden.js` passes with `tests/golden.json` (VB-011) unchanged, and the hard checks pass (`AGENTS.md`, Working rules). Rebuild `index.html` before committing.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
 
 **Golden file, work counters and cost growth:** a task that changes behaviour or work counters on purpose re-records them and lists
-the changes in its PR; the commands and limits are in `AGENTS.md` (Commands and Working rules).
+the changes in its PR. Counters and cost growth are targets: they report their residual and never fail, and a change does not raise
+a target to hide one (Kim, VB-261). A criterion worded as a line ("at most 30 ms", "verify passes") means: moved towards the target, its
+residual reported, and who closes what is left named; "verify passes" means its hard checks pass. The commands and limits are in
+`AGENTS.md` (Commands and Working rules).
