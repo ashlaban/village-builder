@@ -339,6 +339,33 @@ function checkState(st) {
       || !(ws.claim === null || ws.claim === false || (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
+  // the open marriage offers (VB-272): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
+  // unique, no pawn in two; the answers are the man's and the woman's (by them) and at most one spokesman's a side (by another pawn: a
+  // spokesman who is the one to marry gives one answer), none a no and one at least still to give (an offer closes at a no or at all yes).
+  // Who spoke for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since.
+  if (st.offers !== undefined) {
+    const { DAY: D, MARRIAGE: MR } = globalThis.VB['sim/rules'], seen = new Set(), ids = new Set();
+    if (!Array.isArray(st.offers) || !Number.isInteger(st.offerSeq) || st.offerSeq < 0) bad.push(`offers: ${typeof st.offers}, offerSeq ${st.offerSeq}`);
+    else st.offers.forEach((o, n) => {
+      const at = `offers[${n}] (id ${o.id})`;
+      if (n > 0 && st.offers[n - 1].due > o.due) bad.push(`${at}: due ${o.due} before the one ahead of it`);
+      if (!(o.made <= st.t && o.due > o.made && o.due <= o.made + MR.offerDays * D)) bad.push(`${at}: made ${o.made}, due ${o.due}`);
+      if (!Number.isInteger(o.id) || o.id < 0 || o.id >= st.offerSeq || ids.has(o.id)) bad.push(`${at}: id against offerSeq ${st.offerSeq}`);
+      ids.add(o.id);
+      if (!st.pawns[o.man] || !st.pawns[o.woman] || st.pawns[o.man].sex !== 'm' || st.pawns[o.woman].sex !== 'f') bad.push(`${at}: man ${o.man}, woman ${o.woman}`);
+      for (const id of [o.man, o.woman]) { if (seen.has(id)) bad.push(`${at}: pawn ${id} is in two open offers`); seen.add(id); }
+      if (!st.households[o.home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${o.home}, village ${o.village}`);
+      const keys = (o.answers || []).map((x) => x.key);
+      if (!keys.includes('man') || !keys.includes('woman') || new Set(keys).size !== keys.length) bad.push(`${at}: answers ${keys.join()}`);
+      for (const x of o.answers || []) {
+        const own = x.key === 'man' ? o.man : x.key === 'woman' ? o.woman : null, side = x.key === 'manSide' ? o.man : x.key === 'womanSide' ? o.woman : null;
+        if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
+        else if (own !== null ? x.by !== own : !st.pawns[x.by] || x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
+        if (!(x.yes === null || x.yes === true)) bad.push(`${at}: ${x.key} answered ${x.yes}, and the offer is open`);
+      }
+      if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
+    });
+  }
   return bad;
 }
 // Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;
