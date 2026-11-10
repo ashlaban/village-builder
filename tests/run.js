@@ -29,7 +29,7 @@ const cmds = { test: TEST, verify: VERIFY }[suite];
 if (!cmds) { console.error('usage: node tests/run.js test|verify [--list] [--verbose]'); process.exit(2); }
 // The static checks first, since they fail most often and cost seconds; then longest first, so the slow scripts do not start last.
 const FIRST = ['build.py', 'lint', 'ownership', 'dependencies', 'backlog.js'];
-const SLOW = ['smoke', 'tools', 'populous', 'saves', 'golden', 'births', 'invariants', 'bands', 'health', 'paths', 'fixtures.js', 'indexes'];
+const SLOW = ['smoke', 'tools', 'populous', 'saves', 'golden', 'births', 'invariants', 'bands', 'paths', 'fixtures.js', 'indexes'];
 const rank = (c) => {
   const name = c.join(' '), first = FIRST.some((s) => name.includes(s)), k = SLOW.findIndex((s) => name.includes(s));
   return first ? -1 : k < 0 ? SLOW.length : k;

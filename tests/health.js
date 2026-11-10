@@ -1,5 +1,5 @@
 // Health: hunger drains it, full meals restore it, 0 is death by starvation; low health raises the death risk and slows work.
-// Then a report of deaths by cause per decade in 50-year founders runs (reported, not asserted).
+// The deaths by cause per decade of the 50-year founders runs are in the report of tests/births.js.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
@@ -46,16 +46,5 @@ for (const health of [100, 50, 0]) {
   for (const f of st.farmsteads[hh.farmstead].fields) f.stage = 'growing';
   for (let d = 0; d < 36; d++) { st.t += 24; if (!hh.dissolved) feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
   assert(ids.every((m) => !st.pawns[m].alive), 'nobody survives 36 days without food');
-}
-for (const seed of [7, 42]) {
-  const st = Sim.seed(world(seed), seed, 'founders'), rows = [];
-  for (let dec = 1; dec <= 5; dec++) {
-    Sim.advance(st, 10 * YEAR);
-    const by = {}; for (const p of st.pawns) if (p.died !== null && p.died > st.t - 10 * YEAR) {
-      const e = p.events.find((x) => x.kind === 'died'), c = e ? e.cause : 'unknown'; by[c] = (by[c] || 0) + 1;
-    }
-    rows.push(`years ${dec * 10 - 9}-${dec * 10}: ${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ') || 'no deaths'}; ${st.pawns.filter((p) => p.alive).length} alive`);
-  }
-  console.log(`founders, seed ${seed}, deaths by cause:\n  ${rows.join('\n  ')}`);
 }
 console.log('health ok');

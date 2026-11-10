@@ -1,4 +1,5 @@
-// Births: invariants of the birth rules, and a report of births, deaths and population per decade (reported, not asserted).
+// Births: invariants of the birth rules, and the report of 50-year founders runs by decade, read to judge the simulation's stability
+// (reported, not asserted): births, deaths and population, and the deaths by cause that tests/health.js printed from the same runs.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
@@ -9,7 +10,12 @@ const run = (seed) => {
     Sim.advance(st, 10 * Sim.YEAR);
     const nb = st.pawns.length - pawns, nd = st.pawns.filter((p) => p.died !== null && p.died > st.t - 10 * Sim.YEAR).length;
     pawns = st.pawns.length;
-    rows.push(`decade ${dec}: ${nb} births, ${nd} deaths, ${st.pawns.filter((p) => p.alive).length} alive`);
+    const by = {};
+    for (const p of st.pawns) if (p.died !== null && p.died > st.t - 10 * Sim.YEAR) {
+      const e = p.events.find((x) => x.kind === 'died'), c = e ? e.cause : 'unknown'; by[c] = (by[c] || 0) + 1;
+    }
+    const causes = Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ');
+    rows.push(`years ${dec * 10 - 9}-${dec * 10}: ${nb} births, ${nd} deaths${causes ? ` (${causes})` : ''}, ${st.pawns.filter((p) => p.alive).length} alive`);
   }
   return { st, rows };
 };
