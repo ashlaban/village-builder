@@ -53,6 +53,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
+| [VB-270](backlog/VB-270.md) | The hunger floors out on every full run: who is hungry, and which task closes each | animals | 2 | S | The full bands (VB-163) at 7205992: hungry-households out on all 10 runs, hunger-deaths on 8, heirs seed 42 shrinking; no task owns them. |
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 
 ## Blocked
