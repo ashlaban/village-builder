@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-213](backlog/VB-213.md) | The player's succession: going on as another after a death | life | 2 | S | On the played pawn's death: heirs, kin, household and ties, in that order; the page pauses and offers them; a break when none is left. |
 | [VB-214](backlog/VB-214.md) | Saves in the page, named by their build | life | 2 | M | Save by hand and when hidden (IndexedDB, last 3), to and from a file; each save names its build, and another build's is refused with delete-and-start-new. |
 | [VB-221](backlog/VB-221.md) | The player's gift from the pawn panel, with the floor's warning | life | 2 | S | While playing a pawn, give grain to any household by the verb `give` (source `player`), unbound by allowance; below the floor, a warning that names who goes hungry. |
 | [VB-227](backlog/VB-227.md) | Jobs: refresh and matching within their share | yardstick | 2 | M | Jobs refresh and matching from 35 to its share of 30 ms a game day at medium-ref, by the rules for cost; measured over a whole year. |
@@ -52,7 +51,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-200](backlog/VB-200.md) | Wrap-up: the yardstick | yardstick | 2 | S | VB-201 | The budget table at both references, every line within or over it with its task, and the suites' times before and after. |
 | [VB-226](backlog/VB-226.md) | Save within 0.5 s of main thread at medium-ref, after the folds | yardstick | 2 | M | VB-199 | What is left of the save's 1.5 s of main thread once VB-204 and VB-199 shrink it: measured by part, then cut to 0.5 s, gzip off the main thread. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
-| [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-213, VB-214, VB-233, VB-234 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
+| [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-214, VB-233, VB-234 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
 | [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | VB-214, VB-199 | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
 | [VB-023](backlog/VB-023.md) | Sow a hoed field before hoeing the next | year | 2 | S | VB-164 | A hoed field is sown before the next is hoed, so small households bring in some crop. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | VB-164 | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
