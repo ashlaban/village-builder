@@ -61,7 +61,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
-| [VB-225](backlog/VB-225.md) | The fixtures workflow's first run on main, and the orphan branch deleted | yardstick | 1 | S | Kim | Once PR #77 is merged: run the nightly fixtures workflow by hand, check the release it publishes and that a fresh clone fetches it; Kim deletes the orphan fixtures branch. |
+| [VB-225](backlog/VB-225.md) | The release and the orphan branch of the fixtures deleted | yardstick | 1 | S | Kim | Since VB-272 nothing reads the release fixtures or the orphan branch fixtures: Kim deletes both. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-078](backlog/VB-078.md) | Wrap-up: a life: a played line over three generations, commands and saves | life | 3 | S | VB-233 | A scripted player over 75 founders years at two seeds; played runs saved and loaded match unbroken ones; no cost without a player; slice 2's budget line. |
 | [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | VB-252 | A hoed field is sown before the next is hoed, so small households bring in some crop. |

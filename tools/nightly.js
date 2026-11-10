@@ -1,11 +1,9 @@
-// Fixture preparation runs first, followed by diagnostic bench history, the generated budget table and the full bands runs (VB-163,
-// tools/bands.js, for a commit not yet run). The nightly workflow publishes the fixtures (VB-223); here they are published only with
-// a GH_TOKEN, and otherwise remade locally if still stale.
+// The fixtures the sources lack are made first (VB-272: a local cache, never published), then the diagnostic bench history, the
+// generated budget table and the full bands runs (VB-163, tools/bands.js, for a commit not yet run).
 require('./help.js')(__filename);
-const { refresh } = require('./fixtures.js');
+const F = require('../tests/lib/fixtures.js');
 async function nightly() {
-  await refresh({ publishing: !!process.env.GH_TOKEN });
-  console.log('nightly: fixture preparation complete');
+  console.log(F.ensure(Object.keys(F.FIXTURES)) ? 'nightly: fixture preparation complete' : 'nightly: fixtures UNAVAILABLE');
   try { await require('./bench.js').runBench(); }
   catch (e) { console.error('nightly: bench UNAVAILABLE ' + e.message); }
   // the full runs of the bands (VB-163), for a commit not yet run; reported, never failing

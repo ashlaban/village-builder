@@ -36,12 +36,13 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   prints its summary only (`node tests/run.js test --list` prints each script's line).
 - Verify: `npm run verify` adds the long simulations, golden states, saved fixtures, and the page in jsdom and real Chromium (functionality,
   not rendering speed); `node tests/run.js verify --verbose` also prints the reported numbers.
-- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`; gitignored `tests/fixtures/`, published as the assets of the
-  release `fixtures`): `node tools/fixtures.js status|fetch|make|refresh|publish`. `medium-ref` is saved at the first year's end with 1,000
-  living (by year 60), and its stamp names the year. In a test, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp, stale}`,
-  or `null` with a notice; a stale golden hash is usable, a changed save format needs a remake. The nightly workflow
-  (`.github/workflows/fixtures.yml`) remakes and publishes them, so a PR that changes the golden file need not; `npm run nightly` fetches
-  them, remakes locally what is still stale and runs the bench (minutes).
+- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
+  lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
+  sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small
+  about 2 minutes, medium 1.5, side by side); `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
+  stamp names the year. `npm run verify` makes the small pair first when the sources lack it, beside its other scripts; in a test or a
+  tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first; `npm run nightly` makes what
+  is missing and runs the bench (minutes).
 - Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (verify) asserts each band's reduced run, populous on
   the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous and founders small, heirs), prints each band
   as in or out and appends to `docs/bench/bands.jsonl`, never failing (about 15 to 20 minutes; `npm run nightly` runs it for a new commit).
@@ -107,7 +108,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. At the end of a task, before its last commit: `node tests/golden.js` (the golden file
   is not in `npm test`), or `npm run verify` once for size M or L and for a change under `src/page/`. The Checks workflow
-  (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, only when started by hand (Kim,
+  (`.github/workflows/checks.yml`) runs verify, which makes the small fixtures it loads, only when started by hand (Kim,
   10 November: no hard gates in this phase of development; targets and their residuals instead, VB-261). Until VB-261 says how, a PR
   names each check that fails, its target and its residual, and does not raise a baseline to hide one.
 - Rebuild `index.html` before committing; both suites check it.

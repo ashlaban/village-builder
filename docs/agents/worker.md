@@ -33,10 +33,9 @@ status=needs-review`: goal, proposed criteria, Design ref, size, and the questio
 `QUESTIONS.md`; commit and push; report the IDs. Never make candidates ready. Prefer small tasks that unblock others.
 
 ## 3. Wrap up, whenever you stop
-1. `npm run nightly`: it fetches the late-game fixtures that the nightly workflow publishes (VB-223), remakes here only those still stale,
-   and appends the bench history. Run nothing else meanwhile, since the bench times the machine; with every fixture stale it takes about
-   5 minutes (four fixtures, made in 2.9 minutes on 8 November). Commit `docs/bench/history.jsonl` and `docs/bench/budget.md` to the PR.
-   It publishes nothing without a `GH_TOKEN`; if the fixtures it fetched were stale, say so in the PR.
+1. `npm run nightly`: it makes the late-game fixtures the sources lack (VB-272: a local cache keyed by the sources, about 2 minutes
+   for all four) and appends the bench history. Run nothing else meanwhile, since the bench times the machine. Commit
+   `docs/bench/history.jsonl` and `docs/bench/budget.md` to the PR.
 2. Measure the run: `node tools/agent-usage.js --label worker --out docs/agents/usage`; commit the file it writes, and put its
    summary in the PR description.
 3. Read the PR's Checks (`verify`, `late-game`) for the last push. A failure: say in the description which job and script failed and,

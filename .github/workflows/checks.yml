@@ -1,6 +1,5 @@
-# The gate on a pull request, run apart from the session that wrote it: `verify` is `npm run verify` without the late fixtures, as an
-# agent's session runs it (the fixture tests pass with a notice); `late-game` fetches the published fixtures and runs the two tests
-# that need them. The fixtures are remade by fixtures.yml each night, not here, so late-game may run on stale ones and says so.
+# The checks of a pull request, run apart from the session that wrote it: `npm run verify`, which makes the two small late fixtures
+# it loads (VB-272: a local cache keyed by the sources; about 2 minutes, beside the other scripts).
 name: Checks
 # Kim, 10 November 2026: no hard gates in this phase of development. The workflow no longer runs on pull requests or on main; it runs
 # when started by hand (Actions, Checks, Run workflow), and its results are read as targets and their residuals, not as a gate.
@@ -24,19 +23,3 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: node tests/run.js verify --list
-  late-game:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-      - run: node tools/fixtures.js fetch
-      - run: node tools/fixtures.js status
-      - run: node tests/fixtures.js
-      - run: node tests/history.js

@@ -1,25 +1,36 @@
-// Node-only late saves (VB-193). The simulation never imports this module.
+// Node-only late saves (VB-193), a local cache made on demand (VB-272). The simulation never imports this module.
+// A fixture is a build product of the simulation's sources: it lies under tests/fixtures/<key>/, where the key hashes every module of
+// src/manifest.json and the fixture list. A key that matches is the fixture; one that does not is made (minutes). Nothing is stale,
+// and nothing is published or fetched.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), crypto = require('crypto');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const root = path.join(__dirname, '../..'), DIR = path.join(root, 'tests/fixtures');
-// A fixture is saved after `year` whole years, or (VB-202) at the first year's end with at least `living` alive, by year `maxYear` at the latest.
+// A fixture is saved after `year` whole years, or (VB-202) at the first year's end with at least `living` alive, by year `maxYear` at
+// the latest. The fixtures of one map are saves of one run, populous at seed 7, each saved as the run passes it.
+const SEED = 7, SCENARIO = 'populous';
 const FIXTURES = {
-  'small-y5': { cols: 180, rows: 130, year: 5 }, 'small-y40': { cols: 180, rows: 130, year: 40 },
-  'medium-y5': { cols: 280, rows: 200, year: 5 }, 'medium-ref': { cols: 280, rows: 200, living: 1000, maxYear: 60 },
+  'small-y5': { map: 'small', cols: 180, rows: 130, year: 5 }, 'small-y40': { map: 'small', cols: 180, rows: 130, year: 40 },
+  'medium-y5': { map: 'medium', cols: 280, rows: 200, year: 5 },
+  'medium-ref': { map: 'medium', cols: 280, rows: 200, living: 1000, maxYear: 60 },
 };
 const hash = (data) => crypto.createHash('sha256').update(data).digest('hex');
-const goldenHash = () => hash(fs.readFileSync(path.join(root, 'tests/golden.json')));
+// Read from the working tree at each call: a make checks that it has not moved meanwhile.
+function key() {
+  const h = crypto.createHash('sha256'), src = path.join(root, 'src'), manifest = fs.readFileSync(path.join(src, 'manifest.json'));
+  h.update(JSON.stringify([SEED, SCENARIO, FIXTURES])).update(manifest);
+  for (const f of JSON.parse(manifest)) h.update('\0' + f + '\0').update(fs.readFileSync(path.join(src, f)));
+  return h.digest('hex').slice(0, 16);
+}
+const keyDir = (dir = DIR) => path.join(dir, key());
 const format = () => require('../../src/load.js')['sim/saves'].FORMAT;
-// A save of an older format the build still reads (VB-226) is used, as stale, until the nightly workflow remakes it.
-const readable = (f) => require('../../src/load.js')['sim/saves'].READS.includes(f);
 function spec(name) { if (!Object.hasOwn(FIXTURES, name)) throw new Error(`unknown fixture ${name}`); return FIXTURES[name]; }
-function files(name, dir = DIR) { spec(name); return { save: path.join(dir, name + '.gz'), stamp: path.join(dir, name + '.json') }; }
+function files(name, dir = DIR) { spec(name); const d = keyDir(dir); return { save: path.join(d, name + '.gz'), stamp: path.join(d, name + '.json') }; }
 function validateStamp(name, stamp) {
   const def = spec(name), byLiving = def.living !== undefined;
   const yearOk = byLiving ? Number.isInteger(stamp?.year) && stamp.year >= 1 && stamp.year <= def.maxYear
     && stamp.target === def.living && stamp.reached === (stamp.living >= def.living) : stamp?.year === def.year;
-  if (!stamp || stamp.name !== name || !yearOk || typeof stamp.goldenHash !== 'string'
-      || !Number.isInteger(stamp.format) || !/^[a-f0-9]{40}$/.test(stamp.commit) || !/^[a-f0-9]{64}$/.test(stamp.saveHash)
+  if (!stamp || stamp.name !== name || !yearOk || !/^[a-f0-9]{16}$/.test(stamp.key) || typeof stamp.commit !== 'string'
+      || !Number.isInteger(stamp.format) || !/^[a-f0-9]{64}$/.test(stamp.saveHash)
       || !['living', 'pawnRecords', 'events', 'jsonBytes', 'gzipBytes'].every((k) => Number.isInteger(stamp[k]) && stamp[k] >= 0)
       || !Number.isFinite(stamp.minutes) || stamp.minutes < 0) throw new Error(`${name}: invalid fixture stamp; remake the fixtures`);
 }
@@ -28,11 +39,13 @@ function status(name, { dir = DIR } = {}) {
   if (!fs.existsSync(f.save) || !fs.existsSync(f.stamp)) return { name, status: 'missing' };
   const stamp = JSON.parse(fs.readFileSync(f.stamp, 'utf8'));
   validateStamp(name, stamp);
-  return { name, status: stamp.goldenHash === goldenHash() && stamp.format === format() ? 'fresh' : 'stale', stamp };
+  if (stamp.key !== path.basename(path.dirname(f.stamp))) throw new Error(`${name}: stamp of another key; remake the fixtures`);
+  return { name, status: 'made', stamp };
 }
-// Publish the stamp last: a partial write is never mistaken for a matching save.
+// The stamp last: a partial write is never mistaken for a save, and two makes of one key write the same bytes.
 function writeFixture(name, compressed, stamp, { dir = DIR } = {}) {
-  const f = files(name, dir); fs.mkdirSync(dir, { recursive: true });
+  const f = { save: path.join(dir, stamp.key, name + '.gz'), stamp: path.join(dir, stamp.key, name + '.json') };
+  fs.mkdirSync(path.dirname(f.save), { recursive: true });
   const suffix = `.tmp-${process.pid}`;
   try {
     fs.writeFileSync(f.save + suffix, compressed);
@@ -43,83 +56,32 @@ function writeFixture(name, compressed, stamp, { dir = DIR } = {}) {
   }
 }
 const git = (args, opts = {}) => execFileSync('git', args, { cwd: root, timeout: 30000, maxBuffer: 128 * 1024 * 1024, ...opts });
-// VB-223: the saves are the assets of one GitHub release, tagged `fixtures` and replaced in place (Kim, 8 November); a manifest,
-// fixtures.json, published last, names the hash of every asset, so a set is fetched whole or not at all. A release is {where, read(name)
-// -> Buffer, write(paths)}: githubRelease reads over HTTPS without a token (curl, which follows the session's proxy) and writes with gh and
-// GH_TOKEN; directoryRelease stands in for it in tests.
-const MANIFEST = 'fixtures.json', TAG = 'fixtures';
-const RELEASE_URL = process.env.VB_FIXTURES_URL || `https://github.com/ashlaban/village-builder/releases/download/${TAG}`;
-function githubRelease({ url = RELEASE_URL, tag = TAG } = {}) {
-  const gh = (args, opts = {}) => execFileSync('gh', args, { cwd: root, timeout: 600000, ...opts });
-  return {
-    where: url,
-    read: (name) => execFileSync('curl', ['-fsSL', '--retry', '2', `${url}/${name}`],
-      { maxBuffer: 256 * 1024 * 1024, timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'] }),
-    write(paths) {
-      if (!process.env.GH_TOKEN) throw new Error('publishing needs GH_TOKEN (the nightly workflow has one); nothing published');
-      try { gh(['release', 'view', tag], { stdio: 'ignore' }); }
-      catch { gh(['release', 'create', tag, '--prerelease', '--title', 'Late-game fixtures', '--notes', 'Made by node tools/fixtures.js;'
-        + ' replaced in place each night by .github/workflows/fixtures.yml (VB-223). Read fixtures.json first.'], { stdio: 'inherit' }); }
-      gh(['release', 'upload', tag, ...paths, '--clobber'], { stdio: 'inherit' });
-    },
-  };
+// Makes those of `names` that are missing, here and now (minutes; its progress goes to stderr). True when all are there afterwards.
+function ensure(names, { notice = console.log } = {}) {
+  const missing = names.filter((name) => status(name).status === 'missing');
+  if (!missing.length) return true;
+  notice(`fixtures: making ${missing.join(', ')} for key ${key()} (minutes)`);
+  const made = spawnSync(process.execPath, [path.join(root, 'tools/fixtures.js'), 'make', ...missing], { stdio: ['ignore', 2, 2] });
+  return made.status === 0 && names.every((name) => status(name).status === 'made');
 }
-function directoryRelease(dir) {
-  return {
-    where: dir,
-    read: (name) => fs.readFileSync(path.join(dir, name)),
-    write(paths) { fs.mkdirSync(dir, { recursive: true }); for (const p of paths) fs.copyFileSync(p, path.join(dir, path.basename(p))); },
-  };
-}
-function fetchFixtures({ dir = DIR, release = githubRelease(), notice = console.log } = {}) {
-  const keep = (why) => { notice(`fixtures: ${why}; keeping local saves`); return false; };
-  let manifest;
-  try { manifest = JSON.parse(release.read(MANIFEST).toString('utf8')); }
-  catch { return keep(`no fixtures at ${release.where} (offline, or not yet published)`); }
-  // A set made for another fixture list (VB-202 added medium-ref and dropped medium-y60) replaces nothing, as offline.
-  const lacking = Object.keys(FIXTURES).filter((name) => !manifest.fixtures?.[name]);
-  if (lacking.length) return keep(`the set at ${release.where} lacks ${lacking.join(', ')} (run node tools/fixtures.js make)`);
-  // Read and check the whole set before replacing any local fixture.
-  const pairs = [];
-  for (const name of Object.keys(FIXTURES)) {
-    let compressed, stampBytes;
-    try { compressed = release.read(`${name}.gz`); stampBytes = release.read(`${name}.json`); }
-    catch { return keep(`${name} could not be read from ${release.where}`); }
-    const want = manifest.fixtures[name];
-    // A publish under way, or a race between two: the assets no longer match the manifest.
-    if (hash(compressed) !== want.gz || hash(stampBytes) !== want.json) return keep(`${name} differs from the manifest at ${release.where}`);
-    const stamp = JSON.parse(stampBytes.toString('utf8'));
-    validateStamp(name, stamp);
-    if (hash(compressed) !== stamp.saveHash) throw new Error(`${name}: damaged remote fixture`);
-    pairs.push([name, compressed, stamp]);
-  }
-  for (const [name, compressed, stamp] of pairs) writeFixture(name, compressed, stamp, { dir });
-  notice(`fixtures: fetched ${pairs.length} saves from ${release.where} (made at ${(manifest.commit || 'unknown').slice(0, 7)})`);
-  return true;
-}
-let fetched = false;
-function loadFixture(name, { dir = DIR, fetch = true, notice = console.log } = {}) {
-  let info = status(name, { dir });
-  if (info.status === 'missing' && fetch && !fetched) { fetched = true; fetchFixtures({ dir, notice }); info = status(name, { dir }); }
+// {st, stamp}, or null with a notice. A missing fixture is made first unless `make` is false (a worker whose parent has seen to it).
+function loadFixture(name, { dir = DIR, make = dir === DIR, notice = console.log } = {}) {
+  if (make) ensure([name], { notice });
+  const info = status(name, { dir });
   if (info.status === 'missing') { notice(`${name}: missing; skipped (run node tools/fixtures.js make ${name})`); return null; }
-  if (!readable(info.stamp.format)) throw new Error(`${name}: save format ${info.stamp.format}, expected ${format()}; remake the fixtures`);
   const compressed = fs.readFileSync(files(name, dir).save);
   if (hash(compressed) !== info.stamp.saveHash) throw new Error(`${name}: save checksum differs; remake the fixtures`);
   const data = JSON.parse(zlib.gunzipSync(compressed).toString('utf8')), def = spec(name);
-  if (data.format !== info.stamp.format) throw new Error(`${name}: incompatible save format; remake the fixtures`);
-  if (data.seed !== 7 || data.scenario !== 'populous' || data.cols !== def.cols || data.rows !== def.rows) {
+  if (data.format !== info.stamp.format || data.format !== format()) throw new Error(`${name}: incompatible save format; remake the fixtures`);
+  if (data.seed !== SEED || data.scenario !== SCENARIO || data.cols !== def.cols || data.rows !== def.rows) {
     throw new Error(`${name}: wrong scenario, seed or map; remake the fixtures`);
   }
   const VB = require('../../src/load.js'), it = VB.gen.generate(data.seed, { cols: data.cols, rows: data.rows });
   let r; while (!(r = it.next()).done);
   const st = VB.sim.load(r.value, data), stamp = info.stamp;
-  // Scenarios start at 06:00; fixtures are made after N complete years, with floating-point step error allowed. A save from before
-  // VB-199 gains, as it loads, the events its pawns told beside another (sim/records, indexEvents), at the record's end.
-  if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length < stamp.events
+  // Scenarios start at 06:00; fixtures are made after N complete years, with floating-point step error allowed.
+  if (Math.abs(st.t - (stamp.year * VB.sim.YEAR + 6)) > 1e-4 || st.pawns.length !== stamp.pawnRecords || st.record.length !== stamp.events
       || st.pawns.filter((p) => p.alive).length !== stamp.living) throw new Error(`${name}: stamp does not match state; remake the fixtures`);
-  const stale = info.status === 'stale';
-  if (stale) notice(`${name}: stale (golden hash${info.stamp.format !== format() ? `, format ${info.stamp.format}` : ''}); using the saved state`);
-  return { st, stamp, stale };
+  return { st, stamp };
 }
-module.exports = { root, DIR, FIXTURES, MANIFEST, hash, goldenHash, format, spec, files, status, writeFixture, fetchFixtures, loadFixture, git,
-  githubRelease, directoryRelease };
+module.exports = { root, DIR, FIXTURES, SEED, SCENARIO, hash, key, keyDir, format, spec, files, status, writeFixture, ensure, loadFixture, git };

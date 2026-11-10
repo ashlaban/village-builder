@@ -10,13 +10,13 @@ const F = require(path.join(root, 'tests/lib/fixtures.js'));
 for (const name of names.length ? names : ['small-y40', 'medium-ref']) {
   const fixture = F.loadFixture(name);
   if (!fixture) throw new Error(`${name}: a fixture is required for this benchmark`);
-  const { st, stamp, stale } = fixture, households = st.liveHouseholds.length;
+  const { st, stamp } = fixture, households = st.liveHouseholds.length;
   VB.resetCounts();
   const before = VB.count.heirRank, started = performance.now();
   Sim.movingRound(st);
   const roundMs = performance.now() - started, roundRank = VB.count.heirRank - before, roundPairs = VB.count.roundPairs;
   const saveHash = crypto.createHash('sha256').update(JSON.stringify(Sim.save(st))).digest('hex');
-  console.log(JSON.stringify({ name, source: root, fixtureCommit: stamp.commit, stale, households,
+  console.log(JSON.stringify({ name, source: root, fixtureCommit: stamp.commit, fixtureKey: stamp.key, households,
     roundMs, roundRank, rankingsPerHousehold: roundRank / households, roundPairs, saveHash }));
   if (!day) continue;
   const fresh = F.loadFixture(name).st, { DAY, YEAR, SEASON_DAYS } = Sim;
