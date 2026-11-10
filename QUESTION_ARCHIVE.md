@@ -2,6 +2,15 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-220)
+
+## Slice 4: two points left by its plan (VB-220 and VB-273; raised 10 November 2026)
+Slice 4's plan (VB-183) is closed; these two points still need Kim, and each holds one task.
+1. Opinion in allowance (VB-220). Kim decided on 9 November that opinion feeds allowance beside goodwill (target-v2, decision 30), with its size and a tight range to be written by slice 4. **P:** the giver's opinion of the receiver (−1 to 1) times 10 rations: a liked stranger gets a sack of slack, a disliked one a sack less, and nothing more; switched on with goodwill's term in VB-220 and measured with it.
+   **A (Kim, 10 Nov):** 10 rations, as proposed.
+2. Lodging at the gathering (VB-273). Kim asked where those who come sleep. Historically, at the things and fairs of the North guests lodged with kin and guest-friends, the hosts quartered the rest, and big assemblies raised booths (from the literature as remembered; not checked against a source). **P:** a goer sleeps at home if its village is within 2 hours' walk; else with kin in the host village; else with a pawn there it holds a goodwill balance with; else in a barn the host village gives. A host farm lodges up to 10 guests (4 in the house, 6 in the barn); a village the host cannot lodge goes to its next gathering, so a larger village can host a larger gathering. Lodging a guest who is not kin is booked as a gift of 1 ration a night. Booths on the green come with the market place (slice 9).
+   **A (Kim, 10 Nov):** As proposed.
+
 # Archived 10 November 2026 (VB-126)
 
 ## VB-126: occasions (relationships review)
