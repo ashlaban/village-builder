@@ -73,12 +73,6 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
-### VB-039 and VB-106: help as memories (relationships review)
-Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind gains a value per event, up to a cap, and fades to 0 over its days. The gains Kim accepted for help become memories; their caps and durations are new.
-1. A gift of food (VB-039). **P:** the receiving holder remembers "A gift of food", +0.1 per gift, cap +0.4, fading over 3 years; the giver gains nothing beyond the tie.
-   *8 Nov 2026:* superseded by VB-182, question 2 (answered, archived): a gift colours opinion through goodwill's curves, not a memory; slice 4 switches them on.
-2. Help with work (VB-106). **P:** the helper and each adult of the helped household remember "Worked together", +0.05 per job, cap +0.3, fading over a year, both ways (the accepted +0.05 × (1 − opinion) becomes a plain +0.05 under a cap).
-
 ### VB-126: occasions (relationships review)
 No two pawns of different villages ever meet today, so courting would keep marriages inside the village.
 1. Which occasions first? **P:** the village meeting (the people with a voice on the green, 10:00 to the meeting at 12:00), the wedding (the day after, 16:00–21:00 at the couple's farm, near kin of both spouses from any village within a day's walk) and the funeral ale (the day after a death, 16:00–21:00 at the farm of the dead, its household and near kin).

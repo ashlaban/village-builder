@@ -2,6 +2,15 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-039)
+
+## VB-039 and VB-106: help as memories (relationships review)
+Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind gains a value per event, up to a cap, and fades to 0 over its days. The gains Kim accepted for help become memories; their caps and durations are new.
+1. A gift of food (VB-039). **P:** the receiving holder remembers "A gift of food", +0.1 per gift, cap +0.4, fading over 3 years; the giver gains nothing beyond the tie.
+   *8 Nov 2026:* superseded by VB-182, question 2 (answered, archived): a gift colours opinion through goodwill's curves, not a memory; slice 4 switches them on.
+2. Help with work (VB-106). **P:** the helper and each adult of the helped household remember "Worked together", +0.05 per job, cap +0.3, fading over a year, both ways (the accepted +0.05 × (1 − opinion) becomes a plain +0.05 under a cap).
+   **A (Kim, 10 Nov):** as proposed (P): a memory "Worked together", +0.05 a task, cap +0.3, fading over a year, both ways.
+
 # Archived 10 November 2026 (VB-120)
 
 ## VB-120: village work days (job review, second pass)
