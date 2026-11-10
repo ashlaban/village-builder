@@ -4,7 +4,7 @@ VB['sim/kinds'] = (() => {
   const { ROLES, WORK, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
-  const { dailyNeed, seedReserve } = VB['sim/hunger'];
+  const { dailyNeed } = VB['sim/hunger'], { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
@@ -27,8 +27,8 @@ VB['sim/kinds'] = (() => {
   //   post(key, site, extra, kind), and the owner of a job not the household's, post(key, site, extra, kind, owner). A kind posted by two
   //   rules names its household's: clear and break, also a plot's steps, and the cottage's stages, also a plot's (plotWork).
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
-  // Firewood is laid in for the winter from summer on, so the pile is topped up higher then.
-  const woodGoal = (E, c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
+  // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
+  const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
   const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
@@ -48,7 +48,7 @@ VB['sim/kinds'] = (() => {
   const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - seedReserve(st, hh) > 0;
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -135,15 +135,18 @@ VB['sim/kinds'] = (() => {
       // 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
-        return hh.wood < U.woodLow ? U.woodLowUrgency : (woodGoal(st.ECON, c) - hh.wood) / woodGoal(st.ECON, c) + (c.season === 2 ? U.woodSummer : 0);
+        if (hh.wood < U.woodLow) return U.woodLowUrgency;
+        const goal = woodTargets(st, hh).wood[c.season];
+        return (goal - hh.wood) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
       deliver: (st, j, hh) => { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); },
-      // from a farm with a woodlot while the pile is below its goal; a second job while it is below 40% of woodTarget
+      // from a farm with a woodlot while the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
       available: (st, hh, f, c, post) => {
-        const E = st.ECON;
-        if (f.woodlot >= 0 && hh.wood < woodGoal(E, c)) {
+        if (f.woodlot < 0) return;
+        const T = woodTargets(st, hh);
+        if (hh.wood < T.wood[c.season]) {
           post(`wood:h${hh.id}`, f.woodlot, { farm: f });
-          if (hh.wood < E.woodTarget * 0.4) post(`wood:h${hh.id}b`, f.woodlot, { farm: f });
+          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, f.woodlot, { farm: f });
         }
       },
     },
@@ -169,7 +172,7 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
       done: (st, j, hh, c) => {
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - seedReserve(st, hh)));
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - reserved(st, hh, 'grain')));
         Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
@@ -311,5 +314,5 @@ VB['sim/kinds'] = (() => {
     fieldAt: {},
   };
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, woodGoal, cookWanted, rowAngle, firstRow, isOpen };
+  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();

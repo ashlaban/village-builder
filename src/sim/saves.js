@@ -6,7 +6,7 @@ VB['sim/saves'] = (() => {
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
-  const { seedPlans } = VB['sim/plans'];
+  const { seedPlans, fillPlans } = VB['sim/plans'];
   const { TICKS } = VB['sim/rules'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
@@ -242,6 +242,7 @@ VB['sim/saves'] = (() => {
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
+    else fillPlans(st); // VB-248: nor targets and reservations
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }

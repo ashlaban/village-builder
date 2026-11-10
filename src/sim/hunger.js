@@ -4,11 +4,18 @@ VB['sim/hunger'] = (() => {
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
-  // Seed kept back for the fields not yet sown this year; never eaten.
-  function seedReserve(st, hh) {
+  // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
+  // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Never eaten.
+  function seedNeed(st, hh) {
     const f = st.farmsteads[hh.farmstead];
-    return (f.fields.filter((fd) => fd.stage === 'stubble' || fd.stage === 'plowed').length + (f.project ? 1 : 0)) * st.ECON.seedPerField;
+    let n = f.project ? 1 : 0;
+    for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
+    return n * st.ECON.seedPerField;
   }
+  Stores.follow('seed', seedNeed);
+  const { reserved } = Stores;
+  // The grain held back as seed, as the Sim API has read it (the page); the simulation reads reserved(st, hh, 'grain').
+  const seedReserve = (st, hh) => reserved(st, hh, 'grain');
   // What the household's living members eat in a day, in rations.
   function dailyNeed(st, hh) {
     const adult = st.ECON.ration.adult, child = st.ECON.ration.child;
@@ -17,7 +24,7 @@ VB['sim/hunger'] = (() => {
     return s;
   }
   // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
-  const floorOf = (st, hh) => seedReserve(st, hh) + HELP.floorDays * dailyNeed(st, hh);
+  const floorOf = (st, hh) => reserved(st, hh, 'grain') + HELP.floorDays * dailyNeed(st, hh);
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
   Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
@@ -55,7 +62,7 @@ VB['sim/hunger'] = (() => {
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
-    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.meals + spare; // meals first, then grain
+    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
     if (avail >= rest - late) {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
@@ -94,5 +101,5 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
-  return { feedHousehold, feedGroups, servedLast, dailyNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+  return { feedHousehold, feedGroups, servedLast, dailyNeed, seedNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();

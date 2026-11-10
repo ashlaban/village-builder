@@ -104,5 +104,36 @@ VB['sim/stores'] = (() => {
   function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
-  return { KINDS, ROUTINE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune };
+  // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
+  // two plans do not spend it twice and the holder's free stock is the rest. A count per holder, good and plan, kept on the plan (st.plans,
+  // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
+  // @state plan.reserved: {[good]: n}: the plan's reservation of a good, as counted at its last reserve (the plan's review); plan.reasons:
+  //   {[good]: why}, one of RESERVE. A reservation whose reason follows the plan's needs between reviews (FOLLOWS) is counted at read by its rule.
+  const RESERVE = ['seed'];
+  // Rules that count a following reservation at read, by reason, given before the first seed (like sim/registry's): seed follows the
+  // fields as they are sown (sim/hunger). Stored counts lag a sowing or a stage change by up to an hour, and the readers of the seed
+  // (the cook, the meal, help, deals, provisions, the means to marry) read it within the hour, so the count is read where it is wanted.
+  const FOLLOWS = {};
+  function follow(why, count) { if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`); FOLLOWS[why] = count; }
+  function reason(why) { if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`); }
+  // The plan of a holder's that a reservation is kept on: today its standing plan (sim/plans), the only plan a holder has.
+  const planFor = (st, holder) => (type(holder) === 'household' ? st.plans.households : st.plans.villages).get(holder.id);
+  function reserve(st, holder, plan, good, n, why) {
+    amount(n); reason(why); field(holder, good);
+    if (plan !== planFor(st, holder)) throw new Error('stores: a reservation names its holder\'s plan');
+    plan.reserved[good] = n; plan.reasons[good] = why;
+  }
+  function release(st, holder, plan, good, why) {
+    reason(why);
+    if (plan !== planFor(st, holder) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
+    delete plan.reserved[good]; delete plan.reasons[good];
+  }
+  // What the holder's plans hold back of a good; a following reservation counted now. Allocates nothing (the review reads it hourly).
+  function reserved(st, holder, good) {
+    const plan = st.plans && planFor(st, holder), why = plan && plan.reasons[good];
+    if (!why) return 0;
+    return FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+  }
+  return { KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
+    follow, reserve, release, reserved };
 })();
