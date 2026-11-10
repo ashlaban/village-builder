@@ -12,7 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
 | [VB-201](backlog/VB-201.md) | Tighten medium steps to 60 ms and spread midnight work | yardstick | 2 | M | The moving-round day and midnight under 60 ms on `medium-ref` and `small-y40` (the medium-y60 allowance ended on 7 November), with deterministic saves and demographic gates. |
 | [VB-206](backlog/VB-206.md) | The meetings spread, so no step goes over 60 ms | yardstick | 2 | S | The meetings' step (276 ms at year 60, 41 at year 5) measured at the new reference and spread a village per step if over 60 ms. |
 | [VB-210](backlog/VB-210.md) | Playing a pawn in the page: Play as, what it may do, the queue and the switch | life | 2 | M | The pawn panel to play by: needs, activity, the queue, the automatic switch, what it may do as buttons, Follow; browser checks and screenshots. |
@@ -36,6 +35,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-164](backlog/VB-164.md) | Plan: the household's year: opportunities, plans and tasks (slice 3) | year | 2 | S | Design slice 3 and write its tasks: work available, plans that make tasks, eligibility, the meeting's routines. |
 | [VB-199](backlog/VB-199.md) | Bounded history: a pawn's events as an index, routine events folded | yardstick | 2 | M | Pawn events as indexes into `st.record`; routine events folded into yearly counts; save and load under 0.5 s on the year-40 fixture. |
 | [VB-057](backlog/VB-057.md) | Golden text of the page's panels | yardstick | 3 | S | Record the text of the page's panels and compare it, as the golden file does for the state, so a wording or number change shows. |
 | [VB-160](backlog/VB-160.md) | The soil's cap rises with a village's years of farming | animals | 3 | S | Yields rise slightly over a game as the soil's cap rises with years of farming; the mechanism is to be researched before a model and rate. |
