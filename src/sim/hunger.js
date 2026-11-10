@@ -21,7 +21,7 @@ VB['sim/hunger'] = (() => {
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
   Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
-  // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: fresh meat, salt meat, later milk and butter ----
+  // ---- the larder (VB-134): lots of stored food {kind, n (rations), until (game hours)}: the foods of rules FOODS eaten as they are ----
   function addFood(st, hh, kind, n, days) { if (n > 0) hh.larder.push({ kind, n, until: st.t + days * DAY }); }
   function larderOf(hh, kind) { let s = 0; for (const l of hh.larder) s += !kind || l.kind === kind ? l.n : 0; return s; } // the review asks it hourly
   // Takes up to `want` rations from the larder, the lots that spoil first first; only those within `soon` hours of spoiling when soon is
@@ -48,18 +48,18 @@ VB['sim/hunger'] = (() => {
     const groups = feedGroups(st, hh, hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null)).filter((g) => g.length);
     return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
   }
-  // Feeds a household for the day: larder food about to spoil first, then cooked rations and grain above the seed reserve, then the rest
+  // Feeds a household for the day: larder food about to spoil first, then meals and grain above the seed reserve, then the rest
   // of the larder; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   function feedHousehold(st, hh) {
     const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
-    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.rations + spare; // cooked rations first, then grain
+    const spare = Math.max(0, hh.grain - seedReserve(st, hh)), avail = hh.meals + spare; // meals first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
     if (avail >= rest - late) {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
-      const left = Math.max(0, rest - late), cooked = Math.min(hh.rations, left); Stores.take(st, hh, 'rations', cooked, 'meal');
+      const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left); Stores.take(st, hh, 'meals', cooked, 'meal');
       Stores.take(st, hh, 'grain', Math.max(0, left - cooked), 'meal'); }
     else {
       let left = avail + early + late;
@@ -68,7 +68,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      Stores.take(st, hh, 'rations', hh.rations, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
+      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {

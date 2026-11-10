@@ -2,7 +2,7 @@
 VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
+  const { HERD, FOODS, SOIL, WORK, YEAR_DAYS } = VB['sim/rules'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
@@ -140,7 +140,7 @@ VB['sim/byre'] = (() => {
     for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
     const r = cows * HERD.milk, butter = r * HERD.butter;
     if (r <= 0) return;
-    addFood(st, hh, 'milk', r - butter, 1); addFood(st, hh, 'butter', butter, HERD.butterDays);
+    addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps); addFood(st, hh, 'butter', butter, HERD.butterDays);
     Stores.record(st, hh, 'milk', r - butter, 'milk'); Stores.record(st, hh, 'butter', butter, 'butter');
   }
   // Salted: the fresh meat keeps a year.

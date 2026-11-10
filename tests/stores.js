@@ -6,33 +6,33 @@ const a = st.households[0], b = st.households[1], v = st.villages[0];
 S.start(st, a, 10); S.start(st, b, 0);
 assert.strictEqual(S.move(st, a, b, 'grain', 20, 'gift'), 10);
 assert.strictEqual(a.grain, 0); assert.strictEqual(b.grain, 10);
-S.cook(st, b, 4); assert.strictEqual(b.grain + b.rations, 10);
-S.sheaf(st, b, 8); S.thresh(st, b); assert.strictEqual(b.grain + b.rations, 18);
+S.cook(st, b, 'grain', 4); assert.strictEqual(b.grain + b.meals, 10);
+S.sheaf(st, b, 8); S.thresh(st, b); assert.strictEqual(b.grain + b.meals, 18);
 for (const n of [-1, NaN, Infinity]) for (const op of ['put', 'take']) assert.throws(() => S[op](st, b, 'grain', n, 'gift'), /amount/);
 assert.throws(() => S.move(st, b, { ...a, dissolved: true }, 'grain', 1, 'gift'), /dissolved/);
 assert.strictEqual(b.grain, 14, 'invalid recipient must not debit sender');
-assert.throws(() => S.put(st, v, 'rations', 1, 'gift'), /cannot hold/);
+assert.throws(() => S.put(st, v, 'meals', 1, 'gift'), /cannot hold/);
 assert.throws(() => S.put(st, b, 'grain', 1, 'unknown'), /reason/);
 // VB-204: routine kinds add to a yearly total per holder, kind and good; other kinds stay entries.
 {
   const c = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 1 }], { seed: 7 }), h = c.households[0];
   S.start(c, h, 50); const n0 = h.ledger.length;
-  S.cook(c, h, 4); S.cook(c, h, 6); S.spoil(c, h, 1);
+  S.cook(c, h, 'grain', 4); S.cook(c, h, 'grain', 6); S.spoil(c, h, 1);
   assert.strictEqual(h.ledger.length, n0, 'routine movements write no entry');
   const y = S.yearNow(c), grain = h.totals.find((x) => x.kind === 'cooking' && x.good === 'grain');
   assert.deepStrictEqual(grain, { year: y, kind: 'cooking', good: 'grain', n: -10, count: 2 });
-  assert.strictEqual(S.yearSum(h, 'cooking', y), 0, 'cooking moves grain into rations');
+  assert.strictEqual(S.yearSum(h, 'cooking', y), 0, 'cooking moves grain into meals');
   assert.strictEqual(h.totals.length, 3, 'one total per kind and good');
   const { YEAR, TICKS } = VB['sim/rules'], { moveClock } = require('./lib/clock.js');
   assert.strictEqual(S.yearNow({ tick: YEAR * TICKS }), 2, 'midnight at the year\'s turn belongs to the new year, as cal(hour)');
   assert.strictEqual(S.yearNow({ tick: YEAR * TICKS - 1 }), 1, 'the year\'s last step belongs to it');
-  moveClock(c, 4 * YEAR); S.cook(c, h, 1); S.prune(c);
+  moveClock(c, 4 * YEAR); S.cook(c, h, 'grain', 1); S.prune(c);
   assert(h.totals.every((x) => x.year === S.yearNow(c)), 'totals of years before the last three are pruned');
   assert.throws(() => S.close(c, h), /dissolved/);
   h.dissolved = true; S.close(c, h); assert(!h.ledger.length && !h.totals.length, 'a dissolved household\'s ledger is emptied');
 }
-const quantity = (h) => h.grain + (h.rations || 0) + (h.unthreshed || []).reduce((n, x) => n + x, 0);
-const isFood = (e) => !e.stake && ['grain', 'rations', 'sheaves'].includes(e.good);
+const quantity = (h) => h.grain + (h.meals || 0) + (h.unthreshed || []).reduce((n, x) => n + x, 0);
+const isFood = (e) => !e.stake && ['grain', 'meals', 'sheaves'].includes(e.good);
 // Every holder's food since the seed equals its entries plus its yearly totals, checked at noon on each new year's first day, away
 // from the midnight work at the year's turn (VB-204). Nothing is pruned within three years; a dissolved household's ledger is emptied.
 let entries = 0, totals = 0;

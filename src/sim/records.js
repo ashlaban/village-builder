@@ -150,7 +150,7 @@ VB['sim/records'] = (() => {
     return { rand, pickGiven: (sex) => take(sex === 'm' ? MALE : FEMALE, sex === 'm' ? usedM : usedF), pickFather: () => take(MALE, usedFather) };
   }
   function makeHousehold(R, id, f, members, holder) {
-    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, rations: 0, wood: ECON.startWood, stone: 0,
+    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0, haySpoilt: 0,
       larder: [], fodderDay: -1,
       milkDay: -1, manure: 0, spoilt: 0 };

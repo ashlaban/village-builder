@@ -71,7 +71,7 @@ const FARMER = 0, WIFE = 1;
 // 4. The call to cook (sim/jobs, callCooks): the wife is called off the field at 14:00; on the player's command she stays, and the
 // next cook is called.
 {
-  const hungry = (st) => { st.households[0].rations = 0; Sim.advance(st, 0.6); };
+  const hungry = (st) => { st.households[0].meals = 0; Sim.advance(st, 0.6); };
   const plain = make(7.5), st = make(7.5), a = st.agents[WIFE];
   hungry(plain); assert.strictEqual(plain.agents[WIFE].job.kind, 'cook', 'unplayed, the wife is called to cook');
   const field = a.job;

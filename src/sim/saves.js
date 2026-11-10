@@ -172,8 +172,9 @@ VB['sim/saves'] = (() => {
   // also recomputes the tile's colours from it; dev, wear and worn are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn'];
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
-  // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked. Format 1 is still read.
-  const FORMAT = 2, READS = [1, 2];
+  // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
+  // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
+  const FORMAT = 3, READS = [3];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
