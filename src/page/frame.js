@@ -40,15 +40,11 @@
     lodEl.hidden = pending === 0;
     if (pending) lodEl.textContent = `Painting detail, ${pending} ${pending === 1 ? 'area' : 'areas'} left`;
 
-    // sea: wave crests only once they are big enough not to shimmer
+    // sea: the rows of wave scrolls only once they are big enough not to shimmer
     const wa = clamp((cam.z - 0.14) / 0.3, 0, 1);
     L.waves.visible = wa > 0.01;
-    if (!reduceMotion) {
-      waves[0].tilePosition.x += 6 * dt; waves[0].tilePosition.y += 2.5 * dt;
-      waves[1].tilePosition.x -= 4 * dt; waves[1].tilePosition.y += 3.5 * dt;
-    }
-    waves[0].alpha = (0.2 + (reduceMotion ? 0 : 0.05 * Math.sin(time * 0.8))) * wa;
-    waves[1].alpha = (0.12 + (reduceMotion ? 0 : 0.04 * Math.sin(time * 0.55 + 1.3))) * wa;
+    if (!reduceMotion) waves[0].tilePosition.x += 5 * dt;
+    waves[0].alpha = (0.42 + (reduceMotion ? 0 : 0.06 * Math.sin(time * 0.8))) * wa;
     // clouds: visible on the overview, thinning out as you descend
     const zm = zMin(), fade = clamp((zm * 2.3 - cam.z) / (zm * 1.3), 0, 1);
     L.clouds.visible = L.shadows.visible = fade > 0.01;

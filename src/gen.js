@@ -200,7 +200,8 @@ const ArchGen = (() => {
         const i = row * COLS + col;
         hx[i] = HW * (col + 0.5 * (row & 1)) + AP; hy[i] = 1.5 * R * row + R;
         let s = 2 * csample(elev, hx[i], hy[i]);
-        for (let d = 0; d < 6; d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
+        for (let d = 0; d < 6;
+          d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
         he[i] = s / 8;
         const u = hx[i] / S, v = hy[i] / S;
         hm[i] = csample(moist, hx[i], hy[i]) + 0.14 * fbm(n4, u * 30 + 5, v * 30 - 9, 2);
@@ -327,13 +328,15 @@ const ArchGen = (() => {
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2); if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
+      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2);
+        if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
       cdist[k] = v;
     }
     for (let cy = CH - 1; cy >= 0; cy--) for (let cx = CW - 1; cx >= 0; cx--) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-      if (cy < CH - 1) { v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
+      if (cy < CH - 1) {
+        v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
@@ -381,32 +384,22 @@ const ArchGen = (() => {
     };
   }
 
-  // Low-resolution water colour layer, one texel per coarse cell.
+  // Low-resolution water colour layer, one texel per coarse cell: a painted sea, in flat bands of blue-grey that darken away from the
+  // land, each blended into the next over a narrow edge; a lake is one flat colour.
+  const SEA = [[158, 190, 178], [118, 160, 162], [88, 132, 146], [68, 108, 130], [56, 90, 116]], LAKE = [126, 164, 164];
   function bakeWater(w, ctx) {
-    const { CW, CH, elev, tile, KS } = w;
+    const { CW, CH, elev, KS } = w;
     const img = ctx.createImageData(CW, CH), D = img.data;
-    const stops = [[0, [122, 196, 186]], [0.1, [84, 164, 176]], [0.32, [48, 122, 156]], [0.68, [30, 84, 124]], [1, [22, 58, 96]]];
-    const lake = [[0, [104, 168, 160]], [1, [48, 104, 118]]];
-    const grad = (st, t) => {
-      for (let s = 1; s < st.length; s++) if (t <= st[s][0]) {
-        const a = st[s - 1], b = st[s], k = (t - a[0]) / (b[0] - a[0]);
-        return [a[1][0] + (b[1][0] - a[1][0]) * k, a[1][1] + (b[1][1] - a[1][1]) * k, a[1][2] + (b[1][2] - a[1][2]) * k];
-      }
-      return st[st.length - 1][1];
-    };
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx, i = w.chex[k];
-      const isLake = i >= 0 && w.biome[i] === B.LAKE;
-      const d = w.cdist[k];
-      const nz = tile[(cy & 255) * 256 + (cx & 255)] - 0.5;
-      let c;
-      if (isLake) c = grad(lake, Math.min(1, 1 - Math.exp(-d / 70)));
-      else {
-        const depth = 0.85 * (1 - Math.exp(-d / ((95 + w.macro[k] * 120) * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5) + nz * 0.04;
-        c = grad(stops, Math.max(0, Math.min(1, depth)));
+      let c = LAKE;
+      if (!(i >= 0 && w.biome[i] === B.LAKE)) {
+        const depth = 0.85 * (1 - Math.exp(-w.cdist[k] / ((120 + w.macro[k] * 70) * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5);
+        const u = Math.max(0, Math.min(0.9999, depth)) * (SEA.length - 1), n = Math.floor(u + 0.5), fr = u + 0.5 - n;
+        const a = SEA[Math.max(0, n - 1)], b = SEA[n], q = n > 0 && fr < 0.12 ? 0.5 + fr / 0.24 : 1;
+        c = [a[0] + (b[0] - a[0]) * q, a[1] + (b[1] - a[1]) * q, a[2] + (b[2] - a[2]) * q];
       }
-      const f = 1 + nz * 0.06;
-      D[k * 4] = c[0] * f; D[k * 4 + 1] = c[1] * f; D[k * 4 + 2] = c[2] * f; D[k * 4 + 3] = 255;
+      D[k * 4] = c[0]; D[k * 4 + 1] = c[1]; D[k * 4 + 2] = c[2]; D[k * 4 + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
   }
@@ -419,7 +412,6 @@ const ArchGen = (() => {
     const lv = LV[l], inv = 1 / lv.scale, x0 = cx * lv.size, y0 = cy * lv.size;
     const full = l === 0, far = l === 2;
     const D = img.data, loc = hexLocator(w), o = [0, 0], pr = new Float32Array(6);
-    const LX = -0.62, LY = -0.78;
     // the contour of the coast and the seam where two biomes meet, in map units: at least most of a texel wide, blended over half a texel
     const COAST = Math.max(1.5, 0.8 * inv), SEAM = Math.max(0.6, 0.45 * inv), SOFT = 0.5 * inv;
     const tn = (x, y) => {
@@ -447,27 +439,12 @@ const ArchGen = (() => {
         const pa = dx, pb = 0.5 * dx - 0.866 * dy, pc = -0.5 * dx - 0.866 * dy;
         if (water[i]) {
           if (far) continue;
-          let md = 99, sd = 99, sl = 0;
+          // the shore: a band of limewash along the land and, on the closer levels, one fine line off it
+          let md = 99;
           pr[0] = pa; pr[1] = pb; pr[2] = pc; pr[3] = -pa; pr[4] = -pb; pr[5] = -pc;
-          for (let d = 0; d < 6; d++) {
-            const j = nb[i * 6 + d];
-            if (j >= 0 && !water[j]) {
-              const dd = AP - pr[d]; if (dd < md) md = dd;
-              const lit = NX[d] * LX + NY[d] * LY;
-              if (lit > 0.2 && dd < sd) { sd = dd; sl = lit; }
-            }
-          }
-          if (md < 12) {
-            const nz = tn(x * 0.35, y * 0.35);
-            let a = md < 5.5 ? Math.pow(1 - md / 5.5, 1.6) * (0.55 + 0.45 * nz) : 0;
-            if (full) { const ring = Math.abs(md - 8.5); if (ring < 1.1 && nz > 0.42) a = Math.max(a, (1 - ring / 1.1) * 0.32); }
-            if (!ocean[i]) a *= 0.6;
-            const sa2 = sd < 9 ? Math.pow(1 - sd / 9, 1.5) * 0.32 * sl : 0;
-            const A = a + sa2 * (1 - a);
-            if (A > 0.002) {
-              D[p] = (244 * a + 12 * sa2 * (1 - a)) / A; D[p + 1] = (250 * a + 36 * sa2 * (1 - a)) / A; D[p + 2] = (247 * a + 52 * sa2 * (1 - a)) / A; D[p + 3] = A * 255;
-            }
-          }
+          for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && AP - pr[d] < md) md = AP - pr[d]; }
+          const A = Math.max(md < 3.2 ? 0.86 : 0, Math.max(0, 1 - Math.abs(md - 7.6) / (0.55 * Math.max(1, inv * 0.6))) * 0.5) * (ocean[i] ? 1 : 0.7);
+          if (A > 0.002) { D[p] = 238; D[p + 1] = 238; D[p + 2] = 222; D[p + 3] = A * 255; }
           continue;
         }
         // Land, as a mural's ground: the tile's flat pigment with the mottling of old plaster, under the light of the land's own relief
@@ -480,7 +457,8 @@ const ArchGen = (() => {
         f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
         const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
         let mp, dir;
-        if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else { mp = ac; dir = pc > 0 ? 2 : 5; }
+        if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else {
+          mp = ac; dir = pc > 0 ? 2 : 5; }
         const ed = AP - mp, jn = nb[i * 6 + dir];
         let k = 0;
         if (jn >= 0 && water[jn]) k = Math.min(1, Math.max(0, (COAST - ed) / SOFT)) * (far ? 0.8 : 1);
@@ -542,8 +520,10 @@ const ArchGen = (() => {
         if (full && rnd() < 0.5) { const [x, y] = spot(0.6); items.push({ t: 'stone', x, y, r: 2 + rnd() * 2 }); }
       } else if (b === B.HILLS) {
         if (rnd() < 0.12) { const [x, y] = spot(0.5); items.push({ t: 'pine', x, y, sc: 0.85, v: (rnd() * 8) | 0 }); }
-        if (full) { const n = 1 + ((rnd() * 3) | 0); for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
-        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) { const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.36 + rnd() * 0.2), h: R * (0.17 + rnd() * 0.1) }); }
+        if (full) { const n = 1 + ((rnd() * 3) | 0);
+          for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
+        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) {
+          const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.36 + rnd() * 0.2), h: R * (0.17 + rnd() * 0.1) }); }
       } else if (b === B.MOUNTAIN || b === B.SNOW) {
         for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) {
           const [x, y] = spot(0.5), wd = R * (0.42 + rnd() * 0.2) * (b === B.SNOW ? 1.15 : 1);

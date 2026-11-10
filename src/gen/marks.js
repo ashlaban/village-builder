@@ -1,10 +1,12 @@
 // @sys gen/marks: what stands on the land in the map chunks, drawn as a church mural: trees, stones, flowers, marsh pools, hill humps and crags
 // ===== The marks of the land. gen.js chooses what stands on each tile (decorateChunk); this module only draws the items it is given. =====
 // One dark contour round flat earth colours, as in page/farmart, so that the ground and the farms on it are of one hand. Relief that the
-// light of the bake cannot show at a tile's size is drawn as a figure: a hump for a hill, a peaked crag with a lit and a shaded face for a
+// light of the bake cannot show at a tile's size is drawn as a figure: a hump for a hill, a peaked crag washed thinly over the ground, with a lit
+// and a shaded face for a
 // mountain, capped with limewash where the snow lies.
 // Listed before gen.js, which calls it.
 VB['gen/marks'] = (() => {
+  const ROCK = 'rgba(84,66,58,0.7)'; // a crag's contour: softer than the ink, so that a range reads as ground, not as figures
   const INK = 'rgb(44,32,28)', LEAF = 'rgb(84,116,70)', PETALS = ['rgb(250,246,232)', 'rgb(232,190,70)', 'rgb(190,64,46)'];
   const path = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); };
   // a point of the tile round (x, y), within k tile radii
@@ -65,18 +67,18 @@ VB['gen/marks'] = (() => {
     const edge = [[x - wd, y], [x - wd * 0.58, y - h * (0.4 + v * 0.1)], [x - wd * 0.3, y - h * 0.66], [x, top], [x + wd * 0.36, y - h * (0.5 + v * 0.1)],
       [x + wd * 0.62, y - h * 0.3], [x + wd, y]];
     const ridge = [[x, top], [x + wd * 0.1, y - h * 0.64], [x - wd * 0.08, y - h * 0.36], [x + wd * 0.14, y]];
-    path(ctx, edge); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgb(224,214,196)' : 'rgb(216,204,184)'; ctx.fill();
-    path(ctx, [...ridge, ...edge.slice(3).reverse()]); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgb(156,140,130)' : 'rgb(166,138,124)'; ctx.fill();
+    path(ctx, edge); ctx.closePath(); ctx.fillStyle = 'rgba(236,228,212,0.42)'; ctx.fill();
+    path(ctx, [...ridge, ...edge.slice(3).reverse()]); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgba(96,80,74,0.3)' : 'rgba(110,78,66,0.28)'; ctx.fill();
     if (it.snow) {
       const line = []; for (let q = 0; q <= 8; q++) line.push([x - wd + (q * wd) / 4, y - h * (0.5 + (q % 2 ? 0.1 : 0))]);
       ctx.save(); path(ctx, edge); ctx.closePath(); ctx.clip();
-      path(ctx, [[x - wd, top - 2], ...line, [x + wd, top - 2]]); ctx.closePath(); ctx.fillStyle = 'rgb(248,246,236)'; ctx.fill();
-      path(ctx, [...ridge.slice(0, 2), ...edge.slice(3, 5).reverse()]); ctx.closePath(); ctx.fillStyle = 'rgb(206,212,216)'; ctx.fill();
-      path(ctx, line); ctx.strokeStyle = INK; ctx.lineWidth = 0.6 * lw; ctx.stroke();
+      path(ctx, [[x - wd, top - 2], ...line, [x + wd, top - 2]]); ctx.closePath(); ctx.fillStyle = 'rgba(250,248,238,0.8)'; ctx.fill();
+      path(ctx, [...ridge.slice(0, 2), ...edge.slice(3, 5).reverse()]); ctx.closePath(); ctx.fillStyle = 'rgba(120,130,140,0.3)'; ctx.fill();
+      path(ctx, line); ctx.strokeStyle = ROCK; ctx.lineWidth = 0.5 * lw; ctx.stroke();
       ctx.restore();
     }
-    path(ctx, ridge); ctx.strokeStyle = INK; ctx.lineWidth = 0.75 * lw; ctx.stroke();
-    path(ctx, edge); ctx.lineWidth = 1.4 * lw; ctx.stroke();
+    path(ctx, ridge); ctx.strokeStyle = ROCK; ctx.lineWidth = 0.6 * lw; ctx.stroke();
+    path(ctx, edge); ctx.lineWidth = 0.95 * lw; ctx.stroke();
   }
 
   // Draws items ({t, x, y, ...}, sorted by y) on a context already set to map units. S: the sprites of trees and shrubs (page/farmart's

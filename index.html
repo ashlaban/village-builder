@@ -1222,13 +1222,12 @@ VB['gen/rivers'] = (() => {
     if (!all.length) return;
     const minH = (full ? 0.35 : 0.45) / sc; // a half-width of at least this many texels, so brooks still show on the overview
     const dry = all.map((pts) => pts.filter((p) => p[3] === 1));
-    // [colour, half-width at a point, land only]: damp ground, then mud and gravel at the edge, shallows, the channel and its deepest part
+    // [colour, half-width at a point, land only]: a stream as a mural draws one, flat inside a dark contour, a pale line down its middle
+    const lw = Math.max(0.9, 0.6 / sc);
     const layers = [
-      ['rgba(64,84,44,0.2)', (p) => p[2] / 2 + 5 + 2.2 * noise(w, p[0] / 6, p[1] / 6, 7), true],
-      ['rgba(126,114,78,0.45)', (p) => Math.max(minH * 1.5, p[2] / 2 + 1.8 + noise(w, p[0] / 4, p[1] / 4, 8)), true],
-      ['rgb(108,172,168)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)), false],
-      ['rgb(70,136,154)', (p) => (p[2] / 2) * (0.58 + 0.12 * noise(w, p[0] / 9, p[1] / 9, 10)) * p[3] - 0.3, false],
-      ['rgb(54,114,138)', (p) => ((p[2] / 2) * (0.3 + 0.12 * noise(w, p[0] / 11, p[1] / 11, 11)) - 1.5) * p[3], false],
+      ['rgb(44,32,28)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)) + lw, true],
+      ['rgb(126,164,164)', (p) => Math.max(minH, p[2] / 2 + 0.5 * noise(w, p[0] / 5, p[1] / 5, 9)), false],
+      ['rgb(226,232,218)', (p) => (p[2] > 5 ? 0.45 : 0) * p[3], false],
     ];
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.globalCompositeOperation = 'source-atop';
@@ -1281,10 +1280,12 @@ VB['gen/rivers'] = (() => {
 // @sys gen/marks: what stands on the land in the map chunks, drawn as a church mural: trees, stones, flowers, marsh pools, hill humps and crags
 // ===== The marks of the land. gen.js chooses what stands on each tile (decorateChunk); this module only draws the items it is given. =====
 // One dark contour round flat earth colours, as in page/farmart, so that the ground and the farms on it are of one hand. Relief that the
-// light of the bake cannot show at a tile's size is drawn as a figure: a hump for a hill, a peaked crag with a lit and a shaded face for a
+// light of the bake cannot show at a tile's size is drawn as a figure: a hump for a hill, a peaked crag washed thinly over the ground, with a lit
+// and a shaded face for a
 // mountain, capped with limewash where the snow lies.
 // Listed before gen.js, which calls it.
 VB['gen/marks'] = (() => {
+  const ROCK = 'rgba(84,66,58,0.7)'; // a crag's contour: softer than the ink, so that a range reads as ground, not as figures
   const INK = 'rgb(44,32,28)', LEAF = 'rgb(84,116,70)', PETALS = ['rgb(250,246,232)', 'rgb(232,190,70)', 'rgb(190,64,46)'];
   const path = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); };
   // a point of the tile round (x, y), within k tile radii
@@ -1345,18 +1346,18 @@ VB['gen/marks'] = (() => {
     const edge = [[x - wd, y], [x - wd * 0.58, y - h * (0.4 + v * 0.1)], [x - wd * 0.3, y - h * 0.66], [x, top], [x + wd * 0.36, y - h * (0.5 + v * 0.1)],
       [x + wd * 0.62, y - h * 0.3], [x + wd, y]];
     const ridge = [[x, top], [x + wd * 0.1, y - h * 0.64], [x - wd * 0.08, y - h * 0.36], [x + wd * 0.14, y]];
-    path(ctx, edge); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgb(224,214,196)' : 'rgb(216,204,184)'; ctx.fill();
-    path(ctx, [...ridge, ...edge.slice(3).reverse()]); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgb(156,140,130)' : 'rgb(166,138,124)'; ctx.fill();
+    path(ctx, edge); ctx.closePath(); ctx.fillStyle = 'rgba(236,228,212,0.42)'; ctx.fill();
+    path(ctx, [...ridge, ...edge.slice(3).reverse()]); ctx.closePath(); ctx.fillStyle = v < 0.5 ? 'rgba(96,80,74,0.3)' : 'rgba(110,78,66,0.28)'; ctx.fill();
     if (it.snow) {
       const line = []; for (let q = 0; q <= 8; q++) line.push([x - wd + (q * wd) / 4, y - h * (0.5 + (q % 2 ? 0.1 : 0))]);
       ctx.save(); path(ctx, edge); ctx.closePath(); ctx.clip();
-      path(ctx, [[x - wd, top - 2], ...line, [x + wd, top - 2]]); ctx.closePath(); ctx.fillStyle = 'rgb(248,246,236)'; ctx.fill();
-      path(ctx, [...ridge.slice(0, 2), ...edge.slice(3, 5).reverse()]); ctx.closePath(); ctx.fillStyle = 'rgb(206,212,216)'; ctx.fill();
-      path(ctx, line); ctx.strokeStyle = INK; ctx.lineWidth = 0.6 * lw; ctx.stroke();
+      path(ctx, [[x - wd, top - 2], ...line, [x + wd, top - 2]]); ctx.closePath(); ctx.fillStyle = 'rgba(250,248,238,0.8)'; ctx.fill();
+      path(ctx, [...ridge.slice(0, 2), ...edge.slice(3, 5).reverse()]); ctx.closePath(); ctx.fillStyle = 'rgba(120,130,140,0.3)'; ctx.fill();
+      path(ctx, line); ctx.strokeStyle = ROCK; ctx.lineWidth = 0.5 * lw; ctx.stroke();
       ctx.restore();
     }
-    path(ctx, ridge); ctx.strokeStyle = INK; ctx.lineWidth = 0.75 * lw; ctx.stroke();
-    path(ctx, edge); ctx.lineWidth = 1.4 * lw; ctx.stroke();
+    path(ctx, ridge); ctx.strokeStyle = ROCK; ctx.lineWidth = 0.6 * lw; ctx.stroke();
+    path(ctx, edge); ctx.lineWidth = 0.95 * lw; ctx.stroke();
   }
 
   // Draws items ({t, x, y, ...}, sorted by y) on a context already set to map units. S: the sprites of trees and shrubs (page/farmart's
@@ -1585,7 +1586,8 @@ const ArchGen = (() => {
         const i = row * COLS + col;
         hx[i] = HW * (col + 0.5 * (row & 1)) + AP; hy[i] = 1.5 * R * row + R;
         let s = 2 * csample(elev, hx[i], hy[i]);
-        for (let d = 0; d < 6; d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
+        for (let d = 0; d < 6;
+          d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
         he[i] = s / 8;
         const u = hx[i] / S, v = hy[i] / S;
         hm[i] = csample(moist, hx[i], hy[i]) + 0.14 * fbm(n4, u * 30 + 5, v * 30 - 9, 2);
@@ -1712,13 +1714,15 @@ const ArchGen = (() => {
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2); if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
+      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2);
+        if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
       cdist[k] = v;
     }
     for (let cy = CH - 1; cy >= 0; cy--) for (let cx = CW - 1; cx >= 0; cx--) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-      if (cy < CH - 1) { v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
+      if (cy < CH - 1) {
+        v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
@@ -1766,32 +1770,22 @@ const ArchGen = (() => {
     };
   }
 
-  // Low-resolution water colour layer, one texel per coarse cell.
+  // Low-resolution water colour layer, one texel per coarse cell: a painted sea, in flat bands of blue-grey that darken away from the
+  // land, each blended into the next over a narrow edge; a lake is one flat colour.
+  const SEA = [[158, 190, 178], [118, 160, 162], [88, 132, 146], [68, 108, 130], [56, 90, 116]], LAKE = [126, 164, 164];
   function bakeWater(w, ctx) {
-    const { CW, CH, elev, tile, KS } = w;
+    const { CW, CH, elev, KS } = w;
     const img = ctx.createImageData(CW, CH), D = img.data;
-    const stops = [[0, [122, 196, 186]], [0.1, [84, 164, 176]], [0.32, [48, 122, 156]], [0.68, [30, 84, 124]], [1, [22, 58, 96]]];
-    const lake = [[0, [104, 168, 160]], [1, [48, 104, 118]]];
-    const grad = (st, t) => {
-      for (let s = 1; s < st.length; s++) if (t <= st[s][0]) {
-        const a = st[s - 1], b = st[s], k = (t - a[0]) / (b[0] - a[0]);
-        return [a[1][0] + (b[1][0] - a[1][0]) * k, a[1][1] + (b[1][1] - a[1][1]) * k, a[1][2] + (b[1][2] - a[1][2]) * k];
-      }
-      return st[st.length - 1][1];
-    };
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx, i = w.chex[k];
-      const isLake = i >= 0 && w.biome[i] === B.LAKE;
-      const d = w.cdist[k];
-      const nz = tile[(cy & 255) * 256 + (cx & 255)] - 0.5;
-      let c;
-      if (isLake) c = grad(lake, Math.min(1, 1 - Math.exp(-d / 70)));
-      else {
-        const depth = 0.85 * (1 - Math.exp(-d / ((95 + w.macro[k] * 120) * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5) + nz * 0.04;
-        c = grad(stops, Math.max(0, Math.min(1, depth)));
+      let c = LAKE;
+      if (!(i >= 0 && w.biome[i] === B.LAKE)) {
+        const depth = 0.85 * (1 - Math.exp(-w.cdist[k] / ((120 + w.macro[k] * 70) * KS))) + 0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5);
+        const u = Math.max(0, Math.min(0.9999, depth)) * (SEA.length - 1), n = Math.floor(u + 0.5), fr = u + 0.5 - n;
+        const a = SEA[Math.max(0, n - 1)], b = SEA[n], q = n > 0 && fr < 0.12 ? 0.5 + fr / 0.24 : 1;
+        c = [a[0] + (b[0] - a[0]) * q, a[1] + (b[1] - a[1]) * q, a[2] + (b[2] - a[2]) * q];
       }
-      const f = 1 + nz * 0.06;
-      D[k * 4] = c[0] * f; D[k * 4 + 1] = c[1] * f; D[k * 4 + 2] = c[2] * f; D[k * 4 + 3] = 255;
+      D[k * 4] = c[0]; D[k * 4 + 1] = c[1]; D[k * 4 + 2] = c[2]; D[k * 4 + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
   }
@@ -1804,7 +1798,6 @@ const ArchGen = (() => {
     const lv = LV[l], inv = 1 / lv.scale, x0 = cx * lv.size, y0 = cy * lv.size;
     const full = l === 0, far = l === 2;
     const D = img.data, loc = hexLocator(w), o = [0, 0], pr = new Float32Array(6);
-    const LX = -0.62, LY = -0.78;
     // the contour of the coast and the seam where two biomes meet, in map units: at least most of a texel wide, blended over half a texel
     const COAST = Math.max(1.5, 0.8 * inv), SEAM = Math.max(0.6, 0.45 * inv), SOFT = 0.5 * inv;
     const tn = (x, y) => {
@@ -1832,27 +1825,12 @@ const ArchGen = (() => {
         const pa = dx, pb = 0.5 * dx - 0.866 * dy, pc = -0.5 * dx - 0.866 * dy;
         if (water[i]) {
           if (far) continue;
-          let md = 99, sd = 99, sl = 0;
+          // the shore: a band of limewash along the land and, on the closer levels, one fine line off it
+          let md = 99;
           pr[0] = pa; pr[1] = pb; pr[2] = pc; pr[3] = -pa; pr[4] = -pb; pr[5] = -pc;
-          for (let d = 0; d < 6; d++) {
-            const j = nb[i * 6 + d];
-            if (j >= 0 && !water[j]) {
-              const dd = AP - pr[d]; if (dd < md) md = dd;
-              const lit = NX[d] * LX + NY[d] * LY;
-              if (lit > 0.2 && dd < sd) { sd = dd; sl = lit; }
-            }
-          }
-          if (md < 12) {
-            const nz = tn(x * 0.35, y * 0.35);
-            let a = md < 5.5 ? Math.pow(1 - md / 5.5, 1.6) * (0.55 + 0.45 * nz) : 0;
-            if (full) { const ring = Math.abs(md - 8.5); if (ring < 1.1 && nz > 0.42) a = Math.max(a, (1 - ring / 1.1) * 0.32); }
-            if (!ocean[i]) a *= 0.6;
-            const sa2 = sd < 9 ? Math.pow(1 - sd / 9, 1.5) * 0.32 * sl : 0;
-            const A = a + sa2 * (1 - a);
-            if (A > 0.002) {
-              D[p] = (244 * a + 12 * sa2 * (1 - a)) / A; D[p + 1] = (250 * a + 36 * sa2 * (1 - a)) / A; D[p + 2] = (247 * a + 52 * sa2 * (1 - a)) / A; D[p + 3] = A * 255;
-            }
-          }
+          for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && AP - pr[d] < md) md = AP - pr[d]; }
+          const A = Math.max(md < 3.2 ? 0.86 : 0, Math.max(0, 1 - Math.abs(md - 7.6) / (0.55 * Math.max(1, inv * 0.6))) * 0.5) * (ocean[i] ? 1 : 0.7);
+          if (A > 0.002) { D[p] = 238; D[p + 1] = 238; D[p + 2] = 222; D[p + 3] = A * 255; }
           continue;
         }
         // Land, as a mural's ground: the tile's flat pigment with the mottling of old plaster, under the light of the land's own relief
@@ -1865,7 +1843,8 @@ const ArchGen = (() => {
         f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
         const aa = Math.abs(pa), ab = Math.abs(pb), ac = Math.abs(pc);
         let mp, dir;
-        if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else { mp = ac; dir = pc > 0 ? 2 : 5; }
+        if (aa >= ab && aa >= ac) { mp = aa; dir = pa > 0 ? 0 : 3; } else if (ab >= ac) { mp = ab; dir = pb > 0 ? 1 : 4; } else {
+          mp = ac; dir = pc > 0 ? 2 : 5; }
         const ed = AP - mp, jn = nb[i * 6 + dir];
         let k = 0;
         if (jn >= 0 && water[jn]) k = Math.min(1, Math.max(0, (COAST - ed) / SOFT)) * (far ? 0.8 : 1);
@@ -1927,8 +1906,10 @@ const ArchGen = (() => {
         if (full && rnd() < 0.5) { const [x, y] = spot(0.6); items.push({ t: 'stone', x, y, r: 2 + rnd() * 2 }); }
       } else if (b === B.HILLS) {
         if (rnd() < 0.12) { const [x, y] = spot(0.5); items.push({ t: 'pine', x, y, sc: 0.85, v: (rnd() * 8) | 0 }); }
-        if (full) { const n = 1 + ((rnd() * 3) | 0); for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
-        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) { const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.36 + rnd() * 0.2), h: R * (0.17 + rnd() * 0.1) }); }
+        if (full) { const n = 1 + ((rnd() * 3) | 0);
+          for (let k = 0; k < n; k++) { const [x, y] = spot(0.65); items.push({ t: 'stone', x, y, r: 2 + rnd() * 3 }); } }
+        for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) {
+          const [x, y] = spot(0.5); items.push({ t: 'hump', x, y, wd: R * (0.36 + rnd() * 0.2), h: R * (0.17 + rnd() * 0.1) }); }
       } else if (b === B.MOUNTAIN || b === B.SNOW) {
         for (let k = 1 + ((rnd() * 2) | 0); k > 0; k--) {
           const [x, y] = spot(0.5), wd = R * (0.42 + rnd() * 0.2) * (b === B.SNOW ? 1.15 : 1);
@@ -9949,7 +9930,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   if (!window.PIXI) { failed('The rendering library didn’t load. Check your connection and reload the page.'); return; }
   const app = new PIXI.Application();
   try {
-    await app.init({ resizeTo: stage, background: '#16395f', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2),
+    await app.init({ resizeTo: stage, background: '#385a74', antialias: true, autoDensity: true, resolution: Math.min(window.devicePixelRatio || 1, 2),
       preference: 'webgl' });
   } catch (e) { failed('This browser couldn’t start WebGL, which the map needs. Try another browser or enable hardware acceleration.'); return; }
   stage.appendChild(app.canvas);
@@ -9976,13 +9957,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
 
   // ---- static textures ----
   let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk
-  function waveCanvas(seed, n, alpha) {
-    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), r = G.mulberry32(seed);
-    g.lineCap = 'round';
-    for (let k = 0; k < n; k++) {
-      const x = r() * S, y = r() * S, rad = 5 + r() * 9, a0 = Math.PI * (1.2 + r() * 0.1), a1 = Math.PI * (1.68 + r() * 0.12);
-      g.strokeStyle = `rgba(255,255,255,${alpha * (0.5 + r() * 0.5)})`; g.lineWidth = 1 + r() * 0.7;
-      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.beginPath(); g.arc(x + ox, y + oy, rad, a0, a1); g.stroke(); }
+  // the sea's waves: ordered rows of pale scrolls, as on a painted sea
+  function waveCanvas() {
+    const S = 256, c = makeCanvas(S, S), g = c.getContext('2d');
+    g.lineCap = 'round'; g.strokeStyle = 'rgb(236,240,226)'; g.lineWidth = 1.5;
+    for (let row = 0; row < 4; row++) for (let k = 0; k < 2; k++) for (const ox of [-S, 0]) {
+      const x = k * 128 + (row % 2) * 64 + 18 + ox, y = row * 64 + 30;
+      g.beginPath(); g.moveTo(x, y);
+      for (let q = 0; q < 3; q++) g.quadraticCurveTo(x + q * 18 + 9, y - 9, x + q * 18 + 18, y);
+      g.stroke();
     }
     return c;
   }
@@ -9997,8 +9980,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     return c;
   }
-  const waveTexA = texFrom(waveCanvas(11, 34, 0.9), { addressMode: 'repeat' });
-  const waveTexB = texFrom(waveCanvas(23, 22, 0.8), { addressMode: 'repeat' });
+  const waveTex = texFrom(waveCanvas(), { addressMode: 'repeat' });
   const cloudTex = [1, 2, 3, 4].map((s) => texFrom(cloudCanvas(s * 97)));
 
   // ---- state ----
@@ -10373,9 +10355,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
     regionG = buildRegions(wd); L.regions.addChild(regionG);
     if (!waves.length) {
-      waves = [new PIXI.TilingSprite({ texture: waveTexA, width: wd.W, height: wd.H }),
-        new PIXI.TilingSprite({ texture: waveTexB, width: wd.W, height: wd.H })];
-      waves[1].tileScale.set(1.7);
+      waves = [new PIXI.TilingSprite({ texture: waveTex, width: wd.W, height: wd.H })];
       for (const s of waves) L.waves.addChild(s);
     }
     makeClouds(wd);
@@ -13539,7 +13519,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '1dafa06296', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '50691c767d', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -13713,15 +13693,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     lodEl.hidden = pending === 0;
     if (pending) lodEl.textContent = `Painting detail, ${pending} ${pending === 1 ? 'area' : 'areas'} left`;
 
-    // sea: wave crests only once they are big enough not to shimmer
+    // sea: the rows of wave scrolls only once they are big enough not to shimmer
     const wa = clamp((cam.z - 0.14) / 0.3, 0, 1);
     L.waves.visible = wa > 0.01;
-    if (!reduceMotion) {
-      waves[0].tilePosition.x += 6 * dt; waves[0].tilePosition.y += 2.5 * dt;
-      waves[1].tilePosition.x -= 4 * dt; waves[1].tilePosition.y += 3.5 * dt;
-    }
-    waves[0].alpha = (0.2 + (reduceMotion ? 0 : 0.05 * Math.sin(time * 0.8))) * wa;
-    waves[1].alpha = (0.12 + (reduceMotion ? 0 : 0.04 * Math.sin(time * 0.55 + 1.3))) * wa;
+    if (!reduceMotion) waves[0].tilePosition.x += 5 * dt;
+    waves[0].alpha = (0.42 + (reduceMotion ? 0 : 0.06 * Math.sin(time * 0.8))) * wa;
     // clouds: visible on the overview, thinning out as you descend
     const zm = zMin(), fade = clamp((zm * 2.3 - cam.z) / (zm * 1.3), 0, 1);
     L.clouds.visible = L.shadows.visible = fade > 0.01;

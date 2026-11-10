@@ -3,12 +3,208 @@
   "lines": 7,
   "longLines": 0
  },
+ "src/gen/paths.js": {
+  "lines": 196,
+  "longLines": 0
+ },
+ "src/gen/rivers.js": {
+  "lines": 374,
+  "longLines": 0
+ },
+ "src/gen/marks.js": {
+  "lines": 105,
+  "longLines": 0
+ },
  "src/gen.js": {
-  "lines": 672,
-  "longLines": 7
+  "lines": 547,
+  "longLines": 0
  },
  "src/culture.js": {
   "lines": 285,
+  "longLines": 0
+ },
+ "src/sim/rules.js": {
+  "lines": 250,
+  "longLines": 0
+ },
+ "src/sim/registry.js": {
+  "lines": 79,
+  "longLines": 0
+ },
+ "src/sim/rng.js": {
+  "lines": 30,
+  "longLines": 0
+ },
+ "src/sim/hex.js": {
+  "lines": 58,
+  "longLines": 0
+ },
+ "src/sim/names.js": {
+  "lines": 101,
+  "longLines": 0
+ },
+ "src/sim/routes.js": {
+  "lines": 155,
+  "longLines": 0
+ },
+ "src/sim/paths.js": {
+  "lines": 67,
+  "longLines": 0
+ },
+ "src/sim/layout.js": {
+  "lines": 350,
+  "longLines": 0
+ },
+ "src/sim/ownership.js": {
+  "lines": 33,
+  "longLines": 0
+ },
+ "src/sim/records.js": {
+  "lines": 365,
+  "longLines": 0
+ },
+ "src/sim/relations.js": {
+  "lines": 400,
+  "longLines": 0
+ },
+ "src/sim/claims.js": {
+  "lines": 141,
+  "longLines": 0
+ },
+ "src/sim/territory.js": {
+  "lines": 195,
+  "longLines": 0
+ },
+ "src/sim/stakes.js": {
+  "lines": 70,
+  "longLines": 0
+ },
+ "src/sim/forest.js": {
+  "lines": 46,
+  "longLines": 0
+ },
+ "src/sim/herds.js": {
+  "lines": 307,
+  "longLines": 0
+ },
+ "src/sim/stores.js": {
+  "lines": 108,
+  "longLines": 0
+ },
+ "src/sim/hunger.js": {
+  "lines": 98,
+  "longLines": 0
+ },
+ "src/sim/exchange.js": {
+  "lines": 82,
+  "longLines": 0
+ },
+ "src/sim/help.js": {
+  "lines": 83,
+  "longLines": 0
+ },
+ "src/sim/deaths.js": {
+  "lines": 35,
+  "longLines": 0
+ },
+ "src/sim/notable.js": {
+  "lines": 194,
+  "longLines": 0
+ },
+ "src/sim/fields.js": {
+  "lines": 163,
+  "longLines": 0
+ },
+ "src/sim/meadows.js": {
+  "lines": 135,
+  "longLines": 0
+ },
+ "src/sim/byre.js": {
+  "lines": 228,
+  "longLines": 0
+ },
+ "src/sim/expansion.js": {
+  "lines": 197,
+  "longLines": 0
+ },
+ "src/sim/farmclaims.js": {
+  "lines": 208,
+  "longLines": 0
+ },
+ "src/sim/kinds.js": {
+  "lines": 315,
+  "longLines": 0
+ },
+ "src/sim/agents.js": {
+  "lines": 239,
+  "longLines": 0
+ },
+ "src/sim/commands.js": {
+  "lines": 333,
+  "longLines": 0
+ },
+ "src/sim/plans.js": {
+  "lines": 36,
+  "longLines": 0
+ },
+ "src/sim/jobs.js": {
+  "lines": 218,
+  "longLines": 0
+ },
+ "src/sim/heirs.js": {
+  "lines": 400,
+  "longLines": 0
+ },
+ "src/sim/membership.js": {
+  "lines": 28,
+  "longLines": 0
+ },
+ "src/sim/service.js": {
+  "lines": 112,
+  "longLines": 0
+ },
+ "src/sim/opportunities.js": {
+  "lines": 212,
+  "longLines": 0
+ },
+ "src/sim/cottage.js": {
+  "lines": 57,
+  "longLines": 0
+ },
+ "src/sim/society.js": {
+  "lines": 144,
+  "longLines": 0
+ },
+ "src/sim/settle.js": {
+  "lines": 255,
+  "longLines": 0
+ },
+ "src/sim/lifecycle.js": {
+  "lines": 299,
+  "longLines": 0
+ },
+ "src/sim/births.js": {
+  "lines": 60,
+  "longLines": 0
+ },
+ "src/sim/people.js": {
+  "lines": 51,
+  "longLines": 0
+ },
+ "src/sim/scenarios.js": {
+  "lines": 278,
+  "longLines": 0
+ },
+ "src/sim/clock.js": {
+  "lines": 109,
+  "longLines": 0
+ },
+ "src/sim/saves.js": {
+  "lines": 163,
+  "longLines": 0
+ },
+ "src/sim.js": {
+  "lines": 55,
   "longLines": 0
  },
  "src/load.js": {
@@ -31,6 +227,10 @@
   "lines": 111,
   "longLines": 0
  },
+ "src/page/minimap.js": {
+  "lines": 38,
+  "longLines": 0
+ },
  "src/page/tileinfo.js": {
   "lines": 58,
   "longLines": 0
@@ -47,12 +247,24 @@
   "lines": 233,
   "longLines": 0
  },
+ "src/page/talk.js": {
+  "lines": 59,
+  "longLines": 0
+ },
  "src/page/fieldart.js": {
   "lines": 101,
   "longLines": 0
  },
+ "src/page/portraits.js": {
+  "lines": 95,
+  "longLines": 0
+ },
  "src/page/settlement.js": {
   "lines": 147,
+  "longLines": 0
+ },
+ "src/page/speed.js": {
+  "lines": 52,
   "longLines": 0
  },
  "src/page/animate.js": {
@@ -63,6 +275,22 @@
   "lines": 151,
   "longLines": 0
  },
+ "src/page/cards.js": {
+  "lines": 106,
+  "longLines": 0
+ },
+ "src/page/history.js": {
+  "lines": 68,
+  "longLines": 0
+ },
+ "src/page/play.js": {
+  "lines": 369,
+  "longLines": 0
+ },
+ "src/page/treelayout.js": {
+  "lines": 219,
+  "longLines": 0
+ },
  "src/page/family.js": {
   "lines": 120,
   "longLines": 0
@@ -71,8 +299,16 @@
   "lines": 114,
   "longLines": 0
  },
+ "src/page/notices.js": {
+  "lines": 58,
+  "longLines": 0
+ },
+ "src/page/saves.js": {
+  "lines": 138,
+  "longLines": 0
+ },
  "src/page/frame.js": {
-  "lines": 80,
+  "lines": 78,
   "longLines": 0
  }
 }
