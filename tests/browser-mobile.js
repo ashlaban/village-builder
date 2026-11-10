@@ -69,6 +69,16 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     assert(await page.locator('#tileActivity').textContent(), 'current activity remains visible while collapsed');
     const selected = await page.evaluate(() => window.__mobile.selected);
     await page.click('#tile .sheet-expand'); await fits('#tile'); await capture('mobile-person');
+    // Playing a pawn (VB-210): the played pawn's part of the card fits the phone and its buttons work
+    console.log('mobile: play'); await page.click('#playAs');
+    await page.locator('#playBox [data-play="auto"]').waitFor({ state: 'visible' }); await fits('#tile');
+    const over = await page.locator('#playBox button').evaluateAll((bs) => bs.filter((b) => b.getBoundingClientRect().right > innerWidth + 1).length);
+    assert.strictEqual(over, 0, 'the buttons of the played pawn fit the phone');
+    await page.click('#playBox [data-play="auto"]');
+    await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
+    assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
+    await capture('mobile-play');
+    await page.click('#playBox [data-play="stop"]'); assert(await page.locator('#playAs').isVisible(), 'Stop playing offers Play as again');
     // The shared card used to discard every detail after the fourth line.
     await page.evaluate(() => window.__mobile.card('Full details', ['one', 'two', 'three', 'four', 'five', 'six']));
     assert.strictEqual(await page.locator('#tileRest').textContent(), 'fivesix');
@@ -135,6 +145,6 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.click('#customsBtn'); await capture('mobile-customs');
     await page.click('#uiToggle'); await capture('mobile-hidden'); await page.click('#uiToggle');
     assert.deepStrictEqual(errors, [], 'no console or page errors');
-    console.log('browser-mobile: panels, folds, search, details, hide/restore, running clock, customs, family, minimap, drag/pinch and responsive fit');
+    console.log('browser-mobile: panels, folds, search, details, playing a pawn, hide/restore, running clock, customs, family, minimap, drag/pinch and responsive fit');
   } finally { await browser.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

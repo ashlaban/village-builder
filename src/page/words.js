@@ -187,6 +187,7 @@
       Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id), { badge: faceImg(id, 'badge'),
       links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) });
     showRelations(id);
+    renderPlay(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
   let relHTML = '';
@@ -239,7 +240,7 @@
     const rest = lines.slice(4).map((line) => `<span>${esc(line)}</span>`).join('');
     if ($('tileRest').innerHTML !== rest) $('tileRest').innerHTML = rest;
     $('personFamily').hidden = selPawn < 0;
-    $('tileRel').hidden = true; $('relationsDetails').hidden = true;
+    $('tileRel').hidden = true; $('relationsDetails').hidden = true; $('playBox').hidden = true;
     $('tile').hidden = activePanel !== 'tile';
     syncTabs();
   }

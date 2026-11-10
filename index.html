@@ -271,6 +271,37 @@ body:has(.toast) .lod { visibility: hidden; }
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+/* Playing a pawn (VB-210): the scenario's suggestion at a new game, over the toasts; the played pawn's part of its card. */
+.play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
+.play-offer span { flex: 1 1 180px; }
+body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 130px); }
+.play { margin: 8px 0; }
+.play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
+.play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
+.play .hint { color: var(--muted); }
+.play .refused { color: var(--bad); }
+.play-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.play-head h3 { margin: 0; }
+.play .switches { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.play .switches button { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.play .switches button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.play ol, .play ul { list-style: none; margin: 0; padding: 0; }
+.play .queue li { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 2px 0; font-size: 14px; }
+.play .queue span, .play li.opp span { margin: 0; color: var(--ink); }
+.play li.opp i { font-style: normal; font-size: 13px; color: var(--muted); }
+.play .queue i, .play .opp i { font-style: normal; color: var(--muted); }
+.play .queue button { min-height: 32px; padding: 2px 10px; font-size: 13px; }
+.play button.opp { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; width: 100%; min-height: 36px; margin: 2px 0;
+  padding: 4px 10px; font-size: 14px; text-align: left; background: var(--node); }
+.play button.opp i { font-size: 13px; }
+.play button.opp:disabled { cursor: not-allowed; background: none; }
+.play button.opp[aria-pressed="true"] { border-color: var(--accent); }
+.play li.opp { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
+.play li.opp.barred, .play button.opp:disabled { opacity: 0.6; }
+@media (pointer: coarse) { .play button.opp, .play .queue button, .play .switches button { min-height: 44px; } }
 .notices summary { font-size: 14px; color: var(--muted); }
 .notices .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
 .custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
@@ -283,7 +314,7 @@ body:has(.toast) .lod { visibility: hidden; }
 .custom-card .sbar { height: 8px; margin: 8px 0; }
 .table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
 .cust { min-width: 500px; }
-body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts { visibility: hidden; pointer-events: none; }
+body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
 body.ui-hidden .hud * { pointer-events: none; }
 .genscreen { overflow-y: auto; }
@@ -452,6 +483,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 </div>
 <button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
+<div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
   <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
@@ -503,6 +535,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
         <span id="tileExtra" hidden></span>
         <span id="tileMore" hidden></span>
         <div id="tileRest"></div>
+        <div id="playBox" class="play" hidden></div>
         <div id="tileLinks" class="links" hidden></div>
         <div id="tileList" class="roster" hidden></div>
         <button type="button" id="personFamily" hidden>View family records</button>
@@ -9609,7 +9642,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     choice = { seed, scenario, size };
     $('genScreen').hidden = true;
     building = true; $('regen').disabled = true;
-    loader.classList.remove('done');
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null;
     setLoad('Raising the land', 0);
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
@@ -9680,6 +9713,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
+    offerPlay();
     building = false; $('regen').disabled = false;
   }
 
@@ -9786,6 +9820,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
+    if (inspect && walkPick) { pickWalk(loc(x, y, [0, 0])); return; } // "Walk here" waits for a tile (page/play)
     if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
     const named = inspect ? labelAt(x, y) : null; // a click on a name on the map selects the village or the lone farm it names
     if (named) { if (named.village !== undefined) selectVillage(named.village, false); else selectFarm(named.farm, false); return; }
@@ -9828,6 +9863,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       pinch.m = { x: mx, y: my }; zt = cam.z;
     } else if (drag) {
       moved += Math.abs(dx) + Math.abs(dy);
+      if (moved >= 8) followPlayed = false; // dragging the map lets go of the played pawn (page/play)
       cam.x -= dx / cam.z; cam.y -= dy / cam.z;
       const now = performance.now(), dt = Math.max(8, now - drag.t) / 1000;
       vel.x = 0.75 * vel.x + 0.25 * (-dx / cam.z / dt); vel.y = 0.75 * vel.y + 0.25 * (-dy / cam.z / dt);
@@ -9917,6 +9953,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
+    if (panel) $('playOffer').hidden = true;
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
@@ -11239,7 +11276,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const a = st.agents[selPawn];
       ring.ellipse(a.x, a.y + 0.5, 6.5, 2.6).stroke({ width: 1.4 / Math.max(cam.z, 0.6), color: 0xffffff, alpha: 0.95 }); ring.zIndex = a.y - 0.5;
     }
-    drawTalk(show); drawLens();
+    drawTalk(show); drawLens(); drawPlayMark();
     // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
     // winter; it is banked for the night otherwise. A lit hearth sends smoke out of the smoke hole, and after dark its light shows.
     const fireHours = (c.hour >= Sim.WORK[1] - 1 && c.hour < 22) || (c.hour >= Sim.WORK[0] - 1 && c.hour < Sim.WORK[0] + 1);
@@ -11479,6 +11516,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id), { badge: faceImg(id, 'badge'),
       links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) });
     showRelations(id);
+    renderPlay(id);
   }
   // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
   let relHTML = '';
@@ -11531,7 +11569,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const rest = lines.slice(4).map((line) => `<span>${esc(line)}</span>`).join('');
     if ($('tileRest').innerHTML !== rest) $('tileRest').innerHTML = rest;
     $('personFamily').hidden = selPawn < 0;
-    $('tileRel').hidden = true; $('relationsDetails').hidden = true;
+    $('tileRel').hidden = true; $('relationsDetails').hidden = true; $('playBox').hidden = true;
     $('tile').hidden = activePanel !== 'tile';
     syncTabs();
   }
@@ -11758,6 +11796,170 @@ if (typeof module !== 'undefined') module.exports = Sim;
     cardTab = cardTab === 'history' ? 'facts' : 'history'; syncTabs();
     $(cardTab === 'history' ? 'tabHistory' : 'tabFacts').focus(); e.preventDefault();
   });
+  // ======== playing a pawn ========
+  // Which pawn is played, its queue and its switch are the run's (st.player, written only through Sim.inhabit, uninhabit, queue, unqueue and
+  // setAuto). Following it with the camera, choosing a tile to walk to and the last message are the page's own state, never saved.
+  let followPlayed = false, walkPick = false, playMsg = null, playHTML = '';
+  const ADULT = 18; // who may be played: any living adult (design.md, Which pawn)
+  const playMark = new PIXI.Graphics();
+  L.hover.addChild(playMark);
+  const played = () => (st && st.player && st.pawns[st.player.pawn].died === null ? st.player.pawn : -1);
+  // The scenario's suggestion (design.md, Which pawn): the first holder of the first household; in populous, that is a holder too.
+  function suggestedPawn() {
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.holder === null) continue;
+      const p = st.pawns[hh.holder];
+      if (p.died === null && p.age >= ADULT) return p.id;
+    }
+    return -1;
+  }
+  const pad = (n) => String(n).padStart(2, '0');
+  const clockOf = (t) => { const m = Math.floor(Sim.cal(t).hour * 60 + 1e-6); return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+  const holderName = (o) => (!o ? '' : o.type === 'village' ? st.villages[o.id].name : st.farmsteads[st.households[o.id].farmstead].name);
+  const VERB_WORDS = { work: 'Work', walkTo: 'Walk to a tile', goHome: 'Go home', idle: 'Idle', argue: 'Argue for a cause', dropCause: 'Drop the cause',
+    leave: 'Move out to new land', claim: 'Claim an empty farm', serve: 'Take service' };
+  // A command in words: a queued one, or an opportunity (which also has its kind and holder).
+  function commandWords(c) {
+    if (c.verb === 'work') {
+      const j = st.jobs.get(c.target), kind = c.kind || (j && j.kind), owner = c.holder || (j && j.owner);
+      return `${kind ? Sim.KINDS[kind].name : 'Work'}${owner ? ` for ${holderName(owner)}` : ''}`;
+    }
+    if (c.verb === 'idle') return c.args && c.when === undefined ? `Idle until ${clockOf(c.args.until)}` : 'Idle for an hour';
+    if (c.verb === 'walkTo') return c.target === null ? 'Walk here' : 'Walk to a tile';
+    if (c.verb === 'argue') { const d = Culture.DIMS[c.args.dim]; return `${d.label}: ${d.opts[c.args.option][1].toLowerCase()}`; }
+    if (c.verb === 'dropCause') return `Drop the cause: ${Culture.DIMS[c.args.dim].label.toLowerCase()}`;
+    if (c.verb === 'claim') return `Claim ${st.farmsteads[c.target].name}`;
+    if (c.verb === 'serve') return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
+    return VERB_WORDS[c.verb] || c.verb;
+  }
+  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
+  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only where its verb is not yet the
+  // player's (causes, VB-211; the round's acts, VB-212).
+  function oppRow(o, open) {
+    const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
+    if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
+    const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target }));
+    return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  }
+  // The household's food in days of need: grain above the seed set aside, cooked rations and the larder, over a day's rations of its living.
+  function foodDays(hh) {
+    let need = 0;
+    for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
+    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.rations + Sim.larderOf(hh);
+    return need > 0 ? Math.floor(food / need) : null;
+  }
+  // The played pawn's part of its card, after card() has hidden it: rebuilt with the card (at most four times a second, page/animate), and
+  // Sim.opportunities is called once per rebuild, only for the played pawn.
+  function renderPlay(id) {
+    const p = st.pawns[id], pl = st.player;
+    let h = '';
+    if (!pl || pl.pawn !== id) {
+      if (p.age >= ADULT) h = `<button type="button" class="primary" id="playAs" data-play="inhabit">Play as ${esc(Sim.fullName(p))}</button>`;
+    } else {
+      const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
+      const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
+      const food = !hh ? '' : ` ${esc(f.name)}: food for ${days === null ? 'no one' : `${days} ${days === 1 ? 'day' : 'days'}`}, firewood ${wood} ${
+        wood === 1 ? 'load' : 'loads'}.`;
+      h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="stop">Stop playing</button></div>`;
+      h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%, health ${Math.round(p.health)}.${food}</p>`;
+      h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
+      h += `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>`
+        + `<button type="button" data-play="follow" aria-pressed="${followPlayed}">Follow</button></div>`;
+      h += '<h3>Queue</h3>';
+      h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
+        `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
+        + `<button type="button" data-play="unqueue" data-i="${i}" aria-label="Remove ${esc(commandWords(c))}">Remove</button></li>`).join('')}</ol>`
+        : `<p class="hint">${pl.auto ? 'Nothing queued: it does what its role would.' :
+          'Nothing queued, and its automatic behaviour is off: it waits, and goes home at dark.'}</p>`;
+      if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
+        pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
+      const opps = Sim.opportunities(st, id), groups = { work: [], going: [], causes: [], round: [] };
+      for (const o of opps) {
+        const g = o.when === 'round' ? 'round' : o.verb === 'work' ? 'work' : o.verb === 'argue' || o.verb === 'dropCause' ? 'causes' : 'going';
+        groups[g].push(o);
+      }
+      h += '<h3>What it may do here</h3>';
+      h += `<h4>Work</h4>${groups.work.length ? `<ul class="opps">${groups.work.map((o) =>
+        oppRow(o, true)).join('')}</ul>` : '<p class="hint">No work it may take.</p>'}`;
+      h += `<h4>Going</h4><ul class="opps">${groups.going.map((o) =>
+        oppRow(o, true)).join('')}<li><button type="button" class="opp" data-play="walk" aria-pressed="${
+        walkPick}">${walkPick ? 'Choose an open tile on the map, or cancel' : 'Walk here'}<i>for itself</i></button></li></ul>`;
+      if (groups.causes.length) h += `<h4>Causes <span>shown only, for now</span></h4><ul class="opps">${groups.causes.map((o) =>
+        oppRow(o, false)).join('')}</ul>`;
+      if (groups.round.length) h += `<h4>At the moving round <span>shown only, for now</span></h4><ul class="opps">${groups.round.map((o) =>
+        oppRow(o, false)).join('')}</ul>`;
+    }
+    if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
+    if (h !== playHTML) { playHTML = h; $('playBox').innerHTML = h; }
+    $('playBox').hidden = !h;
+  }
+  function playAs(id) {
+    const r = Sim.inhabit(st, id);
+    playMsg = r === true ? null : { id, text: r }; walkPick = false; $('playOffer').hidden = true;
+    return r;
+  }
+  $('playBox').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-play]');
+    if (!b || !st || selPawn < 0) return;
+    const id = selPawn, act = b.dataset.play;
+    let r = true;
+    if (act === 'inhabit') r = playAs(id);
+    else if (act === 'stop') { r = Sim.uninhabit(st); followPlayed = false; walkPick = false; }
+    else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
+    else if (act === 'follow') followPlayed = !followPlayed;
+    else if (act === 'walk') walkPick = !walkPick;
+    else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
+    else if (act === 'do') {
+      const c = JSON.parse(b.dataset.cmd);
+      r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : null });
+    }
+    playMsg = r === true ? null : { id, text: r };
+    showPawn(id);
+  });
+  // "Walk here": the next tile clicked on the map, if open; a closed one says why and waits for another (page/tileinfo asks first).
+  function pickWalk(i) {
+    const id = played();
+    if (id < 0) { walkPick = false; return; }
+    const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
+    if (!o || o.why) playMsg = { id, text: `${o ? o.why : 'no one can walk there'}: choose an open tile` };
+    else { const r = Sim.queue(st, { actor: id, verb: 'walkTo', target: i }); walkPick = false; playMsg = r === true ? null : { id, text: r }; }
+    if (selPawn === id) showPawn(id);
+  }
+  // Follow: the camera stays on the played pawn, or its house while it is indoors; dragging the map lets go (page/input).
+  function followCamera() {
+    const id = played();
+    if (id < 0) { followPlayed = false; return; }
+    const a = st.agents[id], f = farmOf(st.pawns[id]);
+    if (a.inside && !f) return;
+    cam.x = a.inside ? w.hx[f.house] : a.x; cam.y = a.inside ? w.hy[f.house] : a.y; vel.x = vel.y = 0;
+  }
+  // The played pawn's mark on the map: a gold pointer over its head, or over its house while it is indoors, the same size on screen at
+  // any zoom, so it can be found among the others and from afar.
+  function drawPlayMark() {
+    playMark.clear();
+    const id = played();
+    if (id < 0 || document.body.classList.contains('ui-hidden')) return;
+    const p = st.pawns[id], a = st.agents[id], f = farmOf(p), k = 1 / Math.max(cam.z, 0.12);
+    if (a.inside && !f) return;
+    const x = a.inside ? w.hx[f.house] : a.x, y = a.inside ? w.hy[f.house] - 16 : a.y - 22 * PAWN_S * sizeAt(p.age);
+    const tip = y - 3 * k, top = tip - 12 * k;
+    playMark.poly([x, tip, x - 7 * k, top, x + 7 * k, top]).fill({ color: 0xf2c14e }).stroke({ width: 1.6 * k, color: 0x2c201c });
+  }
+  // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
+  function offerPlay() {
+    const id = suggestedPawn(), box = $('playOffer');
+    if (id < 0) { box.hidden = true; return; }
+    const f = farmOf(st.pawns[id]);
+    box.dataset.pawn = String(id);
+    $('playOfferText').textContent = `Play as ${Sim.fullName(st.pawns[id])}${f ? `, who holds ${f.name}` : ''}?`;
+    box.hidden = false;
+  }
+  $('playOfferYes').addEventListener('click', () => {
+    const id = +$('playOffer').dataset.pawn;
+    if (!st || !st.pawns[id]) return;
+    if (playAs(id) === true) focusPawn(id);
+  });
+  $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
@@ -12436,6 +12638,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (keys.has('arrowup') || keys.has('w')) cam.y -= sp * dt;
       if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
     }
+    if (followPlayed && st && !intro && !drag && !pinch) followCamera();
     clampCam();
     world.scale.set(cam.z);
     world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);
