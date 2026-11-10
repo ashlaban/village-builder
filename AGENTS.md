@@ -21,7 +21,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 3. If it turns out to need a design decision, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm test` and `node tests/golden.js`; for a task of size M or L, or one that touches `src/page/`, `npm run verify`
-   instead, once. Rebuild `index.html` before committing. The task is not done until the PR's Checks pass.
+   instead, once. Rebuild `index.html` before committing. The Checks workflow is off for pull requests (Kim, 10 November): report what
+   fails and by how much, in the task file and the PR.
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
@@ -106,8 +107,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Behaviour-preserving work leaves `tests/golden.json` unchanged (the refactor rules are in `BACKLOG.md`, "How this backlog works").
 - Use `npm test` while working, after each change. At the end of a task, before its last commit: `node tests/golden.js` (the golden file
   is not in `npm test`), or `npm run verify` once for size M or L and for a change under `src/page/`. The Checks workflow
-  (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, on every PR: a task is not done until
-  both of its jobs pass, and a failure there is fixed on the PR.
+  (`.github/workflows/checks.yml`) runs verify, and the fixture tests on the published fixtures, only when started by hand (Kim,
+  10 November: no hard gates in this phase of development; targets and their residuals instead, VB-261). Until VB-261 says how, a PR
+  names each check that fails, its target and its residual, and does not raise a baseline to hide one.
 - Rebuild `index.html` before committing; both suites check it.
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.

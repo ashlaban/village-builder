@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 10 November 2026 (VB-201)
+
+## VB-201: the never-married measure of the demographic gate (raised 10 November 2026)
+The spread (`0bc77a3`, restored on VB-206's meeting stages in `509d45e`, reverted in `613c108`; numbers in `backlog/VB-201.md`) leaves no step over 38 ms at `medium-ref` and none over 31 at `small-y40` in a whole year (before: 84.9 and 72.8 ms). The 12-seed gate (populous small, 30 years, seeds 1 to 12): marriages a year +1.05%, first-marriage age +0.25%, both within 5%; the never-married share of women 45 to 54 falls from 3.22% to 1.97% (-39%): 8 of 204 women before, 6 of 220 after, two women fewer over 12 seeds. On a count this small, 5% relative can only be met by an equal count, so the gate as written turns on chance.
+1. How is the never-married share gated? **P:** in absolute terms, as the zero case already is: the after mean within 1 woman in 50 (2 percentage points) of the before mean, each seed's count reported. Here -1.25 points passes, and `509d45e` lands as it is: golden file re-recorded, counters ratcheted (`walkDaily` 5 to 6), `tests/record.js`'s heirs-7 anchor re-recorded (230 to 219 events: behaviour, not format), `tools/perf.js` counting `nightCulture` in daily life and births, then `npm run calibrate` and `npm run verify`.
+   **A (Kim, 10 Nov):** Gate the never-married share within 2 percentage points.
+
 # Archived 10 November 2026 (VB-039)
 
 ## VB-039 and VB-106: help as memories (relationships review)
