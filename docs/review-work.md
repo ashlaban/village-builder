@@ -229,3 +229,24 @@ anything, since the sim report for them is `--report hunger` and the field stage
 - *Opportunities stored as a list that every rule must keep true:* the very thing the move away from posting avoids; the cache is derived,
   rebuilt, and tested against a fresh computation.
 - *Moving the means to marry into the plan:* it gates a decision at the moving round; it is not work.
+
+## 8. Kim's answers (10 November 2026) and what they change above
+
+The ten questions are answered (`QUESTION_ARCHIVE.md`); `design.md` section 7 holds the text that stands, and replaces section 3 here.
+Sections 2 and 5 above are kept as written; where they differ, this section and the task files hold.
+
+- **How a holder chooses (section 2) is three layers.** (1) *The year*: the culture's template, as in section 2. (2) *Foresight*: the head
+  reads an estimate of the need; wits, husbandry and years as head set its horizon (react, a season ahead, two) and a persistent bias on each
+  target, drawn once when it becomes head. (3) *Projects*: a head with its targets met and hands and stores to spare takes one project from a
+  short menu, weighted by its values (ambition: more fields, a claim; generosity: a farm or cottage for the heir; a barn). Traits are
+  stand-ins, one drawn number per pawn and trait, until slice 7. Still not an optimiser: the choice is among at most four options, once a
+  year per holder.
+- **Cost of the layers (section 4).** Foresight adds a few multiplications to a review and draws nothing (the bias is stored). Projects:
+  holders with a surplus and no project, times once a year, times at most four options; about 200 holders at 1,000 living. Neither walks
+  pawns or pairs.
+- **Idle hours (Q6):** no limit; reported by each wrap-up.
+- **The player as head (Q7):** every choice of the plan, the project included, by parity of command (`design.md`, section 15).
+- **Sowing first (Q9):** the template's order for all (VB-023); the poorest tenth of heads leave it once foresight is built (VB-254).
+- **Tasks (section 5) as filed:** VB-258, VB-248, VB-249, VB-250, VB-251, VB-252, VB-023, VB-123, VB-253, VB-254, VB-255, VB-256, VB-257,
+  then the tasks taken over and the wrap-up VB-108. Draft task 6 (size L) is split into VB-252, VB-023, VB-123, VB-253, VB-254 and VB-255.
+
