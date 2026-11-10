@@ -58,6 +58,7 @@ From the markets review (`docs/review-markets.md`) and Kim's answers of 10 Novem
 2. Which goods of place first? **P:** dried fish (sea shore, lake or river) and tar (pine forest), both made as side crafts with a simple facility; bog iron with tools that wear (VB-121), stone with the mill (slice 6), salt and fine cloth with the ship (slice 8).
    **A (Kim, 10 Nov):** Yes. Can we add more? What would tar be used for? The value of the goods should be grounded in a pawn's need, or prestige or the like (see questions 9 and 10).
 3. Specialised work as side crafts. **P:** a household stays a farm and takes a craft in its slack hours, aimed by its holder's project at something only the fair gives; skill by hours and one facility a household make a village's fisher or tar burner without a rule naming them; a craft household and a full specialist follow only as the market is held more often (the ladder).
+   **A (Kim, 10 Nov):** Side crafts are a good idea.
 4. How a village comes to host. **P:** a village with a green may offer at its autumn meeting; every village chooses there the gathering it attends next year, by nearness in travel and in customs, kin there, the hosts' prestige and how last year's went; one gathering a village; fewer than three villages and it is not held.
    **A (Kim, 10 Nov):** Yes.
 5. Who decides a border case at the gathering? **P:** the holders present from the villages not party to it, under the Disputed claims custom of the gathering's villages; two villages of different gatherings settle it as now.
@@ -67,9 +68,15 @@ From the markets review (`docs/review-markets.md`) and Kim's answers of 10 Novem
 7. Keeping goods. **P:** butter, dried fish, tar, cloth and a sheep are accepted beyond the taker's own need, at customary worth and up to a cap, to pass on later: barter's way round "you have nothing I want", and the island's nearest thing to money before silver.
    **A (Kim, 10 Nov):** Yes.
 8. The dates. **P:** autumn days 6 to 8, before the village meetings of day 10.
+   **A (Kim, 10 Nov):** Days 6 to 8 feel early: that would be the middle of harvest. The gathering should be after the harvest (see question 12).
 9. A third good for slice 4, grounded in standing? Kim asked on 10 November for more goods, each grounded in a need or in prestige (`design.md`, What each good is for). **P:** ale: brewed from surplus grain, poured by the host at the gathering and at weddings and funeral ales (VB-126); the guests' opinion of the host rises with what was poured, and prestige gains a small term for it. It gives the plain villages' grain a use and the host a cost. Furs wait for roe deer (VB-139), the rest for slices 6 and 8.
+   **A (Kim, 10 Nov):** Ale sounds good.
 10. Does tar give standing? **P:** yes, a little: a tarred farm counts toward its holder's prestige, as the first answer to the open point "what a more prestigious house brings its owner"; its main use stays the need (boats, timber).
+   **A (Kim, 10 Nov):** A well-maintained house should give prestige, up to a cap. Tar makes it easier to gain prestige from that source: it raises the cap slightly and slows the decay a bit.
 11. Disposition between villages. Judging a border case implies that villages stand in some relation to each other. **P:** no new stored number: it is read from the opinions and goodwill balances the holders of one village already hold toward those of another, border grudges included; it leans a judge, weighs in the choice of gathering, and moves with cases, matches and deals.
+   **A (Kim, 10 Nov):** Ok.
+12. The gathering's days, after the harvest. Fields ripen from autumn day 3 to 12, then are dried and threshed; the meetings are on autumn day 10 and the moving round on day 11. **P:** winter days 1 to 3: the grain is in, the slaughter done, the first snow from day 2. The gathering then follows the meetings and the round: a village chooses its gathering at its meeting a few days before, and a match agreed at the gathering is concluded there, by the same acts the round uses, so the couple does not wait a year.
+13. Grain loans. **A (Kim, 2026-11-10):** move them to slice 5 (debt, VB-184); slice 4's fair is barter only.
 
 ### Towns: the bases of city formation (cities review of 1 November)
 The review (`docs/review-cities.md`) names eight bases of a town; the game has the landless (1), a surplus (2) and the sites (5), and lacks a way to move the surplus (3), work only a town does (4), rules (6), a patron (7) and a town's way of life (8). It proposes a new arch `towns` in five phases. No tasks yet: the answers let its plan task be written. Questions 5 and 6 are about the game as it is and concern the expansion wrap-up (VB-035).
