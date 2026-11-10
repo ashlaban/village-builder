@@ -1,0 +1,135 @@
+{
+ "session": "e68914dc-874f-5aa9-99c9-51cb5837d3ee",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-10T03:46:42.552Z",
+ "end": "2026-11-10T06:20:20.757Z",
+ "wallMin": 153.6,
+ "activeMin": 80.5,
+ "prompts": 2,
+ "calls": 42,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 96,
+  "cacheWrite": 68038,
+  "cacheRead": 3038649,
+  "output": 18206
+ },
+ "context": {
+  "first": 49982,
+  "peak": 98115
+ },
+ "tools": {
+  "Bash": {
+   "calls": 19,
+   "bytes": 20525,
+   "seconds": 575.8
+  },
+  "Agent": {
+   "calls": 7,
+   "bytes": 6647,
+   "seconds": 2601
+  },
+  "ReadNotifications": {
+   "calls": 1,
+   "bytes": 24,
+   "seconds": 0
+  },
+  "ToolSearch": {
+   "calls": 3,
+   "bytes": 309,
+   "seconds": 1.4
+  },
+  "mcp__github__create_pull_request": {
+   "calls": 1,
+   "bytes": 79,
+   "seconds": 2
+  },
+  "mcp__github__update_pull_request": {
+   "calls": 4,
+   "bytes": 316,
+   "seconds": 1865
+  },
+  "TaskStop": {
+   "calls": 1,
+   "bytes": 188,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 9,
+   "bytes": 7663
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 7,
+   "bytes": 6647
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -vE",
+   "calls": 1,
+   "bytes": 6332
+  },
+  {
+   "tool": "Bash",
+   "what": "env -u",
+   "calls": 1,
+   "bytes": 2298
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 1,
+   "bytes": 1678
+  },
+  {
+   "tool": "Bash",
+   "what": "head -15",
+   "calls": 1,
+   "bytes": 1035
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 830
+  },
+  {
+   "tool": "Bash",
+   "what": "sleep 3",
+   "calls": 1,
+   "bytes": 431
+  },
+  {
+   "tool": "mcp__github__update_pull_request",
+   "what": "",
+   "calls": 4,
+   "bytes": 316
+  },
+  {
+   "tool": "ToolSearch",
+   "what": "select:mcp__github__create_pull_request,mcp__github__update_pull_request,mcp__github__pull_request_read",
+   "calls": 1,
+   "bytes": 214
+  },
+  {
+   "tool": "TaskStop",
+   "what": "",
+   "calls": 1,
+   "bytes": 188
+  },
+  {
+   "tool": "Bash",
+   "what": "git rev-parse",
+   "calls": 1,
+   "bytes": 149
+  }
+ ]
+}
