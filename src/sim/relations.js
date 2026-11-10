@@ -215,15 +215,12 @@ VB['sim/relations'] = (() => {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents, ids = st.living, n = ids.length;
     for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
-    const start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the living, and on round them from there
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
-    // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
-    let lo = 0, hi = n;
-    while (lo < hi) { const mid = (lo + hi) >>> 1; if (ids[mid] < start) lo = mid + 1; else hi = mid; }
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
-      const a = ag[ids[(lo + k) % n]];
+      const a = ag[ids[(start + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;

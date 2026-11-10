@@ -4029,15 +4029,12 @@ VB['sim/relations'] = (() => {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents, ids = st.living, n = ids.length;
     for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
-    const start = Math.floor(rnd(st.rng.talk) * ag.length);
+    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the living, and on round them from there
     if (busy.length < ag.length) { busy = new Int32Array(2 * ag.length); seen = new Int32Array(2 * ag.length); }
-    // Same cyclic id order and random draw as the historical array, without visiting its dead entries.
-    let lo = 0, hi = n;
-    while (lo < hi) { const mid = (lo + hi) >>> 1; if (ids[mid] < start) lo = mid + 1; else hi = mid; }
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
-      const a = ag[ids[(lo + k) % n]];
+      const a = ag[ids[(start + k) % n]];
       if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
       const ya = young(st, st.pawns[a.id]), sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0; cand.length = 0; wts.length = 0;
@@ -13599,7 +13596,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '7a974342db', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'da8db19d4f', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
