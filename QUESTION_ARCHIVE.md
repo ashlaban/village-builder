@@ -113,6 +113,9 @@ Opinion is now the sum of timed memories (VB-060, `SOCIAL.memories`): each kind 
    *8 Nov 2026:* superseded by VB-182, question 2 (answered, archived): a gift colours opinion through goodwill's curves, not a memory; slice 4 switches them on.
 2. Help with work (VB-106). **P:** the helper and each adult of the helped household remember "Worked together", +0.05 per job, cap +0.3, fading over a year, both ways (the accepted +0.05 × (1 − opinion) becomes a plain +0.05 under a cap).
    **A (Kim, 10 Nov):** as proposed (P): a memory "Worked together", +0.05 a task, cap +0.3, fading over a year, both ways.
+   *10 Nov 2026 (VB-240):* work done together already grows the tie (`SOCIAL.ties.work`, 0.5 a job), and since VB-240 the tie carries the
+   pair's compatibility into opinion (affinity), so working together moves opinion without a memory: talk's memories went for this reason.
+   A "Worked together" memory would count the same dealing twice; for Kim to confirm it is no longer wanted.
 
 # Archived 10 November 2026 (VB-120)
 

@@ -40,6 +40,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Bounded history (VB-199): `pawn.events` holds positions in `st.record`, read with `Sim.recordOf(st, {pawn, life: true})` (`sim/notable`,
   `lifeOf`); a new kind of event goes into `HISTORY` (`sim/records`), 0 to keep it or the years after which `foldHistory` folds it into
   `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
+- Relationships (VB-127, VB-240): `src/sim/relations.js` owns familiarity (`pawn.ties`, on a decay scale per pawn), memories of events
+  (`pawn.rel`, kinds of `SOCIAL.memories`, written by `remember`; a record exists only while it holds one) and the close-friend and enemy
+  bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): kin standing, plus affinity (the pair's compatibility, shown as the tie
+  grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
+  change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
