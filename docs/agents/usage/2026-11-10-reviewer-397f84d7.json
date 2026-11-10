@@ -1,0 +1,79 @@
+{
+ "session": "397f84d7-24ec-58f6-8507-4feae2314a2c",
+ "label": "reviewer",
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "start": "2026-11-10T04:49:56.401Z",
+ "end": "2026-11-10T04:51:29.664Z",
+ "wallMin": 1.6,
+ "activeMin": 1.6,
+ "prompts": 1,
+ "calls": 5,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 12,
+  "cacheWrite": 29007,
+  "cacheRead": 246304,
+  "output": 1672
+ },
+ "context": {
+  "first": 49766,
+  "peak": 59209
+ },
+ "tools": {
+  "Bash": {
+   "calls": 4,
+   "bytes": 13817,
+   "seconds": 77
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 143,
+   "seconds": 1.1
+  },
+  "mcp__github__list_pull_requests": {
+   "calls": 1,
+   "bytes": 387,
+   "seconds": 0.9
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 1,
+   "bytes": 6998
+  },
+  {
+   "tool": "Bash",
+   "what": "git checkout",
+   "calls": 1,
+   "bytes": 4619
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 1669
+  },
+  {
+   "tool": "Bash",
+   "what": "npm install",
+   "calls": 1,
+   "bytes": 531
+  },
+  {
+   "tool": "mcp__github__list_pull_requests",
+   "what": "",
+   "calls": 1,
+   "bytes": 387
+  },
+  {
+   "tool": "ToolSearch",
+   "what": "select:mcp__github__list_pull_requests,mcp__github__create_pull_request",
+   "calls": 1,
+   "bytes": 143
+  }
+ ]
+}

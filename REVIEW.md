@@ -368,3 +368,18 @@ Since the first pass: claims on tiles and the Disputed claims custom (VB-155, VB
 - VB-034, VB-058 and VB-083 set to `ready`.
 - Pick order rewritten: VB-053, then the foundations (VB-072 to VB-076), then the growth path (VB-090, VB-034, VB-058).
 - The question block "Review, 2 November" in `QUESTIONS.md` revised: VB-033 is answered; VB-127, VB-129 and the "keep" blocks are first.
+
+## Review, 10 November 2026 (at `34d0f00`, after the chronicle and the actor view)
+
+An unattended, short pass. Since 9 November: kin familiarity (VB-127), toasts (VB-098), the chronicle (VB-099), the player inhabiting a pawn (VB-169) and the actor view (VB-209). `npm test` passes (82 scripts, 64 s). Open PRs: #88 (the nightly) and #52 (a Codex change that shares map geometry; stale, it predates the layering work and should be rebased or closed by Kim).
+
+### Summary
+
+1. **Founders still stay small.** Seed 7 small, founders: 18 living in year 10, 17 in year 9. The growth path is the limit on the game's feel, not the yardstick.
+2. **The ready queue is mostly yardstick and refactor work.** Of 17 ready tasks, 8 are yardstick or refactor (VB-163, 201, 206, 227, 228 to 232) and only VB-139, VB-210 and VB-233 touch play. Slice 3's plan (VB-164) gates 13 gameplay tasks; it is the best unlock and should be taken before more refactors.
+3. **Questions are piling up unanswered:** 21 blocks, 0 answered. VB-164's question (may slice 3's plan run before slice 2's?) and VB-219's six decide what workers can take next.
+4. **Not examined this pass:** the code against design in depth, and a late-save perf measurement.
+
+### Backlog changes from this review
+
+None. Recommended order for Kim's answers: the VB-164 block, then VB-219, then the architecture block of 3 November.
