@@ -9,9 +9,10 @@
 //   --years N      every run cut to N years, for a quick look (recorded with the cut)
 //   --if-new       does nothing when the history already holds a full run at HEAD (tools/nightly.js)
 //   --out FILE     the history to append to (default docs/bench/bands.jsonl)
+//   --record       also appends the target records to docs/bench/targets.jsonl (tests/lib/targets.js)
 require('./help.js')(__filename);
 const fs = require('fs'), os = require('os'), path = require('path'), { fork } = require('child_process');
-const root = path.join(__dirname, '..'), B = require('../tests/lib/bands.js');
+const root = path.join(__dirname, '..'), B = require('../tests/lib/bands.js'), { target } = require('../tests/lib/targets.js');
 const HISTORY = path.join(root, 'docs/bench/bands.jsonl');
 const git = (a) => { try { return require('child_process').execFileSync('git', a, { cwd: root }).toString().trim(); } catch (e) { return 'unknown'; } };
 
@@ -80,6 +81,16 @@ async function main(args = process.argv.slice(2)) {
     bands: bands.map((j) => ({ id: j.id, seed: j.seed, value: Number.isFinite(j.value) ? +j.value.toFixed(4) : String(j.value), ok: j.ok })) };
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.appendFileSync(out, JSON.stringify(entry) + '\n');
+  // target records (docs/gates.md, row 22; VB-265): one per band and run, the mean over the seeds against the band's range, its noise
+  // the standard error over the seeds (a residual within twice that is `noise`), the seeds' own values kept in the record
+  const groups = new Map();
+  for (const j of bands) { const k = `${j.id.split('/')[0]}/${j.run}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(j); }
+  for (const [k, js] of groups) {
+    const v = js.map((j) => j.value), n = v.length, mean = v.reduce((a, b) => a + b, 0) / n;
+    const se = n > 1 && v.every(Number.isFinite) ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1) / n) : 0;
+    target(`bands/${k}`, { where: `${js[0].run} ${runs.find((r) => r.name === js[0].run).map}, seeds ${js.map((j) => j.seed).join(',')}`, dir: 'range',
+      target: [js[0].lo, js[0].hi], measured: mean, noise: { kind: 'seeds', spread: 2 * se, n }, extra: { se, seeds: v.map((x) => +x.toFixed(4)), inBand: js.filter((j) => j.ok).length } });
+  }
   const outs = bands.filter((j) => !j.ok).length;
   console.log(`bands: ${bands.length - outs} in, ${outs} out, ${runs.filter((r) => r.result.error).length} errors in ${entry.minutes} minutes;`
     + ` appended to ${path.relative(root, out)}`);
