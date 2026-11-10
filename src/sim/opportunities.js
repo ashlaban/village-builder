@@ -86,18 +86,23 @@ VB['sim/opportunities'] = (() => {
       return ranked;
     };
     const heirs = { has: (id) => !view.demand.includes(id) && (ranked || firsts()).has(id) };
+    // The player's wishes stand in for the pawn's own (st.player.wishes): each act's `why` is as the round would decide with them, and for
+    // the played pawn `own` says what the pawn itself would do about moving out, whatever the player wishes.
+    const pl = view.player, wishes = pl && pl.pawn === p.id ? pl.wishes : null;
     const stays = staysWhy(view, p, heirs);
-    out.push(item('leave', null, null, stays, atRound));
+    out.push(item('leave', null, null, stays, wishes ? { ...atRound, own: staysWhy(view, p, heirs, null, null, null) } : atRound));
     // an empty farm of its village: the round gives it to the first claimant among those who want out
-    const bar = stays || claimBar(view, p.id);
+    const bar = stays || claimBar(view, p.id) || (wishes && wishes.claim === false ? 'its player wishes it to claim no farm' : null);
+    const other = (f) => (wishes && wishes.claim !== null && wishes.claim !== f.id ? 'its player wishes for another farm' : null);
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k];
       if (f.household !== null) continue;
-      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar;
+      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar || other(f);
       out.push(item('claim', f.id, null, why || check(view, p.id, 'claim', f.id, null), atRound));
     }
     // service with a holder of its village who lives alone
-    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null);
+    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null)
+      || (wishes && wishes.serve === false ? 'its player wishes it to take no service' : null);
     let lone = 0;
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k], hh = f.household === null ? null : view.households[f.household];

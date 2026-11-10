@@ -3342,6 +3342,9 @@ VB['sim/records'] = (() => {
     return null;
   };
   const isHolder = (st, id) => holdingOf(st, id) !== null;
+  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
+  // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
+  const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
   const practice = (st, settlementId) => {
     const s = st.cenv.settlements[settlementId], out = {};
     Culture.DIMS.forEach((d, k) => { out[d.key] = d.opts[s.practice[k]][0]; });
@@ -3442,7 +3445,7 @@ VB['sim/records'] = (() => {
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
-    noteLine, householdsOfLine, ancestorsOf,
+    noteLine, householdsOfLine, ancestorsOf, wishOf,
   };
 })();
 </script>
@@ -5861,7 +5864,7 @@ VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
-    atHousehold } = VB['sim/records'];
+    atHousehold, wishOf } = VB['sim/records'];
   const CL = VB['sim/claims'];
   const { seedReserve, dailyNeed } = VB['sim/hunger'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
@@ -5916,6 +5919,7 @@ VB['sim/farmclaims'] = (() => {
   //   anyone    any landless adult of a village within reach
   //   assembly  the meeting assigns it to one of its own: most voice-weighted support through ties first (sim/claims, support)
   // Then married couples before singles, then the oldest. One of a married couple stands for both (the first of them).
+  // Which farm a pawn would take is its own wish, any it may, and the player's stands in (st.player.wishes.claim, VB-212); the order is a rule.
   function claimants(st, f, ids = st.demand, rule = practice(st, f.village).claims) {
     const vid = f.village, centre = st.villages[vid].center, right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
@@ -5924,6 +5928,7 @@ VB['sim/farmclaims'] = (() => {
     if (right) for (const id of ids) { const d = kinDegree(st, id, right.by.id); if (Number.isFinite(d)) degree.set(id, d); }
     const keep = (id) => {
       if (!free(st, id)) return false;
+      const wish = wishOf(st, id, 'claim'); if (wish !== null && wish !== f.id) return false; // the player's: no farm, or only the one it names
       if (rule === 'kin') return home(id) === vid || (degree.has(id) && near(id));
       if (rule === 'assembly') return home(id) === vid;
       return near(id);
@@ -6829,7 +6834,10 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants)}; plain data, saved with the run
   const QUEUE_MAX = 8;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
@@ -6846,7 +6854,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null } };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -6887,6 +6895,19 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
+  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
+  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  function wish(st, kind, value) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
+    const farm = kind === 'claim' && Number.isInteger(value);
+    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
+      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    }
+    pl.wishes[kind] = value;
+    return true;
+  }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {
@@ -6909,7 +6930,7 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep };
 })();
 </script>
 <script>
@@ -7119,7 +7140,7 @@ VB['sim/heirs'] = (() => {
     joinHousehold, leaveHousehold, clearMembers, setServant, noteDissolved, personEvent, log, age, fullName, spouseOf, childrenOf, siblingsOf,
       kinNear,
       isHolder, holdingOf, practice, farmPractice, noteHolder, kinship,
-      atHousehold, noteLine, householdsOfLine, ancestorsOf,
+      atHousehold, noteLine, householdsOfLine, ancestorsOf, wishOf,
   } = VB['sim/records'];
   const { placeAtHome, release, dropJob } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
@@ -7442,7 +7463,8 @@ VB['sim/heirs'] = (() => {
     const claim = keeps ? undefined : st.demand.filter((id) => {
       const q = at(id), sp = spouseOf(st, id);
       return q.alive && q.age >= 18 && q.household !== null && q.household !== hh.id && st.farmsteads[st.households[q.household].farmstead].village === v
-        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
+        && !isHolder(st, id) && (sp === null || !isHolder(st, sp)) && !st.liveHouseholds.some((hid) => st.households[hid].guardian === id)
+        && (wishOf(st, id, 'claim') ?? hh.farmstead) === hh.farmstead; // the player's wish: no farm, or only the one it names (VB-212)
     }).sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
     for (const c of childrenOf(st, giver)) {
@@ -7490,11 +7512,12 @@ VB['sim/heirs'] = (() => {
     return out;
   }
   // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
-  function staysWhy(st, p, heirs = null, own = null, rank = null) {
+  function staysWhy(st, p, heirs = null, own = null, rank = null, wish = wishOf(st, p.id, 'out')) {
     if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
     const sp = spouseOf(st, p.id); if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
-    if (placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
+    if (wish !== true && placeIfMarried(st, p.id, own, rank) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
+    if (wish !== null) return wish ? null : 'its player wishes it to stay'; // an heir's wait is the pawn's wish: the player's stands in (VB-212)
     if (heirs) { if (heirs.has(p.id)) return 'heir to a farm'; } // heir somewhere else
     else for (const id of st.liveHouseholds) if (heirRanking(st, st.households[id])[0] === p.id) return 'heir to a farm';
     return null;
@@ -7508,9 +7531,7 @@ VB['sim/heirs'] = (() => {
   }
   return {
     heirRanking, moveTo, transfer, extinct, succession, comeOfAge, refreshRoles, placeIfMarried, wantsOut, staysWhy, countDemand, firstHeirs, ownFirstOf,
-      setGuardian,
-      handOn,
-    heirFor, roundHeirs,
+    setGuardian, handOn, heirFor, roundHeirs,
   };
 })();
 </script>
@@ -7547,7 +7568,7 @@ VB['sim/membership'] = (() => {
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
   const { setServant } = VB['sim/records'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
@@ -7635,7 +7656,8 @@ VB['sim/service'] = (() => {
     const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null);
+    // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
+    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
@@ -7745,18 +7767,23 @@ VB['sim/opportunities'] = (() => {
       return ranked;
     };
     const heirs = { has: (id) => !view.demand.includes(id) && (ranked || firsts()).has(id) };
+    // The player's wishes stand in for the pawn's own (st.player.wishes): each act's `why` is as the round would decide with them, and for
+    // the played pawn `own` says what the pawn itself would do about moving out, whatever the player wishes.
+    const pl = view.player, wishes = pl && pl.pawn === p.id ? pl.wishes : null;
     const stays = staysWhy(view, p, heirs);
-    out.push(item('leave', null, null, stays, atRound));
+    out.push(item('leave', null, null, stays, wishes ? { ...atRound, own: staysWhy(view, p, heirs, null, null, null) } : atRound));
     // an empty farm of its village: the round gives it to the first claimant among those who want out
-    const bar = stays || claimBar(view, p.id);
+    const bar = stays || claimBar(view, p.id) || (wishes && wishes.claim === false ? 'its player wishes it to claim no farm' : null);
+    const other = (f) => (wishes && wishes.claim !== null && wishes.claim !== f.id ? 'its player wishes for another farm' : null);
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k];
       if (f.household !== null) continue;
-      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar;
+      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar || other(f);
       out.push(item('claim', f.id, null, why || check(view, p.id, 'claim', f.id, null), atRound));
     }
     // service with a holder of its village who lives alone
-    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null);
+    const spare = stays || unfit(view, p) || (handsLeft(view, p) < SERVICE.keepHands ? 'its household cannot spare its hands' : null)
+      || (wishes && wishes.serve === false ? 'its player wishes it to take no service' : null);
     let lone = 0;
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k], hh = f.household === null ? null : view.households[f.household];
@@ -9195,6 +9222,7 @@ VB['sim/saves'] = (() => {
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
+    if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap
     return st;
   }
@@ -9221,7 +9249,7 @@ const Sim = (() => {
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
-  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto } = VB['sim/commands'];
+  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish } = VB['sim/commands'];
   const { actorView, forPawn } = VB['sim/opportunities'];
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
@@ -9237,7 +9265,7 @@ const Sim = (() => {
   const { claimsOn, strength, holdings } = VB['sim/claims'];
 
   return {
-    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, opportunities, cal, age, birthYear, fullName, spouseOf,
+    seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, cal, age, birthYear, fullName, spouseOf,
       childrenOf, siblingsOf,
       kinship, kinDegree, describe, villageOf,
       SEASONS, DAY,

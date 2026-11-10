@@ -1,7 +1,7 @@
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
   const { setServant } = VB['sim/records'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
@@ -89,7 +89,8 @@ VB['sim/service'] = (() => {
     const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null);
+    // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
+    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const v = st.villages[village(hh)], holder = st.pawns[hh.holder];

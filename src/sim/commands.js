@@ -209,7 +209,10 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours)}; plain data, saved with the run
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants)}; plain data, saved with the run
   const QUEUE_MAX = 8;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
@@ -226,7 +229,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null } };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -267,6 +270,19 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
+  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
+  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  function wish(st, kind, value) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
+    const farm = kind === 'claim' && Number.isInteger(value);
+    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
+      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    }
+    pl.wishes[kind] = value;
+    return true;
+  }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {
@@ -289,5 +305,5 @@ VB['sim/commands'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, playerStep };
+  return { issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, playerStep };
 })();
