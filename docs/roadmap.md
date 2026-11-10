@@ -175,6 +175,8 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   due time when the player must answer; no player, no change), VB-273 (the offer in the page), VB-274 (the wish for a match), and
   VB-275 (opinion in the answers, waiting for Kim's answer in `QUESTIONS.md`). The terms are VB-276, in slice 4; courting's part is
   VB-036's, in slice 7. Cost: no stored offer without a player, about 0.06 a household a year with one, nothing polled between rounds.
+- An offer is made in the man's village's round. VB-242's plan (10 Nov) makes the round a village a step (VB-277, after VB-272;
+  `design.md`, Leaving home: A village's round), so a pair held by an offer is not free to a later village's men the same day.
 - The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
 
 ### 3.3 The household's year
@@ -504,7 +506,8 @@ Decided (Kim, 3 Nov), and in `AGENTS.md` (Rules for cost) in short form. Each sl
 - **Indexes of the living:** `st.living`, live households and live agents, kept by their owners. The step, `dailyLife` and the 17
   full loops then walk them. Behaviour is preserved if the order is kept, so the golden file is unchanged.
 - **Lazy decay of ties and the kin floor:** part of VB-127, or before it.
-- **The moving round spread over days in the late game,** measured on the fixture.
+- **The moving round spread over days in the late game,** measured on the fixture. VB-201 spread it over four phases; Kim decided
+  on 10 November that each village holds its own round and meeting, a village a step (VB-242's plan: VB-277 to VB-280).
 - **Bounded history:** pawn events as an index into `st.record`; a compaction rule for routine events. A small design question:
   what counts as notable (VB-098 asks the same).
 - **The route cache bounded** (VB-097's first criterion).
