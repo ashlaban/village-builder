@@ -1,7 +1,7 @@
 // VB-192: exact work on two tiny villages, normalized by living pawn-days.
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), { tinyWorld, tinyState } = require('./lib/tiny.js'), Sim = VB.sim;
-const { livingPawnDays } = require('../tools/counts.js');
+const { target } = require('./lib/targets.js'), { livingPawnDays } = require('../tools/counts.js');
 const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
   [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], { seed: 7, herds: true });
 assert.strictEqual(st.villages.length, 2);
@@ -23,8 +23,11 @@ const file = path.join(__dirname, 'counters.json');
 if (process.argv.includes('--update')) fs.writeFileSync(file, JSON.stringify(values, null, 2) + '\n');
 const base = JSON.parse(fs.readFileSync(file, 'utf8'));
 assert.deepStrictEqual(Object.keys(base).sort(), Object.keys(values).sort());
+// Each counter against its baseline is a target (VB-264): one-sided, over +10% is out; a fall is re-recorded with `--update`.
+let out = 0;
 for (const [k, value] of Object.entries(values)) {
-  assert(Math.abs(value - base[k]) <= base[k] * 0.1, `${k}: ${value} per living pawn-day, baseline ${base[k]} (±10%)`);
+  const t = target(`counters/${k}`, { where: 'tiny probe', unit: '/pawn-day', dir: 'max', target: base[k] * 1.1, measured: value });
+  if (t.status === 'out') out++;
 }
 const saved = JSON.stringify(Sim.save(st));
 VB.resetCounts();
@@ -56,4 +59,4 @@ const lifetimes = { t: 48, pawns: [{ born: -48, died: null }, { born: 12, died: 
 assert.strictEqual(livingPawnDays(lifetimes, 0), 5);
 assert.strictEqual(livingPawnDays(lifetimes, 24), 2.5);
 assert.strictEqual(livingPawnDays(lifetimes, 0, 0), 0);
-console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(0)} living pawn-days; ${probePairs}-pair round probe`);
+console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(0)} living pawn-days; ${probePairs}-pair round probe; ${out} counters out against baseline`);

@@ -49,26 +49,18 @@ const PROBES = {
 const FLOORS = [
   { id: 'population', probe: 'populationRatio', kind: 'balancing', lo: 1, hi: Infinity, afterYear: 0 },
   { id: 'villages', probe: 'villagesEmptied', kind: 'balancing', lo: 0, hi: 0, afterYear: 5 },
-  // Reduced (VB-163, proposed for Kim): over 8 tiny years some 15 die after year 3, so one hunger death is 6 to 7%; seeds 3 and 42
-  // have one each today.
-  { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'balancing', lo: 0, hi: 0.02, afterYear: 3, reduced: { hi: 0.1 } },
-  // Reduced (VB-163, proposed for Kim): today a household of seed 42 is hungry on 50% of its days in year 4 (44% in 5, 35% in 6),
-  // and one of seed 3 on 31% in year 7; the floor stays 30% on the full runs.
-  // Since villages have streets (10 November, proposed for Kim): the worst is one household of seed 42, a lone heir of 19 on a farm of six
-  // fields, hungry on 77% of his days in year 4; no other household-year of that seed is over 25% (seven were before), and its hungry
-  // share of household-days fell from 1.79% to 0.70%. The worst household is a maximum over some 700
-  // household-years, so one such heir moves it: 0.6 became 0.8.
-  { id: 'hungry-households', probe: 'worstHungryShare', kind: 'balancing', lo: 0, hi: 0.3, afterYear: 3, reduced: { hi: 0.8 } },
+  // The reduced run reports these at full strength as targets (VB-264; Kim, 10 November, VB-261 question 4): a seed's residual is a result.
+  { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'balancing', lo: 0, hi: 0.02, afterYear: 3 },
+  { id: 'hungry-households', probe: 'worstHungryShare', kind: 'balancing', lo: 0, hi: 0.3, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
 ];
 const BANDS = [];
 for (const f of FLOORS) for (const [name, run] of Object.entries(FULL)) {
   const range = { lo: f.lo, hi: f.hi, afterYear: f.afterYear };
   BANDS.push({ id: `${f.id}/${name}`, probe: f.probe, kind: f.kind, report: { ...range, ...run },
-    ...(name === 'populous' ? { assert: { ...range, ...f.reduced, ...REDUCED } } : {}) });
+    ...(name === 'populous' ? { assert: { ...range, ...REDUCED } } : {}) });
 }
 
-// A floor's `reduced` replaces its range on the reduced run, where it fails today at full strength (VB-163: proposed, not loosened silently).
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
 // household's days present in a year are counted, not guessed.
 function runScenario({ scenario, map, seed, years }) {
