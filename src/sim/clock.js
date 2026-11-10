@@ -9,6 +9,7 @@ VB['sim/clock'] = (() => {
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
+  const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
@@ -32,7 +33,7 @@ VB['sim/clock'] = (() => {
         if (a.inside && !a.job) placeByDoor(st, a);
       }
     }
-    if (h >= WORK[0] - 1 && h <= WORK[1]) refreshJobs(st, c);
+    if (reviewHour(h)) refreshJobs(st, c); // the review of the standing plans (sim/plans)
     if (h >= 14 && h < WORK[1]) callCooks(st, c);
     if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
     if (h === WORK[1]) for (const liveId of st.living) {
