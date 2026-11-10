@@ -112,6 +112,25 @@
     succAt = 0; playMsg = r === true ? null : { id, text: r };
     if (r === true) openPanel('actions'); else showPawn(id);
   });
+  // The marriage offers that wait for the played pawn (VB-273), as questions above the queue, Yes and No calling Sim.answer; once the offer is
+  // answered or closed, how it ended (page/notices keeps offerEnd) until the next offer or the next moving round.
+  function offerBox(id, opps) {
+    const asks = opps.filter((o) => o.when === 'offer').map((o) => o.offer);
+    let h = '';
+    for (const o of asks) {
+      const one = (w) => `${esc(w.name)}, ${w.age}${w.farm ? `, of ${esc(w.farm)}` : ''}`;
+      const part = o.part === 'the one to marry' ? 'You are the one to marry.' : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
+      const said = o.answers.map((a) => `${esc(a.name)} said ${a.yes ? 'yes' : 'no'}`).join('; ');
+      h += `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>`
+        + `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>`
+        + `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${o.daysLeft === 1 ? 'day' :
+          'days'} left; unanswered, it is answered as it would be unplayed.</p>`
+        + `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>`
+        + `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
+    }
+    if (offerEnd && offerEnd.pawn === id && st.t < offerEnd.until) h += `<p class="hint offer-end" role="status">${esc(offerEnd.text)}</p>`;
+    return h;
+  }
   // The Actions sheet (the bottom bar's Actions, shown while a pawn is played): all that the player does through its pawn. In two parts,
   // top and h, with the gift's box between them (below). Rebuilt while it is open, at most four times a second (page/animate), and
   // Sim.opportunities is called once per rebuild.
@@ -122,6 +141,7 @@
     if (activePanel !== 'actions') return;
     const p = st.pawns[id];
     let h = '', top = '';
+    const opps = Sim.opportunities(st, id);
     {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
@@ -132,6 +152,7 @@
       h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
       h += `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>`
         + `<button type="button" data-play="follow" aria-pressed="${followPlayed}">Follow</button></div>`;
+      h += offerBox(id, opps);
       h += '<h3>Queue</h3>';
       h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
         `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
@@ -141,8 +162,9 @@
       if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
         pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
       top = h; h = '';
-      const opps = Sim.opportunities(st, id), groups = { work: [], going: [], causes: [], round: [] };
+      const groups = { work: [], going: [], causes: [], round: [] };
       for (const o of opps) {
+        if (o.when === 'offer') continue;
         const g = o.when === 'round' ? 'round' : o.verb === 'work' ? 'work' : o.verb === 'argue' || o.verb === 'dropCause' ? 'causes' : 'going';
         groups[g].push(o);
       }
@@ -261,6 +283,7 @@
     let r = true;
     if (act === 'find') { focusPawn(id); openPanel('actions'); }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
+    else if (act === 'answer') { r = Sim.answer(st, +b.dataset.offer, b.dataset.yes === 'true'); watchOffers(); }
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') { walkPick = !walkPick; gift.pick = false; }
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);

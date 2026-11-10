@@ -306,6 +306,7 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }
 .play .refused { color: var(--bad); }
+.play .offer { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
 .play-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .play-head h3 { margin: 0; }
 .give-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 6px 0; }
@@ -8587,7 +8588,7 @@ VB['sim/service'] = (() => {
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
-  const { cal, SERVICE } = VB['sim/rules'];
+  const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
   const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
@@ -8701,6 +8702,23 @@ VB['sim/opportunities'] = (() => {
     if (!lone) out.push(item('serve', null, null, spare || 'no holder of the village lives alone', atRound));
   }
 
+  // ---- marriage offers that wait for pawn id (VB-273): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
+  // offer: {id, man, woman ({id, name, age, farm}), home (a household id), farm (its farm's name), part ('the one to marry', or 'head of the household'
+  // for `for`, the pawn it speaks for), answers (who has said what so far: [{name, yes}]), daysLeft}. The player answers with Sim.answer.
+  function offers(view, id, out) {
+    const who = (i) => ({ id: i, name: fullName(view.pawns[i]), age: Math.floor((view.t - view.pawns[i].born) / YEAR),
+      farm: view.pawns[i].household !== null ? view.farmsteads[view.households[view.pawns[i].household].farmstead].name : null });
+    for (const o of view.offers) {
+      const mine = o.answers.find((a) => a.by === id && a.yes === null);
+      if (!mine) continue;
+      const side = mine.key === 'man' || mine.key === 'woman' ? null : o.answers.find((a) => a.key === mine.key.slice(0, -4)).by;
+      out.push(item('answer', o.id, null, null, { when: 'offer', offer: { id: o.id, man: who(o.man), woman: who(o.woman), home: o.home,
+        farm: view.farmsteads[view.households[o.home].farmstead].name, part: side === null ? 'the one to marry' : 'head of the household',
+        for: side, answers: o.answers.filter((a) => a.yes !== null).map((a) => ({ name: fullName(view.pawns[a.by]), key: a.key, yes: a.yes })),
+        daysLeft: Math.max(0, Math.ceil((o.due - view.t) / DAY)) } }));
+    }
+  }
+
   // What pawn `id` may do here (and at tile `near`, if given): its work, its own acts, a cause, and the round's acts; nothing for marriage
   // (Decided, 8 Nov). Read-only: it writes nothing and draws no random number. `view` is actorView's; every read of the world goes through it.
   function forPawn(st, view, id, near = null) {
@@ -8710,6 +8728,7 @@ VB['sim/opportunities'] = (() => {
     if (housed) work(view, p, cal(view.t), out);
     own(view, p, near, out);
     causes(view, p, out);
+    offers(view, id, out);
     if (housed) round(view, p, out);
     return out;
   }
@@ -13248,6 +13267,25 @@ if (typeof module !== 'undefined') module.exports = Sim;
     succAt = 0; playMsg = r === true ? null : { id, text: r };
     if (r === true) openPanel('actions'); else showPawn(id);
   });
+  // The marriage offers that wait for the played pawn (VB-273), as questions above the queue, Yes and No calling Sim.answer; once the offer is
+  // answered or closed, how it ended (page/notices keeps offerEnd) until the next offer or the next moving round.
+  function offerBox(id, opps) {
+    const asks = opps.filter((o) => o.when === 'offer').map((o) => o.offer);
+    let h = '';
+    for (const o of asks) {
+      const one = (w) => `${esc(w.name)}, ${w.age}${w.farm ? `, of ${esc(w.farm)}` : ''}`;
+      const part = o.part === 'the one to marry' ? 'You are the one to marry.' : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
+      const said = o.answers.map((a) => `${esc(a.name)} said ${a.yes ? 'yes' : 'no'}`).join('; ');
+      h += `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>`
+        + `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>`
+        + `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${o.daysLeft === 1 ? 'day' :
+          'days'} left; unanswered, it is answered as it would be unplayed.</p>`
+        + `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>`
+        + `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
+    }
+    if (offerEnd && offerEnd.pawn === id && st.t < offerEnd.until) h += `<p class="hint offer-end" role="status">${esc(offerEnd.text)}</p>`;
+    return h;
+  }
   // The Actions sheet (the bottom bar's Actions, shown while a pawn is played): all that the player does through its pawn. In two parts,
   // top and h, with the gift's box between them (below). Rebuilt while it is open, at most four times a second (page/animate), and
   // Sim.opportunities is called once per rebuild.
@@ -13258,6 +13296,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (activePanel !== 'actions') return;
     const p = st.pawns[id];
     let h = '', top = '';
+    const opps = Sim.opportunities(st, id);
     {
       const hh = p.household !== null ? st.households[p.household] : null, f = hh ? st.farmsteads[hh.farmstead] : null;
       const days = hh ? foodDays(hh) : null, wood = hh ? Math.round(hh.wood) : 0;
@@ -13268,6 +13307,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
       h += `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>`
         + `<button type="button" data-play="follow" aria-pressed="${followPlayed}">Follow</button></div>`;
+      h += offerBox(id, opps);
       h += '<h3>Queue</h3>';
       h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
         `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
@@ -13277,8 +13317,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
         pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
       top = h; h = '';
-      const opps = Sim.opportunities(st, id), groups = { work: [], going: [], causes: [], round: [] };
+      const groups = { work: [], going: [], causes: [], round: [] };
       for (const o of opps) {
+        if (o.when === 'offer') continue;
         const g = o.when === 'round' ? 'round' : o.verb === 'work' ? 'work' : o.verb === 'argue' || o.verb === 'dropCause' ? 'causes' : 'going';
         groups[g].push(o);
       }
@@ -13397,6 +13438,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     let r = true;
     if (act === 'find') { focusPawn(id); openPanel('actions'); }
     else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
+    else if (act === 'answer') { r = Sim.answer(st, +b.dataset.offer, b.dataset.yes === 'true'); watchOffers(); }
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') { walkPick = !walkPick; gift.pick = false; }
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
@@ -14126,13 +14168,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // What a click on a toast selects, as a link in a card does (page/cards): the newborn or the groom, the farm where it happened, else the village.
   function noticeTarget(ev) {
     if ((ev.kind === 'born' || ev.kind === 'married') && ev.pawn !== undefined) return { pawn: ev.pawn };
+    if (ev.kind === 'offered' && st.player) return { play: true };
     if (ev.farm !== undefined) return { farm: ev.farm };
     if (ev.village !== undefined) return { village: ev.village };
     return ev.pawn !== undefined ? { pawn: ev.pawn } : null;
   }
   function openNotice(t) {
     const g = t.target; if (!g || st !== noticeSt) return;
-    if (g.pawn !== undefined) focusPawn(g.pawn);
+    if (g.play) { if (st.player) { focusPawn(st.player.pawn); openPanel('actions'); } }
+    else if (g.pawn !== undefined) focusPawn(g.pawn);
     else if (g.farm !== undefined) selectFarm(g.farm);
     else selectVillage(g.village);
   }
@@ -14151,7 +14195,33 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // Each frame: the events the record has gained since the last, judged for the pinned pawn (or the one pinned a frame ago, so that the
   // death of the selected pawn, which ends the selection, is still its own); then the toasts age in real time.
+  // The marriage offers that wait for the played pawn (VB-273): when one has gone from st.offers, how it ended is told in the pawn panel, from the
+  // record's event of its ending (married, matchRefused, offerLapsed), until the next offer or the next moving round. Page state, never st.
+  let offerSt = null, offerSeen = new Map(), offerEnd = null;
+  function watchOffers() {
+    if (offerSt !== st) { offerSt = st; offerSeen = new Map(); offerEnd = null; }
+    const pl = st.player;
+    if (!pl) { offerSeen.clear(); offerEnd = null; return; }
+    const open = new Set();
+    for (const o of st.offers) {
+      if (!o.answers.some((a) => a.by === pl.pawn)) continue;
+      open.add(o.id);
+      if (!offerSeen.has(o.id)) { offerSeen.set(o.id, { man: o.man, woman: o.woman, made: o.made }); offerEnd = null; }
+    }
+    for (const [oid, o] of [...offerSeen]) {
+      if (open.has(oid)) continue;
+      offerSeen.delete(oid);
+      for (let i = st.record.length - 1; i >= 0 && st.record[i].t >= o.made; i--) {
+        const ev = st.record[i];
+        if (ev.pawn === o.man && ev.other === o.woman && (ev.kind === 'married' || ev.kind === 'matchRefused' || ev.kind === 'offerLapsed')) {
+          offerEnd = { pawn: pl.pawn, text: Sim.eventLine(st, ev), until: Sim.skipFrom(st).eve };
+          break;
+        }
+      }
+    }
+  }
   function updateNotices(dt) {
+    watchOffers();
     if (st !== noticeSt) { noticeSt = st; noticeSeen = st.record.length; noticeAbout = -1; for (const t of [...toasts]) dropToast(t); }
     const pinned = selectionPinned && selPawn >= 0 ? selPawn : -1, about = pinned >= 0 ? pinned : noticeAbout;
     noticeAbout = pinned;
@@ -14159,6 +14229,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (; noticeSeen < st.record.length; noticeSeen++) {
       const ev = st.record[noticeSeen], why = Sim.notable(st, ev, about >= 0 ? about : null);
       if (why && why.some((k) => !noticeOff.has(k))) toast(ev);
+      else if (ev.kind === 'offered' && st.player && st.offers.some((o) => o.man === ev.pawn && o.woman === ev.other
+        && o.answers.some((a) => a.by === st.player.pawn))) toast(ev); // a match waits for the played pawn's answer (VB-273)
     }
     for (const t of [...toasts]) { t.left -= dt; if (t.left <= 0) dropToast(t); }
   }
@@ -14166,7 +14238,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '6c0b2621ea', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '2e788f01c0', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
