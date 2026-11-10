@@ -91,10 +91,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (idle) fail(`automatic behaviour off: ${idle}`);
   await page.waitForTimeout(600);
   if (!/off/.test(await page.locator('#playBox [data-play="auto"]').textContent())) fail('the switch does not show off');
+  // the wishes for the moving round (VB-212): a wish is set from the panel, shown as pressed, and taken back
+  const stay = '#playBox [data-play="wish"][data-kind="out"][data-value="false"]';
+  await page.click(stay);
+  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== false) fail('the wish to stay was not set');
+  if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
+  await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
+  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
   await page.click('#playBox [data-play="stop"]');
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, the automatic behaviour off and the pawn idle in working hours)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours)');
 })().catch((e) => { console.error(e); process.exit(1); });

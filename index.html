@@ -279,6 +279,7 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 .play { margin: 8px 0; }
 .play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.play h5 { margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }
@@ -11874,13 +11875,34 @@ if (typeof module !== 'undefined') module.exports = Sim;
     return VERB_WORDS[c.verb] || c.verb;
   }
   const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
-  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only where its verb is not yet the
-  // player's (causes, VB-211; the round's acts, VB-212).
+  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only for the round's acts, which the
+  // round carries out for a pawn that wishes them (roundBox).
   function oppRow(o, open) {
     const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
     if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
     const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
     return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  }
+  // The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
+  // wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
+  function roundBox(id, acts, wishes) {
+    const pick = (kind, value, label, on = wishes[kind] === value) =>
+      `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
+    const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
+    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
+      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
+      o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
+      esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
+      : '<p class="hint">No farm of its village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+    h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
@@ -11942,8 +11964,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         walkPick}">${walkPick ? 'Choose an open tile on the map, or cancel' : 'Walk here'}<i>for itself</i></button></li></ul>`;
       if (groups.causes.length || p.advocate) h += `<h4>Causes</h4>${causeNote(p)}<ul class="opps">${groups.causes.map((o) =>
         oppRow(o, true)).join('')}</ul>`;
-      if (groups.round.length) h += `<h4>At the moving round <span>shown only, for now</span></h4><ul class="opps">${groups.round.map((o) =>
-        oppRow(o, false)).join('')}</ul>`;
+      if (groups.round.length) h += roundBox(id, groups.round, pl.wishes);
     }
     if (playMsg && playMsg.id === id) h += `<p class="refused" role="status">${esc(playMsg.text)}</p>`;
     if (h !== playHTML) { playHTML = h; $('playBox').innerHTML = h; }
@@ -11965,6 +11986,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     else if (act === 'follow') followPlayed = !followPlayed;
     else if (act === 'walk') walkPick = !walkPick;
     else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
+    else if (act === 'wish') r = Sim.wish(st, b.dataset.kind, JSON.parse(b.dataset.value));
     else if (act === 'do') {
       const c = JSON.parse(b.dataset.cmd);
       r = Sim.queue(st, { actor: id, verb: c.verb, target: c.target, args: c.verb === 'idle' ? { until: st.t + 1 } : c.args || null });
