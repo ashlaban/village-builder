@@ -132,7 +132,8 @@ VB['sim/claims'] = (() => {
       r[greens.has(t) ? 'green' : k === 'plots' ? 'plots' : k ? 'farms' : 'outland']++;
     }
     for (const list of st.claims.values()) for (const c of list) {
-      if (c.by.type === 'household') { const r = row(households, c.by.id, HK); r.claims++; } else if (c.by.type === 'village') { const r = row(villages, c.by.id, VK); r.claims++; }
+      if (c.by.type === 'household') { const r = row(households, c.by.id, HK); r.claims++; }
+      else if (c.by.type === 'village') { const r = row(villages, c.by.id, VK); r.claims++; }
     }
     return { households, villages };
   }
