@@ -47,6 +47,12 @@ const PROBES = {
   },
   // the highest share of its days that a household was hungry, over the years after y (households present MIN_DAYS or more), beside it
   worstHungryShare: (s, y) => Math.max(0, ...after(s, y).map((x) => x.worstHungry)),
+  // the share of the matches made after year y that were refused (VB-275's opinion, VB-293's offers, as sim/lifecycle logs them): refusals
+  // over refusals and marriages (0 when there were none). Opinion is rare enough that a match made at enmity is the exception.
+  refusedMatchShare: (s, y) => {
+    let no = 0, yes = 0; for (const x of after(s, y)) { no += x.refusedMatches; yes += x.marriages; }
+    return no + yes ? no / (no + yes) : 0;
+  },
   // invariant violations (tests/lib/invariants.js, checkState) over every year end
   invariantFailures: (s) => s.reduce((n, x) => n + x.invariants.length, 0),
 };
@@ -59,6 +65,8 @@ const FLOORS = [
   { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'balancing', lo: 0, hi: 0.02, afterYear: 3 },
   { id: 'hungry-households', probe: 'hungryHouseholdShare', kind: 'balancing', lo: 0, hi: 0.05, afterYear: 3 },
   { id: 'worst-household', probe: 'worstHungryShare', kind: 'watched', lo: 0, hi: 1, afterYear: 3 },
+  // slice 2 (a life): matches refused by opinion, or by a played pawn, stay a small part of the matches; a household is not left unmarried by them
+  { id: 'refused-matches', probe: 'refusedMatchShare', kind: 'watched', lo: 0, hi: 0.2, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
 ];
 const BANDS = [];
@@ -93,13 +101,14 @@ function sample(st, year, y) {
     const f = st.farmsteads[st.households[id].farmstead], v = f ? f.village : null;
     if (v !== null && v !== undefined) villages[v] = (villages[v] || 0) + 1;
   }
-  const out = { year, living: st.living.length, households: st.liveHouseholds.length, villages, births: 0, marriages: 0, deaths: {},
+  const out = { year, living: st.living.length, households: st.liveHouseholds.length, villages, births: 0, marriages: 0, refusedMatches: 0, deaths: {},
     hungryDays: 0, householdDays: 0, worstHungry: 0, hungryHouseholds: 0, householdYears: 0, invariants: [] };
   if (!y) return out;
   for (let i = y.from; i < st.record.length; i++) {
     const e = st.record[i]; if (typeof e !== 'object' || e.self) continue; // a folded slot, or a pawn's own telling (VB-199)
     if (e.kind === 'born') out.births++;
     else if (e.kind === 'married') out.marriages++;
+    else if (e.kind === 'matchRefused') out.refusedMatches++;
     else if (e.kind === 'died') out.deaths[e.text || 'unknown'] = (out.deaths[e.text || 'unknown'] || 0) + 1;
   }
   for (const [id, n] of y.days) {

@@ -183,6 +183,9 @@ do anyway, real choices come about once a year, and the largest of a life, marri
   for Kim), VB-290 (claims, service and the tie read hours), VB-291 (kin help carried, waiting for Kim) and VB-292 (the player's
   visit, waiting for Kim). They run beside the slices, after VB-241, as VB-277 to VB-280 do; only VB-292 is slice 2's.
 - The wrap-up (VB-078) waits for VB-099, VB-233 and VB-234 as well. The budget line stands: a skip changes nothing the simulation does.
+- **Wrap-up (VB-078, 11 Nov):** a scripted player (`tests/lib/line.js`, `node tools/player.js`) played the founders scenario at seeds 7 and 42 for 75
+  years: three and six pawns played, followed as heir, kin or a break; saved and loaded every 5 years it ends with the unbroken run's hashes; every job
+  taken in a stepped window was taken by a work command; the budget table's line for the slice is 0 ms. Numbers are in `backlog/VB-078.md`.
 
 ### 3.3 The household's year
 

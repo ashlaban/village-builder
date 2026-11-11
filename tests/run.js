@@ -23,7 +23,7 @@ const VERIFY = [
   ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'], ['node', 'tests/browser-saves.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
-  ['node', 'tests/bands.js'],
+  ['node', 'tests/bands.js'], ['node', 'tests/line.js'],
 ];
 const suite = process.argv[2], verbose = process.argv.includes('--verbose'), list = process.argv.includes('--list') || process.stdout.isTTY;
 const cmds = { test: TEST, verify: VERIFY }[suite];

@@ -40,7 +40,7 @@ medium-ref: **stale golden hash**, saved after year 12, 1005 starting living, st
 | the moving round (ms/day) | 1.1 | 0.990 | 1.560 |
 | trees (ms/day) | 0.1 | 0.020 | 0.020 |
 
-System shares sum to 192.1 ms; 7.9 ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in `closure.md`.
+System shares sum to 192.1 ms; 7.9 ms is kept back (VB-203; slice 1's 0.1 ms, VB-219; slice 2's 0 ms, VB-078: the player, offers and wishes cost the simulation nothing). The closure table is in `closure.md`.
 
 A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead. The round and the meetings run inside the window; their lines are that one call, inclusive.
 Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.
