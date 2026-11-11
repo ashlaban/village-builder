@@ -63,7 +63,7 @@
     if (landOn) drawLand();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  async function build(seed, scenario, size, save = null) {
+  async function build(seed, scenario, size, save = null, quick = false) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
@@ -120,7 +120,9 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
+    if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
+    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('menuBtn').disabled = false;
   }
 
