@@ -244,6 +244,25 @@ label .tag { justify-self: start; }
 /* a life looked at on step 1 is marked lightly: it is a look, not a choice */
 .peekable [aria-pressed="true"] { background: var(--pick); color: var(--ink); border: 1px dashed var(--accent); box-shadow: none; }
 .peekable button:hover { background: var(--pick); }
+/* status as a dot; words only in the mock bar */
+.st { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 1px; border: 1.5px solid currentColor; }
+.st.built { color: var(--good); background: var(--good); } .st.designed { color: var(--accent); } .st.sketch { color: var(--sketch); border-style: dotted; }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.ic.sug { width: 15px; height: 15px; color: var(--sketch); fill: currentColor; stroke-width: 1; vertical-align: -2px; }
+.stats { display: flex; gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; } .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ic { width: 14px; height: 14px; }
+.card b { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+.year { font-size: 13px; }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 14.5px; } .rows li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; } .rows .ic { color: var(--muted); margin-top: 1px; }
+.fcards { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.meters { display: flex; flex-wrap: wrap; gap: 4px 12px; grid-column: 1 / -1; font-size: 13px; color: var(--muted); } .meters > span { display: inline-flex; gap: 4px; align-items: center; }
+.meters .ic { width: 14px; height: 14px; color: var(--muted); } .lcard .meters .ic, .rung .meters .ic { width: 14px; height: 14px; color: var(--muted); }
+.pips { display: inline-flex; gap: 2px; } .pips i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--muted); } .pips i.on { background: var(--accent); border-color: var(--accent); }
+.lcards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } .lcard small.n { display: inline-flex; gap: 4px; align-items: flex-end; } .lcard small.n .fig { height: 12px !important; }
+.lcard b, .rung b { font-size: 15px; } .rung .meters { margin-top: 2px; } .rung b + .sug { margin-left: 5px; }
+.key .ic { width: 14px; height: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: var(--pick); font-size: 14px; } .chip .ic { width: 16px; height: 16px; color: var(--accent); }
+.pcard header { align-items: center; gap: 6px; } .pcard header .ic { color: var(--muted); width: 16px; height: 16px; }
+.pcards { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 </style>
 
 <div class="stage" id="stage"></div>
@@ -256,7 +275,8 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const mulberry32 = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const TAG = { built: 'Built', designed: 'Designed', sketch: 'Sketch' };
-const tag = (k) => `<span class="tag ${k}">${TAG[k]}</span>`;
+const TAGT = { built: 'In the game today', designed: 'In design.md, not built', sketch: 'An idea for this mock' };
+const tag = (k) => `<i class="st ${k}" title="${TAGT[k]}"></i>`;
 const ADULT = 18;
 
 const SIZES = {
@@ -273,16 +293,14 @@ const SCENARIOS = [
     land: 'Houses standing; next to no fields or meadows', stores: 'A year\'s food and seed; hay for one winter',
     customs: 'Old Nordic, but first cousins may marry: the founders\' grandchildren are mostly cousins',
     explores: 'The normal game. A frontier that grows faster than a settled society would.',
-    year: [['Spring', 'Claim and break the first fields before the sowing window closes'], ['Summer', 'Find and clear hay meadows; make hay'],
-      ['Autumn', 'A small first harvest; decide how many animals to keep'], ['Winter', 'Live on what you brought']],
+    year: [['Spring', 'Break fields, sow'], ['Summer', 'Clear meadows, make hay'], ['Autumn', 'A small first harvest'], ['Winter', 'Live on stores']],
     lives: [['holder', 'A founding holder', true], ['spouse', 'A founder\'s wife'], ['servant', 'The farmhand or the maid']] },
   { key: 'heirs', name: 'Heirs and empty farms', status: 'built', line: 'Two old villages, three generations, and more heirs than farms.',
     start: 'Two established villages of seven farms: five lived in, one empty, one a ruin', gens: 'Three; the founding grandparents are dead',
     people: () => '23', land: 'Fields and meadows long made; scrub on the ruin', stores: 'What each farm has laid by',
     customs: 'The remote village leans its own way: any child inherits, handover at death, looser claims, a wider voice',
     explores: 'Inheritance, expansion and customs. One marriage joins the villages, so cousins live on both shores.',
-    year: [['Now', 'An heir of 29 waits; his brother and sister want out'], ['The round', 'An empty farm and a ruin stand to be claimed'],
-      ['The meeting', 'Two villages that disagree about who may inherit'], ['Soon', 'A bachelor of 47 with no child, and a nephew']],
+    year: [['Now', 'An heir of 29 waits'], ['The round', 'An empty farm, a ruin'], ['The meeting', 'Who may inherit?'], ['Soon', 'A childless holder of 47']],
     lives: [['holder', 'A holder of 61', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'], ['heiress', 'The heiress']] },
   { key: 'populous', name: 'Populous Villages', status: 'built', line: 'A settled archipelago, already full of neighbours.',
     start: 'Only villages: small of 2–5 farms (6 in 10), medium of 6–10 (3 in 10), large of 12–16 (1 in 10)',
@@ -290,8 +308,7 @@ const SCENARIOS = [
     land: 'Every farm has its fields', stores: 'What each farm has laid by',
     customs: 'Old Nordic everywhere, until the villages drift apart',
     explores: 'A high population from the first day: marriage across villages, the fair, crowded land.',
-    year: [['Now', 'About a third of households have a child of 18 or more'], ['The round', 'Grown children look for service, a farm, or new land'],
-      ['The gathering', 'Villages meet, trade and marry'], ['Later', 'Land runs short before people do']],
+    year: [['Now', 'Grown children at home'], ['The round', 'Service, a farm, new land'], ['The gathering', 'Trade and marriages'], ['Later', 'Land runs short']],
     lives: [['holder', 'A holder in a large village', true], ['heir', 'An heir'], ['child', 'A younger child'], ['servant', 'A servant']] },
   { key: 'service', name: 'A year in service', status: 'sketch', line: 'You own nothing but a year\'s contract.',
     start: 'Populous, but you begin as a farmhand or maid on a stranger\'s farm', gens: 'Two', people: (z) => SIZES[z].pop,
@@ -432,7 +449,35 @@ const ICON = {
   key: 'M4 15a4 4 0 1 0 8 0 4 4 0 1 0-8 0M11 12l9-9M17 6l3 3M14.5 8.5l2 2', road: 'M12 21V4M12 6h7l2 2-2 2h-7M12 12H6l-2 2 2 2h6',
   sickle: 'M5 21l5-5M9 17C4 10 10 3 18 5 12 6 9 11 12 15',
 };
+Object.assign(ICON, {
+  voice: 'M4 5h16v10H10l-4 4v-4H4z', sack: 'M9 4h6l-1.5 3c4 2 5.5 6 4.5 10-.5 2-2 3-4 3h-4c-2 0-3.5-1-4-3-1-4 .5-8 4.5-10z',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2', flag: 'M6 21V4M6 5h11l-2 3.5 2 3.5H6',
+  gens: 'M12 3a2 2 0 1 0 0 4 2 2 0 1 0 0-4M6 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M18 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M12 7v4M6 16v-2.5h12V16',
+  scroll: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h3', next: 'M5 12h14M13 6l6 6-6 6', shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
+  people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
+  star: 'M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z',
+});
 ICON.empty = ICON.house;
+const star = () => `<svg class="ic sug" viewBox="0 0 24 24" role="img" aria-label="Suggested by the scenario"><title>Suggested by the scenario</title><path d="${ICON.star}"/></svg>`;
+const GENS = { founders: 1, heirs: 3, populous: 2, service: 2, outland: 3, alderman: 3, market: 4 };
+// How a life stands, in three measures of 0 to 3 (a sketch): security, say, freedom.
+const METER = { holder: [3, 3, 1], widow: [2, 3, 1], bachelor: [3, 3, 1], spouse: [3, 1, 1], heir: [2, 1, 1], heiress: [2, 1, 1], child: [1, 1, 3], servant: [0, 0, 3] };
+const MEASURE = [['shield', 'Security'], ['voice', 'Say'], ['road', 'Freedom']];
+const meters = (k, words) => `<span class="meters" title="${esc(HARD[k])}">${METER[k].map((v, i) => `<span title="${MEASURE[i][1]}: ${v} of 3">${icon(MEASURE[i][0])}${words ? MEASURE[i][1] : ''}<span class="pips">${[0, 1, 2].map((j) => `<i class="${j < v ? 'on' : ''}"></i>`).join('')}</span></span>`).join('')}</span>`;
+// What a position can do and what lies ahead, as an icon and a few words; the full sentences are POS.
+const CAN = {
+  holder: [['field', 'Places fields'], ['sun', 'Sets the work'], ['rings', 'Arranges marriages'], ['voice', 'Speaks at the meeting']],
+  widow: [['field', 'Places fields'], ['sun', 'Sets the work'], ['rings', 'Arranges marriages'], ['voice', 'Speaks at the meeting']],
+  bachelor: [['field', 'Places fields'], ['sun', 'Sets the work'], ['voice', 'Speaks at the meeting']],
+  spouse: [['sickle', 'Own work'], ['voice', 'Argues a cause']], heir: [['sickle', 'Own work'], ['rings', 'Own marriage']], heiress: [['sickle', 'Own work'], ['rings', 'Own marriage']],
+  child: [['sickle', 'Own work'], ['road', 'May leave'], ['flag', 'May claim a farm']], servant: [['sickle', 'Serves the farm'], ['road', 'May move'], ['flag', 'May claim a farm']], minor: [],
+};
+const NEXT = {
+  holder: [['key', 'Hands over when the heir marries']], widow: [['shield', 'The farm for life'], ['key', 'Then her child']], bachelor: [['key', 'No child: kin inherit']],
+  spouse: [['shield', 'As widow, keeps the farm']], heir: [['house', 'The farm, on marriage'], ['sack', 'Buys out siblings']], heiress: [['house', 'Inherits: no son'], ['rings', 'Husband moves in']],
+  child: [['sack', 'Bought out, no land']], servant: [['sack', 'Keep only'], ['house', 'Land: the long goal']], minor: [],
+};
+const chips = (list, full) => `<div class="chips" title="${esc(full.join('. '))}">${list.map(([ic, t]) => `<span class="chip">${icon(ic)}${t}</span>`).join('')}</div>`;
 const icon = (k) => `<svg class="ic${k === 'empty' ? ' dash' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
 const LIFE_ICON = { holder: 'house', widow: 'house', bachelor: 'house', spouse: 'rings', heir: 'key', heiress: 'key', child: 'road', servant: 'sickle' };
 const HARD = { holder: 'Secure. The most to decide from the first day.', widow: 'Secure while she lives; the line hangs on one child.', bachelor: 'Secure, and a dead end unless he marries.',
@@ -464,10 +509,9 @@ function households(s) {
   const w = worldOf(s.key), big = w.length > 3, all = w.flatMap((v) => v.farms.flatMap((f) => f.people || [])), nf = w.reduce((n, v) => n + v.farms.length, 0);
   const cur = S.hover || S.peek, label = cur ? s.lives.find((x) => x[0] === cur)[1] : '', on = (p) => !!cur && p.a >= ADULT && isLife(cur, p);
   if (!big) {
-    return `<div class="fcards">${w.map((v) => v.farms.map((f) => (f.empty ? `<div class="fcard none"><b>${esc(f.name)}</b><span class="figs">${icon(/ruin/.test(f.empty) ? 'ruin' : 'empty')}</span><small>${esc(f.empty.split('.')[0])}</small></div>`
-      : `<div class="fcard${f.people.some(on) ? ' has' : ''}"><b>${esc(f.name)}</b><span class="figs">${f.people.map((p) => fig(p, cur ? (on(p) ? 'on' : 'off') : '')).join('')}</span>
-        <small>${f.people.map((x) => x.a).join(' · ')}${f.tests && f.tests !== 'No field yet' ? `<br>${esc(f.tests)}` : ''}</small></div>`)).join('')).join('')}</div>
-      ${figKey()}<small>${cur ? `${all.filter(on).length} of ${all.length} people could be “${esc(label.toLowerCase())}”: the figures picked out.` : `${all.length} people on ${nf} farms.`}</small>`;
+    return `<div class="fcards">${w.map((v) => v.farms.map((f) => (f.empty ? `<div class="fcard none" title="${esc(f.empty)}"><b>${esc(f.name)}</b><span class="figs">${icon(/ruin/.test(f.empty) ? 'ruin' : 'empty')}</span></div>`
+      : `<div class="fcard${f.people.some(on) ? ' has' : ''}" title="${esc(f.tests || '')}"><b>${esc(f.name)}</b><span class="figs">${f.people.map((p) => fig(p, cur ? (on(p) ? 'on' : 'off') : '')).join('')}</span></div>`)).join('')).join('')}</div>
+      ${figKey()}${cur ? `<small>${all.filter(on).length} of ${all.length}: ${esc(label.toLowerCase())}</small>` : ''}`;
   }
   const bands = [[60, 200, '60 and over'], [45, 59, '45 to 59'], [30, 44, '30 to 44'], [18, 29, '18 to 29'], [10, 17, '10 to 17'], [0, 9, 'Under 10']];
   const rows = bands.map(([a, b, l]) => { const g = all.filter((p) => p.a >= a && p.a <= b), f = g.filter((p) => p.s === 'f'), m = g.filter((p) => p.s === 'm'); return [l, f.length, f.filter(on).length, m.length, m.filter(on).length]; })
@@ -475,55 +519,50 @@ function households(s) {
   const max = Math.max(...rows.flatMap((x) => [x[1], x[3]])), grown = w.flatMap((v) => v.farms).filter((f) => f.people.slice(2).some((p) => p.a >= ADULT && p.r !== 'servant')).length;
   const bar = (n, k, left) => `<span class="pb${left ? ' l' : ''}"><i style="width:${(n / max) * 100}%"><b style="width:${n ? (k / n) * 100 : 0}%"></b></i></span>`;
   return `<div class="pyr">${rows.map(([l, f, fk, m, mk]) => `<span class="n f">${f}</span>${bar(f, fk, 1)}<span class="lab">${l}</span>${bar(m, mk)}<span class="n">${m}</span>`).join('')}</div>
-    <div class="key"><span>women to the left, men to the right</span>${cur ? `<span><i class="sw on"></i>${esc(label.toLowerCase())}: ${all.filter(on).length}</span><span><i class="sw"></i>everyone else</span>` : ''}</div>
-    <small>${all.length} people on ${nf} farms in ${w.length} villages, for seed ${S.seed}. In ${grown} households a child is 18 or more.</small>`;
+    <div class="key"><span>women · men</span>${cur ? `<span><i class="sw on"></i>${esc(label.toLowerCase())}: ${all.filter(on).length}</span><span><i class="sw"></i>everyone else</span>` : ''}</div>
+    <small>${all.length} people, ${nf} farms, ${w.length} villages</small>`;
 }
 
-// Lives to try, in three ways. A life is a position; the count is how many hold it as the scenario starts.
-function lives(s) {
-  const all = worldOf(s.key).flatMap((v) => v.farms.flatMap((f) => f.people || [])), cur = S.peek;
-  const n = (k) => all.filter((p) => p.a >= ADULT && isLife(k, p)).length;
-  const list = S.lives === 'ladder' ? [...s.lives].sort((a, b) => RANK.indexOf(a[0]) - RANK.indexOf(b[0])) : s.lives;
-  const head = `<h3>Lives this start offers ${tag('sketch')}</h3>`, hint = '<small>Point at a life, or tap it, to see who they are above. You choose the person once the land is raised.</small>';
-  if (S.lives === 'pills') return `${head}<div class="lives">${list.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${cur === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>${hint}`;
-  if (S.lives === 'cards') return `${head}<div class="lcards">${list.map(([k, label, sug]) => `<button type="button" class="lcard" data-life="${k}" aria-pressed="${cur === k}">
-    ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? '<span class="tag built">Suggested</span>' : '<span></span>'}<small>${esc(HARD[k])}</small><small class="n">${n(k)} at the start</small></button>`).join('')}</div>${hint}`;
-  const max = Math.max(1, ...list.map((x) => n(x[0])));
-  return `${head}<div class="ladder">${list.map(([k, label, sug]) => `<button type="button" class="rung" data-life="${k}" aria-pressed="${cur === k}">
-    ${icon(LIFE_ICON[k])}<span><b>${esc(label)}</b>${sug ? ' <span class="tag built">Suggested</span>' : ''}<small>${esc(POS[k].commands[0])}</small></span>
-    <span class="cnt"><i style="width:${Math.max(4, (n(k) / max) * 100)}%"></i><small>${n(k)}</small></span></button>`).join('')}</div>
-    <small>From the most standing to the least; the bar is how many hold the position as the scenario starts.</small>${hint}`;
+// Lives, in three forms, for both steps: looked at on step 1 (data-life), a filter on step 2 (data-only).
+function livesUI(items, attr, cur) {
+  const list = S.lives === 'ladder' ? [...items].sort((a, b) => RANK.indexOf(a.k) - RANK.indexOf(b.k)) : items, max = Math.max(1, ...list.filter((x) => x.k !== 'all').map((x) => x.n));
+  const ic = (k) => icon(k === 'all' ? 'people' : LIFE_ICON[k]), at = (x) => `type="button" ${attr}="${x.k}" aria-pressed="${cur === x.k}"`;
+  if (S.lives === 'pills') return `<div class="lives">${list.map((x) => `<button ${at(x)}>${ic(x.k)}${esc(x.label)}${x.sug ? star() : ''}</button>`).join('')}</div>`;
+  if (S.lives === 'cards') return `<div class="lcards">${list.map((x) => `<button class="lcard" ${at(x)}>${ic(x.k)}<b>${esc(x.label)}</b>${x.sug ? star() : '<span></span>'}
+    ${x.k === 'all' ? '<span class="meters"></span>' : meters(x.k)}<small class="n">${fig({ n: '', a: 30, r: 'spouse' })}${x.n}</small></button>`).join('')}</div>`;
+  return `<div class="ladder">${list.map((x) => `<button class="rung" ${at(x)}>${ic(x.k)}<span><b>${esc(x.label)}</b>${x.sug ? star() : ''}${x.k === 'all' ? '' : meters(x.k)}</span>
+    <span class="cnt"><i style="width:${x.k === 'all' ? 100 : Math.max(4, (x.n / max) * 100)}%"></i><small>${x.n}</small></span></button>`).join('')}</div>`;
 }
+const meterKey = () => `<div class="key">${MEASURE.map(([ic, t]) => `<span>${icon(ic)}${t.toLowerCase()}</span>`).join('')}<span>${star()}suggested</span></div>`;
 
-const facts = (s, keys) => `<dl class="facts">${[['Who starts', s.start], ['People', `${s.people(S.size)} on a ${SIZES[S.size].name.toLowerCase()} map`], ['Generations', s.gens],
-  ['Land', s.land], ['Stores', s.stores], ['Customs', s.customs]].filter((x) => !keys || keys.includes(x[0])).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 const sizeField = () => `<label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>`;
 const seedField = () => `<label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll">Another</button></span></label>`;
-const yearHTML = (s) => `<h3>${s.key === 'founders' ? 'The first year' : 'What is waiting'} ${s.status === 'sketch' ? '' : tag(s.key === 'founders' ? 'designed' : 'sketch')}</h3>
-  <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>`;
 
-// Step 1: the scenarios as picture cards; below, the chosen one read off the land, with who starts and the lives to try.
+// Step 1: the scenarios as picture cards; below, the chosen one read off the land, with who starts and the lives it offers.
 function step1() {
-  const s = scen(), pins = PINS[s.key] || [], ins = INSET[s.key];
+  const s = scen(), pins = PINS[s.key] || [], ins = INSET[s.key], all = worldOf(s.key).flatMap((v) => v.farms.flatMap((f) => f.people || []));
+  const items = s.lives.map(([k, label, sug]) => ({ k, label, sug, n: all.filter((p) => p.a >= ADULT && isLife(k, p)).length }));
+  const rows = [['sack', s.stores], ['scroll', s.customs]].filter((x) => x[1] !== 'What each farm has laid by');
   $('app').innerHTML = `${headBar('New archipelago')}
-    <div class="cards">${SCENARIOS.map((x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">
-      <img src="${pic(x.key, PIC[x.key] === 'populous')}" alt=""><b>${esc(x.name)}</b><small>${esc(x.line)}</small><span>${tag(x.status)}</span></button>`).join('')}</div>
+    <div class="cards">${SCENARIOS.map((x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}" title="${esc(x.line)}">
+      <img src="${pic(x.key, PIC[x.key] === 'populous')}" alt=""><b>${esc(x.name)} ${tag(x.status)}</b>
+      <span class="stats"><span title="People at the start">${icon('people')}${esc(x.people(S.size))}</span><span title="Generations on record">${icon('gens')}${GENS[x.key]}</span></span></button>`).join('')}</div>
     <div class="cgrid">
       <section>
         <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${pic(s.key)}" alt="The land as this scenario begins">
           ${pins.map(([x, y, ic, t, left]) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%">${icon(ic)}<b>${esc(t)}</b></span>`).join('')}
           ${ins ? `<span class="inset"><img src="${ins[0]}" alt=""><small>${icon(ins[1])}${esc(ins[2])}</small></span>` : ''}</figure>
-        ${pins.length ? `<ul class="pinlist">${pins.map((x) => `<li>${icon(x[2])}${esc(x[3])}</li>`).join('')}</ul>` : '<small>A stand-in picture: this scenario is a sketch.</small>'}
-        ${yearHTML(s)}
-        ${facts(s, ['Land', 'Stores', 'Customs'])}
+        ${pins.length ? `<ul class="pinlist">${pins.map((x) => `<li>${icon(x[2])}${esc(x[3])}</li>`).join('')}</ul>` : '<small>A stand-in picture.</small>'}
+        <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
+        <ul class="rows">${rows.map(([ic, t]) => `<li>${icon(ic)}<span>${esc(t)}</span></li>`).join('')}</ul>
       </section>
-      <section><h2>${esc(s.name)} ${tag(s.status)}</h2><p>${esc(s.line)} <span class="muted">${esc(s.explores)}</span></p>
+      <section><h2>${esc(s.name)}</h2><p title="${esc(s.explores)}">${esc(s.line)}</p>
         <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3><div class="who-starts" id="who">${households(s)}</div>
-        <div class="peekable">${lives(s)}</div>
+        <h3>Lives ${tag('sketch')}</h3><div class="peekable">${livesUI(items, 'data-life', S.peek)}</div>${S.lives === 'pills' ? '' : meterKey()}
+        <small>Point or tap to see who. You choose once the land is raised.</small>
         <div class="land2">${sizeField()}${seedField()}</div></section>
     </div>
-    <div class="foot"><span class="muted">${s.status === 'sketch' ? 'This scenario is a sketch, shown with a stand-in picture and a stand-in world.' : 'You choose the person after the land is raised, from those who live there.'}</span>
-      <button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
+    <div class="foot"><button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
 }
 
 function loading() {
@@ -550,55 +589,49 @@ const viewOf = (vi) => { const a = VIEW[PIC[S.sc]]; return a[Math.min(vi, a.leng
 function step2() {
   const s = scen(), v = S.world[S.village], p = pawns().find((x) => x.id === S.pawn), pos = POS[p.r], f = p.farm, view = viewOf(S.village);
   const sketch = s.status === 'sketch' || view.standin, kin = f.people.filter((x) => x !== p), grown = kin.filter((x) => x.a >= ADULT), next = grown.find((x) => x.r === 'heir' || x.r === 'heiress') || grown[0];
-  const count = (vl) => vl.farms.reduce((n, x) => n + (x.people || []).length, 0), filters = ['all', ...new Set(s.lives.map((x) => x[0]))];
+  const here = v.farms.flatMap((x) => x.people || []).filter((x) => x.a >= ADULT), count = (vl) => vl.farms.reduce((n, x) => n + (x.people || []).length, 0);
+  const items = ['all', ...new Set(s.lives.map((x) => x[0]))].map((k) => ({ k, label: LIFE_NAME[k], n: here.filter((x) => isLife(k, x)).length }));
   if (S.done) {
-    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game would begin here.</b> The camera glides down to ${esc(f.name)} in ${esc(S.world[p.village].name)}, and you are
-      ${esc(p.n)}, ${p.a}, ${esc(pos.name.toLowerCase())}. The world goes on without you; when ${p.s === 'm' ? 'he' : 'she'} dies you go on as an heir, a relative or someone close.</div>
+    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game would begin here,</b> at ${esc(f.name)} in ${esc(S.world[p.village].name)}, as ${esc(p.n)}.</div>
       <div class="foot"><button type="button" id="again">Choose someone else</button><button type="button" id="restart">Start over</button></div>`;
     return;
   }
   $('app').innerHTML = `${headBar('Whom to play')}
     ${S.world.length > 1 ? `<div class="cards${S.world.length > 3 ? ' v' : ' few'}">${S.world.map((x, i) => `<button type="button" class="card" data-v="${i}" aria-pressed="${i === S.village}">
       ${S.world.length > 3 ? '' : `<img src="${viewOf(i).img}" alt="">`}<b>${esc(x.name)}</b><span class="houses">${x.farms.map((fm) => icon(fm.empty ? 'empty' : 'house')).join('')}</span>
-      <small>${x.farms.length} farms, ${count(x)} people</small></button>`).join('')}</div>` : ''}
+      <span class="stats"><span title="People">${icon('people')}${count(x)}</span></span></button>`).join('')}</div>` : ''}
     <div class="cgrid">
       <section>
         <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${view.img}" alt="${esc(v.name)} from above">
           ${v.farms.slice(0, view.pos.length).map((fm, i) => `<button type="button" class="pin fp${view.pos[i][0] < 50 ? ' left' : ''}${fm === f ? ' on' : ''}" data-farm="${i}" style="left:${view.pos[i][0]}%;top:${view.pos[i][1]}%"
             aria-label="${esc(fm.name)}" ${fm.empty ? 'disabled' : ''}>${icon(fm.empty ? (/ruin/.test(fm.empty) ? 'ruin' : 'empty') : 'house')}<b>${esc(fm.name)}${fm.empty ? ', empty' : ''}</b></button>`).join('')}</figure>
-        <small><b>${esc(v.name)}.</b> ${esc(v.note)} ${sketch ? `A stand-in picture: the game would show ${esc(v.name)} itself${v.farms.length > view.pos.length ? `, so only ${view.pos.length} of its ${v.farms.length} farms are pinned` : ''}.` : 'A pin a farm: click one to meet its holder.'}</small>
-        <div class="lives">${filters.map((k) => `<button type="button" data-only="${k}" aria-pressed="${S.only === k}">${k === 'all' ? '' : icon(LIFE_ICON[k])}${LIFE_NAME[k]}</button>`).join('')}</div>
-        <div class="pcards">${v.farms.map((fm) => `<div class="pcard${fm.empty ? ' none' : ''}${fm === f ? ' cur' : ''}"><header><b>${esc(fm.name)}</b>${fm.tests ? `<small>${esc(fm.tests)}</small>` : ''}</header>
-          ${fm.empty ? `<small>${icon(/ruin/.test(fm.empty) ? 'ruin' : 'empty')} ${esc(fm.empty)} No one to play here, but a younger child or a servant may claim it at the moving round.</small>` : fm.people.map((x) => `
+        <ul class="rows"><li>${icon('scroll')}<span><b>${esc(v.name)}.</b> ${esc(v.note)}${sketch ? ' <span class="muted">A stand-in picture.</span>' : ''}</span></li></ul>
+        ${livesUI(items, 'data-only', S.only)}
+        <div class="pcards">${v.farms.map((fm) => `<div class="pcard${fm.empty ? ' none' : ''}${fm === f ? ' cur' : ''}" title="${esc(fm.tests || '')}"><header>${icon(fm.empty ? (/ruin/.test(fm.empty) ? 'ruin' : 'empty') : 'house')}<b>${esc(fm.name)}</b></header>
+          ${fm.empty ? `<small>${esc(fm.empty.split('.')[0])}.</small>` : fm.people.map((x) => `
             <button type="button" class="pawn${isLife(S.only, x) && x.a >= ADULT ? '' : ' dim'}" data-p="${x.id}" aria-pressed="${x.id === S.pawn}" ${x.a < ADULT ? 'disabled' : ''}>
-              <span class="av">${fig(x)}</span><span>${esc(x.n)}<small>${x.a}, ${esc(POS[x.r].name.toLowerCase())}${x.a < ADULT ? ', too young to play' : ''}</small></span>${x.id === S.suggested ? '<span class="tag built">Suggested</span>' : ''}</button>`).join('')}</div>`).join('')}</div>
+              <span class="av">${fig(x)}</span><span>${esc(x.n)}<small>${x.a} · ${esc(POS[x.r].name.toLowerCase())}</small></span>${x.id === S.suggested ? star() : ''}</button>`).join('')}</div>`).join('')}</div>
       </section>
       <section class="stick">
-        <div class="who">${face(p, true)}<div><h2>${esc(p.n)}</h2><span class="posline">${icon(LIFE_ICON[p.r])}${p.a}, ${esc(pos.name.toLowerCase())} at ${esc(f.name)}</span></div></div>
+        <div class="who">${face(p, true)}<div><h2>${esc(p.n)}${p.id === S.suggested ? ' ' + star() : ''}</h2><span class="posline">${icon(LIFE_ICON[p.r])}${p.a} · ${esc(pos.name.toLowerCase())} · ${esc(f.name)}</span></div></div>
         ${p.note ? `<p>${esc(p.note)}</p>` : ''}
-        <p class="muted">${HARD[p.r]} ${tag('sketch')}</p>
-        <h3>The household ${tag('built')}</h3>
-        <div class="figs lg">${f.people.map((x) => fig(x, x === p ? 'on' : 'off')).join('')}</div>
-        <dl class="facts">
-          <dt>Under one roof</dt><dd>${kin.length ? kin.map((x) => `${esc(x.n.split(' ')[0])} (${x.a})`).join(', ') : 'No one else'}</dd>
-          <dt>Food laid by</dt><dd>${f.food} days of need${f.food >= 365 ? ', and seed' : ''}</dd>
-          <dt>If ${p.s === 'm' ? 'he' : 'she'} dies</dt><dd>You go on as ${next ? esc(next.n.split(' ')[0]) + (next.r === 'heir' || next.r === 'heiress' ? ', the heir' : '') + ', or another of the household or its kin' : 'any adult, and the chronicle marks the break in the line'}</dd>
-        </dl>
-        <h3>What this position commands ${tag('designed')}</h3>
-        <ul class="plain">${pos.commands.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-        <h3>What lies ahead ${tag('designed')}</h3>
-        <ul class="plain">${pos.ahead.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        ${meters(p.r, true)}
+        <h3>Household ${tag('built')}</h3>
+        <div class="figs lg" title="${esc(f.people.map((x) => `${x.n.split(' ')[0]} ${x.a}`).join(', '))}">${f.people.map((x) => fig(x, x === p ? 'on' : 'off')).join('')}</div>
+        <ul class="rows"><li title="Food laid by, in days of the household's need">${icon('sack')}<span>${f.food} days of food</span></li>
+          <li title="Whom you go on as when ${p.s === 'm' ? 'he' : 'she'} dies">${icon('next')}<span>${next ? `Then ${esc(next.n.split(' ')[0])}${next.r === 'heir' || next.r === 'heiress' ? ', the heir' : ''}` : 'No one after: the line breaks'}</span></li></ul>
+        <h3>Can ${tag('designed')}</h3>${chips(CAN[p.r], pos.commands)}
+        <h3>Ahead ${tag('designed')}</h3>${chips(NEXT[p.r], pos.ahead)}
       </section>
     </div>
-    <div class="foot"><span class="muted">You can change your mind later: the pawn panel lets you play any living adult.</span>
-      <button type="button" id="back2">Back</button><button type="button" id="watch">Watch without playing</button><button type="button" class="primary" id="play">Play as ${esc(p.n.split(' ')[0])}</button></div>`;
+    <div class="foot"><button type="button" id="back2">Back</button><button type="button" id="watch">Watch only</button><button type="button" class="primary" id="play">Play as ${esc(p.n.split(' ')[0])}</button></div>`;
 }
 function draw() {
   $('app').className = 'sheet c';
   $('stage').className = 'stage far'; $('stage').style.backgroundImage = `url(${pic(S.sc, S.step === 2)})`;
   const sw = (k, label) => `<span>${label}:</span>${VARIANTS[k].map(([v, l]) => `<button type="button" data-var="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${l}</button>`).join('')}`;
-  $('mockbar').innerHTML = `<b>Mock</b>${S.step === 1 ? sw('lives', 'Lives') : '<span>Pick a village, then a farm on the picture or a person below.</span>'}
-    <span class="legend">${tag('built')} in the game ${tag('designed')} in design.md ${tag('sketch')} an idea</span>`;
+  $('mockbar').innerHTML = `<b>Mock</b>${sw('lives', 'Lives')}
+    <span class="legend"><span>${tag('built')} in the game</span><span>${tag('designed')} in design.md</span><span>${tag('sketch')} an idea</span></span>`;
   if (S.step === 1) step1(); else step2();
 }
 $('mockbar').addEventListener('click', (e) => { const b = e.target.closest('[data-var]'); if (b) { S[b.dataset.var] = b.dataset.v; draw(); } });
