@@ -82,8 +82,8 @@ assert.ok(gone && gone.text === undefined && H[gone.kind] && gone.folded === st.
 // a save in the middle of a fold goes on as the run does
 {
   const a = Sim.seed(world(), 7, 'heirs');
-  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first village folded
-  assert.ok(a.recordFold.pass && a.recordFold.pass.next === 1, `a fold under way: ${JSON.stringify(a.recordFold)}`);
+  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first slice folded
+  assert.ok(a.recordFold.pass && a.recordFold.pass.shortNext > a.recordFold.shortAt, `a fold under way: ${JSON.stringify(a.recordFold)}`);
   const b = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
   for (const s of [a, b]) Sim.advance(s, 6 * Sim.DAY);
   assert.strictEqual(a.recordFold.pass, null);

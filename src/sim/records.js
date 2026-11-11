@@ -35,11 +35,12 @@ VB['sim/records'] = (() => {
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
   //   events, so a gift between two holders counts twice. Appended only, by foldHistory.
   // @state st.recordFold: {shortAt, longAt, pass}: how far through st.record the fold has come, as positions, for the kinds kept SHORT
-  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, next (the village folded next; `none` for the events
-  //   of none), none (the villages when it began), made (the counts made in this pass, by "kind|village|year")}, else null.
+  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, shortNext, longNext (how far this pass has folded each
+  //   end), made (the counts made in this pass, by "kind|village|year")}, else null.
   // At the year's turn the fold marks the events old enough (appended in time order, so it stops at the first that is not), and folds
-  // them over the year's first days, a village a day and then the events of none (rule 5). Each event is passed by each end once, and
-  // by each day of its pass; it touches st.record only, never the pawns.
+  // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
+  // once to fold it, never once a village; it touches st.record only, never the pawns.
+  const FOLD_DAYS = 4;
   function foldHistory(st, c) {
     const F = st.recordFold, R = st.record;
     if (!F.pass && c.doy === 0) {
@@ -48,7 +49,9 @@ VB['sim/records'] = (() => {
         return i;
       };
       const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
-      if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, next: 0, none: st.villages.length, made: {} };
+      if (shortEnd > F.shortAt || longEnd > F.longAt) {
+        F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
+      }
     }
     const P = F.pass; if (!P) return;
     const fold = (from, to, short) => {
@@ -56,7 +59,7 @@ VB['sim/records'] = (() => {
         const e = R[i]; VB.count.recordFold++;
         if (typeof e !== 'object') continue;
         const years = HISTORY[e.kind];
-        if (!years || (years === SHORT) !== short || (e.village === undefined ? P.none : e.village) !== P.next) continue;
+        if (!years || (years === SHORT) !== short) continue;
         const year = Math.floor(e.t / YEAR), key = `${e.kind}|${e.village === undefined ? '' : e.village}|${year}`;
         let k = P.made[key];
         if (k === undefined) {
@@ -67,8 +70,11 @@ VB['sim/records'] = (() => {
         st.recordYears[k].tally++; R[i] = k;
       }
     };
-    fold(F.shortAt, P.shortEnd, true); fold(F.longAt, P.longEnd, false);
-    if (++P.next > P.none) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
+    const slice = (at, end, next) => Math.min(end, next + Math.ceil((end - at) / FOLD_DAYS));
+    const s = slice(F.shortAt, P.shortEnd, P.shortNext), l = slice(F.longAt, P.longEnd, P.longNext);
+    fold(P.shortNext, s, true); fold(P.longNext, l, false);
+    P.shortNext = s; P.longNext = l;
+    if (s >= P.shortEnd && l >= P.longEnd) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
   }
   // Pawn id's own events gain the event at position `at` of the record (a birth or a death, which the log's line records).
   function lifeEvent(st, id, at) { st.pawns[id].events.push(at); }
