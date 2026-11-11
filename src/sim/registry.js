@@ -20,6 +20,7 @@ VB['sim/registry'] = (() => {
     atLoad();
     if (!spec || !text(spec.id) || !text(spec.owner) || typeof spec.base !== 'function'
       || !['product', 'sum'].includes(spec.combine) || (spec.clamp !== undefined && !clampOf(spec.clamp))
+      || (spec.baseCause !== undefined && typeof spec.baseCause !== 'function')
       || (spec.order !== undefined && !(Array.isArray(spec.order) && spec.order.every(text)))) {
       throw new Error('Invalid rule specification');
     }
@@ -53,12 +54,20 @@ VB['sim/registry'] = (() => {
     if (sealed) return;
     if (waiting.size) throw new Error('Contributions to rules never declared: ' + [...waiting.keys()].join(', '));
     for (const { spec, contributions } of rules.values()) {
-      if (spec.order) { // the declared order names every contribution's key once; it overrides the order registered
-        const keys = contributions.map((c) => c.key);
-        if (spec.order.length !== keys.length || !keys.every((k) => spec.order.includes(k)) || new Set(spec.order).size !== keys.length) {
-          throw new Error(`Rule ${spec.id}: order [${spec.order}] does not name its contributions [${keys}]`);
+      if (spec.baseCause) { // a rule that names causes: a product of factors that never fall below 1, each naming its cause
+        if (spec.combine !== 'product') throw new Error(`Rule ${spec.id}: causes need a product rule`);
+        for (const c of contributions) {
+          if (c.range[0] < 1) throw new Error(`Rule ${spec.id}: ${c.key} may fall below 1, so its share of a draw is undefined`);
+          if (!c.cause) throw new Error(`Rule ${spec.id}: ${c.key} names no cause`);
         }
-        contributions.sort((a, b) => spec.order.indexOf(a.key) - spec.order.indexOf(b.key));
+      }
+      if (spec.order) { // the declared order puts the keys it names first, in its order; others follow as registered (a module may add a term)
+        const keys = contributions.map((c) => c.key);
+        if (!spec.order.every((k) => keys.includes(k)) || new Set(spec.order).size !== spec.order.length) {
+          throw new Error(`Rule ${spec.id}: order [${spec.order}] names a key that is not a contribution [${keys}]`);
+        }
+        const at = (c) => { const i = spec.order.indexOf(c.key); return i < 0 ? spec.order.length : i; };
+        contributions.sort((a, b) => at(a) - at(b));
       }
       Object.freeze(contributions);
     }
@@ -85,6 +94,31 @@ VB['sim/registry'] = (() => {
     }
     return clamped(n, spec.clamp);
   }
+  // The cause of one draw u against a product rule with causes (VB-207): null when u is not below the value, else the cause of the part of
+  // the hazard u falls in. Below the base it is the owner's (spec.baseCause); above it the excess is shared among the contributions in
+  // proportion to the logarithm of each factor, so a share never depends on the order of registering. Allocates nothing; the factors are
+  // read again, with their logarithms, only when a draw is below the value, that is when someone dies.
+  function draw(st, id, ctx, u) {
+    VB.count.ruleValue++;
+    const { spec, contributions } = ruleOf(id);
+    if (!spec.baseCause) throw new Error(`Rule ${id} names no causes`);
+    const base = spec.base(st, ctx);
+    let n = base, logs = 0;
+    for (let i = 0; i < contributions.length; i++) n *= contributions[i].value(st, ctx);
+    if (spec.clamp) n = clamped(n, spec.clamp);
+    if (!(u < n)) return null;
+    if (u < base) return spec.baseCause(st, ctx);
+    for (let i = 0; i < contributions.length; i++) logs += Math.log(contributions[i].value(st, ctx));
+    const excess = n - base;
+    let upto = base, last = null;
+    for (let i = 0; i < contributions.length; i++) {
+      const l = Math.log(contributions[i].value(st, ctx));
+      if (l <= 0) continue;
+      last = contributions[i].cause; upto += excess * l / logs;
+      if (u < upto) return last;
+    }
+    return last; // rounding at the top of the last share
+  }
   function explain(st, id, ctx) {
     const { spec, contributions } = ruleOf(id), parts = [];
     const base = checked(id, 'base (' + spec.owner + ')', spec.base(st, ctx));
@@ -94,7 +128,12 @@ VB['sim/registry'] = (() => {
       n = checked(id, 'combined value after ' + c.key, spec.combine === 'product' ? n * factor : n + factor);
       parts.push({ key: c.key, source: c.source, label: c.label, cause: c.cause, factor });
     }
-    return { value: clamped(n, spec.clamp), base, parts, combine: spec.combine,
+    if (spec.baseCause) { // each part's share of the value above the base, by the logarithm of its factor (the split draw() uses)
+      let logs = 0;
+      for (const part of parts) logs += Math.log(part.factor);
+      for (const part of parts) part.share = logs > 0 ? (n - base) * Math.log(part.factor) / logs : 0;
+    }
+    return { value: clamped(n, spec.clamp), base, baseCause: spec.baseCause ? spec.baseCause(st, ctx) : undefined, parts, combine: spec.combine,
       unclamped: n, clamp: spec.clamp ? [...spec.clamp] : null };
   }
   function list() {
@@ -105,5 +144,5 @@ VB['sim/registry'] = (() => {
     })));
   }
   // atLoad: other load-time tables (sim/stores' goods) close with the rules.
-  return { declare, contribute, value, explain, list, seal, atLoad };
+  return { declare, contribute, value, draw, explain, list, seal, atLoad };
 })();
