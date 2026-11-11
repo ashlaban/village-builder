@@ -1,7 +1,7 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
-  const { ROLES, WORK, cal } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const { dailyNeed } = VB['sim/hunger'], { reserved } = Stores;
@@ -11,6 +11,7 @@ VB['sim/kinds'] = (() => {
   const { finishBoothStage, plotJobs, boothJob } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
+  const { ground, landCatch } = VB['sim/fish'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -81,6 +82,13 @@ VB['sim/kinds'] = (() => {
   function claimWork(st, holder, at, c, post) {
     for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
   }
+  // The household's spare food in days of its need: grain above the seed reserve and cooked meals (fish go into meals until VB-119).
+  const spareDays = (st, hh) => {
+    const need = dailyNeed(st, hh);
+    return need > 0 ? (Math.max(0, hh.grain - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
+  };
+  // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
+  const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
@@ -297,6 +305,31 @@ VB['sim/kinds'] = (() => {
         for (const s of at.fence) if (s.cond < E.fenceMendBelow) post(`mend:v${at.id}.${s.id}`, s.tile, { stretch: s }, 'mend', { type: 'village', id: at.id });
       },
     },
+    fish: {
+      verb: 'Fishing', go: 'Going fishing', back: 'Carrying the catch home', name: 'Go fishing', label: 'Fishing', anim: 'fish', hours: 3, hands: 1,
+      type: 'foraging', carry: 'fish', to: 'door',
+      // at the water's edge of the bank, facing the water
+      spot: (st, a, j) => {
+        const w = st.w, x = w.hx[j.site], y = w.hy[j.site];
+        return [x + (w.hx[j.water] - x) * 0.45 + a.ox * 0.15, y + (w.hy[j.water] - y) * 0.45 + a.oy * 0.1];
+      },
+      // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
+      urgency: (st, j, c, U) => {
+        const d = spareDays(st, st.households[j.farm.household]);
+        return d >= U.fishCalmDays ? U.fishCalm : U.fishLean - (U.fishLean - U.fishCalm) * d / U.fishCalmDays;
+      },
+      // the catch goes straight into the household's meals until fresh food (VB-119)
+      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', landCatch(st, j.water), 'catch'); },
+      // in the fishing season, at the house's fishing ground (sim/fish): one trip, two while spare food covers fewer than FISH.secondDays
+      available: (st, hh, f, c, post) => {
+        if (!fishing(c)) return;
+        const g = ground(st, f.house);
+        if (!g) return;
+        // the key names the bank, so a ground fished out is left for the next one at the following review
+        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water });
+        if (spareDays(st, hh) < FISH.secondDays) post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water });
+      },
+    },
   };
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
@@ -311,7 +344,7 @@ VB['sim/kinds'] = (() => {
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
     farm: [meadowWork, 'manure', byreWork].map(rule),
-    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'mend'].map(rule),
+    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'mend', 'fish'].map(rule),
     village: ['mend'].map(rule),
     island: [plotWork, claimWork].map(rule),
     fieldAt: {},
