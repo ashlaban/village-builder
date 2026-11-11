@@ -47,6 +47,7 @@
   }
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden')) return;
+    if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
     if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);

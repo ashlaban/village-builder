@@ -70,7 +70,7 @@
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    loader.classList.remove('done'); closeChoose(); followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
@@ -99,8 +99,10 @@
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
-    // Opening move: start on the whole chart, then glide down through the clouds to the village.
-    let best = sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
+    // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
+    // scenario's suggestion, where whom to play opens (page/choose).
+    const sug = !save && !sim.player ? suggestedPawn() : -1, sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : null;
+    let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
     for (let i = 0; i < wd.N && bd >= 0; i++) {
       if (wd.water[i]) continue;
       const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
@@ -117,7 +119,7 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('menuBtn').disabled = false;
   }
 

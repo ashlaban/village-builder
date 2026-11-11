@@ -52,6 +52,11 @@ const iv = setInterval(async () => {
   if (!doc.getElementById('loader').classList.contains('done')) { if (Date.now() - start > 90000) { fail('loader timeout'); process.exit(1); } return; }
   clearInterval(iv); if (globalThis.__ran) return; globalThis.__ran = 1;
   console.log('built', Date.now() - start, 'ms |', doc.getElementById('meta').textContent);
+  // whom to play (VB-339): a new game opens the choosing mode, paused, on a farm and a person; Watch only closes it with no one played
+  if (doc.getElementById('choose').hidden) fail('a new game does not open whom to play');
+  if (!doc.querySelector('#chooseCard .person') || !doc.querySelector('#chooseStories .story')) fail('whom to play shows no household or no archetype');
+  doc.getElementById('chooseWatch').click();
+  if (!doc.getElementById('choose').hidden || doc.body.classList.contains('choosing')) fail('Watch only leaves whom to play open');
   let t = Date.now(); tick(300); console.log('after intro (300 frames,', Date.now() - t, 'ms):', state(), '| lod:', doc.getElementById('lod').hidden ? 'idle' : doc.getElementById('lod').textContent);
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
@@ -141,7 +146,7 @@ const iv = setInterval(async () => {
   doc.getElementById('menuBtn').click(); doc.getElementById('landNew').click();
   if (doc.getElementById('genScreen').hidden || doc.getElementById('genSeed').value !== '7' || doc.getElementById('genScenario').value !== 'heirs') fail('the generation screen did not keep the last choices');
   generate('populous', 't', '7');
-  const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
+  const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); doc.getElementById('chooseWatch').click(); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
     console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(() => process.exit(failed ? 1 : 0)); } }, 50);

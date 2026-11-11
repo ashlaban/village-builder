@@ -65,6 +65,9 @@
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
+    const choosing = !$('choose').hidden && $('landing').hidden && $('genScreen').hidden;
+    if (choosing && !/^(arrow(left|right|up|down)|[wasd+=-])$/.test(e.key.toLowerCase())) return;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
@@ -125,7 +128,6 @@
   }
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
-    if (panel) $('playOffer').hidden = true;
     $('actionSheet').hidden = panel !== 'actions'; $('actionsBtn').setAttribute('aria-pressed', String(panel === 'actions'));
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';

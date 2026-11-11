@@ -184,6 +184,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .navigation, body:has(.genscreen:not([hidden])) .sheet,
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
+/* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
+body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
+body.choosing .map-tools, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
@@ -318,7 +321,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-/* Playing a pawn (VB-210): the scenario's suggestion at a new game, over the toasts; the played pawn's part of its card. */
+/* Playing a pawn (VB-210): after its death, whom to go on as, over the toasts; the played pawn's part of its card. */
 .play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
@@ -437,6 +440,67 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
 }
+/* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
+   the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
+.choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+.choose > * { pointer-events: auto; }
+.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: 16px; overflow-y: auto;
+  overscroll-behavior: contain; min-width: 0; }
+.choose-map { display: none; }
+.choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
+.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+  max-height: calc(100% - 100px); }
+.choose-card:empty { display: none; }
+.choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
+  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: 999px; overflow: visible; }
+.choose h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
+.choose h2 { margin: 0; font: italic 700 20px/1.15 'Alegreya', Georgia, serif; overflow-wrap: anywhere; }
+.choose h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.choose p { margin: 0; font-size: 14px; line-height: 1.4; }
+.choose .hint { color: var(--muted); }
+.choose .refused { color: var(--bad); }
+.choose .ico { width: 18px; height: 18px; flex: none; }
+.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.sug-note { display: flex; gap: 6px; align-items: center; }
+.stories { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px;
+  padding: 8px 10px; background: var(--node); min-width: 0; }
+.story[aria-pressed="false"] { color: var(--ink); }
+.story > .ico { width: 22px; height: 22px; color: var(--accent); }
+.story b { font-size: 15px; }
+.story small { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.3; color: var(--muted); }
+.story .few { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; font-size: 12.5px; color: var(--muted); min-height: 22px; }
+.story .few img { width: 22px; height: 22px; margin-right: -3px; }
+.story .few span { margin-left: 8px; }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: rgba(35, 104, 90, 0.12); }
+@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: rgba(35, 104, 90, 0.10); } }
+.hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.hhead img { width: 44px; height: 44px; grid-row: 1 / span 2; }
+.hhead span { color: var(--muted); font-size: 14px; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 4px; }
+.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; min-height: 0; border-radius: 10px; border-color: transparent;
+  font-size: 13px; line-height: 1.2; text-align: center; min-width: 0; }
+.person[aria-pressed="false"] { color: var(--ink); }
+.person img { width: 40px; height: 40px; }
+.person span { overflow-wrap: anywhere; }
+.person small { font-size: 11.5px; color: var(--muted); }
+.person:disabled { cursor: default; }
+.person[aria-pressed="true"] { border-color: var(--accent); background: rgba(35, 104, 90, 0.12); }
+.person.hit img { filter: drop-shadow(0 0 2px #c9a24a); }
+.detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
+.posline { display: flex; gap: 8px; align-items: flex-start; }
+.posline .ico { color: var(--accent); margin-top: 1px; }
+.pchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: rgba(35, 104, 90, 0.10); font-size: 14px; }
+.pchip .ico { width: 16px; height: 16px; color: var(--accent); }
+@media (max-width: 899px) {
+  .choose { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overflow-x: hidden; padding: 0 max(8px, env(safe-area-inset-right, 0px))
+    0 max(8px, env(safe-area-inset-left, 0px)); }
+  .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
+  .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
+  .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
+  .choose::after { content: ""; flex: none; height: 1px; }
+}
 @media (max-width: 1024px) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
@@ -509,7 +573,23 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 </div>
 <div class="lod" id="lod" hidden></div>
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
-<div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
+<!-- Whom to play (VB-339): the game itself after a new game is raised; on a narrow screen the map's strip, the household, the archetypes, the bar -->
+<div class="choose" id="choose" hidden>
+  <div class="choose-map" id="chooseMap"></div>
+  <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
+  <section class="choose-list panel" aria-labelledby="chooseTitle">
+    <h1 id="chooseTitle">Whom to play</h1>
+    <p class="hint">Drag the map and click a farm, or begin from a story. Children are shown, and cannot be played.</p>
+    <h3>Story archetypes</h3>
+    <div id="chooseStories"></div>
+    <p class="hint sug-note"><svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path
+      d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
+  </section>
+  <div class="choose-bar panel" role="group" aria-label="Whom to play">
+    <button type="button" id="chooseBack">Back</button><button type="button" id="chooseWatch">Watch only</button>
+    <button type="button" class="primary" id="choosePlay">Play as</button>
+  </div>
+</div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
   <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet"
@@ -12300,7 +12380,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    loader.classList.remove('done'); closeChoose(); followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
@@ -12329,8 +12409,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
-    // Opening move: start on the whole chart, then glide down through the clouds to the village.
-    let best = sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
+    // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
+    // scenario's suggestion, where whom to play opens (page/choose).
+    const sug = !save && !sim.player ? suggestedPawn() : -1, sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : null;
+    let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
     for (let i = 0; i < wd.N && bd >= 0; i++) {
       if (wd.water[i]) continue;
       const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
@@ -12347,7 +12429,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('menuBtn').disabled = false;
   }
 
@@ -12465,6 +12547,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden')) return;
+    if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
     if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
@@ -12551,6 +12634,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
+    const choosing = !$('choose').hidden && $('landing').hidden && $('genScreen').hidden;
+    if (choosing && !/^(arrow(left|right|up|down)|[wasd+=-])$/.test(e.key.toLowerCase())) return;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
@@ -12611,7 +12697,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
-    if (panel) $('playOffer').hidden = true;
     $('actionSheet').hidden = panel !== 'actions'; $('actionsBtn').setAttribute('aria-pressed', String(panel === 'actions'));
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
@@ -14842,7 +14927,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function playAs(id) {
     const r = Sim.inhabit(st, id);
-    playMsg = r === true ? null : { id, text: r }; walkPick = false; $('playOffer').hidden = true;
+    playMsg = r === true ? null : { id, text: r }; walkPick = false;
     return r;
   }
   $('playBox').addEventListener('click', (e) => {
@@ -14945,21 +15030,255 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('toasts').appendChild(skipNote);
   }
   $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
-  // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
-  function offerPlay() {
-    const id = suggestedPawn(), box = $('playOffer');
-    if (id < 0) { box.hidden = true; return; }
-    const f = farmOf(st.pawns[id]);
-    box.dataset.pawn = String(id);
-    $('playOfferText').textContent = `Play as ${Sim.fullName(st.pawns[id])}${f ? `, who holds ${f.name}` : ''}?`;
-    box.hidden = false;
+// customs in force, and the story archetype cards built from them (VB-339; the start screen, VB-340, reuses storyCards unchanged)
+  // ======== positions and story archetypes ========
+  // A position is read from the run: the household's holder (hh.holder), the holder's spouse (Sim.spouseOf), a retired holder (p.retired),
+  // a servant (p.servant), the heir the game's succession names (the first of Sim.heirRanking), or another grown member. Nothing here
+  // ranks lives: the words are the mock's (docs/mocks/setup.html), Proposed (design.md, Starting a game), and the chips that depend on a
+  // custom read the custom in force in the person's village (Sim.practice) and who speaks at its meeting (Sim.voiceOf).
+  const SIGN_PATHS = {
+    house: 'M3 11 12 4l9 7M5.5 9.5V20h13V9.5M10 20v-5h4v5',
+    field: 'M12 21V4M12 9 8.5 5.5M12 9l3.5-3.5M12 13.5 8.5 10M12 13.5l3.5-3.5M12 18l-3.5-3.5M12 18l3.5-3.5',
+    rings: 'M4 14a5 5 0 1 0 10 0 5 5 0 1 0-10 0M10 14a5 5 0 1 0 10 0 5 5 0 1 0-10 0', key: 'M4 15a4 4 0 1 0 8 0 4 4 0 1 0-8 0M11 12l9-9M17 6l3 3M14.5 8.5l2 2',
+    road: 'M12 21V4M12 6h7l2 2-2 2h-7M12 12H6l-2 2 2 2h6', sickle: 'M5 21l5-5M9 17C4 10 10 3 18 5 12 6 9 11 12 15', voice: 'M4 5h16v10H10l-4 4v-4H4z',
+    sack: 'M9 4h6l-1.5 3c4 2 5.5 6 4.5 10-.5 2-2 3-4 3h-4c-2 0-3.5-1-4-3-1-4 .5-8 4.5-10z', flag: 'M6 21V4M6 5h11l-2 3.5 2 3.5H6',
+    sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2', scroll: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h3',
+    next: 'M5 12h14M13 6l6 6-6 6', shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
+    people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
+  };
+  const sign = (k) => svgIcon(24, 24, `<path d="${SIGN_PATHS[k]}"/>`, ICON_STROKE);
+  // The scenario's suggestion (design.md, Which pawn), a filled star; what it means is written beside the cards, not only in a tooltip.
+  const SUGGESTED = '<svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Suggested by the scenario" focusable="false">'
+    + '<path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>';
+  const POS_ICON = { holder: 'house', widow: 'house', bachelor: 'house', spouse: 'rings', heir: 'key', heiress: 'key', child: 'road', servant: 'sickle',
+    retired: 'house', landless: 'road', minor: 'people' };
+  // One line on the life (the mock's HARD; retired and landless are this task's, for positions the game has and the mock does not).
+  const LIFE_LINE = { holder: 'Secure. The most to decide from the first day.', widow: 'Secure while she lives.',
+    bachelor: 'Secure, and a dead end unless he marries.', spouse: 'Secure, with little formal say. Influence runs through ties and prestige.',
+    heir: 'A waiting game: nothing is his until the farm passes.', heiress: 'Sought after. The marriage decides everything.',
+    child: 'Open and insecure: every road leads away from home.', servant: 'The hardest start. Nothing to lose.',
+    retired: 'Settled: the farm has passed on.', landless: 'Nothing to lose, and no roof of its own.', minor: 'A child, not yet to be played.' };
+  // The story archetypes a scenario names (design.md, Starting a game; the mock's lists, Proposed): [position, name, suggested].
+  const STORIES = {
+    founders: [['holder', 'A founding holder', true], ['spouse', 'A founder’s wife'], ['servant', 'The farmhand or the maid']],
+    heirs: [['holder', 'An ageing holder', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'],
+      ['heiress', 'The heiress']],
+    populous: [['holder', 'A holder', true], ['heir', 'An heir'], ['child', 'A younger child'], ['servant', 'A servant']],
+  };
+  const wasWed = (id) => st.unions.some((u) => u.a === id || u.b === id);
+  const liveHousehold = (f) => (f.household !== null && f.household !== undefined && !st.households[f.household].dissolved
+    ? st.households[f.household] : null);
+  // The positions of the living, read once for a state and a time (the choosing mode is paused, so once per game).
+  let posCache = { of: null, t: NaN, map: new Map() };
+  function positionOf(id) {
+    if (posCache.of !== st || posCache.t !== st.t) posCache = { of: st, t: st.t, map: new Map(), first: new Map() };
+    let k = posCache.map.get(id);
+    if (k === undefined) { k = readPosition(id); posCache.map.set(id, k); }
+    return k;
   }
-  $('playOfferYes').addEventListener('click', () => {
-    const id = +$('playOffer').dataset.pawn;
-    if (!st || !st.pawns[id]) return;
-    if (playAs(id) === true) { focusPawn(id); openPanel('actions'); }
+  function firstHeir(hh) {
+    if (!posCache.first.has(hh.id)) { const r = Sim.heirRanking(st, hh); posCache.first.set(hh.id, r.length ? r[0] : null); }
+    return posCache.first.get(hh.id);
+  }
+  function readPosition(id) {
+    const p = st.pawns[id];
+    if (p.died !== null) return null;
+    if (p.age < ADULT) return 'minor';
+    const hh = p.household !== null ? st.households[p.household] : null;
+    if (!hh || hh.dissolved) return 'landless';
+    if (hh.holder === id) return Sim.spouseOf(st, id) !== null ? 'holder' : !wasWed(id) ? 'bachelor' : p.sex === 'f' ? 'widow' : 'holder';
+    if (hh.holder !== null && Sim.spouseOf(st, id) === hh.holder) return 'spouse';
+    if (p.retired) return 'retired';
+    if (p.servant) return 'servant';
+    if (firstHeir(hh) === id) return p.sex === 'f' ? 'heiress' : 'heir';
+    return 'child';
+  }
+  const inStory = (key, id) => { const k = positionOf(id); return k === key || (key === 'holder' && k === 'bachelor'); };
+  // A position's name, read from the game where it has one (a servant is its role's title, Sim.ROLES).
+  function positionName(id) {
+    const p = st.pawns[id], k = positionOf(id), he = p.sex === 'm';
+    return { holder: 'Holder', widow: 'Widow, holds the farm', bachelor: 'Holder, unmarried', spouse: he ? 'Holder’s husband' : 'Holder’s wife',
+      heir: 'Heir', heiress: 'Heiress', child: 'Younger child', servant: (Sim.ROLES[p.role] || { title: 'Servant' }).title, retired: 'Retired',
+      landless: 'Without a household', minor: 'Child' }[k] || '';
+  }
+  // The household's living members as the panel lists them: the holder, the spouse, then the eldest first.
+  function householdPeople(hh) {
+    const sp = hh.holder !== null ? Sim.spouseOf(st, hh.holder) : null, rank = (id) => (id === hh.holder ? 0 : id === sp ? 1 : 2);
+    return hh.members.filter((id) => st.pawns[id].died === null).sort((a, b) => rank(a) - rank(b) || st.pawns[a].born - st.pawns[b].born || a - b);
+  }
+  // What the position can do and what lies ahead, as [icon, words]: the mock's chips (CAN, NEXT), with those that depend on a custom read
+  // from the custom in force in the person's village, and "Speaks at the meeting" wherever its custom gives this person a voice.
+  function chipsOf(id) {
+    const p = st.pawns[id], k = positionOf(id), hh = p.household !== null ? st.households[p.household] : null;
+    if (k === 'minor' || !k) return { can: [], ahead: [] };
+    const f = hh ? st.farmsteads[hh.farmstead] : null, cu = f ? Sim.practice(st, f.village) : null, she = p.sex === 'f';
+    const heir = hh && !hh.dissolved ? firstHeir(hh) : null, heirName = heir !== null && heir !== id ? st.pawns[heir].given : null;
+    const handover = { marriage: 'Hands over when the heir marries', death: 'Holds the farm until death', age60: 'Hands over at 60' };
+    const takes = { marriage: 'The farm, on marriage', death: 'The farm, at the holder’s death', age60: 'The farm, when the holder is 60' };
+    const widowed = { life: 'keeps the farm', keep: 'a right to her keep', outright: 'inherits outright' };
+    const ownWork = ['sickle', 'Own work'], holderCan = [['field', 'Places fields'], ['sun', 'Sets the work'], ['rings', 'Arranges marriages']];
+    const can = { holder: holderCan, widow: holderCan, bachelor: holderCan.slice(0, 2), spouse: [ownWork, ['scroll', 'Argues a cause']],
+      heir: [ownWork, ['rings', 'Own marriage']], heiress: [ownWork, ['rings', 'Own marriage']],
+      child: [ownWork, ['road', 'May leave'], ['flag', 'May claim a farm']], servant: [['sickle', 'Serves the farm'], ['road', 'May move'],
+        ['flag', 'May claim a farm']], retired: [ownWork], landless: [['road', 'May move'], ['flag', 'May claim a farm']] }[k].slice();
+    const s = hh && !hh.dissolved ? st.cenv.settlements[Sim.settlementIdOf(st, p)] : null;
+    if (s && Sim.voiceOf(st, p, s) > 0) can.push(['voice', 'Speaks at the meeting']);
+    const line = heirName ? ['key', `Then ${heirName}`] : ['key', 'No heir in the line'];
+    let ahead = [];
+    if (!cu) ahead = [['house', 'Land: the long goal']];
+    else if (k === 'holder') ahead = [heirName ? ['key', handover[cu.handover]] : line];
+    else if (k === 'bachelor') ahead = [Sim.childrenOf(st, id).some((c) => st.pawns[c].died === null) ? ['key', handover[cu.handover]] : ['key',
+      'No child: kin inherit']];
+    else if (k === 'widow') ahead = [['shield', cu.widow === 'keep' ? 'Holds it for the heir' : cu.widow === 'outright' ? 'The farm as her own'
+      : 'The farm for life'], line];
+    else if (k === 'spouse') ahead = [['shield', `As ${she ? 'widow' : 'widower'}, ${widowed[cu.widow]}`]];
+    else if (k === 'heir') ahead = [['house', takes[cu.handover]],
+      ['sack', { one: 'Takes all', buyout: 'Buys out siblings', split: 'Shares the land' }[cu.heirCount]]];
+    else if (k === 'heiress') {
+      ahead = [['house', cu.heirSex === 'sonsFirst' ? 'Inherits: no son' : cu.heirSex === 'daughtersFirst' ? 'Inherits: daughters first'
+        : 'Inherits: first in line'], ['rings', cu.residence === 'husband' ? 'Moves to her husband’s' : 'Husband moves in']];
+    } else if (k === 'child') {
+      ahead = [['sack', cu.heirCount === 'split' ? 'A share of the land' : 'Bought out, no land']];
+      if (she && cu.daughterShare === 'half') ahead.push(['sack', 'Half a son’s share']);
+    } else if (k === 'servant') ahead = [['sack', 'Keep only'], ['house', 'Land: the long goal']];
+    else if (k === 'retired') ahead = [['house', 'A place on the farm for life']];
+    return { can, ahead };
+  }
+  const chipList = (list) => `<div class="pchips">${list.map(([ic, t]) => `<span class="pchip">${sign(ic)}${esc(t)}</span>`).join('')}</div>`;
+  // The archetypes the scenario names that someone living holds, each {key, label, sug, who (pawn ids, farm by farm)}.
+  function storyPeople(scenario) {
+    const all = [];
+    for (const hh of st.households) if (!hh.dissolved) all.push(...householdPeople(hh));
+    return (STORIES[scenario] || []).map(([key, label, sug]) => ({ key, label, sug: !!sug, who: all.filter((id) => inStory(key, id)) }))
+      .filter((s) => s.who.length);
+  }
+  // The story archetype cards (design.md, Starting a game): the position's icon, its name, one line, and up to six portraits of those who
+  // hold it, with "and N more"; an archetype no one holds is left out; the suggested one is starred. `pressed` is the key of the one
+  // pressed, or null. The same cards on the start (a look) and in the choosing mode (a way to someone): each is a button with data-story.
+  function storyCards(scenario, pressed = null) {
+    return `<div class="stories">${storyPeople(scenario).map((s) => `<button type="button" class="story" data-story="${s.key}" aria-pressed="${
+      pressed === s.key}">${sign(POS_ICON[s.key])}<b>${esc(s.label)}</b>${s.sug ? SUGGESTED : '<span></span>'}<small>${esc(LIFE_LINE[s.key])}</small>`
+      + `<span class="few">${s.who.slice(0, 6).map((id) => faceImg(id, 'pf')).join('')}<span>${s.who.length > 6 ? `and ${s.who.length - 6} more`
+        : ''}</span></span></button>`).join('')}</div>`;
+  }
+// its people are met in a panel and one is played, or none (design.md, Starting a game)
+  // ======== whom to play ========
+  // The mode is the page's own state, never saved: the farm and the person chosen, the archetype pressed, and the speed to go on at. It
+  // opens after a new game is built (not a load, not the showcase island), in place of the old offer to play the suggested pawn.
+  let choose = null;
+  const firstName = (id) => st.pawns[id].given;
+  function openChoose() {
+    const sug = suggestedPawn();
+    choose = { farm: -1, pawn: -1, story: null, sug, speed: speed > 0 ? speed : lastSpeed, msg: '' };
+    setSpeed(0); openPanel(null); closeSpeedOptions(); closeNotices();
+    if (document.body.classList.contains('ui-hidden')) toggleUI();
+    document.body.classList.add('choosing'); $('choose').hidden = false; selectionPinned = true; selPawn = -1;
+    $('chooseStories').innerHTML = storyCards(st.scenario, null);
+    const f = sug >= 0 ? farmOf(st.pawns[sug]) : st.farmsteads.find((g) => liveHousehold(g));
+    if (f) chooseFarm(f.id, sug, false); else renderChoose();
+    // the build's glide ends on the suggested farm (page/loader); on a phone, in the strip of map above the panels
+    if (f && intro) intro.y1 += mapOffset() / intro.z1; else if (f) cam.y += mapOffset() / cam.z;
+  }
+  // Leaving the mode: by Play as or Watch only, or because another game is built or loaded. The game takes the speed it had before.
+  function closeChoose() {
+    if (!choose) return;
+    const back = choose.speed;
+    choose = null; $('choose').hidden = true; document.body.classList.remove('choosing');
+    sel = -1; selectionPinned = false; hoverDirty = true;
+    setSpeed(back);
+  }
+  // On a narrow screen the map is the strip above the panels: a farm is brought to the middle of that strip, not of the screen.
+  function mapOffset() {
+    const m = $('chooseMap'), r = m.getBoundingClientRect(), s = stage.getBoundingClientRect(), top = r.top + $('choose').scrollTop;
+    return r.height > 0 ? s.top + s.height / 2 - (top + r.height / 2) : 0;
+  }
+  function chooseFly(f) {
+    const z = Math.max(cam.z, 1.5);
+    flyTo(w.hx[f.house], w.hy[f.house] + mapOffset() / z, z);
+  }
+  // A farm chosen, by the map or an archetype: its household, and a person in it (the one given, else one of the archetype pressed, else
+  // the first adult). An empty farm or a ruin is chosen too, and has no one.
+  function chooseFarm(fid, pawn = -1, fly = true) {
+    const f = st.farmsteads[fid], hh = liveHousehold(f);
+    let id = pawn;
+    if (id < 0 && hh) {
+      const grown = householdPeople(hh).filter((q) => st.pawns[q].age >= ADULT);
+      id = (choose.story && grown.find((q) => inStory(choose.story, q))) ?? grown[0] ?? -1;
+    }
+    choose.farm = fid; choose.pawn = id; choose.msg = '';
+    sel = f.house; hoverDirty = true;
+    if (fly) chooseFly(f);
+    renderChoose();
+  }
+  // A click on the map while choosing (page/tileinfo hands it over): a person outdoors, a farm's name, its house, a field or a meadow.
+  function chooseAt(sx, sy) {
+    const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
+    if (pw >= 0) { const f = farmOf(st.pawns[pw]); if (f) chooseFarm(f.id, st.pawns[pw].age >= ADULT ? pw : -1, false); return; }
+    const named = labelAt(x, y);
+    if (named && named.farm !== undefined) { chooseFarm(named.farm, -1, false); return; }
+    const i = loc(x, y, [0, 0]);
+    if (i < 0) return;
+    const f = st.farmsteads.find((g) => g.house === i || g.fields.some((q) => q.tile === i) || (g.meadows || []).some((q) => q.tile === i));
+    if (f) chooseFarm(f.id, -1, false);
+  }
+  // The household's panel: the farm's icon, name and village and its food in days; its people as portraits (children shown, not to be
+  // chosen); then the person chosen: name, age and position, one line on the life, whom the player would go on as after a death (the
+  // first of Sim.successors), and what the position can do and what lies ahead, as chips.
+  function renderChoose() {
+    if (!choose) return;
+    const f = choose.farm >= 0 ? st.farmsteads[choose.farm] : null, hh = f ? liveHousehold(f) : null, id = choose.pawn;
+    let h = '';
+    if (!f) h = '<p class="hint">Drag the map and click a farm.</p>';
+    else {
+      const days = hh ? foodDays(hh) : null, v = st.villages[f.village];
+      const food = !hh ? '' : days === null ? ' · no one to feed' : ` · food for ${days} ${days === 1 ? 'day' : 'days'}`;
+      h += `<div class="hhead">${iconImg(farmIcon(f), `fi${hh ? '' : ' gone'}`)}<h2>${esc(f.name)}</h2><span>${esc(v.name)}${food}</span></div>`;
+      if (!hh) {
+        const yrs = f.emptySince !== null && f.emptySince !== undefined ? Math.floor((st.t - f.emptySince) / Sim.YEAR) : null;
+        const how = f.state === 'ruin' ? 'A ruin' : 'An empty farm';
+        h += `<p class="hint">${how}${yrs ? `, for ${yrs} ${yrs === 1 ? 'year' : 'years'}` : ''}. No one lives here.</p>`;
+      } else {
+        h += `<div class="people">${householdPeople(hh).map((q) => {
+          const p = st.pawns[q], minor = p.age < ADULT, hit = choose.story && inStory(choose.story, q);
+          return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${minor ? ' disabled' : ''}>${
+            faceImg(q, 'pf')}<span>${esc(p.given)}</span><small>${Sim.age(st, p)}${minor ? ', a child' : ''}</small></button>`;
+        }).join('')}</div>`;
+      }
+    }
+    if (id >= 0) {
+      const p = st.pawns[id], k = positionOf(id), after = Sim.successors(st, id)[0], { can, ahead } = chipsOf(id);
+      h += `<div class="detail"><h2>${esc(Sim.fullName(p))}${id === choose.sug ? ` ${SUGGESTED}` : ''}</h2>`
+        + `<p class="posline">${sign(POS_ICON[k])}<span>${Sim.age(st, p)} · ${esc(positionName(id).toLowerCase())}</span></p>`
+        + `<p class="hint">${esc(LIFE_LINE[k])}</p>`
+        + `<p class="posline">${sign('next')}<span>${after ? `After ${p.sex === 'm' ? 'him' : 'her'}, you go on as ${esc(Sim.fullName(st.pawns[after.id]))}, ${
+          esc(after.why)}` : 'No one after: the line would break'}</span></p>`
+        + `<h3>Can</h3>${chipList(can)}<h3>Ahead</h3>${chipList(ahead)}</div>`;
+    }
+    if (choose.msg) h += `<p class="refused" role="status">${esc(choose.msg)}</p>`;
+    $('chooseCard').innerHTML = h;
+    $('choosePlay').disabled = id < 0;
+    $('choosePlay').textContent = id >= 0 ? `Play as ${firstName(id)}` : 'No one chosen';
+  }
+  $('choose').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !choose || !st) return;
+    if (b.dataset.story) {
+      // an archetype takes the player to one who holds it, and another click to the next
+      const key = b.dataset.story, who = (storyPeople(st.scenario).find((s) => s.key === key) || { who: [] }).who;
+      if (!who.length) return;
+      const i = choose.story === key ? who.indexOf(choose.pawn) : -1, id = who[(i + 1) % who.length];
+      choose.story = key; $('chooseStories').innerHTML = storyCards(st.scenario, key);
+      chooseFarm(farmOf(st.pawns[id]).id, id);
+      if ($('chooseMap').offsetHeight) $('choose').scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }); // on a phone, back to the map
+    } else if (b.dataset.p !== undefined) { choose.pawn = +b.dataset.p; choose.msg = ''; renderChoose(); }
+    else if (b.id === 'chooseBack') showGenScreen(); // the game stays as it is, in this mode, behind the menu's screens
+    else if (b.id === 'chooseWatch') closeChoose();
+    else if (b.id === 'choosePlay' && choose.pawn >= 0) {
+      const id = choose.pawn, r = playAs(id);
+      if (r !== true) { choose.msg = r; renderChoose(); return; }
+      closeChoose(); focusPawn(id); openPanel('actions');
+    }
   });
-  $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
@@ -15663,7 +15982,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '638100fa34', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '4b734f6bff', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

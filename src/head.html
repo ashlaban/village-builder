@@ -184,6 +184,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .navigation, body:has(.genscreen:not([hidden])) .sheet,
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
+/* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
+body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
+body.choosing .map-tools, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
@@ -318,7 +321,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-/* Playing a pawn (VB-210): the scenario's suggestion at a new game, over the toasts; the played pawn's part of its card. */
+/* Playing a pawn (VB-210): after its death, whom to go on as, over the toasts; the played pawn's part of its card. */
 .play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
@@ -436,6 +439,67 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .row:hover, .tile .rel button:hover { background: var(--edge); }
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
+}
+/* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
+   the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
+.choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+.choose > * { pointer-events: auto; }
+.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: 16px; overflow-y: auto;
+  overscroll-behavior: contain; min-width: 0; }
+.choose-map { display: none; }
+.choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
+.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+  max-height: calc(100% - 100px); }
+.choose-card:empty { display: none; }
+.choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
+  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: 999px; overflow: visible; }
+.choose h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
+.choose h2 { margin: 0; font: italic 700 20px/1.15 'Alegreya', Georgia, serif; overflow-wrap: anywhere; }
+.choose h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.choose p { margin: 0; font-size: 14px; line-height: 1.4; }
+.choose .hint { color: var(--muted); }
+.choose .refused { color: var(--bad); }
+.choose .ico { width: 18px; height: 18px; flex: none; }
+.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.sug-note { display: flex; gap: 6px; align-items: center; }
+.stories { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px;
+  padding: 8px 10px; background: var(--node); min-width: 0; }
+.story[aria-pressed="false"] { color: var(--ink); }
+.story > .ico { width: 22px; height: 22px; color: var(--accent); }
+.story b { font-size: 15px; }
+.story small { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.3; color: var(--muted); }
+.story .few { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; font-size: 12.5px; color: var(--muted); min-height: 22px; }
+.story .few img { width: 22px; height: 22px; margin-right: -3px; }
+.story .few span { margin-left: 8px; }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: rgba(35, 104, 90, 0.12); }
+@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: rgba(35, 104, 90, 0.10); } }
+.hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.hhead img { width: 44px; height: 44px; grid-row: 1 / span 2; }
+.hhead span { color: var(--muted); font-size: 14px; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 4px; }
+.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; min-height: 0; border-radius: 10px; border-color: transparent;
+  font-size: 13px; line-height: 1.2; text-align: center; min-width: 0; }
+.person[aria-pressed="false"] { color: var(--ink); }
+.person img { width: 40px; height: 40px; }
+.person span { overflow-wrap: anywhere; }
+.person small { font-size: 11.5px; color: var(--muted); }
+.person:disabled { cursor: default; }
+.person[aria-pressed="true"] { border-color: var(--accent); background: rgba(35, 104, 90, 0.12); }
+.person.hit img { filter: drop-shadow(0 0 2px #c9a24a); }
+.detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
+.posline { display: flex; gap: 8px; align-items: flex-start; }
+.posline .ico { color: var(--accent); margin-top: 1px; }
+.pchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: rgba(35, 104, 90, 0.10); font-size: 14px; }
+.pchip .ico { width: 16px; height: 16px; color: var(--accent); }
+@media (max-width: 899px) {
+  .choose { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overflow-x: hidden; padding: 0 max(8px, env(safe-area-inset-right, 0px))
+    0 max(8px, env(safe-area-inset-left, 0px)); }
+  .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
+  .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
+  .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
+  .choose::after { content: ""; flex: none; height: 1px; }
 }
 @media (max-width: 1024px) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
