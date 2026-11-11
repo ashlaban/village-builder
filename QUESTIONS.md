@@ -10,6 +10,34 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 
 ## Priority 2
 
+### VB-284: tuning the food balance (raised 11 November 2026)
+VB-284 measured where rations fall short (`docs/bench/food-balance.md`; populous small, seeds 3, 7, 11, 42, 15 and 30 years, after VB-282). Nobody is short
+before year 16; in years 16 to 30, 196 household-years are hungry over 0.3 of their days: households of about 4 (2.3 adults, 1.6 children) on 2.9 fields,
+**without cattle**, on worn soil, in summer and autumn after the second or third poor harvest. Households without cattle are 69 % of household-seasons and
+all of the growth; on 3 fields they make 0.71 of their need (with cattle 1.33). No value is changed until you answer; the answers become one tuning task,
+measured with the same runs. VB-048's fourth criterion points here.
+1. Fields a household wants. `fieldsWanted` (`src/sim/fields.js`) counts the gross yield: `FIELDS.want` 1.1 of the need at `FIELDS.expect` 0.75 of 100,
+   75 a field, of which 25 is seed, so the plan nets 0.73 of the need. **P:** count it net of seed, `ceil(FIELDS.want × rations / (FIELDS.expect ×
+   fieldYield − seedPerField))` (the same as `FIELDS.want` 1.1 to 1.65 in today's formula), still capped by 2 fields a hand. Moves: a household of 2 adults and
+   2 children wants 4 fields, not 3, a lone adult 2, not 1; the rows' farms from about 0.96 to about 1.3 of need in an ordinary year; more land taken
+   (villages fill sooner, `FIELDS.room`), more hours in the fields, and the work counters of field jobs rise.
+2. The soil without manure. `SOIL.wear` 0.08 a crop to `SOIL.floor` 0.75, so a farm without cattle farms at 0.80 to 0.84 against 1.07 with them. **P:**
+   `SOIL.floor` 0.75 to 0.85 (stubble grazed and a field rested keep some of their strength). Moves: an unmanured field yields up to 13 % more; households
+   without cattle on 3 fields from 0.71 to about 0.78 of need; manure's worth falls by as much (cattle keep their lead at 1.07); the early game unchanged
+   (soil there is 0.99 to 1.15).
+3. Yield. **P:** `ECON.fieldYield` stays 100. Years 4 to 15 net 73 to 84 a field reaped and no household is short, stores at 126 to 517 rations; a higher
+   yield moves the early game, which needs nothing, and the rise over a game is VB-160's. It would move: every harvest by the same share, stores and
+   spoilage, the deals' surplus.
+4. The hungry gap before harvest. The gap is summer and autumn (3.3 % and 4.4 % of need short; spring 0.5 %, winter 0.1 %), as new grain is in store only
+   late in autumn; the households short are those that start a season with under 12 days of food, after two or three poor years, since grain kept a second
+   year loses 20 % a year. **P:** `ECON.storeLoss` [0.05, 0.2, 0.4] to [0.05, 0.1, 0.4], after 1 and 2 are measured. Moves: a household with a year and a
+   half in store keeps about 2 to 3 days of its need more a year; little on its own (1 and 2 are the levers), more grain held by the good farms.
+5. What the animals give. Milk (`HERD.milk` 0.5) and manure (`SOIL.perLoad` 0.04) already make a household with cattle 1.33 to 2.0 of its need; the
+   shortage is in the households that have none (new farms: 0.9 meadows against 5.9). **P:** no change to the animals' yields; instead a task in the animals
+   arch for the herd's spread: a new household of 2 or more hands with a meadow wants a cow in its standing plan (from kin's herd at a marriage, or by a
+   deal), so the share of household-years without cattle after year 16 falls from 0.75. It would move: herds, hay and meadows taken, manure on the new
+   farms' fields, and the deals in cattle.
+
 ### VB-212: the wishes the survey could not sort (raised 10 November 2026)
 VB-212 built the player's wishes for the moving round (`st.player.wishes`: `out`, `claim`, `serve`; the survey is in `backlog/VB-212.md`). Three wants in the round need a design choice, and each is left a rule, as the task's note asks. None blocks slice 2's wrap-up.
 1. Settling new land. The round draws a chance for each waiting adult of a crowded village (`SETTLE.chance` by rounds waited, `src/sim/settle.js:215`), which reads as the pawn's own willingness, and the wishes have no field for it. Today the player's pawn leads a party only by that draw; a wish to stay (`out: false`) keeps it from leading one. **P:** a fourth wish, `settle`: `true` passes the draw and `false` never leads a party, with the round's other rules (age, provisions, land within reach, the village crowded) deciding as for anyone; a small task in slice 2.
