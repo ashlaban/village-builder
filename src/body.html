@@ -22,6 +22,7 @@
       title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
     <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
       title="Hide the interface (H)"></button>
+    <button id="menuBtn" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
   </div>
 </div>
 <div class="lod" id="lod" hidden></div>
@@ -37,8 +38,8 @@
     class="nav-label">Family</span></button>
   <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Customs</span></button>
-  <button id="menuBtn" type="button" data-icon="menu" title="Menu" aria-pressed="false" aria-controls="worldMenu"><span
-    class="nav-label">Menu</span></button>
+  <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Debug</span></button>
 </nav>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
@@ -63,31 +64,6 @@
     <input id="peopleSearch" type="search" placeholder="Search names…" autocomplete="off">
     <p id="peopleCount" class="dm" role="status"></p>
     <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
-  </div>
-</aside>
-<aside class="world-menu sheet panel" id="worldMenu" hidden aria-labelledby="menuTitle">
-  <div class="sheet-head">
-    <h2 id="menuTitle">Menu</h2>
-    <button id="menuClose" type="button" class="icon-btn" data-icon="close" aria-label="Close menu" title="Close"></button>
-  </div>
-  <div class="sheet-content">
-    <p class="meta" id="meta"></p>
-    <p class="hint" id="hint"></p>
-    <h2 class="menu-label">Map &amp; layers</h2>
-    <div class="actions">
-      <button id="gridBtn" type="button" aria-keyshortcuts="g" title="Hex grid (G)" aria-pressed="true">Grid</button>
-      <button id="regionBtn" type="button" aria-keyshortcuts="r" title="Regions (R)" aria-pressed="false">Regions</button>
-      <button id="landBtn" type="button" aria-keyshortcuts="l" title="Land ownership (L)" aria-pressed="false">Land</button>
-      <button id="minimapBtn" type="button" aria-keyshortcuts="m" title="Minimap (M)" aria-pressed="false">Minimap</button>
-    </div>
-    <h2 class="menu-label">Game</h2>
-    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
-    <details class="notices"><summary>Notifications</summary><div id="noticeList"></div></details>
-    <div class="actions">
-      <button class="primary" id="regen" type="button">Main menu</button>
-      <button id="savesBtn" type="button">Saves</button>
-      <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
-    </div>
   </div>
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
@@ -135,10 +111,26 @@
       </div>
     </div>
   </aside>
-  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
-    <canvas id="mmBase"></canvas>
-    <canvas id="mmView"></canvas>
-    <button id="minimapClose" type="button" class="icon-btn" data-icon="close" aria-label="Close minimap" title="Close"></button>
+  <div class="map-tools" id="mapTools">
+    <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
+      <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
+    </div>
+    <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
+      <canvas id="mmBase"></canvas>
+      <canvas id="mmView"></canvas>
+    </div>
+    <div class="map-bar panel" role="group" aria-label="Map">
+      <button id="gridBtn" type="button" class="icon-btn" data-icon="grid" aria-keyshortcuts="g" aria-label="Hex grid" title="Hex grid (G)"
+        aria-pressed="true"></button>
+      <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
+        aria-pressed="false"></button>
+      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
+        title="Land ownership (L)" aria-pressed="false"></button>
+      <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
+        aria-expanded="false" aria-controls="noticePop"></button>
+      <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
+        aria-pressed="false"></button>
+    </div>
   </div>
 </div>
 
@@ -160,7 +152,12 @@
 </div>
 
 <div class="genscreen" id="landing" hidden>
-  <p class="game-name" id="name" hidden></p>
+  <div class="game-info" id="gameInfo" hidden>
+    <p class="game-name" id="name"></p>
+    <p class="meta" id="meta"></p>
+    <p class="hint" id="hint"></p>
+    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
+  </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>

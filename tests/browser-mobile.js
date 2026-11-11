@@ -33,7 +33,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       assert(rect && rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= size.width + 1 && rect.y + rect.height <= size.height + 1,
         `${selector} fits ${size.width}×${size.height}: ${JSON.stringify(rect)}`);
     };
-    const oneSheet = async () => assert(await page.locator('.sheet:visible, .world-menu:visible').count() <= 1, 'one content panel at a time');
+    const oneSheet = async () => assert(await page.locator('.sheet:visible').count() <= 1, 'one content panel at a time');
     const capture = async (name) => {
       if (!process.env.VB_SCREENSHOTS) return;
       fs.mkdirSync(process.env.VB_SCREENSHOTS, { recursive: true });
@@ -91,7 +91,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     const selected = await page.evaluate(() => window.__mobile.selected);
     await page.click('#tile .sheet-expand'); await fits('#tile'); await capture('mobile-person');
     // Playing a pawn (VB-210): the played pawn's part of the card fits the phone and its buttons work
-    console.log('mobile: play'); await page.click('#menuBtn'); await page.click('#debugBtn'); await page.click('[data-act="play"]');
+    console.log('mobile: play'); await page.click('#debugBtn'); await page.click('[data-act="play"]');
     await page.locator('#playBox [data-play="auto"]').waitFor({ state: 'visible' }); await fits('#actionSheet');
     const over = await page.locator('#playBox button').evaluateAll((bs) => bs.filter((b) => b.getBoundingClientRect().right > innerWidth + 1).length);
     assert.strictEqual(over, 0, 'the buttons of the played pawn fit the phone');
@@ -99,7 +99,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
     assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
     await capture('mobile-play');
-    await page.click('#menuBtn'); await page.click('#debugBtn'); await page.click('[data-act="unplay"]');
+    await page.click('#debugBtn'); await page.click('[data-act="unplay"]');
     await page.waitForFunction(() => document.getElementById('actionsBtn').hidden); assert.strictEqual(await page.evaluate(() => window.__mobile.st.player), null, 'Stop playing leaves no pawn played');
     // The shared card used to discard every detail after the fourth line.
     await page.evaluate(() => window.__mobile.card('Full details', ['one', 'two', 'three', 'four', 'five', 'six']));
@@ -136,12 +136,20 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.locator('#treeSvg .tn').first().click();
     assert(await page.locator('#treeInfo h3').textContent());
     await page.keyboard.press('Escape'); assert(await page.locator('#tree').isHidden()); console.log('mobile: family closed');
-    await page.click('#menuBtn'); await oneSheet(); await page.click('#landBtn');
-    assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
-    await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible());
-    assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'collapsed minimap has a painted canvas');
-    console.log('mobile: minimap'); await page.click('#minimapClose'); assert(await page.locator('#minimap').isHidden());
-    await page.click('#menuBtn'); await page.click('#regen'); await page.click('#landNew'); await page.click('#genCancel'); await page.click('#landBack');
+    // VB-324: the map's bar under the minimap; shut, only the minimap's toggle stays; open, the minimap, the layers and the bell
+    const onlyToggle = async () => await page.locator('#minimap').isHidden() && await page.locator('#landBtn').isHidden()
+      && await page.locator('#noticeBtn').isHidden() && await page.locator('#minimapBtn').isVisible();
+    assert(await onlyToggle(), 'a phone opens with the minimap shut, its toggle alone shown');
+    await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible()); await fits('#mapTools');
+    assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'the minimap has a painted canvas');
+    assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
+    await page.click('#landBtn'); assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
+    await page.click('#noticeBtn'); assert(await page.locator('#noticePop').isVisible()); await fits('#noticePop');
+    assert(await page.locator('#noticeList input').count() > 0, 'the bell lists the kinds of notification');
+    await page.keyboard.press('Escape'); assert(await page.locator('#noticePop').isHidden(), 'Esc shuts the list');
+    assert(await page.locator('#landing').isHidden(), 'Esc that shuts the list does not open the main menu');
+    console.log('mobile: minimap'); await page.click('#minimapBtn'); assert(await onlyToggle(), 'shut, the minimap toggle alone stays');
+    await page.click('#menuBtn'); await page.click('#landNew'); await page.click('#genCancel'); await page.click('#landBack');
     assert(await page.locator('#genScreen').isHidden(), 'new-world screen can be cancelled');
     await page.keyboard.press('Escape'); assert(await page.locator('#landing').isVisible(), 'Esc with nothing open opens the main menu');
     assert(await page.locator('#name').isVisible(), 'the main menu names the open game'); await fits('#name');
@@ -165,14 +173,11 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       await fits('#clock'); await fits('.navigation');
       assert.strictEqual(await page.locator('#pauseBtn').isVisible(), width <= 1024, 'the phone pause button only on a phone');
       assert.strictEqual(await page.locator('#speedBtn').isVisible(), width <= 1024, 'the phone speed button only on a phone');
-      // the menu is the dock's on every screen (VB-324): shut until its button opens it; on a wide screen it rises from the dock's right end
-      assert(await page.locator('#worldMenu').isHidden(), 'the menu is shut until the dock opens it');
-      await page.click('#menuBtn'); await fits('#worldMenu');
-      if (width > 1024) {
-        const [m, d] = [await page.locator('#worldMenu').boundingBox(), await page.locator('.navigation').boundingBox()];
-        assert(Math.abs(m.x + m.width - d.x - d.width) <= 1 && m.y + m.height <= d.y, `the menu rises from the dock's right end: ${JSON.stringify([m, d])}`);
-      }
-      await page.click('#menuClose');
+      // VB-324: Main menu ends the top bar, in the top-right corner; the map's tools fit, the minimap's toggle at their right end
+      const [mb, ck] = [await page.locator('#menuBtn').boundingBox(), await page.locator('#clock').boundingBox()];
+      assert(mb.x + mb.width >= ck.x + ck.width - 12 && mb.y < 80, `Main menu ends the top bar: ${JSON.stringify([mb, ck])}`);
+      await fits('#mapTools');
+      assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
       await page.click('#settlersBtn'); await fits('#peopleSheet'); await page.click('#peopleClose');
       await page.click('#customsBtn'); await fits('#drawer'); await page.click('#drawerClose');
       await page.click('#treeBtn'); await fits('.tree-card'); await page.click('#treeClose');

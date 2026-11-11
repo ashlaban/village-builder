@@ -68,8 +68,6 @@ body {
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.world-menu .meta { margin: 0; color: var(--muted); font-size: 15px; }
-.world-menu .hint { margin: 2px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.35; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
@@ -177,7 +175,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 216px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -190,9 +188,20 @@ body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toa
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
-.game-name { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px)); margin: 0;
-  max-width: calc(100% - 36px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font: italic 700 32px/1.1 'Alegreya', Georgia, serif; color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; }
+/* The open game at the main menu's top left (VB-324): its name, its map, the controls and the background run; none of it is shown in play.
+   On a narrow screen it stands above the menu's card. */
+.game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
+  width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
+.game-info p { margin: 0 0 4px; }
+.game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: italic 700 32px/1.1 'Alegreya', Georgia, serif;
+  text-shadow: 0 1px 4px #102b3b; }
+.game-info .meta { font-size: 15px; }
+.game-info .hint { font-size: 14px; line-height: 1.35; opacity: 0.85; }
+.game-info .background-run { display: flex; color: inherit; margin: 6px 0 0; } /* over the menu screens' grid of label and field */
+@media (max-width: 760px) {
+  #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
+  .game-info { position: static; width: auto; justify-self: stretch; }
+}
 .genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -237,7 +246,6 @@ button { touch-action: manipulation; }
 summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
 summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
-.world-menu .hint { margin-bottom: 8px; }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
@@ -255,10 +263,6 @@ input, select { font: inherit; color: var(--ink); }
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
 .people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
-/* The menu is the dock's (VB-324): it rises from the dock's right end (--dock-right, set by page/input) over the notifications, as the
-   speed picker does. */
-.world-menu { position: fixed; z-index: 8; bottom: calc(var(--dock-bottom) + 68px); top: auto; right: var(--dock-right, 14px);
-  width: min(330px, calc(100vw - 28px)); max-height: min(65vh, calc(100dvh - 180px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
 .sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
   overflow-wrap: anywhere; }
@@ -296,8 +300,18 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-.minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
-#minimapClose { position: absolute; top: 3px; right: 3px; height: 36px; min-height: 0; background: var(--panel); }
+/* The map's tools (VB-324), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+   toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
+.map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: 14px; }
+.map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
+.map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+#noticeBtn[aria-expanded="true"] { background: var(--edge); }
+body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+.notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
+  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
+.notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the bottom centre, just above the dock, the newest lowest (Kim, 9 Nov; first built at the bottom left).
    On a window too narrow to clear an open sheet they move to the middle of what is left free (between a left sheet and the minimap, or left
@@ -357,8 +371,7 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 .play li.opp { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
 .play li.opp.barred, .play button.opp:disabled { opacity: 0.6; }
 @media (pointer: coarse) { .play button.opp, .play .queue button, .play .switches button { min-height: 44px; } }
-.notices summary { font-size: 14px; color: var(--muted); }
-.notices .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
+.notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
 .custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
 .custom-picker select { width: 100%; font-size: 16px; }
 .custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
@@ -424,9 +437,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
 @media (min-width: 1025px) {
   .mobile-only { display: none !important; } /* over a display a later rule gives, such as .icon-btn's */
-  .world-menu .actions { gap: 6px; }
-  .world-menu .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
-  .world-menu .hint { font-size: 13px; }
   .menu-label { margin: 10px 0 5px; }
   .background-run { min-height: 30px; margin: 4px 0 8px; }
 }
@@ -458,16 +468,13 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
     border-radius: 16px; gap: 0; padding: 4px; }
   .navigation button { flex: 1; min-width: 0; padding: 4px 2px; }
-  .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+  .people-sheet, .drawer, .tile { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
   .sheet-head { padding: 8px 10px; }
   .sheet-head h2, .sheet-head strong { font-size: 19px; }
   .sheet-head button { font-size: 13px; padding: 6px 8px; }
   .sheet-content { padding: 10px 14px 14px; }
-  .minimap { width: 180px; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px);
-    visibility: hidden; pointer-events: none; }
-  body.minimap-open .minimap { visibility: visible; pointer-events: auto; }
-  body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
+  .map-tools { right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px); }
   .lod { display: none; }
   .toasts { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; transform: none;
     top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: auto; }
@@ -509,6 +516,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
     <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
       title="Hide the interface (H)"></button>
+    <button id="menuBtn" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
   </div>
 </div>
 <div class="lod" id="lod" hidden></div>
@@ -524,8 +532,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
     class="nav-label">Family</span></button>
   <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Customs</span></button>
-  <button id="menuBtn" type="button" data-icon="menu" title="Menu" aria-pressed="false" aria-controls="worldMenu"><span
-    class="nav-label">Menu</span></button>
+  <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Debug</span></button>
 </nav>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
@@ -550,31 +558,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
     <input id="peopleSearch" type="search" placeholder="Search names…" autocomplete="off">
     <p id="peopleCount" class="dm" role="status"></p>
     <section class="settlers" id="settlers" hidden aria-label="Settlers and their farms"></section>
-  </div>
-</aside>
-<aside class="world-menu sheet panel" id="worldMenu" hidden aria-labelledby="menuTitle">
-  <div class="sheet-head">
-    <h2 id="menuTitle">Menu</h2>
-    <button id="menuClose" type="button" class="icon-btn" data-icon="close" aria-label="Close menu" title="Close"></button>
-  </div>
-  <div class="sheet-content">
-    <p class="meta" id="meta"></p>
-    <p class="hint" id="hint"></p>
-    <h2 class="menu-label">Map &amp; layers</h2>
-    <div class="actions">
-      <button id="gridBtn" type="button" aria-keyshortcuts="g" title="Hex grid (G)" aria-pressed="true">Grid</button>
-      <button id="regionBtn" type="button" aria-keyshortcuts="r" title="Regions (R)" aria-pressed="false">Regions</button>
-      <button id="landBtn" type="button" aria-keyshortcuts="l" title="Land ownership (L)" aria-pressed="false">Land</button>
-      <button id="minimapBtn" type="button" aria-keyshortcuts="m" title="Minimap (M)" aria-pressed="false">Minimap</button>
-    </div>
-    <h2 class="menu-label">Game</h2>
-    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
-    <details class="notices"><summary>Notifications</summary><div id="noticeList"></div></details>
-    <div class="actions">
-      <button class="primary" id="regen" type="button">Main menu</button>
-      <button id="savesBtn" type="button">Saves</button>
-      <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
-    </div>
   </div>
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
@@ -622,10 +605,26 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       </div>
     </div>
   </aside>
-  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
-    <canvas id="mmBase"></canvas>
-    <canvas id="mmView"></canvas>
-    <button id="minimapClose" type="button" class="icon-btn" data-icon="close" aria-label="Close minimap" title="Close"></button>
+  <div class="map-tools" id="mapTools">
+    <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
+      <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
+    </div>
+    <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
+      <canvas id="mmBase"></canvas>
+      <canvas id="mmView"></canvas>
+    </div>
+    <div class="map-bar panel" role="group" aria-label="Map">
+      <button id="gridBtn" type="button" class="icon-btn" data-icon="grid" aria-keyshortcuts="g" aria-label="Hex grid" title="Hex grid (G)"
+        aria-pressed="true"></button>
+      <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
+        aria-pressed="false"></button>
+      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
+        title="Land ownership (L)" aria-pressed="false"></button>
+      <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
+        aria-expanded="false" aria-controls="noticePop"></button>
+      <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
+        aria-pressed="false"></button>
+    </div>
   </div>
 </div>
 
@@ -647,7 +646,12 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 </div>
 
 <div class="genscreen" id="landing" hidden>
-  <p class="game-name" id="name" hidden></p>
+  <div class="game-info" id="gameInfo" hidden>
+    <p class="game-name" id="name"></p>
+    <p class="meta" id="meta"></p>
+    <p class="hint" id="hint"></p>
+    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
+  </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
@@ -11828,7 +11832,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
   $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler, farm, village name or tile for details.' :
-    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause.';
+    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause, Esc main menu.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');
@@ -11947,7 +11951,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     eye: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/>', ICON_STROKE),
     eyeOff: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/><path d="M3 17L17 3"/>',
       ICON_STROKE),
-    // the dock (11 Nov): two people, a family tree, a scroll of customs, the menu's three lines; the played pawn's actions, a game pawn
+    // the dock (11 Nov): two people, a family tree, a scroll of customs, a bug for Debug; the played pawn's actions, a game pawn. The main
+    // menu, at the top bar's end, is three lines.
     people: svgIcon(20, 20, '<circle cx="7.5" cy="6.5" r="2.8"/><path d="M2.5 17c0-3.2 2.2-5.4 5-5.4s5 2.2 5 5.4"/>'
       + '<circle cx="14" cy="7.5" r="2.3"/><path d="M14 11.7c2.2 0 3.7 2 3.7 4.8"/>', ICON_STROKE),
     family: svgIcon(20, 20, '<rect x="7.5" y="2" width="5" height="4" rx="1"/><rect x="2" y="14" width="5" height="4" rx="1"/>'
@@ -11957,6 +11962,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
     menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
     pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
       ICON_STROKE),
+    bug: svgIcon(20, 20, '<path d="M7 7.5a3 3 0 0 1 6 0"/><rect x="6" y="7.5" width="8" height="9.5" rx="4"/>'
+      + '<path d="M10 9.5v7M6 10.5H3M14 10.5h3M6 14H3.5M14 14h2.5M7.5 5L6 3M12.5 5L14 3"/>', ICON_STROKE),
+    // the map's bar under the minimap (11 Nov): the grid, the regions, the land held (a claim's flag), which notifications show, the minimap
+    grid: svgIcon(20, 20, '<path d="M3 7h14M3 13h14M7 3v14M13 3v14"/>', ICON_STROKE),
+    regions: svgIcon(20, 20, '<rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M9.5 3c-2 3 1.5 4.5-.5 7s1 4.5 0 7M9.2 10c3 1.2 5-1 8.3 0"/>',
+      ICON_STROKE),
+    land: svgIcon(20, 20, '<path d="M5 17.5V2.5M5 3.5h10l-2.5 3.25L15 10H5"/>', ICON_STROKE),
+    bell: svgIcon(20, 20, '<path d="M5 14V9a5 5 0 0 1 10 0v5l1.5 1.5h-13Z"/><path d="M8.3 17.5a1.8 1.8 0 0 0 3.4 0"/>', ICON_STROKE),
+    minimap: svgIcon(20, 20, '<path d="M2.5 5l5-2 5 2 5-2v12l-5 2-5-2-5 2Z"/><path d="M7.5 3v12M12.5 5v12"/>', ICON_STROKE),
     // the panels' heads: close, and a chevron that points down while the panel is open (to fold it) and up while it is folded
     close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
     chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
@@ -12254,7 +12268,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = $('name').hidden = !w || demo; // the open game's name, at the menu's top left (VB-324)
+    $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-324)
+    $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
     $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
@@ -12300,7 +12315,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   async function build(seed, scenario, size, save = null) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
-    building = true; $('regen').disabled = true;
+    building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
@@ -12311,7 +12326,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
-      building = false; $('regen').disabled = false;
+      building = false; $('menuBtn').disabled = false;
       showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
@@ -12325,7 +12340,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
-    $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
+    $('meta').textContent = `${named('genScenario', scenario)}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+      + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
     // Opening move: start on the whole chart, then glide down through the clouds to the village.
@@ -12347,7 +12364,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
     if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
-    building = false; $('regen').disabled = false;
+    building = false; $('menuBtn').disabled = false;
   }
 
   // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
@@ -12413,11 +12430,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     stopIntro(); vel.x = vel.y = 0;
     cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
   }
-  mmBox.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button')) return;
-    mmBox.setPointerCapture(e.pointerId); mmJump(e);
-  });
-  mmBox.addEventListener('pointermove', (e) => { if (e.buttons && !e.target.closest('button')) mmJump(e); });
+  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
 
   // ---- tile info ----
   function showTile(i) {
@@ -12556,8 +12570,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
-      const open = activePanel !== null || $('clock').classList.contains('speed-open');
-      closeSpeedOptions(); openPanel(null);
+      const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      closeSpeedOptions(); closeNotices(); openPanel(null);
       if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
       return;
     }
@@ -12583,7 +12597,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  // Main menu, at the top bar's end (VB-324): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
   $('landLoad').addEventListener('click', () => showSaves(true));
@@ -12618,11 +12633,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
     drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
-    $('worldMenu').hidden = panel !== 'menu'; if (panel === 'menu') placeMenu();
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
-    $('menuBtn').setAttribute('aria-pressed', String(panel === 'menu'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
@@ -12638,31 +12651,19 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
     paintUIToggle(hidden);
-    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
-    closeSpeedOptions(); $('uiToggle').focus();
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
+    closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
+  // The minimap's toggle is the right end of the map's bar (VB-324): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
     $('minimap').inert = !on;
-    if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
+    if (!on) closeNotices();
   }
-  function adaptUI() {
-    $('worldMenu').hidden = activePanel !== 'menu';
-    $('minimap').style.visibility = '';
-    setMinimap(!mobileUI.matches); closeSpeedOptions();
-  }
+  function adaptUI() { setMinimap(!mobileUI.matches); closeSpeedOptions(); }
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
-  // The menu is the dock's, on every screen (VB-324): on a wide one it rises from the dock's right end, which moves as the dock gains or
-  // loses Actions; on a phone it spans the screen, as the other panels do.
-  function placeMenu() {
-    const r = document.querySelector('.navigation').getBoundingClientRect();
-    $('worldMenu').style.setProperty('--dock-right', `${Math.max(14, Math.round(innerWidth - r.right))}px`);
-  }
-  window.addEventListener('resize', () => { if (activePanel === 'menu') placeMenu(); });
   $('uiToggle').addEventListener('click', toggleUI);
-  $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
-  $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
   $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
@@ -12675,9 +12676,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const on = $('minimapBtn').getAttribute('aria-pressed') !== 'true';
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
-  });
-  $('minimapClose').addEventListener('click', () => {
-    setMinimap(false); $('menuBtn').focus();
   });
   // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
   function nameFold(button) {
@@ -15412,7 +15410,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('customsBtn').addEventListener('click', () => openDrawer('customs'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('drawerClose').addEventListener('click', () => {
-    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'menuBtn' : 'customsBtn').focus();
+    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
   });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
@@ -15590,6 +15588,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
   try { for (const k of JSON.parse(localStorage.getItem(NOTICE_KEY) || '[]')) if (Sim.NOTABLE[k]) noticeOff.add(k); } catch (e) { noticeOff.clear(); }
   $('noticeList').innerHTML = Object.entries(Sim.NOTABLE).map(([k, label]) =>
     `<label class="dchk"><input type="checkbox" data-notice="${k}"${noticeOff.has(k) ? '' : ' checked'}> ${esc(label)}</label>`).join('');
+  // The list is the bell's, in the map's bar under the minimap (VB-324): it opens over the minimap, and shuts on a press elsewhere or Esc.
+  function closeNotices() { $('noticePop').hidden = true; $('noticeBtn').setAttribute('aria-expanded', 'false'); }
+  $('noticeBtn').addEventListener('click', () => {
+    const open = $('noticePop').hidden; $('noticePop').hidden = !open; $('noticeBtn').setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('pointerdown', (e) => { if (!$('mapTools').contains(e.target)) closeNotices(); });
   $('noticeList').addEventListener('change', (e) => {
     const k = e.target.dataset.notice; if (!k) return;
     if (e.target.checked) noticeOff.delete(k); else noticeOff.add(k);
@@ -15670,7 +15674,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c9cdc5dcee', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd9be56e38b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -15767,11 +15771,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // from the main menu it is the Load archipelago screen, with Back to the menu; in a game it is Saves (VB-307)
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-324), with Back to the menu: Saves while
+    // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
     if (on) {
-      $('savesTitle').textContent = menu ? 'Load archipelago' : 'Saves'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; $('savesClose').textContent = menu ? 'Back' : 'Close';
       saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
     } else if (menu) $('landLoad').focus();
   }
@@ -15799,7 +15804,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
     } catch (err) { console.warn('save failed', err); saveMsg = 'The save could not be written.'; }
     drawSaves();
   });
-  $('savesBtn').addEventListener('click', () => { if (!building && !skipping) showSaves(true); });
   $('savesClose').addEventListener('click', () => showSaves(false));
   $('savesScreen').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); showSaves(false); } });
   // When the page is hidden the run is saved to its auto slot, unless nothing has passed since the last one.

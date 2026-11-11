@@ -30,9 +30,6 @@
     stopIntro(); vel.x = vel.y = 0;
     cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
   }
-  mmBox.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button')) return;
-    mmBox.setPointerCapture(e.pointerId); mmJump(e);
-  });
-  mmBox.addEventListener('pointermove', (e) => { if (e.buttons && !e.target.closest('button')) mmJump(e); });
+  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
 

@@ -68,8 +68,6 @@ body {
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.world-menu .meta { margin: 0; color: var(--muted); font-size: 15px; }
-.world-menu .hint { margin: 2px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.35; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
@@ -177,7 +175,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 216px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -190,9 +188,20 @@ body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toa
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
-.game-name { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px)); margin: 0;
-  max-width: calc(100% - 36px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font: italic 700 32px/1.1 'Alegreya', Georgia, serif; color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; }
+/* The open game at the main menu's top left (VB-324): its name, its map, the controls and the background run; none of it is shown in play.
+   On a narrow screen it stands above the menu's card. */
+.game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
+  width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
+.game-info p { margin: 0 0 4px; }
+.game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: italic 700 32px/1.1 'Alegreya', Georgia, serif;
+  text-shadow: 0 1px 4px #102b3b; }
+.game-info .meta { font-size: 15px; }
+.game-info .hint { font-size: 14px; line-height: 1.35; opacity: 0.85; }
+.game-info .background-run { display: flex; color: inherit; margin: 6px 0 0; } /* over the menu screens' grid of label and field */
+@media (max-width: 760px) {
+  #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
+  .game-info { position: static; width: auto; justify-self: stretch; }
+}
 .genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -237,7 +246,6 @@ button { touch-action: manipulation; }
 summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
 summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
-.world-menu .hint { margin-bottom: 8px; }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
@@ -255,10 +263,6 @@ input, select { font: inherit; color: var(--ink); }
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
 .people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
-/* The menu is the dock's (VB-324): it rises from the dock's right end (--dock-right, set by page/input) over the notifications, as the
-   speed picker does. */
-.world-menu { position: fixed; z-index: 8; bottom: calc(var(--dock-bottom) + 68px); top: auto; right: var(--dock-right, 14px);
-  width: min(330px, calc(100vw - 28px)); max-height: min(65vh, calc(100dvh - 180px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
 .sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
   overflow-wrap: anywhere; }
@@ -296,8 +300,18 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-.minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
-#minimapClose { position: absolute; top: 3px; right: 3px; height: 36px; min-height: 0; background: var(--panel); }
+/* The map's tools (VB-324), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+   toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
+.map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: 14px; }
+.map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
+.map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+#noticeBtn[aria-expanded="true"] { background: var(--edge); }
+body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+.notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
+  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
+.notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the bottom centre, just above the dock, the newest lowest (Kim, 9 Nov; first built at the bottom left).
    On a window too narrow to clear an open sheet they move to the middle of what is left free (between a left sheet and the minimap, or left
@@ -357,8 +371,7 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 .play li.opp { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
 .play li.opp.barred, .play button.opp:disabled { opacity: 0.6; }
 @media (pointer: coarse) { .play button.opp, .play .queue button, .play .switches button { min-height: 44px; } }
-.notices summary { font-size: 14px; color: var(--muted); }
-.notices .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
+.notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
 .custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
 .custom-picker select { width: 100%; font-size: 16px; }
 .custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
@@ -424,9 +437,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
 @media (min-width: 1025px) {
   .mobile-only { display: none !important; } /* over a display a later rule gives, such as .icon-btn's */
-  .world-menu .actions { gap: 6px; }
-  .world-menu .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
-  .world-menu .hint { font-size: 13px; }
   .menu-label { margin: 10px 0 5px; }
   .background-run { min-height: 30px; margin: 4px 0 8px; }
 }
@@ -458,16 +468,13 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
     border-radius: 16px; gap: 0; padding: 4px; }
   .navigation button { flex: 1; min-width: 0; padding: 4px 2px; }
-  .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+  .people-sheet, .drawer, .tile { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
   .sheet-head { padding: 8px 10px; }
   .sheet-head h2, .sheet-head strong { font-size: 19px; }
   .sheet-head button { font-size: 13px; padding: 6px 8px; }
   .sheet-content { padding: 10px 14px 14px; }
-  .minimap { width: 180px; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px);
-    visibility: hidden; pointer-events: none; }
-  body.minimap-open .minimap { visibility: visible; pointer-events: auto; }
-  body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
+  .map-tools { right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px); }
   .lod { display: none; }
   .toasts { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; transform: none;
     top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: auto; }

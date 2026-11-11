@@ -68,8 +68,8 @@
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
-      const open = activePanel !== null || $('clock').classList.contains('speed-open');
-      closeSpeedOptions(); openPanel(null);
+      const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      closeSpeedOptions(); closeNotices(); openPanel(null);
       if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
       return;
     }
@@ -95,7 +95,8 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  // Main menu, at the top bar's end (VB-324): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
   $('landLoad').addEventListener('click', () => showSaves(true));
@@ -130,11 +131,9 @@
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
     drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
-    $('worldMenu').hidden = panel !== 'menu'; if (panel === 'menu') placeMenu();
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
-    $('menuBtn').setAttribute('aria-pressed', String(panel === 'menu'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
@@ -150,31 +149,19 @@
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
     paintUIToggle(hidden);
-    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
-    closeSpeedOptions(); $('uiToggle').focus();
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
+    closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
+  // The minimap's toggle is the right end of the map's bar (VB-324): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
     $('minimap').inert = !on;
-    if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
+    if (!on) closeNotices();
   }
-  function adaptUI() {
-    $('worldMenu').hidden = activePanel !== 'menu';
-    $('minimap').style.visibility = '';
-    setMinimap(!mobileUI.matches); closeSpeedOptions();
-  }
+  function adaptUI() { setMinimap(!mobileUI.matches); closeSpeedOptions(); }
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
-  // The menu is the dock's, on every screen (VB-324): on a wide one it rises from the dock's right end, which moves as the dock gains or
-  // loses Actions; on a phone it spans the screen, as the other panels do.
-  function placeMenu() {
-    const r = document.querySelector('.navigation').getBoundingClientRect();
-    $('worldMenu').style.setProperty('--dock-right', `${Math.max(14, Math.round(innerWidth - r.right))}px`);
-  }
-  window.addEventListener('resize', () => { if (activePanel === 'menu') placeMenu(); });
   $('uiToggle').addEventListener('click', toggleUI);
-  $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
-  $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
   $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
@@ -187,9 +174,6 @@
     const on = $('minimapBtn').getAttribute('aria-pressed') !== 'true';
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
-  });
-  $('minimapClose').addEventListener('click', () => {
-    setMinimap(false); $('menuBtn').focus();
   });
   // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
   function nameFold(button) {

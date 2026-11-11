@@ -10,6 +10,12 @@
   try { for (const k of JSON.parse(localStorage.getItem(NOTICE_KEY) || '[]')) if (Sim.NOTABLE[k]) noticeOff.add(k); } catch (e) { noticeOff.clear(); }
   $('noticeList').innerHTML = Object.entries(Sim.NOTABLE).map(([k, label]) =>
     `<label class="dchk"><input type="checkbox" data-notice="${k}"${noticeOff.has(k) ? '' : ' checked'}> ${esc(label)}</label>`).join('');
+  // The list is the bell's, in the map's bar under the minimap (VB-324): it opens over the minimap, and shuts on a press elsewhere or Esc.
+  function closeNotices() { $('noticePop').hidden = true; $('noticeBtn').setAttribute('aria-expanded', 'false'); }
+  $('noticeBtn').addEventListener('click', () => {
+    const open = $('noticePop').hidden; $('noticePop').hidden = !open; $('noticeBtn').setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('pointerdown', (e) => { if (!$('mapTools').contains(e.target)) closeNotices(); });
   $('noticeList').addEventListener('change', (e) => {
     const k = e.target.dataset.notice; if (!k) return;
     if (e.target.checked) noticeOff.delete(k); else noticeOff.add(k);

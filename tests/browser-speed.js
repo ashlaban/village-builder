@@ -87,19 +87,21 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       await page.evaluate((modifier) => window.dispatchEvent(new KeyboardEvent('keydown', { key: '4', [modifier]: true })), modifier);
       assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'modified keys belong to the browser');
     }
-    await page.click('#menuBtn'); // Keep running in background is the dock's Menu's (VB-324)
+    // Keep running in background is the main menu's (VB-324), which holds the game while it is up: Main menu, the box, Back to game
+    const background = async (on) => { await page.click('#menuBtn'); await page[on ? 'check' : 'uncheck']('#backgroundRun'); await page.click('#landBack'); };
+    await page.click('#menuBtn');
     await page.focus('#backgroundRun'); await page.keyboard.press('Space');
     assert.strictEqual(await page.isChecked('#backgroundRun'), true);
     assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'checkbox space does not resume the game');
-    await page.uncheck('#backgroundRun'); await page.click('[data-speed="30"]');
+    await page.uncheck('#backgroundRun'); await page.click('#landBack'); await page.click('[data-speed="30"]');
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     const t = await page.evaluate(() => window.__speedTest.st.t); await page.waitForTimeout(350);
     assert.strictEqual(await page.evaluate(() => window.__speedTest.st.t), t, 'blur pauses by default');
-    await page.check('#backgroundRun');
+    await background(true);
     await page.waitForFunction((t) => window.__speedTest.st.t > t, t);
     await page.click('[data-speed="0"]'); const paused = await page.evaluate(() => window.__speedTest.st.t);
     await page.waitForTimeout(250); assert.strictEqual(await page.evaluate(() => window.__speedTest.st.t), paused);
-    await page.uncheck('#backgroundRun'); await page.click('[data-speed="30"]');
+    await background(false); await page.click('[data-speed="30"]');
     const returning = await page.evaluate(() => window.__speedTest.st.t);
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await page.waitForFunction((t) => window.__speedTest.st.t > t, returning);

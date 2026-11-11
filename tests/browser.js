@@ -8,12 +8,10 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }),
     page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(60000);
-  // The menu's buttons (Debug, the layers) are the dock's Menu's, on every screen (VB-324): it is opened first when it is shut.
-  const inMenu = async (id) => { if (!(await page.isVisible('#' + id))) await page.click('#menuBtn'); await page.click('#' + id); };
   // Play as and Stop playing are the Debug panel's (VB-221): the played pawn is fixed but for it and for a death
   const playSelected = async () => {
-    await inMenu('debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); };
-  const stopPlaying = async () => { await inMenu('debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#drawerClose'); };
+    await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); };
+  const stopPlaying = async () => { await page.click('#debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#drawerClose'); };
   page.on('console', (m) => { if (m.type() === 'error') fail('console.error: ' + m.text()); });
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) =>
@@ -99,12 +97,12 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     fail('the suggestion is not a holder');
   }
   await stopPlaying();
-  await inMenu('debugBtn');
+  await page.click('#debugBtn');
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
   await page.click('#drawerClose');
   for (const id of ['landBtn', 'settlersBtn', 'customsBtn', 'treeBtn', 'landBtn']) {
-    await inMenu(id); await page.waitForTimeout(500);
+    await page.click('#' + id); await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');
   }
   // the History tab (VB-099) of a village, a farm and a pawn, with each filter by kind
@@ -209,7 +207,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
   await playSelected();
   await page.click('[data-speed="1"]');
-  await inMenu('debugBtn'); await page.click('[data-act="kill"]'); await page.click('#drawerClose');
+  await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#drawerClose');
   await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
   const offer = await page.evaluate((dead) => {
     const { st, Sim } = window.__play, list = Sim.successors(st, dead), first = document.querySelector('#succession button[data-succeed]');
@@ -266,7 +264,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
         end: document.querySelector('#playBox .offer-end').textContent, ask: !!document.querySelector('#playBox .offer') };
     }, ids);
     if (done.open || done.ask || done.spouses.some((x) => x !== null) || !/refused/.test(done.end)) fail(`the answer No: ${JSON.stringify(done)}`);
-    await inMenu('debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#drawerClose');
+    await page.click('#debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#drawerClose');
     await page.evaluate((id) => window.__play.focusPawn(id), ids.man);
     await page.click('#tabHistory'); await page.waitForSelector('#historyList time');
     if (!/refused/.test(await page.locator('#historyList').textContent())) fail('the refusal is not in the History tab');

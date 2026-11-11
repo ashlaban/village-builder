@@ -22,7 +22,8 @@
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = $('name').hidden = !w || demo; // the open game's name, at the menu's top left (VB-324)
+    $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-324)
+    $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
     $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
@@ -68,7 +69,7 @@
   async function build(seed, scenario, size, save = null) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
-    building = true; $('regen').disabled = true;
+    building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
@@ -79,7 +80,7 @@
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
-      building = false; $('regen').disabled = false;
+      building = false; $('menuBtn').disabled = false;
       showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
@@ -93,7 +94,9 @@
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
-    $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
+    $('meta').textContent = `${named('genScenario', scenario)}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+      + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
     // Opening move: start on the whole chart, then glide down through the clouds to the village.
@@ -115,7 +118,7 @@
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
     if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
-    building = false; $('regen').disabled = false;
+    building = false; $('menuBtn').disabled = false;
   }
 
   // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
