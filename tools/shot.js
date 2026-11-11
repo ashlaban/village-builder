@@ -12,6 +12,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   --at X,Y,Z    one close-up at a point and zoom instead
   --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
   --html FILE   another build of the page
+  --follow KIND the first pawn at work on a job of this kind (gather, fish...) is where --at looks (--at X,Y,Z then gives Z only)
   --hours H     then H more game hours (whole 6-minute steps), to catch a time of day: a meeting, a wedding`);
   process.exit(0);
 }
@@ -19,7 +20,7 @@ const root = require('path').join(__dirname, '..'), fs = require('fs'), path = r
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
-const hours = +opt('hours', 0);
+const hours = +opt('hours', 0), follow = opt('follow', null);
 const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), htmlPath = opt('html', path.join(root, 'index.html'));
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
@@ -66,7 +67,10 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
     await page.screenshot({ path: path.join(outDir, name), type: 'jpeg', quality: 82 }); console.error('shot', path.join(outDir, name));
   };
   await shoot(`${tag}-island.jpg`, info.W / 2, info.H / 2, Math.min(1440 / info.W, 900 / info.H));
-  if (at) { const [x, y, z] = at.split(',').map(Number); await shoot(`${tag}-at.jpg`, x, y, z || 0.6); }
+  if (follow) {
+    const p = await page.evaluate((k) => { const a = window.__vb.st.agents.find((q) => q.job && q.job.kind === k && q.phase === 'work' && !q.path); return a ? [a.x, a.y] : null; }, follow);
+    if (p) await shoot(`${tag}-follow.jpg`, p[0], p[1], +(at || '0,0,3').split(',').pop() || 3); else console.error('no pawn at work on', follow);
+  } else if (at) { const [x, y, z] = at.split(',').map(Number); await shoot(`${tag}-at.jpg`, x, y, z || 0.6); }
   const big = [...info.villages].sort((a, b) => b.farms - a.farms || a.id - b.id);
   for (let k = 0; k < Math.min(closeN, big.length); k++) await shoot(`${tag}-close${k + 1}.jpg`, big[k].x, big[k].y, 0.6);
   await browser.close();

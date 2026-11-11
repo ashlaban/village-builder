@@ -363,6 +363,14 @@ function checkState(st) {
     }
     if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
   }
+  // wild food (VB-118): stocks from 0 to 1, set in a year not after this one; below 1 or set only on a forest or heath tile (a cleared tile keeps its stock)
+  const { forage, forageYear } = st.w;
+  if (forage) {
+    const year = Math.floor(st.t / 24 / globalThis.VB['sim/rules'].YEAR_DAYS);
+    let off = 0;
+    for (let i = 0; i < N; i++) if (!(forage[i] >= 0 && forage[i] <= 1) || forageYear[i] < 0 || forageYear[i] > year) off++;
+    if (off) bad.push(`w.forage: ${off} tiles with a stock or year out of place`);
+  }
   // fishing jobs (VB-117): at a bank (land, not a river) next to the water they fish
   for (const j of st.jobs.values()) {
     if (j.kind !== 'fish') continue;

@@ -42,9 +42,9 @@ VB['sim/plans'] = (() => {
   const HAY_WINTERS = 2;
   const ROUTINES = [
     ['manure', 'plow', 'sow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
-    ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
+    ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish', 'gather'],
     ['reap', 'haul', 'mow', 'hay', 'thresh', 'slaughter', 'salt', 'wood', 'reclaim', 'clear', 'break', 'meadow', 'mend', 'water', 'cook',
-      'fodder', 'milk', 'fish'], // fishing last, as a household checks it (VB-117); not in winter, under the ice
+      'fodder', 'milk', 'fish', 'gather'], // fishing last, gathering after it (VB-118), as a household checks it (VB-117); not in winter, under the ice
     ['thresh', 'wood', 'slaughter', 'salt', 'mend', 'water', 'cook', 'fodder', 'milk'],
   ];
   const ROUTINE_KINDS = [...new Set(ROUTINES.flat())];

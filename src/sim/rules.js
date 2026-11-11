@@ -44,6 +44,11 @@ VB['sim/rules'] = (() => {
   // trip's take). Posted from spring day `from + 1` to the end of autumn; a second trip while the household's spare food covers fewer than
   // `secondDays` days of its need ----
   const FISH = { reach: 6, trip: 4, take: 0.1, recover: 0.02, bigLake: 20, least: 0.1, from: 2, secondDays: 12 };
+  // ---- gathering (VB-118; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 2): berries, mushrooms and nuts on a forest or heath tile
+  // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's
+  // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
+  // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
+  const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
@@ -61,11 +66,11 @@ VB['sim/rules'] = (() => {
     wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
       husbandry: 9, foraging: 4 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 } },
     farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4,
-      foraging: 6 }, except: { cook: 0, slaughter: 8 } },
+      foraging: 6 }, except: { cook: 0, slaughter: 8, gather: 3 } },
     maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10,
       foraging: 5 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
     son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3,
-      foraging: 7 }, except: { cook: 0, slaughter: 7 } },
+      foraging: 7 }, except: { cook: 0, slaughter: 7, gather: 3 } },
     daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
       husbandry: 9, foraging: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
     retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3 },
@@ -281,7 +286,7 @@ VB['sim/rules'] = (() => {
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS,
-    SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };

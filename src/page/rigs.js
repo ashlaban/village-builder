@@ -270,7 +270,7 @@
         legB = 0.32; break; }
       case 'mow': { const k = swing(cyc * 3.2, 0, 1); lean = 0.32; armF = -0.5 - k * 1.1; armB = armF + 0.35; tool = 'scythe'; toolR = -0.6 + k * 1.0;
         legF = -0.32; legB = 0.32; break; }
-      case 'gather': {
+      case 'gather': case 'forage': {
         const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
       // fishing (VB-117): standing at the bank, the rod held out over the water, its tip bobbing now and then as a fish takes the bait
       case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -0.95 + k * 0.35; armB = -0.8 + k * 0.3; tool = 'rod';
@@ -282,6 +282,8 @@
       case 'milk': { const k = Math.sin(cyc * 9); lean = 0.5; bob = 2; armF = -0.75 + k * 0.2; armB = -0.75 - k * 0.2; legF = -1.25; legB = -1.0;
         heldB = 'bucket'; break; }
     }
+    if (anim === 'forage') heldB = 'basket'; // gathering wild food (VB-118): stooping, the basket on the arm
+    if (a.carry === 'basket') { heldF = 'basket'; armF = armF * 0.25 + 0.05; }
     if (anim === 'sow') { const k = swing(cyc * 5, -0.15, -1.7); armF = k; armB = -0.55; heldB = 'basket'; }
     if (a.carry === 'sheaf') { shoulder = 'sheaf'; armF = -2.45; }
     if (a.carry === 'hay') { back = 'hay'; armF = -2.3; armB = -2.1; lean += 0.15; }
