@@ -273,7 +273,7 @@
       case 'gather': {
         const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
       // fishing (VB-117): standing at the bank, the rod held out over the water, its tip bobbing now and then as a fish takes the bait
-      case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -1.15 + k * 0.35; armB = -0.95 + k * 0.3; tool = 'rod';
+      case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -0.95 + k * 0.35; armB = -0.8 + k * 0.3; tool = 'rod';
         toolR = -0.35 - k * 0.25; legF = -0.1; legB = 0.1; break; }
       case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
       // behind the ard (VB-138): walking the furrow, both hands on the stilt, leaning into it

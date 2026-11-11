@@ -308,10 +308,10 @@ VB['sim/kinds'] = (() => {
     fish: {
       verb: 'Fishing', go: 'Going fishing', back: 'Carrying the catch home', name: 'Go fishing', label: 'Fishing', anim: 'fish', hours: 3, hands: 1,
       type: 'foraging', carry: 'fish', to: 'door',
-      // at the water's edge of the bank, facing the water
+      // at the water's edge: the edge of the lake or sea tile, or by the brook that runs through the middle of a river tile
       spot: (st, a, j) => {
-        const w = st.w, x = w.hx[j.site], y = w.hy[j.site];
-        return [x + (w.hx[j.water] - x) * 0.45 + a.ox * 0.15, y + (w.hy[j.water] - y) * 0.45 + a.oy * 0.1];
+        const w = st.w, x = w.hx[j.site], y = w.hy[j.site], k = w.water[j.water] ? 0.45 : 0.7;
+        return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => {

@@ -7226,10 +7226,10 @@ VB['sim/kinds'] = (() => {
     fish: {
       verb: 'Fishing', go: 'Going fishing', back: 'Carrying the catch home', name: 'Go fishing', label: 'Fishing', anim: 'fish', hours: 3, hands: 1,
       type: 'foraging', carry: 'fish', to: 'door',
-      // at the water's edge of the bank, facing the water
+      // at the water's edge: the edge of the lake or sea tile, or by the brook that runs through the middle of a river tile
       spot: (st, a, j) => {
-        const w = st.w, x = w.hx[j.site], y = w.hy[j.site];
-        return [x + (w.hx[j.water] - x) * 0.45 + a.ox * 0.15, y + (w.hy[j.water] - y) * 0.45 + a.oy * 0.1];
+        const w = st.w, x = w.hx[j.site], y = w.hy[j.site], k = w.water[j.water] ? 0.45 : 0.7;
+        return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => {
@@ -12229,7 +12229,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       case 'gather': {
         const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
       // fishing (VB-117): standing at the bank, the rod held out over the water, its tip bobbing now and then as a fish takes the bait
-      case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -1.15 + k * 0.35; armB = -0.95 + k * 0.3; tool = 'rod';
+      case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -0.95 + k * 0.35; armB = -0.8 + k * 0.3; tool = 'rod';
         toolR = -0.35 - k * 0.25; legF = -0.1; legB = 0.1; break; }
       case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
       // behind the ard (VB-138): walking the furrow, both hands on the stilt, leaning into it
@@ -14899,7 +14899,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'fae33cd847', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '826796cb91', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
