@@ -27,7 +27,7 @@ VB['sim/byre'] = (() => {
     }
     return n;
   }
-  Rules.contribute({ rule: 'need', source: 'sim/byre', key: 'animal', label: 'An animal, and hay for the winter', range: [-1e9, 1e9],
+  Rules.contribute({ rule: 'need', source: 'sim/byre', key: 'animal', label: 'An animal, and hay for the winter', 
     tunables: ['HERD.hay', 'HERD.stall'], value: (st, c) => {
       const kind = c.good.kind;
       if ((kind !== 'cattle' && kind !== 'sheep') || c.n === 0) return 0;

@@ -1,5 +1,5 @@
 {
-  "total": 25,
+  "total": 24,
   "pairs": {
     "sim/names -> culture": 1,
     "sim/records -> culture": 1,
@@ -12,7 +12,6 @@
     "sim/herds -> sim/relations": 1,
     "sim/herds -> culture": 1,
     "sim/stores -> culture": 1,
-    "sim/hunger -> sim/relations": 1,
     "sim/byre -> culture": 1,
     "sim/commands -> sim/agents": 1,
     "sim/commands -> sim/kinds": 1,

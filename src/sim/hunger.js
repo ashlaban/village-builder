@@ -1,10 +1,10 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { age, farmPractice, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'];
-  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
+  const Rules = VB['sim/registry'];
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
@@ -28,8 +28,15 @@ VB['sim/hunger'] = (() => {
   }
   // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
   const floorOf = (st, hh) => reserved(st, hh, 'grain') + HELP.floorDays * dailyNeed(st, hh);
+  // death.hazard's hunger and frailty terms (the rule is declared in sim/deaths, which loads later)
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'hunger', label: 'Hunger', cause: 'hunger',
+    range: [1, 2.5], tunables: ['HUNGER.k'],
+    value: (st, p) => 1 + HUNGER.k(Math.floor((st.t - p.born) / YEAR)) * p.hunger });
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'frailty', label: 'Poor health', cause: 'hunger',
+    range: [1, 3], tunables: ['HEALTH.riskBelow', 'HEALTH.riskSlope'],
+    value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
-  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
+  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', 
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- need (VB-299; design.md, The fair: Need; target-v2 5.1): what a quantity of a good is worth to the household taking it now, in rations of
   // its welfare; the sum of each good's term, by the module that knows the need (food here, animals sim/byre, tar and ale sim/exchange). The
@@ -65,7 +72,7 @@ VB['sim/hunger'] = (() => {
   }
   // Food: the change in the stock's worth; and a food the pot lacks (its source held below a fifth of the need to the next harvest) counts
   // NEED.lacking times for the part of it that fills that fifth.
-  Rules.contribute({ rule: 'need', source: 'sim/hunger', key: 'food', label: 'Food against the year ahead', range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND],
+  Rules.contribute({ rule: 'need', source: 'sim/hunger', key: 'food', label: 'Food against the year ahead', 
     tunables: ['HELP.bufferDays', 'NEED.empty', 'NEED.beyond', 'NEED.lacking'], value: (st, c) => {
       const r = c.n * c.good.quantum * c.good.rations;
       if (r === 0) return 0;

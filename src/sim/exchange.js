@@ -3,7 +3,7 @@
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { addTie, book, balance } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
@@ -11,8 +11,8 @@ VB['sim/exchange'] = (() => {
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
-  Rules.contribute({ rule: 'allowance', source: 'sim/relations', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
-    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+    tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
@@ -86,7 +86,7 @@ VB['sim/exchange'] = (() => {
   const ALE = { noOccasion: 0.5 };
   Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'tar', label: 'Tar, for a boat or the house due (from VB-301)', range: [0, 0],
     tunables: [], value: () => 0 });
-  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'ale', label: 'Ale, for an occasion ahead (occasions from VB-126)', range: [-1e9, 1e9],
+  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'ale', label: 'Ale, for an occasion ahead (occasions from VB-126)', 
     tunables: ['ALE.noOccasion'], value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Culture.norm('worth', 'ale') : 0) });
   // A keeping good is worth its customary worth to a taker with no need of it, for the quanta that keep what it holds to pass on within
   // KEEPING.cap rations' worth (one back load; design.md, The fair, Keeping goods).

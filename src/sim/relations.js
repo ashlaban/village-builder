@@ -10,9 +10,9 @@ VB['sim/relations'] = (() => {
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
   //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
-  //   own reserve (sim/help); goodwill's term comes with VB-217. ALLOWANCE_BOUND is a bound above any store, for the registry's checks.
-  const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
-  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
+  //   own reserve (sim/help); goodwill's term comes with VB-217.
+  const Rules = VB['sim/registry'];
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'reserve'] });
 
   // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
@@ -395,6 +395,6 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, floorKin, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, touch, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord,
-    relationsOf, reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
+    relationsOf, reasonsOf, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
 })();
