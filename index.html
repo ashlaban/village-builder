@@ -845,7 +845,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
-    <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
+    <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
     </div>
@@ -14930,7 +14930,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (c.verb === 'serve') return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
     return VERB_WORDS[c.verb] || c.verb;
   }
-  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
+  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for yourself' };
   // An opportunity the round carries out for a pawn that wishes it (roundBox): read-only, with the reason it may not be taken now or its basis.
   function oppRow(o) {
     return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
@@ -14941,35 +14941,35 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const pick = (kind, value, label, on = wishes[kind] === value) =>
       `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
     const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
-    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
-    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
-    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
-    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
-    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
-      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
-    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    const own = wishes.out === null ? '' : ` On your own you would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>your wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and your spouse has wishes too.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As you would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `You stay now: ${esc(leave.why)}.` :
+      'You are counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any you may')}${pick('claim', false, 'None')}</div>`;
     h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
       o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
       esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
-      : '<p class="hint">No farm of its village stands empty.</p>';
-    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+      : '<p class="hint">No farm of your village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As you would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
     h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
     const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
     if (acts.some((o) => o.verb === 'match')) {
-      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
+      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As you would')}${pick('match', false, 'Not this year')}</div>`;
       h += partners.length ? `<ul class="opps">${partners.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="match" data-value="${
         o.target}" aria-pressed="${wishes.match === o.target}">${esc(o.partner.name)}, ${o.partner.age}<i>${
-        esc(o.why || 'offered at the round, as its own yes')}</i></button></li>`).join('')}</ul>`
-        : '<p class="hint">It knows no unmarried one it might wed.</p>';
+        esc(o.why || 'offered at the round, as your own yes')}</i></button></li>`).join('')}</ul>`
+        : '<p class="hint">You know no unmarried one you might wed.</p>';
     }
     return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
   function causeNote(p) {
-    const a = p.advocate; if (!a) return '<p class="hint">It argues no cause.</p>';
+    const a = p.advocate; if (!a) return '<p class="hint">You argue no cause.</p>';
     const d = Culture.DIMS[a.dim], s = st.cenv.settlements[Sim.settlementIdOf(st, p)], sup = s && s.lastSupport;
-    let h = `<p class="cause">Argues for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
+    let h = `<p class="cause">You argue for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
@@ -14997,7 +14997,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
       if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
       else if (may) h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
-    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Its acts</button></p>';
+    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Your acts</button></p>';
     if (h !== cardPlayHTML) { cardPlayHTML = h; $('cardPlay').innerHTML = h; }
     $('cardPlay').hidden = !h;
   }
@@ -15021,7 +15021,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       h += `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>`
         + `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>`
         + `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${o.daysLeft === 1 ? 'day' :
-          'days'} left; unanswered, it is answered as it would be unplayed.</p>`
+          'days'} left; unanswered, it is answered as you would unplayed.</p>`
         + `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>`
         + `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
     }
@@ -15054,11 +15054,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
       `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
       + `<button type="button" data-play="unqueue" data-i="${i}" aria-label="Remove ${esc(commandWords(c))}">Remove</button></li>`).join('')}</ol>`
-      : `<p class="hint">${pl.auto ? 'Nothing queued: it does what its role would.' :
-        'Nothing queued, and its automatic behaviour is off: it waits, and goes home at dark.'}</p>`;
+      : `<p class="hint">${pl.auto ? 'Nothing queued: you do what your role would.' :
+        'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What it may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }
@@ -15124,7 +15124,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     succAt = now;
     const list = Sim.successors(st, dead);
     let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
-      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+      : 'None of your heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
     if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
       esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
     if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
@@ -15168,6 +15168,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // 'self', 'house' or 'village', and a view inside it, null, 'round', 'causes' or 'give'), its last message (barMsg: {text, bad}), the tool
   // (tool: an act waiting for a tile, below) and the gift's draft (gift). It reads st and queues through Sim, as the sheet does (page/play).
   let barOpen = false, barMenu = null, barMsg = null, barHTML = '', tool = null, toolKey = '', flash = null, bannerHTML = '';
+  const tapWord = coarse ? 'tap' : 'click'; // what a press on the map is called, by the pointer
   const GROUPS = { self: 'Myself', house: 'Household', village: 'Village' };
   const toolG = new PIXI.Graphics();
   L.hover.addChild(toolG);
@@ -15206,7 +15207,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     let h = '';
     for (const [k, items] of kinds) {
       const open = items.filter((o) => o.why === null), o = open[0], whom = (x) => `for ${holderName(x.holder)}, ${BASIS[x.basis]}`;
-      const note = open.length > 1 ? `${open.length} places ${whom(o)}: tap one on the map` : o ? `${whom(o)}` : null;
+      const note = open.length > 1 ? `${open.length} places ${whom(o)}: ${tapWord} one on the map` : o ? `${whom(o)}` : null;
       h += actRow(`data-bar="work" data-kind="${k}" data-holder="${o ? o.holder.type : ''}"`, KIND_ICON[k] || 'hoe', Sim.KINDS[k].name, note,
         o ? null : items[0].why, open.length > 1);
     }
@@ -15223,7 +15224,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       else if (o.verb === 'argue' || o.verb === 'dropCause') by.causes.push(o);
       else by.self.push(o);
     }
-    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Its cause' : 'Argue a cause', give: 'Give grain' };
+    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Your cause' : 'Argue a cause', give: 'Give grain' };
     let h = `<div class="mh">${m.view ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>` :
       ''}`
       + `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>`
@@ -15232,33 +15233,33 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
     if (m.view === 'causes') {
       return `${h}<div class="play">${causeNote(p)}</div>${by.causes.map((o) =>
-        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'It argues no more',
+        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'You argue no more',
           o.why)).join('')}`;
     }
     if (m.view === 'give') return h + giveHTML(id);
     if (m.g === 'self') {
       const home = by.self.find((o) => o.verb === 'goHome'), idle = by.self.find((o) => o.verb === 'idle');
-      h += actRow('data-bar="walk"', 'walk', 'Walk here', 'Then tap an open tile on the map');
-      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for itself', home.why);
-      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'It waits where it is', idle.why);
-      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for its answer`, null, true);
-      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Its wishes: moving out, a farm, service, a match',
+      h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
+      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
+      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for your answer`, null, true);
+      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Your wishes: moving out, a farm, service, a match',
         null, true);
       return h;
     }
     if (m.g === 'house') {
-      if (!hh) return `${h}<p class="act-empty">It belongs to no household.</p>`;
-      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of its household it may take now.</p>';
+      if (!hh) return `${h}<p class="act-empty">You belong to no household.</p>`;
+      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of your household you may take now.</p>';
       const own = givesFor(id);
       h += actRow('data-bar="view" data-view="give"', 'gift', 'Give grain', own ? `To kin or a neighbour; ${giftMax(own)} rations above the seed` : '',
         own ? null : "only the household's holder gives its grain", true);
       return h;
     }
-    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work it may take now.</p>';
+    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
     if (by.causes.length || p.advocate) {
       const a = p.advocate;
       h += actRow('data-bar="view" data-view="causes"', 'cause', TITLES.causes, a ? `For “${Culture.DIMS[a.dim].opts[a.opt][1]}”, `
-        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village it would change', null, true);
+        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village you would change', null, true);
     }
     return h;
   }
@@ -15311,7 +15312,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       startTool({ kind: 'work', work: kind, holder, icon: KIND_ICON[kind] || 'hoe', title: Sim.KINDS[kind].name, needs: 'a marked tile', keep: true });
       return;
     }
-    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none it may take now.`, bad: true }; return; }
+    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none you may take now.`, bad: true }; return; }
     const r = Sim.queue(st, { actor: id, verb: 'work', target: open[0].target });
     barMsg = r === true ? { text: `Queued: ${commandWords(open[0])}.` } : { text: r, bad: true };
   }
@@ -15340,11 +15341,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     tool.msg = null;
     if (tool.kind === 'walk') {
       const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
-      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: tap an open tile`, bad: true };
+      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: ${tapWord} an open tile`, bad: true };
       else done(Sim.queue(st, { actor: id, verb: 'walkTo', target: i }), 'Queued: walk to the tile.');
     } else if (tool.kind === 'work') {
       const o = Sim.opportunities(st, id).find((x) => x.verb === 'work' && x.kind === tool.work && x.holder.type === tool.holder && x.site === i);
-      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: tap a marked tile`, bad: true };
+      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: ${tapWord} a marked tile`, bad: true };
       else if (o.why) tool.msg = { text: o.why, bad: true };
       else { const r = Sim.queue(st, { actor: id, verb: 'work', target: o.target });
         tool.msg = r === true ? { text: `Queued: ${commandWords(o)}.` } : { text: r, bad: true }; }
@@ -15361,8 +15362,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const el = $('actBanner');
     let h = '';
     if (tool) {
-      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: tap ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
-        ? '<span class="bad">None is open to it now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
+      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
+        ? '<span class="bad">None is open to you now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
         + `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;
     } else if (flash && performance.now() < flash.until) h = `<div class="txt">${esc(flash.text)}</div>`;
     else flash = null;
@@ -15470,7 +15471,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const k = pw >= 0 ? st.pawns[pw].household : named && named.farm !== undefined ? st.farmsteads[named.farm].household
       : house ? house.household : land && land.type === 'household' ? land.id : null;
     if (k === null || k === undefined || st.households[k].dissolved || k === own.id) {
-      tool.msg = { text: 'No other household there: tap a farm, its land or one of its people', bad: true };
+      tool.msg = { text: `No other household there: ${tapWord} a farm, its land or one of its people`, bad: true };
       return;
     }
     gift.to = k; gift.warn = null; gift.msg = ''; endTool();
@@ -16602,7 +16603,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const id = selected(), p = id >= 0 ? st.pawns[id] : null;
     $('dbgSel').textContent = p ?
       `${Sim.fullName(p)}${p.died !== null ? ' (dead)' : `, ${p.age}, ${roleLine(p)}`}${p.advocate ? `; argues for “${optLabel(p.advocate.dim,
-      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the settlers list or in the family tree.';
+      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the People panel or in the family records.';
     const out = st.demand.filter((q) => st.pawns[q].alive);
     $('dbgOut').textContent = out.length ? out.map((q) =>
       `${Sim.fullName(st.pawns[q])} (${st.pawns[q].age}, ${st.villages[Sim.settlementIdOf(st, st.pawns[q])].name})`).join(', ') : 'Nobody right now.';
@@ -16767,7 +16768,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'da3f840810', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e7c0c250f6', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

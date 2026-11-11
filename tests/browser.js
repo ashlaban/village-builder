@@ -177,7 +177,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.evaluate(() => window.__play.look(0)); // the map's corner, open sea
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
     const said = await page.locator('#actBanner').textContent();
-    if (!/tap a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
+    if (!/(tap|click) a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
     await page.evaluate((i) => window.__play.look(i), inTool.sites[0]);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
     target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });

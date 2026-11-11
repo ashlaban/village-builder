@@ -328,7 +328,7 @@ async function actionBar() {
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(5);
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);
-  if (q('#actBanner').hidden || !/^Walk here: tap an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
+  if (q('#actBanner').hidden || !/^Walk here: (tap|click) an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
     fail('Walk here\'s tool is not shown'); }
   win.HTMLElement.prototype.setPointerCapture = () => {};
   const tap = (type) => {

@@ -84,7 +84,7 @@
     const k = pw >= 0 ? st.pawns[pw].household : named && named.farm !== undefined ? st.farmsteads[named.farm].household
       : house ? house.household : land && land.type === 'household' ? land.id : null;
     if (k === null || k === undefined || st.households[k].dissolved || k === own.id) {
-      tool.msg = { text: 'No other household there: tap a farm, its land or one of its people', bad: true };
+      tool.msg = { text: `No other household there: ${tapWord} a farm, its land or one of its people`, bad: true };
       return;
     }
     gift.to = k; gift.warn = null; gift.msg = ''; endTool();
