@@ -92,7 +92,7 @@ slices of `docs/roadmap.md` build towards them, and the sections below say how f
 
 ### World and scale
 
-One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m across, so a house is one tile; distances, farmland and time are compressed rather than tiles mixed in size.
+One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m across, so a house is one tile; distances, farmland and time are compressed rather than tiles mixed in size. The one grid is read at two scales, a site and land (Two readings of one grid, below).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Rivers | The world has rivers | Decided, 30 Oct |
 | River courses | Rivers rise in hills, mountains and marshes and run downhill to a lake or the sea, a few on each large island; brooks are narrow, larger rivers a tile wide; they carry fresh water and fish, drive water mills, and wet the ground along their banks, where hay grows well. Crossing is at fords and, later, bridges | Proposed |
 | Tile scale | About 10–12 m per hex, a building plot; one house holds a family | Agreed |
-| Mixed scale | By compression: distance about 10×, farmland a few hundred times, time compressed (see Time) | Agreed |
+| Mixed scale | By compression: distance about 10×, farmland about 100× in area, which is the same 10× in length, time compressed (see Time). One grid, two readings: a site about 10 m across, land about 100 m across (Two readings of one grid) | Agreed; the two readings and farmland's figure (it was "a few hundred times") Agreed, 11 Nov (VB-342) |
 | Map size | Four sizes: Tiny 120 × 85, Small 180 × 130, Medium 280 × 200 (56,000 tiles, about 20,000 of them land; the earlier single size), Large 380 × 270 | Decided |
 | Generation screen | The game opens on a screen to set map size, seed and starting scenario, then generates the map; the same seed, size and scenario always give the same world | Decided |
 | Regions | Hexagonal patches of radius 7 (169 tiles, centres 13 tiles apart) | Agreed |
@@ -113,8 +113,18 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 #### Compression
 
 - **Distance:** villages sit 13–15 tiles apart instead of a realistic 100–250 tiles (1–3 km).
-- **Farmland:** a farm has 2–4 field tiles; a medieval household farmed about 12 ha, close to 1,000 hexes.
+- **Farmland:** a farm has 2–4 field tiles, each standing for a little under a hectare of sown land, about 85 hexes of 10 m (Two readings of one grid). A medieval household's about 12 ha, close to 1,000 such hexes, counted its fallow, meadow and pasture too, which the game holds as other tiles.
 - **Rejected alternative:** a separate world map with local maps to enter (as in RimWorld or Dwarf Fortress). It only pays off with hundreds of settlements and breaks continuous scrolling.
+
+#### Two readings of one grid (Agreed, 11 November; VB-342)
+
+A tile is read at one of two scales by what stands on it, and nothing is drawn finer than a hex.
+
+- **A site** is about 10–12 m across: a house, a well, a pawn walking.
+- **Land** is about 100 m across, about 0.87 ha a hex: a field, a meadow, a stretch of forest, the way between two villages. It is the 10× of distance applied to area.
+- **Today's yields already imply it.** A field nets 75 rations after seed. A game day stands for about a week (7.6 days), so that is about 570 days of an adult's food; at 0.75 to 1 kg of grain a day, 430 to 570 kg net and 570 to 760 kg gross, or about 650 to 900 kg a hectare on 0.87 ha. Medieval grain is usually put at some hundreds of kilograms to a tonne a hectare (the order of magnitude only, from memory: no source was checked for it).
+- **Distances agree:** villages 13–15 tiles apart are 1.3–1.5 km apart at the land's scale, inside the realistic 1–3 km.
+- **Time is the third compression:** a game day is about a week (Time and calendar).
 
 #### Sizing at 1,000 pawns
 
@@ -560,6 +570,43 @@ Goods, the farming year, processing and animals as v0.3 has them. Typed goods, r
 | Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe. The advantage can be raised (Kim, 11 Nov): at 2.5 a team saves a farm of three fields about 30 hours a year and few keep one; the team's rate becomes 5 (backlog VB-336) | Agreed; Decided, 11 Nov (may be raised); Agreed, 11 Nov (5) |
 | Field work | The hours of a field's year: hoeing 20, sowing 2, weeding in two rounds of 5 (it was a round of 2 every 6 days, four or five a crop, with as much walking as work), reaping 15 and threshing 20 (they were 5 and 6), so that grain takes a larger share of the year and the harvest is its peak; measured before, three fields took a household about 215 pawn-hours, under a fifth of two hands' year and less than its water and cooking. A missed round of weeding cuts the yield by 0.2, at most 0.4 (backlog VB-333, VB-334) | Decided, 11 Nov (a larger share by reaping and threshing; two rounds of weeding); Agreed, 11 Nov (15 and 20); Proposed (the weeding's numbers) |
 | Bringing in the harvest | Sheaves come home by the load, the one load of the game: 30 rations on the back, 90 on a cart with two oxen, so a field is three or four trips on the back or one or two with a cart (backlog VB-335) | Decided, 11 Nov |
+
+### Crops and rotations (slice plan VB-342, 11 November; being written)
+
+The game grows several crops. Each is a row of rules, and a field holds its crop and its place in a rotation; the field cycle above is read through the crop's row. Written by the plan task VB-342 from Kim's answers of 11 November (`QUESTION_ARCHIVE.md`, VB-342). The table of crops stands; the rotation, the head's choice, seed, the weather and the scenarios' crops are still to be written by the same task.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| What crops are for | Three things alike: risk and the labour calendar (crops fail in different years and want their work at different times), the goods chains (ale, linen), and the flavour of a region (villages on different ground, and with different starts, grow different things) | Decided, 11 Nov |
+| Who chooses | The household's head plans what is sown, through the plan's three layers (Work: opportunities, plans and tasks); how well depends on its skill. Not a custom of the village | Decided, 11 Nov |
+| Where skill acts | On choices and timing only: which crop on which field, the mix, when to sow. Never a multiplier on the yield, or a poor head is punished twice | Decided, 11 Nov |
+| Knowing a crop | A household can sow what it has seed for; there is no knowledge kept apart from seed. A new crop arrives as seed | Decided, 11 Nov |
+| Fallow | Rest only, at first: a fallow field restores its soil and is not grazed. Grazed fallow needs the village to keep step and is left for later | Decided, 11 Nov |
+| Different starts | Villages start with different crops, by a preset a scenario: in founders, barley in both villages and one crop of its own in each, rye in one and peas in the other | Decided, 11 Nov (a mix, presets); Agreed, 11 Nov (rye and peas) |
+| Order of building | A first batch of barley, winter rye, fallow and peas, as its own arch (`crops`) after slice 3; the fibre and ale crops with their chains in slice 6 | Agreed, 11 Nov |
+
+#### The first crops (Proposed; starting values to tune)
+
+Barley is today's grain, unchanged. Days are game days, a day about a week; hours are a field's.
+
+| | Barley | Winter rye | Peas | Fallow |
+| --- | --- | --- | --- | --- |
+| Sown | Spring days 1–10 | Autumn days 1–6 | Spring days 1–10 | Not sown |
+| Ripe | 26 days after sowing: autumn days 3–12 | 42 days after sowing: summer days 7–12 of the next year | 18 days after sowing: summer day 7 to autumn day 4 | |
+| Harvest and seed | 100 rations, 25 of seed (4:1) | 100, 25 of seed (4:1) | 60, 20 of seed (3:1) | None |
+| Net of seed | 75 | 75 | 40 | 0 |
+| Soil | −0.08 a crop | −0.08 a crop | +0.04 a crop, to at most 1.0 | +0.08 a year, to at most 1.0 |
+| Hours | Hoeing 20, sowing 2, weeding 2 × 5, reaping 15, threshing 20: 67 | Tilling 20, sowing 2, weeding 5, reaping 15, threshing 20: 62 | Hoeing 20, sowing 2, weeding 2 × 5, pulling 10, threshing 10: 52 | One tilling in summer, 10 |
+| Left in the field | Lost to the frost of autumn day 11 | Stands through the winter; lost if not reaped by autumn | Lost to the frost | |
+| In store | Spoils as grain does | As grain | As grain (dried) | |
+| In the pot | Grain | Grain, one source with barley | Pulses, a source of their own | |
+
+- **Rye differs by its calendar, not its yield.** It is sown when the barley is coming in and reaped in summer, before it, so it moves work out of the harvest's weeks and into the autumn's first days and the haymaking; and a year that fails the barley need not fail the rye (the weather, to be written). Late medieval Scandinavian rye is put at about four grains for one sown on permanent fields, and far more on burnt-over ground (Climate of the Past 19, 2463, 2023, on Nordic rye, read only in a search summary: to be read in full); so it gets the 4:1 that Slicher van Bath (1963) gives grain, not the 5:1 first suggested to Kim, and takes its bonus from fresh land (soil 1.4), as every crop does.
+- **Rye needs a free field in early autumn,** which a field under barley is not: it follows fallow or peas. The three courses of one field are fallow, rye, barley.
+- **Peas give less food and more besides:** they restore the soil a little, they are a second source in the pot (10% further), and they are reaped in time for rye. Their numbers have no source yet and are guesses to tune.
+- **Rest and peas restore soil only to 1.0;** only manure raises it above, to its cap of 1.15. A field in three courses wears 0.08 in three years, not 0.24, so it wants a third of the manure.
+- **What it does to a farm's food, before any tuning:** three fields in three courses at soil 1.0 net about 150 rations (75 + 75 + 0), as much as three barley fields worn to the floor net today (3 × 50), for two-thirds of the field hours. A farm fed by three well-dunged barley fields (about 218) is not fed by three courses on the same three fields: it needs a fourth, which is why a fallow field should not count against the fields a hand can till (Proposed). The retune belongs to the wrap-up of the food balance (VB-048).
+- **Oats** (wet, poor and high ground; a lower yield) come in a second batch. **Flax, hops, turnips and wheat** come with their chains (linen, ale, the garden, standing) in slice 6. None has numbers yet.
 
 ### Long work and processing
 
@@ -1241,6 +1288,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (crops, first part) | 11 November 2026 | Kim's answers in a discussion of crops, the scale of a hex, planting, yields and the weather (`QUESTION_ARCHIVE.md`, VB-342): Goods and the farming year gains Crops and rotations, with what crops are for, the head's choice by skill (on choices and timing only), seed as knowing a crop, fallow as rest, different starts a village (Decided), and a table of the first crops, barley, winter rye, peas and fallow (Proposed). World and scale gains Two readings of one grid (a site about 10 m, land about 100 m and 0.87 ha a hex; Agreed), and farmland's compression is corrected from "a few hundred times" to about 100 times in area. The rotation, the head's choice in detail, seed, the weather and the scenarios' crops follow from the same plan task (VB-342) |
 | 0.4 (starting a game) | 11 November 2026 | Kim's decisions on a mock of the screens after New archipelago (`docs/mocks/setup.html`): The player, commands and views gains Starting a game, with ten principles for these screens (one choice made once; show it on the land; the game's own graphics; few words, none hidden; no invented measures; nothing moves under the pointer; only what exists; after the land is raised the game is the screen; the menu's family; the inputs by the button) and the two steps: the start (scenario cards, an annotated picture, who starts as farm cards or an age pyramid, story archetypes as a look) and whom to play (the map, a farm clicked for its household, a person for their details). Which pawn now chooses on the game itself; Starting scenarios points there |
 | 0.4 (field work) | 11 November 2026 | Kim's answers to a review of what three fields cost a household (about 215 pawn-hours a year, under a fifth of two hands' time): Goods and the farming year gains Field work (reaping 15 and threshing 20 hours a field, weeding in two rounds) and Bringing in the harvest (by the load, 30 on the back and 90 on a cart); Tilling power is raised to 5 times a hoe. Tasks VB-333 to VB-336; VB-337 makes the reviews' two measurements tools |
 | 0.4 (stocks audit) | 11 November 2026 | Kim's answers to an audit of the stored quantities nothing reads: Goods and the farming year gains Water (a day without it: no cooking and a little health; Decided); Land and ecology gains Stone (used for the better house, a cheap house can be upgraded, stone picked from stony meadows or quarried in hills and mountains; Decided); uncooked grain feeds 0.75 in every uncooked meal, confirmed with 29% of grain eaten uncooked today. Tasks VB-331 and VB-332; notes on VB-062, VB-306 and VB-327 |
