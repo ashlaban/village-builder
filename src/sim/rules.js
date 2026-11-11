@@ -135,6 +135,7 @@ VB['sim/rules'] = (() => {
     // holder brought a farm to the marriage (Lundh 2007)
     widowedGapWeight: 0.15,
     sameVillage: 2, noise: 1.5, // score bonus for the same village; amplitude of the random term
+    liking: 1, // score per point of the mean of the two young's opinions of each other (VB-275); a stranger's opinion is 0
     minScore: -1.5, goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
     scarcePush: 1, plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
