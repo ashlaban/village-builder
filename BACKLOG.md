@@ -59,6 +59,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
+| [VB-313](backlog/VB-313.md) | Stone is used: a house on a stone foundation, and stone picked from stony meadows or quarried in the hills | - | 3 | M | A cheap timber cottage can be raised onto a stone foundation as long work, which lifts the well-kept house's prestige; stone comes from clearing, from stony meadows and from quarrying hills and mountains. |
 
 ## Blocked
 
@@ -143,6 +144,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-308](backlog/VB-308.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | VB-307 | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | - | 3 | S | VB-277 | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
 | [VB-309](backlog/VB-309.md) | Timber: a felled plot yields its wood, building fells trees, and a new household's first wood comes from somewhere | - | 3 | S | VB-307 | Wood stops appearing and vanishing: a plot's felled trees build its cottage and fill woodpiles, a cottage on open ground is built of felled timber, and a new household's first wood is taken from the homes its members leave. |
+| [VB-312](backlog/VB-312.md) | A day without water: no cooking and a little health | - | 3 | S | VB-308 | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 
 ## Archs
 
