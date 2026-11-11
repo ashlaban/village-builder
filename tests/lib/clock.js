@@ -5,7 +5,6 @@ function setClock(st, hours) {
   const { TICKS } = globalThis.VB['sim/rules'], x = hours * TICKS, whole = Math.round(x);
   if (!(Math.abs(x - whole) < 1e-6)) throw new Error(`setClock: ${hours} hours is not a whole number of 6-minute steps`);
   st.tick = whole;
-  st.tickPart = 0;
   st.t = st.tick / TICKS;
 }
 const moveClock = (st, hours) => setClock(st, st.t + hours);

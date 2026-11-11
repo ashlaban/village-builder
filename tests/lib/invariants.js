@@ -17,11 +17,11 @@ function checkState(st) {
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
-  // only (VB-244: the page keeps the part of a step), so st.tickPart is 0
+  // only (VB-244: the page keeps the part of a step)
   const TICKS = globalThis.VB['sim/rules'].TICKS;
   if (!Number.isInteger(st.tick) || st.tick < 0) bad.push(`tick: ${st.tick} is not a non-negative integer`);
   else if (st.t !== st.tick / TICKS) bad.push(`t: ${st.t} is not tick ${st.tick} / ${TICKS}`);
-  if (st.tickPart !== undefined && st.tickPart !== 0) bad.push(`tickPart: ${st.tickPart} is not 0 (whole steps only, VB-244)`);
+  if ('tickPart' in st) bad.push('tickPart: the field was dropped (VB-285)');
   // the standing plans (VB-258): exactly one per undissolved household and per village, none of a dissolved household
   if (st.plans) {
     for (const [type, map, live] of [['household', st.plans.households, st.liveHouseholds], ['village', st.plans.villages, st.villages.map((v) => v.id)]]) {

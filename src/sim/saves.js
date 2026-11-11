@@ -232,9 +232,10 @@ VB['sim/saves'] = (() => {
     st.w = w;
     if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
-    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); }
     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
-    if (st.tickPart) { st.tickPart = 0; st.t = st.tick / TICKS; }
+    // VB-285: and the field that held that part is gone
+    if ('tickPart' in st) { if (st.tickPart) st.t = st.tick / TICKS; delete st.tickPart; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
