@@ -54,7 +54,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 |----|------|------|-----|------|---------|
 | [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. |
 | [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
-| [VB-339](backlog/VB-339.md) | The action bar: the played pawn's acts in three groups, and a tool mode on the map | - | 2 | M | The dock's Actions opens a second bar over it, Myself, Household and Village, as in the mock-up's Menu draft; each opens a list of the played pawn's real acts, and an act that needs a tile puts the map in a tool mode. |
 
 ## Blocked
 
