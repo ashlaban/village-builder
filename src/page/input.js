@@ -101,12 +101,13 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  // Main menu, in the top-left corner (was the top bar's end, VB-338): the main menu, over the paused game; it has Back to game, so the
+  // button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
-  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen; whom to play opens as after any build
-  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't'); });
+  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
+  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {

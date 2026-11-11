@@ -72,6 +72,8 @@ body {
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
 .clock { border-radius: 14px; padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
+/* Main menu, alone in the top-left corner; the clock and the speeds keep the top right */
+.icon-btn.menu-btn { width: 52px; height: 52px; flex: none; margin-right: auto; border-radius: 14px; }
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -250,7 +252,7 @@ input, select { font: inherit; color: var(--ink); }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
+.clock { max-width: 700px; } /* one row with Skip (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
 /* The dock is icons, each with its name under it (VB-338). */
@@ -651,8 +653,9 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
   .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
-    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
-  .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
+    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 6px; flex-wrap: nowrap; align-items: stretch; }
+  .icon-btn.menu-btn { width: 44px; height: auto; min-height: 52px; border-radius: 16px; }
+  .clock { position: relative; flex: 1; min-width: 0; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
   .calendar { flex: 1; min-width: 0; }
   .clock strong { font-size: 17px; }
@@ -706,6 +709,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 <div class="vignette"></div>
 
 <div class="hud top">
+  <button id="menuBtn" type="button" class="icon-btn panel menu-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
   <div class="clock panel" id="clock">
     <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
     <button id="pauseBtn" class="mobile-only icon-btn" type="button" aria-label="Pause game" title="Pause (Space)"></button>
@@ -723,7 +727,6 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
     <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
       title="Hide the interface (H)"></button>
-    <button id="menuBtn" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
   </div>
 </div>
 <div class="lod" id="lod" hidden></div>
@@ -12601,7 +12604,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (landOn) drawLand();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  async function build(seed, scenario, size, save = null) {
+  async function build(seed, scenario, size, save = null, quick = false) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
@@ -12658,7 +12661,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
+    if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
+    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('menuBtn').disabled = false;
   }
 
@@ -12899,12 +12904,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  // Main menu, in the top-left corner (was the top bar's end, VB-338): the main menu, over the paused game; it has Back to game, so the
+  // button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
-  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen; whom to play opens as after any build
-  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't'); });
+  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
+  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
@@ -16760,7 +16766,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '02c65fb67a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'b3dba80a6d', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
