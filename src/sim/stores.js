@@ -20,14 +20,18 @@ VB['sim/stores'] = (() => {
   function amount(n) { if (!Number.isFinite(n) || n < 0) throw new Error(`stores: invalid amount ${n}`); }
   function type(holder) {
     if (!holder || holder.dissolved) throw new Error('stores: missing or dissolved holder');
-    return 'farmstead' in holder ? 'household' : 'center' in holder ? 'village' : 'pawn';
+    // A pawn is told by `given` (a person on record has it, no other holder does); anything else is refused.
+    if ('farmstead' in holder) return 'household';
+    if ('center' in holder) return 'village';
+    if ('given' in holder) return 'pawn';
+    throw new Error('stores: not a holder');
   }
   function villageEntry(v, entry) { if (!v.ledger) v.ledger = []; v.ledger.push(entry); }
-  function record(st, holder, good, n, why) {
+  function record(st, holder, good, n, why, kind = type(holder)) {
     amount(Math.abs(n));
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
-    const kind = type(holder), hh = kind === 'pawn' ? st.households[holder.household] : holder;
+    const hh = kind === 'pawn' ? st.households[holder.household] : holder;
     if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearNow(st), detail.kind, good, n);
     else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };
@@ -35,8 +39,7 @@ VB['sim/stores'] = (() => {
       else { if (!hh.ledger) hh.ledger = []; hh.ledger.push(entry); }
     }
   }
-  function field(holder, good) {
-    const kind = type(holder);
+  function field(holder, good, kind = type(holder)) {
     if (kind === 'pawn' && good === 'grain') return 'stake';
     if (good === 'grain' || kind === 'household' && good === 'meals') return good;
     throw new Error(`stores: ${kind} cannot hold ${good}`);
@@ -45,8 +48,7 @@ VB['sim/stores'] = (() => {
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
   function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
-  function set(holder, good, n) {
-    const kind = type(holder);
+  function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (kind === 'village') setVillage(holder, n);
     else setFood(holder, good, n);
@@ -59,18 +61,18 @@ VB['sim/stores'] = (() => {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
-  function crossed(st, holder, good, before) {
-    if (good !== 'grain' || !('farmstead' in holder) || !st.plans) return;
+  function crossed(st, holder, kind, good, before) {
+    if (good !== 'grain' || kind !== 'household' || !st.plans) return;
     const r = reserved(st, holder, 'grain');
     if ((before > r) !== (holder.grain > r)) wake(st, holder);
   }
   function put(st, holder, good, n, why) {
-    amount(n); const k = field(holder, good), before = holder[k] || 0;
-    record(st, holder, good, n, why); set(holder, good, before + n); crossed(st, holder, good, before); return n;
+    amount(n); const kind = type(holder), k = field(holder, good, kind), before = holder[k] || 0;
+    record(st, holder, good, n, why, kind); set(holder, good, before + n, kind); crossed(st, holder, kind, good, before); return n;
   }
   function take(st, holder, good, n, why) {
-    amount(n); const k = field(holder, good), before = holder[k] || 0, got = Math.min(before, n);
-    record(st, holder, good, -got, why); set(holder, good, before - got); crossed(st, holder, good, before); return got;
+    amount(n); const kind = type(holder), k = field(holder, good, kind), before = holder[k] || 0, got = Math.min(before, n);
+    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind); crossed(st, holder, kind, good, before); return got;
   }
   function move(st, from, to, good, n, why) {
     amount(n); field(from, good); field(to, good);
