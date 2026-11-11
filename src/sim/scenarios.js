@@ -197,14 +197,14 @@ VB['sim/scenarios'] = (() => {
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
     //   sim/rules); tarredUntil (hours, VB-301);
-    //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
-    //   their cottage is built (sim/settle, sim/expansion)
+    //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage), wood (timber at the site, loads; VB-328)}
+    //   or null: settlers live in a booth until their cottage is built (sim/settle, sim/expansion, sim/building)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
-    //   farmstead is then its id; sim/cottage),
+    //   farmstead is then its id; sim/cottage), wood (loads: its felled trees and the timber carried to it, less the walls'; VB-328),
     //   tiles[] {tile, kind 'house'|'field', steps[] of 'fell'|'grub'|'clear'|'break', i (steps done), fresh (a field broken on ground never
     //   farmed; VB-149)}}; a plot is cleared for those who want out
     //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);

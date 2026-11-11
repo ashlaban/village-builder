@@ -270,6 +270,9 @@ VB['sim/rules'] = (() => {
   // so a trip with its 3 hours' cutting fits the working day). A trip cuts on a tile drawn evenly among those keeping more than `thin` of
   // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, thin: 0.25 };
+  // What building takes (sim/building; design, Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's or booth's walls take `timber` loads of
+  // wood (six trees).
+  const BUILD = { timber: 18 };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
   // centre lies within `reach` steps of it. Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
@@ -323,5 +326,5 @@ VB['sim/rules'] = (() => {
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
-      CLAIMS, WOOD };
+      CLAIMS, WOOD, BUILD };
 })();

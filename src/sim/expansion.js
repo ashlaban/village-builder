@@ -2,7 +2,8 @@
 VB['sim/expansion'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
-  const { fertility, farmable, FIELDS } = VB['sim/rules'];
+  const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
+  const Stores = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
@@ -16,6 +17,8 @@ VB['sim/expansion'] = (() => {
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   const activePlots = (v) => v.plots.filter((p) => !p.done);
   const building = (p) => p.done && p.holder !== null && p.cottage && !p.built;
+  // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
+  const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
   const stepsFor = (w, tile, kind) => [...wooded(w, tile) ? ['fell', 'grub'] : [], 'clear', ...kind === 'field' ? ['break'] : []];
   const stepHours = (st, tr) => {
     const s = tr.steps[tr.i];
@@ -108,6 +111,7 @@ VB['sim/expansion'] = (() => {
     for (const v of st.villages) for (const plot of v.plots.filter(building)) {
       const k = plot.cottage, key = `plot:v${v.id}.${plot.id}.cottage`, live = st.jobs.get(key);
       if (live) k.done = live.done; // hours worked on the open stage persist while the job is dropped and posted again
+      if (waitsForTimber(plot, k.i)) continue; // the walls wait for their timber (sim/building)
       out.push([key, COTTAGE[k.i], plot.tiles[0].tile, { plot, cottage: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }]);
     }
     return out;
@@ -151,11 +155,15 @@ VB['sim/expansion'] = (() => {
     if (pick === null) pick = byVillage(st, v, [plot.intended, ...waiting]);
     return pick;
   }
-  // A tile's step is done: stumps stay after felling, grubbing turns the wood into meadow, clearing takes the stones, breaking turns the soil.
+  // A tile's step is done: stumps stay after felling (its trees the plot's wood), grubbing turns the wood into meadow, clearing takes the
+  // stones, breaking turns the soil.
   function finishStep(st, j) {
     if (j.cottage) return finishCottageStage(st, j);
     const w = st.w, { plot, tr } = j, step = tr.steps[tr.i], v = st.villages[plot.village];
-    if (step === 'fell') { w.trees[tr.tile] = 0; st.regrow.delete(tr.tile); st.treeDirty.add(tr.tile); }
+    if (step === 'fell') { // the trees felled are the plot's wood, 3 loads a tree (VB-328)
+      plot.wood = (plot.wood || 0) + Math.floor(w.trees[tr.tile]) * ECON.woodPerTrip;
+      w.trees[tr.tile] = 0; st.regrow.delete(tr.tile); st.treeDirty.add(tr.tile);
+    }
     else if (step === 'grub') clearTile(st, tr.tile);
     else if (step === 'clear') w.stones[tr.tile] = 0;
     else if (tr.kind === 'field') { tr.fresh = !w.dev[tr.tile]; w.dev[tr.tile] = 1; } // ground never farmed starts fresh (VB-149)
@@ -168,7 +176,8 @@ VB['sim/expansion'] = (() => {
   }
   // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
   function finishCottageStage(st, j) {
-    const plot = j.plot; plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
+    const plot = j.plot; if (COTTAGE[plot.cottage.i] === 'walls') plot.wood -= BUILD.timber; // the walls took their timber (VB-328)
+    plot.cottage.i++; plot.cottage.done = 0; st.biomeDirty.add(plot.tiles[0].tile); st.visualDirty = true;
     if (plot.cottage.i >= COTTAGE.length) issue(st, {
       actor: null, verb: 'finishCottage', target: st.villages[plot.village].plots.indexOf(plot), args: { village: plot.village }, source: 'construction' });
   }
@@ -178,15 +187,18 @@ VB['sim/expansion'] = (() => {
     const k = f.booth; if (!k) return null;
     const key = `booth:f${f.id}`, live = st.jobs.get(key);
     if (live) k.done = live.done;
+    if (waitsForTimber(k, k.i)) return null;
     return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
   }
   // A stage of a booth's cottage is done; with the roof on, the household leaves the booth for its cottage.
   function finishBoothStage(st, j) {
     const f = j.farm, k = f.booth; if (!k) return;
+    if (COTTAGE[k.i] === 'walls') k.wood -= BUILD.timber; // the walls took their timber (VB-328)
     k.i++; k.done = 0; st.biomeDirty.add(f.house); st.visualDirty = true;
     if (k.i < COTTAGE.length) return;
-    f.booth = null;
     const hh = f.household !== null ? st.households[f.household] : null;
+    if (hh && k.wood > 0) Stores.put(st, hh, 'wood', k.wood, 'timber'); // timber left over goes to the woodpile
+    f.booth = null;
     log(st, `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`, {
       kind: 'cottage', pawn: hh ? hh.holder : null, ...atFarm(f) });
   }

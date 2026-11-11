@@ -2,9 +2,10 @@
 VB['sim/cottage'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
-  const { SHARES, SOIL } = VB['sim/rules'];
+  const { SHARES, SOIL, ECON } = VB['sim/rules'];
   const { foundHousehold } = VB['sim/membership'];
   const { reckonWood } = VB['sim/territory'];
+  const { shareWood } = VB['sim/building'];
   const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
@@ -35,13 +36,17 @@ VB['sim/cottage'] = (() => {
         if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     }
-    const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
+    // the plot's wood (VB-328): the new household's pile up to its winter goal, then the piles of those who worked the plot; the rest is burnt
+    const left = Math.max(0, plot.wood || 0), mine = Math.min(left, ECON.woodWinter);
+    const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true, wood: mine });
+    const burnt = shareWood(st, plot, left - mine);
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     // a cow and two ewes from the old household, when that leaves it a cow and its winter hay (VB-140)
     const oldId = [...from].find((id) => id !== null && id !== hh.id), oldHh = oldId === undefined ? null : st.households[oldId];
     if (oldHh && !oldHh.dissolved) startHerd(st, oldHh, hh);
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
-    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'cottage', pawn: holder.id, ...atHousehold(st, hh) });
+    const smoke = burnt > 0 ? `; ${Math.round(burnt)} loads of the plot's wood are burnt where they lie` : '';
+    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}${smoke}.`, { kind: 'cottage', pawn: holder.id, ...atHousehold(st, hh) });
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
   // The payment goes to the pawn's household, or to its stake while it has none.

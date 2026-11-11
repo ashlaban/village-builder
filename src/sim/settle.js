@@ -187,7 +187,7 @@ VB['sim/settle'] = (() => {
     for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
     for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions');
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
-    const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers });
+    const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers, carry: false }); // no wood (VB-328)
     woodTaken(st, house); reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };

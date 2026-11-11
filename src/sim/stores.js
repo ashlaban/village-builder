@@ -7,6 +7,8 @@ VB['sim/stores'] = (() => {
     'catch', 'gathering', 'brew', 'pour'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
+  // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
+  KINDS.push('firewood', 'burn', 'plot', 'timber', 'start'); ROUTINE.push('firewood', 'burn');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -42,15 +44,18 @@ VB['sim/stores'] = (() => {
   function field(holder, good, kind = type(holder)) {
     if (kind === 'pawn' && good === 'grain') return 'stake';
     if (good === 'grain' || kind === 'household' && good === 'meals') return good;
+    if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
+  const setWood = (hh, n) => { hh.wood = n; };
   function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (kind === 'village') setVillage(holder, n);
+    else if (good === 'wood') setWood(holder, n);
     else setFood(holder, good, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -95,6 +100,7 @@ VB['sim/stores'] = (() => {
   function start(st, hh, grain, meals = 0) {
     amount(grain); amount(meals); type(hh);
     hh.grain = grain; hh.meals = meals;
+    hh.wood = 0; // its first wood comes from somewhere (sim/membership, VB-328)
     record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'meals', meals, 'provisions');
   }
   function spoil(st, hh, n) {

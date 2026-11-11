@@ -32,6 +32,7 @@
     "household.totals": "sim/stores",
     "household.haySpoilt": "sim/byre",
     "household.spoilt": "sim/stores",
+    "household.wood": "sim/stores",
     "village.grain": "sim/stores",
     "village.ledger": "sim/stores",
     "village.totals": "sim/stores",
