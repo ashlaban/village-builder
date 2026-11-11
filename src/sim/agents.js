@@ -69,7 +69,7 @@ VB['sim/agents'] = (() => {
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null;
+    a.phase = null; a.work = null; a.basis = null;
   }
   // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
   function freeHands(st, j, finisher) {
@@ -96,7 +96,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
     dropJob(st, j);
-    a.carry = null; a.job = null; a.phase = null;
+    a.carry = null; a.job = null; a.basis = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function arrived(st, a) {
@@ -149,7 +149,7 @@ VB['sim/agents'] = (() => {
         walkTo(st, a, f.house, x, y);
       } else {
         complete(st, a);
-        a.job = null; a.work = null;
+        a.job = null; a.basis = null; a.work = null;
         a.phase = null; a.inside = false;
         if (K.inside) { a.inside = false; a.anim = 'idle'; }
       }

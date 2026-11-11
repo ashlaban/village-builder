@@ -10,7 +10,8 @@ VB['sim/opportunities'] = (() => {
   const { VERBS, goOnAs } = VB['sim/commands'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/rules'];
-  const { mayTake, fit, jobsFor } = VB['sim/jobs'];
+  const { fit, jobsFor } = VB['sim/jobs'];
+  const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules } = VB['sim/matching'];
   const { MARRIAGE } = VB['sim/rules'];
@@ -31,9 +32,9 @@ VB['sim/opportunities'] = (() => {
     const hh = view.households[p.household], f = view.farmsteads[hh.farmstead], vid = villageOf(view, p), a = view.agents[p.id];
     const owners = [{ type: 'household', id: hh.id }, { type: 'village', id: vid }], seen = new Set(), list = [];
     const add = (key, kind, owner, j) => {
-      if (seen.has(key) || !mayTake(view, p, { owner })) return;
+      const basis = seen.has(key) ? null : eligible(view, { owner }, p);
+      if (!basis) return;
       seen.add(key);
-      const basis = owner.type === 'village' ? 'villager' : p.servant ? 'servant' : 'member';
       const row = j ? fit(view, p, j, c) : { bid: null, reason: 'not given out yet: work is given out in working hours' };
       const why = j && a.job === j ? 'doing it now' : row.reason || check(view, p.id, 'work', key, null);
       list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind }));
