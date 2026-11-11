@@ -79,13 +79,6 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
-### Stocks audit: stone (VB-313; raised 11 November 2026)
-From the audit of 11 November. Kim decided the same day: stone is used at least for the prestigious house, a cheap house can be upgraded, and stone is picked from stony meadows or mined in hills and mountains (`design.md`, Land and ecology, Stone). These are the numbers VB-313 waits for. Today 25 stones make a load, a meadow tile's clearing yields a few loads, and after 15 years of populous small the median household holds none and the richest 14.
-1. What does a stone foundation take? **P:** 12 loads of stone and 40 hours of the household's work at the house, done in the slack of early summer or winter; the house stays lived in meanwhile.
-2. What does it bring? **P:** the well-kept house's prestige term is 0.20 times its condition on stone, against 0.15 on the ground, and the house wears 0.08 a year against 0.1; tar's gain (0.03 on the term, a third less wear) adds on either. Nothing else yet: no warmth, no room for more people.
-3. How is stone got beyond clearing? **P:** picking on a stony meadow tile of the household's land or the village's outland within 12 walking steps, 2 hours a load, while the tile holds more stones than a meadow keeps (80); quarrying on a hills or mountain tile within the same reach, 4 hours a load, never exhausted. A trip carries one load home.
-4. Does anything else take stone now? **P:** the village's well (VB-058), 6 loads from its households' heaps; fences, the green and the cottage itself nothing. A new cottage is always built on the ground and raised later.
-
 ## Priority 3
 
 
