@@ -93,8 +93,6 @@ VB['sim/clock'] = (() => {
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
-  // @state st.tickPart: 0 always. VB-235's part of a step went back to the page (VB-244); the field stays only so the golden file is
-  //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
   // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   // Each 6-minute step that ends here: the hour it begins (onHour), the occasions due (VB-126), then the steps of the day (sim/lifecycle):

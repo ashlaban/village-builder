@@ -10982,7 +10982,7 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, tick: 6 * TICKS, tickPart: 0, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
       recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
@@ -11119,8 +11119,6 @@ VB['sim/clock'] = (() => {
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
-  // @state st.tickPart: 0 always. VB-235's part of a step went back to the page (VB-244); the field stays only so the golden file is
-  //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
   // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   // Each 6-minute step that ends here: the hour it begins (onHour), the occasions due (VB-126), then the steps of the day (sim/lifecycle):
@@ -11404,9 +11402,10 @@ VB['sim/saves'] = (() => {
     if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
     if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
-    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); }
     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
-    if (st.tickPart) { st.tickPart = 0; st.t = st.tick / TICKS; }
+    // VB-285: and the field that held that part is gone
+    if ('tickPart' in st) { if (st.tickPart) st.t = st.tick / TICKS; delete st.tickPart; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
@@ -15242,7 +15241,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '5f3924c723', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'fd7db8d212', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

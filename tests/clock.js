@@ -23,7 +23,7 @@ for (const h of hashes.slice(1)) assert.strictEqual(h.hash, hashes[0].hash, `chu
 // that reaches it, where st.t is that hour exactly; the hour read from the count never disagrees with the hour of st.t.
 const YEARS = 60;
 for (const sizes of [[YEAR], [0.1], [1, 0.7, 0.3, 2.5]]) {
-  const st = { tick: 6 * TICKS, tickPart: 0, t: 6 }, end = 6 + YEARS * YEAR;
+  const st = { tick: 6 * TICKS, t: 6 }, end = 6 + YEARS * YEAR;
   let hour = 6, hours = 0, steps = 0;
   const each = (s) => {
     steps++;
