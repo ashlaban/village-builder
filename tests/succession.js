@@ -43,7 +43,7 @@ const playerEvents = (st, id) => Sim.recordOf(st, { pawn: id, life: true }).filt
   if (stranger !== undefined) assert.ok(/not among those/.test(Sim.succeed(st, stranger)), 'a stranger is refused while successors live');
   assert.ok(typeof Sim.succeed(st, id) === 'string', 'not as the dead pawn itself');
   assert.strictEqual(Sim.succeed(st, heir), true);
-  assert.deepStrictEqual(st.player, { pawn: heir, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null });
+  assert.deepStrictEqual(st.player, { pawn: heir, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null, match: null }, left: null });
   assert.deepStrictEqual(playerEvents(st, id), ['Played by the player', `The player went on as the heir, ${Sim.fullName(st.pawns[heir])}`]);
   assert.deepStrictEqual(playerEvents(st, heir), ['Played by the player']);
   assert.ok(st.record.some((e) => e.kind === 'player' && e.pawn === id && /went on as the heir/.test(e.text)), 'and it is on the record');

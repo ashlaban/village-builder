@@ -243,6 +243,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+    if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations

@@ -164,6 +164,26 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
   await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
+  // the wish for a match (VB-274): played as a single adult, "not this year" and a partner are set from the panel
+  const single = await page.evaluate(() => {
+    const { st, Sim } = window.__play, p = st.living.map((i) => st.pawns[i]).find((q) => q.household !== null && Sim.spouseOf(st, q.id) === null && q.age >= 20
+      && st.living.some((j) => st.pawns[j].sex !== q.sex && st.pawns[j].age >= 20 && Sim.spouseOf(st, j) === null));
+    if (!p) return null;
+    Sim.inhabit(st, p.id); return p.id;
+  });
+  if (single === null) fail('no single adult to wish a match for');
+  const notYear = '#playBox [data-play="wish"][data-kind="match"][data-value="false"]';
+  await page.waitForSelector(notYear);
+  await page.click(notYear);
+  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== false) fail('the wish not to marry this year was not set');
+  if ((await page.locator(notYear).getAttribute('aria-pressed')) !== 'true') fail('the wish not to marry does not show as pressed');
+  const partner = '#playBox [data-play="wish"][data-kind="match"]:not([data-value="false"]):not([data-value="null"])';
+  if (await page.locator(partner).count()) {
+    await page.locator(partner).first().click();
+    if (!Number.isInteger(await page.evaluate(() => window.__play.st.player.wishes.match))) fail('the wished partner was not set');
+  }
+  await page.click('#playBox [data-play="wish"][data-kind="match"][data-value="null"]');
+  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== null) fail('the wish for a match was not taken back');
   await stopPlaying();
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop

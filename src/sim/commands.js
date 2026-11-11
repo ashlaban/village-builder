@@ -223,9 +223,10 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve, match}: what
   //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
-  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline);
+  //   match false (not this year) or a pawn id (that partner). Set by wish, kept
   //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
@@ -245,7 +246,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null, match: null }, left: null };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -312,13 +313,21 @@ VB['sim/commands'] = (() => {
   function wish(st, kind, value) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
-    const farm = kind === 'claim' && Number.isInteger(value);
-    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
-      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve' && kind !== 'match') return `there is no wish ${kind}`;
+    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out and serve null, true or false
+    const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
+    const target = kind === 'claim' ? st.farmsteads[value] : st.pawns[value];
+    if (id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match'))) {
+      return id ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
     }
+    if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive)) return `${value} is not one the pawn may marry`;
     pl.wishes[kind] = value;
     return true;
+  }
+  // The wish for a match ends when the played pawn or the wished partner marries (a and b have married) or dies (a is b).
+  function clearMatchWish(st, a, b) {
+    const pl = st.player;
+    if (pl && pl.wishes.match !== null && (pl.pawn === a || pl.pawn === b || pl.wishes.match === a || pl.wishes.match === b)) pl.wishes.match = null;
   }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
@@ -349,6 +358,7 @@ VB['sim/commands'] = (() => {
     return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
   return {
-    issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, playerStep, playerDied, goOnAs, TIES_MAX,
+    issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, clearMatchWish, answer, playerStep, playerDied, goOnAs,
+      TIES_MAX,
   };
 })();
