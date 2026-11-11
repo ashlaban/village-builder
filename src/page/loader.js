@@ -81,7 +81,7 @@
       openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
-    closeChoose(); followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    closeChoose(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';

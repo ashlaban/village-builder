@@ -72,8 +72,9 @@
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
       if (!$('genScreen').hidden) { startBack(); return; } // on the start, Back
-      const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
-      closeSpeedOptions(); closeNotices(); openPanel(null);
+      if (tool || barMenu) { if (tool) endTool(); else closeBarMenu(); renderActions(); return; } // the action bar's tool, then its list (page/actbar)
+      const open = activePanel !== null || barOpen || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      closeSpeedOptions(); closeNotices(); openPanel(null); closeBar();
       if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
       return;
     }
@@ -130,7 +131,11 @@
   }
   function openPanel(panel) {
     activePanel = panel; closeSpeedOptions();
-    $('actionSheet').hidden = panel !== 'actions'; $('actionsBtn').setAttribute('aria-pressed', String(panel === 'actions'));
+    $('actionSheet').hidden = panel !== 'actions';
+    // the action bar (page/actbar): its Queue opens the sheet, and stays open beside the card; the dock's other panels put it away
+    if (panel === 'actions') barOpen = true; else if (panel && panel !== 'tile') { barOpen = false; endTool(); }
+    if (panel) barMenu = null;
+    paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
@@ -153,7 +158,7 @@
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
     paintUIToggle(hidden);
-    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar, .act-bar, .act-menu, .act-banner')) el.inert = hidden;
     closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
   // The minimap's toggle is the right end of the map's bar (VB-338): shut, it puts away the minimap and the bar's other buttons, and alone stays.
@@ -167,8 +172,8 @@
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
   $('uiToggle').addEventListener('click', toggleUI);
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
-  $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
-  $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
+  $('actionsBtn').addEventListener('click', () => (barOpen ? closeBar() : openBar()));
+  $('actionClose').addEventListener('click', () => { openPanel(null); $(barOpen ? 'queueBtn' : 'actionsBtn').focus(); });
   $('peopleClose').addEventListener('click', () => { openPanel(null); $('settlersBtn').focus(); });
   $('tileClose').addEventListener('click', () => {
     selPawn = -1; sel = -1; selVillage = -1; selFarm = -1; selectionPinned = false; hoverDirty = true; openPanel(null); $('settlersBtn').focus();

@@ -149,7 +149,7 @@ const iv = setInterval(async () => {
   const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); doc.getElementById('chooseWatch').click(); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
-    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(() => process.exit(failed ? 1 : 0)); } }, 50);
+    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(actionBar).then(() => process.exit(failed ? 1 : 0)); } }, 50);
 }, 50);
 // The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward
 // another household shows its rows, each with what it would give and the parts of that allowance on hover.
@@ -281,4 +281,61 @@ function notices() {
   if (!shown().length) fail('no toast once the kinds are on again');
   tick(366); if (!shown().length) fail('a toast went before 6 s');
   tick(15); if (shown().length) fail(`a toast is still up after 6 s: ${texts()}`);
+}
+// The action bar (VB-341): played as a holder, the dock's Actions shows the bar over the dock; each group opens its list; Go home is queued
+// from the Myself list, a gift from the Household list's form (Give all the same, if the floor's warning asks), and Walk here's tool takes
+// the tile tapped on the map, the camera following the pawn.
+async function actionBar() {
+  const Sim = win.Sim, st = simSt, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
+  q('[data-speed="0"]').click();
+  const holder = st.pawns.find((p) => p.alive && p.age >= 18 && Sim.isHolder(st, p.id) && Sim.holdingOf(st, p.id)
+    && Sim.holdingOf(st, p.id).grain - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
+  if (!holder || Sim.inhabit(st, holder.id) !== true) { fail('no holder with grain to spare to play'); return; }
+  tick(20);
+  if (q('#actionsBtn').hidden) { fail('no Actions in the dock for the played pawn'); return; }
+  if (q('#actBar').hidden) q('#actionsBtn').click();
+  tick(1);
+  if (q('#actBar').hidden || q('#actionsBtn').getAttribute('aria-pressed') !== 'true') { fail('the dock\'s Actions did not open the bar'); return; }
+  const rows = {};
+  for (const g of ['self', 'house', 'village']) {
+    q(`#actBar [data-group="${g}"]`).click(); tick(1);
+    if (q('#actMenu').hidden || !q('#actMenu .act-row, #actMenu .act-empty')) fail(`the ${g} group's list did not open`);
+    rows[g] = [...doc.querySelectorAll('#actMenu .act-row .nm')].map((n) => n.firstChild.textContent);
+  }
+  console.log('action bar:', JSON.stringify(rows));
+  if (!rows.self.includes('Walk here') || !rows.self.includes('Go home') || !rows.house.includes('Give grain')) fail('the lists lack their acts');
+  // Go home, from the Myself list: queued, or refused with its reason
+  q('#actBar [data-group="self"]').click(); tick(1);
+  const home = [...doc.querySelectorAll('#actMenu .act-row')].find((b) => b.querySelector('.nm').firstChild.textContent === 'Go home');
+  home.click(); tick(1);
+  const said = q('#actMenu .act-msg') ? q('#actMenu .act-msg').textContent : '';
+  if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
+    fail(`Go home from the Myself list: ${said} ${queue()}`); }
+  Sim.unqueue(st, 0);
+  // the gift: a household, 5 rations, Add to the queue
+  q('#actBar [data-group="house"]').click(); tick(1);
+  q('#actMenu [data-view="give"]').click(); tick(1);
+  const to = q('#giveTo'), opt = to && to.querySelector('option:not([value=""])');
+  if (!opt) { fail('the gift\'s form has no household to give to'); return; }
+  to.value = opt.value; to.dispatchEvent(new win.Event('change', { bubbles: true })); tick(1);
+  q('#giveN').value = '5'; q('#giveN').dispatchEvent(new win.Event('input', { bubbles: true }));
+  q('#actMenu [data-give="go"]').click(); tick(1);
+  if (q('#actMenu [data-give="confirm"]')) { q('#actMenu [data-give="confirm"]').click(); tick(1); }
+  const gift = st.player.queue.find((c) => c.verb === 'give');
+  if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
+    fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
+  while (st.player.queue.length) Sim.unqueue(st, 0);
+  // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
+  q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(5);
+  q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);
+  if (q('#actBanner').hidden || !/^Walk here: tap an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
+    fail('Walk here\'s tool is not shown'); }
+  win.HTMLElement.prototype.setPointerCapture = () => {};
+  const tap = (type) => {
+    const e = new win.MouseEvent(type, { bubbles: true, clientX: 0, clientY: 0 }); Object.defineProperty(e, 'pointerId', { value: 1 }); return e; };
+  doc.getElementById('stage').dispatchEvent(tap('pointerdown')); doc.getElementById('stage').dispatchEvent(tap('pointerup')); tick(1);
+  console.log('action bar, Walk here:', q('#actBanner').textContent, '|', queue().join());
+  if (!queue().includes('walkTo') || !/^Queued: walk/.test(q('#actBanner').textContent)) fail('Walk here\'s tool did not queue the walk to the tapped tile');
+  await new Promise((r) => setTimeout(r, 3100)); tick(20); // its line stays 3 s
+  if (!q('#actBanner').hidden) fail('the banner stays up after the tool is done');
 }

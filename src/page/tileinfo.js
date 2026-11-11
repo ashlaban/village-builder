@@ -48,11 +48,10 @@
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
     if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
-    if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
+    if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
-    if (inspect && walkPick) { pickWalk(loc(x, y, [0, 0])); return; } // "Walk here" waits for a tile (page/play)
-    if (inspect && gift.pick) { pickGift(pw, labelAt(x, y), loc(x, y, [0, 0])); return; } // so does the gift's "Choose on the map"
+    if (inspect && tool) { toolTap(pw, labelAt(x, y), loc(x, y, [0, 0])); return; } // the action bar's tool waits for a tile (page/actbar)
     if (pw >= 0) { if (inspect || pw !== selPawn) selectPawn(pw, inspect); return; }
     const named = inspect ? labelAt(x, y) : null; // a click on a name on the map selects the village or the lone farm it names
     if (named) { if (named.village !== undefined) selectVillage(named.village, false); else selectFarm(named.farm, false); return; }

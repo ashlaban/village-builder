@@ -46,7 +46,7 @@
 </div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet"
+  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's acts" aria-pressed="false" aria-controls="actBar"
     hidden><span class="nav-label">Actions</span></button>
   <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
     aria-controls="peopleSheet"><span class="nav-label">People</span></button>
@@ -57,15 +57,25 @@
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Debug</span></button>
 </nav>
+<!-- The action bar (VB-341): the dock's Actions opens it over the dock; a group opens its list of acts above it, an act that needs a tile
+     puts the map in a tool mode named by the banner, and Queue opens the played pawn's sheet. -->
+<div class="act-bar panel" id="actBar" role="group" aria-label="Your pawn's acts" hidden>
+  <button type="button" data-group="self" data-icon="act-me" aria-expanded="false" aria-controls="actMenu"><span>Myself</span></button>
+  <button type="button" data-group="house" data-icon="act-home" aria-expanded="false" aria-controls="actMenu"><span>Household</span></button>
+  <button type="button" data-group="village" data-icon="act-village" aria-expanded="false" aria-controls="actMenu"><span>Village</span></button>
+  <button type="button" id="queueBtn" data-icon="act-queue" aria-pressed="false" aria-controls="actionSheet"><span>Queue <b id="queueCount"></b></span></button>
+</div>
+<div class="act-menu panel" id="actMenu" role="group" aria-labelledby="actMenuTitle" hidden></div>
+<div class="act-banner panel" id="actBanner" hidden></div>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
-    <h2 id="actionTitle">Actions</h2>
+    <h2 id="actionTitle">Queue</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent"
       aria-label="Collapse" title="Collapse"></button>
     <button id="actionClose" type="button" class="icon-btn" data-icon="close" aria-label="Close actions" title="Close"></button>
   </div>
   <div class="sheet-content" id="actionContent">
-    <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
+    <div id="playBox" class="play"><div id="playTop"></div><div id="playRest"></div></div>
   </div>
 </aside>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">

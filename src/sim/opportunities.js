@@ -22,7 +22,8 @@ VB['sim/opportunities'] = (() => {
   // An opportunity is a command the pawn could be given, with who it would be for and why it may not be taken now:
   //   {verb, target, args, holder ({type: 'household' | 'village', id}, or null for its own acts), basis ('member', 'servant', 'villager'
   //   or 'self'), fit (the planner's noise-free bid for work, else null), why (null when the command would be accepted now), kind (a job's
-  //   kind, for work), when ('now', or 'round': an act the moving round carries out, by its rules, for a pawn that wishes it)}.
+  //   kind, for work), site (the tile its work is done on, for work, else absent), when ('now', or 'round': an act the moving round carries
+//   out, by its rules, for a pawn that wishes it)}.
   const item = (verb, target, args, why, more = {}) => ({ verb, target, args, holder: null, basis: 'self', fit: null, why, kind: null, when: 'now', ...more });
   // What the verb's own check says of the command, for pawn id.
   const check = (view, id, verb, target, args) => VERBS[verb].check(view, { actor: id, verb, target, args, source: 'player' });
@@ -31,23 +32,23 @@ VB['sim/opportunities'] = (() => {
   function work(view, p, c, out) {
     const hh = view.households[p.household], f = view.farmsteads[hh.farmstead], vid = villageOf(view, p), a = view.agents[p.id];
     const owners = [{ type: 'household', id: hh.id }, { type: 'village', id: vid }], seen = new Set(), list = [];
-    const add = (key, kind, owner, j) => {
+    const add = (key, kind, owner, j, site) => {
       const basis = seen.has(key) ? null : eligible(view, { owner }, p);
       if (!basis) return;
       seen.add(key);
       const row = j ? fit(view, p, j, c) : { bid: null, reason: 'not given out yet: work is given out in working hours' };
       const why = j && a.job === j ? 'doing it now' : row.reason || check(view, p.id, 'work', key, null);
-      list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind }));
+      list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind, site: j ? j.site : site }));
     };
     // as refreshJobs asks the kinds (sim/jobs), for this farm and this village only; `put` posts nothing
     let kind = null, own = owners[0];
-    const put = (key, site, extra, k = kind, owner = own) => add(key, k, owner, view.jobs.get(key) || null);
+    const put = (key, site, extra, k = kind, owner = own) => add(key, k, owner, view.jobs.get(key) || null, site);
     const ask = (rules, holder, at, farm) => { for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](view, holder, at, c, put, farm); } };
     for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
     ask(ASK.farm, hh, f, f); ask(ASK.farmAfterPlans, hh, f, f);
     own = owners[1]; ask(ASK.village, view.villages[vid], view.villages[vid]);
     // and the posted jobs of the two that are asked island-wide (a plot's steps, a claimed farm's restoration) or are still being worked
-    for (const j of jobsFor(view, p)) add(j.key, j.kind, j.owner, j);
+    for (const j of jobsFor(view, p)) add(j.key, j.kind, j.owner, j, j.site);
     // those it may take first, best fit first; then the rest, in the order asked
     list.sort((x, y) => (x.why === null ? 0 : 1) - (y.why === null ? 0 : 1) || (y.fit ?? -Infinity) - (x.fit ?? -Infinity));
     for (const o of list) out.push(o);

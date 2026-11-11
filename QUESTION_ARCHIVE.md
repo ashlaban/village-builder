@@ -2,6 +2,22 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-341)
+
+## VB-341: the action bar, as built (raised 11 November 2026)
+Built from the mock-up's Menu draft (`docs/mockups/action-menu.html`), with the acts the simulation has. Three choices were made in Kim's place
+and stand until answered; the bar works either way.
+1. `design.md`, The player and what they see, still puts "what it may do here" in the pawn panel. **P:** a design pass rewrites the row: the
+   played pawn's acts are in the action bar (Myself, Household, Village, by basis), its sheet (the bar's Queue) keeps its state, its switches,
+   the offers that wait for its answer and its queue.
+   **A (Kim, 11 Nov):** Yes: design.md is updated (The player and what they see: the action bar, an act and its slots, the tool on the map).
+2. Work open at a single place is queued from the list at once, with no tap on the map; at several places the tool marks them and stays in hand
+   until Done. Walk here marks no tiles (every open tile takes it); a refused tap says why. **P:** keep this.
+   **A (Kim, 11 Nov):** That is fine for now.
+3. An act queued from a list leaves the list open with a line ("Queued: ..."), so several can be queued in turn; the mock-up closed it. **P:** keep
+   it open; the tool's acts close it, as in the mock-up.
+   **A (Kim, 11 Nov):** Let it stay open.
+
 # Archived 11 November 2026 (VB-340)
 
 ## VB-340: the start's showcase island (raised 11 November 2026)

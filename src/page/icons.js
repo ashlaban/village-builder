@@ -45,5 +45,38 @@
     close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
     chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
   };
+  // The action bar (VB-341), 24 by 24 as drawn for the mock-up (docs/mockups/action-menu.html): its groups, its rows, and a job kind's tool.
+  const ACT_PATHS = {
+    me: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-5 2.5-9 6-9s6 4 6 9z"/>',
+    home: '<path d="M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5"/>',
+    village: '<circle cx="12" cy="6" r="2.2"/><circle cx="6" cy="16" r="2.2"/><circle cx="18" cy="16" r="2.2"/>'
+      + '<path d="M12 8.5v3M8 14.5l2.5-2M16 14.5l-2.5-2"/>',
+    queue: '<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+    walk: '<circle cx="13" cy="4" r="1.8"/><path d="M13 7l-3 5 3 3v5M10 12l-3 1M13 10l3 2 2-1M10 15l-2 5"/>',
+    idle: '<path d="M19 14.5A8 8 0 1 1 9.5 5a6.5 6.5 0 0 0 9.5 9.5z"/>',
+    round: '<path d="M3 11l7-6 7 6M5 10v9h7M15 14h6M18 11l3 3-3 3"/>',
+    offer: '<path d="M4 5h16v10H10l-4 4v-4H4z"/>',
+    cause: '<path d="M4 10v4h3l8 4V6l-8 4zM18 9.5a3.5 3.5 0 0 1 0 5M7 14l1 5h2.5l-1-4.5"/>',
+    gift: '<path d="M4 10h16v10H4zM12 10v10M3 7h18v3H3zM12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0"/>',
+    chop: '<path d="M5 20L14 9M12 5l7 7c-2 2-5 2-7 .5l-1.5-1.5C9 9 10 6.5 12 5z"/>',
+    hoe: '<path d="M6 21L16 5M16 5l4.5 1.5-2 5-4.5-3"/>',
+    sow: '<path d="M12 21v-9M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 14c0-3 2.5-5 6.5-5 0 3.5-2.5 5-6.5 5z"/>',
+    mow: '<path d="M6 21L15 4M15 4c4 0 6 3 6 7-2-3-5-4-8-3.5"/>',
+    hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
+    sack: '<path d="M9 4h6l-1.5 3c3.5 1.5 5.5 5 5.5 8 0 3-2 5-7 5s-7-2-7-5c0-3 2-6.5 5.5-8zM9.5 7h5"/>',
+    build: '<path d="M6 21l7-9M10 5l8 6-2 3-8-6z"/>',
+    fish: '<path d="M3 12c3-4 8-5 12-2l5-3v10l-5-3c-4 3-9 2-12-2z"/><circle cx="8" cy="11.5" r=".6"/>',
+    water: '<path d="M12 3c3 5 6 8 6 11a6 6 0 0 1-12 0c0-3 3-6 6-11z"/>',
+    pot: '<path d="M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3"/>',
+    pail: '<path d="M6 9h12l-1.5 11h-9zM6 9c0-3.5 3-6 6-6s6 2.5 6 6"/>',
+    back: '<path d="M14 6l-6 6 6 6"/>', next: '<path d="M10 6l6 6-6 6"/>', no: '<path d="M6 6l12 12M18 6L6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
+  };
+  const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
+  // a job kind's icon (sim/kinds); a kind not named here takes the hoe
+  const KIND_ICON = { sow: 'sow', gather: 'sow', reap: 'mow', mow: 'mow', rake: 'mow', haul: 'hay', hay: 'hay', fodder: 'hay', wood: 'chop',
+    fell: 'chop', grub: 'chop', water: 'water', cook: 'pot', brew: 'pot', thresh: 'sack', salt: 'sack', slaughter: 'sack', milk: 'pail',
+    restore: 'build', foundation: 'build', walls: 'build', roof: 'build', mend: 'build', repair: 'build', fish: 'fish' };
+  for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
   // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
   for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);
