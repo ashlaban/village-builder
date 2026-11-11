@@ -65,6 +65,14 @@
       : '<p class="hint">No farm of its village stands empty.</p>';
     h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
     h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
+    if (acts.some((o) => o.verb === 'match')) {
+      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
+      h += partners.length ? `<ul class="opps">${partners.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="match" data-value="${
+        o.target}" aria-pressed="${wishes.match === o.target}">${esc(o.partner.name)}, ${o.partner.age}<i>${
+        esc(o.why || 'offered at the round, as its own yes')}</i></button></li>`).join('')}</ul>`
+        : '<p class="hint">It knows no unmarried one it might wed.</p>';
+    }
     return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support

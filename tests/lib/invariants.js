@@ -336,8 +336,12 @@ function checkState(st) {
     }
     // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
     const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
-    if (Object.keys(ws).sort().join() !== 'claim,out,serve' || !tri(ws.out) || !tri(ws.serve)
+    if (Object.keys(ws).sort().join() !== 'claim,match,out,serve' || !tri(ws.out) || !tri(ws.serve)
       || !(ws.claim === null || ws.claim === false || (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
+    // a wish for a match: null, false or a living pawn of the other sex than the played pawn's, while the played pawn lives
+    const mw = ws.match;
+    if (!(mw === null || mw === false || (Number.isInteger(mw) && !!st.pawns[mw] && st.pawns[mw].alive && st.pawns[mw].sex !== st.pawns[pl.pawn].sex
+      && st.pawns[pl.pawn].alive))) bad.push(`player.wishes.match: ${JSON.stringify(mw)}`);
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
   // the open marriage offers (VB-293): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
