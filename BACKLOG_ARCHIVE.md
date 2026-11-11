@@ -230,3 +230,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
 | [VB-046](backlog/VB-046.md) | Wrap-up: claims, ownership and territory | debt | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. |
 | [VB-184](backlog/VB-184.md) | Plan: debt and land (slice 5) | debt | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. |
+| [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. |
