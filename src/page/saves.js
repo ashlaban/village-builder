@@ -100,11 +100,12 @@
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // from the main menu it is the Load archipelago screen, with Back to the menu; in a game it is Saves (VB-307)
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
+    // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
     if (on) {
-      $('savesTitle').textContent = menu ? 'Load archipelago' : 'Saves'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; $('savesClose').textContent = menu ? 'Back' : 'Close';
       saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
     } else if (menu) $('landLoad').focus();
   }
@@ -132,7 +133,6 @@
     } catch (err) { console.warn('save failed', err); saveMsg = 'The save could not be written.'; }
     drawSaves();
   });
-  $('savesBtn').addEventListener('click', () => { if (!building && !skipping) showSaves(true); });
   $('savesClose').addEventListener('click', () => showSaves(false));
   $('savesScreen').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); showSaves(false); } });
   // When the page is hidden the run is saved to its auto slot, unless nothing has passed since the last one.

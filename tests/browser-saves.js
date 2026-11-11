@@ -54,7 +54,9 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await page.evaluate(() => { const { st, Sim } = window.__play; Sim.advance(st, Sim.DAY * 30); });
   const h1 = await hash();
   check(/pawn=\d+/.test(h1), 'no played pawn: ' + h1);
-  await page.click('#savesBtn'); await page.waitForSelector('#savesBody .save-files');
+  // Saves is the main menu's (VB-338): Main menu, at the top bar's end, then Saves, Back, and Back to game
+  await page.click('#menuBtn'); await landing(); await savesOpen();
+  check(await page.locator('#savesTitle').innerText() === 'Saves', 'with a game open the overlay is not titled Saves');
   await page.click('#savesBody [data-save="1"]'); await settle(1);
   await page.evaluate(() => { const { st, Sim } = window.__play; Sim.advance(st, Sim.DAY * 100); });
   await page.click('#savesBody [data-save="3"]'); await settle(2);
@@ -65,7 +67,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   check(fs.existsSync(file) && fs.statSync(file).size > 1000, 'the file is empty');
   check((await keys()).join() === `${P7}:1,${P7}:3`, 'slots after saving: ' + (await keys()));
   await shot('saves-game.png');
-  await page.click('#savesClose');
+  await page.click('#savesClose'); await page.click('#landBack'); await page.waitForFunction(() => document.getElementById('landing').hidden);
 
   // 2. The page hidden writes the auto slot, once for one game time.
   const hide = () => page.evaluate(() => {
@@ -86,14 +88,14 @@ const check = (ok, m) => { if (!ok) fail(m); };
   check((await keys()).length === 3, 'slots after the auto save: ' + (await keys()));
 
   // 3. Main menu, then Back to game, leaves the state as it was.
-  await page.click('#regen'); await landing(); await shot('landing-game.png');
+  await page.click('#menuBtn'); await landing(); await shot('landing-game.png');
   check(await page.locator('.hud.top').evaluate((e) => getComputedStyle(e).visibility) === 'hidden', 'the game\'s interface shows behind the main menu');
   await page.click('#landBack'); await page.waitForFunction(() => document.getElementById('landing').hidden);
   check((await hash()) === h3b, 'Back to game changed the state');
 
   // 4. A second archipelago, and two saves made to look like another build's.
   await page.goto('about:blank'); await page.goto('https://village.test/#st11'); await done(); await pause();
-  await page.click('#savesBtn'); await page.waitForSelector('#savesBody .save-files');
+  await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click('#savesBody [data-save="2"]'); await settle(1);
   const oldBuild = (key) => page.evaluate((k) => window.__play.saveTx('readwrite', (m) => { const q = m.get(k); q.onsuccess = () => m.put({ ...q.result, build: 'old0000000' }); }), key);
   await oldBuild(`${P7}:3`); await oldBuild(`${P7}:auto`);
@@ -116,7 +118,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await pause();
   await page.click(`#savesBody [data-load="${P7}:1"]`); await done(); await pause();
   check((await hash()) === h1, 'Continue after a reload: ' + (await hash()) + ' against ' + h1);
-  await page.click('#regen'); await landing(); await savesOpen();
+  await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click(`#savesBody [data-del="${P7}:3"]`);
   await until(async (k) => !(await window.__play.listSaves()).some((x) => x.key === k), `${P7}:3`);
   check((await keys()).includes(`${P7}:auto`), 'Delete it removed another save: ' + (await keys()));
@@ -125,7 +127,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   check((await keys()).includes(`${P7}:auto`), 'Start a new game deleted the save');
 
   // 6. Delete archipelago removes one archipelago's saves and no other's.
-  await page.click('#regen'); await landing(); await savesOpen();
+  await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click('#savesBody [data-delarch="founders-11-120x85"]');
   await until(async () => !(await window.__play.listSaves()).some((x) => x.arch.startsWith('founders')));
   check((await keys()).join() === `${P7}:1,${P7}:auto`, 'Delete archipelago: ' + (await keys()));
@@ -137,7 +139,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   check((await keys()).join() === before.join(), 'A loaded file took a slot: ' + (await keys()));
   const d = JSON.parse(zlib.gunzipSync(fs.readFileSync(file))); d.build = 'old0000000';
   const other = path.join(tmp, 'other.json'); fs.writeFileSync(other, JSON.stringify(d));
-  await page.click('#regen'); await landing(); await savesOpen();
+  await page.click('#menuBtn'); await landing(); await savesOpen();
   await pickFile(other); await page.waitForSelector('#savesBody .save-msg');
   check((await page.locator('#savesBody .save-msg').innerText()).includes(OTHER), 'a file of another build: no message');
   await shot('saves-other-build.png');
@@ -149,7 +151,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
     await reload(); await landing(); await shot('landing-phone.png');
     await savesOpen(); await shot('saves-landing-phone.png');
     await reload('#pt7'); await done(); await pause();
-    await page.evaluate(() => document.getElementById('savesBtn').click()); await page.waitForSelector('#savesBody .save-files'); await shot('saves-game-phone.png');
+    await page.click('#menuBtn'); await landing(); await savesOpen(); await shot('saves-game-phone.png');
   }
   await browser.close();
   fs.rmSync(tmp, { recursive: true, force: true });

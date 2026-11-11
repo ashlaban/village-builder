@@ -68,10 +68,6 @@ body {
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.chart { border-radius: 18px; padding: 12px 16px 14px; max-width: 330px; }
-.chart h1 { font-family: 'Alegreya', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; font-size: 32px; line-height: 1.05; margin: 0; }
-.chart .meta { margin: 3px 0 0; color: var(--muted); font-size: 15px; }
-.chart .hint { margin: 2px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.35; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
@@ -79,10 +75,10 @@ body {
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
-.speed button { padding: 5px 10px; font-size: 14px; }
-.speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
-.background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
-.background-run input { margin: 0; accent-color: var(--accent); }
+/* The top bar's controls are icons (VB-338): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
+.clock .icon-btn { width: 44px; height: 44px; flex: none; }
+.ico { display: block; flex: none; }
+.ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
 #skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
@@ -177,7 +173,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 216px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -189,6 +185,19 @@ body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .nav
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
+/* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
+/* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
+   On a narrow screen it stands above the menu's card. */
+.game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
+  width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
+.game-info p { margin: 0 0 4px; }
+.game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: italic 700 32px/1.1 'Alegreya', Georgia, serif;
+  text-shadow: 0 1px 4px #102b3b; }
+.game-info .meta { font-size: 15px; }
+@media (max-width: 760px) {
+  #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
+  .game-info { position: static; width: auto; justify-self: stretch; }
+}
 .genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -233,28 +242,34 @@ button { touch-action: manipulation; }
 summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
 summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
-.chart { width: 310px; }
-.chart .hint { margin-bottom: 8px; }
+.hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
-.background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
-.background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { margin-right: 100px; max-width: 590px; }
-.speed button { min-width: 44px; }
-.ui-toggle { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); z-index: 8; }
+.dchk input { width: 20px; height: 20px; flex-shrink: 0; }
+.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
-.navigation button { min-width: 90px; border: 0; border-radius: 12px; }
+/* The dock is icons, each with its name under it (VB-338). */
+.navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
+  padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
+.navigation button:not([aria-pressed="true"]) { color: var(--muted); }
 .navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
-.people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
-.drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
+/* The dock's panels rise from it, centred over it (VB-338); the selection card, opened from the map, keeps the bottom left. */
+.people-sheet, .drawer { left: max(14px, calc(50% - 215px)); right: auto; }
+.tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
 .sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
   overflow-wrap: anywhere; }
 .sheet-head button { padding: 6px 10px; flex-shrink: 0; }
 .sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
+/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-338). */
+.sheet-expand .ico { transition: transform 0.15s; }
+.sheet-expand[aria-expanded="false"] .ico { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .sheet-expand .ico { transition: none; } }
+@media (pointer: coarse) { .sheet-head .icon-btn, #treeClose { width: 44px; } }
+#treeClose { align-self: center; }
 .sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
 .collapsed .sheet-content { display: none; }
 .collapsed .sheet-head { border-bottom: 0; }
@@ -281,20 +296,24 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-.minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
-#minimapClose { position: absolute; top: 3px; right: 3px; background: var(--panel); }
+/* The map's tools (VB-338), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+   toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
+.map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: 14px; }
+.map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
+.map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+#noticeBtn[aria-expanded="true"] { background: var(--edge); }
+body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+.notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
+  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
+.notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
-/* Notifications (VB-098): toasts at the bottom centre, just above the dock, the newest lowest (Kim, 9 Nov; first built at the bottom left).
-   On a window too narrow to clear an open sheet they move to the middle of what is left free (between a left sheet and the minimap, or left
-   of the drawer). They hide the "painting detail" line while they are up. */
-.toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px);
+/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
+   panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
+   which a narrow screen's date on two lines moves, is measured by page/notices. */
+.toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
   width: min(380px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-body:has(.toast) .lod { visibility: hidden; }
-@media (min-width: 1025px) and (max-width: 1300px) {
-  body:has(.people-sheet:not([hidden])):not(:has(.drawer:not([hidden]))) .toasts,
-  body:has(.tile:not([hidden])):not(:has(.drawer:not([hidden]))) .toasts { left: calc(50% + 115px); width: min(380px, calc(100vw - 700px)); }
-  body:has(.drawer:not([hidden])):not(:has(.people-sheet:not([hidden]))):not(:has(.tile:not([hidden]))) .toasts { left: calc(50% - 222px); }
-}
 .toast { pointer-events: auto; border-radius: 12px; padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
@@ -308,7 +327,6 @@ body:has(.toast) .lod { visibility: hidden; }
   margin: 2px 0; padding: 4px 10px; font-size: 14px; text-align: left; }
 .succession li i { font-style: normal; font-size: 13px; color: var(--muted); }
 @media (pointer: coarse) { .succession li button { min-height: 44px; } }
-body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 130px); }
 .play { margin: 8px 0; }
 .play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
@@ -342,8 +360,7 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 .play li.opp { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
 .play li.opp.barred, .play button.opp:disabled { opacity: 0.6; }
 @media (pointer: coarse) { .play button.opp, .play .queue button, .play .switches button { min-height: 44px; } }
-.notices summary { font-size: 14px; color: var(--muted); }
-.notices .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
+.notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
 .custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
 .custom-picker select { width: 100%; font-size: 16px; }
 .custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
@@ -357,12 +374,12 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
 body.ui-hidden .hud * { pointer-events: none; }
+body.ui-hidden #uiToggle { visibility: visible; pointer-events: auto; background: var(--panel); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(3, 16, 26, 0.28); }
 .genscreen { overflow-y: auto; }
 .genscreen > .panel { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
-/* Layout fixes: the phone-only menu header stays hidden on wide screens, name links read as text, and the left sheets end below the menu. */
-.sheet-head.mobile-only { display: none; }
-.people-sheet, .tile { max-height: min(65vh, calc(100dvh - var(--chart-bottom, 320px) - var(--dock-bottom) - 78px)); }
+/* Layout fixes: name links read as text. */
 .settlers p button { display: inline; min-height: 0; border: 0; border-radius: 3px; padding: 0; background: none; font-size: inherit; color: var(--ink);
   text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
 /* Selection cards: a portrait or icon by the title, links to what the selection belongs to, and rows for what it holds. */
@@ -408,11 +425,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .tile .sheet-content { padding-top: 2px; }
 .collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
 @media (min-width: 1025px) {
-  .chart .actions { gap: 6px; }
-  .chart .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
-  .chart .hint { font-size: 13px; }
+  .mobile-only { display: none !important; } /* over a display a later rule gives, such as .icon-btn's */
   .menu-label { margin: 10px 0 5px; }
-  .background-run { min-height: 30px; margin: 4px 0 8px; }
 }
 .household-block > summary .summary-meta, .village-block > summary .summary-meta { margin-left: 52px; }
 @media (hover: hover) and (pointer: fine) {
@@ -428,42 +442,30 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
   .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
-  .chart { width: calc(100% - 90px); max-width: none; border: 0; box-shadow: none; background: transparent; backdrop-filter: none;
-    padding: 6px 8px 0; height: 38px; }
-  .chart h1 { color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; font-size: 23px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ui-toggle { top: calc(env(safe-area-inset-top, 0px) + 8px); right: max(8px, env(safe-area-inset-right, 0px));
-    min-height: 44px; padding: 8px 12px; font-size: 13px; }
-  .clock { position: relative; width: 100%; max-width: none; margin: 6px 0 0; padding: 6px 8px 6px 12px; gap: 6px;
+  .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
   .calendar { flex: 1; min-width: 0; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
-  #pauseBtn { padding: 7px 10px; min-width: 60px; }
-  #speedBtn { padding: 7px 10px; min-width: 52px; color: var(--accent); font-weight: 700; }
-  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; width: min(300px, calc(100vw - 16px));
+  #speedBtn { color: var(--accent); }
+  /* the speed picker opens over everything, the notifications too (VB-338) */
+  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; flex-wrap: nowrap;
     padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
   .speed-open .speed { display: flex; }
-  .speed button { flex: 1 0 26%; padding: 8px; }
-  .speed button[data-speed="Infinity"] { min-width: 145px; }
+  .hud.top:has(.speed-open) { z-index: 8; }
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
     border-radius: 16px; gap: 0; padding: 4px; }
-  .navigation button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 15px; }
-  .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+  .navigation button { flex: 1; min-width: 0; padding: 4px 2px; }
+  .people-sheet, .drawer, .tile { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
-  .world-menu { position: fixed; z-index: 6; overflow: auto; padding: 0 16px 16px; border: 1px solid var(--edge); border-radius: 18px;
-    background: var(--node); box-shadow: 0 10px 30px #03101a47; color: var(--ink); pointer-events: auto; }
-  .world-menu .sheet-head { display: flex; position: sticky; top: 0; background: var(--node); padding-left: 0; padding-right: 0; z-index: 1; }
   .sheet-head { padding: 8px 10px; }
   .sheet-head h2, .sheet-head strong { font-size: 19px; }
   .sheet-head button { font-size: 13px; padding: 6px 8px; }
   .sheet-content { padding: 10px 14px 14px; }
-  .minimap { width: 180px; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px);
-    visibility: hidden; pointer-events: none; }
-  body.minimap-open .minimap { visibility: visible; pointer-events: auto; }
-  body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
+  .map-tools { right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px); }
   .lod { display: none; }
   .toasts { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; transform: none;
-    top: calc(env(safe-area-inset-top, 0px) + 112px); bottom: auto; }
+    bottom: auto; }
   .tree { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   .tree-card { width: 100%; height: 100%; max-height: 100dvh; border-radius: 0; }
   .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }
@@ -485,61 +487,48 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <div class="vignette"></div>
 
 <div class="hud top">
-  <header class="chart panel">
-    <h1 id="name">Archipelago</h1>
-    <div id="worldMenu" class="world-menu">
-      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
-      <p class="meta" id="meta"></p>
-      <p class="hint" id="hint"></p>
-      <h2 class="menu-label">Map &amp; layers</h2>
-      <div class="actions">
-        <button id="gridBtn" type="button" aria-keyshortcuts="g" title="Hex grid (G)" aria-pressed="true">Grid</button>
-        <button id="regionBtn" type="button" aria-keyshortcuts="r" title="Regions (R)" aria-pressed="false">Regions</button>
-        <button id="landBtn" type="button" aria-keyshortcuts="l" title="Land ownership (L)" aria-pressed="false">Land</button>
-        <button id="minimapBtn" type="button" aria-keyshortcuts="m" title="Minimap (M)" aria-pressed="false">Minimap</button>
-      </div>
-      <h2 class="menu-label">Game</h2>
-      <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
-      <details class="notices"><summary>Notifications</summary><div id="noticeList"></div></details>
-      <div class="actions">
-        <button class="primary" id="regen" type="button">Main menu</button>
-        <button id="savesBtn" type="button">Saves</button>
-        <button id="debugBtn" type="button" aria-pressed="false">Debug</button>
-      </div>
-    </div>
-  </header>
   <div class="clock panel" id="clock">
     <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
-    <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
-    <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
+    <button id="pauseBtn" class="mobile-only icon-btn" type="button" aria-label="Pause game" title="Pause (Space)"></button>
+    <button id="speedBtn" class="mobile-only icon-btn" type="button" aria-expanded="false" aria-controls="speedOptions"></button>
     <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
-      <button type="button" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" title="Pause (Space)">Pause</button>
-      <button type="button" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" title="1× (1)">1×</button>
-      <button type="button" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" title="3× (2)">3×</button>
-      <button type="button" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" title="10× (3)">10×</button>
-      <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
-      <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
+      <button type="button" class="icon-btn" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" aria-label="Pause" title="Pause (Space)"></button>
+      <button type="button" class="icon-btn" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" aria-label="1×" title="1× (1)"></button>
+      <button type="button" class="icon-btn" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" aria-label="3×" title="3× (2)"></button>
+      <button type="button" class="icon-btn" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" aria-label="10×" title="10× (3)"></button>
+      <button type="button" class="icon-btn" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" aria-label="30×" title="30× (4)"></button>
+      <button type="button" class="icon-btn" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" aria-label="Uncapped"
+        title="Uncapped (5)"></button>
     </div>
-    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
+    <button id="skipBtn" type="button" class="icon-btn" data-icon="skip" aria-pressed="false" aria-label="Skip to next event"
+      title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
+    <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
+      title="Hide the interface (H)"></button>
+    <button id="menuBtn" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
   </div>
 </div>
-<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet" hidden>Actions</button>
-  <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
-  <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
-  <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
-  <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
+  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet"
+    hidden><span class="nav-label">Actions</span></button>
+  <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
+    aria-controls="peopleSheet"><span class="nav-label">People</span></button>
+  <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
+    class="nav-label">Family</span></button>
+  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Customs</span></button>
+  <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Debug</span></button>
 </nav>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
     <h2 id="actionTitle">Actions</h2>
-    <button type="button" class="sheet-expand" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent">Collapse</button>
-    <button id="actionClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="actionClose" type="button" class="icon-btn" data-icon="close" aria-label="Close actions" title="Close"></button>
   </div>
   <div class="sheet-content" id="actionContent">
     <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
@@ -548,8 +537,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
     <h2 id="peopleTitle">People &amp; households</h2>
-    <button type="button" class="sheet-expand" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent">Collapse</button>
-    <button id="peopleClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="peopleClose" type="button" class="icon-btn" data-icon="close" aria-label="Close people" title="Close"></button>
   </div>
   <div class="sheet-content" id="peopleContent">
     <label class="search-label" for="peopleSearch">Find a person, farm or village</label>
@@ -561,8 +551,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
     <h2 id="drawerTitle">Customs</h2>
-    <button type="button" class="sheet-expand" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody">Collapse</button>
-    <button id="drawerClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -575,8 +566,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
         viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
         r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
-      <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
-      <button id="tileClose" type="button" aria-label="Close selection">Close</button>
+      <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails"
+        aria-label="Details" title="Details"></button>
+      <button id="tileClose" type="button" class="icon-btn" data-icon="close" aria-label="Close selection" title="Close"></button>
     </div>
     <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
     <div class="sheet-content" id="tileDetails">
@@ -601,16 +593,33 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       </div>
     </div>
   </aside>
-  <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
-    <canvas id="mmBase"></canvas>
-    <canvas id="mmView"></canvas>
-    <button id="minimapClose" type="button" aria-label="Close minimap">Close</button>
+  <div class="map-tools" id="mapTools">
+    <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
+      <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
+    </div>
+    <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
+      <canvas id="mmBase"></canvas>
+      <canvas id="mmView"></canvas>
+    </div>
+    <div class="map-bar panel" role="group" aria-label="Map">
+      <button id="gridBtn" type="button" class="icon-btn" data-icon="grid" aria-keyshortcuts="g" aria-label="Hex grid" title="Hex grid (G)"
+        aria-pressed="true"></button>
+      <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
+        aria-pressed="false"></button>
+      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
+        title="Land ownership (L)" aria-pressed="false"></button>
+      <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
+        aria-expanded="false" aria-controls="noticePop"></button>
+      <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
+        aria-pressed="false"></button>
+    </div>
   </div>
 </div>
 
 <div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
   <div class="tree-card panel">
-    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
+    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
+      <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
     <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
       <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
       <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
@@ -625,6 +634,10 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 </div>
 
 <div class="genscreen" id="landing" hidden>
+  <div class="game-info" id="gameInfo" hidden>
+    <p class="game-name" id="name"></p>
+    <p class="meta" id="meta"></p>
+  </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
@@ -11804,8 +11817,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler, farm, village name or tile for details.' :
-    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');
@@ -11902,6 +11913,54 @@ if (typeof module !== 'undefined') module.exports = Sim;
   };
   const stopIntro = () => { intro = null; };
 
+  const svgIcon = (w, h, body, attrs = '') =>
+    `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
+  const ICON_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  // A speed is one to five chevrons, > to >>>>> (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped (Infinity). Open chevrons, so that
+  // the speed of 1× is not the filled triangle of play beside it.
+  const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };
+  function speedIcon(v) {
+    const n = SPEED_ARROWS[v] || 1, step = 5.5, w = step * (n - 1) + 8;
+    let d = '';
+    for (let k = 0; k < n; k++) d += `M${1.5 + k * step} 2L${6.5 + k * step} 7L${1.5 + k * step} 12`;
+    return svgIcon(w, 14, `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
+  }
+  const ICON = {
+    pause: svgIcon(14, 14, '<rect x="2" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'
+      + '<rect x="8.5" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'),
+    skip: svgIcon(14, 14, '<path d="M2 1.5L9.5 7L2 12.5Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>'
+      + '<rect x="10.5" y="1.5" width="2.5" height="11" rx="1" fill="currentColor"/>'),
+    play: svgIcon(14, 14, '<path d="M3 1L12 7L3 13Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>'),
+    // the interface shown: an eye struck through, to hide it; hidden: an open eye, to show it again
+    eye: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/>', ICON_STROKE),
+    eyeOff: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/><path d="M3 17L17 3"/>',
+      ICON_STROKE),
+    // the dock (11 Nov): two people, a family tree, a scroll of customs, a bug for Debug; the played pawn's actions, a game pawn. The main
+    // menu, at the top bar's end, is three lines.
+    people: svgIcon(20, 20, '<circle cx="7.5" cy="6.5" r="2.8"/><path d="M2.5 17c0-3.2 2.2-5.4 5-5.4s5 2.2 5 5.4"/>'
+      + '<circle cx="14" cy="7.5" r="2.3"/><path d="M14 11.7c2.2 0 3.7 2 3.7 4.8"/>', ICON_STROKE),
+    family: svgIcon(20, 20, '<rect x="7.5" y="2" width="5" height="4" rx="1"/><rect x="2" y="14" width="5" height="4" rx="1"/>'
+      + '<rect x="13" y="14" width="5" height="4" rx="1"/><path d="M10 6v4M4.5 14v-4h11v4"/>', ICON_STROKE),
+    customs: svgIcon(20, 20, '<rect x="3" y="2.5" width="14" height="3" rx="1.5"/><rect x="3" y="14.5" width="14" height="3" rx="1.5"/>'
+      + '<path d="M5 5.5v9M15 5.5v9M7.5 8.5h5M7.5 11.5h5"/>', ICON_STROKE),
+    menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
+    pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
+      ICON_STROKE),
+    bug: svgIcon(20, 20, '<path d="M7 7.5a3 3 0 0 1 6 0"/><rect x="6" y="7.5" width="8" height="9.5" rx="4"/>'
+      + '<path d="M10 9.5v7M6 10.5H3M14 10.5h3M6 14H3.5M14 14h2.5M7.5 5L6 3M12.5 5L14 3"/>', ICON_STROKE),
+    // the map's bar under the minimap (11 Nov): the grid, the regions, the land held (a claim's flag), which notifications show, the minimap
+    grid: svgIcon(20, 20, '<path d="M3 7h14M3 13h14M7 3v14M13 3v14"/>', ICON_STROKE),
+    regions: svgIcon(20, 20, '<rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M9.5 3c-2 3 1.5 4.5-.5 7s1 4.5 0 7M9.2 10c3 1.2 5-1 8.3 0"/>',
+      ICON_STROKE),
+    land: svgIcon(20, 20, '<path d="M5 17.5V2.5M5 3.5h10l-2.5 3.25L15 10H5"/>', ICON_STROKE),
+    bell: svgIcon(20, 20, '<path d="M5 14V9a5 5 0 0 1 10 0v5l1.5 1.5h-13Z"/><path d="M8.3 17.5a1.8 1.8 0 0 0 3.4 0"/>', ICON_STROKE),
+    minimap: svgIcon(20, 20, '<path d="M2.5 5l5-2 5 2 5-2v12l-5 2-5-2-5 2Z"/><path d="M7.5 3v12M12.5 5v12"/>', ICON_STROKE),
+    // the panels' heads: close, and a chevron that points down while the panel is open (to fold it) and up while it is folded
+    close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
+    chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
+  };
+  // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
+  for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);
   // ---- level-of-detail chunks ----
   // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
   const chunks = new Map();
@@ -12193,7 +12252,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
+    $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
+    $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
+    $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
@@ -12238,7 +12299,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   async function build(seed, scenario, size, save = null) {
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
-    building = true; $('regen').disabled = true;
+    building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
@@ -12249,7 +12310,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
-      building = false; $('regen').disabled = false;
+      building = false; $('menuBtn').disabled = false;
       showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
       return;
     }
@@ -12263,7 +12324,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
-    $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
+    $('meta').textContent = `${named('genScenario', scenario)}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+      + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
     // Opening move: start on the whole chart, then glide down through the clouds to the village.
@@ -12285,7 +12348,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
     if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
-    building = false; $('regen').disabled = false;
+    building = false; $('menuBtn').disabled = false;
   }
 
   // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
@@ -12351,11 +12414,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     stopIntro(); vel.x = vel.y = 0;
     cam.x = ((e.clientX - r.left) / r.width) * w.W; cam.y = ((e.clientY - r.top) / r.height) * w.H;
   }
-  mmBox.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button')) return;
-    mmBox.setPointerCapture(e.pointerId); mmJump(e);
-  });
-  mmBox.addEventListener('pointermove', (e) => { if (e.buttons && !e.target.closest('button')) mmJump(e); });
+  mmBox.addEventListener('pointerdown', (e) => { mmBox.setPointerCapture(e.pointerId); mmJump(e); });
+  mmBox.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e); });
 
   // ---- tile info ----
   function showTile(i) {
@@ -12491,8 +12551,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
-      closeSpeedOptions(); openPanel(null); return;
+      if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
+      const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      closeSpeedOptions(); closeNotices(); openPanel(null);
+      if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
+      return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
     // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
@@ -12516,11 +12581,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
   $('landLoad').addEventListener('click', () => showSaves(true));
-  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
+  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
@@ -12551,38 +12617,37 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
     drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
-    $('worldMenu').hidden = mobileUI.matches && panel !== 'menu';
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
-    $('menuBtn').setAttribute('aria-pressed', String(panel === 'menu'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-338).
+  function paintUIToggle(hidden) {
+    $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
+    $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
+    $('uiToggle').setAttribute('aria-pressed', String(hidden));
+  }
+  paintUIToggle(false);
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
-    $('uiToggle').textContent = hidden ? 'Show UI' : 'Hide UI';
-    $('uiToggle').setAttribute('aria-pressed', String(hidden));
-    for (const el of document.querySelectorAll('.hud, .navigation, .sheet')) el.inert = hidden;
-    closeSpeedOptions(); $('uiToggle').focus();
+    paintUIToggle(hidden);
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
+    closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
+  // The minimap's toggle is the right end of the map's bar (VB-338): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
     $('minimap').inert = !on;
-    if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
+    if (!on) closeNotices();
   }
-  function adaptUI() {
-    $('worldMenu').hidden = mobileUI.matches && activePanel !== 'menu';
-    $('minimap').style.visibility = '';
-    setMinimap(!mobileUI.matches); closeSpeedOptions();
-  }
+  function adaptUI() { setMinimap(!mobileUI.matches); closeSpeedOptions(); }
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
   $('uiToggle').addEventListener('click', toggleUI);
-  $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
-  $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
   $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
@@ -12596,13 +12661,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
   });
-  $('minimapClose').addEventListener('click', () => {
-    setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
-  });
+  // A panel's fold is a chevron (VB-338); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  function nameFold(button) {
+    const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
+    button.setAttribute('aria-label', name); button.title = name;
+  }
   document.querySelectorAll('.sheet-expand').forEach((button) => button.addEventListener('click', () => {
     const collapsed = $(button.dataset.sheet).classList.toggle('collapsed');
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.textContent = collapsed ? (button.dataset.sheet === 'tile' ? 'Details' : 'Expand') : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed)); nameFold(button);
     if (!collapsed && button.dataset.sheet === 'peopleSheet') renderSettlers();
     if (!collapsed && button.dataset.sheet === 'drawer') renderDrawer();
   }));
@@ -12614,16 +12680,25 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
+  // Pause and the speeds are icons (VB-338): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // to come and the speed chosen.
+  function paintSpeed(v) {
+    const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
+    $('pauseBtn').innerHTML = v === 0 ? ICON.play : ICON.pause;
+    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
+    $('pauseBtn').title = v === 0 ? 'Resume (Space)' : 'Pause (Space)';
+    $('speedBtn').innerHTML = speedIcon(chosen);
+    $('speedBtn').setAttribute('aria-label', `Game speed: ${name}`); $('speedBtn').title = `Game speed: ${name}`;
+    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+  }
+  document.querySelectorAll('.speed button').forEach((bt) => { bt.innerHTML = +bt.dataset.speed === 0 ? ICON.pause : speedIcon(+bt.dataset.speed); });
+  paintSpeed(1); // the page opens at 1×
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
     cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
-    $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
-    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
-    const chosen = v === 0 ? lastSpeed : v;
-    $('speedBtn').textContent = chosen === Infinity ? 'Max' : `${chosen}×`;
-    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+    paintSpeed(v);
   }
   document.querySelectorAll('.speed button').forEach((bt) =>
     bt.addEventListener('click', () => { setSpeed(+bt.dataset.speed); closeSpeedOptions(); if (mobileUI.matches) $('speedBtn').focus(); }));
@@ -13742,16 +13817,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
   const uncappedButton = document.querySelector('[data-speed="Infinity"]');
-  const backgroundRun = $('backgroundRun');
+  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-338); a control would set keepRunning and call
+  // syncBackgroundRun. While it is off, the run pauses when the page is hidden or the window loses focus.
+  let keepRunning = false;
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
   // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
   let skipCursor = null;
   function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
+  // The uncapped speed's button is an icon (VB-338): the rate it reaches is in its name and tooltip.
+  function nameUncapped(name) { uncappedButton.setAttribute('aria-label', name); uncappedButton.title = `${name} (5)`; }
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
-    if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
+    if (uncappedButton.title !== 'Uncapped (5)') nameUncapped('Uncapped');
   }
   // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
   // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
@@ -13804,7 +13883,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       speedSampleHours += st.t - before;
       const now = performance.now(), elapsed = (now - speedSampleAt) / 1000;
       if (elapsed >= 0.5) {
-        uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
+        nameUncapped(`Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`);
         speedSampleAt = now; speedSampleHours = 0;
       }
     } else {
@@ -13817,7 +13896,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function syncBackgroundRun() {
     if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }
     resetSpeedSample();
-    if (!simulationAway() || !backgroundRun.checked) return;
+    if (!simulationAway() || !keepRunning) return;
     backgroundAt = performance.now();
     // Browsers may throttle hidden timers. Advance only a bounded interval, never a backlog on return.
     backgroundTimer = setInterval(() => {
@@ -13827,7 +13906,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (st) updateClock();
     }, 100);
   }
-  backgroundRun.addEventListener('change', syncBackgroundRun);
   document.addEventListener('visibilitychange', syncBackgroundRun);
   window.addEventListener('focus', () => { windowFocused = true; syncBackgroundRun(); });
   window.addEventListener('blur', () => { windowFocused = false; syncBackgroundRun(); });
@@ -14411,18 +14489,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       links: (mother ? villageChip(mother) : '') + customs, list });
   }
 
-  // ---- the left sheets end below the world menu on a wide screen: its bottom edge, as a CSS length ----
-  const chartBox = document.querySelector('.chart');
-  function measureChart() {
-    document.documentElement.style.setProperty('--chart-bottom', `${mobileUI.matches ? 0 : Math.round(chartBox.getBoundingClientRect().bottom)}px`);
-  }
-  if (window.ResizeObserver) new ResizeObserver(measureChart).observe(chartBox);
-  window.addEventListener('resize', measureChart);
-  measureChart();
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
   if (!mobileUI.matches) {
     $('tile').classList.remove('collapsed');
-    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Collapse';
+    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); nameFold(b);
   }
   // ======== history ========
   // The card of a pawn, a farm or a village has two tabs, Details and History; the tab chosen stays as the selection changes, so a name
@@ -15493,7 +15563,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   });
 
   // ---- notifications ----
-  // A toast for each notable event the record gains: at the bottom centre, above the dock, for 6 s, at most 3 at once (a fourth replaces
+  // A toast for each notable event the record gains: at the top centre, under the top bar (VB-338), for 6 s, at most 3 at once (a fourth replaces
   // the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
   // happens at high speed. Which kinds show is the page's choice, kept in localStorage and never in st.
   const TOAST_SECONDS = 6, TOAST_MAX = 3, NOTICE_KEY = 'vb.notices.off';
@@ -15503,11 +15573,21 @@ if (typeof module !== 'undefined') module.exports = Sim;
   try { for (const k of JSON.parse(localStorage.getItem(NOTICE_KEY) || '[]')) if (Sim.NOTABLE[k]) noticeOff.add(k); } catch (e) { noticeOff.clear(); }
   $('noticeList').innerHTML = Object.entries(Sim.NOTABLE).map(([k, label]) =>
     `<label class="dchk"><input type="checkbox" data-notice="${k}"${noticeOff.has(k) ? '' : ' checked'}> ${esc(label)}</label>`).join('');
+  // The list is the bell's, in the map's bar under the minimap (VB-338): it opens over the minimap, and shuts on a press elsewhere or Esc.
+  function closeNotices() { $('noticePop').hidden = true; $('noticeBtn').setAttribute('aria-expanded', 'false'); }
+  $('noticeBtn').addEventListener('click', () => {
+    const open = $('noticePop').hidden; $('noticePop').hidden = !open; $('noticeBtn').setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('pointerdown', (e) => { if (!$('mapTools').contains(e.target)) closeNotices(); });
   $('noticeList').addEventListener('change', (e) => {
     const k = e.target.dataset.notice; if (!k) return;
     if (e.target.checked) noticeOff.delete(k); else noticeOff.add(k);
     try { localStorage.setItem(NOTICE_KEY, JSON.stringify([...noticeOff])); } catch (err) { return; } // no storage: the choice lasts the visit
   });
+  // The toasts stand just under the top bar, however tall a narrow screen's date makes it (VB-338): its bottom edge, as a CSS length.
+  const barBottom = () => document.documentElement.style.setProperty('--bar-bottom', `${Math.round($('clock').getBoundingClientRect().bottom)}px`);
+  if (window.ResizeObserver) new ResizeObserver(barBottom).observe($('clock'));
+  window.addEventListener('resize', barBottom); barBottom();
   let noticeSt = null, noticeSeen = 0, noticeAbout = -1, toasts = [];
   function dropToast(t) { toasts = toasts.filter((x) => x !== t); t.el.remove(); }
   // What a click on a toast selects, as a link in a card does (page/cards): the newborn or the groom, the farm where it happened, else the village.
@@ -15583,7 +15663,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '072e751b7f', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '638100fa34', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -15680,11 +15760,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // from the main menu it is the Load archipelago screen, with Back to the menu; in a game it is Saves (VB-307)
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
+    // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
     if (on) {
-      $('savesTitle').textContent = menu ? 'Load archipelago' : 'Saves'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; $('savesClose').textContent = menu ? 'Back' : 'Close';
       saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
     } else if (menu) $('landLoad').focus();
   }
@@ -15712,7 +15793,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
     } catch (err) { console.warn('save failed', err); saveMsg = 'The save could not be written.'; }
     drawSaves();
   });
-  $('savesBtn').addEventListener('click', () => { if (!building && !skipping) showSaves(true); });
   $('savesClose').addEventListener('click', () => showSaves(false));
   $('savesScreen').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); showSaves(false); } });
   // When the page is hidden the run is saved to its auto slot, unless nothing has passed since the last one.

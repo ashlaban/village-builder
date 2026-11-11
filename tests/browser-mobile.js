@@ -33,7 +33,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       assert(rect && rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= size.width + 1 && rect.y + rect.height <= size.height + 1,
         `${selector} fits ${size.width}×${size.height}: ${JSON.stringify(rect)}`);
     };
-    const oneSheet = async () => assert(await page.locator('.sheet:visible, .world-menu:visible').count() <= 1, 'one content panel at a time');
+    const oneSheet = async () => assert(await page.locator('.sheet:visible').count() <= 1, 'one content panel at a time');
     const capture = async (name) => {
       if (!process.env.VB_SCREENSHOTS) return;
       fs.mkdirSync(process.env.VB_SCREENSHOTS, { recursive: true });
@@ -41,6 +41,27 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     };
     assert((await page.locator('#clock').boundingBox()).y + (await page.locator('#clock').boundingBox()).height < 115, 'compact mobile header');
     await fits('.navigation'); await capture('mobile-map');
+    // VB-338: no name in play; the speed picker opens over the notifications, its six icons in one row
+    assert(await page.locator('#name').isHidden(), 'the archipelago name is not shown in play');
+    await page.evaluate(() => { const t = document.createElement('button'); t.className = 'toast panel'; t.id = 'fakeToast';
+      t.textContent = 'A notification long enough to run under the whole of the speed picker, as three at once do.';
+      document.getElementById('toasts').append(t); });
+    await page.click('#speedBtn'); await fits('#speedOptions');
+    const covered = await page.locator('#speedOptions button').evaluateAll((bs) => bs.filter((b) => {
+      const r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return !(hit && b.contains(hit));
+    }).length);
+    assert.strictEqual(covered, 0, 'every speed in the picker is on top of the notifications');
+    const rows = await page.locator('#speedOptions button').evaluateAll((bs) => new Set(bs.map((b) => Math.round(b.getBoundingClientRect().y))).size);
+    assert.strictEqual(rows, 1, 'the speeds lie in one row');
+    await page.click('#speedBtn'); await page.evaluate(() => document.getElementById('fakeToast').remove());
+    // VB-338: the dock's buttons are icons with their names under them; the panels' Close and fold are icons with accessible names
+    const dock = await page.locator('.navigation button:visible').evaluateAll((bs) => bs.map((b) => [!!b.querySelector('svg'),
+      b.querySelector('.nav-label') && b.querySelector('.nav-label').getBoundingClientRect().height > 0]));
+    assert(dock.length >= 4 && dock.every(([icon, label]) => icon && label), `the dock's buttons have an icon and a label: ${JSON.stringify(dock)}`);
+    const heads = await page.locator('[id$="Close"].icon-btn, .sheet-expand').evaluateAll((bs) => bs.filter((b) => !b.querySelector('svg')
+      || !b.getAttribute('aria-label') || b.textContent.trim()).map((b) => b.id || b.dataset.sheet));
+    assert.deepStrictEqual(heads, [], 'each Close and fold is an icon with an accessible name and no text');
     console.log('mobile: people'); await page.click('#settlersBtn'); await oneSheet();
     await page.locator('.village-block > summary').first().click(); console.log('mobile: village opened');
     await page.locator('.household-block > summary').first().click(); console.log('mobile: household opened');
@@ -70,7 +91,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     const selected = await page.evaluate(() => window.__mobile.selected);
     await page.click('#tile .sheet-expand'); await fits('#tile'); await capture('mobile-person');
     // Playing a pawn (VB-210): the played pawn's part of the card fits the phone and its buttons work
-    console.log('mobile: play'); await page.click('#menuBtn'); await page.click('#debugBtn'); await page.click('[data-act="play"]');
+    console.log('mobile: play'); await page.click('#debugBtn'); await page.click('[data-act="play"]');
     await page.locator('#playBox [data-play="auto"]').waitFor({ state: 'visible' }); await fits('#actionSheet');
     const over = await page.locator('#playBox button').evaluateAll((bs) => bs.filter((b) => b.getBoundingClientRect().right > innerWidth + 1).length);
     assert.strictEqual(over, 0, 'the buttons of the played pawn fit the phone');
@@ -78,15 +99,17 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
     assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
     await capture('mobile-play');
-    await page.click('#menuBtn'); await page.click('#debugBtn'); await page.click('[data-act="unplay"]');
+    await page.click('#debugBtn'); await page.click('[data-act="unplay"]');
     await page.waitForFunction(() => document.getElementById('actionsBtn').hidden); assert.strictEqual(await page.evaluate(() => window.__mobile.st.player), null, 'Stop playing leaves no pawn played');
     // The shared card used to discard every detail after the fourth line.
     await page.evaluate(() => window.__mobile.card('Full details', ['one', 'two', 'three', 'four', 'five', 'six']));
     assert.strictEqual(await page.locator('#tileRest').textContent(), 'fivesix');
     await page.evaluate((id) => window.__mobile.selectPawn(id), selected);
     await page.click('#speedBtn'); await page.click('[data-speed="3"]');
+    const eye = await page.locator('#uiToggle').boundingBox();
     await page.click('#uiToggle');
     assert(await page.locator('#tile').isHidden()); assert(await page.locator('.navigation').isHidden()); assert(await page.locator('#clock').isHidden());
+    assert.deepStrictEqual(await page.locator('#uiToggle').boundingBox(), eye, 'the eye stays in its place with the interface hidden');
     const time = await page.evaluate(() => window.__mobile.st.t);
     await page.waitForFunction((t) => window.__mobile.st.t > t, time);
     await page.click('#uiToggle'); assert(await page.locator('#tile').isVisible(), 'UI restores selected panel');
@@ -104,20 +127,33 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => document.getElementById('customTable').scrollLeft > 0);
     await page.click('#drawer .sheet-expand');
     assert(await page.locator('#drawerBody').isHidden());
+    assert.strictEqual(await page.getAttribute('#drawer .sheet-expand', 'aria-label'), 'Expand', 'a folded panel offers to expand');
     await page.click('#drawer .sheet-expand');
     assert(await page.locator('#drawerBody').isVisible());
+    assert.strictEqual(await page.getAttribute('#drawer .sheet-expand', 'aria-label'), 'Collapse', 'an open panel offers to collapse');
     console.log('mobile: family'); await page.click('#treeBtn');
     assert(await page.locator('#tree').isVisible()); await fits('.tree-card');
     await page.locator('#treeSvg .tn').first().click();
     assert(await page.locator('#treeInfo h3').textContent());
     await page.keyboard.press('Escape'); assert(await page.locator('#tree').isHidden()); console.log('mobile: family closed');
-    await page.click('#menuBtn'); await oneSheet(); await page.click('#landBtn');
-    assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
-    await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible());
-    assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'collapsed minimap has a painted canvas');
-    console.log('mobile: minimap'); await page.click('#minimapClose'); assert(await page.locator('#minimap').isHidden());
-    await page.click('#menuBtn'); await page.click('#regen'); await page.click('#landNew'); await page.click('#genCancel'); await page.click('#landBack');
+    // VB-338: the map's bar under the minimap; shut, only the minimap's toggle stays; open, the minimap, the layers and the bell
+    const onlyToggle = async () => await page.locator('#minimap').isHidden() && await page.locator('#landBtn').isHidden()
+      && await page.locator('#noticeBtn').isHidden() && await page.locator('#minimapBtn').isVisible();
+    assert(await onlyToggle(), 'a phone opens with the minimap shut, its toggle alone shown');
+    await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible()); await fits('#mapTools');
+    assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'the minimap has a painted canvas');
+    assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
+    await page.click('#landBtn'); assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
+    await page.click('#noticeBtn'); assert(await page.locator('#noticePop').isVisible()); await fits('#noticePop');
+    assert(await page.locator('#noticeList input').count() > 0, 'the bell lists the kinds of notification');
+    await page.keyboard.press('Escape'); assert(await page.locator('#noticePop').isHidden(), 'Esc shuts the list');
+    assert(await page.locator('#landing').isHidden(), 'Esc that shuts the list does not open the main menu');
+    console.log('mobile: minimap'); await page.click('#minimapBtn'); assert(await onlyToggle(), 'shut, the minimap toggle alone stays');
+    await page.click('#menuBtn'); await page.click('#landNew'); await page.click('#genCancel'); await page.click('#landBack');
     assert(await page.locator('#genScreen').isHidden(), 'new-world screen can be cancelled');
+    await page.keyboard.press('Escape'); assert(await page.locator('#landing').isVisible(), 'Esc with nothing open opens the main menu');
+    assert(await page.locator('#name').isVisible(), 'the main menu names the open game'); await fits('#name');
+    await page.keyboard.press('Escape'); assert(await page.locator('#landing').isHidden(), 'Esc on the main menu goes back to the game');
     // Real pointer events keep map dragging and pinch zoom independent of the UI.
     const before = await page.evaluate(() => window.__mobile.cam);
     const cdp = await page.context().newCDPSession(page);
@@ -135,9 +171,24 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       console.log(`mobile: viewport ${width}×${height}`);
       await page.setViewportSize({ width, height });
       await fits('#clock'); await fits('.navigation');
-      if (width <= 1024) { await page.click('#menuBtn'); await fits('#worldMenu'); await page.click('#menuClose'); }
-      await page.click('#settlersBtn'); await fits('#peopleSheet'); await page.click('#peopleClose');
-      await page.click('#customsBtn'); await fits('#drawer'); await page.click('#drawerClose');
+      assert.strictEqual(await page.locator('#pauseBtn').isVisible(), width <= 1024, 'the phone pause button only on a phone');
+      assert.strictEqual(await page.locator('#speedBtn').isVisible(), width <= 1024, 'the phone speed button only on a phone');
+      // VB-338: Main menu ends the top bar, in the top-right corner; the map's tools fit, the minimap's toggle at their right end
+      const [mb, ck] = [await page.locator('#menuBtn').boundingBox(), await page.locator('#clock').boundingBox()];
+      assert(mb.x + mb.width >= ck.x + ck.width - 12 && mb.y < 80, `Main menu ends the top bar: ${JSON.stringify([mb, ck])}`);
+      await fits('#mapTools');
+      assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
+      // VB-338: the dock's panels rise from it (centred over it on a wide screen); the notifications start just under the top bar
+      const rises = async (id) => {
+        const [p, d] = [await page.locator(id).boundingBox(), await page.locator('.navigation').boundingBox()];
+        assert(p.y + p.height <= d.y && (width <= 1024 || Math.abs(p.x + p.width / 2 - d.x - d.width / 2) <= 2),
+          `${id} rises from the dock at ${width}: ${JSON.stringify([p, d])}`);
+      };
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r()))); // the bar is measured in the frame after a resize
+      const toastsTop = await page.evaluate(() => document.getElementById('toasts').getBoundingClientRect().top);
+      assert(toastsTop > ck.y + ck.height && toastsTop < ck.y + ck.height + 24, `the notifications start under the top bar: ${toastsTop}`);
+      await page.click('#settlersBtn'); await fits('#peopleSheet'); await rises('#peopleSheet'); await page.click('#peopleClose');
+      await page.click('#customsBtn'); await fits('#drawer'); await rises('#drawer'); await page.click('#drawerClose');
       await page.click('#treeBtn'); await fits('.tree-card'); await page.click('#treeClose');
     }
     await page.setViewportSize({ width: 390, height: 844 });

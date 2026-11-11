@@ -65,8 +65,13 @@
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
-      closeSpeedOptions(); openPanel(null); return;
+      if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
+      const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      closeSpeedOptions(); closeNotices(); openPanel(null);
+      if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
+      return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
     // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
@@ -90,11 +95,12 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  $('regen').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
+  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
   $('landLoad').addEventListener('click', () => showSaves(true));
-  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
+  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
@@ -125,38 +131,37 @@
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
     drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
-    $('worldMenu').hidden = mobileUI.matches && panel !== 'menu';
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
-    $('menuBtn').setAttribute('aria-pressed', String(panel === 'menu'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-338).
+  function paintUIToggle(hidden) {
+    $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
+    $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
+    $('uiToggle').setAttribute('aria-pressed', String(hidden));
+  }
+  paintUIToggle(false);
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
-    $('uiToggle').textContent = hidden ? 'Show UI' : 'Hide UI';
-    $('uiToggle').setAttribute('aria-pressed', String(hidden));
-    for (const el of document.querySelectorAll('.hud, .navigation, .sheet')) el.inert = hidden;
-    closeSpeedOptions(); $('uiToggle').focus();
+    paintUIToggle(hidden);
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
+    closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
+  // The minimap's toggle is the right end of the map's bar (VB-338): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
     $('minimap').inert = !on;
-    if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
+    if (!on) closeNotices();
   }
-  function adaptUI() {
-    $('worldMenu').hidden = mobileUI.matches && activePanel !== 'menu';
-    $('minimap').style.visibility = '';
-    setMinimap(!mobileUI.matches); closeSpeedOptions();
-  }
+  function adaptUI() { setMinimap(!mobileUI.matches); closeSpeedOptions(); }
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
   $('uiToggle').addEventListener('click', toggleUI);
-  $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
-  $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
   $('settlersBtn').addEventListener('click', () => openPanel(activePanel === 'people' ? null : 'people'));
   $('actionsBtn').addEventListener('click', () => openPanel(activePanel === 'actions' ? null : 'actions'));
   $('actionClose').addEventListener('click', () => { openPanel(null); $('actionsBtn').focus(); });
@@ -170,13 +175,14 @@
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
   });
-  $('minimapClose').addEventListener('click', () => {
-    setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
-  });
+  // A panel's fold is a chevron (VB-338); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  function nameFold(button) {
+    const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
+    button.setAttribute('aria-label', name); button.title = name;
+  }
   document.querySelectorAll('.sheet-expand').forEach((button) => button.addEventListener('click', () => {
     const collapsed = $(button.dataset.sheet).classList.toggle('collapsed');
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.textContent = collapsed ? (button.dataset.sheet === 'tile' ? 'Details' : 'Expand') : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed)); nameFold(button);
     if (!collapsed && button.dataset.sheet === 'peopleSheet') renderSettlers();
     if (!collapsed && button.dataset.sheet === 'drawer') renderDrawer();
   }));
@@ -188,16 +194,25 @@
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
+  // Pause and the speeds are icons (VB-338): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // to come and the speed chosen.
+  function paintSpeed(v) {
+    const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
+    $('pauseBtn').innerHTML = v === 0 ? ICON.play : ICON.pause;
+    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
+    $('pauseBtn').title = v === 0 ? 'Resume (Space)' : 'Pause (Space)';
+    $('speedBtn').innerHTML = speedIcon(chosen);
+    $('speedBtn').setAttribute('aria-label', `Game speed: ${name}`); $('speedBtn').title = `Game speed: ${name}`;
+    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+  }
+  document.querySelectorAll('.speed button').forEach((bt) => { bt.innerHTML = +bt.dataset.speed === 0 ? ICON.pause : speedIcon(+bt.dataset.speed); });
+  paintSpeed(1); // the page opens at 1×
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
     cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
-    $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
-    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
-    const chosen = v === 0 ? lastSpeed : v;
-    $('speedBtn').textContent = chosen === Infinity ? 'Max' : `${chosen}×`;
-    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+    paintSpeed(v);
   }
   document.querySelectorAll('.speed button').forEach((bt) =>
     bt.addEventListener('click', () => { setSpeed(+bt.dataset.speed); closeSpeedOptions(); if (mobileUI.matches) $('speedBtn').focus(); }));

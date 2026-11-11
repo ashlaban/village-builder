@@ -138,10 +138,10 @@ const iv = setInterval(async () => {
   tick(10);
   console.log('log:', qa('#settlers .log p').slice(0, 6).map((p) => p.textContent).join(' / '));
   // back to the generation screen with the last choices filled in, then a Tiny Populous Villages map
-  doc.getElementById('regen').click(); doc.getElementById('landNew').click();
+  doc.getElementById('menuBtn').click(); doc.getElementById('landNew').click();
   if (doc.getElementById('genScreen').hidden || doc.getElementById('genSeed').value !== '7' || doc.getElementById('genScenario').value !== 'heirs') fail('the generation screen did not keep the last choices');
   generate('populous', 't', '7');
-  const iv2 = setInterval(() => { if (!doc.getElementById('regen').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('regen').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
+  const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
     console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(() => process.exit(failed ? 1 : 0)); } }, 50);
