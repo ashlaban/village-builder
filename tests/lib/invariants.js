@@ -367,6 +367,36 @@ function checkState(st) {
       if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
     });
   }
+  // the occasions (VB-126): sorted by due, ids below st.occasionSeq and unique, due at most at the end, which is after the start (not
+  // after now: a test may set the clock forward, and the next step ends it); the asked are in order of setting out, each once, and none of them has set out; a pawn at an occasion stands at one
+  // that is in the queue and lists it among those who came.
+  if (st.occasions !== undefined) {
+    const O = globalThis.VB['sim/occasions'].OCCASIONS, live = new Map();
+    if (!Array.isArray(st.occasions) || !Number.isInteger(st.occasionSeq) || st.occasionSeq < 0) {
+      bad.push(`occasions: ${typeof st.occasions}, seq ${st.occasionSeq}`);
+    } else st.occasions.forEach((o, n) => {
+      const at = `occasions[${n}] (id ${o.id})`;
+      if (n > 0 && st.occasions[n - 1].due > o.due) bad.push(`${at}: due ${o.due} before the one ahead of it`);
+      if (!Number.isInteger(o.id) || o.id < 0 || o.id >= st.occasionSeq || live.has(o.id)) bad.push(`${at}: id against occasionSeq ${st.occasionSeq}`);
+      live.set(o.id, o);
+      if (!O[o.kind] || o.overrides !== O[o.kind].overrides) bad.push(`${at}: kind ${o.kind}, overrides ${o.overrides}`);
+      if (!(o.start < o.end && o.due <= o.end)) bad.push(`${at}: start ${o.start}, end ${o.end}, due ${o.due}`);
+      if (!(o.tile >= 0 && o.tile < st.w.N) || !st.villages[o.village] || (o.farm !== null && !st.farmsteads[o.farm])) {
+        bad.push(`${at}: tile ${o.tile}, village ${o.village}, farm ${o.farm}`);
+      }
+      if ((o.kind === 'meeting') !== (o.farm === null)) bad.push(`${at}: a ${o.kind} at farm ${o.farm}`);
+      const asked = new Set(o.asked.map((g) => g.id));
+      if (asked.size !== o.asked.length || o.asked.some((g, k) => !st.pawns[g.id] || (k > 0 && o.asked[k - 1].leave > g.leave) || !(g.hours >= 0))) {
+        bad.push(`${at}: asked ${JSON.stringify(o.asked)}`);
+      }
+      if (o.come.some((id) => asked.has(id)) || new Set(o.come).size !== o.come.length) bad.push(`${at}: came ${o.come.join()}, asked ${[...asked].join()}`);
+    });
+    for (const a of st.agents) {
+      if (a.occasion === null) continue;
+      const o = live.get(a.occasion);
+      if (!o || !o.come.includes(a.id)) bad.push(`agents[${a.id}]: at occasion ${a.occasion}, which ${o ? 'does not list it' : 'is not in the queue'}`);
+    }
+  }
   return bad;
 }
 // Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;

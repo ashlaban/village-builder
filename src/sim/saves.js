@@ -8,6 +8,7 @@ VB['sim/saves'] = (() => {
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans, fillPlans } = VB['sim/plans'];
   const { TICKS } = VB['sim/rules'];
+  const { makeStream } = VB['sim/rng'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -247,6 +248,9 @@ VB['sim/saves'] = (() => {
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
+    if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
+    if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
+    for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }

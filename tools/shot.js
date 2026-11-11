@@ -11,13 +11,14 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   --close N     close-ups of the N largest villages (default 1)
   --at X,Y,Z    one close-up at a point and zoom instead
   --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
-  --html FILE   another build of the page`);
+  --html FILE   another build of the page
+  --hours H     then H more game hours (whole 6-minute steps), to catch a time of day: a meeting, a wedding`);
   process.exit(0);
 }
 const root = require('path').join(__dirname, '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
+const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), hours = +opt('hours', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
 const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), htmlPath = opt('html', path.join(root, 'index.html'));
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
@@ -40,11 +41,12 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
   await page.click('[data-speed="0"]').catch(() => {});
   const t0 = Date.now();
-  await page.evaluate(async (n) => {
+  await page.evaluate(async ([n, h]) => {
     const st = window.__vb.st, Sim = window.__vb.Sim();
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
+    for (let left = h; left > 0; left -= Sim.DAY) { Sim.advance(st, Math.min(Sim.DAY, left)); await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
-  }, years);
+  }, [years, hours]);
   console.error(`${tag}: advanced ${years} years in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   if (land) await page.click('#landBtn');
   await page.waitForTimeout(1500);

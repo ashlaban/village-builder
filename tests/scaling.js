@@ -51,6 +51,9 @@ function main() {
     if (name === 'routeEvict') assert(early.work[name] === 0 && late.work[name] === 0, 'tiny caches should not evict');
     // The fold of the record waits for the year's turn (VB-199), which 30 days do not reach; tests/record.js exercises it.
     else if (name === 'recordFold') assert(early.work[name] === 0 && late.work[name] === 0, 'no year turns in 30 days');
+    // Occasions follow a marriage, a death or the autumn meeting (VB-126), which these 30 spring days need not hold; tests/occasions.js
+    // exercises them.
+    else if (name === 'occasionAsked') continue;
     else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
   }
   console.log(`scaling: 2/4 villages, 30 days and one round each; ${early.living.toFixed(3)}/${late.living.toFixed(3)} mean living`);

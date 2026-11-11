@@ -28,6 +28,7 @@ VB['sim/lifecycle'] = (() => {
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied } = VB['sim/commands'];
   const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember } = VB['sim/relations'];
+  const { wedding, funeral } = VB['sim/occasions'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -39,6 +40,7 @@ VB['sim/lifecycle'] = (() => {
     lifeEvent(st, id, log(st, `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} `
       + `${CAUSES[cause].log}, aged ${p.age}.`, {
         kind: 'died', pawn: id, text: cause, ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}) }));
+    funeral(st, id); // the next day's funeral ale, at the farm it leaves (sim/occasions, VB-126)
     const hh = p.household !== null ? st.households[p.household] : null;
     if (hh) { leaveHousehold(st, id, true); if (hh.holder === id) succession(st, hh, 'death'); }
     endGoodwill(st, id); // after succession, which passes a holder's share on
@@ -122,8 +124,8 @@ VB['sim/lifecycle'] = (() => {
     }
     st.meetingLog.unshift(...out); st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
-  // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, and a spouse who held a farm of
-  // their own hands it on (VB-153).
+  // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, a spouse who held a farm of
+  // their own hands it on (VB-153), and the wedding is called for the next day (VB-126).
   function wed(st, mId, fId, home) {
     const m = st.pawns[mId], f = st.pawns[fId];
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
@@ -136,6 +138,7 @@ VB['sim/lifecycle'] = (() => {
       kind: 'married', pawn: mId, other: fId, ...atHousehold(st, st.households[home]) });
     raiseTie(st, mId, fId, 2); raiseTie(st, fId, mId, 2);
     for (const id of [mId, fId]) { const own2 = holdingOf(st, id); if (own2 && own2.id !== home) handOn(st, own2, id, home); }
+    wedding(st, mId, fId, home); // the next day's feast at their farm (sim/occasions, VB-126)
   }
   // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:
   // 0, the marriages and the handovers; 1, demand, claims on empty farms and plots; 2, settlement; 3, service, what is owed and prestige.

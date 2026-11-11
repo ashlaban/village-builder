@@ -17,7 +17,7 @@ VB['sim/commands'] = (() => {
   const settlement = (st, c) =>
     (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
-  // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
+  // later 'player', 'debug', 'meeting', 'round' (VB-168 to VB-171) or 'occasion' (VB-126). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
@@ -72,6 +72,17 @@ VB['sim/commands'] = (() => {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past`
         : commanded(st, c.actor) ? `pawn ${c.actor} is on the player's command` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
+    },
+    // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
+    // about it and stand there until its end
+    attend: {
+      check: (st, c) => living(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
+      run: (st, c) => {
+        const a = st.agents[c.actor];
+        release(st, a);
+        const [tile, x, y, until] = later('sim/occasions').join(st, a, c.target);
+        walkTo(st, a, tile, x, y); idle(st, a, until);
+      },
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
     // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store

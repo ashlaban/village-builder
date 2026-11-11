@@ -22,9 +22,9 @@ VB['sim/agents'] = (() => {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y;
   }
   function idle(st, a, until) { a.idleUntil = until; wake(st, a.id); }
-  // A talk stops only an idle pawn outdoors, and never shortens an existing pause.
+  // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause.
   function haltForTalk(st, g, until) {
-    if (!g.inside && !g.job && g.phase === null) {
+    if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
       g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until);
     }
   }

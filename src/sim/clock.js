@@ -24,6 +24,7 @@ VB['sim/clock'] = (() => {
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
+  const { occasionsDue, callMeetings } = VB['sim/occasions'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
@@ -40,12 +41,14 @@ VB['sim/clock'] = (() => {
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
       if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
+      if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
       release(st, a);
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
     if (h === 0) {
       endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
+      if (st.cenv && c.season === 2 && c.sday === 9) callMeetings(st); // the meeting's people gather on the green (sim/occasions, VB-126)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
@@ -91,12 +94,13 @@ VB['sim/clock'] = (() => {
   //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
   // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
-  // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
-  // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
-  // noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
+  // Each 6-minute step that ends here: the hour it begins (onHour), the occasions due (VB-126), then the steps of the day (sim/lifecycle):
+  // the night's culture, a settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the
+  // outland; VB-206); from noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
   function stepEnds(st) {
     const k = st.tick, hour = Math.floor(k / TICKS);
     if (k % TICKS === 0) onHour(st, mod(hour, DAY), cal(hour));
+    occasionsDue(st); // those asked set out, and occasions end (sim/occasions, VB-126)
     if (!st.cenv) return;
     const n = mod(k, STEPS_A_DAY), r = n - 12 * TICKS;
     nightCulture(st, n);
