@@ -2435,6 +2435,9 @@ VB['sim/rules'] = (() => {
   // A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend and enemy: an opinion reaching them is a
   // life event; leaving needs `back` past the line. friend and dislike are the page's words only.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
+  // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
+  // work meanwhile through the hourly refresh and `awake` (sim/agents), which wakes those whose pause ends by the hour's end, and of an occasion by the asking.
+  const IDLE = { wait: [2, 4] };
   const SOCIAL = {
     situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
     memories: {
@@ -2606,7 +2609,8 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
+      CLAIMS };
 })();
 </script>
 <script>
@@ -8609,7 +8613,7 @@ VB['sim/plans'] = (() => {
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, TICKS, cal } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
@@ -8892,7 +8896,7 @@ VB['sim/jobs'] = (() => {
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
       go(spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
     }
-    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
+    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0]) }, source: 'planner' });
   }
   return { post, refreshJobs, lookForWork, callCooks, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();
@@ -15343,7 +15347,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '529663463a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '8d4a2a593e', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

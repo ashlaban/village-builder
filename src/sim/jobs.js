@@ -1,7 +1,7 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, TICKS, cal } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
@@ -284,7 +284,7 @@ VB['sim/jobs'] = (() => {
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
       go(spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
     }
-    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
+    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0]) }, source: 'planner' });
   }
   return { post, refreshJobs, lookForWork, callCooks, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();
