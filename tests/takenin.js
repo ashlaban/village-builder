@@ -36,11 +36,12 @@ let report = '';
   if (!c) { console.error('TAKENIN FAIL: no case of a lone holder with a sister at her parents\' farm'); process.exit(1); }
   check(c.a.members.length === 1 && c.holder.father !== null && R.kinship(st, c.holder.id, c.sister.id) > 0, 'setup: a lone holder, kin of the sister');
   const f = st.farmsteads[c.a.farmstead], fields0 = f.fields.length, owner0 = JSON.stringify(f.owner ?? null), holder0 = c.a.holder;
-  starve(st); st.demand = [c.sister.id];
+  starve(st); st.demand = [c.sister.id]; VB.resetCounts();
   for (let d = 0; d < 3 && c.a.askedIn === undefined; d++) Sim.advance(st, Sim.DAY);
   check(c.a.askedIn !== undefined, 'the lone holder asked for help');
   check(c.sister.household === c.a.id && !c.sister.servant, `the sister lives on the farm as a member (household ${c.sister.household})`);
   check(c.brother.household === c.c.id, 'the brother stays at home');
+  check(VB.count.takeInWeighed > 0, 'the search is counted (takeInWeighed)');
   check(c.a.holder === holder0 && f.fields.length === fields0 && JSON.stringify(f.owner ?? null) === owner0 && f.household === c.a.id,
     'holder, fields and owner unchanged');
   check(Sim.recordOf(st, { pawn: c.sister.id, life: true }).some((e) => e.kind === 'moved' && e.text.includes(f.name)), 'an event names the farm');
