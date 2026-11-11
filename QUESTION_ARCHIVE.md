@@ -2,6 +2,57 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (Field work)
+
+## Field work: the ox team (VB-336; raised 11 November 2026)
+From the review of field work of 11 November. Kim: the team's advantage can be raised. Today the first hand at the hoe or at breaking works 2.5 times as fast with a team, which saves a farm of three fields about 30 hours a year; 7 of 53 such households kept one.
+1. How much faster does a team till? **P:** 5 times (it was 2.5): an ard against a hand hoe, still well short of the real difference, and with VB-335's cart a second reason to winter two oxen. VB-336 reports what a team is then worth and how many keep one.
+   **A (Kim, 11 Nov):** P
+
+# Archived 11 November 2026 (Stocks audit)
+
+## Stocks audit: stone (VB-332; raised 11 November 2026)
+From the audit of 11 November. Kim decided the same day: stone is used at least for the prestigious house, a cheap house can be upgraded, and stone is picked from stony meadows or mined in hills and mountains (`design.md`, Land and ecology, Stone). These are the numbers VB-332 waits for. Today 25 stones make a load, a meadow tile's clearing yields a few loads, and after 15 years of populous small the median household holds none and the richest 14.
+1. What does a stone foundation take? **P:** 12 loads of stone and 40 hours of the household's work at the house, done in the slack of early summer or winter; the house stays lived in meanwhile.
+   **A (Kim, 11 Nov):** P
+2. What does it bring? **P:** the well-kept house's prestige term is 0.20 times its condition on stone, against 0.15 on the ground, and the house wears 0.08 a year against 0.1; tar's gain (0.03 on the term, a third less wear) adds on either. Nothing else yet: no warmth, no room for more people.
+   **A (Kim, 11 Nov):** P
+3. How is stone got beyond clearing? **P:** picking on a stony meadow tile of the household's land or the village's outland within 12 walking steps, 2 hours a load, while the tile holds more stones than a meadow keeps (80); quarrying on a hills or mountain tile within the same reach, 4 hours a load, never exhausted. A trip carries one load home.
+   **A (Kim, 11 Nov):** P
+4. Does anything else take stone now? **P:** the village's well (VB-058), 6 loads from its households' heaps; fences, the green and the cottage itself nothing. A new cottage is always built on the ground and raised later.
+   **A (Kim, 11 Nov):** P
+
+# Archived 10 November 2026 (Consistency review)
+
+## Consistency review: wood (VB-326, VB-327, VB-328; raised 10 November 2026)
+From the review of the game's logic of 10 November. Kim decided the same day: the village's wood is a larger, allotted area and a tree is cut on a random hex of it; a household out of wood is cold, which lowers mood and health, and cannot cook (`design.md`, Land and ecology and Goods and the farming year). These are the numbers the three tasks wait for. Measured on populous small, seed 7, over 40 years: a household fells 10 to 11 trees a year, a tile holds 60 to 80 and regrows 2 to 2.7 a year, 623 of 2,463 forest tiles went to meadow, and one generated village of 15 households had no wood in reach from the first day.
+1. How large is the allotment? **P:** 5 wooded tiles for each household of the village, at least 6 and at most 150, reckoned at the autumn meeting: the size at which regrowth meets the cutting. A 15-farm village then cuts in 75 tiles; the 220 households of the full island in about 1,100 of its wooded tiles.
+   **A (Kim, 10 Nov):** P
+2. How far may it reach? **P:** 12 walking steps from the centre, 4 hours each way, so that a trip with its 3 hours of cutting fits the 12 working hours. Today's reach is 24 steps, 8 hours each way, which no pawn can walk and be home by evening.
+   **A (Kim, 10 Nov):** P
+3. Which tile does a trip cut? **P:** drawn evenly among the allotment's tiles that keep more than a quarter of their trees, and among any with trees when none does; so tiles thin together and one is seldom cut bare. A bare tile is still meadow for good (Decided), until forest spread (VB-091).
+   **A (Kim, 10 Nov):** P
+4. What of a village with no forest in reach? **P:** generated villages are placed only within reach of at least 6 wooded tiles, as a settlers' site already must be; a village that later cuts out its reach has no wood, is cold (VB-327), and its landless leave as from a crowded one. Firewood as a good carried between villages waits for carts (slice 10).
+   **A (Kim, 10 Nov):** P
+5. How hard is the cold? **P:** 2 health a wholly cold winter day (3 for those under 5 and from 60), scaled by the season's use (a summer day counts 0.19), and the day's meal restores nothing; a winter without wood costs a fed adult 24 of 100. Hunger at its worst drains 4 a day.
+   **A (Kim, 10 Nov):** P
+6. What does "cannot cook" cost? **P:** no cook job while the pile is empty, and grain eaten uncooked feeds 0.75 of a ration; milk, meat and meals already cooked are unchanged. Today grain is eaten uncooked at full worth whenever no meal was cooked, so cooking changes nothing; should that 0.75 hold for every uncooked meal, with or without wood? **P:** yes.
+   **A (Kim, 10 Nov):** P
+7. Does the use of wood follow the size of the household? **P:** no: it stays a hearth's, the same for every household, until Temperature is built.
+   **A (Kim, 10 Nov):** P
+8. What does building take? **P:** 18 loads (six trees) for a cottage's walls, from the plot's felled tiles or felled in the village's wood before the walls are raised; a booth the same; fences, the well and the green nothing yet. What a felled plot leaves over fills the new household's pile and then the piles of those who worked it, to their winter goal, and the rest is burnt on the ground.
+   **A (Kim, 10 Nov):** P
+9. Where does a new household's first wood come from? **P:** from the piles of the homes its members leave, up to 16 loads in all and never leaving a pile under 8; settlers carry none and cut on arrival.
+   **A (Kim, 10 Nov):** P
+
+## Consistency review: pawns placed and the moving round (raised 10 November 2026)
+The same review. Over 40 years of populous small, seed 7, every jump of a pawn was a change of household (`moveTo`, `src/sim/heirs.js`): 353 to another village (median 22.7 tiles, the longest 61), which VB-287 turns into journeys, and 64 within a village (median 2 tiles), which VB-287 leaves as they are. No task is written for these three until Kim answers.
+1. Should a pawn who changes household within its village walk to its new home? **P:** yes, as part of VB-287: its household changes at the act and it walks home to the new door (`goHome`), keeping the load it carries; one line of VB-287's criteria changes ("Moves within a village are unchanged").
+   **A (Kim, 10 Nov):** P
+2. When no route exists (over the sea, or beyond 200 steps), a pawn walks in a straight line over anything (`route`, `src/sim/routes.js:124`); none did in 12 years of populous small. Should a job with no route by land be refused instead? **P:** yes: a pawn bids for no job it has no route to, and the fallback is kept only as a counted error (`st.routeFallbacks`) that an invariant holds at 0.
+   **A (Kim, 10 Nov):** P
+3. At the moving round a home passes the means test for a marriage in the first phase (food for 1.5 years of its members and one more), and the third phase may then take its grain as a settlers' provisions down to 42 days of food for those who stay. Should a home that took in a spouse in this round give no provisions in it? **P:** yes: the grain the marriage was allowed on is not given away the same afternoon; report how many parties then stay a year.
+   **A (Kim, 10 Nov):** P
 # Archived 10 November 2026 (review of 2 November)
 
 ## Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
