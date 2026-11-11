@@ -4,6 +4,7 @@ VB['sim/cottage'] = (() => {
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, SOIL } = VB['sim/rules'];
   const { foundHousehold } = VB['sim/membership'];
+  const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
@@ -34,6 +35,9 @@ VB['sim/cottage'] = (() => {
       }
     }
     const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
+    // a cow and two ewes from the old household, when that leaves it a cow and its winter hay (VB-140)
+    const oldId = [...from].find((id) => id !== null && id !== hh.id), oldHh = oldId === undefined ? null : st.households[oldId];
+    if (oldHh && !oldHh.dissolved) startHerd(st, oldHh, hh);
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
     log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'cottage', pawn: holder.id, ...atHousehold(st, hh) });
   }
@@ -46,9 +50,15 @@ VB['sim/cottage'] = (() => {
       const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
       const pay = Math.min(p.owed, Math.max(0, Math.floor(hh.grain - reserve)));
+      const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
+      // grain first; what grain cannot cover is paid in animals to the pawn's household, when it has another (VB-140)
+      const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;
+      if (pay <= 0 && animals <= 0) continue;
+      p.owed -= pay + animals;
+      if (animals > 0) personEvent(st, p.id, 'share', `Was paid animals worth ${animals} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
+        { n: animals, ...atHousehold(st, hh) });
       if (pay <= 0) continue;
-      p.owed -= pay;
-      const to = p.household !== null && p.household !== hh.id ? st.households[p.household] : p;
+      const to = own || p;
       Stores.move(st, hh, to, 'grain', pay, { kind: 'share', pawn: p.id });
       personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`, { n: pay, ...atHousehold(st, hh) });
     }

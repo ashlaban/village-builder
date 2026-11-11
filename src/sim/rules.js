@@ -226,7 +226,10 @@ VB['sim/rules'] = (() => {
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
-  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30,
+    // animals pay a share at their customary worth (Culture.norm('worth'), VB-299) when grain runs short; a new household takes a cow and
+    // `start.ewes` ewes from its old one (VB-140)
+    start: { ewes: 2 } };
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
   // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least

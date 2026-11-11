@@ -46,8 +46,8 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
   Sim.advance(st, 2.5 * Sim.YEAR);
   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 87, 'heirs 7 at 2.5 years: 87 events on its pawns');
-  assert.strictEqual(hash, '7f21f9b529f45faf', 'a pawn\'s life reads as it did with copies');
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 84, 'heirs 7 at 2.5 years: 84 events on its pawns');
+  assert.strictEqual(hash, '2f56fb371fa96e68', 'a pawn\'s life reads as it did with copies');
 }
 const st = Sim.seed(world(), 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended

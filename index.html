@@ -2537,7 +2537,10 @@ VB['sim/rules'] = (() => {
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
-  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30 };
+  const SHARES = { perField: 120, perGrain: 0.5, reserveBase: 60, reservePerMember: 30,
+    // animals pay a share at their customary worth (Culture.norm('worth'), VB-299) when grain runs short; a new household takes a cow and
+    // `start.ewes` ewes from its old one (VB-140)
+    start: { ewes: 2 } };
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
   // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
@@ -4745,7 +4748,7 @@ VB['sim/forest'] = (() => {
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, TICKS, HERD } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD, SHARES } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -4987,6 +4990,43 @@ VB['sim/herds'] = (() => {
     from.herds = []; from.hay = 0;
   }
 
+  // Animals leave a household in shares (VB-140; design.md, Quanta and worth): a cow, an ox, a heifer, a steer or a ewe, by their customary worth
+  // (Culture.norm).
+  // The old household is left a cow and its winter's hay (what the herd that stays eats over the stall period); the hay it holds above that
+  // goes with the animal, up to the animal's own winter need.
+  const cowsOf = (st, hh) => herdsOf(st, hh).reduce((n, hd) => n + (hd.head ? hd.head.filter((h) => h.kind === 'cow').length : 0), 0);
+  // Take one animal from `hh` to `to` ('cow', 'ox', 'heifer', 'steer' or 'ewe') when `hh` keeps a cow and its winter hay; true when moved.
+  function giveAnimal(st, hh, to, kind) {
+    const from = kind === 'ewe' ? herdOf(st, hh, 'sheep') : herdOf(st, hh, 'cattle');
+    if (!from) return false;
+    const idx = kind === 'ewe' ? (from.ewes > 0 ? 0 : -1) : from.head.findIndex((h) => h.kind === kind);
+    if (idx < 0) return false;
+    const need = HERD.hay[kind] * HERD.stallDays;
+    if ((kind === 'cow' ? cowsOf(st, hh) - 1 : cowsOf(st, hh)) < 1 || hh.hay < winterNeed(st, hh) - need) return false;
+    const dest = herdFor(st, to, kind === 'ewe' ? 'sheep' : 'cattle');
+    if (kind === 'ewe') { from.ewes--; dest.ewes++; } else dest.head.push(...from.head.splice(idx, 1));
+    const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
+    if (hay > 0) { hh.hay -= hay; to.hay = (to.hay || 0) + hay; }
+    return true;
+  }
+  // A new household's start from its old one: a cow and two ewes. Returns the number of animals moved.
+  function startHerd(st, from, to) {
+    let n = giveAnimal(st, from, to, 'cow') ? 1 : 0;
+    for (let i = 0; i < SHARES.start.ewes; i++) if (giveAnimal(st, from, to, 'ewe')) n++;
+    return n;
+  }
+  // Pay up to `due` rations of a share in animals to household `to`, the least valuable first, never past what is due. Returns the rations paid.
+  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid.
+  function payInAnimals(st, from, to, due) {
+    let paid = 0;
+    if (!to || to.dissolved || to === from) return 0;
+    for (const kind of ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
+      const worth = VB['culture'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
+      while (due - paid >= worth && giveAnimal(st, from, to, kind)) paid += worth;
+    }
+    return paid;
+  }
+
   // Whether the household has a team (team(st, hh) !== null), without making the list: read every step a ploughman works (VB-205).
   function hasTeam(st, hh) {
     let n = 0;
@@ -5047,7 +5087,8 @@ VB['sim/herds'] = (() => {
   }
   return {
     COWS, BULLS, years, dailyHay, herdsOf, householdHay, winterNeed, stalled, byreRoom, herdOf, homeTile, makeHerd, addHead, bullsNear, ramNear,
-    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, team, hasTeam, inMilk, milkCows, describeHerds, herdReport,
+    spring, herdsDay, foundersHerds, populousHerds, heirsHerds, startHay, passHerds, startHerd, payInAnimals,
+    team, hasTeam, inMilk, milkCows, describeHerds, herdReport,
   };
 })();
 </script>
@@ -8488,7 +8529,7 @@ VB['sim/heirs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { SHARES, GOODWILL } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
-  const { passHerds } = VB['sim/herds'];
+  const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'], { dropPlan } = VB['sim/plans'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
@@ -8656,13 +8697,13 @@ VB['sim/heirs'] = (() => {
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
-        Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q }); st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
-        if (due > paid) st.pawns[q].owedFrom = hh.id; // the farm the debt is paid from (sim/cottage)
-        if (due) {
-          personEvent(st, q, 'share',
-            `Received ${paid} rations as a share of ${f.name}${due > paid ? `, ${due - paid} still owed` : ''}` +
-            `${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`, { n: paid, ...atHousehold(st, hh) });
-        }
+        Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
+        const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
+        const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0, owed = due - paid - animals;
+        st.pawns[q].owed = (st.pawns[q].owed || 0) + owed; if (owed) st.pawns[q].owedFrom = hh.id; // owedFrom: the farm that pays (sim/cottage)
+        if (due) personEvent(st, q, 'share', `Received ${paid} rations${animals ? ` and animals worth ${animals}` : ''} as a share of ${f.name}` +
+          `${owed ? `, ${owed} still owed` : ''}${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`,
+        { n: paid + animals, ...atHousehold(st, hh) });
       }
     }
     personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`, false); // recorded below
@@ -9381,6 +9422,7 @@ VB['sim/cottage'] = (() => {
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, SOIL } = VB['sim/rules'];
   const { foundHousehold } = VB['sim/membership'];
+  const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
@@ -9411,6 +9453,9 @@ VB['sim/cottage'] = (() => {
       }
     }
     const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
+    // a cow and two ewes from the old household, when that leaves it a cow and its winter hay (VB-140)
+    const oldId = [...from].find((id) => id !== null && id !== hh.id), oldHh = oldId === undefined ? null : st.households[oldId];
+    if (oldHh && !oldHh.dissolved) startHerd(st, oldHh, hh);
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
     log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}.`, { kind: 'cottage', pawn: holder.id, ...atHousehold(st, hh) });
   }
@@ -9423,9 +9468,15 @@ VB['sim/cottage'] = (() => {
       const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
       const pay = Math.min(p.owed, Math.max(0, Math.floor(hh.grain - reserve)));
+      const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
+      // grain first; what grain cannot cover is paid in animals to the pawn's household, when it has another (VB-140)
+      const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;
+      if (pay <= 0 && animals <= 0) continue;
+      p.owed -= pay + animals;
+      if (animals > 0) personEvent(st, p.id, 'share', `Was paid animals worth ${animals} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
+        { n: animals, ...atHousehold(st, hh) });
       if (pay <= 0) continue;
-      p.owed -= pay;
-      const to = p.household !== null && p.household !== hh.id ? st.households[p.household] : p;
+      const to = own || p;
       Stores.move(st, hh, to, 'grain', pay, { kind: 'share', pawn: p.id });
       personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`, { n: pay, ...atHousehold(st, hh) });
     }
@@ -14788,7 +14839,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '446e5f328c', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '474da787d8', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
