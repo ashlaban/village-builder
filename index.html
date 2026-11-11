@@ -1585,7 +1585,7 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, FORDS, minHeap, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, minHeap, drainage, trace, width, kind, lines, drawChunk, thin };
 })();
 </script>
 <script>
@@ -12096,7 +12096,9 @@ VB['sim/saves'] = (() => {
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
   // Since VB-240 a record has no band (pawn.bands holds them): its slot is written 0 and not read.
-  const FORMAT = 3, READS = [3];
+  // Format 4 (VB-342): the same data, on another island: the generator's climate and rivers changed what a seed makes, and a save lies on
+  // its seed's island as generated (heights, rivers and moisture are not saved), so older saves are refused.
+  const FORMAT = 4, READS = [4];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
@@ -16918,7 +16920,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e844a591fc', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'cfbf87511b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

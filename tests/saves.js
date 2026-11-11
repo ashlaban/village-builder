@@ -25,9 +25,12 @@ for (const [scenario, seed, size, before, after] of [['founders', 7, null, 2 * Y
 }
 { // VB-259: a save from before the cooked store was named meals (format 2, hh.rations) is refused, as any other build's
   const st = Sim.seed(world(7), 7, 'founders'), data = JSON.parse(JSON.stringify(Sim.save(st)));
-  data.format = 2;
-  let why = null; try { Sim.load(world(7), data); } catch (e) { why = e.message; }
-  if (!/format 2, this build reads 3/.test(why || '')) { failed++; console.error(`SAVES FAIL: a format-2 save was not refused (${why})`); }
+  // and one from before the climate and the basins' rivers changed every seed's island (format 3, VB-342)
+  for (const old of [2, 3]) {
+    data.format = old;
+    let why = null; try { Sim.load(world(7), data); } catch (e) { why = e.message; }
+    if (!new RegExp(`format ${old}, this build reads 4`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
+  }
 }
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);
