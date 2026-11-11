@@ -2,6 +2,35 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-185)
+
+## VB-185: slice 6, the mill and the loom, the kiln and the quarry (raised 11 November 2026)
+Slice 6's plan (`backlog/VB-185.md`), asked and answered in the session of 11 November; the design is in `design.md`, The mill and the loom, the kiln and the quarry. The numbers of its tasks (VB-345 to VB-356, VB-009, VB-093, VB-121) are Proposed and wait for each task's report.
+1. Where do the ground's goods go? **P:** two halves: the mill and the loom as the roadmap has it, with iron for tools and stone for querns; then the kiln and the quarry (pots, brick, lime, the better houses).
+   **A (Kim, 11 Nov):** P: two halves.
+2. The iron chain. **P:** two steps: smelting at a bloomery a household builds, then mending and making tools as winter craft at home; a smithy when someone specialises.
+   **A (Kim, 11 Nov):** P: smelt, then forge.
+3. Tools without iron. **P:** iron lifts the ceiling: tools mend to half without it (work at 85%), to full with it.
+   **A (Kim, 11 Nov):** P: iron lifts the ceiling.
+4. Is the quern stone a good of place? **P:** yes, for new querns: sandstone at full speed, granite a fifth slower.
+   **A (Kim, 11 Nov):** Yes, and they wear: a quern lasts about 20 years and must be replaced, so the need never ends.
+5. How much of the textile chain? **P:** spin, weave and wear: yarn as background work, cloth on a loom, dress that wears out in about 3 years and costs health and standing when worn out.
+   **A (Kim, 11 Nov):** P: spin, weave, wear.
+6. Who spins and weaves? **P:** a practice, "Spinning and weaving are": women's work (default) or everyone's indoor work.
+   **A (Kim, 11 Nov):** P: a practice.
+7. How strong are skills? **P:** moderate: novice 60%, master 130%, halfway in 400 hours, a tenth lost a year unused.
+   **A (Kim, 11 Nov):** P: moderate.
+8. Which mill first? **P:** a water mill where the village has a river in reach, else the windmill; both need millstones and iron fittings.
+   **A (Kim, 11 Nov):** P: water where possible.
+9. What is clay for first? **P:** pots that keep the store, then brick and tiles with a kiln.
+   **A (Kim, 11 Nov):** P: pots, then brick.
+10. Does the fine house need lime? **P:** yes, for mortared walls; a foundation is dry stone.
+   **A (Kim, 11 Nov):** A fine timber (lumber) house has a foundation of stone, not mortared. A stone house, more prestigious, is mortared.
+11. The next grade of house. **P:** one fine house of mortared stone or brick.
+   **A (Kim, 11 Nov):** Two more grades: the fine timber house, then the stone house.
+12. Which of peat, salt springs, flint and amber does the slice build? **P:** peat and salt.
+   **A (Kim, 11 Nov):** Peat as fuel only; salt, flint and amber wait.
+
 # Archived 11 November 2026 (VB-342)
 
 ## VB-342: the ground, what is still open (raised 11 November 2026)
