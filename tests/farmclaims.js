@@ -162,7 +162,8 @@ const P = (id) => ({ type: 'pawn', id });
   ok(st, 'died');
   FC.claimFarms(st);
   check(f.claim && f.claim.by === who.brita, `the next claimant takes it (${f.claim && st.pawns[f.claim.by].given})`);
-  moveClock(st, CLAIMS.years * YEAR); FC.lapsedFarmClaims(st, CL.lapseClaims(st));
+  moveClock(st, CLAIMS.years * YEAR);
+  const lapsed = CL.lapseClaims(st); VB['sim/stakes'].lapsedStakes(st, lapsed); FC.lapsedFarmClaims(st, lapsed); // as the day's end does
   check(!f.claim && FC.claimable(f), 'a claim unworked for 3 years lapses');
   ok(st, 'lapsed');
 }

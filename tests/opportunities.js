@@ -25,7 +25,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
       const bids = new Set();
       for (const j of J.jobsFor(st, p)) {
         const s = J.score(st, p, j, c);
-        if (isOpen(j) && J.mayTake(st, p, j) && s !== null && s + MATCH.noise > 0 && a.job !== j) bids.add(j.key);
+        if (isOpen(j) && VB['sim/eligibility'].eligible(st, j, p) && s !== null && s + MATCH.noise > 0 && a.job !== j) bids.add(j.key);
       }
       const offered = new Set(works.filter((o) => o.why === null).map((o) => o.target));
       for (const k of bids) assert.ok(offered.has(k), `${c.hour.toFixed(1)}: pawn ${id} would bid for ${k}, which is not offered`);

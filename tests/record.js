@@ -39,14 +39,15 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
 // A pawn's life reads as it did when each pawn kept copies of its events: the times and texts of every pawn's events, heirs at seed 7
 // after two and a half years (before any fold), hash as the copies did at 7812253, the commit before VB-199 (230 events, 79786b701a98b8a7,
 // until VB-201 moved the night's culture and the round's phases). Re-recorded since for VB-235 (the clock) and when slopes entered the
-// walking cost (VB-271), and when talk stopped writing memories and friend events (VB-240), and when a hungry household began to eat its seed (VB-282): the lives changed, not how they are read.
+// walking cost (VB-271), and when talk stopped writing memories and friend events (VB-240), and when a hungry household began to eat its
+// seed (VB-282), and for planning days (VB-249) with occasions (VB-126, weddings and funeral ales in the lives): the lives changed, not how they are read.
 {
   const st = Sim.seed(world(), 7, 'heirs');
   Sim.advance(st, 2.5 * Sim.YEAR);
   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 83, 'heirs 7 at 2.5 years: 83 events on its pawns');
-  assert.strictEqual(hash, 'fe20c195ab22ac77', 'a pawn\'s life reads as it did with copies');
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 77, 'heirs 7 at 2.5 years: 77 events on its pawns');
+  assert.strictEqual(hash, 'ad358421857baf0b', 'a pawn\'s life reads as it did with copies');
 }
 const st = Sim.seed(world(), 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
@@ -81,8 +82,8 @@ assert.ok(gone && gone.text === undefined && H[gone.kind] && gone.folded === st.
 // a save in the middle of a fold goes on as the run does
 {
   const a = Sim.seed(world(), 7, 'heirs');
-  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first village folded
-  assert.ok(a.recordFold.pass && a.recordFold.pass.next === 1, `a fold under way: ${JSON.stringify(a.recordFold)}`);
+  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first slice folded
+  assert.ok(a.recordFold.pass && a.recordFold.pass.shortNext > a.recordFold.shortAt, `a fold under way: ${JSON.stringify(a.recordFold)}`);
   const b = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
   for (const s of [a, b]) Sim.advance(s, 6 * Sim.DAY);
   assert.strictEqual(a.recordFold.pass, null);

@@ -1,5 +1,5 @@
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the record of
-// events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the read of familiarity (tieOf); the
+// record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -26,19 +26,21 @@ VB['sim/records'] = (() => {
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
     stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
     matchRefused: 0, offerLapsed: 0,
-    // routine
+    // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
+    wedding: GENERATION, funeralAle: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
   //   events, so a gift between two holders counts twice. Appended only, by foldHistory.
   // @state st.recordFold: {shortAt, longAt, pass}: how far through st.record the fold has come, as positions, for the kinds kept SHORT
-  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, next (the village folded next; `none` for the events
-  //   of none), none (the villages when it began), made (the counts made in this pass, by "kind|village|year")}, else null.
+  //   years and those kept a generation; pass, while one runs: {shortEnd, longEnd, shortNext, longNext (how far this pass has folded each
+  //   end), made (the counts made in this pass, by "kind|village|year")}, else null.
   // At the year's turn the fold marks the events old enough (appended in time order, so it stops at the first that is not), and folds
-  // them over the year's first days, a village a day and then the events of none (rule 5). Each event is passed by each end once, and
-  // by each day of its pass; it touches st.record only, never the pawns.
+  // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
+  // once to fold it, never once a village; it touches st.record only, never the pawns.
+  const FOLD_DAYS = 4;
   function foldHistory(st, c) {
     const F = st.recordFold, R = st.record;
     if (!F.pass && c.doy === 0) {
@@ -47,7 +49,9 @@ VB['sim/records'] = (() => {
         return i;
       };
       const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
-      if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, next: 0, none: st.villages.length, made: {} };
+      if (shortEnd > F.shortAt || longEnd > F.longAt) {
+        F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
+      }
     }
     const P = F.pass; if (!P) return;
     const fold = (from, to, short) => {
@@ -55,7 +59,7 @@ VB['sim/records'] = (() => {
         const e = R[i]; VB.count.recordFold++;
         if (typeof e !== 'object') continue;
         const years = HISTORY[e.kind];
-        if (!years || (years === SHORT) !== short || (e.village === undefined ? P.none : e.village) !== P.next) continue;
+        if (!years || (years === SHORT) !== short) continue;
         const year = Math.floor(e.t / YEAR), key = `${e.kind}|${e.village === undefined ? '' : e.village}|${year}`;
         let k = P.made[key];
         if (k === undefined) {
@@ -66,8 +70,11 @@ VB['sim/records'] = (() => {
         st.recordYears[k].tally++; R[i] = k;
       }
     };
-    fold(F.shortAt, P.shortEnd, true); fold(F.longAt, P.longEnd, false);
-    if (++P.next > P.none) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
+    const slice = (at, end, next) => Math.min(end, next + Math.ceil((end - at) / FOLD_DAYS));
+    const s = slice(F.shortAt, P.shortEnd, P.shortNext), l = slice(F.longAt, P.longEnd, P.longNext);
+    fold(P.shortNext, s, true); fold(P.longNext, l, false);
+    P.shortNext = s; P.longNext = l;
+    if (s >= P.shortEnd && l >= P.longEnd) { F.shortAt = P.shortEnd; F.longAt = P.longEnd; F.pass = null; }
   }
   // Pawn id's own events gain the event at position `at` of the record (a birth or a death, which the log's line records).
   function lifeEvent(st, id, at) { st.pawns[id].events.push(at); }
@@ -119,9 +126,18 @@ VB['sim/records'] = (() => {
   function rebuildLiving(st) {
     st.living = st.pawns.filter((p) => p.died === null).map((p) => p.id);
     st.liveHouseholds = st.households.filter((h) => !h.dissolved).map((h) => h.id);
+    if (!st.peopleCheck) st.peopleCheck = st.liveHouseholds.slice(); // a new run, or an older save: every household is checked once
   }
+  // @state st.peopleCheck: ids of households whose membership lost a member, or took in a minor, since sim/service last asked whether
+  //   an adult is left (VB-323); no duplicates; owned here, emptied by takePeopleCheck
+  function notePeopleCheck(st, hh) { if (st.peopleCheck && !hh.dissolved && !st.peopleCheck.includes(hh.id)) st.peopleCheck.push(hh.id); }
+  // The noted households in ascending id, the queue emptied.
+  function takePeopleCheck(st) { const q = st.peopleCheck.sort((a, b) => a - b); st.peopleCheck = []; return q; }
   function noteDeath(st, id) { const i = st.living.indexOf(id); if (i >= 0) st.living.splice(i, 1); }
-  function noteDissolved(st, hh) { const i = st.liveHouseholds.indexOf(hh.id); if (i >= 0) st.liveHouseholds.splice(i, 1); }
+  function noteDissolved(st, hh) {
+    const i = st.liveHouseholds.indexOf(hh.id); if (i >= 0) st.liveHouseholds.splice(i, 1);
+    const j = st.peopleCheck ? st.peopleCheck.indexOf(hh.id) : -1; if (j >= 0) st.peopleCheck.splice(j, 1);
+  }
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
     const father = o.father !== undefined && o.father !== null ? R.pawns[o.father] : null;
@@ -154,7 +170,7 @@ VB['sim/records'] = (() => {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
         haySpoilt: 0,
-      larder: [], fodderDay: -1,
+      larder: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
     f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
@@ -165,15 +181,16 @@ VB['sim/records'] = (() => {
   // @state pawn.household, pawn.servant, household.members: membership and service, written only here.
   function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
     if (!hh.members.includes(id)) hh.members.push(id);
+    if (R.pawns[id].age < 18) notePeopleCheck(R, hh); // a minor may be all a household has
     R.pawns[id].household = hh.id; setServant(R, id, servant);
   }
   // Death keeps the last household and service on the historical person record.
   function leaveHousehold(st, id, historical = false) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
-    if (hh) hh.members = hh.members.filter((m) => m !== id);
+    if (hh) { hh.members = hh.members.filter((m) => m !== id); notePeopleCheck(st, hh); }
     if (!historical) p.household = null;
   }
-  function clearMembers(st, hh) { hh.members = []; }
+  function clearMembers(st, hh) { hh.members = []; } // an empty household is skipped by the check, so it is not noted
   function setServant(st, id, servant) { st.pawns[id].servant = servant; }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -257,7 +274,7 @@ VB['sim/records'] = (() => {
     return null;
   };
   const isHolder = (st, id) => holdingOf(st, id) !== null;
-  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim' or 'serve'; st.player.wishes, sim/commands), or null: no one
+  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim', 'serve' or 'match'; st.player.wishes, sim/commands), or null: no one
   // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
   const wishOf = (st, id, kind) => { const pl = st.player; return pl && pl.pawn === id ? pl.wishes[kind] : null; };
   // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-293): the holder of its household when it
@@ -366,8 +383,13 @@ VB['sim/records'] = (() => {
     if (v === 'heads') { const sp = spouseOf(st, p.id); return sp !== null && isHolder(st, sp) ? 1 : 0; }
     return 0;
   }
+  // ---- familiarity, read (written by sim/relations) ----
+  // A pawn's ties are stored on its own decay scale: scaleOf puts its stored weights to now (at most 1); tieOf is a's tie to b now.
+  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR);
+  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); }
   return {
-    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
+    scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold,
+      joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
       record, HISTORY, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,

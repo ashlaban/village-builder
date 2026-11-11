@@ -1,0 +1,185 @@
+diff --git a/backlog/VB-023.md b/backlog/VB-023.md
+index ac3d298..2200339 100644
+--- a/backlog/VB-023.md
++++ b/backlog/VB-023.md
+@@ -7,13 +7,34 @@ Phase: implement
+ Design ref: Economy and jobs, Long work and processing (Tilling, Multi-day jobs). Not checked tonight.
+ Goal: A lone holder who hoes field after field sows late and loses the stooks to frost: in the heirs scenario the lone bachelor at B3 brings in 0 of 3 crops in year 2 (seeds 7, 42, 3, 11). The rule that a hoed field is sown before the next is hoed was thought built and is not in `plow.available` (`docs/review-work.md`, section 1.2). Kim, 10 November: it is the order of the seasonal plan, for every head now; VB-254 then lets the poorest heads depart from it.
+ Acceptance criteria:
+-- [ ] The seasonal plan (VB-252) enforces its order for field work: while one of a household's fields is hoed and unsown and its seed is reserved, the plan makes no hoeing task for another field, and the sowing task is made at once (a review fires when the hoeing ends). This holds for every farm.
+-- [ ] Sowing has a closing date, so its task outranks wood and water for the household's hands while it is open: the template's order puts it first in spring, and no `ROLES` ranking is edited by hand for it.
+-- [ ] `tests/heirs.js` reports, for seeds 3, 7, 11 and 42, the crops B3 brings in each year over 3 years, and asserts at least 1 crop in years 1 to 3 taken together at each seed.
+-- [ ] Numbers before and after at populous small, 3 years, seeds 3, 7, 11 and 42: fields sown in the window, crops lost to frost, hungry household-days (the mean and the worst household). No seed is worse on crops brought in. Re-record the golden file and list the changes. `npm run verify`'s hard checks pass, its targets reported with their residuals.
++- [x] The seasonal plan (VB-252) enforces its order for field work: while one of a household's fields is hoed and unsown and its seed is reserved, the plan makes no hoeing task for another field, and the sowing task is made at once (a review fires when the hoeing ends). This holds for every farm.
++- [x] Sowing has a closing date, so its task outranks wood and water for the household's hands while it is open: the template's order puts it first in spring, and no `ROLES` ranking is edited by hand for it.
++- [x] `tests/heirs.js` reports, for seeds 3, 7, 11 and 42, the crops B3 brings in each year over 3 years, and asserts at least 1 crop in years 1 to 3 taken together at each seed.
++- [x] (golden and counters left for the orchestrator to re-record) Numbers before and after at populous small, 3 years, seeds 3, 7, 11 and 42: fields sown in the window, crops lost to frost, hungry household-days (the mean and the worst household). No seed is worse on crops brought in. Re-record the golden file and list the changes. `npm run verify`'s hard checks pass, its targets reported with their residuals.
+ Notes / questions:
+ - Kim, 2026-10-30: a farmer prioritises sowing over tilling: when a field is tilled, it is sown before the next field is tilled. That way a small household brings in some crop even when it cannot till every field in the window.
+ - Nightly 2026-10-30 (blocked): implemented the rule (no `plow` job while another field is `plowed` and seed is in the house). Crops of B3 in game years 1-3 before: 1,0,3 at every seed; after: seed 42: 1,2,2; seed 3: 1,1,0; seed 11: 2,0,1; seed 7: 1,0,1 by calendar year. Seeds 7 and 11 still bring in nothing in year 2: the lone bachelor sows his first field only on spring day 4-7 (water, wood and cook in between), it ripens on summer day 9, is reaped on day 10 and the stooks are lost to the frost on day 11 (`dryDays` 1 means hauling is not possible before day 11). The rule alone does not reach "at least 1 in year 2 at each seed". Needs a decision from Kim: sow before wood/water for small households, a later frost day, or a lower assertion. Also the 3 crops in year 3 before the change fall to 0-1 after it.
+ - 2026-10-31 (review): the decision this task waits for is in `QUESTIONS.md` under "VB-023", with a proposed answer.
+ - 3 Nov 2026 (`docs/roadmap.md`, section 3.3; the slices Decided by Kim): moved to slice 3, arch `year` (from `food`). `blocked` until the slice's plan (VB-164) confirms, rewrites or closes it; its questions in `QUESTIONS.md` wait for that plan, which may reframe them.
+ - 10 Nov 2026 (VB-164, slice 3's plan; Kim's answers of the day): rewritten as the seasonal plan's first enforced order (question 9: A now, B later); its old question in `QUESTIONS.md` is answered by it. Waits for VB-252.
++
++Implementation notes (11 Nov 2026, night run):
++- `ROUTINES` (`src/sim/plans.js`): spring now `sow, manure, plow, ...`, so the plan puts sowing first. `src/sim/kinds.js` reads that order from `st.plans.seasons` (data; plans load later): `plow.available` posts no hoeing for a field while `fieldsBusy` (other fields hoed and unsown with the seed in the house, or hoeing begun, as many as the household's hands, `fieldsWorkable(st, hh, 1)`); the end of a hoeing or a sowing wakes the household's review (`plan.dirty`, `woke = null`, then `reviewWhy`'s 'store'), which posts the sowing or the next hoeing at once; `sow` urgency is `MATCH.urgency.sowFirst` (3) + sday / 8 while the plan puts sowing before wood, so it outranks wood and water (no ROLES edit).
++- `tests/heirs.js` reports B3's crops hauled in game years 1 to 3 at seeds 3, 7, 11, 42 and asserts at least 1 in the three years. Before 1/3/3 2/2/0 2/1/3 2/3/3 (7, 4, 6, 8); after 2/3/3 2/2/3 2/1/1 2/3/3 (8, 7, 4, 8). Seed 11 is 2 lower: year 3's second crop fell on the year's edge (hauled in game year 4); its farm brings in 2 crops a year from year 2.
++
++Validation notes (populous small, 15 years, years 4 to 15 of the frost script; before = merge base, after = this commit):
++
++| seed | sown | lost at frost (share) | mean sowing day | hungry hh-days | worst hh-year | living |
++|---|---|---|---|---|---|---|
++| 3 | 3637 -> 3474 | 207 (5.69%) -> 194 (5.58%) | 3.90 -> 3.67 | 1 -> 0 | 1 day -> 0 | 469 -> 455 |
++| 7 | 3072 -> 3067 | 136 (4.43%) -> 121 (3.95%) | 3.85 -> 3.41 | 0 -> 1 | none -> 1 day (1 member) | 443 -> 419 |
++| 11 | 3589 -> 3667 | 153 (4.26%) -> 167 (4.55%) | 3.95 -> 3.61 | 0 -> 0 | none | 479 -> 460 |
++| 42 | 3364 -> 3302 | 122 (3.63%) -> 113 (3.42%) | 3.78 -> 3.50 | 0 -> 0 | none | 476 -> 488 |
++
++Crops brought in (sown less lost): 3430 -> 3280 (seed 3, fewer people and fields), 2936 -> 2946, 3436 -> 3500, 3242 -> 3189. Sowing is 0.2 to 0.4 days earlier on every seed; frost share falls on three of four; hunger is nil. Seed 3 brings in 4% fewer crops over 12 years, with 3% fewer living (the runs diverge).
++- Golden entries expected to change: founders/7, heirs/7, founders/42, heirs/42, years 1 to 3 (all twelve). Counters (tiny probe) expected to move, before -> after per pawn-day: oppAsk 8.861 -> 9.543, planReview 0.2778 -> 0.3256, routeExpand 1.559 -> 1.762, routeRefresh 0.4844 -> 1.419 (the last three out against their baselines; the wake reviews and the walking between fields). `tests/record.js`'s anchor (heirs 7: 70 -> 67 events) not re-recorded. `npm test`: all pass but `tests/record.js`. `npm run verify` not run (night rules: `npm test` once).
++- First version, the rule as the criterion words it (no hoeing of another field while one is hoed and unsown, for every farm), was measured: frost share rose from 4.3/5.7/3.6/4.4% to 7.6/8.5/6.5/6.3% and sowing was later (hands left idle while one field was hoed at a time; wood and water took them). Hence the bound below.
++
++Orchestrator's decisions for Kim to overturn:
++- The order is "no hoeing of another field while the hands are already on fields hoed-and-unsown or begun", the hands counting as many fields as the household has working adults (a lone holder: one field at a time, exactly the criterion), not one field for every household whatever its size; the strict reading cost every multi-hand household its parallel hoeing (frost losses +3 points). A field whose hoeing is begun is finished before another is begun (a lone bachelor hopped between three fields in the first version and sowed none for four days).
++- Sowing's closing date is `MATCH.urgency.sowFirst`, applied while the household's seasonal plan puts sowing before the wood (one plan row decides it; VB-254 or VB-253 reordering it removes the boost).
+diff --git a/src/sim/kinds.js b/src/sim/kinds.js
+index b288beb..3cb6907 100644
+--- a/src/sim/kinds.js
++++ b/src/sim/kinds.js
+@@ -5,7 +5,7 @@ VB['sim/kinds'] = (() => {
+   const { log, atFarm } = VB['sim/records'];
+   const { fellTree } = VB['sim/forest'];
+   const { dailyNeed } = VB['sim/hunger'], { reserved } = Stores;
+-  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
++  const { finishClear, finishBreak, manureWanted, manureDone, fieldsWorkable, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
+   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
+   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
+   const { finishBoothStage, plotJobs, boothJob } = VB['sim/expansion'];
+@@ -101,23 +101,46 @@ VB['sim/kinds'] = (() => {
+   const gathering = (c) => (c.season === 1 && c.sday >= FORAGE.from) || c.season === 2;
+   // Hoeing and sowing grow more urgent as the sowing window runs out.
+   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
++  // The household's seasonal plan puts routine a before routine b this season (VB-023; the plan's data, st.plans.seasons: sim/plans loads later).
++  const plansBefore = (st, hhId, a, b) => {
++    const steps = st.plans.seasons.get(hhId)?.steps, i = steps ? steps.indexOf(a) : -1;
++    return i >= 0 && (steps.indexOf(b) < 0 || i < steps.indexOf(b));
++  };
++  // The end of a hoeing or sowing wakes the household's review, which posts the sowing, or the next hoeing, at once (sim/plans, reviewWhy).
++  const wakeReview = (st, hh) => {
++    const plan = st.plans.households.get(hh.id); if (plan) { plan.dirty = true; plan.woke = null; } }; // lint-allow: owner a wake
++  // Fields other than fd hoed and unsown (with the seed in the house) or begun, as many as the household has hands: the plan's order sows a
++  // field before the next is hoed and finishes one begun, so the hands are not spread over more fields than they can finish (VB-023).
++  const fieldsBusy = (st, hh, f, fd) => {
++    let n = 0;
++    for (const o of f.fields) {
++      if (o === fd) continue;
++      if (o.stage === 'plowed' ? hh.grain >= (n + 1) * st.ECON.seedPerField : st.jobs.get('plow:' + fieldKey(f, o))?.done > 0) n++;
++    }
++    return n > 0 && n >= Math.max(1, fieldsWorkable(st, hh, 1));
++  };
+   const KINDS = {
+     plow: {
+       verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
+-      field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
+-      // a field in stubble, in the sowing window
++      field: true, spot: onField, urgency: inWindow,
++      // a hoed field is sown before the next is hoed: the review follows the hoeing, so the sowing is posted at once (VB-023)
++      done: (st, j, hh) => { hoed(j.field); wakeReview(st, hh); },
++      // a field in stubble, in the sowing window, while the hands are busy with others (the plan's order puts sowing first)
+       stages: ['stubble'], available: (st, hh, fd, c, post, f) => {
+-        if (sowing(st.ECON, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
++        if (sowing(st.ECON, c) && fd.stage === 'stubble' &&
++          !(plansBefore(st, hh.id, 'sow', 'plow') && fieldsBusy(st, hh, f, fd))) post('plow:' + fieldKey(f, fd),
++          fd.tile, { field: fd, farm: f });
+       },
+     },
+     sow: {
+       verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
+       field: true, pace: 9,
+-      spot: onField, urgency: inWindow,
++      // its closing date: while the plan puts sowing before the wood, it outranks the wood and the water for the household's hands
++      spot: onField, urgency: (st, j, c, U) => (plansBefore(st, j.farm.household, 'sow', 'wood') ? U.sowFirst + c.sday / U.fieldPerDay : inWindow(st, j, c, U)),
+       done: (st, j, hh, c) => {
+         const E = st.ECON;
+         if (hh.grain < E.seedPerField) return;
+-        Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
++        Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c); wakeReview(st, hh);
+       },
+       // a hoed field, in the sowing window, while the household has the seed for it
+       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
+diff --git a/src/sim/plans.js b/src/sim/plans.js
+index c6fe357..72d52df 100644
+--- a/src/sim/plans.js
++++ b/src/sim/plans.js
+@@ -41,7 +41,7 @@ VB['sim/plans'] = (() => {
+   // ctx: {culture (an index of st.cenv.cultures; -1 for a household of none), season, routine (a kind of sim/kinds)}.
+   const HAY_WINTERS = 2;
+   const ROUTINES = [
+-    ['manure', 'plow', 'sow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
++    ['sow', 'manure', 'plow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
+     ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish', 'gather'],
+     ['reap', 'haul', 'mow', 'hay', 'thresh', 'slaughter', 'salt', 'wood', 'reclaim', 'clear', 'break', 'meadow', 'mend', 'water', 'cook',
+       'fodder', 'milk', 'fish', 'gather'], // fishing last, gathering after it (VB-118), as a household checks it (VB-117); not in winter, under the ice
+diff --git a/src/sim/rules.js b/src/sim/rules.js
+index 2b0f928..edb974b 100644
+--- a/src/sim/rules.js
++++ b/src/sim/rules.js
+@@ -277,7 +277,7 @@ VB['sim/rules'] = (() => {
+     poorFit: 2, poorFitWaitHours: 2, floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
+     distanceWeight: 0.15, noise: 0.3, join: 0.8, switchRatio: 1.5, switchMargin: 1,
+     urgency: {
+-      field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
++      field: 1, fieldPerDay: 8, sowFirst: 3, // plow and sow: 1 + sday / 8; sow while the plan puts it before the wood: 3 + sday / 8 (VB-023)
+       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
+       woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
+       waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+diff --git a/tests/crops.js b/tests/crops.js
+index d9dce56..cc487ce 100644
+--- a/tests/crops.js
++++ b/tests/crops.js
+@@ -10,7 +10,7 @@ const st = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 7 });
+ const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
+ assert(fd, 'test farm needs a field');
+ const j = { farm: f, field: fd };
+-KINDS.plow.done(st, j);
++KINDS.plow.done(st, j, hh);
+ hh.grain = st.ECON.seedPerField - 1;
+ const before = structuredClone(fd);
+ KINDS.sow.done(st, j, hh, cal(0));
+diff --git a/tests/heirs.js b/tests/heirs.js
+index 23b85ed..0d9f9b5 100644
+--- a/tests/heirs.js
++++ b/tests/heirs.js
+@@ -44,3 +44,20 @@ const c = compareRankings(VB, st);
+ assert.deepStrictEqual(c.bad, [], c.bad.slice(0, 4).join('; '));
+ assert(c.claimed > 0, 'some ranking must depend on another farm\'s claim');
+ console.log(`  rankings by line: ${c.checked} match the full list; another farm's claim mattered in ${c.claimed}`);
++// VB-023: the lone bachelor at B3 sows before he hoes the next field, and wood and water wait for the sowing, so some crop comes in. Crops
++// brought in (a field's stooks hauled home) at his farm by game year, over 3 years, at four seeds; at least one in the three years at each.
++{
++  const crops = [];
++  for (const sd of [3, 7, 11, 42]) {
++    const it2 = G.generate(sd); let r2; while (!(r2 = it2.next()).done);
++    const s2 = Sim.seed(r2.value, sd, 'heirs'), farm = s2.farmsteads[s2.households[4].farmstead], was = farm.fields.map((fd) => fd.stage), by = [0, 0, 0];
++    s2.naturalDeaths = false;
++    for (let d = 0; d < 3 * Sim.YEAR / Sim.DAY; d++) {
++      Sim.advance(s2, Sim.DAY);
++      farm.fields.forEach((fd, i) => { if (was[i] === 'stooks' && fd.stage === 'stubble' && farm.household === 4) by[Math.min(2, Sim.cal(s2.t - 1).year - 1)]++; was[i] = fd.stage; });
++    }
++    crops.push(by);
++    assert(by[0] + by[1] + by[2] >= 1, `B3 brings in no crop in 3 years at seed ${sd}`);
++  }
++  console.log('  B3 crops brought in, years 1 to 3, seeds 3 7 11 42:', crops.map((b) => b.join('/')).join('  '));
++}
+diff --git a/tests/plans.js b/tests/plans.js
+index 061d3bc..079b501 100644
+--- a/tests/plans.js
++++ b/tests/plans.js
+@@ -192,7 +192,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
+     assert.strictEqual(at('hayWinters', culture, 0), 2);
+     assert.strictEqual(at('seed', culture, 0), st.ECON.seedPerField);
+     assert.strictEqual(at('perHand', culture, 0), VB['sim/rules'].FIELDS.perHand);
+-    assert(at('order', culture, 0, 'plow') < at('order', culture, 0, 'sow'), 'hoeing before sowing');
++    assert(at('order', culture, 0, 'sow') < at('order', culture, 0, 'plow'), 'sowing before hoeing (VB-023)');
+     assert.strictEqual(at('order', culture, 3, 'plow'), -1, 'no hoeing in winter');
+   }
+ }

@@ -38,6 +38,8 @@ until VB-175 moves membership to `sim/records`.
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
+VB-323 (11 November): `sim/records` owns `st.peopleCheck`, the queue of households whose membership lost a member (or took in a minor), read and emptied daily by `careForOrphans`.
+
 VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` caches, sorted by record id.
 Creation appends through `person` and `makeHousehold`; `killPawn` and `extinct` call the owner's removal operations.
 Seed/load rebuild them from source records, so format-1 saves need no migration. Daily invariants compare both arrays
@@ -491,6 +493,22 @@ VB-175 gave household membership and service one writer, `sim/records`: `joinHou
 `sim/membership.foundHousehold` replaced three copies of founding. The direct expansion → cottage and
 farmclaims → heirs lookups became `finishCottage` and `foundHousehold` commands. VB-176 removes the remaining
 direct expansion → farmclaims lookup and enforces the dependency rule agreed by Kim on 3 November.
+
+### Upward calls by layer (VB-230, 11 November 2026)
+
+The layer of each module is in `src/layers.json` (modules.md, Layers, lists them). `node tools/dependencies.js` reports each import and lookup
+from a lower layer to a higher one, leaving out `issue`; `tests/dependencies.js` holds them to `tests/layers-baseline.json`, by pair of
+modules, and only `--update` to a lower count writes it. Found: 25 of 442 edges, by group:
+
+- Culture read from material and kernel (8): `sim/names`, `sim/records`, `sim/claims`, `sim/territory`, `sim/herds`, `sim/stores`, `sim/byre`, and
+  `sim/commands`. Customs are read, not written; the review's remedy is to move the read functions (`inForce`, `norm`) down into the kernel.
+- Relations read from material and kernel (6): `sim/claims`, `sim/territory`, `sim/stakes`, `sim/herds`, `sim/hunger`, and `sim/commands`; the same remedy
+  for the tie queries.
+- `sim/commands` to agency (4: `agents`, `kinds`, `eligibility`, `exchange`) and social (`culture`, `relations`, counted above): the verbs
+  check what the act needs. A candidate for the composition roots; kept in the kernel because every layer asks it.
+- Social to agency (6): `sim/heirs`, `sim/membership`, `sim/settle` to `sim/plans`; `sim/heirs`, `sim/births` to `sim/agents`;
+  `sim/births` to `sim/lifecycle`. A household's plan and a pawn's activity are written by social events: these become events or hooks (VB-229).
+- Kernel to material (1): `sim/forest` reads `sim/territory` (what land is claimed).
 
 ## 5. Workflow traces
 

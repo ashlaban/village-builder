@@ -123,7 +123,10 @@
       const k = sizeAt(pp.age);
       // an idle pawn that stands talking faces the other
       const tk = a.talk, other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
-      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : a.face, x = drawX[a.id], y = drawY[a.id];
+      // a pawn fishing faces the water (VB-117)
+      const wet = !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - a.x : 0;
+      const face = other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : Math.abs(wet) > 0.5 ? Math.sign(wet) : a.face;
+      const x = drawX[a.id], y = drawY[a.id];
       R.root.position.set(x, y); R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX); R.root.zIndex = y;
       pose(R, a, time, winter, drawStride[a.id]);
     }

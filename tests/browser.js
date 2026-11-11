@@ -5,14 +5,18 @@ const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:', m); };
 (async () => {
-  const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }), page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }),
+    page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(60000);
   // Play as and Stop playing are the Debug panel's (VB-221): the played pawn is fixed but for it and for a death
-  const playSelected = async () => { await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); };
+  const playSelected = async () => {
+    await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); };
   const stopPlaying = async () => { await page.click('#debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#debugBtn'); };
   page.on('console', (m) => { if (m.type() === 'error') fail('console.error: ' + m.text()); });
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
-  await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
+  await page.route(/^https?:\/\//, (r) =>
+    /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({
+    contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({
     contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
@@ -51,13 +55,15 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
               const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) <= far;
               if (!ok) { if (x !== a.x || y !== a.y) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
               const seg = Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]);
-              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x, a.y - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
+              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x,
+                a.y - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
               else if (seg > 0 && d.stepShare > 0) between++;
             }
           }
         } finally { P.st = home; P.setSpeed(0); }
         const hs = Sim.load(w, JSON.parse(data)); Sim.advance(hs, (st.tick - tick0) / R.TICKS); // headless, as many whole steps
-        return { fps, speed, frames, steps: st.tick - tick0, between, faults: faults.slice(0, 5), save: JSON.stringify(Sim.save(st)), headless: JSON.stringify(Sim.save(hs)) };
+        return { fps, speed, frames, steps: st.tick - tick0, between, faults: faults.slice(0, 5), save: JSON.stringify(Sim.save(st)),
+          headless: JSON.stringify(Sim.save(hs)) };
       }, [fps, speed, data]));
     }
     await page.evaluate(() => window.__play.ticker().start());
@@ -76,7 +82,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       const want = VB.sim.save(st), got = JSON.parse(run.save), fields = new Set();
       for (const k of Object.keys(want.state)) if (JSON.stringify(want.state[k]) !== JSON.stringify(got.state[k])) fields.add(k);
       if (fields.has('agents')) {
-        want.state.agents.forEach((x, i) => { for (const f of Object.keys(x || {})) if (JSON.stringify(x[f]) !== JSON.stringify((got.state.agents[i] || {})[f])) fields.add('agents.' + f); });
+        want.state.agents.forEach((x, i) => {
+          for (const f of Object.keys(x || {})) if (JSON.stringify(x[f]) !== JSON.stringify((got.state.agents[i] || {})[f])) fields.add('agents.' + f); });
       }
       lines.push(`${run.fps} fps ${run.speed}x: ${run.frames} frames, ${run.steps} steps, ${same ? 'the' : 'not the'} headless state (${sha(run.save)}), `
         + `${run.between} pawn-frames drawn between; node: ${fields.size ? 'differs in ' + [...fields].join(', ') : 'the same'}`);
@@ -157,6 +164,26 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
   await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
+  // the wish for a match (VB-274): played as a single adult, "not this year" and a partner are set from the panel
+  const single = await page.evaluate(() => {
+    const { st, Sim } = window.__play, p = st.living.map((i) => st.pawns[i]).find((q) => q.household !== null && Sim.spouseOf(st, q.id) === null && q.age >= 20
+      && st.living.some((j) => st.pawns[j].sex !== q.sex && st.pawns[j].age >= 20 && Sim.spouseOf(st, j) === null));
+    if (!p) return null;
+    Sim.inhabit(st, p.id); return p.id;
+  });
+  if (single === null) fail('no single adult to wish a match for');
+  const notYear = '#playBox [data-play="wish"][data-kind="match"][data-value="false"]';
+  await page.waitForSelector(notYear);
+  await page.click(notYear);
+  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== false) fail('the wish not to marry this year was not set');
+  if ((await page.locator(notYear).getAttribute('aria-pressed')) !== 'true') fail('the wish not to marry does not show as pressed');
+  const partner = '#playBox [data-play="wish"][data-kind="match"]:not([data-value="false"]):not([data-value="null"])';
+  if (await page.locator(partner).count()) {
+    await page.locator(partner).first().click();
+    if (!Number.isInteger(await page.evaluate(() => window.__play.st.player.wishes.match))) fail('the wished partner was not set');
+  }
+  await page.click('#playBox [data-play="wish"][data-kind="match"][data-value="null"]');
+  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== null) fail('the wish for a match was not taken back');
   await stopPlaying();
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop
@@ -169,7 +196,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   const skipped = await page.evaluate(() => {
     const { st, Sim } = window.__play, note = document.getElementById('skipNote');
     return { t: st.t, why: note.dataset.why, known: !!Sim.SKIP[note.dataset.why], text: note.textContent,
-      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'), pressed: document.getElementById('skipBtn').getAttribute('aria-pressed') };
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'),
+        pressed: document.getElementById('skipBtn').getAttribute('aria-pressed') };
   });
   if (!skipped.known || !/^Skip stopped, .+: .+/.test(skipped.text)) fail(`the skip did not stop at a named event: ${JSON.stringify(skipped)}`);
   if (skipped.paused !== 'true' || skipped.pressed !== 'false') fail(`the page is not paused after the skip: ${JSON.stringify(skipped)}`);
@@ -187,19 +215,62 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') };
   }, played);
   if (!offer.kept) fail('the player did not keep its dead pawn until the choice');
-  if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id || !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
+  if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id ||
+    !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
   if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
   await page.click('#succession button[data-succeed]');
   await page.waitForSelector('#playBox [data-play="auto"]');
   const after = await page.evaluate((dead) => {
     const { st, Sim } = window.__play;
-    return { pawn: st.player.pawn, events: Sim.recordOf(st, { pawn: dead, life: true }).filter((e) => e.kind === 'player').map((e) => e.text), box: document.getElementById('succession').hidden };
+    return { pawn: st.player.pawn, events: Sim.recordOf(st, { pawn: dead, life: true }).filter((e) => e.kind === 'player').map((e) => e.text),
+      box: document.getElementById('succession').hidden };
   }, played);
-  if (after.pawn !== offer.heir.id || !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
+  if (after.pawn !== offer.heir.id ||
+    !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
   await page.waitForFunction(() => document.getElementById('succession').hidden);
   await stopPlaying();
+  // a marriage offer in the page (VB-273): the played pawn's match waits at the moving round; the panel asks, the answer No leaves both unmarried
+  // and the refusal is in the pawn's History tab. The state is the same island at the round, made in the page as tests/offers.js makes it.
+  {
+    await page.evaluate(() => window.__play.setSpeed(0));
+    const ids = await page.evaluate(() => {
+      const P = window.__play, { Sim } = P, w = P.world();
+      const make = () => { const s = Sim.seed(w, 7, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
+      const round = (s) => {
+        const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
+        try { Sim.movingRound(s); } finally { rs.forEach((r) => { delete r.fix; }); } };
+      const a = make(), mark = a.record.length; round(a);
+      const wed = a.record.slice(mark).find((e) => typeof e === 'object' && !e.self && e.kind === 'married');
+      const s = make(); Sim.inhabit(s, wed.pawn); P.st = s; P.focusPawn(wed.pawn); window.__round = () => round(s);
+      return { man: wed.pawn, woman: wed.other };
+    });
+    await page.waitForTimeout(500); // a frame sees the world, then the round runs and the page is told of its offer
+    ids.open = await page.evaluate(() => { window.__round(); return window.__play.st.offers.length; });
+    if (ids.open !== 1) fail(`no offer waits for the played pawn: ${JSON.stringify(ids)}`);
+    await page.waitForSelector('#toasts .toast', { timeout: 5000 }).catch(() => fail('no notice of the offer'));
+    await page.click('#actionsBtn'); await page.waitForSelector('#playBox .offer [data-play="answer"][data-yes="false"]', { timeout: 5000 });
+    const asked = await page.evaluate(() =>
+      ({ text: document.querySelector('#playBox .offer').textContent,
+      before: document.querySelector('#playBox .offer').compareDocumentPosition(document.querySelector('#playBox .queue, #playBox .hint')) }));
+    if (!/would marry/.test(asked.text) || !(asked.before & 4) && !(asked.before & 2)) fail(`the question is not asked: ${JSON.stringify(asked)}`);
+    await page.locator('#playBox .offer').scrollIntoViewIfNeeded();
+      await page.evaluate(() => { document.querySelector('#playBox .offer').scrollIntoView({ block: 'start' }); });
+    if (process.argv.includes('--shot')) await page.screenshot({ path: path.join(root, 'docs/img/vb273-offer.png') }); // re-take the committed picture
+    await page.click('#playBox .offer [data-play="answer"][data-yes="false"]');
+    await page.waitForSelector('#playBox .offer-end', { timeout: 5000 });
+    const done = await page.evaluate((ids) => {
+      const { st, Sim } = window.__play, R = VB['sim/records'];
+      return { open: st.offers.length, spouses: [R.spouseOf(st, ids.man), R.spouseOf(st, ids.woman)],
+        end: document.querySelector('#playBox .offer-end').textContent, ask: !!document.querySelector('#playBox .offer') };
+    }, ids);
+    if (done.open || done.ask || done.spouses.some((x) => x !== null) || !/refused/.test(done.end)) fail(`the answer No: ${JSON.stringify(done)}`);
+    await page.click('#debugBtn'); await page.click('[data-act="unplay"]'); await page.click('#debugBtn');
+    await page.evaluate((id) => window.__play.focusPawn(id), ids.man);
+    await page.click('#tabHistory'); await page.waitForSelector('#historyList time');
+    if (!/refused/.test(await page.locator('#historyList').textContent())) fail('the refusal is not in the History tab');
+  }
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir, a marriage offer answered No)');
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -1,16 +1,17 @@
 // @sys sim/jobs: job board: posting, ownership checks, urgency, bidding, and leaving a job for a more urgent one
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, cal } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
+  const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -21,8 +22,9 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
-  // The job it leaves is kept as it stands, with its progress.
+  // From 14:00 a household short of meals calls its best cook off other work, or from idling (waiting or out for company; not on its way
+  // to an occasion): an idle cook looked for work only when its wait ended, often too late to finish the 2 hours before the end of work, and
+  // the household ate uncooked (VB-119). The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
     VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
@@ -34,50 +36,125 @@ VB['sim/jobs'] = (() => {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
         if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
       }
-      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
+      const idle = best && !best.job && best.phase === null && best.occasion === null;
+      const called = best && (idle || best.job && (best.phase === 'work' || best.phase === 'go'));
+      if (called) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
-  // The review of every holder's standing plan (sim/plans; VB-258), every review hour: each kind says where it is available for the holder
-  // (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids, and what it reports is posted.
-  function refreshJobs(st, c) {
-    for (const j of st.jobs.values()) j.live = false;
-    // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them
+  // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
+  const islandJob = (j) => !!j.plot || j.kind === 'restore';
+  // The due-queue's ask of each time-bound kind: its own rule (a shared rule, as the byre's, posts only that kind there).
+  const DUE_RULES = WINDOWED.map((k) => [[k, KINDS[k].available]]);
+  // What a member without a task asks: the household's kinds but those the due-queue opens.
+  const unwindowed = (rules) => rules.filter((e) => !WINDOWED.includes(e[0]));
+  const LOOK = { farm: unwindowed(ASK.farm), farmAfterPlans: unwindowed(ASK.farmAfterPlans), fieldAt: {} };
+  for (const [g, rules] of Object.entries(ASK.fieldAt)) { const kept = unwindowed(rules); if (kept.length) LOOK.fieldAt[g] = kept; }
+  // A job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes).
+  function sweep(st, j) {
+    if (j.live || (j.claims.length && !KINDS[j.kind].project)) return;
+    if (j.claims.length) freeHands(st, j, -1);
+    dropJob(st, j);
+  }
+  // Each review hour (VB-249; design.md section 7, Planning days): the due-queue opens the time-bound kinds that fall due (sim/plans); each
+  // holder whose plan is due a review (its planning day, a window closing, a store crossing a target) has it reviewed: each kind says where
+  // it is available for the holder (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids; what it reports is posted
+  // and the holder's tasks it no longer reports are taken down. Between reviews the tasks stand. `everyone` reviews every holder now (tests).
+  function refreshJobs(st, c, everyone = false) {
+    const hour = Math.floor(st.tick / TICKS);
+    // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them; `only` keeps
+    // the due-queue's ask to its kind
+    let kind = null, own = null, only = null, gave = false;
+    const put = (key, site, extra, k = kind, owner = own) => { if (only && k !== only) return; gave = true; post(st, key, k, owner, site, extra); };
+    const ask = (rules, holder, at, f) => {
+      VB.count.oppAsk += rules.length;
+      for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
+    };
+    // ---- the due-queue: each entry asks its kind for its household, and takes down that kind's tasks it no longer reports ----
+    const due = dueNow(st, hour), gaveAt = [];
+    for (const [, id, k] of due) {
+      const hh = st.households[id], K = WINDOWED[k], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+      gave = false;
+      if (f && f.household === id) {
+        const mine = st.jobsBy.get(`household:${id}`);
+        if (mine) for (const j of mine) if (j.kind === K) j.live = false;
+        only = K; own = { type: 'household', id };
+        const rule = DUE_RULES[k];
+        if (KINDS[K].stages) { for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f); } else ask(rule, hh, f, f);
+        only = null;
+        const now = st.jobsBy.get(`household:${id}`);
+        if (now) for (const j of now) if (j.kind === K && !j.claims.length) sweep(st, j);
+      }
+      gaveAt.push(gave);
+    }
+    again(st, due, gaveAt, hour);
+    // ---- the reviews ----
+    // The houses and greens no field or meadow is made next to, once an hour for the farms' looks for land, when one looks: no house is
+    // built during the review (VB-227: each farm built the set anew, farms times farms a day).
+    let built = null;
+    const review = (type, id) => {
+      const plan = planOf(st, type, id), why = plan && (everyone ? 'day' : reviewWhy(st, plan, hour, c));
+      if (!why) return null;
+      const mine = st.jobsBy.get(`${type}:${id}`);
+      if (mine) for (const j of mine) if (!islandJob(j)) j.live = false;
+      reviewed(st, plan, c, why);
+      return plan;
+    };
+    const takeDown = (type, id) => {
+      const mine = st.jobsBy.get(`${type}:${id}`);
+      if (mine) for (const j of mine) if (!islandJob(j)) sweep(st, j);
+    };
+    for (const f of st.farmsteads) {
+      if (f.household === null) continue;
+      const hh = st.households[f.household], plan = review('household', hh.id);
+      if (!plan) continue;
+      own = { type: 'household', id: hh.id };
+      for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
+      ask(ASK.farm, hh, f, f);
+      // A choice, not an availability: the plan's land step, a new field, or a meadow once the fields are enough, at the review (balance
+      // review: households in every scenario look, and those short of land searched in vain every hour; sim/plans).
+      if (st.makeFields) landStep(st, plan, f, hh, built || (built = builtTiles(st)));
+      ask(ASK.farmAfterPlans, hh, f, f);
+      takeDown('household', hh.id);
+    }
+    own = null;
+    for (const v of st.villages) if (review('village', v.id)) { ask(ASK.village, v, v); takeDown('village', v.id); }
+    // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
+    // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
+    for (const j of st.jobs.values()) if (islandJob(j)) j.live = false;
+    ask(ASK.island, null, null);
+    for (const j of st.jobs.values()) {
+      if (islandJob(j)) sweep(st, j);
+      else if (KINDS[j.kind].project && j.farm && !onProject(j)) { j.live = false; sweep(st, j); }
+    }
+  }
+  // A land project's task whose project still stands at its stage on its tile.
+  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
+  // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
+  // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household
+  // looked, to be matched again.
+  function lookForWork(st, idle, c) {
+    const out = [], looked = new Set();
     let kind = null, own = null;
     const put = (key, site, extra, k = kind, owner = own) => { post(st, key, k, owner, site, extra); };
     const ask = (rules, holder, at, f) => {
       VB.count.oppAsk += rules.length;
       for (let i = 0; i < rules.length; i++) { kind = rules[i][0]; rules[i][1](st, holder, at, c, put, f); }
     };
-    const review = (type, id) => { const plan = planOf(st, type, id); if (plan) reviewed(st, plan, c); return plan; };
-    // The houses and greens no field or meadow is made next to, once for every farm's look for land: no house is built during the
-    // review (VB-227: each farm built the set anew, farms times farms a day).
-    const looks = st.makeFields && c.hour === WORK[0], built = looks ? builtTiles(st) : null;
-    for (const f of st.farmsteads) {
-      if (f.household === null) continue;
-      const hh = st.households[f.household];
-      const plan = review('household', hh.id);
+    for (const a of idle) {
+      const p = st.pawns[a.id], hh = p.household === null ? null : st.households[p.household];
+      if (!hh || hh.dissolved || hh.farmstead === null || age(st, p) < CHILD.from) continue;
+      const f = st.farmsteads[hh.farmstead], plan = planOf(st, 'household', hh.id);
+      if (f.household !== hh.id || !plan) continue;
+      if (looked.has(hh.id)) { out.push(a); continue; }
+      if (!mayLook(plan, c.day)) continue;
+      looked.add(hh.id);
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) { const rules = ASK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
-      ask(ASK.farm, hh, f, f);
-      // A choice, not an availability: the plan's land step, a new field, or a meadow once the fields are enough, once a day at the start
-      // of work (balance review: households in every scenario look, and those short of land searched in vain every hour; sim/plans).
-      if (looks && plan) landStep(st, plan, f, hh, built);
-      ask(ASK.farmAfterPlans, hh, f, f);
+      for (const fd of f.fields) { const rules = LOOK.fieldAt[fd.stage]; if (rules) ask(rules, hh, fd, f); }
+      ask(LOOK.farm, hh, f, f); ask(LOOK.farmAfterPlans, hh, f, f);
+      out.push(a);
     }
-    own = null;
-    for (const v of st.villages) { review('village', v.id); ask(ASK.village, v, v); }
-    ask(ASK.island, null, null); // plots, and empty farms being restored
-    // a job no longer posted goes once nobody works it; a land project's at once, its hands freed (its project ended, sim/stakes)
-    for (const j of st.jobs.values()) {
-      if (j.live || (j.claims.length && !KINDS[j.kind].project)) continue;
-      if (j.claims.length) freeHands(st, j, -1);
-      dropJob(st, j);
-    }
-  }
-  function mayTake(st, p, j) {
-    if (j.owner.type === 'household') return j.owner.id === p.household;
-    if (j.owner.type === 'village') return villageOf(st, p) === j.owner.id;
-    return true;
+    return out;
   }
   // A job's weight in a bid, as its kind says (sim/kinds).
   const urgency = (st, j, c) => (KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other);
@@ -99,7 +176,7 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !mayTake(st, p, j)) return -1;
+    if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
     const s = score(st, p, j, c);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
@@ -123,7 +200,7 @@ VB['sim/jobs'] = (() => {
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
         VB.count.lookUpJob++;
-        if (k === j || !isOpen(k)) continue;
+        if (k === j || !isOpen(k) || attentionOf(k) !== 'full') continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
       }
@@ -152,7 +229,7 @@ VB['sim/jobs'] = (() => {
   }
   function explainIdle(st, id) {
     const p = st.pawns[id], c = cal(st.t), out = [];
-    for (const j of st.jobs.values()) if (mayTake(st, p, j)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
+    for (const j of st.jobs.values()) if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -210,7 +287,7 @@ VB['sim/jobs'] = (() => {
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
       go(spot, st.w.hx[spot] + (rnd(st.rng.work) - 0.5) * 26, st.w.hy[spot] + 6 + (rnd(st.rng.work) - 0.5) * 12);
     }
-    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
+    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0]) }, source: 'planner' });
   }
-  return { post, refreshJobs, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
+  return { post, refreshJobs, lookForWork, callCooks, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();

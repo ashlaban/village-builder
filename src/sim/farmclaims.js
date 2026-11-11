@@ -195,7 +195,7 @@ VB['sim/farmclaims'] = (() => {
     issue(st, { actor: holder.id, verb: 'foundHousehold', target: f.id, args: { members, grain }, source: 'restoration' });
     const hh = st.households[f.household];
     Stores.put(st, hh, 'meals', 2 * dailyNeed(st, hh), 'provisions');
-    f.claim = null; f.condition = 1; f.emptySince = null;
+    f.claim = null; f.condition = 1; f.condAt = st.t; f.emptySince = null;
     CL.clearClaims(st, f.house);
     st.demand = st.demand.filter((id) => !members.includes(id));
     personEvent(st, holder.id, 'moved', `Moved into ${f.name}, mended after ${years} years empty`, false); // recorded below

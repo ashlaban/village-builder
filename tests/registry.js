@@ -58,8 +58,38 @@ assert.throws(() => R.declare(product), /Duplicate/);
 assert.throws(() => R.contribute({ ...factor, range: [2, 1] }), /Invalid/);
 assert.throws(() => R.contribute({ ...factor, range: [1, 4] }), /Duplicate/);
 assert.throws(() => R.value(null, 'missing', null), /Unknown/);
-assert.throws(() => R.contribute({ ...factor, rule: 'missing', range: [1, 4] }), /Unknown/);
+// A contribution may come before its rule; a product rule's term needs a range, a sum rule's does not; a declared order names every key.
+R.contribute({ ...factor, rule: 'early', key: 'second', range: [1, 2], value: () => 2 });
+R.contribute({ ...factor, rule: 'early', key: 'first', range: [1, 2], value: () => 3 });
+assert.throws(() => R.contribute({ ...factor, rule: 'early', key: 'second', range: [1, 2] }), /Duplicate/);
+R.contribute({ ...factor, rule: 'early', key: 'bad', range: [1, 1], value: () => 1 });
+R.declare({ id: 'early', owner: 'test', combine: 'product', base: () => 1, order: ['first', 'second', 'bad'] });
+R.declare({ id: 'open', owner: 'test', combine: 'sum', base: () => 1, clamp: [0, Infinity] });
+R.contribute({ ...factor, rule: 'open', key: 'free', range: undefined, value: () => 1e12 });
+assert.strictEqual(R.explain(null, 'open', null).value, 1e12 + 1);
+assert.throws(() => R.contribute({ ...factor, rule: 'open', key: 'x', range: [2, 1] }), /Invalid/);
+assert.throws(() => R.declare({ id: 'norange', owner: 'test', combine: 'product', base: () => 1 }) || R.contribute({ ...factor, rule: 'norange', key: 'n', range: undefined }), /needs a range/);
+R.contribute({ ...factor, rule: 'missing', key: 'orphan', range: [1, 4] });
+assert.throws(() => R.seal(), /never declared: missing/, 'seal fails while a rule is missing');
+R.declare({ id: 'missing', owner: 'test', combine: 'product', base: () => 1 });
 R.seal(); R.seal();
+assert.deepStrictEqual(Array.from(R.list().find((r) => r.rule === 'early').contributions.map((c) => c.key)), ['first', 'second', 'bad'], 'the declared order applies at seal');
+{ // a declared order must name every contribution
+  const box = { VB: { count: { ruleValue: 0 } } };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), box);
+  const Q = box.VB['sim/registry'];
+  Q.declare({ id: 'r', owner: 'test', combine: 'sum', base: () => 1, order: ['nope'] });
+  Q.contribute({ ...factor, rule: 'r', key: 'k', range: undefined });
+  assert.throws(() => Q.seal(), /order \[nope\]/);
+}
+{ // a rule that names causes refuses a factor that may fall below 1 (VB-207)
+  const box = { VB: { count: { ruleValue: 0 } } };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), box);
+  const Q = box.VB['sim/registry'];
+  Q.declare({ id: 'r', owner: 'test', combine: 'product', base: () => 0.5, baseCause: () => 'base' });
+  Q.contribute({ ...factor, rule: 'r', key: 'k', cause: 'c', range: [0.5, 2], value: () => 1 });
+  assert.throws(() => Q.seal(), /may fall below 1/);
+}
 assert.throws(() => R.declare({ ...product, id: 'late' }), /load time/);
 assert.throws(() => R.contribute(factor), /load time/);
 
@@ -127,7 +157,7 @@ const invoke = (args) => cp.execFileSync(process.execPath, [path.join(root, 'too
 const rows = JSON.parse(invoke(['--json']));
 const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
-assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'reserve']); // VB-216, VB-217
+assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'reserve']); // VB-216, VB-217, VB-220
 assert(invoke([]).includes('HEALTH.riskBelow'));
 const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
 assert.strictEqual(cliExplanation.pawn, 0);

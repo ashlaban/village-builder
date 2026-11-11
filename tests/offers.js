@@ -156,3 +156,52 @@ const offered = () => {
 }
 console.log(`offers ok: no player stores none; a played man's match waits, holds the woman, and yes, no and silence close it (the handover`
   + ' following); the head answers for a son; refusing a head\'s match costs 0.2 of its opinion; a death lapses it; saved and loaded; a skip stops on it');
+
+// 10. Opinion in the negotiation (VB-275): the score, the young's no and the spokesmen's no, with opinions set through relations' remember.
+// Enmity: two kinds of memory that together pass SOCIAL.enemy (claim -0.45 and border -0.3 at most).
+{
+  const { SOCIAL, MARRIAGE } = VB['sim/rules'], { remember } = VB['sim/relations'], { matchScore } = VB['sim/matching'];
+  const hate = (st, a, b) => { remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'border'); remember(st, a, b, 'border');
+    remember(st, a, b, 'border'); assert.ok(opinionOf(st, a, b) <= SOCIAL.enemy, `${a} is an enemy of ${b}: ${opinionOf(st, a, b)}`); };
+  const asked = (st, from) => told(st, from, 'matchRefused');
+  // (a) liking moves matchScore by the mean of the two opinions.
+  {
+    const st = Sim.seed(world(7), 7, 'populous'), M = st.pawns[man], F = st.pawns[woman];
+    const score = () => matchScore(st, M, F, 0.5, false), rest = () => score() - MARRIAGE.liking * (opinionOf(st, man, woman) + opinionOf(st, woman, man)) / 2;
+    const s0 = score(), r0 = rest();
+    remember(st, man, woman, 'bull'); remember(st, man, woman, 'bull'); remember(st, woman, man, 'bull');
+    const mean = (opinionOf(st, man, woman) + opinionOf(st, woman, man)) / 2;
+    assert.ok(mean > 0.05, `the opinions are set: ${mean}`);
+    assert.ok(Math.abs(score() - (s0 + MARRIAGE.liking * mean)) < 1e-9, 'liking moves the score by the mean of the two opinions');
+    assert.ok(Math.abs(rest() - r0) < 1e-9, 'and by nothing else');
+    hate(st, man, woman); // one-sided enmity: the mean falls by half of it
+    assert.ok(Math.abs(rest() - r0) < 1e-9, 'a one-sided opinion counts half');
+  }
+  // (b) an unplayed young pawn at enmity or below answers no; the match closes at once and its spokesman's opinion of him falls (refusedMatch).
+  {
+    let was;
+    const { st, mark } = scene((s) => { hate(s, man, woman); was = opinionOf(s, head, man); });
+    assert.strictEqual(R.spouseOf(st, man), null, 'the young man at enmity does not marry her');
+    assert.deepStrictEqual(st.offers, [], 'a no never waits');
+    const no = asked(st, mark).find((e) => e.pawn === man && e.other === woman);
+    assert.ok(no, `the refusal is told: ${asked(st, mark).map((e) => e.text)}`);
+    assert.ok(no.text.startsWith(Sim.fullName ? Sim.fullName(st.pawns[man]) : ''), 'by the one at enmity');
+    assert.ok(opinionOf(st, head, man) < was - 0.15, `the spokesman's opinion falls by refusedMatch: ${was} to ${opinionOf(st, head, man)}`);
+    sound(st, 'a young pawn refused');
+  }
+  // (c) an unplayed spokesman at enmity with the other side's spokesman answers no; no one remembers it (no spokesman above him).
+  {
+    let was;
+    const { st, mark } = scene((s) => { hate(s, head, woman); was = opinionOf(s, head, man); });
+    assert.strictEqual(R.spouseOf(st, man), null, 'the father at enmity with the bride does not make the match');
+    const no = asked(st, mark).find((e) => e.pawn === man && e.other === woman);
+    assert.ok(no && no.text.startsWith(Sim.fullName(st.pawns[head])), `the father refuses: ${asked(st, mark).map((e) => e.text)}`);
+    assert.ok(Math.abs(opinionOf(st, head, man) - was) < 1e-9, 'his opinion of his son is untouched');
+    sound(st, 'a spokesman refused');
+  }
+  // control: the same scene with only mild dislike (above the line) marries as the plain round does.
+  {
+    const { st } = scene((s) => { remember(s, man, woman, 'claim'); assert.ok(opinionOf(s, man, woman) > SOCIAL.enemy); });
+    assert.strictEqual(R.spouseOf(st, man), woman, 'dislike above the line still says yes');
+  }
+}

@@ -53,6 +53,19 @@ The same review. Over 40 years of populous small, seed 7, every jump of a pawn w
    **A (Kim, 10 Nov):** P
 3. At the moving round a home passes the means test for a marriage in the first phase (food for 1.5 years of its members and one more), and the third phase may then take its grain as a settlers' provisions down to 42 days of food for those who stay. Should a home that took in a spouse in this round give no provisions in it? **P:** yes: the grain the marriage was allowed on is not given away the same afternoon; report how many parties then stay a year.
    **A (Kim, 10 Nov):** P
+# Archived 10 November 2026 (review of 2 November)
+
+## Review, 2 November: where to spend Kim's answers (raised 2 November 2026; revised in the second pass the same day)
+VB-033 was answered with the claims review and is built; the order of work, VB-127 and VB-129 were answered in the second pass (`QUESTION_ARCHIVE.md`). Measured in `REVIEW.md`, review of 2 November, second pass.
+1. Who closes finished questions? **P:** this nightly review moves a question only after you answer it inline; "keep" or "P" counts. Say "P to all" on a block to answer it whole.
+   **A (Kim, 10 Nov):** P.
+
+# Archived 10 November 2026 (architecture review)
+
+## Architecture review: the vision and the first steps (raised 3 November 2026)
+From the architecture review (`docs/review-architecture.md`; ChatGPT's three documents are in `docs/architecture/`). Kim adopted the review's vision on 3 November: the player inhabits a pawn and lives a life the game does not prescribe, in a society that grows to towns, institutions and a wider world. Questions 1 to 5 settle the text for `design.md` (the review, section 3) and VB-079; questions 6 and 7 concern the new `ownership` arch (VB-172, VB-173). Questions 1 to 4 were answered on 3 November (`QUESTION_ARCHIVE.md`): the vision's text approved as written. Questions 1 to 5 and 7 were answered on 3 November (`QUESTION_ARCHIVE.md`).
+6. Reads and writes. The review asks that no module expose its collections (Rule 2). **P:** reads stay free, since `st` is plain data for saves and the page reads it every frame; every field has one owner module, which alone writes it, and other modules call its operations; a static check enforces it (VB-173). The rule goes into `AGENTS.md` with VB-173.
+   **A (Kim, 10 Nov):** P.
 
 # Archived 10 November 2026 (VB-298)
 

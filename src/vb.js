@@ -26,11 +26,19 @@ VB.COUNTERS = {
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
   ruleValue: 'Rule values read (explanations excluded)',
-  oppAsk: 'Calls of a kind\'s `available` rule by the hourly review of the standing plans (sim/jobs, refreshJobs; VB-258)',
-  planReview: 'Standing plans reviewed, one per live household on a farm and per village each review hour (sim/plans, VB-258)',
+  oppAsk: 'Calls of a kind\'s `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)',
+  planReview: 'Plans reviewed: on each holder\'s planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)',
   matchBid: 'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
   lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
+  occasionAsked: 'Pawns weighed as guests of an occasion: a village\'s people at its meeting, kin and housemates at a wedding or a death '
+    + '(sim/occasions, VB-126)',
+  takeInWeighed: 'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants '
+    + '(sim/service, takeIn; VB-308)',
+  labourWeighed: 'Households short of labour weighed for a landless adult with hands to spare at home, at the moving round (sim/service, '
+    + 'serveWhereShort; VB-090)',
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
+  forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
+  fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };

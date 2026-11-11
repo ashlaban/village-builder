@@ -20,13 +20,15 @@
   // What a click on a toast selects, as a link in a card does (page/cards): the newborn or the groom, the farm where it happened, else the village.
   function noticeTarget(ev) {
     if ((ev.kind === 'born' || ev.kind === 'married') && ev.pawn !== undefined) return { pawn: ev.pawn };
+    if (ev.kind === 'offered' && st.player) return { play: true };
     if (ev.farm !== undefined) return { farm: ev.farm };
     if (ev.village !== undefined) return { village: ev.village };
     return ev.pawn !== undefined ? { pawn: ev.pawn } : null;
   }
   function openNotice(t) {
     const g = t.target; if (!g || st !== noticeSt) return;
-    if (g.pawn !== undefined) focusPawn(g.pawn);
+    if (g.play) { if (st.player) { focusPawn(st.player.pawn); openPanel('actions'); } }
+    else if (g.pawn !== undefined) focusPawn(g.pawn);
     else if (g.farm !== undefined) selectFarm(g.farm);
     else selectVillage(g.village);
   }
@@ -45,7 +47,33 @@
   }
   // Each frame: the events the record has gained since the last, judged for the pinned pawn (or the one pinned a frame ago, so that the
   // death of the selected pawn, which ends the selection, is still its own); then the toasts age in real time.
+  // The marriage offers that wait for the played pawn (VB-273): when one has gone from st.offers, how it ended is told in the pawn panel, from the
+  // record's event of its ending (married, matchRefused, offerLapsed), until the next offer or the next moving round. Page state, never st.
+  let offerSt = null, offerSeen = new Map(), offerEnd = null;
+  function watchOffers() {
+    if (offerSt !== st) { offerSt = st; offerSeen = new Map(); offerEnd = null; }
+    const pl = st.player;
+    if (!pl) { offerSeen.clear(); offerEnd = null; return; }
+    const open = new Set();
+    for (const o of st.offers) {
+      if (!o.answers.some((a) => a.by === pl.pawn)) continue;
+      open.add(o.id);
+      if (!offerSeen.has(o.id)) { offerSeen.set(o.id, { man: o.man, woman: o.woman, made: o.made }); offerEnd = null; }
+    }
+    for (const [oid, o] of [...offerSeen]) {
+      if (open.has(oid)) continue;
+      offerSeen.delete(oid);
+      for (let i = st.record.length - 1; i >= 0 && st.record[i].t >= o.made; i--) {
+        const ev = st.record[i];
+        if (ev.pawn === o.man && ev.other === o.woman && (ev.kind === 'married' || ev.kind === 'matchRefused' || ev.kind === 'offerLapsed')) {
+          offerEnd = { pawn: pl.pawn, text: Sim.eventLine(st, ev), until: Sim.skipFrom(st).eve };
+          break;
+        }
+      }
+    }
+  }
   function updateNotices(dt) {
+    watchOffers();
     if (st !== noticeSt) { noticeSt = st; noticeSeen = st.record.length; noticeAbout = -1; for (const t of [...toasts]) dropToast(t); }
     const pinned = selectionPinned && selPawn >= 0 ? selPawn : -1, about = pinned >= 0 ? pinned : noticeAbout;
     noticeAbout = pinned;
@@ -53,6 +81,8 @@
     for (; noticeSeen < st.record.length; noticeSeen++) {
       const ev = st.record[noticeSeen], why = Sim.notable(st, ev, about >= 0 ? about : null);
       if (why && why.some((k) => !noticeOff.has(k))) toast(ev);
+      else if (ev.kind === 'offered' && st.player && st.offers.some((o) => o.man === ev.pawn && o.woman === ev.other
+        && o.answers.some((a) => a.by === st.player.pawn))) toast(ev); // a match waits for the played pawn's answer (VB-273)
     }
     for (const t of [...toasts]) { t.left -= dt; if (t.left <= 0) dropToast(t); }
   }

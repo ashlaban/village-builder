@@ -146,17 +146,19 @@
 
 <div class="genscreen" id="landing" hidden>
   <div class="panel landing">
-    <h1>Village builder</h1>
+    <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
+    <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
+      <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
+      <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </div>
 </div>
 
 <div class="genscreen" id="genScreen" hidden>
   <form class="panel" id="genForm" autocomplete="off">
-    <h1>New archipelago</h1>
-    <button id="genCancel" type="button">Back</button>
+    <div class="screen-head"><h1>New archipelago</h1><button id="genCancel" type="button">Back</button></div>
     <label>Map size
       <select id="genSize">
         <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -174,15 +176,12 @@
     </label>
     <p class="err" id="genMsg" role="alert" hidden></p>
     <button class="primary" id="genGo" type="submit">Generate</button>
-    <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
-      <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
-      <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </form>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
   <div class="panel">
-    <div class="saves-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
+    <div class="screen-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
     <div class="saves-body" id="savesBody"></div>
   </div>
 </div>
