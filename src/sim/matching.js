@@ -5,6 +5,7 @@ VB['sim/matching'] = (() => {
   const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
   const { roundHeirs, heirFor } = VB['sim/heirs'];
+  const { opinionOf } = VB['sim/relations'];
 
   // ---- the rules of a match (the moving round's marriages, and what the player's wish for a match is checked against, VB-274) ----
   // The closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry.
@@ -17,7 +18,7 @@ VB['sim/matching'] = (() => {
     const env = st.cenv, sm = settlementIdOf(st, m), sf = settlementIdOf(st, f), tie = env.settlements[sf] ? env.settlements[sf].tie : 0;
     const gw = widowed ? MARRIAGE.widowedGapWeight : MARRIAGE.gapWeight;
     return -Math.abs(m.age - f.age - MARRIAGE.ageGap) * gw + (sf === sm ? MARRIAGE.sameVillage : 2 * Math.min(tie, env.settlements[sm].tie))
-      + noise * MARRIAGE.noise;
+      + noise * MARRIAGE.noise + MARRIAGE.liking * (opinionOf(st, m.id, f.id) + opinionOf(st, f.id, m.id)) / 2; // opinion (VB-275)
   }
   // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
   // heirs for every pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would

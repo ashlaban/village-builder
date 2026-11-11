@@ -8,7 +8,7 @@ VB['sim/lifecycle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
-  const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL } = VB['sim/rules'];
   const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
@@ -28,7 +28,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember } = VB['sim/relations'];
+  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
     p.died = st.t; p.alive = false; noteDeath(st, id);
@@ -215,13 +215,15 @@ VB['sim/lifecycle'] = (() => {
       if (!best || bs < MARRIAGE.minScore || (!isWish && rnd(st.rng.society) > MARRIAGE.goAhead)) continue;
       if (!affords(best.home)) { putOff.set(sm, (putOff.get(sm) || 0) + 1); continue; }
       taken.add(best.f.id);
-      // The match is an offer the two and their spokesmen answer (VB-293): a side with no player says yes at once, and the round marries
-      // them here; one that waits for the player's answer is kept, the two held, and the round goes on without it.
-      if (played !== null) {
-        const answers = answersOf(st, m.id, best.f.id);
-        for (const a of answers) if (a.by !== played || (isWish && (a.key === 'man' || a.key === 'woman'))) a.yes = true; // a wish is the played pawn's own yes
-        if (answers.some((a) => a.yes === null)) { taken.add(m.id); makeOffer(st, m.id, best.f.id, best.home, answers); continue; }
+      // The match is an offer the two and their spokesmen answer (VB-293, VB-275): an unplayed side answers by opinion at once; one that
+      // waits for the player is kept, the two held; a no closes it; all yes, the round marries them here.
+      const answers = answersOf(st, m.id, best.f.id);
+      for (const a of answers) {
+        if (a.by !== played) a.yes = !unplayedNo(st, answers, a);
+        else if (isWish && (a.key === 'man' || a.key === 'woman')) a.yes = true; // a wish is the played pawn's own yes
       }
+      if (answers.some((a) => a.yes === false)) { closeOffer(st, { man: m.id, woman: best.f.id, home: best.home, answers }); continue; }
+      if (answers.some((a) => a.yes === null)) { taken.add(m.id); makeOffer(st, m.id, best.f.id, best.home, answers); continue; }
       const mark = st.record.length;
       issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
       housed = null;
@@ -268,6 +270,12 @@ VB['sim/lifecycle'] = (() => {
     const s = spokesmanOf(st, id), own = { key, by: id, yes: null };
     return s === id ? [own] : [own, { key: key + 'Side', by: s, yes: null }];
   });
+  // An unplayed pawn's answer (VB-275): no at enmity or below towards the one it weighs: the other one to marry, or, for a spokesman,
+  // the other side's spokesman.
+  function unplayedNo(st, answers, a) {
+    const other = a.key.startsWith('man') ? 'woman' : 'man', side = answers.find((b) => b.key === other + 'Side');
+    return opinionOf(st, a.by, (a.key.endsWith('Side') && side ? side : answers.find((b) => b.key === other)).by) <= SOCIAL.enemy;
+  }
   const names = (st, o) => `${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}`;
   // An offer that waits for the player's answer is kept in st.offers, in order of due time (after those due at the same time), and told.
   function makeOffer(st, man, woman, home, answers) {
@@ -288,30 +296,27 @@ VB['sim/lifecycle'] = (() => {
     if (!o) return `there is no open offer ${offerId}`;
     return o.answers.some((a) => a.by === id && a.yes === null) ? null : `pawn ${id} has no answer to give to offer ${offerId}`;
   }
-  // Pawn id answers offer `offerId` (the verb answer, source 'player'), all its answers in it at once. Refusing, as the one to marry, a match
-  // that another made for it costs that spokesman's opinion of it (consent's cost: SOCIAL.memories.refusedMatch); refusing as a spokesman
-  // costs nothing. The offer closes at the first no, or when all have said yes.
+  // Pawn id answers offer `offerId` (the verb answer, source 'player'), all its answers in it at once. The offer closes at the first no (its
+  // cost: SOCIAL.memories.refusedMatch), or when all have said yes.
   function answerOffer(st, id, offerId, yes) {
     const o = offerOf(st, offerId);
     for (const a of o.answers) if (a.by === id && a.yes === null) a.yes = !!yes;
-    if (!yes) for (const a of o.answers) {
-      const side = a.by === id && (a.key === 'man' || a.key === 'woman') && o.answers.find((b) => b.key === a.key + 'Side');
-      if (side && side.by !== id && st.pawns[side.by].alive) remember(st, side.by, id, 'refusedMatch');
-    }
     if (o.answers.some((a) => a.yes === false) || o.answers.every((a) => a.yes === true)) closeOffer(st, o);
   }
-  // Offer o closes: refused at a no; otherwise the marriage, through the marry verb, and the handover it brings to its home, as at the round;
-  // or, if the verb refuses (one of them has died or married), it lapses.
+  // Offer o closes: refused at a no; otherwise the marriage, through the marry verb, and the handover it brings to its home; or, if the verb
+  // refuses (one has died or married), it lapses.
   function closeOffer(st, o) {
-    st.offers.splice(st.offers.indexOf(o), 1);
+    if (st.offers.includes(o)) st.offers.splice(st.offers.indexOf(o), 1); // a match refused at once was never kept
     const hh = st.households[o.home], at = { pawn: o.man, other: o.woman, ...atHousehold(st, hh) }, no = o.answers.find((a) => a.yes === false);
     const why = no ? null : issue(st, { actor: o.man, verb: 'marry', target: o.woman, args: { home: o.home }, source: 'round' });
-    if (no) log(st, `${fullName(st.pawns[no.by])} refused the match of ${names(st, o)}.`, { kind: 'matchRefused', ...at });
-    else if (why !== true) log(st, `The match of ${names(st, o)} lapsed: ${why}.`, { kind: 'offerLapsed', ...at });
+    if (no) for (const a of o.answers) {
+      const side = a.yes === false && o.answers.find((b) => b.key === a.key + 'Side');
+      if (side && side.by !== a.by && st.pawns[side.by].alive) remember(st, side.by, a.by, 'refusedMatch');
+      if (a === no) log(st, `${fullName(st.pawns[no.by])} refused the match of ${names(st, o)}.`, { kind: 'matchRefused', ...at });
+    } else if (why !== true) log(st, `The match of ${names(st, o)} lapsed: ${why}.`, { kind: 'offerLapsed', ...at });
     else { handover(st, hh, roundHeirs(st).rank); refreshRoles(st); }
   }
-  // At the day's end: the offers due close, their unanswered answers yes, as the pawns would answer unplayed. Only the first offer's due
-  // time is read, so nothing is polled between rounds (Rules for cost, 4).
+  // At the day's end: the offers due close, their unanswered answers yes. Only the first offer's due time is read (Rules for cost, 4).
   function dueOffers(st) {
     while (st.offers.length && st.offers[0].due <= st.t) {
       for (const a of st.offers[0].answers) if (a.yes === null) a.yes = true;
