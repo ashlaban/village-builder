@@ -4,15 +4,15 @@ Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind t
 
 # Archived 11 November 2026 (Field work)
 
-## Field work: the ox team (VB-317; raised 11 November 2026)
+## Field work: the ox team (VB-336; raised 11 November 2026)
 From the review of field work of 11 November. Kim: the team's advantage can be raised. Today the first hand at the hoe or at breaking works 2.5 times as fast with a team, which saves a farm of three fields about 30 hours a year; 7 of 53 such households kept one.
-1. How much faster does a team till? **P:** 5 times (it was 2.5): an ard against a hand hoe, still well short of the real difference, and with VB-316's cart a second reason to winter two oxen. VB-317 reports what a team is then worth and how many keep one.
+1. How much faster does a team till? **P:** 5 times (it was 2.5): an ard against a hand hoe, still well short of the real difference, and with VB-335's cart a second reason to winter two oxen. VB-336 reports what a team is then worth and how many keep one.
    **A (Kim, 11 Nov):** P
 
 # Archived 11 November 2026 (Stocks audit)
 
-## Stocks audit: stone (VB-313; raised 11 November 2026)
-From the audit of 11 November. Kim decided the same day: stone is used at least for the prestigious house, a cheap house can be upgraded, and stone is picked from stony meadows or mined in hills and mountains (`design.md`, Land and ecology, Stone). These are the numbers VB-313 waits for. Today 25 stones make a load, a meadow tile's clearing yields a few loads, and after 15 years of populous small the median household holds none and the richest 14.
+## Stocks audit: stone (VB-332; raised 11 November 2026)
+From the audit of 11 November. Kim decided the same day: stone is used at least for the prestigious house, a cheap house can be upgraded, and stone is picked from stony meadows or mined in hills and mountains (`design.md`, Land and ecology, Stone). These are the numbers VB-332 waits for. Today 25 stones make a load, a meadow tile's clearing yields a few loads, and after 15 years of populous small the median household holds none and the richest 14.
 1. What does a stone foundation take? **P:** 12 loads of stone and 40 hours of the household's work at the house, done in the slack of early summer or winter; the house stays lived in meanwhile.
    **A (Kim, 11 Nov):** P
 2. What does it bring? **P:** the well-kept house's prestige term is 0.20 times its condition on stone, against 0.15 on the ground, and the house wears 0.08 a year against 0.1; tar's gain (0.03 on the term, a third less wear) adds on either. Nothing else yet: no warmth, no room for more people.
@@ -24,7 +24,7 @@ From the audit of 11 November. Kim decided the same day: stone is used at least 
 
 # Archived 10 November 2026 (Consistency review)
 
-## Consistency review: wood (VB-307, VB-308, VB-309; raised 10 November 2026)
+## Consistency review: wood (VB-326, VB-327, VB-328; raised 10 November 2026)
 From the review of the game's logic of 10 November. Kim decided the same day: the village's wood is a larger, allotted area and a tree is cut on a random hex of it; a household out of wood is cold, which lowers mood and health, and cannot cook (`design.md`, Land and ecology and Goods and the farming year). These are the numbers the three tasks wait for. Measured on populous small, seed 7, over 40 years: a household fells 10 to 11 trees a year, a tile holds 60 to 80 and regrows 2 to 2.7 a year, 623 of 2,463 forest tiles went to meadow, and one generated village of 15 households had no wood in reach from the first day.
 1. How large is the allotment? **P:** 5 wooded tiles for each household of the village, at least 6 and at most 150, reckoned at the autumn meeting: the size at which regrowth meets the cutting. A 15-farm village then cuts in 75 tiles; the 220 households of the full island in about 1,100 of its wooded tiles.
    **A (Kim, 10 Nov):** P
@@ -32,7 +32,7 @@ From the review of the game's logic of 10 November. Kim decided the same day: th
    **A (Kim, 10 Nov):** P
 3. Which tile does a trip cut? **P:** drawn evenly among the allotment's tiles that keep more than a quarter of their trees, and among any with trees when none does; so tiles thin together and one is seldom cut bare. A bare tile is still meadow for good (Decided), until forest spread (VB-091).
    **A (Kim, 10 Nov):** P
-4. What of a village with no forest in reach? **P:** generated villages are placed only within reach of at least 6 wooded tiles, as a settlers' site already must be; a village that later cuts out its reach has no wood, is cold (VB-308), and its landless leave as from a crowded one. Firewood as a good carried between villages waits for carts (slice 10).
+4. What of a village with no forest in reach? **P:** generated villages are placed only within reach of at least 6 wooded tiles, as a settlers' site already must be; a village that later cuts out its reach has no wood, is cold (VB-327), and its landless leave as from a crowded one. Firewood as a good carried between villages waits for carts (slice 10).
    **A (Kim, 10 Nov):** P
 5. How hard is the cold? **P:** 2 health a wholly cold winter day (3 for those under 5 and from 60), scaled by the season's use (a summer day counts 0.19), and the day's meal restores nothing; a winter without wood costs a fed adult 24 of 100. Hunger at its worst drains 4 a day.
    **A (Kim, 10 Nov):** P
