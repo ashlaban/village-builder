@@ -9,7 +9,10 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/reco
 const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
+const roll = (st, f) => {
+  const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; });
+  try { f(); } finally { rs.forEach((r) => { delete r.fix; }); }
+};
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
 const villageOf = (st, id) => R.settlementIdOf(st, st.pawns[id]);
 const near = (st, a, o) => Math.abs(a.x - o.x) < 16 && Math.abs(a.y - o.y) < 10;

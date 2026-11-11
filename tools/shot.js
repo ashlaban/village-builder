@@ -18,7 +18,8 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 const root = require('path').join(__dirname, '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), hours = +opt('hours', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
+const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
+const hours = +opt('hours', 0);
 const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), htmlPath = opt('html', path.join(root, 'index.html'));
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
