@@ -489,6 +489,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .row:hover, .tile .rel button:hover { background: var(--edge); }
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
+  /* the family records' controls are the cards' size, and its name links read as text */
+  #treeClose, .tree-modes button { min-height: 36px; }
+  .tree-info dd button { min-height: 0; }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
@@ -14655,8 +14658,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (cardShown[id] !== html) { cardShown[id] = html; el.innerHTML = html; }
     el.hidden = !html;
   }
+  let cardOf = ''; // what the card shows; a card of something else opens at its top
   function card(title, lines, activity = '', more = {}) {
     $('tileName').textContent = title;
+    const of = `${selPawn}|${selVillage}|${selFarm}|${sel}`;
+    if (of !== cardOf) { cardOf = of; $('tileDetails').scrollTop = 0; }
     cardPart('tileBadge', more.badge); cardPart('tileKind', more.kind ? esc(more.kind) : ''); cardPart('tileLinks', more.links);
     cardPart('tileList', more.list);
     $('tile').classList.toggle('peek', !selectionPinned);
@@ -16564,8 +16570,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
-    $('drawerBody').innerHTML = `<h2 class="dh">Debug</h2>
-      <p class="dm" id="dbgWhen"></p>
+    $('drawerBody').innerHTML = `<p class="dm" id="dbgWhen"></p>
       <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
       <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button
         type="button" data-act="move">Run the moving round</button></div>
@@ -16762,7 +16767,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '210651ab3e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'da3f840810', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

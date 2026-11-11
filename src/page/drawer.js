@@ -82,8 +82,7 @@
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
-    $('drawerBody').innerHTML = `<h2 class="dh">Debug</h2>
-      <p class="dm" id="dbgWhen"></p>
+    $('drawerBody').innerHTML = `<p class="dm" id="dbgWhen"></p>
       <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
       <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button
         type="button" data-act="move">Run the moving round</button></div>
