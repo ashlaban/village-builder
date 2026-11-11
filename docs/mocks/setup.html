@@ -1,0 +1,453 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Skärgård Setup Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: the game's menu card grown to a two-pane sheet on the sea; a list to choose from on the left, what the choice means on the right. */
+/* Tokens are the game's own (src/head.html), with a few added for the status tags and the chart. */
+:root {
+  --sea: #16395f; --sea-deep: #0d2642;
+  --panel: rgba(238, 245, 242, 0.93); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
+  --accent: #23685a; --on-accent: #f2f8f6; --node: #fbfdfc; --good: #2f7a4b; --bad: #a8432f;
+  --pick: rgba(35, 104, 90, 0.10); --sketch: #7a5a1e;
+  --display: 'Alegreya', Georgia, serif; --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --panel: rgba(11, 27, 34, 0.92); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+    --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
+    --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --panel: rgba(11, 27, 34, 0.92); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+  --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
+  --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--sea); }
+body {
+  margin: 0; min-height: 100%; color: var(--ink); font: 16px/1.4 var(--body); -webkit-font-smoothing: antialiased;
+  background: radial-gradient(ellipse at 50% 20%, var(--sea) 0%, var(--sea-deep) 100%) fixed, var(--sea-deep);
+  padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--edge); background: var(--node); border-radius: 10px; padding: 7px 14px; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+button:disabled { opacity: 0.5; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font: italic 700 30px/1.1 var(--display); text-wrap: balance; }
+h2 { font: italic 700 22px/1.15 var(--display); text-wrap: balance; }
+h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+small, .muted { color: var(--muted); font-size: 14px; }
+
+.sheet { max-width: 1080px; margin: 0 auto; background: var(--panel); border-radius: 16px; padding: 20px 22px; display: grid; gap: 16px;
+  box-shadow: 0 12px 40px rgba(4, 16, 30, 0.35); }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.head h1 { flex: 1 1 auto; }
+.steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; font-size: 14px; color: var(--muted); }
+.steps li { padding: 3px 10px; border-radius: 99px; border: 1px solid var(--edge); }
+.steps li[aria-current] { background: var(--ink); color: var(--panel); border-color: transparent; font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 7px; border-radius: 99px;
+  border: 1px solid currentColor; white-space: nowrap; vertical-align: 1px; }
+.tag.built { color: var(--good); } .tag.designed { color: var(--accent); border-style: dashed; } .tag.sketch { color: var(--sketch); border-style: dotted; }
+
+.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 18px; align-items: start; }
+.panes > * { min-width: 0; display: grid; gap: 12px; }
+@media (max-width: 760px) { .panes { grid-template-columns: minmax(0, 1fr); } }
+
+/* choices: one row each; the picked one is tinted, nothing else is boxed */
+.choices { display: grid; gap: 4px; }
+.choice { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; padding: 9px 12px; border-color: transparent; background: none; }
+.choice:hover { background: var(--pick); }
+.choice[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
+.choice b { font-size: 17px; } .choice small { grid-column: 1 / -1; }
+.choice .tag { align-self: center; }
+
+.detail { border-left: 1px solid var(--edge); padding-left: 18px; }
+@media (max-width: 760px) { .detail { border-left: 0; padding-left: 0; border-top: 1px solid var(--edge); padding-top: 14px; } }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 15px; }
+.facts dt { color: var(--muted); } .facts dd { margin: 0; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 15px; }
+.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13.5px; }
+.year div { border-top: 3px solid var(--edge); padding-top: 5px; } .year b { display: block; }
+@media (max-width: 460px) { .year { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lives { display: flex; flex-wrap: wrap; gap: 6px; }
+.lives button { padding: 4px 11px; font-size: 14px; border-radius: 99px; }
+.lives button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+
+.mapform { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 12px; align-items: start; }
+.mapform label { display: grid; gap: 3px; font-size: 14px; color: var(--muted); }
+.mapform input, .mapform select { padding: 6px 9px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
+.seedrow { display: flex; gap: 6px; } .seedrow button { flex: none; padding: 6px 10px; }
+canvas.chart { width: 100%; height: auto; border-radius: 10px; display: block; background: #16395f; }
+.foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; border-top: 1px solid var(--edge); padding-top: 14px; }
+.foot .muted { flex: 1 1 240px; }
+
+/* step 2 */
+.villages { display: flex; flex-wrap: wrap; gap: 6px; }
+.villages button { padding: 5px 12px; font-size: 14px; text-align: left; }
+.villages button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.farm { display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid var(--edge); }
+.farm > header { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.farm > header b { font: italic 700 18px var(--display); }
+.pawn { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; text-align: left; padding: 5px 8px; border-color: transparent; background: none; }
+.pawn:hover:not(:disabled) { background: var(--pick); }
+.pawn[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
+.pawn.dim { opacity: 0.38; }
+.pawn small { display: block; }
+.face { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #f2f8f6; }
+.face.big { width: 56px; height: 56px; font-size: 20px; }
+.who { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; }
+.scroll { max-height: 560px; overflow-y: auto; padding-right: 4px; display: grid; gap: 10px; }
+@media (max-width: 760px) { .scroll { max-height: none; } }
+.loading { text-align: center; padding: 70px 0; display: grid; gap: 14px; justify-items: center; }
+.bar { width: min(280px, 100%); height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.9s ease-out; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+.toast { background: var(--ink); color: var(--panel); border-radius: 12px; padding: 12px 16px; }
+</style>
+
+<main class="sheet" id="app"></main>
+
+<script>
+// A clickable mock of the screens after "New archipelago". Nothing here reads the game: the people are invented from design.md, section 14.
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mulberry32 = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const TAG = { built: 'Built', designed: 'Designed', sketch: 'Sketch' };
+const tag = (k) => `<span class="tag ${k}">${TAG[k]}</span>`;
+const ADULT = 18;
+
+const SIZES = {
+  t: { name: 'Tiny', tiles: '120 × 85', pop: '130–170', note: 'A handful of villages; quick to learn on.' },
+  s: { name: 'Small', tiles: '180 × 130', pop: '320–380', note: 'Room for a second culture across the water.' },
+  m: { name: 'Medium', tiles: '280 × 200', pop: '800–950', note: 'The reference: about 1,000 living late in the game.' },
+  l: { name: 'Large', tiles: '380 × 270', pop: '800–950', note: 'May reach about 2,000 living, at half the speed.' },
+};
+
+// ---- scenarios: three from design.md section 14, four sketches drawn from later slices ----
+const SCENARIOS = [
+  { key: 'founders', name: 'Founders', status: 'built', line: 'Ten strangers, four houses, and land no one has broken.',
+    start: '10 unrelated founders: four couples, a farmhand and a maid', gens: 'None on record', people: () => '10',
+    land: 'Houses standing; next to no fields or meadows', stores: 'A year\'s food and seed; hay for one winter',
+    customs: 'Old Nordic, but first cousins may marry: the founders\' grandchildren are mostly cousins',
+    explores: 'The normal game. A frontier that grows faster than a settled society would.',
+    year: [['Spring', 'Claim and break the first fields before the sowing window closes'], ['Summer', 'Find and clear hay meadows; make hay'],
+      ['Autumn', 'A small first harvest; decide how many animals to keep'], ['Winter', 'Live on what you brought']],
+    lives: [['holder', 'A founding holder', true], ['spouse', 'A founder\'s wife'], ['servant', 'The farmhand or the maid']] },
+  { key: 'heirs', name: 'Heirs and empty farms', status: 'built', line: 'Two old villages, three generations, and more heirs than farms.',
+    start: 'Two established villages of seven farms: five lived in, one empty, one a ruin', gens: 'Three; the founding grandparents are dead',
+    people: () => '23', land: 'Fields and meadows long made; scrub on the ruin', stores: 'What each farm has laid by',
+    customs: 'The remote village leans its own way: any child inherits, handover at death, looser claims, a wider voice',
+    explores: 'Inheritance, expansion and customs. One marriage joins the villages, so cousins live on both shores.',
+    year: [['Now', 'An heir of 29 waits; his brother and sister want out'], ['The round', 'An empty farm and a ruin stand to be claimed'],
+      ['The meeting', 'Two villages that disagree about who may inherit'], ['Soon', 'A bachelor of 47 with no child, and a nephew']],
+    lives: [['holder', 'A holder of 61', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'], ['heiress', 'The heiress']] },
+  { key: 'populous', name: 'Populous Villages', status: 'built', line: 'A settled archipelago, already full of neighbours.',
+    start: 'Only villages: small of 2–5 farms (6 in 10), medium of 6–10 (3 in 10), large of 12–16 (1 in 10)',
+    gens: 'Two at most; no grandparents on record', people: (z) => SIZES[z].pop,
+    land: 'Every farm has its fields', stores: 'What each farm has laid by',
+    customs: 'Old Nordic everywhere, until the villages drift apart',
+    explores: 'A high population from the first day: marriage across villages, the fair, crowded land.',
+    year: [['Now', 'About a third of households have a child of 18 or more'], ['The round', 'Grown children look for service, a farm, or new land'],
+      ['The gathering', 'Villages meet, trade and marry'], ['Later', 'Land runs short before people do']],
+    lives: [['holder', 'A holder in a large village', true], ['heir', 'An heir'], ['child', 'A younger child'], ['servant', 'A servant']] },
+  { key: 'service', name: 'A year in service', status: 'sketch', line: 'You own nothing but a year\'s contract.',
+    start: 'Populous, but you begin as a farmhand or maid on a stranger\'s farm', gens: 'Two', people: (z) => SIZES[z].pop,
+    land: 'None of it yours', stores: 'Your keep, at the holder\'s table', customs: 'Old Nordic',
+    explores: 'Leaving service and holding land: the moving round, empty farms, clearing a plot (design 5).',
+    year: [['Spring', 'Work the holder sets'], ['Autumn', 'The moving round: stay, move, or claim'], ['Winter', 'Earn goodwill for a marriage'], ['Year 5?', 'A farm of your own']],
+    lives: [['servant', 'The farmhand', true]] },
+  { key: 'outland', name: 'The far shore', status: 'sketch', line: 'A younger son, a boat, and an island with no village.',
+    start: 'Heirs, plus one household that has just moved to new land across the water', gens: 'Three', people: () => '27',
+    land: 'One house, no field', stores: 'Half a year\'s food', customs: 'Yours to set: a new village starts from its founders\' attitudes',
+    explores: 'Moving to new land, and distance between villages (design 5; boats, slice 10).',
+    year: [['Spring', 'Break a field alone'], ['Summer', 'A journey home for the gathering'], ['Autumn', 'Will anyone follow you?'], ['Later', 'A village with your customs']],
+    lives: [['holder', 'The one who left', true], ['spouse', 'The one who followed']] },
+  { key: 'alderman', name: 'The alderman\'s ledger', status: 'sketch', line: 'Half the village owes you. What will you take?',
+    start: 'A large village at year 40; you hold its richest farm and its neighbours\' obligations', gens: 'Three', people: () => 'about 120',
+    land: 'One farm, and claims on three', stores: 'A full granary', customs: 'Old Nordic; debts may be collected in land',
+    explores: 'Goodwill and obligations, a debt taken in land, paying for a mill: the first landed elite (design 9; slices 5 and 6).',
+    year: [['Now', 'Three households cannot repay'], ['The meeting', 'Argue for your right to collect'], ['Year 3?', 'A mill'], ['Later', 'An estate']],
+    lives: [['holder', 'The alderman', true], ['child', 'A debtor\'s son']] },
+  { key: 'market', name: 'Market day', status: 'sketch', line: 'A fair that wants to become a town.',
+    start: 'A region late in the game: a market place, a port, and its villages', gens: 'Four', people: (z) => (z === 'l' ? 'about 2,000' : 'about 1,000'),
+    land: 'Crowded', stores: 'Coin, where it exists', customs: 'Mixed; the Church has its own',
+    explores: 'Towns and regions, crafts, merchants and the world beyond (slices 9 and 10).',
+    year: [['Spring', 'Ships arrive'], ['Summer', 'Learn a craft'], ['Autumn', 'The fair'], ['Later', 'A charter']],
+    lives: [['holder', 'A master craftsman', true], ['servant', 'An apprentice'], ['child', 'A merchant\'s daughter']] },
+];
+
+// ---- positions: what each commands and what lies ahead, from design 1, 5, 10 and 15 ----
+const POS = {
+  holder: { name: 'Holder', commands: ['Directs the household: places the next field, meadow or building and sets the season\'s work',
+    'Answers for the household\'s members when a marriage is negotiated', 'Speaks at the meeting (custom: landholders speak)'],
+    ahead: ['Hands the farm over when the heir marries, and retires on it', 'The line\'s prestige starts here'] },
+  widow: { name: 'Widow, holds the farm', commands: ['Directs the household as a holder does', 'Keeps the farm for life (custom: the widow)',
+    'Speaks at the meeting as a landholder'], ahead: ['The farm passes to her child when she dies or steps down', 'May remarry: a negotiation'] },
+  bachelor: { name: 'Holder, unmarried', commands: ['Directs the household, alone', 'Speaks at the meeting'],
+    ahead: ['No child: the farm goes to kin, a nephew first', 'A late marriage would change everything'] },
+  spouse: { name: 'Holder\'s wife', commands: ['Her own work and queue; the household\'s open work', 'May take up a cause and argue it with her prestige'],
+    ahead: ['No voice at the meeting while only landholders speak', 'As a widow she would keep the farm for life'] },
+  heir: { name: 'Heir', commands: ['His own work; the household\'s open work', 'Answers for himself when his marriage is negotiated'],
+    ahead: ['Takes over the farm when he marries', 'Buys out his brothers and sisters (custom: how many heirs)'] },
+  heiress: { name: 'Heiress', commands: ['Her own work; the household\'s open work', 'Answers for herself when her marriage is negotiated'],
+    ahead: ['Inherits because there is no son (custom: sons first)', 'Her husband moves to her farm (custom: the couple lives with the land)'] },
+  child: { name: 'Younger child', commands: ['Their own work; the household\'s open work', 'At the moving round: take service, claim an empty farm, or move out to new land'],
+    ahead: ['Bought out, not landed; a daughter\'s share is half a son\'s (systerlott)', 'The life the game does not prescribe: most open, least secure'] },
+  servant: { name: 'Servant', commands: ['The work of the household served', 'At the moving round: stay, move to another farm, or claim one'],
+    ahead: ['Eats at the holder\'s table; owns nothing', 'Leaving service and holding land is the long ambition'] },
+  minor: { name: 'Child', commands: [], ahead: [] },
+};
+
+// ---- people ----
+const M = ['Olof', 'Erik', 'Nils', 'Lars', 'Jon', 'Sven', 'Torsten', 'Bengt', 'Anders', 'Per', 'Håkan', 'Gunnar', 'Mats', 'Karl', 'Sigurd', 'Ragnvald'];
+const F = ['Ingrid', 'Karin', 'Margit', 'Elin', 'Brita', 'Gunhild', 'Ragnhild', 'Estrid', 'Kerstin', 'Sigrid', 'Helga', 'Cecilia', 'Ingeborg', 'Katarina', 'Tora', 'Gudrun'];
+const FARMS = ['Storgården', 'Backen', 'Nygård', 'Sunnanå', 'Norrgården', 'Åkerby', 'Lunda', 'Hallsta', 'Vik', 'Berga', 'Ekeby', 'Sörgården', 'Näsbacken', 'Tomta', 'Hagen', 'Mellangården'];
+const VILL = ['Näs', 'Utö', 'Hognes', 'Sandvik', 'Björkö', 'Ramsmora', 'Ängsholm', 'Lidö', 'Storö', 'Grundvik'];
+const P = (n, a, s, r, note) => ({ n, a, s, r, note });
+
+function heirsWorld() {
+  return [
+    { name: 'Näs', note: 'The culture\'s centre. Sons first, the eldest; the heir takes over when he marries.', farms: [
+      { name: 'Storgården', tests: 'The eldest inherits; the younger two want out', food: 410, people: [
+        P('Olof Eriksson', 61, 'm', 'holder'), P('Ingrid Håkansdotter', 58, 'f', 'spouse', 'Born on Utö: the one marriage between the villages.'),
+        P('Erik Olofsson', 29, 'm', 'heir', 'Unmarried at 29, so the farm is still his father\'s.'), P('Karin Olofsdotter', 25, 'f', 'child', 'Wants out.'),
+        P('Nils Olofsson', 20, 'm', 'child', 'Wants out. As Bengt\'s younger nephew he may inherit on Utö.')] },
+      { name: 'Backen', tests: 'An heiress; the widow\'s rights', food: 250, people: [
+        P('Margit Jonsdotter', 54, 'f', 'widow'), P('Elin Persdotter', 22, 'f', 'heiress', 'An only child. Whoever marries her comes to Backen.')] },
+      { name: 'Ödegården', tests: 'Claims; decay', empty: 'Empty for 6 years, after a couple and their baby died. Kin of the old family claim first.' },
+      { name: 'Nygård', tests: 'A minor heir and a guardian', food: 300, people: [
+        P('Lars Andersson', 33, 'm', 'holder'), P('Brita Nilsdotter', 30, 'f', 'spouse'), P('Anders Larsson', 8, 'm', 'minor'), P('Kerstin Larsdotter', 5, 'f', 'minor')] },
+    ] },
+    { name: 'Utö', note: 'Remote, across the water. Any child inherits; handover at death; looser claims; a wider voice at the meeting.', farms: [
+      { name: 'Sunnanå', tests: 'Sons first against any child; a landless eldest daughter', food: 380, people: [
+        P('Jon Svensson', 52, 'm', 'holder', 'On Utö the farm changes hands at his death, not before.'), P('Gunhild Torstensdotter', 49, 'f', 'spouse'),
+        P('Ragnhild Jonsdotter', 27, 'f', 'heiress', 'The eldest: heir on Utö, where any child inherits. By the custom of Näs her brother Sven would be.'),
+        P('Sven Jonsson', 24, 'm', 'child', 'Would be heir under the custom of Näs. A cause to argue at the meeting.'),
+        P('Torsten Jonsson', 20, 'm', 'child'), P('Estrid Jonsdotter', 16, 'f', 'minor')] },
+      { name: 'Gamla Vik', tests: 'Rebuilding; scrub', empty: 'A ruin, empty for 15 years. Scrub has taken the fields.' },
+      { name: 'Hagen', tests: 'Inheritance by a younger nephew', food: 190, people: [P('Bengt Håkansson', 47, 'm', 'bachelor', 'Brother of Ingrid at Storgården.')] },
+    ] },
+  ];
+}
+function foundersWorld(r) {
+  const pick = (a) => a.splice((r() * a.length) | 0, 1)[0], m = [...M], f = [...F], fn = [...FARMS];
+  const farms = [];
+  for (let i = 0; i < 4; i++) {
+    const h = pick(m), w = pick(f), ha = 24 + ((r() * 10) | 0);
+    farms.push({ name: pick(fn), tests: 'No field yet', food: 365, people: [P(`${h} ${pick(m)}sson`, ha, 'm', 'holder'), P(`${w} ${pick(m)}sdotter`, ha - 1 - ((r() * 5) | 0), 'f', 'spouse')] });
+  }
+  farms[0].people.push(P(`${pick(m)} ${pick(m)}sson`, 19, 'm', 'servant', 'The farmhand.'));
+  farms[2].people.push(P(`${pick(f)} ${pick(m)}sdotter`, 18, 'f', 'servant', 'The maid.'));
+  return [{ name: VILL[(r() * VILL.length) | 0], note: 'Founded this spring. Old Nordic customs; first cousins or further may marry.', farms }];
+}
+function populousWorld(r, size) {
+  const nv = { t: 4, s: 6, m: 8, l: 8 }[size], vn = [...VILL], out = [];
+  const one = (a) => a[(r() * a.length) | 0];
+  for (let v = 0; v < nv; v++) {
+    const x = r(), nf = x < 0.6 ? 2 + ((r() * 4) | 0) : x < 0.9 ? 6 + ((r() * 5) | 0) : 12 + ((r() * 5) | 0), fn = [...FARMS], farms = [];
+    for (let i = 0; i < nf; i++) {
+      const h = one(M), ha = 28 + ((r() * 24) | 0), people = [P(`${h} ${one(M)}sson`, ha, 'm', 'holder'), P(`${one(F)} ${one(M)}sdotter`, ha - ((r() * 6) | 0), 'f', 'spouse')];
+      let age = Math.min(26, ha - 22), son = false; const kids = [];
+      while (age > 0 && kids.length < 6) { const s = r() < 0.5 ? 'm' : 'f'; kids.push([s, age]); age -= 2 + ((r() * 2) | 0); }
+      kids.forEach(([s, a], k) => {
+        let role = a < ADULT ? 'minor' : 'child';
+        if (s === 'm' && !son) { son = true; if (a >= ADULT) role = 'heir'; }
+        people.push(P(`${one(s === 'm' ? M : F)} ${h}s${s === 'm' ? 'son' : 'dotter'}`, a, s, role));
+      });
+      if (!kids.some((k) => k[0] === 'm') && kids.length && kids[0][1] >= ADULT) people[2].r = 'heiress';
+      if (r() < 0.3) { const s = r() < 0.5 ? 'm' : 'f'; people.push(P(`${one(s === 'm' ? M : F)} ${one(M)}s${s === 'm' ? 'son' : 'dotter'}`, 18 + ((r() * 12) | 0), s, 'servant')); }
+      farms.push({ name: fn.splice((r() * fn.length) | 0, 1)[0] || `Farm ${i + 1}`, food: 150 + ((r() * 300) | 0), people });
+    }
+    out.push({ name: vn.splice((r() * vn.length) | 0, 1)[0], note: `${nf < 6 ? 'A small' : nf < 12 ? 'A medium' : 'A large'} village of ${nf} farms. Old Nordic customs.`, farms });
+  }
+  return out;
+}
+function makeWorld(sc, seed, size) {
+  const r = mulberry32(seed * 31 + 7), base = { heirs: 'heirs', outland: 'heirs', founders: 'founders' }[sc] || 'populous';
+  const v = base === 'heirs' ? heirsWorld() : base === 'founders' ? foundersWorld(r) : populousWorld(r, size);
+  let id = 0;
+  v.forEach((vl, vi) => vl.farms.forEach((f) => (f.people || []).forEach((p) => { p.id = id++; p.farm = f; p.village = vi; })));
+  return v;
+}
+
+// ---- the chart: a stand-in island from the seed (the game would show its own minimap) ----
+function drawChart(cv, seed, marks, sel) {
+  const W = 66, H = 46, c = cv.getContext('2d'), r = mulberry32(seed + 1), blobs = [];
+  cv.width = W * 4; cv.height = H * 4;
+  for (let i = 0; i < 7; i++) blobs.push([10 + r() * (W - 20), 9 + r() * (H - 18), 7 + r() * 10]);
+  const hgt = (x, y) => { let h = 0; for (const [bx, by, br] of blobs) { const d = Math.hypot(x - bx, y - by) / br; h = Math.max(h, 1 - d); } return h > 0 ? h + Math.sin(x * 1.3 + seed) * Math.cos(y * 1.1 - seed) * 0.1 : h; };
+  const land = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const h = hgt(x + (y % 2) * 0.5, y);
+    c.fillStyle = h > 0.86 ? '#8c9186' : h > 0.5 ? '#4f7b4c' : h > 0.14 ? '#86a65e' : h > 0.05 ? '#d9cfa0' : h > -0.1 ? '#2a5d86' : '#16395f';
+    c.fillRect(x * 4 + (y % 2) * 2, y * 4, 4, 4);
+    if (h > 0.16 && h < 0.5) land.push([x, y]);
+  }
+  const spots = [];
+  for (let i = 0; i < marks && land.length; i++) {
+    let best = null, bd = -1;
+    for (let k = 0; k < 30; k++) { const p = land[(r() * land.length) | 0], d = Math.min(99, ...spots.map((s) => Math.hypot(s[0] - p[0], s[1] - p[1]))); if (d > bd) { bd = d; best = p; } }
+    spots.push(best);
+  }
+  spots.forEach(([x, y], i) => {
+    c.beginPath(); c.arc(x * 4 + 2, y * 4 + 2, i === sel ? 7 : 4.5, 0, 7);
+    c.fillStyle = i === sel ? '#f6e7a8' : '#fbfdfc'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#17313a'; c.stroke();
+  });
+  return spots.map(([x, y]) => [(x * 4 + 2) / cv.width, (y * 4 + 2) / cv.height]);
+}
+
+// ---- state and drawing ----
+const S = { step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
+const scen = () => SCENARIOS.find((s) => s.key === S.sc);
+const pawns = () => S.world.flatMap((v) => v.farms.flatMap((f) => f.people || []));
+const hue = (p) => (p.n.charCodeAt(0) * 37 + p.n.length * 53 + p.a * 7) % 360;
+const face = (p, big) => `<span class="face${big ? ' big' : ''}" style="background:hsl(${hue(p)} 32% ${p.a < ADULT ? 55 : 38}%)">${esc(p.n.split(' ').map((x) => x[0]).join(''))}</span>`;
+const headBar = (title) => `<div class="head"><h1>${title}</h1>
+  <ol class="steps"><li ${S.step === 1 ? 'aria-current="step"' : ''}>1 The start</li><li ${S.step === 2 ? 'aria-current="step"' : ''}>2 Whom to play</li></ol></div>
+  <div class="legend"><span>${tag('built')} in the game today</span><span>${tag('designed')} in design.md, not built</span><span>${tag('sketch')} an idea for this mock</span></div>`;
+
+function step1() {
+  const s = scen(), z = SIZES[S.size];
+  $('app').innerHTML = `${headBar('New archipelago')}
+  <div class="panes">
+    <section>
+      <h3>Starting scenario</h3>
+      <div class="choices">${SCENARIOS.map((x) => `<button type="button" class="choice" data-sc="${x.key}" aria-pressed="${x.key === S.sc}">
+        <b>${esc(x.name)}</b>${tag(x.status)}<small>${esc(x.line)}</small></button>`).join('')}</div>
+      <h3>The land</h3>
+      <div class="mapform">
+        <div style="display:grid;gap:8px">
+          <label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>
+          <label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll" aria-label="Another seed">Another</button></span></label>
+          <small>${esc(z.note)}</small>
+        </div>
+        <div><canvas class="chart" id="chart1" aria-label="A sketch of the island for this seed"></canvas><small>Preview ${tag('sketch')}</small></div>
+      </div>
+    </section>
+    <section class="detail">
+      <h2>${esc(s.name)}</h2>
+      <p>${esc(s.explores)}</p>
+      <dl class="facts">
+        <dt>Who starts</dt><dd>${esc(s.start)}</dd>
+        <dt>People</dt><dd>${esc(s.people(S.size))} on a ${z.name.toLowerCase()} map</dd>
+        <dt>Generations</dt><dd>${esc(s.gens)}</dd>
+        <dt>Land</dt><dd>${esc(s.land)}</dd>
+        <dt>Stores</dt><dd>${esc(s.stores)}</dd>
+        <dt>Customs</dt><dd>${esc(s.customs)}</dd>
+      </dl>
+      <h3>${s.key === 'founders' ? 'The first year' : 'What is waiting'} ${s.status === 'sketch' ? '' : tag(s.key === 'founders' ? 'designed' : 'sketch')}</h3>
+      <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
+      <h3>Lives to try ${tag('sketch')}</h3>
+      <div class="lives">${s.lives.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${(S.life || s.lives[0][0]) === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>
+      <small>You choose the person after the land is raised, from those who live there. This only decides whom the next screen shows first.</small>
+    </section>
+  </div>
+  <div class="foot"><span class="muted">${s.status === 'sketch' ? 'This scenario is a sketch. The mock raises a stand-in world for it.' : 'Any living adult may be played; the scenario suggests one (design.md, Which pawn).'}</span>
+    <button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
+  drawChart($('chart1'), S.seed, 0, -1);
+}
+
+function loading() {
+  $('app').innerHTML = `<div class="loading"><h2 id="lt">Raising the land</h2><div class="bar"><i id="lb"></i></div></div>`;
+  requestAnimationFrame(() => { $('lb').style.width = '100%'; });
+  setTimeout(() => { if ($('lt')) $('lt').textContent = scen().key === 'founders' ? 'Settling the founders' : 'Waking the villages'; }, 450);
+  setTimeout(() => {
+    S.world = makeWorld(S.sc, S.seed, S.size); S.step = 2; S.only = 'all'; S.done = false;
+    const want = S.life || scen().lives[0][0], all = pawns().filter((p) => p.a >= ADULT);
+    const p = all.find((x) => x.r === want) || all.find((x) => x.r === 'widow' && want === 'widow') || all.find((x) => x.r === 'holder') || all[0];
+    S.suggested = (all.find((x) => x.r === scen().lives[0][0]) || all[0]).id; S.pawn = p.id; S.village = p.village; draw();
+  }, 1000);
+}
+
+const FILTERS = [['all', 'Everyone'], ['holder', 'Holders'], ['heir', 'Heirs'], ['child', 'Younger children'], ['servant', 'Servants']];
+const inFilter = (p) => S.only === 'all' || (S.only === 'holder' ? ['holder', 'widow', 'bachelor'].includes(p.r) : S.only === 'heir' ? ['heir', 'heiress'].includes(p.r) : p.r === S.only);
+
+function step2() {
+  const v = S.world[S.village], p = pawns().find((x) => x.id === S.pawn), pos = POS[p.r], f = p.farm;
+  const living = pawns().length, kin = f.people.filter((x) => x !== p);
+  const days = f.food || 0, grown = kin.filter((x) => x.a >= ADULT), next = grown.find((x) => x.r === 'heir' || x.r === 'heiress') || grown[0];
+  if (S.done) {
+    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game would begin here.</b> The camera glides down to ${esc(f.name)} in ${esc(v.name)}, and you are
+      ${esc(p.n)}, ${p.a}, ${esc(pos.name.toLowerCase())}. The world goes on without you; when ${p.s === 'm' ? 'he' : 'she'} dies you go on as an heir, a relative or someone close.</div>
+      <div class="foot"><button type="button" id="again">Choose someone else</button><button type="button" id="restart">Start over</button></div>`;
+    return;
+  }
+  $('app').innerHTML = `${headBar('Whom to play')}
+  <div class="panes">
+    <section>
+      <div class="mapform">
+        <div style="display:grid;gap:6px"><h2>${esc(scen().name)}</h2>
+          <small>Seed ${S.seed}, ${SIZES[S.size].name.toLowerCase()} map. ${living} living in ${S.world.length} village${S.world.length > 1 ? 's' : ''}${S.sc === 'populous' && S.size !== 't' ? ' shown here; the game would list them all' : ''}.</small></div>
+        <canvas class="chart" id="chart2" aria-label="The villages on the chart; click one to choose it" style="cursor:pointer"></canvas>
+      </div>
+      <div class="villages">${S.world.map((x, i) => `<button type="button" data-v="${i}" aria-pressed="${i === S.village}">${esc(x.name)} <small style="color:inherit;opacity:.7">${x.farms.length} farms</small></button>`).join('')}</div>
+      <small>${esc(v.note)} ${tag('built')}</small>
+      <div class="lives">${FILTERS.map(([k, l]) => `<button type="button" data-only="${k}" aria-pressed="${S.only === k}">${l}</button>`).join('')}</div>
+      <div class="scroll">${v.farms.map((fm) => `<div class="farm"><header><b>${esc(fm.name)}</b>${fm.tests ? `<small>${esc(fm.tests)}</small>` : ''}</header>
+        ${fm.empty ? `<small>${esc(fm.empty)} No one to play here, but a younger child or a servant may claim it at the moving round.</small>` : fm.people.map((x) => `
+          <button type="button" class="pawn${inFilter(x) && x.a >= ADULT ? '' : ' dim'}" data-p="${x.id}" aria-pressed="${x.id === S.pawn}" ${x.a < ADULT ? 'disabled' : ''}>
+            ${face(x)}<span>${esc(x.n)}<small>${x.a}, ${esc(POS[x.r].name.toLowerCase())}${x.a < ADULT ? ', too young to play' : ''}</small></span>${x.id === S.suggested ? '<span class="tag built">Suggested</span>' : ''}</button>`).join('')}</div>`).join('')}</div>
+    </section>
+    <section class="detail">
+      <div class="who">${face(p, true)}<div><h2>${esc(p.n)}</h2><span>${p.a}, ${esc(pos.name.toLowerCase())} at ${esc(f.name)}, ${esc(S.world[p.village].name)}</span></div></div>
+      ${p.note ? `<p>${esc(p.note)}</p>` : ''}
+      <h3>What this position commands ${tag('designed')}</h3>
+      <ul class="plain">${pos.commands.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h3>What lies ahead ${tag('designed')}</h3>
+      <ul class="plain">${pos.ahead.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h3>The household ${tag('built')}</h3>
+      <dl class="facts">
+        <dt>Under one roof</dt><dd>${kin.length ? kin.map((x) => `${esc(x.n.split(' ')[0])} (${x.a})`).join(', ') : 'No one else'}</dd>
+        <dt>Food laid by</dt><dd>${days} days of need${days >= 365 ? ', and seed' : ''}</dd>
+        <dt>If ${p.s === 'm' ? 'he' : 'she'} dies</dt><dd>You go on as ${next ? esc(next.n.split(' ')[0]) + (next.r === 'heir' || next.r === 'heiress' ? ', the heir' : '') + ', or another of the household or its kin' : 'any adult, and the chronicle marks the break in the line'}</dd>
+      </dl>
+      <h3>How hard a life ${tag('sketch')}</h3>
+      <p class="muted">${{ holder: 'Secure. The most to decide from the first day.', widow: 'Secure while she lives; the line hangs on one child.', bachelor: 'Secure, and a dead end unless he marries.',
+        spouse: 'Secure, with little formal say. Influence runs through ties and prestige.', heir: 'A waiting game: nothing is his until he marries.',
+        heiress: 'Sought after. The marriage decides everything.', child: 'Open and insecure: every road leads away from home.', servant: 'The hardest start. Nothing to lose.' }[p.r]}</p>
+    </section>
+  </div>
+  <div class="foot"><span class="muted">You can change your mind later: the pawn panel lets you play any living adult.</span>
+    <button type="button" id="back2">Back</button><button type="button" id="watch">Watch without playing</button><button type="button" class="primary" id="play">Play as ${esc(p.n.split(' ')[0])}</button></div>`;
+  S.spots = drawChart($('chart2'), S.seed, S.world.length, S.village);
+}
+const draw = () => (S.step === 1 ? step1() : step2());
+
+$('app').addEventListener('click', (e) => {
+  const b = e.target.closest('button, canvas'); if (!b) return;
+  const d = b.dataset;
+  if (b.id === 'chart2') {
+    const q = b.getBoundingClientRect(), x = (e.clientX - q.left) / q.width, y = (e.clientY - q.top) / q.height;
+    let best = 0, bd = 9; S.spots.forEach(([sx, sy], i) => { const dd = Math.hypot(sx - x, sy - y); if (dd < bd) { bd = dd; best = i; } });
+    S.village = best; draw(); return;
+  }
+  if (d.sc) { S.sc = d.sc; S.life = null; }
+  else if (d.life) S.life = d.life;
+  else if (d.v) S.village = +d.v;
+  else if (d.only) S.only = d.only;
+  else if (d.p) S.pawn = +d.p;
+  else if (b.id === 'reroll') S.seed = (Math.random() * 1e6) | 0;
+  else if (b.id === 'go') { loading(); return; }
+  else if (b.id === 'back2' || b.id === 'restart') { S.step = 1; S.done = false; }
+  else if (b.id === 'play') S.done = true;
+  else if (b.id === 'again') S.done = false;
+  else if (b.id === 'watch') { $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game would begin with no one played,</b> as it does today after "Not now".</div><div class="foot"><button type="button" id="again">Choose someone</button></div>`; return; }
+  else return;
+  draw();
+});
+$('app').addEventListener('change', (e) => {
+  if (e.target.id === 'size') S.size = e.target.value;
+  else if (e.target.id === 'seed') S.seed = +String(e.target.value).replace(/\D/g, '').slice(0, 9) || 0;
+  else return;
+  draw();
+});
+draw();
+</script>
