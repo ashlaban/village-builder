@@ -137,11 +137,15 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     return !!a.job && a.job.key === k && a.phase === 'work';
   }, target, { timeout: 120000 });
   await page.click('[data-speed="0"]');
-  // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile
+  // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the Actions panel, which rises from the dock over
+  // the view's middle (VB-324), is folded to choose it, and opened again
   await page.click('#playBox [data-play="follow"]'); await page.waitForTimeout(600);
-  await page.click('#playBox [data-play="walk"]');
+  await page.click('#playBox [data-play="walk"]'); await page.click('#actionSheet .sheet-expand');
   const box = await page.locator('canvas').first().boundingBox();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  if (!(await page.evaluate((p) => document.elementFromPoint(p.x, p.y).tagName === 'CANVAS', { x: box.x + box.width / 2, y: box.y + box.height / 2 }))) {
+    fail('the folded Actions panel still covers the middle of the view');
+  }
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.click('#actionSheet .sheet-expand');
   await page.waitForTimeout(300);
   if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
   // the automatic behaviour off, the queue emptied: in working hours the pawn takes no work once its job in hand is done

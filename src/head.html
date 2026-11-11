@@ -250,7 +250,7 @@ input, select { font: inherit; color: var(--ink); }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
 .background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 590px; }
+.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-324) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
 /* The dock is icons, each with its name under it (VB-324). */
@@ -261,8 +261,9 @@ input, select { font: inherit; color: var(--ink); }
 .sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
-.people-sheet, .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
-.drawer { left: auto; right: max(14px, env(safe-area-inset-right, 0px)); }
+/* The dock's panels rise from it, centred over it (VB-324); the selection card, opened from the map, keeps the bottom left. */
+.people-sheet, .drawer { left: max(14px, calc(50% - 215px)); right: auto; }
+.tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
 .sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
   overflow-wrap: anywhere; }
@@ -313,17 +314,11 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
 .notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
-/* Notifications (VB-098): toasts at the bottom centre, just above the dock, the newest lowest (Kim, 9 Nov; first built at the bottom left).
-   On a window too narrow to clear an open sheet they move to the middle of what is left free (between a left sheet and the minimap, or left
-   of the drawer). They hide the "painting detail" line while they are up. */
-.toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px);
+/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-324: the dock's
+   panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
+   which a narrow screen's date on two lines moves, is measured by page/notices. */
+.toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
   width: min(380px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-body:has(.toast) .lod { visibility: hidden; }
-@media (min-width: 1025px) and (max-width: 1300px) {
-  body:has(.people-sheet:not([hidden])):not(:has(.drawer:not([hidden]))) .toasts,
-  body:has(.tile:not([hidden])):not(:has(.drawer:not([hidden]))) .toasts { left: calc(50% + 115px); width: min(380px, calc(100vw - 700px)); }
-  body:has(.drawer:not([hidden])):not(:has(.people-sheet:not([hidden]))):not(:has(.tile:not([hidden]))) .toasts { left: calc(50% - 222px); }
-}
 .toast { pointer-events: auto; border-radius: 12px; padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
@@ -337,7 +332,6 @@ body:has(.toast) .lod { visibility: hidden; }
   margin: 2px 0; padding: 4px 10px; font-size: 14px; text-align: left; }
 .succession li i { font-style: normal; font-size: 13px; color: var(--muted); }
 @media (pointer: coarse) { .succession li button { min-height: 44px; } }
-body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 130px); }
 .play { margin: 8px 0; }
 .play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
@@ -477,7 +471,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .map-tools { right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 62px); }
   .lod { display: none; }
   .toasts { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; transform: none;
-    top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: auto; }
+    bottom: auto; }
   .tree { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   .tree-card { width: 100%; height: 100%; max-height: 100dvh; border-radius: 0; }
   .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }

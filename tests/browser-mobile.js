@@ -178,8 +178,17 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       assert(mb.x + mb.width >= ck.x + ck.width - 12 && mb.y < 80, `Main menu ends the top bar: ${JSON.stringify([mb, ck])}`);
       await fits('#mapTools');
       assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
-      await page.click('#settlersBtn'); await fits('#peopleSheet'); await page.click('#peopleClose');
-      await page.click('#customsBtn'); await fits('#drawer'); await page.click('#drawerClose');
+      // VB-324: the dock's panels rise from it (centred over it on a wide screen); the notifications start just under the top bar
+      const rises = async (id) => {
+        const [p, d] = [await page.locator(id).boundingBox(), await page.locator('.navigation').boundingBox()];
+        assert(p.y + p.height <= d.y && (width <= 1024 || Math.abs(p.x + p.width / 2 - d.x - d.width / 2) <= 2),
+          `${id} rises from the dock at ${width}: ${JSON.stringify([p, d])}`);
+      };
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r()))); // the bar is measured in the frame after a resize
+      const toastsTop = await page.evaluate(() => document.getElementById('toasts').getBoundingClientRect().top);
+      assert(toastsTop > ck.y + ck.height && toastsTop < ck.y + ck.height + 24, `the notifications start under the top bar: ${toastsTop}`);
+      await page.click('#settlersBtn'); await fits('#peopleSheet'); await rises('#peopleSheet'); await page.click('#peopleClose');
+      await page.click('#customsBtn'); await fits('#drawer'); await rises('#drawer'); await page.click('#drawerClose');
       await page.click('#treeBtn'); await fits('.tree-card'); await page.click('#treeClose');
     }
     await page.setViewportSize({ width: 390, height: 844 });
