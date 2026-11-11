@@ -217,3 +217,13 @@ what is left and cuts it to 0.5 s, with gzip off the main thread.
   round's day as its targets, and daily life's share.
 - VB-199 and VB-200: `medium-y60` replaced by `medium-ref`; the save counted on the main thread.
 - New: VB-226 (the save, after the folds) and VB-227 (jobs).
+
+## recordFold's history ratio (11 November, VB-268)
+
+The fold walked its whole window once for each village and once more for the events of none, so its work was window times
+(villages + 1), and the window itself doubles at year 25, when the long (generation) fold starts: at `small-y5` only the short
+window runs, at `small-y40` both. History ratio 2.993 tonight (1.558 when VB-199 landed). The fold now takes a slice of the slots a
+day over four days (one scan to mark, one to fold, no village loop): 1.382, residual +0.13. What is left is the long window itself:
+each routine event is passed twice at two years and twice again at 25, so the work per slot at year 40 is about twice that at year 5
+(361 and 1,017 slots passed at the two saves, 0.033 and 0.046 a living pawn-day). Cutting it further needs the marking scan replaced
+by a position index per year (a new state field); the work is under 0.05 a pawn-day, so it is left as a residual.
