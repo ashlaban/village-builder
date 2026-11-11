@@ -145,6 +145,7 @@ body {
 .cust td.dev { background: rgba(201, 162, 74, 0.16); }
 .sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
 .sbar i { display: block; height: 100%; }
+.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -310,6 +311,7 @@ input, select { font: inherit; color: var(--ink); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
 .map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 #noticeBtn[aria-expanded="true"] { background: var(--edge); }
+@media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
@@ -468,7 +470,9 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .history p.more { color: var(--muted); }
 button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: var(--ink); text-align: left;
   text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
-@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; } }
+@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; }
+  .tabs button, .history .kinds button, button.chip, a.chip { min-height: 44px; padding: 5px 14px; }
+  .settlers p button.show-map { display: inline-block; padding: 12px 0; } }
 .tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
 .tile.peek .sheet-head { border-bottom: 0; }
 .settlers li { display: flex; align-items: flex-start; gap: 8px; }
@@ -631,6 +635,9 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .scard > *:not(.cpic) { margin: 0 10px 0 0; } .scard > b { margin-top: 8px; } .scard > .stats { margin-bottom: 8px; }
   .start-bar { gap: 8px; padding: 10px 12px; }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
+  /* room for the map size's words and the seed's six digits in one row, from 360px up */
+  .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
+  .start-bar select, .start-bar input { padding-left: 8px; padding-right: 6px; } .start-bar .seedrow button { padding: 6px 8px; }
   .start-bar .grow { display: none; }
   .start-bar > button { flex: 1 1 120px; }
   .scard .cpic { align-items: center; }
@@ -705,6 +712,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .clock { flex-wrap: wrap; padding: 6px 8px; gap: 2px 6px; justify-content: space-between; }
   .calendar { flex: 1 1 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px; }
   .clock strong, .clock span { display: inline; }
+  .tile .sheet-head strong { font-size: 16px; }
 }
 </style>
 </head>
@@ -14505,7 +14513,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       let body = '';
       if (expanded) {
         const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-        body += `<div class="farm"><p><button type="button" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
+        body += `<div class="farm"><p><button type="button" class="show-map" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
           <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
         if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
         if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
@@ -14546,7 +14554,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
       let body = '';
       if (expanded) {
-        body = `<p><button type="button" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
+        body = `<p><button type="button" class="show-map" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
           + households.map(household).join('');
         const commonsKey = `commons-${v.id}`;
         let commons = '';
@@ -16552,8 +16560,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
         optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
         <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
           `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw" style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(
-          support[offset + j] * 100)}%`).join(' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
+        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
+          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
+            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
     });
     h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
       `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
@@ -16575,8 +16584,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
-    $('drawerBody').innerHTML = `<h2 class="dh">Debug</h2>
-      <p class="dm" id="dbgWhen"></p>
+    $('drawerBody').innerHTML = `<p class="dm" id="dbgWhen"></p>
       <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
       <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button
         type="button" data-act="move">Run the moving round</button></div>
@@ -16773,7 +16781,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'b328f6ac80', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'c4094c3506', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
