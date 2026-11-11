@@ -5749,6 +5749,9 @@ VB['sim/herds'] = (() => {
     if ((kind === 'cow' ? cowsOf(st, hh) - 1 : cowsOf(st, hh)) < 1 || hh.hay < winterNeed(st, hh) - need) return false;
     const dest = herdFor(st, to, kind === 'ewe' ? 'sheep' : 'cattle');
     if (kind === 'ewe') { from.ewes--; dest.ewes++; } else dest.head.push(...from.head.splice(idx, 1));
+    // an animal marked for slaughter may be the one that went: the cull list names only animals still there (as sim/byre's tidy)
+    const left = { ewe: from.ewes, ram: from.rams, lamb: from.lambs };
+    from.cull = from.cull.filter((e) => (kind === 'ewe' ? left[e.sheep]-- > 0 : from.head.some((h) => h.id === e.head)));
     const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
     if (hay > 0) { hh.hay -= hay; to.hay = (to.hay || 0) + hay; }
     return true;
@@ -16956,7 +16959,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c820b82858', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '7cc06f10c4', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
