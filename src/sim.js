@@ -35,6 +35,7 @@ const Sim = (() => {
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
+  const { left: depositLeftNow } = VB['sim/dig']; // VB-344: loads left now, bog iron grown back
 
   return {
     seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
@@ -50,6 +51,7 @@ const Sim = (() => {
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, knowsDeposit, depositKnown, goodwillOf, explainAllowance,
+    depositLeftNow,
     giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop, answer,
   };
