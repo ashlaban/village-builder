@@ -369,6 +369,12 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
     if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
   }
+  // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
+  if (st.w.rain) {
+    let off = 0;
+    for (let i = 0; i < N; i++) if (!(st.w.rain[i] >= 0 && st.w.rain[i] <= 1) || (st.w.water[i] && st.w.rain[i] !== 0)) off++;
+    if (off || !st.w.wind || Math.abs(Math.hypot(st.w.wind[0], st.w.wind[1]) - 1) > 1e-9) bad.push(`w.rain, w.wind: ${off} tiles out of range, or no unit wind`);
+  }
   // fish stocks (VB-117): from 0 to 1, set on a day not after today; below 1 or set only on a river or small lake tile, whose stock runs down
   const { fish, fishDay } = st.w;
   if (fish) {
