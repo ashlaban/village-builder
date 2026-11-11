@@ -20,7 +20,7 @@
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [131, 156], s: [321, 356], m: [806, 851], l: [801, 864] },
+    populous: { t: [135, 157], s: [320, 352], m: [807, 835], l: [800, 859] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',

@@ -4,8 +4,8 @@
 VB['gen/rivers'] = (() => {
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
-  // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
-  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3, longEnough: 15, noise: 10 };
+  // Which courses become rivers goes by drainage basin (VB-342): the main stems of the largest catchments first (trace).
+  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3 };
   // Fords: in stretches of `every` land tiles down each reach, the best site is a ford; a last stretch under `least` joins the one before.
   // A site's score (lower is better) is its drop to the next tile per `drop` of elevation, plus the root of its catchment per `narrow`,
   // plus up to `noise` at random: a ford is flat and narrow.
@@ -79,9 +79,6 @@ VB['gen/rivers'] = (() => {
     const acc = new Float64Array(N);
     for (const i of order) acc[i] = water[i] ? 1 : 0.5 + hm[i];
     for (let k = order.length - 1; k >= 0; k--) { const i = order[k], d = down[i]; if (!ocean[d]) acc[d] += acc[i]; }
-    // course length: land tiles from a tile to the sea
-    const len = new Int32Array(N);
-    for (const i of order) len[i] = (water[i] ? 0 : 1) + (ocean[down[i]] ? 0 : len[down[i]]);
     // steps to the nearest water, and islands (land joined through land neighbours) with their sizes
     const wet = new Int32Array(N).fill(-1), q = [];
     for (let i = 0; i < N; i++) if (water[i]) { wet[i] = 0; q.push(i); }
@@ -97,13 +94,24 @@ VB['gen/rivers'] = (() => {
       }
       left.push(Math.round(iq.length / RIVERS.perTiles));
     }
-    // sources: long courses first, with noise so they spread over the island instead of crowding the one longest drainage
-    const cand = [], score = new Float64Array(N);
-    for (let i = 0; i < N; i++) {
-      if (water[i] || !sources.includes(biome[i]) || wet[i] < RIVERS.fromWater) continue;
-      score[i] = Math.min(len[i], RIVERS.longEnough) + RIVERS.noise * rand(); cand.push(i);
+    // sources, by drainage basin: every basin is cut into stems. A stem runs from where it ends (at the sea, or on a larger stem) up
+    // the tributary of the largest catchment at each fork; the other tributaries are stems of their own. A stem's source is its highest
+    // tile in a source biome far enough from water, and stems are taken in the order of the catchment they carry: the trunk of the
+    // largest basin first, then large tributaries and the trunks of smaller basins.
+    const up = new Array(N), stems = [], cand = [], carried = new Float64Array(N);
+    for (const i of order) { const d = down[i]; if (ocean[d]) stems.push(i); else (up[d] || (up[d] = [])).push(i); }
+    for (let h = 0; h < stems.length; h++) {
+      let top = -1;
+      for (let i = stems[h]; i >= 0;) {
+        if (!water[i] && sources.includes(biome[i]) && wet[i] >= RIVERS.fromWater) top = i;
+        let best = -1;
+        for (const j of up[i] || []) if (best < 0 || acc[j] > acc[best] || (acc[j] === acc[best] && j < best)) best = j;
+        for (const j of up[i] || []) if (j !== best) stems.push(j);
+        i = best;
+      }
+      if (top >= 0) { carried[top] = acc[stems[h]]; cand.push(top); }
     }
-    cand.sort((a, b) => score[b] - score[a] || a - b);
+    cand.sort((a, b) => carried[b] - carried[a] || a - b);
     const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N), starts = [];
     for (const s of cand) {
       if (left[island[s]] <= 0 || blocked[s] || riverTo[s] >= 0) continue;
@@ -370,5 +378,5 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, FORDS, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, minHeap, drainage, trace, width, kind, lines, drawChunk, thin };
 })();

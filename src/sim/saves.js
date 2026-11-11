@@ -179,7 +179,9 @@ VB['sim/saves'] = (() => {
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
   // Since VB-240 a record has no band (pawn.bands holds them): its slot is written 0 and not read.
-  const FORMAT = 3, READS = [3];
+  // Format 4 (VB-342): the same data, on another island: the generator's climate and rivers changed what a seed makes, and a save lies on
+  // its seed's island as generated (heights, rivers and moisture are not saved), so older saves are refused.
+  const FORMAT = 4, READS = [4];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

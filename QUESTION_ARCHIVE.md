@@ -47,6 +47,71 @@ The generator lays bedrock and deposits and the page shows them (`backlog/VB-357
    **A (Kim, 11 Nov):** P: tune when a good uses them.
 6. Further resources to lay in the same way. **P:** salt springs (rare, inland; salt otherwise by ship, as designed), peat (in marsh: fuel where wood is short, a second good of the marsh beside bog iron), flint (in limestone by the coast: strike-a-lights) and amber (rare, on sandy shores: standing, and a good for the ships). Not now: alum, sulphur, saltpetre, calamine and coal, which wait for dyeing, gunpowder, brass and towns.
    **A (Kim, 11 Nov):** All four: salt springs, peat, flint and amber (built in VB-357's second batch). The rest wait as proposed.
+# Archived 11 November 2026 (VB-345)
+
+## VB-345: crops and rotations (raised 11 November 2026)
+Raised in a discussion with Kim on 11 November on how the game should handle different crops, the scale of a hex, planting, yields and the weather; the answers shape the plan task VB-345, which makes them concrete.
+1. What are crops mainly for: risk and the labour calendar, goods chains such as ale and linen, or regional flavour? **P:** risk and the labour calendar.
+   **A (Kim, 11 Nov):** all of those.
+2. Who decides what is sown: a village custom of rotation the head works within, or each household? **P:** a rotation a farm, its default a village custom (one-, two- or three-course), the player as head setting it through a verb of the plan.
+   **A (Kim, 11 Nov):** planning from the household's head, affected by their skill level (not a village custom).
+3. The scale of a hex: are two readings of one grid enough (a site about 10 m across, land about 100 m across, about 0.87 ha, which today's yields and the 10 times compression of distance already imply), or are fields drawn finer than a hex? **P:** two readings of one grid.
+   **A (Kim, 11 Nov):** that's good (two readings of one grid).
+4. Fallow: rest only at first (it restores soil and is not grazed; only the stubble is grazed, once the infield is reaped), or grazed fallow, and so some coordination in the village? **P:** rest only at first.
+   **A (Kim, 11 Nov):** rest only first.
+5. Where does the head's skill act: on choices and timing only, or on yield as well? **P:** choices and timing only, or a poor head is punished twice.
+   **A (Kim, 11 Nov):** choices and timing only.
+6. Is having a crop's seed in the store enough to "know" the crop, or is knowledge kept apart from seed? **P:** seed is enough; a new crop arrives as seed by gift, dowry, the fair or the ship.
+   **A (Kim, 11 Nov):** having seed is enough.
+7. Order: a first batch (barley, winter rye, fallow, peas) as its own arch after slice 3, with the fibre and ale crops in slice 6? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+8. Do the founders arrive with barley only, so that other crops are something a village acquires? **P:** yes.
+   **A (Kim, 11 Nov):** there can be a mix, so different villages have different starts, with scenarios having reasonable presets (e.g. in founders the two villages both have barley and one unique crop).
+9. Rye and peas as the founders' two unique crops, one a village? **P:** yes: each village then lacks something useful, a second sowing season or a soil restorer.
+   **A (Kim, 11 Nov):** yes.
+10. Is the discussion far enough along to record the answers and write a plan task (no code; the implement tasks only after Kim has read the plan)? **P:** yes.
+   **A (Kim, 11 Nov):** yes; discuss the system and its interactions with existing and planned systems first, before creating tasks (done the same day).
+
+## VB-345: crops and rotations, the plan's batches (raised 11 November 2026)
+Asked as the plan task VB-345 wrote `design.md`, Crops and rotations, in batches the same day.
+1. Founders: `design.md` says 10 founders and no word of two villages. Does founders start as two villages? **P:** as built: a village of three farms and a lone farm, a village of one.
+   **A (Kim, 11 Nov):** there are two villages in founders.
+2. Rye at 4:1, not the 5:1 first suggested (late medieval Scandinavian rye is put at about four for one on permanent fields), its worth in its calendar and on fresh land? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+3. The player may hold any rotation there is seed for, while an ordinary head follows the village's usual one: is that the difference wanted, or is the player bound as the pawns are? **P:** the player is free.
+   **A (Kim, 11 Nov):** yes, the player can choose freely (NPC pawns are only limited due to computational concerns).
+4. Does a rotation become the village's usual one when most farms hold it, or does the meeting decide it? **P:** when most farms hold it.
+   **A (Kim, 11 Nov):** yes (most farms hold it), but updated at the meeting.
+
+## VB-345: crops and rotations, seed (raised 11 November 2026)
+Asked as the plan task VB-345 wrote `design.md`, Seed and The scenarios' crops.
+1. One household holds all the island's peas in founders, so a bad first year could lose the crop for good: an acceptable story, or should a second household carry a little pea seed? **P:** either; a second household makes the start less brittle.
+   **A (Kim, 11 Nov):** have a backup household carry extra.
+2. The order in which a hungry household eats its seed: the crop it holds most of first, the last field's seed of each crop last? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+
+## VB-345: crops and rotations, the plan to read (raised 11 November 2026)
+The plan is `design.md`, Goods and the farming year, Crops and rotations (`node tools/doc.js design.md "Crops and rotations"`), with World and scale, Two readings of one grid. What Kim decided on 11 November is marked there; these are its points still Proposed. The tasks VB-346 to VB-356 wait for this reading.
+1. The first crops' numbers (The first crops): rye as barley but for its calendar; peas 60 rations and 20 of seed, soil +0.04; fallow +0.08 for one tilling of 10 hours; rest and peas mend soil only to 1.0. **P:** as written, as starting values; the peas' have no source and the wrap-up tunes them.
+   **A (Kim, 11 Nov):** P (as proposed).
+2. The five rotations, and a farm's fields staggered through one. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
+3. A fallow field does not count against the fields a hand can till, so a farm in three courses holds half as many fields again. **P:** yes; without it three courses feed a farm less than today's three barley fields.
+   **A (Kim, 11 Nov):** P (as proposed).
+4. The heads' thresholds: the lowest and highest fifth of foresight; an ordinary head rests a field below soil 0.85; a trial as a project. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
+5. Seed: seed is the crop's own grain, in subtypes; help and gifts carry grain in the proportion the giver holds; a start in life and settlers' provisions carry a field's seed of each crop. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
+6. The presets beyond founders: heirs (A rye, B peas) and populous (by the ground; about a third of villages barley alone); and in founders, the three farms the rye and the lone farm the peas. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
+7. Each crop's reading of the weather (Crops and the weather, the table), and warmth moving the ripening by up to 2 days. **P:** as written, as starting values with no source; to be fitted to the weather branch's harvest factor when it lands.
+   **A (Kim, 11 Nov):** P (as proposed).
+8. Threshing may wait for winter. **P:** not in this arch; the wrap-up measures the autumn's crowding first.
+   **A (Kim, 11 Nov):** P (as proposed).
+9. The pot: barley and rye one source, peas a second. **P:** yes.
+   **A (Kim, 11 Nov):** P (as proposed).
+10. The tasks' order and priority: VB-346 to VB-350 in a row, then the head's choice, seed, the scenarios, the weather and the player's verbs, all at priority 3. **P:** as written; raise the priority if crops should come before slice 4's work.
+   **A (Kim, 11 Nov):** P (as proposed).
 
 # Archived 11 November 2026 (VB-341)
 

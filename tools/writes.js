@@ -393,7 +393,7 @@ function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, fil
 // ---- assembling the report ----
 const keyOf = (f) => f.replace(/\.js$/, '');
 const order = manifest.map(keyOf);
-const GEN = new Set(['gen', 'gen/rivers', 'gen/paths', 'gen/marks', 'gen/geology']); // the world generator: runs before the state exists
+const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/paths', 'gen/marks', 'gen/geology']); // the world generator: runs before the state exists
 // a field: the entity and its first field (household.larder[].n -> household.larder)
 const fieldOf = (p) => { const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)/); return m ? `${m[1]}.${m[2]}` : p; };
 const entityOf = (p) => p.split('.')[0];

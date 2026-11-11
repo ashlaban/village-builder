@@ -27,6 +27,13 @@ for (const seed of [7, 42]) {
     if (!up[i]) { sources.push(i); check(SOURCES.includes(w.biome[i]), `seed ${seed}: river rises at tile ${i} in biome ${w.biome[i]}`); }
   }
   check(sources.length >= 10, `seed ${seed}: only ${sources.length} river sources`);
+  // by drainage basin (VB-342): the mouth of the map's largest catchment is a river's, and it carries that catchment
+  const { down, order } = Rv.drainage(w), acc = new Float64Array(w.N);
+  for (const i of order) acc[i] = w.water[i] ? 1 : 0.5 + w.hm[i];
+  for (let k = order.length - 1; k >= 0; k--) { const i = order[k]; if (!w.ocean[down[i]]) acc[down[i]] += acc[i]; }
+  let mouth = -1;
+  for (const i of order) if (!w.water[i] && w.ocean[down[i]] && (mouth < 0 || acc[i] > acc[mouth])) mouth = i;
+  check(w.river[mouth] === Math.round(acc[mouth]), `seed ${seed}: the largest basin (${Math.round(acc[mouth])}) has river ${w.river[mouth]} at its mouth`);
   const perIsland = new Map();
   for (const s of sources) perIsland.set(comp.id[s], (perIsland.get(comp.id[s]) || 0) + 1);
   for (const [c, n] of perIsland) check(n <= Math.round(comp.size[c] / Rv.RIVERS.perTiles), `seed ${seed}: island of ${comp.size[c]} tiles has ${n} sources`);

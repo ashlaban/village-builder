@@ -74,6 +74,12 @@ check(!checkState(st).length, 'populous after a year: ' + checkState(st).slice(0
   const paid = H.payInAnimals(s4, o4, n4, 70);
   check(paid === 64, `share in animals: ${paid} of 70 rations paid`);
   check(!checkState(s4).length, 'share: ' + checkState(s4).slice(0, 3).join('; '));
+  // an animal marked for slaughter that is given away leaves the cull list with it (found by tests/invariants.js, VB-342)
+  const s5 = Sim.seed(world(7, 120, 85), 7, 'founders'), o5 = live(s5)[1], n5 = live(s5)[2], c5 = H.herdOf(s5, o5, 'cattle');
+  const cow = c5.head.find((h) => h.kind === 'cow');
+  c5.cull.push({ id: c5.cullSeq++, head: cow.id, lean: false });
+  check(H.startHerd(s5, o5, n5) > 0 && !c5.head.includes(cow) && !c5.cull.length, `start: the marked cow went and its mark with it (${c5.cull.length} left)`);
+  check(!checkState(s5).length, 'start, a marked cow: ' + checkState(s5).slice(0, 3).join('; '));
 }
 
 if (failed) process.exit(1);

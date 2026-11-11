@@ -105,6 +105,13 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   if (!(await page.evaluate(() => window.__start.st === window.__game && !window.__start.demo && document.getElementById('landing').hidden))) {
     fail('the open game did not come back from the start');
   }
+  // Quick start, from the main menu: a tiny populous island, played at once as the scenario's suggested pawn, with nothing to choose
+  await page.click('#menuBtn'); await page.click('#landQuick');
+  await page.waitForFunction(() => !window.__start.demo && window.__start.st !== window.__game && document.getElementById('loader').classList.contains('done')
+    && !document.getElementById('menuBtn').disabled, null, { timeout: 180000 });
+  const quick = await page.evaluate(() => { const s = window.__start.st; return { scenario: s.scenario, played: !!s.player, cols: s.w.COLS,
+    choose: !document.getElementById('choose').hidden, start: !document.getElementById('genScreen').hidden, bar: !document.getElementById('actBar').hidden }; });
+  if (quick.scenario !== 'populous' || quick.cols !== 120 || !quick.played || quick.choose || quick.start || !quick.bar) fail(`quick start: ${JSON.stringify(quick)}`);
   await browser.close();
   if (errors.length) { console.log(`browser-start: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-start: the three scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '
