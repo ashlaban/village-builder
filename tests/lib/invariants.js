@@ -188,6 +188,9 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     for (const k of ['grain', 'wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // dug loads (VB-344): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
+    for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 || h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (h.digAt !== undefined && !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
     for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
@@ -218,7 +221,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale'].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre'].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -392,6 +395,18 @@ function checkState(st) {
     let off = 0;
     for (let i = 0; i < N; i++) if (!(forage[i] >= 0 && forage[i] <= 1) || forageYear[i] < 0 || forageYear[i] > year) off++;
     if (off) bad.push(`w.forage: ${off} tiles with a stock or year out of place`);
+  }
+  // deposits (VB-344, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
+  // and nothing dug but clay and bog iron; an endless tile stays endless
+  {
+    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['gen/geology'];
+    let off = 0;
+    if (deposit) for (let i = 0; i < N; i++) {
+      if (!deposit[i] && depositLeft[i]) off++;
+      else if (dugDay && dugDay[i] && (dugDay[i] > today + 1 || depositFull[i] < depositLeft[i] || depositFull[i] === E.ENDLESS
+        || (deposit[i] !== E.DEPOSIT.CLAY && deposit[i] !== E.DEPOSIT.BOG_IRON))) off++;
+    }
+    if (off) bad.push(`w.depositLeft: ${off} tiles with loads or a digging out of place`);
   }
   // fishing jobs (VB-117): at a bank (land, not a river) next to the water they fish
   for (const j of st.jobs.values()) {

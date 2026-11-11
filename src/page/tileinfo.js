@@ -36,7 +36,7 @@
   // as the viewer knows it (page/ground's depositShown).
   function groundLines(i) {
     if (!w.rock || !w.rock[i]) return [];
-    const how = w.deposit[i] ? depositShown(i) : 0, d = how ? w.deposit[i] : 0, left = w.depositLeft[i];
+    const how = w.deposit[i] ? depositShown(i) : 0, d = how ? w.deposit[i] : 0, left = st ? Sim.depositLeftNow(st, i) : w.depositLeft[i];
     return [`${Geo.ROCKS[w.rock[i]].name} bedrock`,
       ...(d ? [`${Geo.DEPOSITS[d].name}: ${left === Geo.ENDLESS ? 'more than can ever be dug' : `about ${left} loads`}${how === 2 ?
         ', which no village has found' : ''}`] : [])];

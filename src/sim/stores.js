@@ -5,6 +5,7 @@ VB['sim/stores'] = (() => {
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
+  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-344, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
@@ -90,6 +91,15 @@ VB['sim/stores'] = (() => {
   function thresh(st, hh) {
     type(hh); const n = hh.unthreshed.shift() || 0;
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
+  }
+  // ---- dug goods (VB-344; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
+  // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
+  const DUG = ['clay', 'bogOre'];
+  function setDug(hh, good, n) { if (good === 'clay') hh.clay = n; else hh.bogOre = n; }
+  function dug(st, hh, good, n) {
+    amount(n);
+    if (type(hh) !== 'household' || !DUG.includes(good)) throw new Error(`stores: cannot dig ${good}`);
+    record(st, hh, good, n, 'dig'); setDug(hh, good, (hh[good] || 0) + n); return n;
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed.
   function start(st, hh, grain, meals = 0) {
@@ -236,6 +246,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
+    dug,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
