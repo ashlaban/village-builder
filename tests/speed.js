@@ -3,13 +3,12 @@ const assert = require('assert'), fs = require('fs'), vm = require('vm'), path =
 const listeners = {}, timers = new Map();
 const listen = (target) => (event, fn) => { listeners[target + ':' + event] = fn; };
 const button = { title: '', label: '', setAttribute(k, v) { if (k === 'aria-label') this.label = v; } };
-const checkbox = { checked: false, addEventListener: listen('checkbox') };
 const screen = { hidden: true };
 let now = 0, calls = 0, clocks = 0, cost = 3, nextTimer = 0;
 const ctx = {
   document: { hidden: false, hasFocus: () => true, querySelector: () => button, addEventListener: listen('document') },
   window: { addEventListener: listen('window') }, performance: { now: () => now },
-  $: (id) => id === 'backgroundRun' ? checkbox : screen,
+  $: () => screen,
   st: { t: 6, agents: [] }, speed: 1, building: false, skipping: false, HOUR_SECONDS: 2, demo: false, DEMO: { speed: 3 }, reduceMotion: false,
   // whole 6-minute steps only (VB-244): the page keeps the part of a step its frames have asked for
   Sim: { advance(st, hours) { assert.strictEqual(hours, 0.1, 'the page asks for whole steps, one at a time'); calls++; st.t += hours; now += cost; } },
@@ -43,7 +42,8 @@ for (const flag of ['building', 'skipping']) {
 screen.hidden = false; const t = ctx.st.t; ctx.advanceSimulation(1); assert.strictEqual(ctx.st.t, t); screen.hidden = true;
 const state = ctx.st; ctx.st = null; ctx.advanceSimulation(1); ctx.st = state;
 listeners['window:blur'](); assert(vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 0, 'background is opt in');
-checkbox.checked = true; listeners['checkbox:change'](); assert.strictEqual(timers.size, 1);
+// the background run has no control for now (VB-324): the flag a control would set
+vm.runInContext('keepRunning = true; syncBackgroundRun()', ctx); assert.strictEqual(timers.size, 1);
 for (let i = 0; i < 3; i++) { listeners['window:blur'](); listeners['document:visibilitychange'](); }
 assert.strictEqual(timers.size, 1, 'repeated focus/visibility notifications never stack timers');
 ctx.speed = 30; const t0 = ctx.st.t + share() * 0.1; tick(); assert(Math.abs(ctx.st.t + share() * 0.1 - t0 - 1.5) < 1e-9); assert(clocks > 0);
@@ -55,7 +55,7 @@ ctx.speed = Infinity; const hidden = ctx.st.t; tick(); assert(ctx.st.t > hidden,
 listeners['window:focus'](); assert.strictEqual(timers.size, 1, 'hidden document still uses the background driver');
 ctx.document.hidden = false; listeners['document:visibilitychange'](); assert.strictEqual(timers.size, 0);
 listeners['window:blur'](); assert.strictEqual(timers.size, 1);
-checkbox.checked = false; listeners['checkbox:change'](); assert.strictEqual(timers.size, 0);
+vm.runInContext('keepRunning = false; syncBackgroundRun()', ctx); assert.strictEqual(timers.size, 0);
 // Load the actual input script too: browser shortcuts and text editing must not select a speed.
 const keyHandlers = {}, controls = { hidden: true, addEventListener() {} }, elements = new Map();
 const control = (id) => {

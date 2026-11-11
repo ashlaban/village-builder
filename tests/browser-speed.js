@@ -76,7 +76,6 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       await page.click('[data-speed="0"]');
     }
     assert(positionsChecked > 0, 'the picture check covers visible pawns');
-    assert.strictEqual(await page.isChecked('#backgroundRun'), false);
     await page.locator('body').click({ position: { x: 700, y: 650 } });
     await page.keyboard.press('5'); assert.strictEqual(await page.evaluate(() => window.__speedTest.speed === Infinity), true);
     await page.keyboard.press('Space'); assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0);
@@ -87,22 +86,11 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       await page.evaluate((modifier) => window.dispatchEvent(new KeyboardEvent('keydown', { key: '4', [modifier]: true })), modifier);
       assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'modified keys belong to the browser');
     }
-    // Keep running in background is the main menu's (VB-324), which holds the game while it is up: Main menu, the box, Back to game
-    const background = async (on) => { await page.click('#menuBtn'); await page[on ? 'check' : 'uncheck']('#backgroundRun'); await page.click('#landBack'); };
-    await page.click('#menuBtn');
-    await page.focus('#backgroundRun'); await page.keyboard.press('Space');
-    assert.strictEqual(await page.isChecked('#backgroundRun'), true);
-    assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'checkbox space does not resume the game');
-    await page.uncheck('#backgroundRun'); await page.click('#landBack'); await page.click('[data-speed="30"]');
+    // the background run has no control for now (VB-324): blur pauses the run, and focus resumes it
+    await page.click('[data-speed="30"]');
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    const t = await page.evaluate(() => window.__speedTest.st.t); await page.waitForTimeout(350);
-    assert.strictEqual(await page.evaluate(() => window.__speedTest.st.t), t, 'blur pauses by default');
-    await background(true);
-    await page.waitForFunction((t) => window.__speedTest.st.t > t, t);
-    await page.click('[data-speed="0"]'); const paused = await page.evaluate(() => window.__speedTest.st.t);
-    await page.waitForTimeout(250); assert.strictEqual(await page.evaluate(() => window.__speedTest.st.t), paused);
-    await background(false); await page.click('[data-speed="30"]');
-    const returning = await page.evaluate(() => window.__speedTest.st.t);
+    const returning = await page.evaluate(() => window.__speedTest.st.t); await page.waitForTimeout(350);
+    assert.strictEqual(await page.evaluate(() => window.__speedTest.st.t), returning, 'blur pauses the run');
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await page.waitForFunction((t) => window.__speedTest.st.t > t, returning);
     await page.click('[data-speed="Infinity"]'); await page.waitForTimeout(700);

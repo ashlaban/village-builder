@@ -79,8 +79,6 @@ body {
 .clock .icon-btn { width: 44px; height: 44px; flex: none; }
 .ico { display: block; flex: none; }
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
-.background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
-.background-run input { margin: 0; accent-color: var(--accent); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
 #skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
@@ -188,7 +186,7 @@ body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toa
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
-/* The open game at the main menu's top left (VB-324): its name, its map, the controls and the background run; none of it is shown in play.
+/* The open game at the main menu's top left (VB-324): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
   width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
@@ -196,8 +194,6 @@ body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) 
 .game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: italic 700 32px/1.1 'Alegreya', Georgia, serif;
   text-shadow: 0 1px 4px #102b3b; }
 .game-info .meta { font-size: 15px; }
-.game-info .hint { font-size: 14px; line-height: 1.35; opacity: 0.85; }
-.game-info .background-run { display: flex; color: inherit; margin: 6px 0 0; } /* over the menu screens' grid of label and field */
 @media (max-width: 760px) {
   #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
   .game-info { position: static; width: auto; justify-self: stretch; }
@@ -248,8 +244,7 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
-.background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
-.background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
+.dchk input { width: 20px; height: 20px; flex-shrink: 0; }
 .clock { max-width: 700px; } /* one row with Skip and Main menu (VB-324) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
@@ -432,7 +427,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 @media (min-width: 1025px) {
   .mobile-only { display: none !important; } /* over a display a later rule gives, such as .icon-btn's */
   .menu-label { margin: 10px 0 5px; }
-  .background-run { min-height: 30px; margin: 4px 0 8px; }
 }
 .household-block > summary .summary-meta, .village-block > summary .summary-meta { margin-left: 52px; }
 @media (hover: hover) and (pointer: fine) {
@@ -643,8 +637,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   <div class="game-info" id="gameInfo" hidden>
     <p class="game-name" id="name"></p>
     <p class="meta" id="meta"></p>
-    <p class="hint" id="hint"></p>
-    <label class="background-run"><input id="backgroundRun" type="checkbox"> Keep running in background</label>
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
@@ -11825,8 +11817,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
   const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  $('hint').textContent = coarse ? 'Drag to explore, pinch to zoom, tap a settler, farm, village name or tile for details.' :
-    'Drag to explore, scroll to zoom. Point for a glance, click to keep it open. Keys: P people, T family, C customs, F centre, Space pause, Esc main menu.';
 
   function failed(msg) {
     const p = $('loadText'); p.textContent = msg; p.classList.add('err');
@@ -13827,7 +13817,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
   const uncappedButton = document.querySelector('[data-speed="Infinity"]');
-  const backgroundRun = $('backgroundRun');
+  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-324); a control would set keepRunning and call
+  // syncBackgroundRun. While it is off, the run pauses when the page is hidden or the window loses focus.
+  let keepRunning = false;
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
   // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
@@ -13904,7 +13896,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function syncBackgroundRun() {
     if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }
     resetSpeedSample();
-    if (!simulationAway() || !backgroundRun.checked) return;
+    if (!simulationAway() || !keepRunning) return;
     backgroundAt = performance.now();
     // Browsers may throttle hidden timers. Advance only a bounded interval, never a backlog on return.
     backgroundTimer = setInterval(() => {
@@ -13914,7 +13906,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (st) updateClock();
     }, 100);
   }
-  backgroundRun.addEventListener('change', syncBackgroundRun);
   document.addEventListener('visibilitychange', syncBackgroundRun);
   window.addEventListener('focus', () => { windowFocused = true; syncBackgroundRun(); });
   window.addEventListener('blur', () => { windowFocused = false; syncBackgroundRun(); });
@@ -15672,7 +15663,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '775e74bf8a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '0a38873989', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

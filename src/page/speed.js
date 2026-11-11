@@ -1,7 +1,9 @@
-// @sys page/speed: simulation pacing, the uncapped frame budget and opt-in background progress
+// @sys page/speed: simulation pacing, the uncapped frame budget and background progress (off, with no control for now)
   const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
   const uncappedButton = document.querySelector('[data-speed="Infinity"]');
-  const backgroundRun = $('backgroundRun');
+  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-324); a control would set keepRunning and call
+  // syncBackgroundRun. While it is off, the run pauses when the page is hidden or the window loses focus.
+  let keepRunning = false;
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
   let speedSampleAt = 0, speedSampleHours = 0;
   // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
@@ -78,7 +80,7 @@
   function syncBackgroundRun() {
     if (backgroundTimer !== null) { clearInterval(backgroundTimer); backgroundTimer = null; }
     resetSpeedSample();
-    if (!simulationAway() || !backgroundRun.checked) return;
+    if (!simulationAway() || !keepRunning) return;
     backgroundAt = performance.now();
     // Browsers may throttle hidden timers. Advance only a bounded interval, never a backlog on return.
     backgroundTimer = setInterval(() => {
@@ -88,7 +90,6 @@
       if (st) updateClock();
     }, 100);
   }
-  backgroundRun.addEventListener('change', syncBackgroundRun);
   document.addEventListener('visibilitychange', syncBackgroundRun);
   window.addEventListener('focus', () => { windowFocused = true; syncBackgroundRun(); });
   window.addEventListener('blur', () => { windowFocused = false; syncBackgroundRun(); });
