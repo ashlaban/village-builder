@@ -27,6 +27,17 @@ Raised in a discussion with Kim on 11 November on how the game should handle dif
 10. Is the discussion far enough along to record the answers and write a plan task (no code; the implement tasks only after Kim has read the plan)? **P:** yes.
    **A (Kim, 11 Nov):** yes; discuss the system and its interactions with existing and planned systems first, before creating tasks (done the same day).
 
+## VB-342: crops and rotations, the plan's batches (raised 11 November 2026)
+Asked as the plan task VB-342 wrote `design.md`, Crops and rotations, in batches the same day.
+1. Founders: `design.md` says 10 founders and no word of two villages. Does founders start as two villages? **P:** as built: a village of three farms and a lone farm, a village of one.
+   **A (Kim, 11 Nov):** there are two villages in founders.
+2. Rye at 4:1, not the 5:1 first suggested (late medieval Scandinavian rye is put at about four for one on permanent fields), its worth in its calendar and on fresh land? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+3. The player may hold any rotation there is seed for, while an ordinary head follows the village's usual one: is that the difference wanted, or is the player bound as the pawns are? **P:** the player is free.
+   **A (Kim, 11 Nov):** yes, the player can choose freely (NPC pawns are only limited due to computational concerns).
+4. Does a rotation become the village's usual one when most farms hold it, or does the meeting decide it? **P:** when most farms hold it.
+   **A (Kim, 11 Nov):** yes (most farms hold it), but updated at the meeting.
+
 # Archived 11 November 2026 (VB-341)
 
 ## VB-341: the action bar, as built (raised 11 November 2026)
