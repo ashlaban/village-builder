@@ -148,7 +148,7 @@
         if (res === true) openPanel('actions'); else dmsg(`Not done: ${res}.`);
         break; }
       case 'unplay': {
-        const res = Sim.uninhabit(st); followPlayed = false; walkPick = false;
+        const res = Sim.uninhabit(st); followPlayed = false; endTool();
         dmsg(res === true ? 'No pawn is played.' : `Not done: ${res}.`); break; }
       case 'kill': {
         if (!p) { dmsg('Select a living person first.'); break; }

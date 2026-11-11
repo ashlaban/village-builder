@@ -70,7 +70,7 @@
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     setLoad('Raising the land', 0);
     if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
