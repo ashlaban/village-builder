@@ -28,15 +28,15 @@ for (const seed of [7, 42]) {
   check(!checkState(st).length, `founders ${seed}: ` + checkState(st).slice(0, 3).join('; '));
   lines.push(`founders ${seed}: ` + st.households.map((hh) => `${st.farmsteads[hh.farmstead].meadows.length}/${Math.round(M.expectedHay(st.farmsteads[hh.farmstead]))}h`).join(' '));
 }
-const st = Sim.seed(world(7), 7, 'populous');
+const st = Sim.seed(world(3), 3, 'populous');
 let withHerds = 0, covered = 0;
 for (const hh of st.households) {
   const f = st.farmsteads[hh.farmstead];
-  validMeadows(st, f, hh, 'populous 7');
+  validMeadows(st, f, hh, 'populous 3');
   if (!hh.herds.length) { check(!f.meadows.length, `populous: ${f.name} keeps no animals but has meadows`); continue; }
   withHerds++; if (f.meadows.length) covered++;
 }
 check(covered === withHerds, `populous: ${withHerds - covered} of ${withHerds} farms with animals have no meadow`);
 check(!checkState(st).length, 'populous: ' + checkState(st).slice(0, 3).join('; '));
 if (failed) process.exit(1);
-console.log(`meadows ok: ${lines.join('; ')}; populous 7 tiny: ${covered} farms with meadows`);
+console.log(`meadows ok: ${lines.join('; ')}; populous 3 tiny: ${covered} farms with meadows`);

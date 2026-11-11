@@ -90,7 +90,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
-// 4. Founders at seed 7: a lone farm lies 12 steps from the crowded village. With room there, a waiting adult joins it, building a
+// 4. Founders at seed 7: a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
 const founders = () => {

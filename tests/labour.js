@@ -5,8 +5,8 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/reco
 const { YEAR, SERVICE } = VB['sim/rules'], { moveTo, countDemand } = VB['sim/heirs'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('LABOUR FAIL:', m); } };
-const world = (() => { const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; })();
-const fresh = () => { const st = Sim.seed(world, 7, 'populous'); st.naturalDeaths = false; return st; };
+const world = (() => { const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; })();
+const fresh = () => { const st = Sim.seed(world, 3, 'populous'); st.naturalDeaths = false; return st; };
 const vOf = (st, h) => st.farmsteads[h.farmstead].village;
 const setAge = (st, p, years) => { p.born = st.t - years * YEAR - 1; p.age = years; };
 // The case: in one village, a household of 2 old holders with 4 fields (A) and a household with 4 grown, unmarried, landless children and 2

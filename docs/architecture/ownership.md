@@ -375,7 +375,7 @@ These are read and never written after creation. Each has one owner by construct
 | herd | `id`, `species` | herds (`makeHerd`) |
 | job | `id`, `key`, `kind`, `owner`, `site`, `posted`, `hours`, and its source's fields (`field`, `farm`, `meadow`, `plot`, `claim`, ...) | jobs (`post`) |
 | claim | `by`, `since`, `seq` | claims (`addClaim`) |
-| w | every generated field except `trees`, `treesMax`, `stones`, `dev`, `wear`, `worn`, `crossing` and `biome` | gen, gen/rivers |
+| w | every generated field except `trees`, `treesMax`, `stones`, `dev`, `wear`, `worn`, `crossing` and `biome` | gen, gen/rivers, gen/climate (`wind`, `rain`, and the land's `hm`) |
 | st | `ECON`, `scenario`; `driftMul` and `naturalDeaths` are set by the page through its three flags | scenarios |
 
 ### 3.4 Writes the scan could not place
