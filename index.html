@@ -180,10 +180,19 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .minimap { position: relative; width: 200px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
-.genscreen { position: fixed; inset: 0; z-index: 11; display: grid; place-items: center; padding: 16px; background: var(--sea); }
+/* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
+/* Behind them the stage shows through a veil of sea: the showcase island (body.demo), or the game that waits, paused. */
+.genscreen { position: fixed; inset: 0; z-index: 11; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse at 50% 45%, rgba(22, 57, 95, 0.22) 0%, rgba(13, 38, 66, 0.62) 100%); }
+/* the interface of the stage is put away while a menu screen is up */
+body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .navigation, body:has(.genscreen:not([hidden])) .sheet,
+body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
+body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
-.genscreen form, .genscreen .landing { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
-.genscreen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; }
+.genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
+.genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
+.screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
@@ -191,20 +200,22 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
 .saves-screen[hidden] { display: none; }
-.saves-screen > .panel { display: grid; gap: 12px; width: min(440px, 100%); padding: 20px 22px; border-radius: 16px; }
-.saves-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.saves-head h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; }
-.saves-body { display: grid; gap: 10px; font-size: 13px; }
-.save-slot { display: grid; grid-template-columns: 3.2em 1fr; gap: 2px 8px; align-items: start; }
+/* opened from the main menu, Saves takes the menu card's place on the menu's own background */
+body:has(#landing:not([hidden])) .saves-screen { background: none; }
+body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
+.saves-body { display: grid; gap: 12px; font-size: 14px; }
+.save-slot { display: grid; grid-template-columns: 3.2em 1fr; gap: 3px 8px; align-items: start; }
 .save-slot b { font-weight: 600; }
-.save-slot small { display: block; color: var(--muted); }
+.save-slot small { display: block; color: var(--muted); font-size: 13px; }
 .save-slot small.save-other { color: #b4382c; }
 .save-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .save-slot .save-acts { grid-column: 2; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
+.save-files { gap: 10px; }
+.save-files button { flex: 1; min-height: 40px; padding: 7px 14px; font-size: 15px; }
 .save-msg { margin: 0; color: var(--muted); }
-.save-arch { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--edge); }
-.save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.save-arch { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
+.save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
 .loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--sea); color: #e3eeea; transition: opacity 0.7s; }
 .loader.done { opacity: 0; pointer-events: none; }
 .loader p { margin: 0; text-align: center; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 22px; }
@@ -346,7 +357,7 @@ body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-
 body.ui-hidden .toast { pointer-events: none; }
 body.ui-hidden .hud * { pointer-events: none; }
 .genscreen { overflow-y: auto; }
-.genscreen form, .genscreen .landing { margin: auto; }
+.genscreen > .panel { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
 /* Layout fixes: the phone-only menu header stays hidden on wide screens, name links read as text, and the left sheets end below the menu. */
 .sheet-head.mobile-only { display: none; }
@@ -614,17 +625,19 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 
 <div class="genscreen" id="landing" hidden>
   <div class="panel landing">
-    <h1>Village builder</h1>
+    <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
+    <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
+      <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
+      <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </div>
 </div>
 
 <div class="genscreen" id="genScreen" hidden>
   <form class="panel" id="genForm" autocomplete="off">
-    <h1>New archipelago</h1>
-    <button id="genCancel" type="button">Back</button>
+    <div class="screen-head"><h1>New archipelago</h1><button id="genCancel" type="button">Back</button></div>
     <label>Map size
       <select id="genSize">
         <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -642,15 +655,12 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
     </label>
     <p class="err" id="genMsg" role="alert" hidden></p>
     <button class="primary" id="genGo" type="submit">Generate</button>
-    <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
-      <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
-      <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </form>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
   <div class="panel">
-    <div class="saves-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
+    <div class="screen-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
     <div class="saves-body" id="savesBody"></div>
   </div>
 </div>
@@ -10716,47 +10726,33 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
   // The landing page: New archipelago (the generation screen) and Load archipelago (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
+  // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
+  // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
+  let demo = false, demoJob = null, demoAt = null;
+  // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
+  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = !w; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
+    $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
     $('landing').hidden = true; $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
-  // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  async function build(seed, scenario, size, save = null) {
-    choice = { seed, scenario, size };
-    $('genScreen').hidden = true; $('landing').hidden = true;
-    building = true; $('regen').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
-    setLoad('Raising the land', 0);
-    await frame(); await frame();
-    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
-    setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
-    let sim = null;
-    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
-    catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
-    if (!sim) {
-      building = false; $('regen').disabled = false;
-      showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
-      return;
-    }
-    treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
-    openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
-    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
-    setLoad('Painting the overview', 0.55); await frame();
+  // The sea and the overview level of a world, painted before it is swapped in; onP hears the share done.
+  async function paintOverview(wd, onP) {
     const wc = makeCanvas(wd.CW, wd.CH);
     G.bakeWater(wd, wc.getContext('2d'));
     const nx2 = Math.ceil(wd.W / LV[2].size), ny2 = Math.ceil(wd.H / LV[2].size), over = [];
     for (let cy = 0; cy < ny2; cy++) for (let cx = 0; cx < nx2; cx++) {
       const canvas = makeCanvas(TEX, TEX);
-      await drive(chunkJob(wd, 2, cx, cy, canvas), (p) => setLoad(null, 0.55 + ((over.length + p) / (nx2 * ny2)) * 0.4));
+      await drive(chunkJob(wd, 2, cx, cy, canvas), (p) => onP((over.length + p) / (nx2 * ny2)));
       over.push({ cx, cy, canvas });
     }
-    setLoad('Drawing the regions', 0.96); await frame();
-
-    // swap in the new world
+    return { wc, over };
+  }
+  // Swaps a painted world and its run onto the stage, in place of the one there.
+  async function swapWorld(wd, sim, { wc, over }) {
     job = null;
     for (const k of [...chunks.keys()]) dropChunk(k);
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
@@ -10776,6 +10772,34 @@ if (typeof module !== 'undefined') module.exports = Sim;
     await buildSettlement(wd, sim);
     if (landG) landG.clear();
     if (landOn) drawLand();
+  }
+  // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  async function build(seed, scenario, size, save = null) {
+    choice = { seed, scenario, size };
+    $('genScreen').hidden = true; $('landing').hidden = true;
+    building = true; $('regen').disabled = true;
+    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    setLoad('Raising the land', 0);
+    if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
+    await frame(); await frame();
+    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
+    setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
+    let sim = null;
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
+    if (!sim) {
+      building = false; $('regen').disabled = false;
+      showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
+      return;
+    }
+    treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
+    openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
+    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
+    setLoad('Painting the overview', 0.55); await frame();
+    const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
+    setLoad('Drawing the regions', 0.96); await frame();
+    demo = false; demoAt = null; document.body.classList.remove('demo');
+    await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     $('meta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
@@ -10802,6 +10826,23 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('regen').disabled = false;
   }
+
+  // The showcase island: a very small generated one with its villages standing (populous; founders where that finds no room), raised
+  // behind the main menu without the loader. The camera rests on its largest village and drifts (page/frame); the run goes on at 3x.
+  async function buildDemo() {
+    const seed = DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0]; // a visit's island: the page's choice, as the offered seed is
+    const wd = await drive(G.generate(seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
+    let sim = null;
+    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, seed, sc); } catch (e) { /* no room: the next */ } }
+    if (!sim) return; // the menu stays on the plain sea
+    const painted = await paintOverview(wd, () => {});
+    demo = true; document.body.classList.add('demo');
+    await swapWorld(wd, sim, painted);
+    const v = sim.villages.reduce((a, b) => (b.farmsteads.length > a.farmsteads.length ? b : a));
+    demoAt = { x: wd.hx[v.center], y: wd.hy[v.center], r: wd.HW * 5 };
+    intro = null; T = 2; cam.x = demoAt.x; cam.y = demoAt.y; cam.z = zt = clamp(52 / wd.HW, zMin(), zMax); vel.x = vel.y = 0;
+  }
+  function startDemo() { demoJob = buildDemo().catch((e) => console.warn('The showcase island could not be raised', e)).then(() => { demoJob = null; }); }
 
   function makeClouds(wd) {
     for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); }
@@ -12258,6 +12299,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // whether this frame draws between steps: the run is the one stepped here and nothing else (a load, a debug skip) moved its clock since
   const drawingBetween = () => drawBetween && stepSt === st && st.tick === stepTick;
   function advanceSimulation(dt) {
+    // behind the menu a game waits, paused; the showcase island (page/loader) goes on at its own speed, unless motion is to be reduced
+    if (demo) {
+      if (st && !building && !reduceMotion) {
+        syncSteps(); stepShare += (dt * DEMO.speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
+        const n = Math.floor(stepShare); stepShare -= n; runSteps(n);
+      }
+      return;
+    }
     if (!st || speed === 0 || building || skipping || !$('genScreen').hidden || !$('landing').hidden) { resetSpeedSample(); return; }
     syncSteps();
     const before = st.t;
@@ -13990,7 +14039,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'a13744f2c8', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '7a34b22d45', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -14022,7 +14071,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const listSaves = () => saveTx('readonly', (m) => m.getAll());
   const deleteSaves = (keys) => saveTx('readwrite', (m, b) => { for (const k of keys) { m.delete(k); b.delete(k); } });
   async function storeSave(slot) {
-    if (!st || building || !SAVE_SLOTS.includes(slot)) return null;
+    if (!st || demo || building || !SAVE_SLOTS.includes(slot)) return null;
     const s = st, arch = archOf(s), key = `${arch}:${slot}`, p = await packSave(s);
     const line = { key, arch, slot, build: BUILD, savedAt: p.savedAt, label: p.label, name: s.w.name, scenario: s.scenario, seed: s.w.seed,
       size: sizeKey(s.w.COLS, s.w.ROWS), bytes: p.blob.size };
@@ -14048,7 +14097,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const loadStored = async (key) => { const rec = await saveTx('readonly', (m, b) => b.get(key)); return loadBlob(rec && rec.blob); };
   async function saveToFile() {
-    if (!st || building) return;
+    if (!st || demo || building) return;
     const s = st, p = await packSave(s), a = document.createElement('a'), url = URL.createObjectURL(p.blob);
     a.href = url; a.download = `${s.w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${s.scenario}-${s.w.seed}-year${Sim.cal(s.t).year}.json.gz`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -14068,9 +14117,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
         : saveBtn('del', l.key, 'Delete it') + saveBtn('new', l.key, 'Start a new game'));
     return `<div class="save-slot"><b>${slotName(slot)}</b><span>${what}</span><div class="save-acts">${acts}</div></div>`;
   }
+  const stOpen = () => st; // the game open, which the showcase island is not
   let saveMsg = '', saveLines = [];
   async function drawSaves() {
-    const box = $('savesBody');
+    const box = $('savesBody'), st = demo ? null : stOpen();
     try { saveLines = await listSaves(); } catch (e) { box.innerHTML = '<p class="save-msg">Saves are not available in this browser.</p>'; return; }
     const archs = new Map(), open = st ? archOf(st) : null;
     for (const l of saveLines) { if (!archs.has(l.arch)) archs.set(l.arch, []); archs.get(l.arch).push(l); }
@@ -14086,8 +14136,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
+    // from the main menu it is the Load archipelago screen, with Back to the menu; in a game it is Saves (VB-307)
+    const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
-    if (on) { saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus(); }
+    if (on) {
+      $('savesTitle').textContent = menu ? 'Load archipelago' : 'Saves'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
+    } else if (menu) $('landLoad').focus();
   }
   const saveFile = document.createElement('input');
   saveFile.type = 'file'; saveFile.accept = '.gz,.json,application/gzip,application/json'; saveFile.hidden = true; document.body.appendChild(saveFile);
@@ -14119,7 +14174,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // When the page is hidden the run is saved to its auto slot, unless nothing has passed since the last one.
   let autoAt = -1, autoOf = null;
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden' || !st || building || skipping || (autoOf === st && autoAt === st.t)) return;
+    if (document.visibilityState !== 'hidden' || !st || demo || building || skipping || (autoOf === st && autoAt === st.t)) return;
     autoOf = st; autoAt = st.t;
     storeSave('auto').catch((err) => console.warn('autosave failed', err));
   });
@@ -14152,6 +14207,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
     }
     if (followPlayed && st && !intro && !drag && !pinch) followCamera();
+    // the showcase island behind the menu: the camera drifts slowly about its village
+    if (demo && demoAt) {
+      const k = reduceMotion ? 0 : 1;
+      cam.x = demoAt.x + k * demoAt.r * Math.sin(time * 0.045); cam.y = demoAt.y + k * demoAt.r * 0.6 * Math.sin(time * 0.031 + 1);
+    }
     clampCam();
     world.scale.set(cam.z);
     world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);
@@ -14199,7 +14259,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
   const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
   if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
-  else showLanding();
+  else { showLanding(); startDemo(); }
 })();
 </script>
 </body>
