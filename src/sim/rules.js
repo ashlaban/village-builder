@@ -254,8 +254,8 @@ VB['sim/rules'] = (() => {
     fields: 3, fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
-  // centre lies within `reach` steps of it.
-  const SERVICE = { ages: [18, 50], keepHands: 2, reach: 15 };
+  // centre lies within `reach` steps of it. Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
+  const SERVICE = { ages: [18, 50], keepHands: 2, reach: 15, short: 1, spare: 1.5 };
   // Claims on land (sim/claims, sim/territory; claims review, docs/review-claims.md; numbers Proposed): an unrealised claim fades over `years`
   // without work or renewal; a village claims outland within `outReach` walking steps of its green, `outPerFarm` tiles an occupied farm; a
   // household may contest a stake weaker than `contestBelow`; a family's birthright on its empty farm lasts `birthrightYears`; a household

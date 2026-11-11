@@ -23,7 +23,7 @@ VB['sim/lifecycle'] = (() => {
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
-  const { careForOrphans, takeServants } = VB['sim/service'];
+  const { careForOrphans, takeServants, serveWhereShort } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
@@ -151,7 +151,7 @@ VB['sim/lifecycle'] = (() => {
       startPlots(st, (id) => claimableFarm(st, id) === null);
     } else if (n === 2) settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     else if (n === 3) {
-      takeServants(st); // a holder who lives alone takes in a landless adult (sim/service)
+      serveWhereShort(st, takeServants(st)); // a holder who lives alone takes in a landless adult, then service where labour is short (sim/service)
       payOwed(st);
       refreshPrestige(st);
     }

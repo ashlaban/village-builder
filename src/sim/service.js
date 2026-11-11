@@ -1,5 +1,5 @@
-// @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, and kin or a
-// servant for a household of at most one grown member whose ask for food fell short (VB-308)
+// @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, kin or a
+// servant for a household of at most one grown member whose ask for food fell short (VB-308), and service where labour is short (VB-090)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
@@ -91,6 +91,9 @@ VB['sim/service'] = (() => {
     const u = farmOf(st, a).village, v = farmOf(st, b).village;
     return u === v ? 0 : hexSteps(st.w, st.villages[u].center, st.villages[v].center);
   };
+  // The placement every service rule shares (village first, then the nearest village within reach; VB-090, VB-308): the steps between the
+  // village centres of households a and b, 0 in one village, or null beyond SERVICE.reach. Ranking by it puts the own village first.
+  const reachSteps = (st, a, b) => { const d = stepsBetween(st, a, b); return d > SERVICE.reach ? null : d; };
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
   // hh's village first, then the nearest village within SERVICE.reach steps; then the household that keeps the most hands, then the oldest.
   function servantFor(st, hh, available) {
@@ -99,7 +102,7 @@ VB['sim/service'] = (() => {
       const q = st.pawns[id];
       if (q.household === hh.id) continue;
       const left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
-      const d = stepsBetween(st, st.households[q.household], hh); if (d > SERVICE.reach) continue;
+      const d = reachSteps(st, st.households[q.household], hh); if (d === null) continue;
       const s = [d, -left, q.born];
       if (!bs || before(s, bs)) { best = q; bs = s; }
     }
@@ -107,7 +110,8 @@ VB['sim/service'] = (() => {
   }
   function takeServants(st) {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
-    if (!lone.length) return;
+    const taken = new Set(), moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
+    if (!lone.length) return { taken, moved };
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
     // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
@@ -115,7 +119,44 @@ VB['sim/service'] = (() => {
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
       const best = servantFor(st, hh, available); if (!best) continue;
-      issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' });
+      if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) { taken.add(hh.id); moved.add(best.id); }
+    }
+    refreshRoles(st); st.visualDirty = true;
+    return { taken, moved };
+  }
+
+  // ---- service where labour is short (VB-090; design.md, Leaving home: Service) ----
+  // Hands per field: working hands (members of 14 to 59, not retired) over the farm's fields, at least 1. Short below SERVICE.short, hands
+  // to spare above SERVICE.spare. At the moving round, after the servants for the lone (takeServants, whose households and servants count as
+  // this round's): those who would serve (willServe: in st.demand, fit, unmarried, 18 to 50, not declining by the player's wish), oldest
+  // first, whose household has hands to spare and keeps at least SERVICE.short hands per field without them, go as servants (the serve
+  // command) to the short household with fields of their own village with the fewest hands per field, else to the shortest of the nearest
+  // village within reach that has one (reachSteps); never to a household where a parent lives (nobody goes back home by this rule). Each
+  // household takes at most one new servant a round, and nobody moves twice in one. A servant whose household is no longer short may go
+  // on at a later round by the same rule. Board and lodging only: the servant is a member and works its jobs on the `servant` basis.
+  const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
+  const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
+  const parentIn = (st, q, hh) => [q.father, q.mother].some((id) => id !== null && st.pawns[id].alive && st.pawns[id].household === hh.id);
+  function serveWhereShort(st, { taken = new Set(), moved = new Set() } = {}) {
+    const short = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.holder !== null && !taken.has(h.id)
+      && farmOf(st, h).fields.length > 0 && handsPerField(st, h) < SERVICE.short);
+    if (!short.length) return;
+    const going = willServe(st).map((id) => st.pawns[id]).filter((q) => !moved.has(q.id)).sort((a, b) => a.born - b.born || a.id - b.id);
+    for (const q of going) {
+      if (!short.length) break;
+      const from = st.households[q.household];
+      if (from.dissolved || handsPerField(st, from) <= SERVICE.spare || (hands(st, from) - 1) / fieldsOf(st, from) < SERVICE.short) continue;
+      let best = -1, bs = null;
+      VB.count.labourWeighed += short.length;
+      for (let i = 0; i < short.length; i++) {
+        const h = short[i]; if (h.id === from.id || parentIn(st, q, h)) continue;
+        const d = reachSteps(st, from, h); if (d === null) continue;
+        const s = [d, handsPerField(st, h), h.id];
+        if (!bs || before(s, bs)) { best = i; bs = s; }
+      }
+      if (best < 0) continue;
+      if (issue(st, { actor: q.id, verb: 'serve', target: short[best].id, source: 'round' }) !== true) continue;
+      short.splice(best, 1); moved.add(q.id);
     }
     refreshRoles(st); st.visualDirty = true;
   }
@@ -141,7 +182,7 @@ VB['sim/service'] = (() => {
         const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
         const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
         const from = st.households[q.household]; if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
-        if (stepsBetween(st, from, hh) > SERVICE.reach) continue;
+        if (reachSteps(st, from, hh) === null) continue;
         best = q; bk = k;
       }
       if (best) {
@@ -160,5 +201,5 @@ VB['sim/service'] = (() => {
       refreshRoles(st); st.visualDirty = true;
     }
   }
-  return { careForOrphans, takeServants, takeIn, enterService, hands, unfit, handsLeft };
+  return { careForOrphans, takeServants, serveWhereShort, takeIn, enterService, hands, handsPerField, unfit, handsLeft };
 })();
