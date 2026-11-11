@@ -30,6 +30,9 @@ VB['sim/kinds'] = (() => {
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
   //   window: a time-bound kind's (VB-249), {from: the hour of the day its work can first fall due}: the due-queue (sim/plans) asks it for
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
+  //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
+  //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
+  //   (VB-251; sim/agents). No kind of the game declares one yet.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);

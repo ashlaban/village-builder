@@ -32,6 +32,8 @@ VB.COUNTERS = {
   lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked: 'Pawns weighed as guests of an occasion: a village\'s people at its meeting, kin and housemates at a wedding or a death '
     + '(sim/occasions, VB-126)',
+  takeInWeighed: 'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants '
+    + '(sim/service, takeIn; VB-308)',
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
