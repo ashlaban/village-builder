@@ -7,7 +7,8 @@
 <div class="hud top">
   <header class="chart panel">
     <div id="worldMenu" class="world-menu">
-      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
+      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button" class="icon-btn" data-icon="close" aria-label="Close menu"
+        title="Close"></button></div>
       <p class="meta" id="meta"></p>
       <p class="hint" id="hint"></p>
       <h2 class="menu-label">Map &amp; layers</h2>
@@ -40,7 +41,8 @@
       <button type="button" class="icon-btn" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" aria-label="Uncapped"
         title="Uncapped (5)"></button>
     </div>
-    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
+    <button id="skipBtn" type="button" class="icon-btn" data-icon="skip" aria-pressed="false" aria-label="Skip to next event"
+      title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
     <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
       title="Hide the interface (H)"></button>
   </div>
@@ -50,17 +52,23 @@
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet" hidden>Actions</button>
-  <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
-  <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
-  <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
-  <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
+  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet"
+    hidden><span class="nav-label">Actions</span></button>
+  <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
+    aria-controls="peopleSheet"><span class="nav-label">People</span></button>
+  <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
+    class="nav-label">Family</span></button>
+  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Customs</span></button>
+  <button id="menuBtn" class="mobile-only" type="button" data-icon="menu" title="Menu" aria-pressed="false" aria-controls="worldMenu"><span
+    class="nav-label">Menu</span></button>
 </nav>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
     <h2 id="actionTitle">Actions</h2>
-    <button type="button" class="sheet-expand" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent">Collapse</button>
-    <button id="actionClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="actionClose" type="button" class="icon-btn" data-icon="close" aria-label="Close actions" title="Close"></button>
   </div>
   <div class="sheet-content" id="actionContent">
     <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
@@ -69,8 +77,9 @@
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
     <h2 id="peopleTitle">People &amp; households</h2>
-    <button type="button" class="sheet-expand" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent">Collapse</button>
-    <button id="peopleClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="peopleClose" type="button" class="icon-btn" data-icon="close" aria-label="Close people" title="Close"></button>
   </div>
   <div class="sheet-content" id="peopleContent">
     <label class="search-label" for="peopleSearch">Find a person, farm or village</label>
@@ -82,8 +91,9 @@
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
     <h2 id="drawerTitle">Customs</h2>
-    <button type="button" class="sheet-expand" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody">Collapse</button>
-    <button id="drawerClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -96,8 +106,9 @@
       <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
         viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
         r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
-      <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
-      <button id="tileClose" type="button" aria-label="Close selection">Close</button>
+      <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails"
+        aria-label="Details" title="Details"></button>
+      <button id="tileClose" type="button" class="icon-btn" data-icon="close" aria-label="Close selection" title="Close"></button>
     </div>
     <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
     <div class="sheet-content" id="tileDetails">
@@ -125,13 +136,14 @@
   <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
     <canvas id="mmBase"></canvas>
     <canvas id="mmView"></canvas>
-    <button id="minimapClose" type="button" aria-label="Close minimap">Close</button>
+    <button id="minimapClose" type="button" class="icon-btn" data-icon="close" aria-label="Close minimap" title="Close"></button>
   </div>
 </div>
 
 <div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
   <div class="tree-card panel">
-    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
+    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
+      <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
     <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
       <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
       <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>

@@ -184,10 +184,14 @@
   $('minimapClose').addEventListener('click', () => {
     setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
   });
+  // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  function nameFold(button) {
+    const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
+    button.setAttribute('aria-label', name); button.title = name;
+  }
   document.querySelectorAll('.sheet-expand').forEach((button) => button.addEventListener('click', () => {
     const collapsed = $(button.dataset.sheet).classList.toggle('collapsed');
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.textContent = collapsed ? (button.dataset.sheet === 'tile' ? 'Details' : 'Expand') : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed)); nameFold(button);
     if (!collapsed && button.dataset.sheet === 'peopleSheet') renderSettlers();
     if (!collapsed && button.dataset.sheet === 'drawer') renderDrawer();
   }));

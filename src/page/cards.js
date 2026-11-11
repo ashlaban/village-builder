@@ -102,5 +102,5 @@
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
   if (!mobileUI.matches) {
     $('tile').classList.remove('collapsed');
-    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Collapse';
+    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); nameFold(b);
   }

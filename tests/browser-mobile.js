@@ -55,6 +55,13 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     const rows = await page.locator('#speedOptions button').evaluateAll((bs) => new Set(bs.map((b) => Math.round(b.getBoundingClientRect().y))).size);
     assert.strictEqual(rows, 1, 'the speeds lie in one row');
     await page.click('#speedBtn'); await page.evaluate(() => document.getElementById('fakeToast').remove());
+    // VB-324: the dock's buttons are icons with their names under them; the panels' Close and fold are icons with accessible names
+    const dock = await page.locator('.navigation button:visible').evaluateAll((bs) => bs.map((b) => [!!b.querySelector('svg'),
+      b.querySelector('.nav-label') && b.querySelector('.nav-label').getBoundingClientRect().height > 0]));
+    assert(dock.length >= 4 && dock.every(([icon, label]) => icon && label), `the dock's buttons have an icon and a label: ${JSON.stringify(dock)}`);
+    const heads = await page.locator('[id$="Close"].icon-btn, .sheet-expand').evaluateAll((bs) => bs.filter((b) => !b.querySelector('svg')
+      || !b.getAttribute('aria-label') || b.textContent.trim()).map((b) => b.id || b.dataset.sheet));
+    assert.deepStrictEqual(heads, [], 'each Close and fold is an icon with an accessible name and no text');
     console.log('mobile: people'); await page.click('#settlersBtn'); await oneSheet();
     await page.locator('.village-block > summary').first().click(); console.log('mobile: village opened');
     await page.locator('.household-block > summary').first().click(); console.log('mobile: household opened');
@@ -120,8 +127,10 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => document.getElementById('customTable').scrollLeft > 0);
     await page.click('#drawer .sheet-expand');
     assert(await page.locator('#drawerBody').isHidden());
+    assert.strictEqual(await page.getAttribute('#drawer .sheet-expand', 'aria-label'), 'Expand', 'a folded panel offers to expand');
     await page.click('#drawer .sheet-expand');
     assert(await page.locator('#drawerBody').isVisible());
+    assert.strictEqual(await page.getAttribute('#drawer .sheet-expand', 'aria-label'), 'Collapse', 'an open panel offers to collapse');
     console.log('mobile: family'); await page.click('#treeBtn');
     assert(await page.locator('#tree').isVisible()); await fits('.tree-card');
     await page.locator('#treeSvg .tn').first().click();

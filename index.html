@@ -246,7 +246,10 @@ input, select { font: inherit; color: var(--ink); }
 .clock { max-width: 590px; }
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
-.navigation button { min-width: 90px; border: 0; border-radius: 12px; }
+/* The dock is icons, each with its name under it (VB-324). */
+.navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
+  padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
+.navigation button:not([aria-pressed="true"]) { color: var(--muted); }
 .navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
@@ -258,6 +261,12 @@ input, select { font: inherit; color: var(--ink); }
   overflow-wrap: anywhere; }
 .sheet-head button { padding: 6px 10px; flex-shrink: 0; }
 .sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
+/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-324). */
+.sheet-expand .ico { transition: transform 0.15s; }
+.sheet-expand[aria-expanded="false"] .ico { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .sheet-expand .ico { transition: none; } }
+@media (pointer: coarse) { .sheet-head .icon-btn, #treeClose { width: 44px; } }
+#treeClose { align-self: center; }
 .sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
 .collapsed .sheet-content { display: none; }
 .collapsed .sheet-head { border-bottom: 0; }
@@ -285,7 +294,7 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
 .minimap { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-bottom) + 68px); }
-#minimapClose { position: absolute; top: 3px; right: 3px; background: var(--panel); }
+#minimapClose { position: absolute; top: 3px; right: 3px; height: 36px; min-height: 0; background: var(--panel); }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the bottom centre, just above the dock, the newest lowest (Kim, 9 Nov; first built at the bottom left).
    On a window too narrow to clear an open sheet they move to the middle of what is left free (between a left sheet and the minimap, or left
@@ -448,7 +457,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .hud.top:has(.speed-open) { z-index: 8; }
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
     border-radius: 16px; gap: 0; padding: 4px; }
-  .navigation button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 15px; }
+  .navigation button { flex: 1; min-width: 0; padding: 4px 2px; }
   .people-sheet, .drawer, .tile, .world-menu { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
   .world-menu { position: fixed; z-index: 6; overflow: auto; padding: 0 16px 16px; border: 1px solid var(--edge); border-radius: 18px;
@@ -488,7 +497,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <div class="hud top">
   <header class="chart panel">
     <div id="worldMenu" class="world-menu">
-      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
+      <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button" class="icon-btn" data-icon="close" aria-label="Close menu"
+        title="Close"></button></div>
       <p class="meta" id="meta"></p>
       <p class="hint" id="hint"></p>
       <h2 class="menu-label">Map &amp; layers</h2>
@@ -521,7 +531,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       <button type="button" class="icon-btn" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" aria-label="Uncapped"
         title="Uncapped (5)"></button>
     </div>
-    <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
+    <button id="skipBtn" type="button" class="icon-btn" data-icon="skip" aria-pressed="false" aria-label="Skip to next event"
+      title="Skip to next event: run ahead to the next event that concerns your pawn" hidden></button>
     <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
       title="Hide the interface (H)"></button>
   </div>
@@ -531,17 +542,23 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet" hidden>Actions</button>
-  <button id="settlersBtn" type="button" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false" aria-controls="peopleSheet">People</button>
-  <button id="treeBtn" type="button" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog">Family</button>
-  <button id="customsBtn" type="button" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer">Customs</button>
-  <button id="menuBtn" class="mobile-only" type="button" aria-pressed="false" aria-controls="worldMenu">Menu</button>
+  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's actions" aria-pressed="false" aria-controls="actionSheet"
+    hidden><span class="nav-label">Actions</span></button>
+  <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
+    aria-controls="peopleSheet"><span class="nav-label">People</span></button>
+  <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
+    class="nav-label">Family</span></button>
+  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Customs</span></button>
+  <button id="menuBtn" class="mobile-only" type="button" data-icon="menu" title="Menu" aria-pressed="false" aria-controls="worldMenu"><span
+    class="nav-label">Menu</span></button>
 </nav>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
     <h2 id="actionTitle">Actions</h2>
-    <button type="button" class="sheet-expand" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent">Collapse</button>
-    <button id="actionClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="actionClose" type="button" class="icon-btn" data-icon="close" aria-label="Close actions" title="Close"></button>
   </div>
   <div class="sheet-content" id="actionContent">
     <div id="playBox" class="play"><div id="playTop"></div><div id="giveBox" class="give" hidden></div><div id="playRest"></div></div>
@@ -550,8 +567,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
     <h2 id="peopleTitle">People &amp; households</h2>
-    <button type="button" class="sheet-expand" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent">Collapse</button>
-    <button id="peopleClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="peopleClose" type="button" class="icon-btn" data-icon="close" aria-label="Close people" title="Close"></button>
   </div>
   <div class="sheet-content" id="peopleContent">
     <label class="search-label" for="peopleSearch">Find a person, farm or village</label>
@@ -563,8 +581,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
     <h2 id="drawerTitle">Customs</h2>
-    <button type="button" class="sheet-expand" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody">Collapse</button>
-    <button id="drawerClose" type="button">Close</button>
+    <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
+      aria-label="Collapse" title="Collapse"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -577,8 +596,9 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
       <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
         viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
         r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
-      <button type="button" class="sheet-expand" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails">Details</button>
-      <button id="tileClose" type="button" aria-label="Close selection">Close</button>
+      <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="tile" aria-expanded="false" aria-controls="tileDetails"
+        aria-label="Details" title="Details"></button>
+      <button id="tileClose" type="button" class="icon-btn" data-icon="close" aria-label="Close selection" title="Close"></button>
     </div>
     <div class="selection-summary"><span id="tileElev"></span><span id="tileActivity" hidden></span></div>
     <div class="sheet-content" id="tileDetails">
@@ -606,13 +626,14 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
     <canvas id="mmBase"></canvas>
     <canvas id="mmView"></canvas>
-    <button id="minimapClose" type="button" aria-label="Close minimap">Close</button>
+    <button id="minimapClose" type="button" class="icon-btn" data-icon="close" aria-label="Close minimap" title="Close"></button>
   </div>
 </div>
 
 <div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
   <div class="tree-card panel">
-    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p><button id="treeClose" type="button">Close</button></header>
+    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
+      <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
     <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
       <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
       <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
@@ -11908,23 +11929,41 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const svgIcon = (w, h, body, attrs = '') =>
     `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
   const ICON_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
-  // A speed is one to five play arrows (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped. Infinity is the uncapped speed.
+  // A speed is one to five chevrons, > to >>>>> (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped (Infinity). Open chevrons, so that
+  // the speed of 1× is not the filled triangle of play beside it.
   const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };
   function speedIcon(v) {
-    const n = SPEED_ARROWS[v] || 1, step = 6, w = step * (n - 1) + 8;
+    const n = SPEED_ARROWS[v] || 1, step = 5.5, w = step * (n - 1) + 8;
     let d = '';
-    for (let k = 0; k < n; k++) d += `M${k * step} 1L${k * step + 8} 7L${k * step} 13Z`;
-    return svgIcon(w, 14, `<path d="${d}" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>`);
+    for (let k = 0; k < n; k++) d += `M${1.5 + k * step} 2L${6.5 + k * step} 7L${1.5 + k * step} 12`;
+    return svgIcon(w, 14, `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
   }
   const ICON = {
     pause: svgIcon(14, 14, '<rect x="2" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'
       + '<rect x="8.5" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'),
+    skip: svgIcon(14, 14, '<path d="M2 1.5L9.5 7L2 12.5Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>'
+      + '<rect x="10.5" y="1.5" width="2.5" height="11" rx="1" fill="currentColor"/>'),
     play: svgIcon(14, 14, '<path d="M3 1L12 7L3 13Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>'),
     // the interface shown: an eye struck through, to hide it; hidden: an open eye, to show it again
     eye: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/>', ICON_STROKE),
     eyeOff: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/><path d="M3 17L17 3"/>',
       ICON_STROKE),
+    // the dock (11 Nov): two people, a family tree, a scroll of customs, the menu's three lines; the played pawn's actions, a game pawn
+    people: svgIcon(20, 20, '<circle cx="7.5" cy="6.5" r="2.8"/><path d="M2.5 17c0-3.2 2.2-5.4 5-5.4s5 2.2 5 5.4"/>'
+      + '<circle cx="14" cy="7.5" r="2.3"/><path d="M14 11.7c2.2 0 3.7 2 3.7 4.8"/>', ICON_STROKE),
+    family: svgIcon(20, 20, '<rect x="7.5" y="2" width="5" height="4" rx="1"/><rect x="2" y="14" width="5" height="4" rx="1"/>'
+      + '<rect x="13" y="14" width="5" height="4" rx="1"/><path d="M10 6v4M4.5 14v-4h11v4"/>', ICON_STROKE),
+    customs: svgIcon(20, 20, '<rect x="3" y="2.5" width="14" height="3" rx="1.5"/><rect x="3" y="14.5" width="14" height="3" rx="1.5"/>'
+      + '<path d="M5 5.5v9M15 5.5v9M7.5 8.5h5M7.5 11.5h5"/>', ICON_STROKE),
+    menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
+    pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
+      ICON_STROKE),
+    // the panels' heads: close, and a chevron that points down while the panel is open (to fold it) and up while it is folded
+    close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
+    chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
   };
+  // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
+  for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);
   // ---- level-of-detail chunks ----
   // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
   const chunks = new Map();
@@ -12634,10 +12673,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('minimapClose').addEventListener('click', () => {
     setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
   });
+  // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  function nameFold(button) {
+    const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
+    button.setAttribute('aria-label', name); button.title = name;
+  }
   document.querySelectorAll('.sheet-expand').forEach((button) => button.addEventListener('click', () => {
     const collapsed = $(button.dataset.sheet).classList.toggle('collapsed');
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.textContent = collapsed ? (button.dataset.sheet === 'tile' ? 'Details' : 'Expand') : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed)); nameFold(button);
     if (!collapsed && button.dataset.sheet === 'peopleSheet') renderSettlers();
     if (!collapsed && button.dataset.sheet === 'drawer') renderDrawer();
   }));
@@ -14468,7 +14511,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
   if (!mobileUI.matches) {
     $('tile').classList.remove('collapsed');
-    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Collapse';
+    const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); nameFold(b);
   }
   // ======== history ========
   // The card of a pawn, a farm or a village has two tabs, Details and History; the tab chosen stays as the selection changes, so a name
@@ -15629,7 +15672,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '79c80732c2', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '63898c96ae', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
