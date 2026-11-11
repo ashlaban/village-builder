@@ -38,6 +38,8 @@ until VB-175 moves membership to `sim/records`.
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
+VB-307 (11 November): `sim/records` owns `st.peopleCheck`, the queue of households whose membership lost a member (or took in a minor), read and emptied daily by `careForOrphans`.
+
 VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` caches, sorted by record id.
 Creation appends through `person` and `makeHousehold`; `killPawn` and `extinct` call the owner's removal operations.
 Seed/load rebuild them from source records, so format-1 saves need no migration. Daily invariants compare both arrays

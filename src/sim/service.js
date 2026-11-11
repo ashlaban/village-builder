@@ -1,6 +1,6 @@
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
 VB['sim/service'] = (() => {
-  const { setServant } = VB['sim/records'];
+  const { setServant, takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
@@ -35,8 +35,8 @@ VB['sim/service'] = (() => {
     return out;
   }
   function careForOrphans(st) {
-    // Extinction may splice the live index while this round is in progress.
-    for (const liveId of st.liveHouseholds.slice()) {
+    // The households whose membership changed since the last round (VB-307); extinction may dissolve one while this round is in progress.
+    for (const liveId of takePeopleCheck(st)) {
       const hh = st.households[liveId];
       if (hh.dissolved || !hh.members.length || hh.members.some((id) => adult(st.pawns[id]))) continue;
       const ward = st.pawns[hh.holder], f = farmOf(st, hh), memo = new Map();
