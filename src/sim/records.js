@@ -129,7 +129,7 @@ VB['sim/records'] = (() => {
     if (!st.peopleCheck) st.peopleCheck = st.liveHouseholds.slice(); // a new run, or an older save: every household is checked once
   }
   // @state st.peopleCheck: ids of households whose membership lost a member, or took in a minor, since sim/service last asked whether
-  //   an adult is left (VB-307); no duplicates; owned here, emptied by takePeopleCheck
+  //   an adult is left (VB-323); no duplicates; owned here, emptied by takePeopleCheck
   function notePeopleCheck(st, hh) { if (st.peopleCheck && !hh.dissolved && !st.peopleCheck.includes(hh.id)) st.peopleCheck.push(hh.id); }
   // The noted households in ascending id, the queue emptied.
   function takePeopleCheck(st) { const q = st.peopleCheck.sort((a, b) => a - b); st.peopleCheck = []; return q; }

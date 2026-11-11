@@ -14,7 +14,7 @@ merge, by what mechanism, what the tip of `claude/relaxed-faraday-2gg0gu` (`4ff4
   and 5, 13 for the divergence. Founders and heirs were not re-run per commit (they carry 27 of the 225 rows and 47 of the 364).
 - Reproduction: 225 -> 364 reproduces. At `38b920d` my run of the replay gives populous 3: 141 rows, 38 short (VB-283's table); at
   `85bfc19` the ten replay outputs left by VB-308's measuring sum to 364 rows, 102 short, and my replay at 85bfc19 matches them seed by seed.
-- `6872a55` and `85bfc19` give identical runs (populous 7, 11, 42: every number equal): VB-284, VB-307 and VB-078 are inert, as claimed.
+- `6872a55` and `85bfc19` give identical runs (populous 7, 11, 42: every number equal): VB-284, VB-323 and VB-078 are inert, as claimed.
 
 ## Measurements
 
@@ -57,7 +57,7 @@ So: the 225 -> 364 is about half VB-249 and half divergence; VB-249's harm itsel
 - **VB-249 (`6872a55`)**: frost losses +27 to +62% on all six seeds, sowing later on all, rows +60% on the bands' four seeds.
 - VB-126 (`a41440f`): rows 198 -> 161 against VB-275's 138, frost +0.1 to +0.9 points: within divergence, perhaps a small loss of hands at
   the harvest (funeral ales override work); not the cause.
-- VB-275 (`1caa291`): inert in effect, the divergence probe above. VB-307, VB-284 and VB-078: identical runs.
+- VB-275 (`1caa291`): inert in effect, the divergence probe above. VB-323, VB-284 and VB-078: identical runs.
 
 ## The mechanism
 A field's next step now waits for its household's review. Before VB-249 each holder's plan was reviewed every working hour, so a hoed

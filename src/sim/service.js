@@ -36,7 +36,7 @@ VB['sim/service'] = (() => {
     return out;
   }
   function careForOrphans(st) {
-    // The households whose membership changed since the last round (VB-307); extinction may dissolve one while this round is in progress.
+    // The households whose membership changed since the last round (VB-323); extinction may dissolve one while this round is in progress.
     for (const liveId of takePeopleCheck(st)) {
       const hh = st.households[liveId];
       if (hh.dissolved || !hh.members.length || hh.members.some((id) => adult(st.pawns[id]))) continue;

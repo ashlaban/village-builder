@@ -3861,7 +3861,7 @@ VB['sim/records'] = (() => {
     if (!st.peopleCheck) st.peopleCheck = st.liveHouseholds.slice(); // a new run, or an older save: every household is checked once
   }
   // @state st.peopleCheck: ids of households whose membership lost a member, or took in a minor, since sim/service last asked whether
-  //   an adult is left (VB-307); no duplicates; owned here, emptied by takePeopleCheck
+  //   an adult is left (VB-323); no duplicates; owned here, emptied by takePeopleCheck
   function notePeopleCheck(st, hh) { if (st.peopleCheck && !hh.dissolved && !st.peopleCheck.includes(hh.id)) st.peopleCheck.push(hh.id); }
   // The noted households in ascending id, the queue emptied.
   function takePeopleCheck(st) { const q = st.peopleCheck.sort((a, b) => a - b); st.peopleCheck = []; return q; }
@@ -9645,7 +9645,7 @@ VB['sim/service'] = (() => {
     return out;
   }
   function careForOrphans(st) {
-    // The households whose membership changed since the last round (VB-307); extinction may dissolve one while this round is in progress.
+    // The households whose membership changed since the last round (VB-323); extinction may dissolve one while this round is in progress.
     for (const liveId of takePeopleCheck(st)) {
       const hh = st.households[liveId];
       if (hh.dissolved || !hh.members.length || hh.members.some((id) => adult(st.pawns[id]))) continue;
@@ -15534,7 +15534,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '18999f4f26', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a04a22b2ad', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

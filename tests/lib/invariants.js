@@ -13,7 +13,7 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
-  // VB-307: the households to check for a missing adult: live ids, no duplicates
+  // VB-323: the households to check for a missing adult: live ids, no duplicates
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
