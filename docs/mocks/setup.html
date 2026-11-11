@@ -172,10 +172,17 @@ label .tag { justify-self: start; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
 .tabs button.sk { border-style: dotted; }
+.seen { position: fixed; z-index: 1; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: min(340px, 40vw); margin: 0; font-size: 14px;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 8px 12px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+@media (max-width: 760px) { .seen { position: static; max-width: none; margin: 12px auto 0; } }
+.inset { position: absolute; right: 10px; bottom: 10px; width: 32%; display: grid; border-radius: 9px; overflow: hidden; border: 2px solid var(--node); background: var(--node); box-shadow: 0 4px 14px rgba(3, 16, 26, 0.35); }
+.inset img { aspect-ratio: 16 / 10; } .inset small { padding: 3px 7px; font-size: 12px; line-height: 1.25; color: var(--ink); }
+@media (max-width: 560px) { .inset { width: 42%; } }
 </style>
 
 <div class="stage" id="stage"></div>
 <div class="mockbar" id="mockbar"></div>
+<p class="seen" id="seen" hidden></p>
 <main class="sheet" id="app"></main>
 
 <script>
@@ -196,7 +203,7 @@ const SIZES = {
 
 // ---- scenarios: three from design.md section 14, four sketches drawn from later slices ----
 const SCENARIOS = [
-  { key: 'founders', name: 'Founders', status: 'built', line: 'Ten strangers, four houses, and land no one has broken.',
+  { key: 'founders', name: 'Founders', status: 'built', line: 'Ten strangers, a few houses, and land no one has broken.',
     start: '10 unrelated founders: four couples, a farmhand and a maid', gens: 'None on record', people: () => '10',
     land: 'Houses standing; next to no fields or meadows', stores: 'A year\'s food and seed; hay for one winter',
     customs: 'Old Nordic, but first cousins may marry: the founders\' grandchildren are mostly cousins',
@@ -380,9 +387,14 @@ const headBar = (title, back) => `<div class="head"><h1>${title}</h1>${back ? `<
 const PIC = { founders: 'founders', heirs: 'heirs', populous: 'populous', service: 'populous', outland: 'founders', alderman: 'populous', market: 'populous' };
 const pic = (k, far) => `img/${PIC[k]}-${far ? 'island' : 'close'}.jpg`;
 const PINS = { // x and y in hundredths of the close picture; the last flag puts the label to the left
-  founders: [[50, 54, 'The houses stand ready'], [66, 71, 'No field broken yet'], [31, 33, 'Forest to clear for hay meadows'], [55, 20, 'A river to cross', 1]],
-  heirs: [[52, 52, 'Skognes: four farms, one of them empty'], [38, 50, 'Fields three generations old', 1], [51, 31, 'Meadows fenced for hay'], [88, 17, 'A second village across the water', 1]],
-  populous: [[50, 46, 'Ekinge: six farms'], [58, 31, 'Every farm has its fields'], [66, 93, 'Sandinge, the next village'], [22, 56, 'Water between neighbours']],
+  founders: [[61, 47, 'The houses stand ready'], [49, 51, 'One well between them', 1], [75, 70, 'No field broken yet'], [22, 30, 'Forest to clear for hay meadows']],
+  heirs: [[42, 50, 'Empty for six years: no smoke, no fence', 1], [59, 47, 'Three farms lived in'], [76, 39, 'Fields three generations old', 1], [56, 15, 'Hay meadows in flower']],
+  populous: [[52, 46, 'Ekinge: six farms round a green'], [63, 22, 'Every farm has its fields'], [29, 46, 'More fields across the river', 1]],
+};
+const SEE = { // what the picture shows, in words; the inset is a second picture with its caption
+  founders: { text: 'Three farms and a well, and no field broken yet.' },
+  heirs: { text: 'Three farms with smoke at the hearth, and one dark and unfenced: empty for six years.', inset: ['img/heirs-inset.jpg', 'The far shore: a ruin, 15 years empty'] },
+  populous: { text: 'Six farms round a green, each with its fields: one village of six on this small island.', inset: ['img/populous-island.jpg', 'Six villages on the smallest map'] },
 };
 const LAYS = [['a', 'Menu card'], ['b', 'Picture cards'], ['c', 'Annotated picture']];
 
@@ -436,7 +448,7 @@ function layA(s) {
 function layB(s) {
   return `${headBar('New archipelago')}
     <div class="cards">${SCENARIOS.map((x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">
-      <img src="${pic(x.key, x.key !== 'founders' && x.key !== 'outland')}" alt=""><b>${esc(x.name)}</b><small>${esc(x.line)}</small><span>${tag(x.status)}</span></button>`).join('')}</div>
+      <img src="${pic(x.key, PIC[x.key] === 'populous')}" alt=""><b>${esc(x.name)}</b><small>${esc(x.line)}</small><span>${tag(x.status)}</span></button>`).join('')}</div>
     <div class="panes">
       <section><h2>${esc(s.name)}</h2><p>${esc(s.explores)}</p>${strip(s.key, S.size)}${yearHTML(s)}</section>
       <section class="detail">${facts(s)}${livesHTML(s)}<div class="land2">${sizeField()}${seedField()}</div><small>${esc(SIZES[S.size].note)}</small></section>
@@ -444,13 +456,14 @@ function layB(s) {
 }
 // c: the annotated picture. The scenario is read off the land itself.
 function layC(s) {
-  const pins = PINS[s.key] || [];
+  const pins = PINS[s.key] || [], see = SEE[s.key];
   return `${headBar('New archipelago')}
     <div class="tabs">${SCENARIOS.map((x) => `<button type="button" class="${x.status === 'sketch' ? 'sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">${esc(x.name)}</button>`).join('')}</div>
     <div class="cgrid">
       <section>
         <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${pic(s.key)}" alt="The land as this scenario begins">
-          ${pins.map(([x, y, t, left], i) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%"><i>${i + 1}</i><b>${esc(t)}</b></span>`).join('')}</figure>
+          ${pins.map(([x, y, t, left], i) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%"><i>${i + 1}</i><b>${esc(t)}</b></span>`).join('')}
+          ${see && see.inset ? `<span class="inset"><img src="${see.inset[0]}" alt=""><small>${esc(see.inset[1])}</small></span>` : ''}</figure>
         ${pins.length ? `<ol class="pinlist">${pins.map((x) => `<li>${esc(x[2])}</li>`).join('')}</ol>` : '<small>A stand-in picture: this scenario is a sketch.</small>'}
         ${yearHTML(s)}
       </section>
@@ -531,6 +544,8 @@ function draw() {
   $('stage').className = 'stage' + (far ? ' far' : ''); $('stage').style.backgroundImage = `url(${pic(S.sc, S.step === 2)})`;
   $('mockbar').innerHTML = `<b>Mock</b>${S.step === 1 ? `<span>Layout of this step:</span>${LAYS.map(([k, l]) => `<button type="button" data-lay="${k}" aria-pressed="${S.lay === k}">${l}</button>`).join('')}` : '<span>Step 2 keeps one layout for now.</span>'}
     <span class="legend">${tag('built')} in the game ${tag('designed')} in design.md ${tag('sketch')} an idea</span>`;
+  const see = SEE[S.sc];
+  $('seen').hidden = !(S.step === 1 && S.lay === 'a'); $('seen').textContent = see ? see.text : 'A stand-in picture: this scenario is a sketch.';
   if (S.step === 1) step1(); else step2();
 }
 $('mockbar').addEventListener('click', (e) => { const b = e.target.closest('[data-lay]'); if (b) { S.lay = b.dataset.lay; draw(); } });
