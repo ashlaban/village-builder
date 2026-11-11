@@ -23,10 +23,13 @@ for (const seed of [7, 42, 3]) {
     deposits++; set.add('d' + d);
     const [lo, hi] = amount.get(d);
     check(left === ENDLESS || (left >= lo && left <= hi), `seed ${seed}: tile ${i} has ${left} loads of ${DEPOSITS[d].key}`);
-    check(b !== B.BEACH && b !== B.SNOW, `seed ${seed}: deposit on tile ${i} of biome ${b}`);
+    check(b !== B.SNOW && (b !== B.BEACH || d === DEPOSIT.AMBER || d === DEPOSIT.FLINT) && (d !== DEPOSIT.AMBER || b === B.BEACH), `seed ${seed}: ${DEPOSITS[d].key} on tile ${i} of biome ${b}`);
+    if (d === DEPOSIT.SALT) check(left === ENDLESS, `seed ${seed}: the salt spring on tile ${i} runs out`);
+    if (d === DEPOSIT.PEAT) check(b === B.MARSH, `seed ${seed}: peat on tile ${i} of biome ${b}`);
+    if (d === DEPOSIT.FLINT) check(r === ROCK.LIMESTONE, `seed ${seed}: flint on tile ${i} in rock ${ROCKS[r].key}`);
     if (d === DEPOSIT.TIN) check(r === ROCK.GRANITE, `seed ${seed}: tin on tile ${i} in rock ${ROCKS[r].key}`);
     if (d === DEPOSIT.CLAY) check(w.hp[i] < 0.4, `seed ${seed}: clay on high tile ${i}`);
-    if (d >= DEPOSIT.IRON) check(w.hp[i] > 0.76, `seed ${seed}: ${DEPOSITS[d].key} on low tile ${i}`);
+    if (d >= DEPOSIT.IRON && d <= DEPOSIT.GOLD) check(w.hp[i] > 0.76, `seed ${seed}: ${DEPOSITS[d].key} on low tile ${i}`);
   }
   for (const [c, set] of has) {
     check(set.size < kinds, `seed ${seed}: an island of ${comp.size[c]} tiles has every kind`);

@@ -363,7 +363,7 @@ const ArchGen = (() => {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
       region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
-      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R }, mulberry32(seed ^ 0x6e0106), B), // its own source
+      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }, mulberry32, B),
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }

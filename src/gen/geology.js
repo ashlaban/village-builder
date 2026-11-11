@@ -16,7 +16,7 @@ VB['gen/geology'] = (() => {
     { key: 'soapstone', name: 'Soapstone' },
   ];
   // Deposits, w.deposit's codes.
-  const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7 };
+  const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7, SALT: 8, PEAT: 9, FLINT: 10, AMBER: 11 };
   const DEPOSITS = [
     { key: 'none', name: '' },
     { key: 'clay', name: 'Clay' },
@@ -26,6 +26,10 @@ VB['gen/geology'] = (() => {
     { key: 'leadSilver', name: 'Lead and silver ore' },
     { key: 'tin', name: 'Tin ore' },
     { key: 'gold', name: 'Gold' },
+    { key: 'salt', name: 'Salt spring' },
+    { key: 'peat', name: 'Peat' },
+    { key: 'flint', name: 'Flint' },
+    { key: 'amber', name: 'Amber' },
   ];
   // A deposit tile's w.depositLeft of ENDLESS is a source that does not run out in any game.
   const ENDLESS = 65535;
@@ -40,18 +44,24 @@ VB['gen/geology'] = (() => {
     { rock: ROCK.MARBLE, host: 'marble', chance: 0.3, full: 25, per: 300, most: 3, size: [2, 5] },
     { rock: ROCK.SOAPSTONE, host: 'soapstone', chance: 0.25, full: 30, per: 400, most: 2, size: [1, 3] },
     { deposit: DEPOSIT.GOLD, host: 'peak', chance: 0.08, full: 30, per: 600, most: 2, size: [1, 2], amount: [10, 80], rich: 0 },
-    { deposit: DEPOSIT.TIN, host: 'tin', chance: 0.12, full: 40, per: 500, most: 2, size: [1, 3], amount: [80, 400], rich: 0.05 },
+    { deposit: DEPOSIT.TIN, host: 'tin', chance: 0.25, full: 40, per: 500, most: 2, size: [1, 3], amount: [80, 400], rich: 0.05 },
     { deposit: DEPOSIT.LEAD_SILVER, host: 'upland', chance: 0.3, full: 40, per: 400, most: 3, size: [1, 3], amount: [100, 500], rich: 0.1 },
     { deposit: DEPOSIT.COPPER, host: 'upland', chance: 0.25, full: 40, per: 400, most: 3, size: [2, 4], amount: [150, 800], rich: 0.15 },
     { deposit: DEPOSIT.IRON, host: 'upland', chance: 0.45, full: 40, per: 250, most: 5, size: [2, 5], amount: [200, 1200], rich: 0.15 },
+    { deposit: DEPOSIT.AMBER, host: 'shore', chance: 0.1, full: 20, per: 150, most: 2, size: [1, 3], amount: [5, 40], rich: 0 },
+    { deposit: DEPOSIT.SALT, host: 'salt', chance: 0.1, full: 60, per: 2000, most: 1, size: [1, 1], amount: [0, 0], rich: 1 }, // a spring flows on
+    { deposit: DEPOSIT.FLINT, host: 'flint', chance: 0.5, full: 20, per: 80, most: 4, size: [2, 4], amount: [100, 600], rich: 0 },
     { deposit: DEPOSIT.BOG_IRON, host: 'bog', chance: 0.7, full: 12, per: 40, most: 8, size: [2, 5], amount: [60, 300], rich: 0 },
+    { deposit: DEPOSIT.PEAT, host: 'peat', chance: 0.8, full: 10, per: 20, most: 10, size: [3, 8], amount: [500, 3000], rich: 0 },
     { deposit: DEPOSIT.CLAY, host: 'clay', chance: 0.9, full: 40, per: 80, most: 30, size: [4, 10], amount: [300, 1500], rich: 0.1 },
   ];
 
-  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R} of the world in the making; rnd: its own random source; B: the biome codes.
+  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making; B: the biome codes. rng(seed): a seeded
+  // random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
   // Returns the three layers.
-  function lay(g, rnd, B) {
-    const { N, nb, hx, hy, hp, hm, water, biome, river } = g;
+  function lay(g, rng, B) {
+    const stream = (k) => rng(g.seed ^ 0x6e0106 ^ Math.imul(k, 0x9e3779b1));
+    const { N, nb, hx, hy, hp, hm, water, biome, river } = g, rnd = stream(0);
     // @state w.rock: Uint8Array per tile; bedrock, a ROCK code of gen/geology (granite..soapstone on land, 0 on water)
     // @state w.deposit: Uint8Array per tile; what can be dug here, a DEPOSIT code of gen/geology (0 on most tiles)
     // @state w.depositLeft: Uint16Array per tile; loads left of the tile's deposit, 65535 (ENDLESS) for one that does not run out; 0 with none
@@ -76,14 +86,15 @@ VB['gen/geology'] = (() => {
     }
 
     // ---- where each kind can lie ----
-    // wet: on a river, or beside a lake or a river; lakeside: beside a lake
-    const wet = new Uint8Array(N), lakeside = new Uint8Array(N);
+    // wet: on a river, or beside a lake or a river; lakeside: beside a lake; coast: beside any water
+    const wet = new Uint8Array(N), lakeside = new Uint8Array(N), coast = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (water[i]) continue;
       if (river[i]) wet[i] = 1;
       for (let d = 0; d < 6; d++) {
         const j = nb[i * 6 + d]; if (j < 0) continue;
         if (biome[j] === B.LAKE) { wet[i] = 1; lakeside[i] = 1; } else if (river[j]) wet[i] = 1;
+        if (water[j]) coast[i] = 1; // on the sea or a lake
       }
     }
     const upland = (i) => hp[i] > 0.76 && biome[i] !== B.SNOW; // hills, mountains and the pine woods as high
@@ -95,10 +106,15 @@ VB['gen/geology'] = (() => {
       tin: (i) => upland(i) && rock[i] === ROCK.GRANITE,
       upland,
       bog: (i) => biome[i] === B.MARSH || (lakeside[i] && soil(i) && hp[i] < 0.5), // marsh and the shores of lakes (myrmalm, sjömalm)
+      shore: (i) => biome[i] === B.BEACH, // amber, washed up on sandy shores
+      salt: (i) => soil(i) && !coast[i] && !wet[i] && hp[i] > 0.2 && hp[i] < 0.7 && (rock[i] === ROCK.LIMESTONE || rock[i] === ROCK.SANDSTONE),
+      flint: (i) => rock[i] === ROCK.LIMESTONE && hp[i] < 0.3 && biome[i] !== B.MARSH, // nodules in the low limestone and its shores
+      peat: (i) => biome[i] === B.MARSH,
       clay: (i) => soil(i) && hp[i] < 0.4 && (hm[i] > 0.55 || wet[i]), // low and damp: valleys, lake shores, the old sea floor
     };
 
     // ---- islands (land joined through land neighbours), each laid in turn ----
+    const streams = VEINS.map((v) => stream(v.rock ? v.rock : 16 + v.deposit));
     const seen = new Uint8Array(N), free = (v, i) => (v.rock ? rock[i] !== v.rock : !deposit[i]);
     for (let s = 0; s < N; s++) {
       if (water[s] || seen[s]) continue;
@@ -106,24 +122,25 @@ VB['gen/geology'] = (() => {
       for (let h = 0; h < isle.length; h++) for (let d = 0; d < 6; d++) {
         const j = nb[isle[h] * 6 + d]; if (j >= 0 && !water[j] && !seen[j]) { seen[j] = 1; isle.push(j); }
       }
-      for (const v of VEINS) {
+      for (let k = 0; k < VEINS.length; k++) {
+        const v = VEINS[k], draw = streams[k];
         const host = hosts[v.host], at = isle.filter((i) => host(i) && free(v, i));
-        const here = rnd() < v.chance * Math.min(1, at.length / v.full); // drawn even with no host, so each island's draws stay in step
+        const here = draw() < v.chance * Math.min(1, at.length / v.full); // drawn even with no host, so each island's draws stay in step
         if (!here || !at.length) continue;
         const veins = Math.max(1, Math.min(v.most, Math.round(at.length / v.per)));
         for (let n = 0; n < veins; n++) {
-          const first = at[(rnd() * at.length) | 0], size = v.size[0] + ((rnd() * (v.size[1] - v.size[0] + 1)) | 0), rich = rnd() < (v.rich || 0);
+          const first = at[(draw() * at.length) | 0], size = v.size[0] + ((draw() * (v.size[1] - v.size[0] + 1)) | 0), rich = draw() < (v.rich || 0);
           if (!free(v, first)) continue;
           const vein = [first], edge = [first], inVein = new Set(vein);
           while (vein.length < size && edge.length) {
-            const e = (rnd() * edge.length) | 0, i = edge[e], open = [];
+            const e = (draw() * edge.length) | 0, i = edge[e], open = [];
             for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && !inVein.has(j) && host(j) && free(v, j)) open.push(j); }
             if (!open.length) { edge[e] = edge[edge.length - 1]; edge.pop(); continue; }
-            const j = open[(rnd() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
+            const j = open[(draw() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
           }
           for (const i of vein) {
             if (v.rock) { rock[i] = v.rock; continue; }
-            const r = rnd();
+            const r = draw();
             deposit[i] = v.deposit;
             depositLeft[i] = rich && i === first ? ENDLESS : Math.round(v.amount[0] + (v.amount[1] - v.amount[0]) * r * r);
           }

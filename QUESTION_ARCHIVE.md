@@ -2,6 +2,23 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-342)
+
+## VB-342: the ground, what is still open (raised 11 November 2026)
+The generator lays bedrock and deposits and the page shows them (`backlog/VB-342.md`; `design.md`, World and scale, Ground); nothing digs. These wait for the slices that give the kinds a use, and need no answer before then.
+1. Known or found? **P:** bedrock, clay and bog iron are known to all, as today (they show at the surface); the upland ores are found: a vein is unknown until a pawn has worked or herded within 2 tiles of it for a season, or prospects it as long work, and the overlay shows only what the played pawn's village knows. Until that is built, all is shown.
+   **A (Kim, 11 Nov):** P: the upland ores are found, the rest known; all is shown until that is built.
+2. What each kind is for, and when. **P:** clay with slice 6 (pots that keep food, daub and a brick hearth or oven for the better house); limestone with slice 6 (burnt to lime for mortar: a stone house needs it, so a granite village must trade for it); sandstone for querns, whetstones and grindstones (slice 6, in place of "stone ground"); bog and rock iron with VB-121 (tools that wear), rock iron needing a mine as a facility; slate, marble and soapstone for standing (roof, church and carving; slice 6 or 8); copper, tin, lead, silver and gold with slice 8 (coin and the Church's bells and vessels), through ships until then.
+   **A (Kim, 11 Nov):** P, as proposed.
+3. Does bog iron grow back? **P:** yes, slowly, as it did: a worked bog tile regains a load a year up to what it began with, stored as a value and the year it was set (rule 3), so bog iron is the peasant's lasting source and rock iron the rich, finite one.
+   **A (Kim, 11 Nov):** P: yes, slowly.
+4. Does quarrying (VB-332) read the bedrock? **P:** yes: a load quarried is of the tile's rock, and the foundation takes any kind; hours by hardness (granite 4 a load as written, sandstone and limestone 3, slate 3). Picked field stone stays granite everywhere (boulders the ice left).
+   **A (Kim, 11 Nov):** P: yes, by bedrock.
+5. Amounts and endless sources. **P:** leave the placeholders (clay 300 to 1,500 loads a tile, iron 200 to 1,200, gold 10 to 80; one tile endless in 5 to 15% of veins) until the first good that digs names a year's use; then set them so a village's vein lasts about three generations and an endless source is worth a town.
+   **A (Kim, 11 Nov):** P: tune when a good uses them.
+6. Further resources to lay in the same way. **P:** salt springs (rare, inland; salt otherwise by ship, as designed), peat (in marsh: fuel where wood is short, a second good of the marsh beside bog iron), flint (in limestone by the coast: strike-a-lights) and amber (rare, on sandy shores: standing, and a good for the ships). Not now: alum, sulphur, saltpetre, calamine and coal, which wait for dyeing, gunpowder, brass and towns.
+   **A (Kim, 11 Nov):** All four: salt springs, peat, flint and amber (built in VB-342's second batch). The rest wait as proposed.
+
 # Archived 11 November 2026 (VB-341)
 
 ## VB-341: the action bar, as built (raised 11 November 2026)

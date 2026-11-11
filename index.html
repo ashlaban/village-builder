@@ -320,6 +320,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .ground-key i { flex: none; width: 14px; height: 14px; border: 1.5px solid #2a1a0c; }
 .ground-key i.rock { border-width: 1px; border-radius: 3px; }
 .ground-key i.ore { border-radius: 50%; }
+.ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
 .ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
 body:not(.minimap-open) .ground-key { display: none; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
@@ -1719,7 +1720,7 @@ VB['gen/geology'] = (() => {
     { key: 'soapstone', name: 'Soapstone' },
   ];
   // Deposits, w.deposit's codes.
-  const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7 };
+  const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7, SALT: 8, PEAT: 9, FLINT: 10, AMBER: 11 };
   const DEPOSITS = [
     { key: 'none', name: '' },
     { key: 'clay', name: 'Clay' },
@@ -1729,6 +1730,10 @@ VB['gen/geology'] = (() => {
     { key: 'leadSilver', name: 'Lead and silver ore' },
     { key: 'tin', name: 'Tin ore' },
     { key: 'gold', name: 'Gold' },
+    { key: 'salt', name: 'Salt spring' },
+    { key: 'peat', name: 'Peat' },
+    { key: 'flint', name: 'Flint' },
+    { key: 'amber', name: 'Amber' },
   ];
   // A deposit tile's w.depositLeft of ENDLESS is a source that does not run out in any game.
   const ENDLESS = 65535;
@@ -1743,18 +1748,24 @@ VB['gen/geology'] = (() => {
     { rock: ROCK.MARBLE, host: 'marble', chance: 0.3, full: 25, per: 300, most: 3, size: [2, 5] },
     { rock: ROCK.SOAPSTONE, host: 'soapstone', chance: 0.25, full: 30, per: 400, most: 2, size: [1, 3] },
     { deposit: DEPOSIT.GOLD, host: 'peak', chance: 0.08, full: 30, per: 600, most: 2, size: [1, 2], amount: [10, 80], rich: 0 },
-    { deposit: DEPOSIT.TIN, host: 'tin', chance: 0.12, full: 40, per: 500, most: 2, size: [1, 3], amount: [80, 400], rich: 0.05 },
+    { deposit: DEPOSIT.TIN, host: 'tin', chance: 0.25, full: 40, per: 500, most: 2, size: [1, 3], amount: [80, 400], rich: 0.05 },
     { deposit: DEPOSIT.LEAD_SILVER, host: 'upland', chance: 0.3, full: 40, per: 400, most: 3, size: [1, 3], amount: [100, 500], rich: 0.1 },
     { deposit: DEPOSIT.COPPER, host: 'upland', chance: 0.25, full: 40, per: 400, most: 3, size: [2, 4], amount: [150, 800], rich: 0.15 },
     { deposit: DEPOSIT.IRON, host: 'upland', chance: 0.45, full: 40, per: 250, most: 5, size: [2, 5], amount: [200, 1200], rich: 0.15 },
+    { deposit: DEPOSIT.AMBER, host: 'shore', chance: 0.1, full: 20, per: 150, most: 2, size: [1, 3], amount: [5, 40], rich: 0 },
+    { deposit: DEPOSIT.SALT, host: 'salt', chance: 0.1, full: 60, per: 2000, most: 1, size: [1, 1], amount: [0, 0], rich: 1 }, // a spring flows on
+    { deposit: DEPOSIT.FLINT, host: 'flint', chance: 0.5, full: 20, per: 80, most: 4, size: [2, 4], amount: [100, 600], rich: 0 },
     { deposit: DEPOSIT.BOG_IRON, host: 'bog', chance: 0.7, full: 12, per: 40, most: 8, size: [2, 5], amount: [60, 300], rich: 0 },
+    { deposit: DEPOSIT.PEAT, host: 'peat', chance: 0.8, full: 10, per: 20, most: 10, size: [3, 8], amount: [500, 3000], rich: 0 },
     { deposit: DEPOSIT.CLAY, host: 'clay', chance: 0.9, full: 40, per: 80, most: 30, size: [4, 10], amount: [300, 1500], rich: 0.1 },
   ];
 
-  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R} of the world in the making; rnd: its own random source; B: the biome codes.
+  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making; B: the biome codes. rng(seed): a seeded
+  // random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
   // Returns the three layers.
-  function lay(g, rnd, B) {
-    const { N, nb, hx, hy, hp, hm, water, biome, river } = g;
+  function lay(g, rng, B) {
+    const stream = (k) => rng(g.seed ^ 0x6e0106 ^ Math.imul(k, 0x9e3779b1));
+    const { N, nb, hx, hy, hp, hm, water, biome, river } = g, rnd = stream(0);
     // @state w.rock: Uint8Array per tile; bedrock, a ROCK code of gen/geology (granite..soapstone on land, 0 on water)
     // @state w.deposit: Uint8Array per tile; what can be dug here, a DEPOSIT code of gen/geology (0 on most tiles)
     // @state w.depositLeft: Uint16Array per tile; loads left of the tile's deposit, 65535 (ENDLESS) for one that does not run out; 0 with none
@@ -1779,14 +1790,15 @@ VB['gen/geology'] = (() => {
     }
 
     // ---- where each kind can lie ----
-    // wet: on a river, or beside a lake or a river; lakeside: beside a lake
-    const wet = new Uint8Array(N), lakeside = new Uint8Array(N);
+    // wet: on a river, or beside a lake or a river; lakeside: beside a lake; coast: beside any water
+    const wet = new Uint8Array(N), lakeside = new Uint8Array(N), coast = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (water[i]) continue;
       if (river[i]) wet[i] = 1;
       for (let d = 0; d < 6; d++) {
         const j = nb[i * 6 + d]; if (j < 0) continue;
         if (biome[j] === B.LAKE) { wet[i] = 1; lakeside[i] = 1; } else if (river[j]) wet[i] = 1;
+        if (water[j]) coast[i] = 1; // on the sea or a lake
       }
     }
     const upland = (i) => hp[i] > 0.76 && biome[i] !== B.SNOW; // hills, mountains and the pine woods as high
@@ -1798,10 +1810,15 @@ VB['gen/geology'] = (() => {
       tin: (i) => upland(i) && rock[i] === ROCK.GRANITE,
       upland,
       bog: (i) => biome[i] === B.MARSH || (lakeside[i] && soil(i) && hp[i] < 0.5), // marsh and the shores of lakes (myrmalm, sjömalm)
+      shore: (i) => biome[i] === B.BEACH, // amber, washed up on sandy shores
+      salt: (i) => soil(i) && !coast[i] && !wet[i] && hp[i] > 0.2 && hp[i] < 0.7 && (rock[i] === ROCK.LIMESTONE || rock[i] === ROCK.SANDSTONE),
+      flint: (i) => rock[i] === ROCK.LIMESTONE && hp[i] < 0.3 && biome[i] !== B.MARSH, // nodules in the low limestone and its shores
+      peat: (i) => biome[i] === B.MARSH,
       clay: (i) => soil(i) && hp[i] < 0.4 && (hm[i] > 0.55 || wet[i]), // low and damp: valleys, lake shores, the old sea floor
     };
 
     // ---- islands (land joined through land neighbours), each laid in turn ----
+    const streams = VEINS.map((v) => stream(v.rock ? v.rock : 16 + v.deposit));
     const seen = new Uint8Array(N), free = (v, i) => (v.rock ? rock[i] !== v.rock : !deposit[i]);
     for (let s = 0; s < N; s++) {
       if (water[s] || seen[s]) continue;
@@ -1809,24 +1826,25 @@ VB['gen/geology'] = (() => {
       for (let h = 0; h < isle.length; h++) for (let d = 0; d < 6; d++) {
         const j = nb[isle[h] * 6 + d]; if (j >= 0 && !water[j] && !seen[j]) { seen[j] = 1; isle.push(j); }
       }
-      for (const v of VEINS) {
+      for (let k = 0; k < VEINS.length; k++) {
+        const v = VEINS[k], draw = streams[k];
         const host = hosts[v.host], at = isle.filter((i) => host(i) && free(v, i));
-        const here = rnd() < v.chance * Math.min(1, at.length / v.full); // drawn even with no host, so each island's draws stay in step
+        const here = draw() < v.chance * Math.min(1, at.length / v.full); // drawn even with no host, so each island's draws stay in step
         if (!here || !at.length) continue;
         const veins = Math.max(1, Math.min(v.most, Math.round(at.length / v.per)));
         for (let n = 0; n < veins; n++) {
-          const first = at[(rnd() * at.length) | 0], size = v.size[0] + ((rnd() * (v.size[1] - v.size[0] + 1)) | 0), rich = rnd() < (v.rich || 0);
+          const first = at[(draw() * at.length) | 0], size = v.size[0] + ((draw() * (v.size[1] - v.size[0] + 1)) | 0), rich = draw() < (v.rich || 0);
           if (!free(v, first)) continue;
           const vein = [first], edge = [first], inVein = new Set(vein);
           while (vein.length < size && edge.length) {
-            const e = (rnd() * edge.length) | 0, i = edge[e], open = [];
+            const e = (draw() * edge.length) | 0, i = edge[e], open = [];
             for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && !inVein.has(j) && host(j) && free(v, j)) open.push(j); }
             if (!open.length) { edge[e] = edge[edge.length - 1]; edge.pop(); continue; }
-            const j = open[(rnd() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
+            const j = open[(draw() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
           }
           for (const i of vein) {
             if (v.rock) { rock[i] = v.rock; continue; }
-            const r = rnd();
+            const r = draw();
             deposit[i] = v.deposit;
             depositLeft[i] = rich && i === first ? ENDLESS : Math.round(v.amount[0] + (v.amount[1] - v.amount[0]) * r * r);
           }
@@ -2205,7 +2223,7 @@ const ArchGen = (() => {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
       region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
-      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R }, mulberry32(seed ^ 0x6e0106), B), // its own source
+      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }, mulberry32, B),
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -12690,11 +12708,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
 
   // ---- the Ground overlay (gen/geology): what lies in the ground ----
-  // Bedrock tints the tile; a deposit is a disc in its kind's colour (clay a square), with a ring round a source that does not run out.
+  // Bedrock tints the tile; a deposit is a mark in its kind's colour: a disc for an ore, a square for clay and peat, a diamond for salt,
+  // flint and amber; a ring goes round a source that does not run out.
   // The ground is the generator's and nothing digs yet, so it is drawn once a world, when the overlay is first turned on.
   let groundG = null, groundOn = false, groundFor = null;
   const ROCK_COLOUR = [0, 0xc98a8a, 0xf0e8c8, 0xe0a050, 0x56627a, 0xffffff, 0x6fae8e]; // by ROCK code: granite..soapstone
-  const DEPOSIT_COLOUR = [0, 0xc4552d, 0x8a5a2a, 0x33363c, 0x1fa98a, 0xdfe6ee, 0x7fb4e6, 0xf5c518]; // by DEPOSIT code: clay..gold
+  const DEPOSIT_COLOUR = [0, 0xc4552d, 0x8a5a2a, 0x33363c, 0x1fa98a, 0xdfe6ee, 0x7fb4e6, 0xf5c518, 0xffffff, 0x4a3526, 0x5d6675,
+    0xff9d1c]; // by DEPOSIT code: clay..amber
+  const DEPOSIT_MARK = ['', 'earth', 'ore', 'ore', 'ore', 'ore', 'ore', 'ore', 'gem', 'earth', 'gem', 'gem'];
   const hex6 = (c) => '#' + c.toString(16).padStart(6, '0');
   function drawGround() {
     if (!w || !w.rock || groundFor === w) return;
@@ -12709,7 +12730,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       for (let i = 0; i < w.N; i++) {
         if (w.deposit[i] !== d) continue;
         deps[d]++;
-        if (d === Geo.DEPOSIT.CLAY) g.rect(w.hx[i] - R * 0.38, w.hy[i] - R * 0.38, R * 0.76, R * 0.76); else g.circle(w.hx[i], w.hy[i], R * 0.44);
+        const x = w.hx[i], y = w.hy[i], m = DEPOSIT_MARK[d];
+        if (m === 'earth') g.rect(x - R * 0.38, y - R * 0.38, R * 0.76, R * 0.76);
+        else if (m === 'gem') g.poly([x, y - R * 0.52, x + R * 0.52, y, x, y + R * 0.52, x - R * 0.52, y]);
+        else g.circle(x, y, R * 0.44);
       }
       if (deps[d]) g.fill({ color: DEPOSIT_COLOUR[d] }).stroke({ width: R * 0.09, color: 0x2a1a0c });
     }
@@ -12720,7 +12744,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const row = (cls, colour, name) => `<li><i class="${cls}" style="background:${hex6(colour)}"></i>${name}</li>`;
     $('groundKey').innerHTML = '<h2 class="menu-label">Bedrock</h2><ul>'
       + Geo.ROCKS.map((r, k) => (rocks[k] ? row('rock', ROCK_COLOUR[k], r.name) : '')).join('') + '</ul><h2 class="menu-label">Deposits</h2><ul>'
-      + (Geo.DEPOSITS.map((d, k) => (deps[k] ? row(k === Geo.DEPOSIT.CLAY ? 'clay' : 'ore', DEPOSIT_COLOUR[k], d.name) : '')).join('')
+      + (Geo.DEPOSITS.map((d, k) => (deps[k] ? row(DEPOSIT_MARK[k], DEPOSIT_COLOUR[k], d.name) : '')).join('')
         || '<li>None on this map</li>') + (endless ? '<li><i class="ore endless"></i>Does not run out</li>' : '') + '</ul>';
   }
   function setGround(on) { groundOn = on; L.ground.visible = on; $('groundKey').hidden = !on; if (on) drawGround(); }
@@ -16956,7 +16980,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '4a5a0bff17', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '7c57b2335b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
