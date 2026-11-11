@@ -50,10 +50,15 @@ VB['sim/help'] = (() => {
     const toHarvest = c.season < AUTUMN ? AUTUMN * SEASON_DAYS - c.doy : YEAR_DAYS - c.doy + AUTUMN * SEASON_DAYS;
     return Math.max(HELP.askDays, toHarvest);
   }
+  // Short of people (design.md, Households short of people: Taken in before it starves; VB-308): at most one member of 18 or more, and fields.
+  // Over its members only; read at the ask, never polled.
+  const shortOfPeople = (st, hh) => st.farmsteads[hh.farmstead].fields.length > 0
+    && hh.members.filter((id) => { const p = st.pawns[id]; return p.alive && p.age >= 18; }).length <= 1;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days, and that has not asked this season, asks kin, then the
-  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season.
+  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. Returns the ids of
+  // the households short of people whose ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
   function shareFood(st) {
-    const season = seasonOf(st.t);
+    const season = seasonOf(st.t), short = [];
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
@@ -67,8 +72,10 @@ VB['sim/help'] = (() => {
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, v.grain);
-      if (n > 1e-9) give(st, v, hh, n);
+      if (n > 1e-9 && give(st, v, hh, n)) want -= n;
+      if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
+    return short;
   }
   // At the moving round every household gives a share of its surplus to its village's store.
   function fillStores(st) {
@@ -79,5 +86,5 @@ VB['sim/help'] = (() => {
       give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
     }
   }
-  return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf };
+  return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf, shortOfPeople };
 })();
