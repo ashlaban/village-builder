@@ -72,7 +72,7 @@ are not diagnosed here; they stay residuals of the early game's small founding g
 |---|---|---|
 | Seed reserve never eaten: 91 of 141 hunger deaths, 114 rows | all ten runs but founders 11 | Kim's question 1; VB-270-a |
 | Real shortage before harvest: 49 deaths, 166 rows | all ten | VB-270-c, then VB-048 |
-| Lone survivors and wards | populous 3, 11, heirs, founders 42 | VB-270-b (with VB-090, VB-034) |
+| Lone survivors and wards | populous 3, 11, heirs, founders 42 | VB-270-b, planned by VB-283: VB-307, VB-308, VB-309 (with VB-090, VB-034); the wards are lone adults after their death (`backlog/VB-283.md`) |
 | The worst household as the band's reading | six of ten runs at 1.00 | Kim's question 2 |
 
 ## Slice 0's wrap-up: the lines at `7205992` (VB-200, 10 November)
