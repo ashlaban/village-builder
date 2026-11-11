@@ -10,6 +10,19 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 
 ## Priority 2
 
+### VB-345: crops and rotations, the plan to read (raised 11 November 2026)
+The plan is `design.md`, Goods and the farming year, Crops and rotations (`node tools/doc.js design.md "Crops and rotations"`), with World and scale, Two readings of one grid. What Kim decided on 11 November is marked there; these are its points still Proposed. The tasks VB-346 to VB-356 wait for this reading.
+1. The first crops' numbers (The first crops): rye as barley but for its calendar; peas 60 rations and 20 of seed, soil +0.04; fallow +0.08 for one tilling of 10 hours; rest and peas mend soil only to 1.0. **P:** as written, as starting values; the peas' have no source and the wrap-up tunes them.
+2. The five rotations, and a farm's fields staggered through one. **P:** as written.
+3. A fallow field does not count against the fields a hand can till, so a farm in three courses holds half as many fields again. **P:** yes; without it three courses feed a farm less than today's three barley fields.
+4. The heads' thresholds: the lowest and highest fifth of foresight; an ordinary head rests a field below soil 0.85; a trial as a project. **P:** as written.
+5. Seed: seed is the crop's own grain, in subtypes; help and gifts carry grain in the proportion the giver holds; a start in life and settlers' provisions carry a field's seed of each crop. **P:** as written.
+6. The presets beyond founders: heirs (A rye, B peas) and populous (by the ground; about a third of villages barley alone); and in founders, the three farms the rye and the lone farm the peas. **P:** as written.
+7. Each crop's reading of the weather (Crops and the weather, the table), and warmth moving the ripening by up to 2 days. **P:** as written, as starting values with no source; to be fitted to the weather branch's harvest factor when it lands.
+8. Threshing may wait for winter. **P:** not in this arch; the wrap-up measures the autumn's crowding first.
+9. The pot: barley and rye one source, peas a second. **P:** yes.
+10. The tasks' order and priority: VB-346 to VB-350 in a row, then the head's choice, seed, the scenarios, the weather and the player's verbs, all at priority 3. **P:** as written; raise the priority if crops should come before slice 4's work.
+
 ### VB-294: where the village's choice of gathering is made (raised 11 November 2026)
 Raised by the backlog's curation of 11 November. VB-294's criterion reads "A village's choice is a routine of its meeting (VB-257), so the player's pawn argues for it by advocacy as for any cause." VB-257's routines are village work (at most four a year, each a source of tasks on the `villager` basis), set "as a decision of the meeting (a command of the meeting, as its other decisions)"; a choice among hosts posts no work. Slice 5's VB-313 builds `sim/decisions`, the one place where a body's questions, procedures and ballots are asked (the custom votes first; VB-293's offers are planned to move there), but it is slice 5 and P3, and VB-294 is slice 4 and P2.
 1. Is the choice of gathering one of VB-257's routines, or a question of the meeting of its own? **P:** a question of its own, made as VB-257 makes its decisions (a command of the meeting, the player's pawn arguing by advocacy), not one of the four routines; VB-294 keeps waiting for VB-257 only, and VB-313 moves the choice into `sim/decisions` with the other questions when it lands, so slice 4 does not wait for slice 5. The other way: VB-294 waits for VB-313 as well, and the fair moves behind slice 5's refactor.

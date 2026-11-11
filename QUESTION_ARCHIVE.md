@@ -2,10 +2,10 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
-# Archived 11 November 2026 (VB-342)
+# Archived 11 November 2026 (VB-345)
 
-## VB-342: crops and rotations (raised 11 November 2026)
-Raised in a discussion with Kim on 11 November on how the game should handle different crops, the scale of a hex, planting, yields and the weather; the answers shape the plan task VB-342, which makes them concrete.
+## VB-345: crops and rotations (raised 11 November 2026)
+Raised in a discussion with Kim on 11 November on how the game should handle different crops, the scale of a hex, planting, yields and the weather; the answers shape the plan task VB-345, which makes them concrete.
 1. What are crops mainly for: risk and the labour calendar, goods chains such as ale and linen, or regional flavour? **P:** risk and the labour calendar.
    **A (Kim, 11 Nov):** all of those.
 2. Who decides what is sown: a village custom of rotation the head works within, or each household? **P:** a rotation a farm, its default a village custom (one-, two- or three-course), the player as head setting it through a verb of the plan.
@@ -27,8 +27,8 @@ Raised in a discussion with Kim on 11 November on how the game should handle dif
 10. Is the discussion far enough along to record the answers and write a plan task (no code; the implement tasks only after Kim has read the plan)? **P:** yes.
    **A (Kim, 11 Nov):** yes; discuss the system and its interactions with existing and planned systems first, before creating tasks (done the same day).
 
-## VB-342: crops and rotations, the plan's batches (raised 11 November 2026)
-Asked as the plan task VB-342 wrote `design.md`, Crops and rotations, in batches the same day.
+## VB-345: crops and rotations, the plan's batches (raised 11 November 2026)
+Asked as the plan task VB-345 wrote `design.md`, Crops and rotations, in batches the same day.
 1. Founders: `design.md` says 10 founders and no word of two villages. Does founders start as two villages? **P:** as built: a village of three farms and a lone farm, a village of one.
    **A (Kim, 11 Nov):** there are two villages in founders.
 2. Rye at 4:1, not the 5:1 first suggested (late medieval Scandinavian rye is put at about four for one on permanent fields), its worth in its calendar and on fresh land? **P:** yes.
@@ -38,8 +38,8 @@ Asked as the plan task VB-342 wrote `design.md`, Crops and rotations, in batches
 4. Does a rotation become the village's usual one when most farms hold it, or does the meeting decide it? **P:** when most farms hold it.
    **A (Kim, 11 Nov):** yes (most farms hold it), but updated at the meeting.
 
-## VB-342: crops and rotations, seed (raised 11 November 2026)
-Asked as the plan task VB-342 wrote `design.md`, Seed and The scenarios' crops.
+## VB-345: crops and rotations, seed (raised 11 November 2026)
+Asked as the plan task VB-345 wrote `design.md`, Seed and The scenarios' crops.
 1. One household holds all the island's peas in founders, so a bad first year could lose the crop for good: an acceptable story, or should a second household carry a little pea seed? **P:** either; a second household makes the start less brittle.
    **A (Kim, 11 Nov):** have a backup household carry extra.
 2. The order in which a hungry household eats its seed: the crop it holds most of first, the last field's seed of each crop last? **P:** yes.
