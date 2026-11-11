@@ -619,6 +619,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .pyr .pb.l i { background: linear-gradient(to left, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .start-bar { position: sticky; bottom: 0; display: flex !important; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+.start-sheet .start-opts, .start-sheet .start-acts { display: contents; }
 .start-bar label { width: 200px; max-width: 100%; min-width: 0; } .start-bar select { width: 100%; min-width: 0; }
 .start-bar .grow { flex: 1 1 0; }
 .start-bar .err { flex: 1 1 220px; align-self: center; max-width: none; }
@@ -633,13 +634,16 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .scard .cpic { grid-row: 1 / span 3; height: 100%; min-height: 70px; padding: 0 4px 4px; }
   .scard .cpic img { width: 34px; height: 34px; margin: 0 -6px; }
   .scard > *:not(.cpic) { margin: 0 10px 0 0; } .scard > b { margin-top: 8px; } .scard > .stats { margin-bottom: 8px; }
-  .start-bar { gap: 8px; padding: 10px 12px; }
+  .start-bar { display: contents !important; }
+  .start-sheet .start-opts, .start-sheet .start-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 12px; }
+  .start-sheet .start-acts { position: sticky; bottom: 0; margin: 10px 0 max(14px, env(safe-area-inset-bottom, 0px)); padding: 8px 12px;
+    box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
   /* room for the map size's words and the seed's six digits in one row, from 360px up */
   .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
   .start-bar select, .start-bar input { padding-left: 8px; padding-right: 6px; } .start-bar .seedrow button { padding: 6px 8px; }
   .start-bar .grow { display: none; }
-  .start-bar > button { flex: 1 1 120px; }
+  .start-acts > button { flex: 1 1 120px; }
   .scard .cpic { align-items: center; }
 }
 @media (max-width: 560px) {

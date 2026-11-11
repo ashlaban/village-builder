@@ -226,7 +226,9 @@
           d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
       </section>
     </div>
+    <!-- one bar; on a phone two: the choices lie at the page's end, and only Back and Raise the land stay at the screen's foot -->
     <div class="panel start-bar">
+      <div class="panel start-opts">
       <label>Map size
         <select id="genSize">
           <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -237,10 +239,13 @@
         <span class="seedrow"><input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required><button type="button"
           id="genReroll">Another</button></span>
       </label>
+      </div>
+      <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
       <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
+      </div>
     </div>
   </form>
 </div>

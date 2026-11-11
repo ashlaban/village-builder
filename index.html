@@ -619,6 +619,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .pyr .pb.l i { background: linear-gradient(to left, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .start-bar { position: sticky; bottom: 0; display: flex !important; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+.start-sheet .start-opts, .start-sheet .start-acts { display: contents; }
 .start-bar label { width: 200px; max-width: 100%; min-width: 0; } .start-bar select { width: 100%; min-width: 0; }
 .start-bar .grow { flex: 1 1 0; }
 .start-bar .err { flex: 1 1 220px; align-self: center; max-width: none; }
@@ -633,13 +634,16 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .scard .cpic { grid-row: 1 / span 3; height: 100%; min-height: 70px; padding: 0 4px 4px; }
   .scard .cpic img { width: 34px; height: 34px; margin: 0 -6px; }
   .scard > *:not(.cpic) { margin: 0 10px 0 0; } .scard > b { margin-top: 8px; } .scard > .stats { margin-bottom: 8px; }
-  .start-bar { gap: 8px; padding: 10px 12px; }
+  .start-bar { display: contents !important; }
+  .start-sheet .start-opts, .start-sheet .start-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 12px; }
+  .start-sheet .start-acts { position: sticky; bottom: 0; margin: 10px 0 max(14px, env(safe-area-inset-bottom, 0px)); padding: 8px 12px;
+    box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
   /* room for the map size's words and the seed's six digits in one row, from 360px up */
   .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
   .start-bar select, .start-bar input { padding-left: 8px; padding-right: 6px; } .start-bar .seedrow button { padding: 6px 8px; }
   .start-bar .grow { display: none; }
-  .start-bar > button { flex: 1 1 120px; }
+  .start-acts > button { flex: 1 1 120px; }
   .scard .cpic { align-items: center; }
 }
 @media (max-width: 560px) {
@@ -942,7 +946,9 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
           d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
       </section>
     </div>
+    <!-- one bar; on a phone two: the choices lie at the page's end, and only Back and Raise the land stay at the screen's foot -->
     <div class="panel start-bar">
+      <div class="panel start-opts">
       <label>Map size
         <select id="genSize">
           <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -953,10 +959,13 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         <span class="seedrow"><input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required><button type="button"
           id="genReroll">Another</button></span>
       </label>
+      </div>
+      <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
       <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
+      </div>
     </div>
   </form>
 </div>
@@ -16781,7 +16790,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c4094c3506', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e302e1bd16', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
