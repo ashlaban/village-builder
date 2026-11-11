@@ -281,6 +281,32 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
   - the office of alderman.
 - **Done when:** the land Gini, the tenancy share and landed households per 1,000 are reported against a band, at four seeds.
 
+**Design pass (written 11 November, VB-184; `design.md`, sections 5 (Households and other bodies), 6 (Land and rights), 9 (Loans,
+obligations and cases) and 10 (slice 5's practices); all Proposed).** Written while Kim was away: where this section, target-v2 or an
+archived answer pointed the way, the orchestrator decided in Kim's place, and the answers are questions 1 to 6, 9 and 10 of
+`QUESTIONS.md`, "VB-184: debt and land", for Kim to overturn. In short:
+- grain loans, moved here from slice 4 (Kim, 10 November), asked when help falls short, repaid at the next harvest with a quarter more
+  under a new practice; defaulted after two harvests unpaid;
+- Obligations as a module, its first kind the heirs' shares (moved in unchanged), then loans, rent, labour owed and wages;
+- the creditor presses, extends or forgives; a case is heard at the debtor's village meeting by its practice (the meeting's voices or
+  the alderman; the parties stand aside or vote); the remedy by "Debts are paid with" (labour; labour, then land, the default; land),
+  a field of least worth a hearing when at least half a field's worth is owed, the debtor's household staying as tenant;
+- tenancy: a quarter of the harvest and 2 days' labour, for the household while the owner agrees at each handover; a vacant tenancy is
+  a home;
+- the alderman, chosen at the meeting by a practice (elected or by turns), deciding ties and booking the village's gifts and loans to
+  himself; class (tenant, cottager, peasant, landed) yearly with target-v2's hysteresis, landed lowering field work to 2 of 10 and adding
+  0.2 prestige; hired hands at 3 rations a day; debtors' politics as the opposing loop.
+- Bodies, by measurement (section 8): today's memberships as a graph build in 0.55 ms and derive the household cache in 0.33 ms at
+  populous medium, year 12; adopting the graph is Kim's question 7, and only VB-043 and the scope views after it wait for it.
+- **Tasks, in order:** VB-310 (Obligations, a refactor), VB-311 (land rights), VB-313 (Decisions, a refactor) side by side; VB-312
+  (loans), VB-314 (the alderman); VB-315 (cases and labour, after slice 3's VB-250); VB-316 (foreclosure and rent); VB-317
+  (tenancies over time), VB-318 (class), VB-320 (debtors' politics); VB-319 (hired hands, after VB-250); VB-321 (the page); VB-034
+  (splitting between heirs, on VB-311); VB-045 (the overlay by chunk) and VB-082 (ballots, after VB-313); VB-043 and, after it,
+  VB-044, VB-092 and VB-095, waiting for Kim; VB-141 (grazing rights, a plan); the wrap-up VB-035, which absorbs VB-046 (closed).
+  VB-175 and VB-176 are done; VB-180 (the ownership wrap-up) runs apart, and slice 5's new owners (`sim/obligations`,
+  `sim/decisions`, `sim/enforcement`, the land rights) join `src/owners.json` as they land.
+- **Cost (claimed, section 5.2):** 4 ms a game day at `medium-ref`, a year's mean, and no 6-minute step over 60 ms.
+
 ### 3.6 The mill and the loom
 
 - **Brings:**
@@ -484,6 +510,18 @@ the moving round count; the 30-day window read 7% low. Each system has a share o
 budget column of `tools/bench.js`. The save's line counts the time the main thread is blocked (encode and stringify); gzip may run
 in a worker and is reported beside it. Measured at `9f130e6`, `medium-ref` costs about 232 ms a game day, and the save 1.51 s of main
 thread; the closure table, `docs/bench/closure.md`, names the task that closes each gap.
+
+**11 November update (VB-184, slice 5's plan; Proposed):** the slices' claims on the other half (200 ms, the finished game's), in one
+place: slice 1, 0.1 ms, taken from the 8 kept back (VB-219); slice 2, 0 ms (VB-078); slice 3, its opportunities under 10 ms at the
+early reference (3.3); slice 4, 2 ms a game day and no step over 60 ms at `medium-ref` (VB-183); **slice 5, 4 ms a game day at
+`medium-ref`, a year's mean, and no 6-minute step over 60 ms:** 2 ms for the two new bases of eligibility (`debtor`, `hired`) inside
+the matcher, read from compiled per-pawn indexes so a check stays one lookup; 1.5 ms for five new practices in the attitudes'
+daily drift (14 customs with 44 options to 19 with 55, a quarter more of that work); 0.5 ms for the rest (the obligations' due-queue,
+loans asked once a season over a village's households, a few cases a village a year in its own meeting step, the class yearly a
+village a step, the alderman). Entities at `medium-ref`: 211 households, a few hundred open obligations, tens of titles after
+decades. Save: under 0.1 MB more JSON, and the membership graph's ended edges, about 2 a pawn ever born, if Kim adopts it and until
+they are folded into the record. `docs/bench/budget.md` is generated: the slice's systems join `tools/bench.js`'s shares with the
+wrap-up (VB-035), as slice 1's did with VB-219.
 
 The table above keeps the lines of 3 and 6 November for the record.
 
