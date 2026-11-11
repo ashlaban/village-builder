@@ -16447,10 +16447,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
     openPanel(null);
     $('tree').hidden = false;
     for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = true;
-    $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    // up to two villages are named; more are the island's records, by its name
+    $('treeTitle').textContent = `Family records of ${st.villages.length > 2 ? w.name : st.villages.map((v) => v.name).join(' and ')}`;
     const living = st.pawns.filter((p) => p.died === null).length;
     treeCounts = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages`;
-    if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
+    // it opens on a line, never on everyone: the selected person's, else the played pawn's (Everyone is a mode to choose)
+    if (treeSel < 0) treeSel = selPawn >= 0 ? selPawn : played();
     treePick = false; if (treeSel !== treeFocus && (treeMode !== 'path' || treeSel !== treeOther)) refocusTree(treeSel);
     renderTree(); renderTreeInfo(); centreTree(); $('treeClose').focus();
   }
@@ -16771,7 +16773,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0262b4d159', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'b328f6ac80', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
