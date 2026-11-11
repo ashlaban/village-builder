@@ -2,6 +2,31 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-342)
+
+## VB-342: crops and rotations (raised 11 November 2026)
+Raised in a discussion with Kim on 11 November on how the game should handle different crops, the scale of a hex, planting, yields and the weather; the answers shape the plan task VB-342, which makes them concrete.
+1. What are crops mainly for: risk and the labour calendar, goods chains such as ale and linen, or regional flavour? **P:** risk and the labour calendar.
+   **A (Kim, 11 Nov):** all of those.
+2. Who decides what is sown: a village custom of rotation the head works within, or each household? **P:** a rotation a farm, its default a village custom (one-, two- or three-course), the player as head setting it through a verb of the plan.
+   **A (Kim, 11 Nov):** planning from the household's head, affected by their skill level (not a village custom).
+3. The scale of a hex: are two readings of one grid enough (a site about 10 m across, land about 100 m across, about 0.87 ha, which today's yields and the 10 times compression of distance already imply), or are fields drawn finer than a hex? **P:** two readings of one grid.
+   **A (Kim, 11 Nov):** that's good (two readings of one grid).
+4. Fallow: rest only at first (it restores soil and is not grazed; only the stubble is grazed, once the infield is reaped), or grazed fallow, and so some coordination in the village? **P:** rest only at first.
+   **A (Kim, 11 Nov):** rest only first.
+5. Where does the head's skill act: on choices and timing only, or on yield as well? **P:** choices and timing only, or a poor head is punished twice.
+   **A (Kim, 11 Nov):** choices and timing only.
+6. Is having a crop's seed in the store enough to "know" the crop, or is knowledge kept apart from seed? **P:** seed is enough; a new crop arrives as seed by gift, dowry, the fair or the ship.
+   **A (Kim, 11 Nov):** having seed is enough.
+7. Order: a first batch (barley, winter rye, fallow, peas) as its own arch after slice 3, with the fibre and ale crops in slice 6? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+8. Do the founders arrive with barley only, so that other crops are something a village acquires? **P:** yes.
+   **A (Kim, 11 Nov):** there can be a mix, so different villages have different starts, with scenarios having reasonable presets (e.g. in founders the two villages both have barley and one unique crop).
+9. Rye and peas as the founders' two unique crops, one a village? **P:** yes: each village then lacks something useful, a second sowing season or a soil restorer.
+   **A (Kim, 11 Nov):** yes.
+10. Is the discussion far enough along to record the answers and write a plan task (no code; the implement tasks only after Kim has read the plan)? **P:** yes.
+   **A (Kim, 11 Nov):** yes; discuss the system and its interactions with existing and planned systems first, before creating tasks (done the same day).
+
 # Archived 11 November 2026 (VB-341)
 
 ## VB-341: the action bar, as built (raised 11 November 2026)
