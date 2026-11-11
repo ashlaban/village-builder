@@ -262,6 +262,7 @@ VB['sim/saves'] = (() => {
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages) if (!v.wood) { delete v.commonsWood; reckonWood(st, v); }
+    for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }

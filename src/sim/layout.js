@@ -97,6 +97,7 @@ VB['sim/layout'] = (() => {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
+      grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
     };
   }
 

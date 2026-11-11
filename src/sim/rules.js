@@ -271,8 +271,11 @@ VB['sim/rules'] = (() => {
   // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, thin: 0.25 };
   // What building takes (sim/building; design, Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's or booth's walls take `timber` loads of
-  // wood (six trees).
-  const BUILD = { timber: 18 };
+  // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
+  // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
+  // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on hills or mountains, within `stoneReach` walking steps
+  // of the house. The village's well (VB-058, not built in play yet) is to take `wellStone` loads from its households' heaps.
+  const BUILD = { timber: 18, foundationStone: 12, foundationHours: 40, pickHours: 2, quarryHours: 4, keepStones: 80, stoneReach: 12, wellStone: 6 };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
   // centre lies within `reach` steps of it. Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
@@ -312,15 +315,21 @@ VB['sim/rules'] = (() => {
   // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
   // nothing tars a house before VB-301). An empty farm's condition is worn by the daily pass of sim/clock, as before.
   // Upkeep is offered under `mendBelow`; `hours` of work raise it `raise`; prestige gains `term` (tarred `termTarred`) times the condition.
-  const HOUSE = { wear: 0.1, wearTarred: 0.067, term: 0.15, termTarred: 0.18, mendBelow: 0.8, hours: 4, raise: 0.1, tarYears: 6 };
+  // A house raised onto a stone foundation (f.grade 'stone', VB-332) wears `wearStone` a year and its term is `termStone`; tar's gain adds on
+  // either grade (the term's 0.03, wear a third less), so a house on the ground reads as before.
+  const HOUSE = { wear: 0.1, wearTarred: 0.067, term: 0.15, termTarred: 0.18, mendBelow: 0.8, hours: 4, raise: 0.1, tarYears: 6,
+    wearStone: 0.08, termStone: 0.2 };
   const houseTarred = (st, f) => (f.tarredUntil || 0) > st.t;
+  const onStone = (f) => f.grade === 'stone';
   function houseCondition(st, f) {
     const c = f.condition ?? 1;
     if (f.household === null) return c;
     const t0 = f.condAt ?? 0, tar = Math.min(st.t, f.tarredUntil || 0), tarred = Math.max(0, tar - t0), plain = Math.max(0, st.t - t0) - tarred;
-    return Math.max(0, c - (plain * HOUSE.wear + tarred * HOUSE.wearTarred) / YEAR);
+    const wear = onStone(f) ? HOUSE.wearStone : HOUSE.wear, wearTarred = wear * (HOUSE.wearTarred / HOUSE.wear);
+    return Math.max(0, c - (plain * wear + tarred * wearTarred) / YEAR);
   }
-  const houseTerm = (st, f) => (houseTarred(st, f) ? HOUSE.termTarred : HOUSE.term) * houseCondition(st, f);
+  const houseTerm = (st, f) => ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0))
+    * houseCondition(st, f);
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS, HOUSE, houseCondition, houseTarred, houseTerm,
     SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
