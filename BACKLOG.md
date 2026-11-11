@@ -12,8 +12,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. |
-| [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
 | [VB-136](backlog/VB-136.md) | Herding and grazing pressure | year | 2 | M | A herder takes the herds to pasture; grazing pressure and cattle lanes; unherded herds in the crops. |
 | [VB-257](backlog/VB-257.md) | The meeting sets the village's routines, and a practice for when it does not | year | 2 | M | The yearly meeting chooses at most four routines from the village work available; the fence is the first; a practice says what follows no decision. |
 | [VB-266](backlog/VB-266.md) | Checks back on pull requests, hard checks only | - | 2 | S | The Checks workflow runs on pull requests again and fails only on the hard checks; targets out are printed in the job summary; the late-game job reports and never fails. |
@@ -50,6 +48,8 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. |
+| [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
 
 ## Blocked
 
