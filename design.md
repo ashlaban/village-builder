@@ -586,7 +586,7 @@ The game grows several crops. Each is a row of rules, and a field holds its crop
 | Different starts | Villages start with different crops, by a preset a scenario: in founders, barley in both villages and one crop of its own in each, rye in one and peas in the other | Decided, 11 Nov (a mix, presets); Agreed, 11 Nov (rye and peas) |
 | Order of building | A first batch of barley, winter rye, fallow and peas, as its own arch (`crops`) after slice 3; the fibre and ale crops with their chains in slice 6 | Agreed, 11 Nov |
 
-#### The first crops (Proposed; starting values to tune)
+#### The first crops (Agreed, 11 Nov; starting values to tune)
 
 Barley is today's grain, unchanged. Days are game days, a day about a week; hours are a field's.
 
@@ -606,22 +606,22 @@ Barley is today's grain, unchanged. Days are game days, a day about a week; hour
 - **Rye needs a free field in early autumn,** which a field under barley is not: it follows fallow or peas. The three courses of one field are fallow, rye, barley.
 - **Peas give less food and more besides:** they restore the soil a little, they are a second source in the pot (10% further), and they are reaped in time for rye. Their numbers have no source yet and are guesses to tune.
 - **Rest and peas restore soil only to 1.0;** only manure raises it above, to its cap of 1.15. A field in three courses wears 0.08 in three years, not 0.24, so it wants a third of the manure.
-- **What it does to a farm's food, before any tuning:** three fields in three courses at soil 1.0 net about 150 rations (75 + 75 + 0), as much as three barley fields worn to the floor net today (3 × 50), for two-thirds of the field hours. A farm fed by three well-dunged barley fields (about 218) is not fed by three courses on the same three fields: it needs a fourth, which is why a fallow field should not count against the fields a hand can till (Proposed). The retune belongs to the wrap-up of the food balance (VB-048).
+- **What it does to a farm's food, before any tuning:** three fields in three courses at soil 1.0 net about 150 rations (75 + 75 + 0), as much as three barley fields worn to the floor net today (3 × 50), for two-thirds of the field hours. A farm fed by three well-dunged barley fields (about 218) is not fed by three courses on the same three fields: it needs a fourth, which is why a fallow field does not count against the fields a hand can till (Agreed, 11 Nov). The retune belongs to the wrap-up of the food balance (VB-048).
 - **Oats** (wet, poor and high ground; a lower yield) come in a second batch. **Flax, hops, turnips and wheat** come with their chains (linen, ale, the garden, standing) in slice 6. None has numbers yet.
 
-#### The rotation (Proposed)
+#### The rotation (Agreed, 11 Nov, but where a row says otherwise)
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| A field's rotation | A field holds a rotation, a sequence of at most four courses, and the step it is at; when its crop is in, it moves to the next step. A course is a crop of the table or fallow | Proposed (no objection to at most four, 11 Nov) |
-| The rotations there are | A short list, as rules: every year (barley, barley: today's farming); two courses (barley, fallow); three courses (fallow, rye, barley); with peas, barley and peas by turns, and peas, rye, barley, where peas take the fallow's place | Proposed |
+| A field's rotation | A field holds a rotation, a sequence of at most four courses, and the step it is at; when its crop is in, it moves to the next step. A course is a crop of the table or fallow | Agreed, 11 Nov |
+| The rotations there are | A short list, as rules: every year (barley, barley: today's farming); two courses (barley, fallow); three courses (fallow, rye, barley); with peas, barley and peas by turns, and peas, rye, barley, where peas take the fallow's place | Agreed, 11 Nov |
 | Seed bounds them | A household may hold only a rotation it has seed for, every crop of it. A village with barley alone has every year and two courses to choose from, so today's farming is what a run with barley only does | Proposed |
-| A farm's fields are staggered | The fields of one farm stand at different steps of the same rotation, so each year has each course and the work and the risk are spread; a new field takes the step fewest of the farm's fields are at | Proposed |
-| Fallow and the hands | A fallow field does not count against the fields a household's hands can till (about 2 a working adult), so a farm in three courses holds half as many fields again | Proposed (no objection, 11 Nov) |
+| A farm's fields are staggered | The fields of one farm stand at different steps of the same rotation, so each year has each course and the work and the risk are spread; a new field takes the step fewest of the farm's fields are at | Agreed, 11 Nov |
+| Fallow and the hands | A fallow field does not count against the fields a household's hands can till (about 2 a working adult), so a farm in three courses holds half as many fields again | Agreed, 11 Nov |
 | The culture's year | The template (Work: opportunities, plans and tasks, layer 1) names the village's usual rotation: what everyone there knows how to do. It is the rotation most of the village's farms hold, brought up to date at the autumn meeting and at no other time, and a new farm starts with it if it has the seed | Decided, 11 Nov (most farms; updated at the meeting) |
 | How a crop spreads | A rotation enters a village's template only when most farms hold it, so a new crop is first one head's trial, then a few good heads', then the village's: slow at first, as customs are | Proposed |
 
-#### How the head chooses what to sow (the head choosing, by skill, on choices and timing only: Decided, 11 Nov; the rest Proposed)
+#### How the head chooses what to sow (the head choosing, by skill, on choices and timing only: Decided, 11 Nov; the heads' thresholds and the trial as a project: Agreed, 11 Nov)
 
 The choice is made on the head's planning day when a field falls free or a sowing window opens, among the rotations it has seed for and the fields it holds: never an optimiser (Work: opportunities, plans and tasks). The traits are that section's stand-ins until slice 7: wits, husbandry and years as head for foresight, diligence for the planning days, ambition for projects.
 

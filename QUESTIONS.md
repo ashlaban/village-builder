@@ -13,9 +13,13 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 ### VB-345: crops and rotations, the plan to read (raised 11 November 2026)
 The plan is `design.md`, Goods and the farming year, Crops and rotations (`node tools/doc.js design.md "Crops and rotations"`), with World and scale, Two readings of one grid. What Kim decided on 11 November is marked there; these are its points still Proposed. The tasks VB-346 to VB-356 wait for this reading.
 1. The first crops' numbers (The first crops): rye as barley but for its calendar; peas 60 rations and 20 of seed, soil +0.04; fallow +0.08 for one tilling of 10 hours; rest and peas mend soil only to 1.0. **P:** as written, as starting values; the peas' have no source and the wrap-up tunes them.
+   **A (Kim, 11 Nov):** P (as proposed).
 2. The five rotations, and a farm's fields staggered through one. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
 3. A fallow field does not count against the fields a hand can till, so a farm in three courses holds half as many fields again. **P:** yes; without it three courses feed a farm less than today's three barley fields.
+   **A (Kim, 11 Nov):** P (as proposed).
 4. The heads' thresholds: the lowest and highest fifth of foresight; an ordinary head rests a field below soil 0.85; a trial as a project. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
 5. Seed: seed is the crop's own grain, in subtypes; help and gifts carry grain in the proportion the giver holds; a start in life and settlers' provisions carry a field's seed of each crop. **P:** as written.
 6. The presets beyond founders: heirs (A rye, B peas) and populous (by the ground; about a third of villages barley alone); and in founders, the three farms the rye and the lone farm the peas. **P:** as written.
 7. Each crop's reading of the weather (Crops and the weather, the table), and warmth moving the ripening by up to 2 days. **P:** as written, as starting values with no source; to be fitted to the weather branch's harvest factor when it lands.
