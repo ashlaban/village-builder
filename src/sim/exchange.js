@@ -3,21 +3,26 @@
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance } = VB['sim/relations'];
+  const { addTie, book, balance, opinionOf } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
   const Culture = VB['culture'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
-  // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
-  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+  // need. Switched on by GOODWILL.acts (VB-220).
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: 'Goodwill',
     tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
       return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
     } });
+  // allowance's opinion term (design.md, The gift: Allowance; Kim, 10 Nov): the giver's opinion of the receiver, -1 to 1, times
+  // GOODWILL.opinionRations. Coupled with goodwill, which colours opinion (gratitude): a high opinion lets a deal through.
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'opinion', label: 'Opinion of them',
+    tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
+    value: (st, c) => (!GOODWILL.acts || c.giver === null || c.receiver === null ? 0 : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver)) });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;

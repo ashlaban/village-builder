@@ -90,8 +90,8 @@ let checks = 0;
   for (const hh of st.households) {
     if (hh.dissolved) continue;
     const c = { giver: hh.holder, receiver: null, from: hh, to: hh }, e = Rules.explain(st, 'allowance', c);
-    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'reserve']);
-    assert.strictEqual(e.parts[1].factor, 0, 'goodwill acts from slice 4');
+    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'opinion', 'reserve']);
+    assert.strictEqual(e.parts[1].factor, 0, 'a null receiver: no goodwill term'); assert.strictEqual(e.parts[2].factor, 0, 'nor opinion term');
     assert(Math.abs(e.value - surplus(st, hh)) < 1e-9, `household ${hh.id}: allowance ${e.value}, surplus ${surplus(st, hh)}`);
     n++; if (e.value > 0) giving++;
   }
