@@ -135,6 +135,7 @@ VB['sim/service'] = (() => {
       if (hh.dissolved || hh.holder === null || !farmOf(st, hh).fields.length || grown(st, hh) > 1) continue;
       const holder = st.pawns[hh.holder], memo = new Map();
       let best = null, bk = 0;
+      VB.count.takeInWeighed += st.demand.length;
       for (const qid of st.demand) {
         const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
         const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
@@ -150,6 +151,7 @@ VB['sim/service'] = (() => {
           kind: 'moved', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
       } else {
         if (!available) available = willServe(st);
+        VB.count.takeInWeighed += available.length;
         const s = servantFor(st, hh, available); if (!s) continue;
         if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
         available = available.filter((x) => x !== s.id);

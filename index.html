@@ -699,6 +699,8 @@ VB.COUNTERS = {
   lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked: 'Pawns weighed as guests of an occasion: a village\'s people at its meeting, kin and housemates at a wedding or a death '
     + '(sim/occasions, VB-126)',
+  takeInWeighed: 'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants '
+    + '(sim/service, takeIn; VB-308)',
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
 };
 VB.count = {};
@@ -9129,6 +9131,7 @@ VB['sim/service'] = (() => {
       if (hh.dissolved || hh.holder === null || !farmOf(st, hh).fields.length || grown(st, hh) > 1) continue;
       const holder = st.pawns[hh.holder], memo = new Map();
       let best = null, bk = 0;
+      VB.count.takeInWeighed += st.demand.length;
       for (const qid of st.demand) {
         const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
         const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
@@ -9144,6 +9147,7 @@ VB['sim/service'] = (() => {
           kind: 'moved', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
       } else {
         if (!available) available = willServe(st);
+        VB.count.takeInWeighed += available.length;
         const s = servantFor(st, hh, available); if (!s) continue;
         if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
         available = available.filter((x) => x !== s.id);
@@ -14826,7 +14830,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'dde5fddeb4', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a6a5a22554', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
