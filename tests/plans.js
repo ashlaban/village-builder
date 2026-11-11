@@ -90,6 +90,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert.strictEqual(st.plans.due.length, st.liveHouseholds.length * W.length, 'one entry per household and kind');
   for (const plan of st.plans.households.values()) plan.nextReview = 1e9;
   for (const plan of st.plans.villages.values()) plan.nextReview = 1e9;
+  for (const f of st.farmsteads) for (const fd of f.fields) fd.stage = 'growing'; // no field due in the sowing window (VB-322)
   for (const j of [...st.jobs.values()]) VB['sim/agents'].dropJob(st, j);
   setClock(st, DAY + WORK[0] - 1);
   const reviews = VB.count.planReview;
@@ -128,6 +129,51 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert(plan.dirty && Plans.reviewWhy(st, plan, Math.floor(st.t), c) === null, 'at most one store review a day');
   const spring9 = cal(st.ECON.sowWindow[1] * DAY + WORK[0]);
   assert(Plans.closing(st, spring9) && !Plans.closing(st, cal(3 * DAY)), 'the sowing window\'s last day is a closing day');
+}
+{ // VB-322: fields due. A household of cadence 3 reviewed on its planning day is reviewed out of turn, at the first review hour, the day a
+  // field ripens (and reaps it), and on a day of the sowing window while a field is hoed and not sown (and sows it); once that day
+  const { SEASON_DAYS } = VB['sim/rules'], FIRST = WORK[0] - 1;
+  const setup = (season, sday, stage) => {
+    const st = fresh('populous'), hh = st.households.find((h) => h.farmstead !== null && h.holder !== null);
+    const f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
+    st.pawns[hh.holder].diligence = 0.1;
+    assert.strictEqual(Plans.cadence(st, plan), 3, 'every third day');
+    let D = season * SEASON_DAYS + sday;
+    while ((D + hh.id) % 3) D++; // its planning day
+    setClock(st, D * DAY + WORK[1]);
+    Plans.reviewed(st, plan, cal(st.t));
+    assert.strictEqual(Math.floor(plan.nextReview / DAY), D + 3, 'next planning day three days on');
+    for (const fd of f.fields) { fd.stage = 'growing'; fd.sown = D - 5; }
+    hh.grain = Math.max(hh.grain, 1000);
+    return { st, hh, f, plan, D, fd: f.fields[0], stage };
+  };
+  const dueDay = ({ st, hh, f, plan, D, fd, stage }, kind) => {
+    setClock(st, (D + 1) * DAY + FIRST);
+    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'nothing due: no review out of turn');
+    fd.stage = stage;
+    if (stage === 'ripe') fd.sown = D + 1 - st.ECON.ripeAfterDays;
+    setClock(st, (D + 1) * DAY + FIRST + 1);
+    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'only at the first review hour');
+    setClock(st, (D + 1) * DAY + FIRST);
+    const reviews = VB.count.planReview, key = `${kind}:f${f.id}.${fd.id}`;
+    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), 'window', `a ${stage} field: reviewed out of turn`);
+    refreshJobs(st, cal(st.t));
+    assert(VB.count.planReview > reviews && plan.last === D + 1, 'reviewed at the first review hour');
+    assert.strictEqual(Math.floor(plan.nextReview / DAY), D + 3, 'the planning day kept');
+    assert(st.jobs.has(key), `${kind} posted the same day`);
+    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'once a day');
+    for (let h = 0; h < 12 && fd.stage === stage; h++) Sim.advance(st, 1);
+    assert.notStrictEqual(fd.stage, stage, `the field ${kind === 'reap' ? 'reaped' : 'sown'} that day (${fd.stage})`);
+    assert(hh.members.length, 'the household stands');
+  };
+  dueDay(setup(1, 3, 'ripe'), 'reap'); // summer, no closing day
+  dueDay(setup(0, 2, 'plowed'), 'sow'); // the sowing window
+  { // outside the sowing window a hoed or stubble field is not due
+    const s = setup(1, 3, 'stubble');
+    setClock(s.st, (s.D + 1) * DAY + FIRST);
+    s.fd.stage = 'stubble';
+    assert.strictEqual(Plans.reviewWhy(s.st, s.plan, Math.floor(s.st.t), cal(s.st.t)), null, 'stubble in summer is not due');
+  }
 }
 { // a member without a task looks at the household's opportunities, once a household a day
   const st = fresh('populous'), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id), J = VB['sim/jobs'];
