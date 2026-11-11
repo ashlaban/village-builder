@@ -6,303 +6,186 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: the game's menu card (src/head.html: .panel, .genscreen) over a picture of the chosen scenario, as the main menu lies over its showcase island. */
-/* Step 1 comes in three layouts, chosen in the mock's bar: a, the menu card; b, picture cards; c, the annotated picture. */
-/* Tokens are the game's own (src/head.html), with a few added for the status tags and the chart. */
+/* Layout: the game's menu card (src/head.html: .panel, .genscreen) over a picture of the chosen scenario. Step 1 is a sheet: scenario cards,
+   then the chosen scenario read off an annotated picture. Step 2 is the game itself: the map to drag, a farm to click, its people in a panel. */
 :root {
   --sea: #16395f; --sea-deep: #0d2642;
-  --panel: rgba(238, 245, 242, 0.88); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
+  --panel: rgba(238, 245, 242, 0.9); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
   --accent: #23685a; --on-accent: #f2f8f6; --node: #fbfdfc; --good: #2f7a4b; --bad: #a8432f;
   --pick: rgba(35, 104, 90, 0.10); --sketch: #7a5a1e;
   --display: 'Alegreya', Georgia, serif; --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --panel: rgba(11, 27, 34, 0.86); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+    --panel: rgba(11, 27, 34, 0.88); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
     --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
     --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --panel: rgba(11, 27, 34, 0.86); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+  --panel: rgba(11, 27, 34, 0.88); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
   --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
   --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { background: var(--sea); }
-body {
-  margin: 0; min-height: 100%; color: var(--ink); font: 16px/1.4 var(--body); -webkit-font-smoothing: antialiased;
-  background: var(--sea-deep);
-  padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
+html { background: var(--sea-deep); }
+body { margin: 0; min-height: 100%; color: var(--ink); font: 16px/1.4 var(--body); -webkit-font-smoothing: antialiased; background: var(--sea-deep);
+  padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; font-size: 15px; font-weight: 500; line-height: 1.2; border: 1px solid var(--edge); background: transparent; border-radius: 999px; padding: 7px 14px; }
 button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 button:disabled { opacity: 0.5; cursor: default; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-h1, h2, h3, p { margin: 0; }
+h1, h2, h3, p, figure { margin: 0; }
 h1 { font: italic 700 30px/1.1 var(--display); text-wrap: balance; }
 h2 { font: italic 700 22px/1.15 var(--display); text-wrap: balance; }
 h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 small, .muted { color: var(--muted); font-size: 14px; }
+select, input { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
+.panel { background: var(--panel); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); border-radius: 16px; }
 
-.sheet { max-width: 1080px; margin: 0 auto; background: var(--panel); border-radius: 16px; padding: 20px 22px; display: grid; gap: 16px;
-  box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); position: relative; z-index: 1; }
-.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
-.head h1 { flex: 1 1 auto; }
-.steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; font-size: 14px; color: var(--muted); }
-.steps li { padding: 3px 10px; border-radius: 99px; border: 1px solid var(--edge); }
-.steps li[aria-current] { background: var(--ink); color: var(--panel); border-color: transparent; font-weight: 700; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); align-items: center; }
-.tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 7px; border-radius: 99px;
-  border: 1px solid currentColor; white-space: nowrap; vertical-align: 1px; }
-.tag.built { color: var(--good); } .tag.designed { color: var(--accent); border-style: dashed; } .tag.sketch { color: var(--sketch); border-style: dotted; }
-
-.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 18px; align-items: start; }
-.panes > * { min-width: 0; display: grid; gap: 12px; }
-@media (max-width: 760px) { .panes { grid-template-columns: minmax(0, 1fr); } }
-
-/* choices: one row each; the picked one is tinted, nothing else is boxed */
-.choices { display: grid; gap: 4px; }
-.choice { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; padding: 9px 12px; border-color: transparent; background: none; }
-.choice:hover { background: var(--pick); }
-.choice[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
-.choice b { font-size: 17px; } .choice small { grid-column: 1 / -1; }
-.choice .tag { align-self: center; }
-
-.detail { border-left: 1px solid var(--edge); padding-left: 18px; }
-@media (max-width: 760px) { .detail { border-left: 0; padding-left: 0; border-top: 1px solid var(--edge); padding-top: 14px; } }
-.facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 15px; }
-.facts dt { color: var(--muted); } .facts dd { margin: 0; }
-ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 15px; }
-.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13.5px; }
-.year div { border-top: 3px solid var(--edge); padding-top: 5px; } .year b { display: block; }
-@media (max-width: 460px) { .year { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.lives { display: flex; flex-wrap: wrap; gap: 6px; }
-.lives button { padding: 4px 11px; font-size: 14px; border-radius: 99px; }
-.lives button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
-
-.mapform { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 12px; align-items: start; }
-.mapform label { display: grid; gap: 3px; font-size: 14px; color: var(--muted); }
-.mapform input, .mapform select { padding: 6px 9px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
-.seedrow { display: flex; gap: 6px; } .seedrow button { flex: none; padding: 6px 10px; }
-canvas.chart { width: 100%; height: auto; border-radius: 10px; display: block; background: #16395f; }
-.foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; border-top: 1px solid var(--edge); padding-top: 14px; }
-.foot .muted { flex: 1 1 240px; }
-
-/* step 2 */
-.villages { display: flex; flex-wrap: wrap; gap: 6px; }
-.villages button { padding: 5px 12px; font-size: 14px; text-align: left; }
-.villages button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
-.farm { display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid var(--edge); }
-.farm > header { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
-.farm > header b { font: italic 700 18px var(--display); }
-.pawn { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; text-align: left; padding: 5px 8px; border-color: transparent; background: none; }
-.pawn:hover:not(:disabled) { background: var(--pick); }
-.pawn[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
-.pawn.dim { opacity: 0.38; }
-.pawn small { display: block; }
-.face { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #f2f8f6; }
-.face.big { width: 56px; height: 56px; font-size: 20px; }
-.who { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; }
-.scroll { max-height: 560px; overflow-y: auto; padding-right: 4px; display: grid; gap: 10px; }
-@media (max-width: 760px) { .scroll { max-height: none; } }
-.loading { text-align: center; padding: 70px 0; display: grid; gap: 14px; justify-items: center; }
-.bar { width: min(280px, 100%); height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.9s ease-out; }
-@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
-.toast { background: var(--ink); color: var(--panel); border-radius: 12px; padding: 12px 16px; }
-
-/* the stage behind the panel, under the menu's veil of sea */
-.stage { position: fixed; inset: 0; background: var(--sea) center / cover no-repeat; transition: background-image 0.4s; }
-.stage::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(22, 57, 95, 0.22) 0%, rgba(13, 38, 66, 0.62) 100%); }
-.stage.far::after { background: rgba(13, 38, 66, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-@media (prefers-reduced-motion: reduce) { .stage { transition: none; } }
+.stage { position: fixed; inset: 0; background: var(--sea) center / cover no-repeat; }
+.stage::after { content: ""; position: absolute; inset: 0; background: rgba(13, 38, 66, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .mockbar { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
   font-size: 13px; color: var(--muted); background: var(--panel); border: 1px dashed var(--edge); border-radius: 12px; padding: 7px 12px; }
-.mockbar button { padding: 3px 11px; font-size: 13px; }
-.mockbar button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
-.mockbar .legend { margin-left: auto; }
-.choice, .pawn { border-radius: 12px; }
-label .tag { justify-self: start; }
-.sheet.a { max-width: 384px; margin-left: max(0px, 5vw); gap: 14px; }
-.sheet.c { max-width: 1180px; }
-@media (max-width: 760px) { .sheet.a { margin-left: auto; } }
-.sheet.a label, .land2 label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
-.sheet select, .sheet input { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
-.sheet.a button.primary { min-height: 44px; }
-.land2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.stepper { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; text-align: center; }
-.stepper button { width: 38px; height: 38px; padding: 0; font-size: 18px; }
-.stepper b { display: block; font: italic 700 22px/1.15 var(--display); }
-.dots { display: flex; justify-content: center; gap: 5px; }
-.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--edge); } .dots i.on { background: var(--accent); }
-/* who starts, drawn: one mark a person, one underline a farm */
-.strip { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
-.strip .vl { flex-basis: 100%; font-size: 12px; color: var(--muted); margin-bottom: -4px; }
-.hh { display: inline-flex; gap: 3px; align-items: flex-end; padding: 0 2px 4px; border-bottom: 2px solid var(--edge); min-height: 18px; }
-.hh.none { border: 1.5px dashed var(--muted); border-radius: 3px; width: 26px; height: 16px; padding: 0; opacity: 0.7; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
-.dot.h { background: var(--accent); width: 12px; height: 12px; } .dot.c { width: 6px; height: 6px; opacity: 0.75; }
-.dot.s { background: none; border: 2px solid var(--muted); }
-.strip.tiny { gap: 6px 8px; } .strip.tiny .hh { gap: 2px; padding: 4px; border: 0; border-radius: 5px; background: var(--pick); min-height: 0; flex-wrap: wrap; align-items: center; max-width: 86px; }
-.strip.tiny .dot { width: 4px; height: 4px; } .strip.tiny .dot.h { width: 5px; height: 5px; } .strip.tiny .dot.c { width: 3px; height: 3px; }
-.key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); align-items: center; }
-.key span { display: inline-flex; gap: 5px; align-items: center; }
-/* b: picture cards */
-.cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 10px; overflow-x: auto; padding: 2px 2px 8px; }
+.legend { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px 12px; } .legend span { display: inline-flex; gap: 5px; align-items: center; }
+.st { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 1px; border: 1.5px solid currentColor; }
+.st.built { color: var(--good); background: var(--good); } .st.designed { color: var(--accent); } .st.sketch { color: var(--sketch); border-style: dotted; }
+
+.sheet { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 20px 22px; display: grid; gap: 16px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.stepno { font-size: 14px; color: var(--muted); }
+
+/* icons: one stroke, drawn for this page; people and farms use the game's own graphics */
+.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ic.dash { stroke-dasharray: 2.6 2.6; }
+.ic.sug { width: 15px; height: 15px; color: var(--sketch); fill: currentColor; stroke-width: 1; vertical-align: -2px; }
+.pf { width: 26px; height: 26px; flex: none; image-rendering: auto; } .pf.c { width: 20px; height: 20px; }
+.pf.off { opacity: 0.28; } .pf.on { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 2px var(--accent)); }
+.fi { width: 30px; height: 30px; flex: none; object-fit: contain; } .fi.gone { filter: grayscale(0.8); opacity: 0.75; }
+
+/* scenario cards */
+.cards { display: grid; gap: 10px; }
+.cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cards.row { grid-auto-flow: column; grid-auto-columns: minmax(150px, 220px); justify-content: start; overflow-x: auto; padding: 2px 2px 8px; margin-top: 8px; }
 .card { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start; }
-.card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
-.card > *:not(img) { margin: 0 9px; } .card b { font-size: 15px; } .card small { font-size: 12.5px; line-height: 1.3; }
+.card img { display: block; width: 100%; aspect-ratio: 16 / 6; object-fit: cover; }
+.card > *:not(img) { margin: 0 9px; }
+.card b { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+.card small { font-size: 13px; line-height: 1.3; }
 .card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-.card.sk img { filter: saturate(0.35) sepia(0.25); }
-/* c: the annotated picture */
+.card.sk img { filter: saturate(0.35) sepia(0.25); aspect-ratio: 16 / 9; }
+.stats { display: flex; gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; } .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ic { width: 14px; height: 14px; }
+.more summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+@media (max-width: 620px) { .cards.three { grid-template-columns: minmax(0, 1fr); } .cards.three .card { grid-template-columns: 110px minmax(0, 1fr); padding: 0; column-gap: 9px; align-items: center; }
+  .cards.three .card img { grid-row: 1 / span 3; height: 100%; aspect-ratio: auto; } .cards.three .card > *:not(img) { margin: 0 9px 0 0; } }
+
+/* the annotated picture */
 .cgrid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 18px; align-items: start; }
 .cgrid > * { min-width: 0; display: grid; gap: 12px; }
 @media (max-width: 860px) { .cgrid { grid-template-columns: minmax(0, 1fr); } }
-.figure { position: relative; margin: 0; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; background: var(--sea); }
-.figure img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.figure.sk img { filter: saturate(0.35) sepia(0.25); }
-.pin { position: absolute; transform: translate(-9px, -50%); display: flex; align-items: center; gap: 6px; font-size: 13px; }
-.pin i { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #fbfdfc; color: #17313a; border: 2px solid #17313a; font-style: normal; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.figure { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; background: var(--sea); }
+.figure > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.figure.sk > img { filter: saturate(0.35) sepia(0.25); }
+.pin { position: absolute; transform: translate(-14px, -50%); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.pin.left { transform: translate(calc(-100% + 14px), -50%); flex-direction: row-reverse; }
+.pin > .ic, .pin > .fi { width: 28px; height: 28px; padding: 4px; border-radius: 50%; background: #fbfdfc; color: #17313a; border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.4); }
+.pin > .fi { padding: 2px; }
 .pin b { white-space: nowrap; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.pin.left { transform: translate(calc(-100% + 9px), -50%); flex-direction: row-reverse; }
-.pinlist { display: none; margin: 0; padding-left: 20px; font-size: 14px; }
-@media (max-width: 560px) { .pin b { display: none; } .pinlist { display: grid; gap: 2px; } }
-.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
-.tabs button.sk { border-style: dotted; }
-.seen { position: fixed; z-index: 1; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: min(340px, 40vw); margin: 0; font-size: 14px;
-  background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 8px 12px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-@media (max-width: 760px) { .seen { position: static; max-width: none; margin: 12px auto 0; } }
+.pinlist { display: none; list-style: none; margin: 0; padding: 0; font-size: 14px; } .pinlist li { display: flex; gap: 8px; align-items: center; } .pinlist .fi { width: 20px; height: 20px; }
+@media (max-width: 560px) { .pin b { display: none; } .pinlist { display: grid; gap: 3px; } }
 .inset { position: absolute; right: 10px; bottom: 10px; width: 32%; display: grid; border-radius: 9px; overflow: hidden; border: 2px solid var(--node); background: var(--node); box-shadow: 0 4px 14px rgba(3, 16, 26, 0.35); }
-.inset img { aspect-ratio: 16 / 10; } .inset small { padding: 3px 7px; font-size: 12px; line-height: 1.25; color: var(--ink); }
+.inset img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; } .inset small { display: flex; gap: 5px; align-items: center; padding: 3px 7px; font-size: 12px; line-height: 1.25; color: var(--ink); } .inset .ic { width: 15px; height: 15px; }
 @media (max-width: 560px) { .inset { width: 42%; } }
-/* icons, and the pins that carry them */
-.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.ic.dash { stroke-dasharray: 2.6 2.6; }
-.pin { transform: translate(-14px, -50%); }
-.pin.left { transform: translate(calc(-100% + 14px), -50%); }
-.pin > .ic { width: 28px; height: 28px; padding: 4px; border-radius: 50%; background: #fbfdfc; color: #17313a; border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.4); }
-.pinlist { list-style: none; padding: 0; } .pinlist li { display: flex; gap: 8px; align-items: center; }
-.inset small { display: flex; gap: 5px; align-items: center; } .inset .ic { width: 15px; height: 15px; }
-.cards { grid-auto-columns: minmax(136px, 1fr); }
-/* who starts: farm cards */
-.fcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
-.fcard { display: grid; gap: 2px; align-content: start; padding: 6px 8px; border-radius: 10px; background: var(--node); border: 1px solid var(--edge); min-width: 0; }
-.fcard.none { background: none; border-style: dashed; color: var(--muted); }
-.fcard b { font: italic 700 15px/1.2 var(--display); overflow-wrap: anywhere; } .fcard small { font-size: 12px; line-height: 1.3; }
-.figs { display: flex; gap: 2px; align-items: flex-end; min-height: 21px; flex-wrap: wrap; }
-.fig { width: auto; flex: none; fill: var(--muted); } .fig.h { fill: var(--accent); } .fig.c { opacity: 0.8; }
-.fig.s { fill: none; stroke: var(--muted); stroke-width: 1.4; }
-.key .fig { height: 13px !important; }
-.houses { display: flex; flex-wrap: wrap; gap: 1px; color: var(--accent); } .houses .ic { width: 13px; height: 13px; stroke-width: 2.2; }
-/* who starts: by generation, and the age pyramid */
-.gens { display: grid; gap: 3px 4px; align-items: center; font-size: 12px; }
-.gens .fn { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
-.gens .lab { color: var(--muted); padding-right: 4px; white-space: nowrap; }
-.gens .cell { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-items: center; min-height: 20px; padding: 3px 1px; border-radius: 5px; background: var(--pick); }
-.gens .cell.none { background: none; outline: 1.5px dashed var(--edge); outline-offset: -2px; }
-.dot.d { background: none; border: 1.5px dotted var(--muted); }
+.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13px; }
+.year div { border-top: 3px solid var(--edge); padding-top: 5px; } .year b { display: block; }
+@media (max-width: 460px) { .year { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 14.5px; } .rows li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; } .rows .ic { color: var(--muted); margin-top: 1px; }
+
+/* who starts */
+.who-starts { display: grid; gap: 8px; }
+.groups { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.group { display: inline-flex; gap: 1px; align-items: flex-end; padding: 0 3px 3px; border-bottom: 2px solid var(--edge); }
+.fcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 6px; }
+.fcard { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--node); border: 1px solid var(--edge); min-width: 0; }
+.fcard.none { background: none; border-style: dashed; color: var(--muted); } .fcard.has { border-color: var(--accent); }
+.fcard b { font: italic 700 15px/1.2 var(--display); overflow-wrap: anywhere; } .fcard .fi { width: 24px; height: 24px; }
+.fcard .faces, .fcard small { grid-column: 1 / -1; } .faces { display: flex; flex-wrap: wrap; gap: 1px; align-items: flex-end; min-height: 26px; }
+.fcard small { font-size: 12.5px; }
+.picked { min-height: 1.4em; display: block; }
 .pyr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 3px 6px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .pyr .lab { text-align: center; color: var(--muted); } .pyr .n { color: var(--muted); min-width: 2.2em; } .pyr .n.f { text-align: right; }
 .pyr .pb { display: flex; height: 12px; } .pyr .pb.l { justify-content: flex-end; }
-.pyr .pb i { background: var(--accent); border-radius: 2px; } .pyr .pb i.c { background: var(--muted); opacity: 0.7; }
-/* lives: cards and the ladder */
-.lcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
-.lcard { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; text-align: left; border-radius: 12px; padding: 8px 10px; background: var(--node); }
-.lcard small { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.3; } .lcard small.n { opacity: 0.8; }
-.lcard[aria-pressed="true"], .rung[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--pick); }
-.lcard .ic, .rung .ic { width: 22px; height: 22px; color: var(--accent); }
-.ladder { display: grid; gap: 0; border-left: 2px solid var(--edge); margin-left: 10px; }
-.rung { display: grid; grid-template-columns: auto minmax(0, 1fr) 64px; gap: 10px; align-items: center; text-align: left; border-radius: 10px; border-color: transparent; padding: 6px 8px; margin-left: -1px; }
-.rung small { display: block; font-size: 12.5px; line-height: 1.3; }
-.rung .cnt { display: grid; gap: 1px; } .rung .cnt i { display: block; height: 6px; border-radius: 3px; background: var(--muted); } .rung .cnt small { text-align: left; }
-/* the chosen life, picked out among the figures and in the pyramid */
-.fig.off { opacity: 0.32; } .fig.on { fill: var(--accent); opacity: 1; } .fig.s.on { fill: var(--accent); stroke: var(--accent); }
-.fcard.has { border-color: var(--accent); }
-.pyr .pb i { display: flex; background: var(--muted); opacity: 1; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--muted) 45%, transparent); }
-.pyr .pb.l i { justify-content: flex-end; } .pyr .pb i b { background: var(--accent); }
-.sw { width: 12px; height: 8px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); } .sw.on { background: var(--accent); }
-.lives button { display: inline-flex; gap: 5px; align-items: center; } .lives .ic { width: 15px; height: 15px; }
-/* step 2 */
-.cards.v { grid-auto-columns: minmax(124px, 1fr); } .cards.few { grid-auto-columns: 200px; justify-content: start; } .cards.v .card { padding-top: 8px; } .card .houses { margin-top: 2px; }
-.fp { border: 0; background: none; padding: 0; border-radius: 0; font-size: 13px; }
-.fp b { display: none; } .fp.on b, .fp:hover b, .fp:focus-visible b { display: block; }
-.fp.on > .ic { background: #23685a; color: #f2f8f6; border-color: #f2f8f6; } .fp.on { z-index: 2; }
-.fp:disabled > .ic { background: #c9cfcb; } .fp:disabled { opacity: 1; }
-.pcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; align-items: start; }
-.pcard { display: grid; gap: 1px; padding: 8px; border-radius: 12px; background: var(--node); border: 1px solid var(--edge); min-width: 0; }
-.pcard.none { background: none; border-style: dashed; color: var(--muted); } .pcard.cur { border-color: var(--accent); }
-.pcard header { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; padding: 0 6px 3px; } .pcard header b { font: italic 700 17px var(--display); }
-.pcard > small { padding: 0 6px; } .pcard > small .ic { vertical-align: -4px; }
-.pawn { grid-template-columns: 22px minmax(0, 1fr) auto; padding: 4px 6px; } .av { display: grid; place-items: end center; height: 22px; }
-.posline { display: inline-flex; gap: 6px; align-items: center; } .posline .ic { color: var(--accent); }
-.figs.lg .fig { transform-origin: bottom; } .figs.lg { gap: 4px; min-height: 30px; } .figs.lg .fig { height: auto !important; width: 15px; } .figs.lg .fig.c { width: 10px; }
-@media (min-width: 861px) { .stick { position: sticky; top: 12px; } }
-.who-starts { display: grid; gap: 12px; }
-/* a life looked at on step 1 is marked lightly: it is a look, not a choice */
-.peekable [aria-pressed="true"] { background: var(--pick); color: var(--ink); border: 1px dashed var(--accent); box-shadow: none; }
-.peekable button:hover { background: var(--pick); }
-/* status as a dot; words only in the mock bar */
-.st { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 1px; border: 1.5px solid currentColor; }
-.st.built { color: var(--good); background: var(--good); } .st.designed { color: var(--accent); } .st.sketch { color: var(--sketch); border-style: dotted; }
-.legend span { display: inline-flex; gap: 5px; align-items: center; }
-.ic.sug { width: 15px; height: 15px; color: var(--sketch); fill: currentColor; stroke-width: 1; vertical-align: -2px; }
-.stats { display: flex; gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; } .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ic { width: 14px; height: 14px; }
-.card b { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
-.year { font-size: 13px; }
-.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 14.5px; } .rows li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; } .rows .ic { color: var(--muted); margin-top: 1px; }
-.fcards { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-.meters { display: flex; flex-wrap: wrap; gap: 4px 12px; grid-column: 1 / -1; font-size: 13px; color: var(--muted); } .meters > span { display: inline-flex; gap: 4px; align-items: center; }
-.meters .ic { width: 14px; height: 14px; color: var(--muted); } .lcard .meters .ic, .rung .meters .ic { width: 14px; height: 14px; color: var(--muted); }
-.pips { display: inline-flex; gap: 2px; } .pips i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--muted); } .pips i.on { background: var(--accent); border-color: var(--accent); }
-.lcards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } .lcard small.n { display: inline-flex; gap: 4px; align-items: flex-end; } .lcard small.n .fig { height: 12px !important; }
-.lcard b, .rung b { font-size: 15px; } .rung .meters { margin-top: 2px; } .rung b + .sug { margin-left: 5px; }
-.key .ic { width: 14px; height: 14px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: var(--pick); font-size: 14px; } .chip .ic { width: 16px; height: 16px; color: var(--accent); }
-.pcard header { align-items: center; gap: 6px; } .pcard header .ic { color: var(--muted); width: 16px; height: 16px; }
-.pcards { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
-/* the last round: fewer forms, and step 2 as the game */
-.stepno { font-size: 14px; color: var(--muted); }
-.cards.three { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
-@media (max-width: 620px) { .cards.three { grid-template-columns: minmax(0, 1fr); } .cards.three .card { grid-template-columns: 110px minmax(0, 1fr); } .cards.three .card img { grid-row: 1 / span 3; height: 100%; aspect-ratio: auto; }
-  .cards.three .card > *:not(img) { margin: 0 9px 0 0; } .cards.three .card { padding: 0; column-gap: 9px; align-items: center; } }
-.card small { color: var(--muted); }
-@media (min-width: 621px) { .cards.three .card img { aspect-ratio: 16 / 6; } }
-.more summary { cursor: pointer; font-size: 14px; color: var(--muted); padding: 2px 0; } .more .cards { margin-top: 8px; grid-auto-columns: minmax(150px, 220px); justify-content: start; }
-.strip .hh { gap: 2px; padding-bottom: 3px; }
-.lcards { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
-.foot.land { justify-content: flex-start; align-items: flex-end; } .foot.land label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); width: 190px; max-width: 100%; }
-.foot.land .grow { flex: 1 1 0; }
-.game { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
-.view { position: absolute; inset: 0; margin: 0; } .view img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.gp { position: absolute; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; background: var(--panel); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
-.list-p { left: 12px; top: 12px; bottom: 12px; width: 296px; overflow-y: auto; } .card-p { right: 12px; top: 12px; width: 292px; max-height: calc(100% - 92px); overflow-y: auto; }
+.pyr .pb i { display: flex; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--muted) 45%, transparent); } .pyr .pb.l i { justify-content: flex-end; } .pyr .pb i b { background: var(--accent); }
+
+/* story starts: the same cards on both steps */
+.stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px; padding: 8px 10px; background: var(--node); }
+.story > .ic { width: 22px; height: 22px; color: var(--accent); } .story b { font-size: 15px; }
+.story small { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.3; }
+.story .few { grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 0; font-size: 12.5px; color: var(--muted); min-height: 22px; } .story .few .pf { width: 20px; height: 20px; margin-right: -3px; } .story .few span { margin-left: 8px; }
+.story:hover { background: var(--pick); }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--pick); }
+
+.foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; border-top: 1px solid var(--edge); padding-top: 14px; }
+.foot label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); width: 190px; max-width: 100%; } .foot .grow { flex: 1 1 0; }
+.seedrow { display: flex; gap: 6px; } .seedrow button { flex: none; padding: 6px 10px; }
+.loading { text-align: center; padding: 70px 0; display: grid; gap: 14px; justify-items: center; }
+.bar { width: min(280px, 100%); height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.9s ease-out; }
+.toast { background: var(--ink); color: var(--panel); border-radius: 12px; padding: 12px 16px; }
+
+/* step 2: the game. The map is dragged; a farm is clicked; its people are in the panel. */
+.game { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); background: var(--sea); }
+.view { position: absolute; inset: 0; overflow: hidden; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.view.drag { cursor: grabbing; }
+.map { position: absolute; left: 0; top: 0; will-change: transform; } .map.glide { transition: transform 0.5s ease; }
+.map > img { display: block; width: 100%; height: 100%; pointer-events: none; -webkit-user-drag: none; }
+.fpin { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; padding: 0; border: 0; background: none; border-radius: 0; font-size: 13px; }
+.fpin .fi { width: 34px; height: 34px; padding: 2px; border-radius: 50%; background: #fbfdfc; border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.45); }
+.fpin b { position: absolute; top: 100%; margin-top: 3px; white-space: nowrap; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 1px 8px; display: none; }
+.fpin:hover b, .fpin.on b { display: block; } .fpin:hover { z-index: 3; }
+.fpin.on { z-index: 2; } .fpin.on .fi { border-color: #f6e7a8; box-shadow: 0 0 0 3px #23685a, 0 2px 8px rgba(3, 16, 26, 0.5); }
+.fpin.hit .fi { box-shadow: 0 0 0 3px #f6e7a8, 0 2px 8px rgba(3, 16, 26, 0.5); }
+.vname { position: absolute; transform: translate(-50%, -100%); font: italic 700 20px var(--display); color: #fff; text-shadow: 0 1px 3px #06202c, 0 0 8px #06202c; pointer-events: none; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .map.glide, .bar i { transition: none; } }
+.gp { position: absolute; padding: 14px 16px; display: grid; gap: 10px; align-content: start; }
+.list-p { left: 12px; top: 12px; width: 300px; max-height: calc(100% - 24px); overflow-y: auto; }
+.card-p { right: 12px; top: 12px; width: 300px; max-height: calc(100% - 92px); overflow-y: auto; }
 .offer { right: 12px; bottom: 12px; display: flex; gap: 8px; padding: 10px 12px; border-radius: 999px; }
-.gp h2 { font-size: 20px; } .gp .head { gap: 6px; }
-.farms { display: grid; gap: 8px; } .farms .farm { padding-top: 6px; } .farm.cur header b { color: var(--accent); } .farm header { align-items: center; gap: 6px; } .farm header .ic { width: 16px; height: 16px; color: var(--muted); }
-.vsel { display: grid; gap: 3px; font-size: 13px; color: var(--muted); } .vsel select { padding: 6px 9px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
-.portrait { width: 56px; height: 56px; border-radius: 50%; background: var(--node); border: 1px solid var(--edge); display: grid; place-items: center; }
-.portrait .fig { height: 34px !important; }
+.gp h2 { font-size: 20px; } .list-p .stories { grid-template-columns: minmax(0, 1fr); }
+.villages { display: flex; flex-wrap: wrap; gap: 6px; } .villages button { padding: 4px 12px; font-size: 14px; }
+.villages button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; } .hhead .fi { width: 44px; height: 44px; grid-row: 1 / span 2; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 4px; }
+.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; border-radius: 10px; border-color: transparent; font-size: 12.5px; line-height: 1.2; text-align: center; }
+.person .pf { width: 40px; height: 40px; } .person small { font-size: 11.5px; }
+.person:hover:not(:disabled) { background: var(--pick); } .person[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
+.person.hit .pf { filter: drop-shadow(0 0 2px var(--sketch)); }
+.detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
+.posline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .posline .ic { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: var(--pick); font-size: 14px; } .chip .ic { width: 16px; height: 16px; color: var(--accent); }
 @media (max-width: 900px) {
-  .game { aspect-ratio: auto; overflow: visible; box-shadow: none; display: grid; gap: 12px; border-radius: 0; }
-  .view { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; }
-  .gp { position: static; width: auto; max-height: none; }
+  .game { aspect-ratio: auto; overflow: visible; box-shadow: none; display: grid; gap: 12px; border-radius: 0; background: none; }
+  .view { position: relative; aspect-ratio: 4 / 3; border-radius: 16px; }
+  .gp { position: static; width: auto; max-height: none; } .list-p .stories { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
   .offer { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); justify-content: flex-end; z-index: 3; order: 9; }
+  .card-p { order: 1; } .list-p { order: 2; }
 }
 </style>
 
 <div class="stage" id="stage"></div>
 <div class="mockbar" id="mockbar"></div>
-<main class="sheet" id="app"></main>
+<main id="app"></main>
 
+<script src="data/founders.js"></script>
+<script src="data/heirs.js"></script>
+<script src="data/populous.js"></script>
 <script>
-// A clickable mock of the screens after "New archipelago". Nothing here reads the game: the people are invented from design.md, section 14.
+// A clickable mock of the screens after "New archipelago". It does not run the game: its people, farms, portraits, farm icons and maps were
+// taken once from the game (seed 7, tiny map; data/*.js, img/*-map.jpg), and the scenarios marked as sketches borrow a built one's.
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const mulberry32 = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-const TAG = { built: 'Built', designed: 'Designed', sketch: 'Sketch' };
 const TAGT = { built: 'In the game today', designed: 'In design.md, not built', sketch: 'An idea for this mock' };
 const tag = (k) => `<i class="st ${k}" title="${TAGT[k]}"></i>`;
 const ADULT = 18;
@@ -329,7 +212,7 @@ const SCENARIOS = [
     customs: 'The remote village leans its own way: any child inherits, handover at death, looser claims, a wider voice',
     explores: 'Inheritance, expansion and customs. One marriage joins the villages, so cousins live on both shores.',
     year: [['Now', 'An heir of 29 waits'], ['The round', 'An empty farm, a ruin'], ['The meeting', 'Who may inherit?'], ['Soon', 'A childless holder of 47']],
-    lives: [['holder', 'A holder of 61', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'], ['heiress', 'The heiress']] },
+    lives: [['holder', 'An ageing holder', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'], ['heiress', 'The heiress']] },
   { key: 'populous', name: 'Populous Villages', status: 'built', line: 'A settled archipelago, already full of neighbours.',
     start: 'Only villages: small of 2–5 farms (6 in 10), medium of 6–10 (3 in 10), large of 12–16 (1 in 10)',
     gens: 'Two at most; no grandparents on record', people: (z) => SIZES[z].pop,
@@ -386,87 +269,6 @@ const POS = {
   minor: { name: 'Child', commands: [], ahead: [] },
 };
 
-// ---- people ----
-const M = ['Olof', 'Erik', 'Nils', 'Lars', 'Jon', 'Sven', 'Torsten', 'Bengt', 'Anders', 'Per', 'Håkan', 'Gunnar', 'Mats', 'Karl', 'Sigurd', 'Ragnvald'];
-const F = ['Ingrid', 'Karin', 'Margit', 'Elin', 'Brita', 'Gunhild', 'Ragnhild', 'Estrid', 'Kerstin', 'Sigrid', 'Helga', 'Cecilia', 'Ingeborg', 'Katarina', 'Tora', 'Gudrun'];
-const FARMS = ['Storgården', 'Backen', 'Nygård', 'Sunnanå', 'Norrgården', 'Åkerby', 'Lunda', 'Hallsta', 'Vik', 'Berga', 'Ekeby', 'Sörgården', 'Näsbacken', 'Tomta', 'Hagen', 'Mellangården'];
-const VILL = ['Näs', 'Utö', 'Hognes', 'Sandvik', 'Björkö', 'Ramsmora', 'Ängsholm', 'Lidö', 'Storö', 'Grundvik'];
-const P = (n, a, s, r, note) => ({ n, a, s, r, note });
-
-function heirsWorld() {
-  return [
-    { name: 'Näs', note: 'The culture\'s centre. Sons first, the eldest; the heir takes over when he marries.', farms: [
-      { name: 'Storgården', tests: 'The eldest inherits; the younger two want out', food: 410, people: [
-        P('Olof Eriksson', 61, 'm', 'holder'), P('Ingrid Håkansdotter', 58, 'f', 'spouse', 'Born on Utö: the one marriage between the villages.'),
-        P('Erik Olofsson', 29, 'm', 'heir', 'Unmarried at 29, so the farm is still his father\'s.'), P('Karin Olofsdotter', 25, 'f', 'child', 'Wants out.'),
-        P('Nils Olofsson', 20, 'm', 'child', 'Wants out. As Bengt\'s younger nephew he may inherit on Utö.')] },
-      { name: 'Backen', tests: 'An heiress; the widow\'s rights', food: 250, people: [
-        P('Margit Jonsdotter', 54, 'f', 'widow'), P('Elin Persdotter', 22, 'f', 'heiress', 'An only child. Whoever marries her comes to Backen.')] },
-      { name: 'Ödegården', tests: 'Claims; decay', empty: 'Empty for 6 years, after a couple and their baby died. Kin of the old family claim first.' },
-      { name: 'Nygård', tests: 'A minor heir and a guardian', food: 300, people: [
-        P('Lars Andersson', 33, 'm', 'holder'), P('Brita Nilsdotter', 30, 'f', 'spouse'), P('Anders Larsson', 8, 'm', 'minor'), P('Kerstin Larsdotter', 5, 'f', 'minor')] },
-    ] },
-    { name: 'Utö', voice: 'all', note: 'Remote, across the water. Any child inherits; handover at death; looser claims; a wider voice at the meeting.', farms: [
-      { name: 'Sunnanå', tests: 'Sons first against any child; a landless eldest daughter', food: 380, people: [
-        P('Jon Svensson', 52, 'm', 'holder', 'On Utö the farm changes hands at his death, not before.'), P('Gunhild Torstensdotter', 49, 'f', 'spouse'),
-        P('Ragnhild Jonsdotter', 27, 'f', 'heiress', 'The eldest: heir on Utö, where any child inherits. By the custom of Näs her brother Sven would be.'),
-        P('Sven Jonsson', 24, 'm', 'child', 'Would be heir under the custom of Näs. A cause to argue at the meeting.'),
-        P('Torsten Jonsson', 20, 'm', 'child'), P('Estrid Jonsdotter', 16, 'f', 'minor')] },
-      { name: 'Gamla Vik', tests: 'Rebuilding; scrub', empty: 'A ruin, empty for 15 years. Scrub has taken the fields.' },
-      { name: 'Hagen', tests: 'Inheritance by a younger nephew', food: 190, people: [P('Bengt Håkansson', 47, 'm', 'bachelor', 'Brother of Ingrid at Storgården.')] },
-    ] },
-  ];
-}
-function foundersWorld(r) {
-  const pick = (a) => a.splice((r() * a.length) | 0, 1)[0], m = [...M], f = [...F], fn = [...FARMS], farms = [];
-  const couple = (role) => { const ha = 24 + ((r() * 10) | 0); return [P(`${pick(m)} ${pick(m)}sson`, ha, 'm', role), P(`${pick(f)} ${pick(m)}sdotter`, ha - 1 - ((r() * 5) | 0), 'f', 'spouse')]; };
-  for (let i = 0; i < 3; i++) farms.push({ name: pick(fn), tests: 'No field yet', food: 365, people: couple('holder') });
-  farms[0].people.push(P(`${pick(m)} ${pick(m)}sson`, 19, 'm', 'servant', 'The farmhand.'));
-  farms[1].people.push(P(`${pick(f)} ${pick(m)}sdotter`, 18, 'f', 'servant', 'The maid.'));
-  const c = couple('holder'); c[0].note = 'The fourth couple: under this roof until a house of their own stands.'; farms[2].people.push(...c); farms[2].tests = 'Two couples under one roof';
-  return [{ name: VILL[(r() * VILL.length) | 0], note: 'Founded this spring. Old Nordic customs; first cousins or further may marry.', farms }];
-}
-const VA = ['Rön', 'Ek', 'Sand', 'Hög', 'Ulv', 'Lin', 'Skog', 'Björk', 'Ål', 'Gran', 'Sten', 'Lund', 'Hall', 'Torp'], VZ = ['inge', 'säter', 'nes', 'vik', 'by', 'sta', 'ö'];
-function populousWorld(r, size) {
-  const [lo, hi] = SIZES[size].pop.split('–').map(Number), target = lo + (((hi - lo) * r()) | 0), out = [], used = new Set();
-  const one = (a) => a[(r() * a.length) | 0];
-  let n = 0;
-  while (n < target) {
-    const x = r(), nf = x < 0.6 ? 2 + ((r() * 4) | 0) : x < 0.9 ? 6 + ((r() * 5) | 0) : 12 + ((r() * 5) | 0), fn = [...FARMS], farms = [];
-    for (let i = 0; i < nf; i++) {
-      const h = one(M), ha = 28 + ((r() * 24) | 0), people = [P(`${h} ${one(M)}sson`, ha, 'm', 'holder'), P(`${one(F)} ${one(M)}sdotter`, ha - ((r() * 6) | 0), 'f', 'spouse')];
-      let age = Math.min(26, ha - 22), son = false; const kids = [];
-      while (age > 0 && kids.length < 6) { const s = r() < 0.5 ? 'm' : 'f'; kids.push([s, age]); age -= 2 + ((r() * 2) | 0); }
-      kids.forEach(([s, a]) => {
-        let role = a < ADULT ? 'minor' : 'child';
-        if (s === 'm' && !son) { son = true; if (a >= ADULT) role = 'heir'; }
-        people.push(P(`${one(s === 'm' ? M : F)} ${h}s${s === 'm' ? 'son' : 'dotter'}`, a, s, role));
-      });
-      if (!kids.some((k) => k[0] === 'm') && kids.length && kids[0][1] >= ADULT) people[2].r = 'heiress';
-      if (r() < 0.3) { const s = r() < 0.5 ? 'm' : 'f'; people.push(P(`${one(s === 'm' ? M : F)} ${one(M)}s${s === 'm' ? 'son' : 'dotter'}`, 18 + ((r() * 12) | 0), s, 'servant')); }
-      farms.push({ name: fn.splice((r() * fn.length) | 0, 1)[0], food: 150 + ((r() * 300) | 0), people }); n += people.length;
-    }
-    let name; do { name = one(VA) + one(VZ); } while (used.has(name)); used.add(name);
-    out.push({ name, note: `${nf < 6 ? 'A small' : nf < 12 ? 'A medium' : 'A large'} village of ${nf} farms. Old Nordic customs.`, farms });
-  }
-  return out;
-}
-function makeWorld(sc, seed, size) {
-  const r = mulberry32(seed * 31 + 7), base = { heirs: 'heirs', outland: 'heirs', founders: 'founders' }[sc] || 'populous';
-  const v = base === 'heirs' ? heirsWorld() : base === 'founders' ? foundersWorld(r) : populousWorld(r, size);
-  let id = 0;
-  v.forEach((vl, vi) => vl.farms.forEach((f) => (f.people || []).forEach((p) => { p.id = id++; p.farm = f; p.village = vi; })));
-  return v;
-}
-
-// ---- state and drawing ----
-const S = { peek: null, hover: null, lives: 'cards', step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
-const scen = () => SCENARIOS.find((s) => s.key === S.sc);
-const pawns = () => S.world.flatMap((v) => v.farms.flatMap((f) => f.people || []));
-const hue = (p) => (p.n.charCodeAt(0) * 37 + p.n.length * 53 + p.a * 7) % 360;
-const face = (p, big) => `<span class="face${big ? ' big' : ''}" style="background:hsl(${hue(p)} 32% ${p.a < ADULT ? 55 : 38}%)">${esc(p.n.split(' ').map((x) => x[0]).join(''))}</span>`;
-const headBar = (title) => `<div class="head"><h1>${title}</h1><span class="stepno">Step ${S.step} of 2</span></div>`;
-
 // ---- icons: one stroke, drawn for this page ----
 const ICON = {
   house: 'M3 11 12 4l9 7M5.5 9.5V20h13V9.5M10 20v-5h4v5', well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10',
@@ -508,183 +310,206 @@ const HARD = { holder: 'Secure. The most to decide from the first day.', widow: 
   heiress: 'Sought after. The marriage decides everything.', child: 'Open and insecure: every road leads away from home.', servant: 'The hardest start. Nothing to lose.' };
 const RANK = ['holder', 'widow', 'bachelor', 'heiress', 'heir', 'spouse', 'child', 'servant']; // standing, from the most to the least
 
-// ---- pictures: real screenshots of the game (seed 7, tiny map), a close one for each built scenario ----
+// ---- pictures for step 1: close screenshots of the game (seed 7, tiny map), annotated by hand ----
 const PIC = { founders: 'founders', heirs: 'heirs', populous: 'populous', service: 'populous', outland: 'founders', alderman: 'populous', market: 'populous' };
-const pic = (k, far) => `img/${PIC[k]}-${far ? 'island' : 'close'}.jpg`;
-const PINS = { // x and y in hundredths of the close picture, an icon, the words; the last flag puts the label to the left
-  founders: [[61, 47, 'house', 'The houses stand ready'], [49, 51, 'well', 'One well between them', 1], [75, 70, 'field', 'No field broken yet'], [22, 30, 'tree', 'Forest to clear for hay meadows']],
-  heirs: [[42, 50, 'empty', 'Empty for six years: no smoke, no fence', 1], [59, 47, 'house', 'Three farms lived in'], [76, 39, 'field', 'Fields three generations old', 1], [56, 15, 'meadow', 'Hay meadows in flower']],
+const pic = (k, far) => `img/${PIC[k]}-${far && PIC[k] === 'populous' ? 'island' : 'close'}.jpg`;
+const PINS = { // x and y in hundredths of the picture, a mark, the words; the last flag puts the label to the left. A mark of a farm is the game's icon.
+  founders: [[61, 47, 'occupied', 'The houses stand ready'], [49, 51, 'well', 'One well between them', 1], [75, 70, 'field', 'No field broken yet'], [22, 30, 'tree', 'Forest to clear for hay meadows']],
+  heirs: [[42, 50, 'derelict', 'Empty for six years: no smoke, no fence', 1], [59, 47, 'occupied', 'Three farms lived in'], [76, 39, 'field', 'Fields three generations old', 1], [56, 15, 'meadow', 'Hay meadows in flower']],
   populous: [[52, 46, 'village', 'Ekinge: six farms round a green'], [63, 22, 'field', 'Every farm has its fields'], [29, 46, 'field', 'More fields across the river', 1]],
 };
 const INSET = { heirs: ['img/heirs-inset.jpg', 'ruin', 'The far shore: a ruin, 15 years empty'], populous: ['img/populous-island.jpg', 'village', 'Six villages on the smallest map'] };
 
-// The stand-in world of a scenario, for the summaries of step 1 (the same one step 2 opens).
+// ---- the world, from the game's dump: villages of farms of people, each person given one of this mock's positions ----
+const NOTES = { heirs: ['Sons first, the eldest; the heir takes over when he marries.', 'Across the water. Any child inherits; handover at death; a wider voice at the meeting.'],
+  founders: ['Founded this spring. First cousins or further may marry.'] };
 const worlds = new Map();
-function worldOf(key, seed = S.seed) { const k = `${key}|${seed}|${S.size}`; if (!worlds.has(k)) worlds.set(k, makeWorld(key, seed, S.size)); return worlds.get(k); }
-const typical = (key) => worldOf(key, 7); // step 1 comes before the land: it shows a scenario's usual shape, not this seed's people
-const kind = (p) => (p.a < ADULT ? 'c' : p.r === 'servant' ? 's' : ['holder', 'widow', 'bachelor'].includes(p.r) ? 'h' : 'a');
-const isLife = (k, p) => k === 'all' || p.r === k || (k === 'holder' && p.r === 'bachelor');
-const fig = (p, cls) => `<svg class="fig ${kind(p)} ${cls || ''}" viewBox="0 0 10 15" style="height:${p.a < 6 ? 9 : p.a < 13 ? 12 : p.a < ADULT ? 15 : 19}px" aria-hidden="true"><title>${esc(`${p.n}, ${p.a}`)}</title><circle cx="5" cy="3" r="2.7"/><path d="M1 15c0-6 2-8 4-8s4 2 4 8z"/></svg>`;
-const figKey = () => `<div class="key"><span>${fig({ n: '', a: 40, r: 'holder' })}holder</span><span>${fig({ n: '', a: 40, r: 'spouse' })}adult</span><span>${fig({ n: '', a: 8, r: 'minor' })}child</span><span>${fig({ n: '', a: 20, r: 'servant' })}servant</span></div>`;
+function worldOf(key) {
+  const base = PIC[key]; if (worlds.has(base)) return worlds.get(base);
+  const d = window.VBDATA[base], fi = (f) => d.icons[f.icon], w = { map: { src: `img/${base}-map.jpg`, ...d.map }, icons: {}, villages: [] };
+  for (const v of d.villages) w.villages.push({ id: v.id, name: v.name, voice: base === 'heirs' && v.id === 1 ? 'all' : 'holders', farms: [],
+    note: (NOTES[base] || [])[v.id] || 'Old Nordic customs.' });
+  for (const f of d.farms) {
+    const v = w.villages[f.village], people = d.pawns.filter((p) => p.hh !== null && p.hh === f.hh).map((p) => ({ id: p.id, n: p.name, a: p.age, s: p.sex, face: p.face, role: p.role, spouse: p.spouse }));
+    const farm = { id: f.id, name: f.name, state: f.state, icon: fi(f), px: f.px, py: f.py, food: f.food, people, village: v,
+      empty: f.state === 'derelict' ? 'Empty for 6 years, after a couple and their baby died.' : f.state === 'ruin' ? 'A ruin, empty for 15 years.' : '' };
+    w.icons[f.state] = w.icons[f.state] || farm.icon;
+    const grown = people.filter((p) => p.a >= ADULT && (p.role === 'son' || p.role === 'daughter')).sort((a, b) => b.a - a.a);
+    const heir = v.voice === 'all' ? grown[0] : grown.find((p) => p.s === 'm') || (people.some((p) => p.role === 'son') ? null : grown[0]);
+    for (const p of people) {
+      p.farm = farm;
+      p.r = p.a < ADULT ? 'minor' : p.id === f.holder ? (p.s === 'f' ? 'widow' : p.spouse === null ? 'bachelor' : 'holder') : p.role === 'wife' ? 'spouse'
+        : p.role === 'farmhand' || p.role === 'maid' ? 'servant' : p === heir ? (p.s === 'm' ? 'heir' : 'heiress') : p.role === 'farmer' ? 'holder' : 'child';
+    }
+    people.sort((a, b) => (b.id === f.holder) - (a.id === f.holder) || (b.r === 'spouse') - (a.r === 'spouse') || b.a - a.a);
+    v.farms.push(farm);
+  }
+  for (const v of w.villages) { v.px = v.farms.reduce((n, f) => n + f.px, 0) / v.farms.length; v.py = Math.min(...v.farms.map((f) => f.py)); }
+  w.farms = w.villages.flatMap((v) => v.farms); w.people = w.farms.flatMap((f) => f.people);
+  worlds.set(base, w); return w;
+}
+const isLife = (k, p) => p.a >= ADULT && (p.r === k || (k === 'holder' && p.r === 'bachelor'));
+const face = (p, cls) => `<img class="pf${p.a < ADULT ? ' c' : ''} ${cls || ''}" src="${p.face}" alt="" title="${esc(`${p.n}, ${p.a}`)}">`;
+const farmImg = (f, cls) => `<img class="fi${f.people.length ? '' : ' gone'} ${cls || ''}" src="${f.icon}" alt="">`;
+const mark = (w, k) => (w.icons[k] ? `<img class="fi" src="${w.icons[k]}" alt="">` : icon(k === 'derelict' ? 'empty' : k === 'occupied' ? 'house' : k));
 
-// Who starts, before the land is raised: what the scenario fixes, and no more. Founders are ten people without farms' names yet;
-// heirs is written down farm by farm; populous is a usual age pyramid for the map's size.
+// ---- state ----
+const S = { step: 1, sc: 'founders', size: 't', seed: 7, peek: null, hover: null, farm: -1, pawn: -1, story: null, pan: null, done: false };
+const scen = () => SCENARIOS.find((s) => s.key === S.sc);
+const headBar = (title) => `<div class="head"><h1>${title}</h1><span class="stepno">Step ${S.step} of 2</span></div>`;
+
+// Story starts: the same cards on both steps. On step 1 one is looked at; on step 2 it takes you to such a person, and to the next on another click.
+function stories(s, cur) {
+  const w = worldOf(s.key);
+  return `<div class="stories">${s.lives.map(([k, label, sug]) => { const who = w.people.filter((p) => isLife(k, p)); return who.length ? `<button type="button" class="story" data-story="${k}" aria-pressed="${cur === k}">
+    ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? star() : '<span></span>'}<small>${esc(HARD[k])}</small>
+    <span class="few">${who.slice(0, 6).map((p) => face(p)).join('')}<span>${who.length > 6 ? `and ${who.length - 6} more` : ''}</span></span></button>` : ''; }).join('')}</div>`;
+}
+
+// Who starts, before the land is raised: founders as households without names, heirs farm by farm, populous as an age pyramid.
 function households(s) {
-  const w = typical(s.key), base = PIC[s.key], all = w.flatMap((v) => v.farms.flatMap((f) => f.people || [])), nf = w.reduce((n, v) => n + v.farms.length, 0);
-  const cur = S.hover || S.peek, label = cur ? s.lives.find((x) => x[0] === cur)[1] : '', on = (p) => !!cur && p.a >= ADULT && isLife(cur, p);
-  const figs = (ps) => ps.map((p) => fig(p, cur ? (on(p) ? 'on' : 'off') : '')).join(''), picked = cur ? `<small>${all.filter(on).length} of ${all.length}: ${esc(label.toLowerCase())}</small>` : '';
-  if (base === 'founders') {
-    const groups = []; for (const p of all) { if (p.r === 'holder' || p.r === 'servant') groups.push([p]); else groups[groups.length - 1].push(p); }
-    return `<div class="strip">${groups.map((g) => `<span class="hh">${figs(g)}</span>`).join('')}</div>${figKey()}${picked || '<small>Four couples, a farmhand and a maid.</small>'}`;
-  }
-  if (base === 'heirs') {
-    return `<div class="fcards">${w.map((v) => v.farms.map((f) => (f.empty ? `<div class="fcard none"><b>${esc(f.name)}</b><span class="figs">${icon(/ruin/.test(f.empty) ? 'ruin' : 'empty')}</span><small>${/ruin/.test(f.empty) ? 'A ruin, 15 years' : 'Empty, 6 years'}</small></div>`
-      : `<div class="fcard${f.people.some(on) ? ' has' : ''}"><b>${esc(f.name)}</b><span class="figs">${figs(f.people)}</span><small>${esc(f.tests)}</small></div>`)).join('')).join('')}</div>${figKey()}${picked}`;
-  }
+  const w = worldOf(s.key), base = PIC[s.key], all = w.people, cur = S.hover || S.peek, on = (p) => !!cur && isLife(cur, p), cls = (p) => (cur ? (on(p) ? 'on' : 'off') : '');
+  const picked = `<small class="picked">${cur ? `${all.filter(on).length} of ${all.length}: ${esc(s.lives.find((x) => x[0] === cur)[1].toLowerCase())}` : base === 'founders' ? 'Four couples, a farmhand and a maid.' : `${all.length} people on ${w.farms.length} farms.`}</small>`;
+  if (base === 'founders') return `<div class="groups">${w.farms.map((f) => `<span class="group">${f.people.map((p) => face(p, cls(p))).join('')}</span>`).join('')}</div>${picked}`;
+  if (base === 'heirs') return `<div class="fcards">${w.farms.map((f) => `<div class="fcard${f.people.length ? '' : ' none'}${f.people.some(on) ? ' has' : ''}">${farmImg(f)}<b>${esc(f.name)}</b>
+    ${f.people.length ? `<span class="faces">${f.people.map((p) => face(p, cls(p))).join('')}</span>` : `<small>${f.state === 'ruin' ? 'A ruin, 15 years' : 'Empty, 6 years'}</small>`}<small>${esc(f.village.name)}</small></div>`).join('')}</div>${picked}`;
   const bands = [[60, 200, '60 and over'], [45, 59, '45 to 59'], [30, 44, '30 to 44'], [18, 29, '18 to 29'], [10, 17, '10 to 17'], [0, 9, 'Under 10']];
   const rows = bands.map(([a, b, l]) => { const g = all.filter((p) => p.a >= a && p.a <= b), f = g.filter((p) => p.s === 'f'), m = g.filter((p) => p.s === 'm'); return [l, f.length, f.filter(on).length, m.length, m.filter(on).length]; })
     .filter((x) => x[1] + x[3] > 0);
   const max = Math.max(...rows.flatMap((x) => [x[1], x[3]]));
   const bar = (n, k, left) => `<span class="pb${left ? ' l' : ''}"><i style="width:${(n / max) * 100}%"><b style="width:${n ? (k / n) * 100 : 0}%"></b></i></span>`;
   return `<div class="pyr">${rows.map(([l, f, fk, m, mk]) => `<span class="n f">${f}</span>${bar(f, fk, 1)}<span class="lab">${l}</span>${bar(m, mk)}<span class="n">${m}</span>`).join('')}</div>
-    <div class="key"><span>women · men</span>${cur ? `<span><i class="sw on"></i>${esc(label.toLowerCase())}: about ${all.filter(on).length}</span>` : ''}</div>
-    <small>Usual for a ${SIZES[S.size].name.toLowerCase()} map: about ${Math.round(all.length / 10) * 10} people on ${nf} farms in ${w.length} villages.</small>`;
+    <small class="picked">${cur ? `${all.filter(on).length} of ${all.length}: ${esc(s.lives.find((x) => x[0] === cur)[1].toLowerCase())}` : `Women to the left, men to the right. ${all.length} people in ${w.villages.length} villages on the tiny map.`}</small>`;
 }
 
-const sizeField = () => `<label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>`;
-const seedField = () => `<label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll">Another</button></span></label>`;
-
-// Step 1: the scenarios as picture cards, the built ones first; below, the chosen one read off the land. The choices are the scenario,
-// the map's size and the seed; the rest explains.
+// Step 1: the scenarios as picture cards, the built ones first; below, the chosen one read off the land.
 function step1() {
-  const s = scen(), pins = PINS[s.key] || [], ins = INSET[s.key], all = typical(s.key).flatMap((v) => v.farms.flatMap((f) => f.people || []));
-  const n = (k) => all.filter((p) => p.a >= ADULT && isLife(k, p)).length, few = PIC[s.key] !== 'populous';
+  const s = scen(), w = worldOf(s.key), pins = PINS[s.key] || [], ins = INSET[s.key];
   const rows = [['sack', s.stores], ['scroll', s.customs]].filter((x) => x[1] !== 'What each farm has laid by');
   const card = (x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">
-      <img src="${pic(x.key, PIC[x.key] === 'populous')}" alt=""><b>${esc(x.name)} ${tag(x.status)}</b><small>${esc(x.line)}</small>
+      <img src="${pic(x.key, true)}" alt=""><b>${esc(x.name)} ${tag(x.status)}</b><small>${esc(x.line)}</small>
       <span class="stats"><span>${icon('people')}${esc(x.people(S.size))}</span><span>${icon('gens')}${GENS[x.key]} generation${GENS[x.key] > 1 ? 's' : ''}</span></span></button>`;
   $('app').innerHTML = `${headBar('New archipelago')}
     <div class="cards three">${SCENARIOS.filter((x) => x.status !== 'sketch').map(card).join('')}</div>
-    <details class="more"${s.status === 'sketch' ? ' open' : ''}><summary>Four ideas for later ${tag('sketch')}</summary><div class="cards">${SCENARIOS.filter((x) => x.status === 'sketch').map(card).join('')}</div></details>
+    <details class="more"${s.status === 'sketch' ? ' open' : ''}><summary>Four ideas for later ${tag('sketch')}</summary><div class="cards row">${SCENARIOS.filter((x) => x.status === 'sketch').map(card).join('')}</div></details>
     <div class="cgrid">
       <section>
         <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${pic(s.key)}" alt="The land as this scenario begins">
-          ${pins.map(([x, y, ic, t, left]) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%">${icon(ic)}<b>${esc(t)}</b></span>`).join('')}
-          ${ins ? `<span class="inset"><img src="${ins[0]}" alt=""><small>${icon(ins[1])}${esc(ins[2])}</small></span>` : ''}</figure>
-        ${pins.length ? `<ul class="pinlist">${pins.map((x) => `<li>${icon(x[2])}${esc(x[3])}</li>`).join('')}</ul>` : '<small>A stand-in picture.</small>'}
+          ${pins.map(([x, y, k, t, left]) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%">${mark(w, k)}<b>${esc(t)}</b></span>`).join('')}
+          ${ins ? `<span class="inset"><img src="${ins[0]}" alt=""><small>${esc(ins[2])}</small></span>` : ''}</figure>
+        ${pins.length ? `<ul class="pinlist">${pins.map((x) => `<li>${mark(w, x[2])}${esc(x[3])}</li>`).join('')}</ul>` : '<small>A stand-in picture.</small>'}
         <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
         <ul class="rows">${rows.map(([ic, t]) => `<li>${icon(ic)}<span>${esc(t)}</span></li>`).join('')}</ul>
       </section>
       <section><h2>${esc(s.name)}</h2>
         <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3><div class="who-starts" id="who">${households(s)}</div>
-        <h3>Lives you could lead ${tag('sketch')}</h3>
-        <div class="lcards peekable">${s.lives.map(([k, label, sug]) => `<button type="button" class="lcard" data-life="${k}" aria-pressed="${S.peek === k}">
-          ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? star() : '<span></span>'}<small>${esc(HARD[k])}</small><small class="n">${fig({ n: '', a: 30, r: 'spouse' })}${few ? '' : 'about '}${n(k)}</small></button>`).join('')}</div>
-        <small>Tap a life to see who they are. You choose a person once the land is raised.</small></section>
+        <h3>Story starts ${tag('sketch')}</h3>${stories(s, S.peek)}
+        <small>Tap one to see who they are. You choose a person once the land is raised.</small></section>
     </div>
-    <div class="foot land">${sizeField()}${seedField()}<span class="grow"></span><button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
+    <div class="foot"><label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>
+      <label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll">Another</button></span></label>
+      <span class="grow"></span><button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
 }
 
 function loading() {
+  $('app').className = 'sheet panel';
   $('app').innerHTML = `<div class="loading"><h2 id="lt">Raising the land</h2><div class="bar"><i id="lb"></i></div></div>`;
   requestAnimationFrame(() => { $('lb').style.width = '100%'; });
   setTimeout(() => { if ($('lt')) $('lt').textContent = scen().key === 'founders' ? 'Settling the founders' : 'Waking the villages'; }, 450);
   setTimeout(() => {
-    S.world = worldOf(S.sc); S.step = 2; S.done = false;
-    const want = scen().lives[0][0], all = pawns().filter((p) => p.a >= ADULT);
-    const p = all.find((x) => x.r === want) || all.find((x) => x.r === 'widow' && want === 'widow') || all.find((x) => x.r === 'holder') || all[0];
-    S.suggested = (all.find((x) => x.r === scen().lives[0][0]) || all[0]).id; S.pawn = p.id; S.village = p.village; S.only = 'all'; draw();
+    const w = worldOf(S.sc), p = w.people.find((x) => isLife(scen().lives[0][0], x)) || w.people.find((x) => x.a >= ADULT);
+    S.step = 2; S.done = false; S.story = null; S.suggested = p.id; choose(p); draw();
   }, 1000);
 }
 
-// ---- step 2: whom to play. The villages as cards; the chosen village as a picture with a pin a farm; its people on farm cards. ----
-const LIFE_NAME = { all: 'Everyone', holder: 'Holders', widow: 'Widows', heiress: 'Heiresses', heir: 'Heirs', spouse: 'Wives', child: 'Younger children', servant: 'Servants' };
-const VIEW = { // a village's picture and where its farms stand in it, in hundredths
-  founders: [{ img: 'img/founders-close.jpg', pos: [[59, 50], [54, 62], [50, 74]] }],
-  heirs: [{ img: 'img/heirs-close.jpg', pos: [[58, 50], [46, 61], [42, 50], [58, 72]] }, { img: 'img/heirs-close2.jpg', pos: [[58, 49], [53.5, 64], [45.5, 60]] }],
-  populous: [{ img: 'img/populous-close.jpg', pos: [[52, 43], [58, 43], [45, 50], [52, 57], [58, 57], [45, 64]], standin: true }],
-};
-const viewOf = (vi) => { const a = VIEW[PIC[S.sc]]; return a[Math.min(vi, a.length - 1)]; };
-
-// Step 2 is the game itself: the land is raised and its map is on the stage, with the people panel in a mode for choosing. The mock
-// stands a picture in for the map, and plain figures in for the game's portraits.
-const canOf = (p, v) => (v.voice === 'all' && p.a >= ADULT && !CAN[p.r].some((x) => x[0] === 'voice') ? [...CAN[p.r], ['voice', 'Speaks at the meeting']] : CAN[p.r]);
+// ---- step 2: the game itself. Drag the map, click a farm, meet its people; a story start takes you to someone. ----
+const K = 0.8; // the map picture's scale on the page
+const choose = (p) => { S.pawn = p.id; S.farm = p.farm.id; S.pan = null; };
+const canOf = (p) => (p.farm.village.voice === 'all' && !CAN[p.r].some((x) => x[0] === 'voice') ? [...CAN[p.r], ['voice', 'Speaks at the meeting']] : CAN[p.r]);
 function step2() {
-  const s = scen(), v = S.world[S.village], p = pawns().find((x) => x.id === S.pawn), pos = POS[p.r], f = p.farm, view = viewOf(S.village);
-  const kin = f.people.filter((x) => x !== p), grown = kin.filter((x) => x.a >= ADULT), next = grown.find((x) => x.r === 'heir' || x.r === 'heiress') || grown[0];
-  const filters = ['all', ...new Set(s.lives.map((x) => x[0]))], ficon = (fm) => icon(fm.empty ? (/ruin/.test(fm.empty) ? 'ruin' : 'empty') : 'house');
+  const s = scen(), w = worldOf(s.key), f = w.farms.find((x) => x.id === S.farm), p = f.people.find((x) => x.id === S.pawn), hit = (x) => !!S.story && isLife(S.story, x);
   if (S.done) {
-    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game goes on from here,</b> at ${esc(f.name)} in ${esc(S.world[p.village].name)}, as ${esc(p.n)}. The panel closes; the map stays.</div>
-      <div class="foot"><button type="button" id="again">Choose someone else</button><button type="button" id="restart">Start over</button></div>`;
+    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game goes on from here,</b> at ${esc(f.name)} in ${esc(f.village.name)}, as ${esc(p.n)}. The panels close; the map stays.</div>
+      <div class="foot"><span class="grow"></span><button type="button" id="again">Choose someone else</button><button type="button" id="restart">Start over</button></div>`;
     return;
   }
+  const grown = f.people.filter((x) => x !== p && x.a >= ADULT), next = grown.find((x) => x.r === 'heir' || x.r === 'heiress') || grown[0];
   $('app').innerHTML = `
-    <figure class="view"><img src="${view.img}" alt="${esc(v.name)} on the map">
-      ${v.farms.slice(0, view.pos.length).map((fm, i) => `<button type="button" class="pin fp${view.pos[i][0] < 50 ? ' left' : ''}${fm === f ? ' on' : ''}" data-farm="${i}" style="left:${view.pos[i][0]}%;top:${view.pos[i][1]}%"
-        aria-label="${esc(fm.name)}" ${fm.empty ? 'disabled' : ''}>${ficon(fm)}<b>${esc(fm.name)}${fm.empty ? ', empty' : ''}</b></button>`).join('')}</figure>
-    <section class="gp card-p panel">
-      <div class="who"><span class="portrait">${fig(p)}</span><div><h2>${esc(p.n)}${p.id === S.suggested ? ' ' + star() : ''}</h2><span class="posline">${icon(LIFE_ICON[p.r])}${p.a} · ${esc(pos.name.toLowerCase())} · ${esc(f.name)}</span></div></div>
-      <p>${p.note ? esc(p.note) + ' ' : ''}<span class="muted">${HARD[p.r]}</span></p>
-      <div class="figs lg">${f.people.map((x) => fig(x, x === p ? 'on' : 'off')).join('')}</div>
-      <ul class="rows"><li>${icon('sack')}<span>${f.food} days of food</span></li>
-        <li>${icon('next')}<span>${next ? `After ${p.s === 'm' ? 'him' : 'her'}, you go on as ${esc(next.n.split(' ')[0])}${next.r === 'heir' || next.r === 'heiress' ? ', the heir' : ''}` : 'No one after: the line would break'}</span></li></ul>
-      <h3>Can ${tag('designed')}</h3>${chips(canOf(p, v))}
-      <h3>Ahead ${tag('designed')}</h3>${chips(NEXT[p.r])}
-    </section>
+    <div class="view" id="view"><div class="map" id="map" style="width:${w.map.w * K}px;height:${w.map.h * K}px"><img src="${w.map.src}" alt="The map" draggable="false">
+      ${w.farms.map((x) => `<button type="button" class="fpin${x === f ? ' on' : ''}${x.people.some(hit) ? ' hit' : ''}" data-farm="${x.id}" style="left:${x.px}%;top:${x.py}%" aria-label="${esc(x.name)}, ${esc(x.village.name)}">${farmImg(x)}<b>${esc(x.name)}</b></button>`).join('')}</div></div>
     <section class="gp list-p panel">
       <div class="head"><h2>Whom to play</h2><span class="stepno">Step 2 of 2</span></div>
-      ${S.world.length > 3 ? `<label for="vsel" class="vsel">Village<select id="vsel">${S.world.map((x, i) => `<option value="${i}"${i === S.village ? ' selected' : ''}>${esc(x.name)} (${x.farms.length} farms)</option>`).join('')}</select></label>`
-    : S.world.length > 1 ? `<div class="villages">${S.world.map((x, i) => `<button type="button" data-v="${i}" aria-pressed="${i === S.village}">${esc(x.name)}</button>`).join('')}</div>` : ''}
-      <small>${esc(v.note)}</small>
-      <div class="lives">${filters.map((k) => `<button type="button" data-only="${k}" aria-pressed="${S.only === k}">${icon(k === 'all' ? 'people' : LIFE_ICON[k])}${LIFE_NAME[k]}</button>`).join('')}</div>
-      <div class="farms">${v.farms.map((fm) => `<div class="farm${fm === f ? ' cur' : ''}"><header>${ficon(fm)}<b>${esc(fm.name)}</b></header>
-        ${fm.empty ? `<small>${esc(fm.empty.split('.')[0])}.</small>` : fm.people.map((x) => `
-          <button type="button" class="pawn${isLife(S.only, x) && x.a >= ADULT ? '' : ' dim'}" data-p="${x.id}" aria-pressed="${x.id === S.pawn}" ${x.a < ADULT ? 'disabled' : ''}>
-            <span class="av">${fig(x)}</span><span>${esc(x.n)}<small>${x.a} · ${esc(POS[x.r].name.toLowerCase())}</small></span>${x.id === S.suggested ? star() : ''}</button>`).join('')}</div>`).join('')}</div>
+      <small>Drag the map and click a farm, or begin from a story.</small>
+      ${w.villages.length > 1 ? `<div class="villages">${w.villages.map((v) => `<button type="button" data-v="${v.id}" aria-pressed="${v === f.village}">${esc(v.name)}</button>`).join('')}</div>` : ''}
+      <h3>Story starts ${tag('sketch')}</h3>${stories(s, S.story)}
     </section>
-    <div class="gp offer panel"><button type="button" id="back2">Back</button><button type="button" id="watch">Watch only</button><button type="button" class="primary" id="play">Play as ${esc(p.n.split(' ')[0])}</button></div>`;
+    <section class="gp card-p panel">
+      <div class="hhead">${farmImg(f)}<h2>${esc(f.name)}</h2><span class="muted">${esc(f.village.name)}${f.people.length ? ` · ${f.food} days of food` : ''}</span></div>
+      <small>${esc(f.people.length ? f.village.note : f.empty + ' No one to play here; a younger child or a servant may claim it at the moving round.')}</small>
+      <div class="people">${f.people.map((x) => `<button type="button" class="person${hit(x) ? ' hit' : ''}" data-p="${x.id}" aria-pressed="${x === p}" ${x.a < ADULT ? 'disabled' : ''}>${face(x)}${esc(x.n.split(' ')[0])}<small>${x.a}</small></button>`).join('')}</div>
+      ${p ? `<div class="detail"><div><h2>${esc(p.n)}${p.id === S.suggested ? ' ' + star() : ''}</h2><span class="posline">${icon(LIFE_ICON[p.r])}${p.a} · ${esc(POS[p.r].name.toLowerCase())}</span></div>
+        <p class="muted">${HARD[p.r]}</p>
+        <ul class="rows"><li>${icon('next')}<span>${next ? `After ${p.s === 'm' ? 'him' : 'her'}, you go on as ${esc(next.n.split(' ')[0])}${next.r === 'heir' || next.r === 'heiress' ? ', the heir' : ''}` : 'No one after: the line would break'}</span></li></ul>
+        <h3>Can ${tag('designed')}</h3>${chips(canOf(p))}
+        <h3>Ahead ${tag('designed')}</h3>${chips(NEXT[p.r])}</div>` : ''}
+    </section>
+    <div class="gp offer panel"><button type="button" id="back2">Back</button><button type="button" id="watch">Watch only</button><button type="button" class="primary" id="play" ${p ? '' : 'disabled'}>${p ? `Play as ${esc(p.n.split(' ')[0])}` : 'No one here'}</button></div>`;
+  place(f);
 }
+// The map's place under the view: where it was dragged to, or gliding to the chosen farm, kept clear of the panels on a wide page.
+function clampPan(x, y) { const v = $('view'), m = $('map'); return { x: Math.min(0, Math.max(v.clientWidth - m.offsetWidth, x)), y: Math.min(0, Math.max(v.clientHeight - m.offsetHeight, y)) }; }
+function place(f) {
+  const v = $('view'), m = $('map'), old = S.pan;
+  if (!S.pan || S.center) S.pan = clampPan(v.clientWidth / 2 - (f.px / 100) * m.offsetWidth, v.clientHeight * 0.5 - (f.py / 100) * m.offsetHeight);
+  if (S.center && old) { m.style.transform = `translate(${S.last ? S.last.x : old.x}px, ${S.last ? S.last.y : old.y}px)`; m.getBoundingClientRect(); m.classList.add('glide'); }
+  S.center = false; S.last = S.pan; m.style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`;
+}
+let drag = null, dragged = false;
+$('app').addEventListener('pointerdown', (e) => { const v = e.target.closest('#view'); if (!v || !S.pan) return; drag = { x: e.clientX, y: e.clientY, px: S.pan.x, py: S.pan.y, id: e.pointerId }; dragged = false; });
+window.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!dragged && Math.hypot(dx, dy) < 5) return;
+  dragged = true; $('view').classList.add('drag'); $('map').classList.remove('glide');
+  S.pan = S.last = clampPan(drag.px + dx, drag.py + dy); $('map').style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`;
+});
+window.addEventListener('pointerup', () => { if (drag && $('view')) $('view').classList.remove('drag'); drag = null; });
+$('app').addEventListener('wheel', (e) => { if (!e.target.closest('#view') || !S.pan) return; e.preventDefault(); $('map').classList.remove('glide');
+  S.pan = S.last = clampPan(S.pan.x - e.deltaX, S.pan.y - e.deltaY); $('map').style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`; }, { passive: false });
+
 function draw() {
   const game = S.step === 2 && !S.done;
-  $('app').className = game ? 'game' : 'sheet c';
-  $('stage').className = 'stage far'; $('stage').style.backgroundImage = `url(${pic(S.sc, S.step === 2)})`;
-  $('mockbar').innerHTML = `<b>Mock</b><span>${game ? 'This is the game after the land is raised: its own map, people panel and portraits would stand where the picture and figures are.' : 'Pictures are of seed 7 on a tiny map.'}</span>
+  $('app').className = game ? 'game' : 'sheet panel';
+  $('stage').style.backgroundImage = `url(${pic(S.sc)})`;
+  $('mockbar').innerHTML = `<b>Mock</b><span>${game ? 'The game after the land is raised. The map is a picture of the game\'s; people, portraits and farm icons are the game\'s own.' : 'People, portraits and pictures are the game\'s, for seed 7 on a tiny map, whatever is set below.'}</span>
     <span class="legend"><span>${tag('built')} in the game</span><span>${tag('designed')} in design.md</span><span>${tag('sketch')} an idea</span></span>`;
   if (S.step === 1) step1(); else step2();
 }
-$('mockbar').addEventListener('click', (e) => { const b = e.target.closest('[data-var]'); if (b) { S[b.dataset.var] = b.dataset.v; draw(); } });
 
 $('app').addEventListener('click', (e) => {
-  const b = e.target.closest('button, canvas'); if (!b) return;
-  const d = b.dataset;
-  if (b.id === 'chart2') {
-    const q = b.getBoundingClientRect(), x = (e.clientX - q.left) / q.width, y = (e.clientY - q.top) / q.height;
-    let best = 0, bd = 9; S.spots.forEach(([sx, sy], i) => { const dd = Math.hypot(sx - x, sy - y); if (dd < bd) { bd = dd; best = i; } });
-    S.village = best; draw(); return;
-  }
+  if (dragged) { dragged = false; e.preventDefault(); return; }
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset, w = worldOf(S.sc), go = (p) => { choose(p); S.pan = S.last; S.center = true; };
   if (d.sc) { S.sc = d.sc; S.peek = S.hover = null; }
-  else if (d.life) S.peek = S.peek === d.life ? null : d.life;
-  else if (d.v) { S.village = +d.v; const a = S.world[S.village].farms.flatMap((x) => x.people || []).filter((x) => x.a >= ADULT); S.pawn = (a.find((x) => isLife(S.only, x)) || a[0]).id; }
-  else if (d.farm) { const a = S.world[S.village].farms[+d.farm].people.filter((x) => x.a >= ADULT); S.pawn = (a.find((x) => S.only !== 'all' && isLife(S.only, x)) || a[0]).id; }
-  else if (d.only) S.only = d.only;
+  else if (d.story && S.step === 1) S.peek = S.peek === d.story ? null : d.story;
+  else if (d.story) { const who = w.people.filter((p) => isLife(d.story, p)), i = S.story === d.story ? who.findIndex((p) => p.id === S.pawn) : -1; S.story = d.story; go(who[(i + 1) % who.length]); }
+  else if (d.v) go(w.villages[+d.v].farms.flatMap((x) => x.people).find((p) => p.a >= ADULT))
+  else if (d.farm) { const f = w.farms.find((x) => x.id === +d.farm), p = f.people.find((x) => S.story && isLife(S.story, x)) || f.people.find((x) => x.a >= ADULT); S.farm = f.id; S.pawn = p ? p.id : -1; S.pan = S.last; S.center = true; }
   else if (d.p) S.pawn = +d.p;
   else if (b.id === 'reroll') S.seed = (Math.random() * 1e6) | 0;
   else if (b.id === 'go') { loading(); return; }
-  else if (b.id === 'back1') return;
   else if (b.id === 'back2' || b.id === 'restart') { S.step = 1; S.done = false; }
   else if (b.id === 'play') S.done = true;
-  else if (b.id === 'again') S.done = false;
-  else if (b.id === 'watch') { $('app').className = 'sheet c'; $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game would begin with no one played,</b> as it does today after "Not now".</div><div class="foot"><button type="button" id="again">Choose someone</button></div>`; return; }
+  else if (b.id === 'again') S.done = false, S.pan = null;
+  else if (b.id === 'watch') { $('app').className = 'sheet panel'; $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game goes on with no one played,</b> as it does today after "Not now".</div><div class="foot"><span class="grow"></span><button type="button" id="again">Choose someone</button></div>`; return; }
   else return;
   draw();
 });
-// Pointing at a life shows who they are, in "Who starts" only; nothing is chosen by it.
-const look = (k) => { if (S.step !== 1 || S.hover === k) return; S.hover = k; const w = $('who'); if (w) w.innerHTML = households(scen()); };
-$('app').addEventListener('mouseover', (e) => { const b = e.target.closest('[data-life]'); if (b) look(b.dataset.life); });
-$('app').addEventListener('mouseout', (e) => { const b = e.target.closest('[data-life]'); if (b && !b.contains(e.relatedTarget)) look(null); });
+// Pointing at a story start shows who they are, in "Who starts" only; nothing is chosen by it, and nothing moves.
+const look = (k) => { if (S.step !== 1 || S.hover === k) return; S.hover = k; const el = $('who'); if (el) el.innerHTML = households(scen()); };
+$('app').addEventListener('mouseover', (e) => { const b = e.target.closest('[data-story]'); if (b) look(b.dataset.story); });
+$('app').addEventListener('mouseout', (e) => { const b = e.target.closest('[data-story]'); if (b && !b.contains(e.relatedTarget)) look(null); });
 $('app').addEventListener('change', (e) => {
   if (e.target.id === 'size') S.size = e.target.value;
-  else if (e.target.id === 'vsel') { S.village = +e.target.value; S.pawn = S.world[S.village].farms.flatMap((x) => x.people || []).find((x) => x.a >= ADULT).id; }
   else if (e.target.id === 'seed') S.seed = +String(e.target.value).replace(/\D/g, '').slice(0, 9) || 0;
   else return;
   draw();
