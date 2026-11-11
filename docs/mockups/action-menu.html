@@ -1,0 +1,577 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Action Menu Drafts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: one sea-coloured stage holding a patch of the hex map, the controls above it, the queue and the flows to try below.
+   Colours and type are the game's own (src/head.html); the tile colours are this mock-up's. */
+:root {
+  --bg: #e6efec; --surface: #fbfdfc; --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.16);
+  --accent: #23685a; --on-accent: #f2f8f6; --bad: #a8432f; --good: #2f7a4b;
+  --sea: #16395f; --panel: rgba(244, 249, 247, 0.94); --shadow: rgba(6, 22, 38, 0.35);
+  --t-w: #2a5788; --t-f: #3f7a52; --t-g: #8fb86a; --t-c: #a9c780; --t-F: #d4b86a; --t-H: #8a6a45; --t-n: #c9b677;
+  --t-m: #bcd47c; --t-o: #9cc070; --t-S: #cdbd97; --t-N: #c4b692; --t-V: #7fb07a;
+  --t-ink: rgba(23, 49, 58, 0.5); --t-roof: #a8432f; --t-own: #f2f8f6; --map-label: #f6faf8; --map-label-edge: rgba(10, 30, 48, 0.75);
+  --display: 'Alegreya', Georgia, serif; --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1b22; --surface: #17323b; --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.18);
+    --accent: #84c9b5; --on-accent: #0c1f25; --bad: #f0a08c; --good: #8fd0a2;
+    --sea: #0f2a47; --panel: rgba(16, 36, 44, 0.94); --shadow: rgba(0, 0, 0, 0.55);
+    --t-w: #1d436d; --t-f: #2f6042; --t-g: #6c9450; --t-c: #7f9e5e; --t-F: #a8904e; --t-H: #6f5538; --t-n: #9c8d58;
+    --t-m: #8fab58; --t-o: #769a52; --t-S: #9c8d6c; --t-N: #94876a; --t-V: #5f8f5e;
+    --t-ink: rgba(8, 20, 25, 0.55); --t-roof: #b5543f; --t-own: #e1ebe7; --map-label: #eef5f2; --map-label-edge: rgba(4, 14, 22, 0.8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1b22; --surface: #17323b; --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.18);
+  --accent: #84c9b5; --on-accent: #0c1f25; --bad: #f0a08c; --good: #8fd0a2;
+  --sea: #0f2a47; --panel: rgba(16, 36, 44, 0.94); --shadow: rgba(0, 0, 0, 0.55);
+  --t-w: #1d436d; --t-f: #2f6042; --t-g: #6c9450; --t-c: #7f9e5e; --t-F: #a8904e; --t-H: #6f5538; --t-n: #9c8d58;
+  --t-m: #8fab58; --t-o: #769a52; --t-S: #9c8d6c; --t-N: #94876a; --t-V: #5f8f5e;
+  --t-ink: rgba(8, 20, 25, 0.55); --t-roof: #b5543f; --t-own: #e1ebe7; --map-label: #eef5f2; --map-label-edge: rgba(4, 14, 22, 0.8);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+.page { max-width: 1040px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px; }
+h1 { font-family: var(--display); font-style: italic; font-weight: 700; font-size: 30px; line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-style: italic; font-weight: 700; font-size: 20px; line-height: 1.2; margin: 0; }
+.lede { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+button { font: inherit; color: inherit; }
+button:focus-visible, .tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ico { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--edge); border-radius: 10px; background: var(--surface); padding: 3px; gap: 3px; }
+.seg button { border: 0; background: none; border-radius: 7px; padding: 8px 14px; min-height: 40px; font-weight: 500; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.check { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.left, .side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.side { gap: 18px; }
+
+.stage { position: relative; background: var(--sea); border-radius: 14px; overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.mapwrap { position: relative; padding: 46px 0 40px; }
+.mapwrap svg { display: block; width: 100%; height: auto; }
+.tile { cursor: pointer; outline: none; }
+.tile polygon.hex { stroke: var(--sea); stroke-width: 1.4; }
+.tile .deco { fill: none; stroke: var(--t-ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.tile .solid { fill: var(--t-ink); stroke: none; }
+.tile .roof { fill: var(--t-roof); stroke: var(--t-ink); stroke-width: 1.2; }
+.tile .ownline { fill: none; stroke: var(--t-own); stroke-width: 1.2; stroke-dasharray: 2 4; opacity: 0.7; pointer-events: none; }
+.tile.sel polygon.hex { stroke: var(--map-label); stroke-width: 3.2; }
+.tile.dim { opacity: 0.38; }
+.tile.ok polygon.hex { stroke: var(--map-label); stroke-width: 2.4; stroke-dasharray: 5 4; }
+.tile:focus-visible polygon.hex { stroke: var(--map-label); stroke-width: 3.2; }
+.lbl { font-family: var(--body); font-weight: 700; font-size: 9.5px; text-anchor: middle; fill: var(--map-label); stroke: var(--map-label-edge); stroke-width: 2.6; paint-order: stroke; pointer-events: none; }
+.mark { fill: var(--map-label); stroke: var(--map-label-edge); stroke-width: 1.2; pointer-events: none; }
+.marktxt { font-family: var(--body); font-weight: 700; font-size: 9px; text-anchor: middle; fill: var(--map-label-edge); pointer-events: none; }
+.ghost { fill: none; stroke: var(--map-label); stroke-width: 1.8; stroke-dasharray: 4 3; pointer-events: none; }
+.ghost.live { fill: rgba(246, 250, 248, 0.3); stroke-dasharray: none; stroke-width: 2.2; }
+.pawn { fill: var(--map-label); stroke: var(--map-label-edge); stroke-width: 1.4; pointer-events: none; }
+
+.banner { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 4; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--panel); border-radius: 10px; padding: 6px 6px 6px 12px; box-shadow: 0 2px 10px var(--shadow); }
+.banner .txt { flex: 1 1 140px; min-width: 0; font-weight: 500; }
+.btn { border: 1px solid var(--edge); background: var(--surface); border-radius: 8px; min-height: 40px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+
+/* version A: the ring */
+.ring { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.ring button, .ring .hub { position: absolute; width: var(--b); height: var(--b); margin: calc(var(--b) / -2) 0 0 calc(var(--b) / -2); border-radius: 50%; pointer-events: auto; }
+.ring button { border: 1px solid var(--edge); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; place-items: center; padding: 0;
+  box-shadow: 0 2px 8px var(--shadow); }
+.ring button:active, .ring button.hot { background: var(--accent); color: var(--on-accent); }
+.ring button[aria-disabled="true"] { color: var(--muted); background: var(--panel); box-shadow: none; }
+.ring button[aria-disabled="true"] .ico { opacity: 0.5; }
+.ring button[aria-disabled="true"]::after { content: ""; position: absolute; left: 22%; right: 22%; top: 50%; border-top: 2px solid var(--bad); transform: rotate(-45deg); }
+.ring button.go { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.ring button.sub::before { content: ""; position: absolute; right: 3px; bottom: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+.ring .lab { position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; line-height: 1.2;
+  background: var(--panel); color: var(--ink); border-radius: 5px; padding: 1px 5px; pointer-events: none; }
+.ring .hub { display: grid; place-items: center; text-align: center; background: var(--panel); color: var(--ink); font-weight: 700; line-height: 1.05; font-size: 15px; box-shadow: 0 2px 8px var(--shadow); pointer-events: none; }
+.ring .hub small { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); }
+.ring .cap { position: absolute; transform: translateX(-50%); max-width: min(260px, 92%); width: max-content; text-align: center; background: var(--panel); border-radius: 8px;
+  padding: 4px 10px; font-size: 14px; font-weight: 500; box-shadow: 0 2px 8px var(--shadow); }
+.ring .cap.bad { color: var(--bad); }
+.ring.pop button { animation: pop 0.16s ease-out backwards; }
+@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ring.pop button { animation: none; } }
+
+/* version B: the menu */
+.dock { display: flex; gap: 6px; padding: 8px; background: var(--panel); }
+.dock button { flex: 1 1 0; min-width: 0; border: 1px solid var(--edge); background: var(--surface); border-radius: 9px; min-height: 46px; padding: 6px 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 700; }
+.dock button[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.menu { position: absolute; left: 8px; bottom: 70px; width: min(340px, calc(100% - 16px)); max-height: calc(100% - 86px); overflow-y: auto; z-index: 5;
+  background: var(--panel); border-radius: 12px; box-shadow: 0 6px 22px var(--shadow); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.menu .mh { display: flex; align-items: center; gap: 6px; padding: 2px 2px 4px 8px; }
+.menu .mh h2 { flex: 1; font-size: 19px; }
+.menu .mh button { border: 0; background: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; }
+.row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; border-radius: 8px; padding: 7px 8px; min-height: 46px; cursor: pointer; }
+.row:hover { background: var(--edge); }
+.row .nm { flex: 1; min-width: 0; font-weight: 500; line-height: 1.2; }
+.row .nm small { display: block; font-weight: 400; font-size: 13.5px; color: var(--muted); }
+.row[aria-disabled="true"] { color: var(--muted); }
+.row[aria-disabled="true"] .nm small { color: var(--bad); }
+.form { display: flex; flex-direction: column; gap: 10px; padding: 4px 8px 8px; }
+.form .fl { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.form .seg { flex-wrap: wrap; align-self: flex-start; }
+.form .seg button { padding: 6px 10px; display: inline-flex; align-items: center; gap: 5px; }
+.stepper { display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+.stepper b { min-width: 5.5em; text-align: center; }
+.warn { color: var(--bad); font-size: 14px; }
+
+.status { min-height: 1.4em; font-weight: 500; }
+.status.bad { color: var(--bad); }
+.queue { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.queue li { display: flex; align-items: center; gap: 8px; border: 1px solid var(--edge); background: var(--surface); border-radius: 9px; padding: 4px 4px 4px 10px; }
+.queue li span { flex: 1; min-width: 0; }
+.queue li button { border: 0; background: none; width: 36px; height: 36px; border-radius: 7px; cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+.empty, .note { color: var(--muted); margin: 6px 0 0; }
+.try { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.try b { display: block; }
+.try span { color: var(--muted); }
+</style>
+
+<div class="page">
+  <header>
+    <h1>Action menu drafts</h1>
+    <p class="lede">You play Ingrid, head of Norrgård in the village of Björkby. Both drafts read the same list of acts and fill the same queue. Nothing here is simulated.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Draft">
+      <button type="button" id="vRing" aria-pressed="true">Ring on the tile</button>
+      <button type="button" id="vMenu" aria-pressed="false">Menu</button>
+    </div>
+    <label class="check"><input type="checkbox" id="alderman" checked> Ingrid is alderman</label>
+    <label class="check" id="namesWrap"><input type="checkbox" id="names"> Names on the ring</label>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <div class="stage" id="stage">
+        <div class="mapwrap" id="mapwrap">
+          <svg id="map" role="group" aria-label="A patch of the map around Björkby"></svg>
+          <div class="ring" id="ring"></div>
+        </div>
+        <div class="banner" id="banner" hidden></div>
+        <div class="menu" id="menu" hidden></div>
+        <div class="dock" id="dock" hidden></div>
+      </div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </div>
+    <div class="side">
+      <section>
+        <h2 id="queueHead">Ingrid's queue</h2>
+        <div id="queue"></div>
+      </section>
+      <section>
+        <h2>Four flows to try</h2>
+        <ul class="try" id="try"></ul>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---- icons: 24 by 24, stroked in currentColor, as the game's own (src/page/icons.js) ----
+  const P = {
+    walk: '<circle cx="13" cy="4" r="1.8"/><path d="M13 7l-3 5 3 3v5M10 12l-3 1M13 10l3 2 2-1M10 15l-2 5"/>',
+    home: '<path d="M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5"/>',
+    idle: '<path d="M19 14.5A8 8 0 1 1 9.5 5a6.5 6.5 0 0 0 9.5 9.5z"/>',
+    visit: '<path d="M4 5h16v10H10l-4 4v-4H4z"/>',
+    fish: '<path d="M3 12c3-4 8-5 12-2l5-3v10l-5-3c-4 3-9 2-12-2z"/><circle cx="8" cy="11.5" r=".6"/>',
+    cause: '<path d="M4 10v4h3l8 4V6l-8 4zM18 9.5a3.5 3.5 0 0 1 0 5M7 14l1 5h2.5l-1-4.5"/>',
+    chop: '<path d="M5 20L14 9M12 5l7 7c-2 2-5 2-7 .5l-1.500-1.500C9 9 10 6.500 12 5z"/>',
+    hoe: '<path d="M6 21L16 5M16 5l4.500 1.500-2 5-4.500-3"/>',
+    sow: '<path d="M12 21v-9M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 14c0-3 2.500-5 6.500-5 0 3.500-2.500 5-6.500 5z"/>',
+    mow: '<path d="M6 21L15 4M15 4c4 0 6 3 6 7-2-3-5-4-8-3.500"/>',
+    build: '<path d="M6 21l7-9M10 5l8 6-2 3-8-6z"/>',
+    clear: '<path d="M12 3v10M9 3h6M7 13h10c0 5-2 8-5 8s-5-3-5-8z"/>',
+    gift: '<path d="M4 10h16v10H4zM12 10v10M3 7h18v3H3zM12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0"/>',
+    feast: '<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.500 2-4.500.5 1.500 1 2 2 2.500 0-3 0-5 1-8zM5 21h14"/>',
+    commons: '<path d="M4 10l8-6 8 6M6 10v7h12v-7M8 17v4M16 17v4M10 13h4"/>',
+    meet: '<circle cx="12" cy="6" r="2.2"/><circle cx="6" cy="16" r="2.2"/><circle cx="18" cy="16" r="2.2"/><path d="M12 8.500v3M8 14.500l2.500-2M16 14.500l-2.500-2"/>',
+    pawn: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-5 2.500-9 6-9s6 4 6 9z"/>',
+    back: '<path d="M14 6l-6 6 6 6"/>', next: '<path d="M10 6l6 6-6 6"/>',
+    ok: '<path d="M5 12.500l4.500 4.500L19 7"/>', no: '<path d="M6 6l12 12M18 6L6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
+    rotate: '<path d="M19 12a7 7 0 1 1-2.500-5.400M19 4v4h-4"/>',
+    barn: '<path d="M4 20V10l8-6 8 6v10zM9 20v-6h6v6M9 14l6 6M15 14l-6 6"/>',
+    store: '<path d="M3 9l9-5 9 5M6 9v11h12V9M10 20v-5h4v5"/>',
+    cottage: '<path d="M4 12l8-7 8 7M6 11v9h12v-9M15 6V4h2v4M9 14h3v3H9z"/>',
+    fence: '<path d="M5 6v14M12 6v14M19 6v14M3 10h18M3 16h18"/>',
+    rye: '<path d="M12 21V9M12 9c-2-1-2-4 0-6 2 2 2 5 0 6zM12 13c-2 0-4-1.500-4-4M12 13c2 0 4-1.500 4-4M12 17c-2 0-4-1.500-4-4M12 17c2 0 4-1.500 4-4"/>',
+    barley: '<path d="M12 21V8M12 12c-2 0-4-1.500-4-4V4M12 12c2 0 4-1.500 4-4V4M12 17c-2 0-4-1.500-4-4M12 17c2 0 4-1.500 4-4M12 8V3"/>',
+    turnip: '<path d="M12 9c4 0 6 2.500 6 5 0 3-3 4-6 7-3-3-6-4-6-7 0-2.500 2-5 6-5zM12 9c-1-3-3-4-5-4M12 9c1-3 3-4 5-4M12 9V3"/>',
+    sack: '<path d="M9 4h6l-1.500 3c3.500 1.500 5.500 5 5.500 8 0 3-2 5-7 5s-7-2-7-5c0-3 2-6.500 5.500-8zM9.500 7h5"/>',
+    hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
+    wood: '<circle cx="8" cy="16" r="3.500"/><circle cx="16" cy="16" r="3.500"/><circle cx="12" cy="9.500" r="3.500"/>',
+    oven: '<path d="M5 20v-8a7 7 0 0 1 14 0v8zM9 20v-4a3 3 0 0 1 6 0v4"/>',
+    smithy: '<path d="M4 8h13c0 3-2 4-4 4v3h3v4H7v-4h3v-3C8 12 5 11 4 8zM17 8h3"/>',
+    maypole: '<path d="M12 21V4M7 7h10M7 7v4M17 7v4M9 4h6"/>',
+    ale: '<path d="M6 7h9v13H6zM15 10h3v6h-3M8 4h5"/>',
+    scroll: '<path d="M6 4h10a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2H8a2 2 0 0 1-2-2zM9 8h6M9 12h6"/>',
+  };
+  const ico = (k) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${P[k] || ''}</svg>`;
+
+  // ---- the map: pointy hexes in offset rows; each letter a kind of tile ----
+  const ROWS = ['wwfffww', 'wffoFfw', 'foSHFnw', 'fmocVcN', 'wgccnnx', 'wwNgcxw', 'wwwgfww'];
+  const R = 30, HW = Math.sqrt(3) * R, M = 8, VW = M * 2 + HW * 7.5, VH = M * 2 + 2 * R + 1.5 * R * 6;
+  const KIND = {
+    w: 'Open water', f: 'Wood', x: 'Wood', g: 'Unclaimed grass', c: 'Common land', F: 'Field in stubble', H: 'Hoed field', n: 'Field',
+    m: 'Hay meadow', o: 'Open land', S: 'Norrgård', N: '', V: 'The village green',
+  };
+  const tiles = [];
+  ROWS.forEach((row, r) => [...row].forEach((ch, q) => {
+    const type = ch === 'x' ? 'f' : ch;
+    let owner = null;
+    if ('SFHmo'.includes(ch) || (ch === 'f' && q <= 2 && r <= 3)) owner = 'Norrgård';
+    else if (ch === 'x' || ch === 'n') owner = 'Sörgård';
+    else if (ch === 'N') owner = r === 3 ? 'Sörgård' : 'Östergård';
+    else if ('cVf'.includes(ch)) owner = 'Björkby';
+    const t = { i: tiles.length, q, r, type, owner, x: M + HW * (q + 0.5 * (r & 1)) + HW / 2, y: M + R + 1.5 * R * r };
+    t.name = type === 'N' ? `${owner}, a neighbour's farm` : type === 'S' ? 'Norrgård, your farm' : type === 'V' ? 'The village green of Björkby'
+      : type === 'w' || type === 'g' ? KIND[type] : `${KIND[type]}, ${owner === 'Björkby' ? "Björkby's" : owner + "'s"}`;
+    t.short = type === 'N' || type === 'S' ? owner : type === 'V' ? 'the green' : `${KIND[type].toLowerCase()} ${q + 1}·${r + 1}`;
+    tiles.push(t);
+  }));
+  const farms = tiles.filter((t) => t.type === 'N');
+
+  // ---- the acts: one description each, read by both drafts. An act is a verb and the slots it needs: a tile, a kind, a party, an amount ----
+  const is = (...types) => (t) => types.includes(t.type);
+  const GOODS = [
+    { id: 'grain', name: 'Grain', icon: 'sack', unit: 'sacks' }, { id: 'hay', name: 'Hay', icon: 'hay', unit: 'loads' },
+    { id: 'wood', name: 'Firewood', icon: 'wood', unit: 'loads' },
+  ];
+  const ACTS = [
+    { id: 'walk', g: 'self', name: 'Walk here', short: 'Walk', icon: 'walk', needs: 'where to go', on: (t) => t.type !== 'S', why: (t) => (t.type === 'w' ? 'Open water, and Ingrid has no boat.' : null) },
+    { id: 'home', g: 'self', name: 'Go home', icon: 'home', noTile: true, on: is('S') },
+    { id: 'idle', g: 'self', name: 'Rest a while', short: 'Rest', icon: 'idle', noTile: true, on: is('S') },
+    { id: 'visit', g: 'self', name: 'Visit', icon: 'visit', needs: "a neighbour's farm", on: is('N') },
+    { id: 'fish', g: 'self', name: 'Fish from the shore', short: 'Fish', icon: 'fish', needs: 'a stretch of water', on: is('w') },
+    { id: 'cause', g: 'self', name: 'Argue a cause', short: 'Cause', icon: 'cause', noTile: true, on: is('V'), note: 'Before the autumn meeting',
+      kinds: [{ name: 'Share the meadow', icon: 'hay', line: 'Argue for sharing the meadow' }, { name: 'Fence the fields', icon: 'fence', line: 'Argue for fencing the fields' },
+        { name: 'Keep the old ways', icon: 'scroll', line: 'Argue for the old ways' }] },
+    { id: 'chop', g: 'house', name: 'Chop wood', icon: 'chop', needs: 'a wood', paint: true, on: is('f'),
+      why: (t) => (t.owner === 'Sörgård' ? "Sörgård's wood. Ask their leave first." : null) },
+    { id: 'hoe', g: 'house', name: 'Hoe the field', short: 'Hoe', icon: 'hoe', needs: 'a field in stubble', paint: true, on: is('F', 'H', 'n'),
+      why: (t) => (t.type === 'n' ? "Sörgård's field." : t.type === 'H' ? 'Already hoed.' : null) },
+    { id: 'sow', g: 'house', name: 'Sow', icon: 'sow', needs: 'a hoed field', paint: true, on: is('F', 'H', 'n'),
+      why: (t) => (t.type === 'n' ? "Sörgård's field." : t.type === 'F' ? 'Still in stubble. Hoe it first.' : null),
+      kinds: [{ name: 'Rye', icon: 'rye', note: 'Sown in autumn', line: 'Sow rye' }, { name: 'Barley', icon: 'barley', note: 'Sown in spring', line: 'Sow barley' },
+        { name: 'Turnips', icon: 'turnip', note: 'Sown at midsummer', line: 'Sow turnips' }] },
+    { id: 'mow', g: 'house', name: 'Mow hay', icon: 'mow', needs: 'a hay meadow', paint: true, on: is('m') },
+    { id: 'build', g: 'house', name: 'Build', icon: 'build', needs: "the farm's open land", place: true, on: is('o'),
+      kinds: [{ name: 'Barn', icon: 'barn', note: '40 timber, 12 days', line: 'Lay a barn foundation' }, { name: 'Storehouse', icon: 'store', note: '25 timber, 8 days', line: 'Lay a storehouse foundation' },
+        { name: 'Cottage', icon: 'cottage', note: '30 timber, 10 days', line: 'Lay a cottage foundation' }, { name: 'Fence', icon: 'fence', note: '6 timber, 1 day', line: 'Set a fence' }] },
+    { id: 'clear', g: 'house', name: 'Clear a new plot', short: 'Clear', icon: 'clear', needs: 'unclaimed grass', on: is('g') },
+    { id: 'give', g: 'house', name: 'Give', icon: 'gift', needs: "a neighbour's farm", form: true, on: is('N'), kinds: GOODS, amount: { def: 10, step: 5, min: 5, max: 40, floor: 25 } },
+    { id: 'feast', g: 'village', office: true, name: 'Host a gathering', short: 'Gathering', icon: 'feast', noTile: true, on: is('V'), note: 'On the green',
+      kinds: [{ name: 'Midsummer feast', icon: 'maypole', note: 'The whole village', line: 'Host the midsummer feast' }, { name: 'Harvest ale', icon: 'ale', note: 'After the last sheaf', line: 'Host a harvest ale' },
+        { name: 'Work party', icon: 'build', note: 'To raise the commons', line: 'Call a work party' }] },
+    { id: 'commons', g: 'village', office: true, name: 'Build commons', short: 'Commons', icon: 'commons', needs: 'common land by the green', place: true, on: is('V', 'c'),
+      site: (t) => (t.type === 'c' ? null : 'The green stays open. Choose common land beside it.'),
+      kinds: [{ name: 'Granary', icon: 'store', note: "The village's store", line: 'Lay the village granary' }, { name: 'Bake oven', icon: 'oven', note: 'Shared by all farms', line: 'Lay a bake oven' },
+        { name: 'Smithy', icon: 'smithy', note: 'Needs a smith', line: 'Lay a smithy' }] },
+    { id: 'meet', g: 'village', office: true, name: 'Call a meeting', short: 'Meeting', icon: 'meet', noTile: true, on: is('V'), note: 'Outside the autumn meeting' },
+  ];
+  const GROUPS = { self: { name: 'Myself', icon: 'pawn' }, house: { name: 'Household', icon: 'home' }, village: { name: 'Village', icon: 'meet' } };
+  const QUEUE_MAX = 8;
+
+  // ---- state ----
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const S = { version: 'ring', alderman: true, names: coarse, sel: null, flow: null, menu: null, queue: [], msg: null, cap: null, ringKey: '' };
+  const $ = (id) => document.getElementById(id);
+  let H = [];
+  const h = (fn) => `data-h="${H.push(fn) - 1}"`;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+  // why an act is refused: the office first, then the tile; null when it may be done
+  const officeWhy = (a) => (a.office && !S.alderman ? 'Only the alderman may do this.' : null);
+  const whyOf = (a, t) => officeWhy(a) || (a.why ? a.why(t) : null);
+  // where an act may land, when the tile is chosen after the verb (the menu's tool, the ring's "choose a site")
+  function siteWhy(a, t) {
+    if (!a.on(t)) return `${a.name} needs ${a.needs}.`;
+    return whyOf(a, t) || (a.place && a.site ? a.site(t) : null);
+  }
+  function lineOf(f) {
+    const a = f.act, k = f.kind, t = f.site || f.tile;
+    if (a.id === 'give') return `Give ${f.amount} ${k.unit} of ${k.name.toLowerCase()} to ${f.tile.owner}`;
+    const s = k && k.line ? k.line : a.name;
+    return a.noTile || !t ? s : a.id === 'visit' ? `Visit ${t.owner}` : `${s}, ${t.short}`;
+  }
+  const say = (text, bad = false) => { S.msg = { text, bad }; };
+
+  function commit(keep) {
+    const f = S.flow;
+    if (S.queue.length >= QUEUE_MAX) { say(`The queue is full (${QUEUE_MAX}). Remove a command first.`, true); return; }
+    const t = f.site || f.tile;
+    S.queue.push({ icon: (f.act.place && f.kind ? f.kind.icon : f.act.icon), text: lineOf(f), ti: t && !f.act.noTile ? t.i : -1, ghost: f.act.place ? { rot: f.rot || 0 } : null });
+    say(`Queued: ${lineOf(f)}.`);
+    if (keep) { f.tile = null; f.site = null; } else { S.flow = null; S.sel = null; S.menu = null; }
+  }
+
+  // ---- version A: the ring. The tile comes first; each further slot is one more ring ----
+  function startRing(a, t) {
+    const why = whyOf(a, t);
+    if (why) { S.cap = { text: `${a.name}: ${why}`, bad: true }; return; }
+    S.flow = { act: a, tile: t, origin: 'ring' };
+    advance();
+  }
+  function advance() {
+    const f = S.flow, a = f.act;
+    if (a.kinds && !f.kind) f.stage = 'kind';
+    else if (a.amount && !f.sure) { f.stage = 'amount'; if (f.amount == null) f.amount = a.amount.def; }
+    else if (a.place && !f.site) {
+      if (f.tile && !siteWhy(a, f.tile)) { f.site = f.tile; f.rot = 0; f.stage = 'place'; } else { f.stage = 'pick'; S.sel = null; }
+    } else commit(false);
+  }
+  function ringItems() {
+    const f = S.flow;
+    if (!f) {
+      if (!S.sel) return null;
+      const t = S.sel;
+      return { key: `root${t.i}`, at: t, cap: t.name, items: ACTS.filter((a) => a.on(t)).map((a) => ({
+        icon: a.icon, name: a.name, short: a.short, why: whyOf(a, t), sub: !!(a.kinds || a.place), go: () => startRing(a, t) })) };
+    }
+    if (f.origin !== 'ring') return null;
+    const a = f.act, back = () => { S.flow = null; };
+    if (f.stage === 'kind') return { key: `kind${a.id}`, at: f.tile, cap: `${a.name}: choose one`, hub: { icon: 'back', name: 'Back', go: back },
+      items: a.kinds.map((k) => ({ icon: k.icon, name: k.name + (k.note ? `, ${k.note.toLowerCase()}` : ''), short: k.name, go: () => { f.kind = k; advance(); } })) };
+    if (f.stage === 'amount') {
+      const m = a.amount, low = f.amount > m.floor;
+      return { key: `amt${a.id}`, at: f.tile, cap: low ? `${lineOf(f)}. This leaves Norrgård under its winter floor.` : lineOf(f), capBad: low,
+        hubText: `${f.amount}<small>${f.kind.unit}</small>`, items: [
+          { icon: 'minus', name: 'Less', go: () => { f.amount = Math.max(m.min, f.amount - m.step); } },
+          { icon: 'no', name: 'Cancel', go: back },
+          { icon: 'ok', name: 'Give', cls: 'go', go: () => { f.sure = true; advance(); } },
+          { icon: 'plus', name: 'More', go: () => { f.amount = Math.min(m.max, f.amount + m.step); } }] };
+    }
+    if (f.stage === 'place') return { key: `place${f.site.i}`, at: f.site, cap: `${f.kind.name}: turn it, then place it`, items: [
+      { icon: 'rotate', name: 'Turn', go: () => { f.rot = ((f.rot || 0) + 60) % 180; } },
+      { icon: 'ok', name: 'Place', cls: 'go', go: () => commit(false) },
+      { icon: 'no', name: 'Cancel', go: back }] };
+    return null;
+  }
+  function drawRing() {
+    const el = $('ring'), ring = S.version === 'ring' ? ringItems() : null;
+    if (!ring) { el.innerHTML = ''; S.ringKey = ''; return; }
+    const wrap = $('mapwrap').getBoundingClientRect(), svg = $('map').getBoundingClientRect(), k = svg.width / VW;
+    const n = ring.items.length, b = wrap.width < 420 ? 42 : 46, rr = wrap.width < 420 ? 60 : 72, lab = S.names ? 16 : 0;
+    const step = n >= 6 ? 360 / n : 60, a0 = -90 - step * (n - 1) / 2;
+    const pos = ring.items.map((_, j) => { const an = (a0 + step * j) * Math.PI / 180; return [Math.cos(an) * rr, Math.sin(an) * rr]; });
+    const low = Math.max(30, ...pos.map((p) => p[1] + b / 2 + lab)) + 8, pad = b / 2 + 3;
+    // the ring is centred on its tile, pushed inward where it would leave the stage
+    let cx = svg.left - wrap.left + ring.at.x * k, cy = svg.top - wrap.top + ring.at.y * k;
+    cx = Math.min(wrap.width - rr - pad, Math.max(rr + pad, cx));
+    cy = Math.min(wrap.height - low - 34, Math.max(rr + pad, cy));
+    let s = '';
+    ring.items.forEach((it, j) => {
+      s += `<button type="button" data-k="r${ring.key}-${j}" class="${it.cls || ''}${it.sub ? ' sub' : ''}" style="left:${cx + pos[j][0]}px;top:${cy + pos[j][1]}px;animation-delay:${j * 18}ms"`
+        + ` aria-label="${esc(it.name)}${it.why ? '. ' + esc(it.why) : ''}" ${it.why ? 'aria-disabled="true"' : ''} data-name="${esc(it.name)}" data-why="${esc(it.why || '')}" ${h(it.go)}>`
+        + `${ico(it.icon)}${S.names ? `<span class="lab">${esc(it.short || it.name)}</span>` : ''}</button>`;
+    });
+    if (ring.hub) s += `<button type="button" data-k="hub" style="left:${cx}px;top:${cy}px" aria-label="${ring.hub.name}" data-name="${ring.hub.name}" data-why="" ${h(ring.hub.go)}>${ico(ring.hub.icon)}</button>`;
+    if (ring.hubText) s += `<div class="hub" style="left:${cx}px;top:${cy}px">${`<div>${ring.hubText}</div>`}</div>`;
+    const cap = S.cap || { text: ring.cap, bad: ring.capBad };
+    s += `<div class="cap${cap.bad ? ' bad' : ''}" id="cap" style="left:${Math.min(wrap.width - 134, Math.max(134, cx))}px;top:${cy + low}px" data-text="${esc(cap.text)}" data-bad="${cap.bad ? 1 : ''}">${esc(cap.text)}</div>`;
+    el.style.setProperty('--b', `${b}px`);
+    el.classList.toggle('pop', ring.key !== S.ringKey);
+    S.ringKey = ring.key;
+    el.innerHTML = s;
+  }
+  // a pressed or hovered icon names itself in the caption, so an icon can be read before the finger is lifted
+  function capFrom(e) {
+    const b = e.target.closest && e.target.closest('button[data-name]'), cap = $('cap');
+    if (!cap) return;
+    if (b) { cap.textContent = b.dataset.why ? `${b.dataset.name}: ${b.dataset.why}` : b.dataset.name; cap.classList.toggle('bad', !!b.dataset.why); }
+    else { cap.textContent = cap.dataset.text; cap.classList.toggle('bad', !!cap.dataset.bad); }
+  }
+  ['pointerover', 'pointerdown', 'focusin'].forEach((ev) => $('ring').addEventListener(ev, capFrom));
+  $('ring').addEventListener('pointerout', (e) => { if (e.pointerType !== 'touch') capFrom({ target: document.body }); });
+
+  // ---- version B: the menu. The verb comes first, from one of three groups; the map then takes the tile ----
+  function startMenu(a) {
+    const why = officeWhy(a);
+    if (why) { say(`${a.name}: ${why}`, true); return; }
+    S.flow = { act: a, tile: null, origin: 'menu' };
+    if (a.form) { S.flow.kind = a.kinds[0]; S.flow.tile = farms[0]; S.flow.amount = a.amount.def; S.menu.act = a; }
+    else if (a.kinds) S.menu.act = a;
+    else afterKinds();
+  }
+  function afterKinds() {
+    const f = S.flow;
+    if (f.act.noTile) commit(false);
+    else { f.stage = 'tool'; S.menu = null; S.sel = null; }
+  }
+  function drawDock() {
+    const dock = $('dock'), menu = $('menu'), on = S.version === 'menu';
+    dock.hidden = !on;
+    menu.hidden = !(on && S.menu);
+    if (!on) return;
+    dock.innerHTML = Object.keys(GROUPS).map((g) => `<button type="button" data-k="g${g}" aria-expanded="${!!(S.menu && S.menu.g === g)}" ${h(() => {
+      S.flow = null; S.menu = S.menu && S.menu.g === g ? null : { g }; })}>${ico(GROUPS[g].icon)}<span>${GROUPS[g].name}</span></button>`).join('');
+    if (!S.menu) return;
+    const m = S.menu, a = m.act, f = S.flow;
+    let s = `<div class="mh">${a ? `<button type="button" data-k="mback" aria-label="Back" ${h(() => { m.act = null; S.flow = null; })}>${ico('back')}</button>` : ''}`
+      + `<h2>${a ? a.name : GROUPS[m.g].name}</h2><button type="button" data-k="mclose" aria-label="Close" ${h(() => { S.menu = null; S.flow = null; })}>${ico('no')}</button></div>`;
+    if (!a) {
+      s += ACTS.filter((x) => x.g === m.g).map((x) => {
+        const why = officeWhy(x), sub = x.kinds || x.form ? ico('next') : '';
+        const note = why || x.note || (x.noTile ? '' : `Then tap ${x.needs}`);
+        return `<button type="button" class="row" data-k="a${x.id}" ${why ? 'aria-disabled="true"' : ''} ${h(() => startMenu(x))}>${ico(x.icon)}<span class="nm">${x.name}<small>${esc(note)}</small></span>${sub}</button>`;
+      }).join('');
+    } else if (a.form) {
+      const am = a.amount, low = f.amount > am.floor;
+      const seg = (list, cur, set, label) => `<div class="seg" role="group" aria-label="${label}">${list.map((o, j) =>
+        `<button type="button" data-k="${label}${j}" aria-pressed="${o === cur}" ${h(() => set(o))}>${o.icon ? ico(o.icon) : ''}${esc(o.owner && o.type ? o.owner : o.name)}</button>`).join('')}</div>`;
+      s += `<div class="form"><span class="fl">To</span>${seg(farms, f.tile, (o) => { f.tile = o; }, 'To')}`
+        + `<span class="fl">What</span>${seg(a.kinds, f.kind, (o) => { f.kind = o; }, 'What')}`
+        + `<span class="fl">How much</span><div class="stepper"><button type="button" class="btn" data-k="less" aria-label="Less" ${h(() => { f.amount = Math.max(am.min, f.amount - am.step); })}>${ico('minus')}</button>`
+        + `<b>${f.amount} ${f.kind.unit}</b><button type="button" class="btn" data-k="more" aria-label="More" ${h(() => { f.amount = Math.min(am.max, f.amount + am.step); })}>${ico('plus')}</button></div>`
+        + (low ? '<div class="warn">This leaves Norrgård under its winter floor.</div>' : '')
+        + `<button type="button" class="btn primary" data-k="formgo" ${h(() => commit(false))}>${ico('ok')}Add to the queue</button></div>`;
+    } else {
+      s += a.kinds.map((kd, j) => `<button type="button" class="row" data-k="k${j}" ${h(() => { f.kind = kd; afterKinds(); })}>${ico(kd.icon)}<span class="nm">${kd.name}<small>${esc(kd.note || '')}</small></span></button>`).join('');
+    }
+    menu.innerHTML = s;
+  }
+
+  // ---- shared: the banner while the map waits for a tile, the map, the queue ----
+  function drawBanner() {
+    const el = $('banner'), f = S.flow;
+    const waits = f && (f.stage === 'tool' || f.stage === 'pick' || f.stage === 'confirm');
+    el.hidden = !waits;
+    if (!waits) return;
+    const title = f.kind ? `${f.act.name}, ${f.kind.name.toLowerCase()}` : f.act.name;
+    const end = `<button type="button" class="btn" data-k="bend" ${h(() => { S.flow = null; })}>`;
+    if (f.stage === 'confirm') {
+      el.innerHTML = `${ico(f.kind.icon)}<span class="txt">${esc(f.kind.name)} here?</span>`
+        + `<button type="button" class="btn" data-k="bturn" aria-label="Turn" ${h(() => { f.rot = ((f.rot || 0) + 60) % 180; })}>${ico('rotate')}</button>`
+        + `<button type="button" class="btn primary" data-k="bplace" ${h(() => commit(false))}>Place</button>${end}Cancel</button>`;
+    } else {
+      el.innerHTML = `${ico(f.act.icon)}<span class="txt">${esc(title)}: tap ${esc(f.act.needs)}</span>${end}${f.stage === 'tool' && f.act.paint ? 'Done' : 'Cancel'}</button>`;
+    }
+  }
+  function tapTile(t) {
+    const f = S.flow;
+    if (f && (f.stage === 'tool' || f.stage === 'pick' || f.stage === 'confirm')) {
+      const why = siteWhy(f.act, t);
+      if (why) { say(why, true); return; }
+      if (f.act.place) { f.site = t; f.rot = f.rot || 0; f.stage = f.origin === 'ring' ? 'place' : 'confirm'; S.sel = t; } else { f.tile = t; commit(!!f.act.paint && f.origin === 'menu'); }
+      return;
+    }
+    S.flow = null; S.menu = null;
+    S.sel = S.sel === t ? null : t;
+  }
+  const HEX = [0, 1, 2, 3, 4, 5].map((j) => { const an = (30 + 60 * j) * Math.PI / 180; return `${(Math.cos(an) * (R - 0.7)).toFixed(2)},${(Math.sin(an) * (R - 0.7)).toFixed(2)}`; }).join(' ');
+  const HEX_IN = [0, 1, 2, 3, 4, 5].map((j) => { const an = (30 + 60 * j) * Math.PI / 180; return `${(Math.cos(an) * (R - 4.5)).toFixed(2)},${(Math.sin(an) * (R - 4.5)).toFixed(2)}`; }).join(' ');
+  const tree = (x, y) => `<path class="solid" d="M${x - 6} ${y + 7}l6-15 6 15z"/>`;
+  const house = (x, y, w) => `<path class="roof" d="M${x - w} ${y}l${w}-${w * 0.8} ${w} ${w * 0.8}z"/><path class="solid" d="M${x - w * 0.75} ${y}h${w * 1.5}v${w * 0.7}h-${w * 1.5}z"/>`;
+  const DECO = {
+    w: '<path class="deco" d="M-12 -4q4-4 8 0t8 0M-4 8q4-4 8 0t8 0"/>',
+    f: tree(-9, 2) + tree(8, -2) + tree(1, 10),
+    g: '<path class="deco" d="M-10 2l2-5 2 5M6 8l2-5 2 5M4 -8l2-5 2 5"/>',
+    c: '<path class="deco" d="M-8 6l2-5 2 5M8 -2l2-5 2 5"/>',
+    F: '<path class="deco" stroke-dasharray="3 5" d="M-16 -8h32M-18 0h36M-16 8h32"/>',
+    n: '<path class="deco" stroke-dasharray="3 5" d="M-16 -8h32M-18 0h36M-16 8h32"/>',
+    H: '<path class="deco" d="M-16 -10h32M-19 -3h38M-19 4h38M-16 11h32"/>',
+    m: '<path class="deco" d="M-12 -4l2-5 2 5M-2 6l2-5 2 5M8 -6l2-5 2 5M10 8l2-5 2 5M-12 10l2-5 2 5"/>',
+    o: '',
+    S: house(-2, -2, 11) + house(11, 8, 6),
+    N: house(0, -1, 10),
+    V: '<circle class="deco" r="11" stroke-dasharray="2 4"/><path class="deco" d="M0 8v-18M-5 -6h10"/>',
+  };
+  function drawMap() {
+    const f = S.flow, waits = f && (f.stage === 'tool' || f.stage === 'pick' || f.stage === 'confirm');
+    const count = {}, ghosts = {};
+    S.queue.forEach((c) => { if (c.ti >= 0) { count[c.ti] = (count[c.ti] || 0) + 1; if (c.ghost) ghosts[c.ti] = c.ghost; } });
+    let s = '';
+    for (const t of tiles) {
+      const cls = ['tile'];
+      if (S.sel === t) cls.push('sel');
+      if (waits) cls.push(siteWhy(f.act, t) ? 'dim' : 'ok');
+      s += `<g class="${cls.join(' ')}" transform="translate(${t.x.toFixed(1)} ${t.y.toFixed(1)})" tabindex="0" role="button" aria-label="${esc(t.name)}" data-k="t${t.i}" ${h(() => tapTile(t))}>`
+        + `<polygon class="hex" points="${HEX}" style="fill:var(--t-${t.type})"/>${t.owner === 'Norrgård' ? `<polygon class="ownline" points="${HEX_IN}"/>` : ''}${DECO[t.type]}`;
+      if (ghosts[t.i]) s += `<rect class="ghost" x="-13" y="-8" width="26" height="16" rx="2" transform="rotate(${ghosts[t.i].rot})"/>`;
+      if (f && f.site === t) s += `<rect class="ghost live" x="-13" y="-8" width="26" height="16" rx="2" transform="rotate(${f.rot || 0})"/>`;
+      if (t.type === 'S') s += '<circle class="pawn" cx="-17" cy="-1" r="3.2"/><path class="pawn" d="M-22 10c0-5 2-7 5-7s5 2 5 7z"/>';
+      if (t.type === 'S' || t.type === 'N') s += `<text class="lbl" y="25">${t.owner}</text>`;
+      if (t.type === 'V') s += '<text class="lbl" y="25">Green</text>';
+      if (count[t.i]) s += `<circle class="mark" cx="17" cy="-15" r="6.5"/><text class="marktxt" x="17" y="-12">${count[t.i]}</text>`;
+      s += '</g>';
+    }
+    const svg = $('map');
+    svg.setAttribute('viewBox', `0 0 ${VW.toFixed(1)} ${VH.toFixed(1)}`);
+    svg.innerHTML = s;
+  }
+  function drawQueue() {
+    $('queueHead').textContent = `Ingrid's queue, ${S.queue.length} of ${QUEUE_MAX}`;
+    $('queue').innerHTML = S.queue.length ? `<ol class="queue">${S.queue.map((c, j) =>
+      `<li>${ico(c.icon)}<span>${esc(c.text)}</span><button type="button" data-k="q${j}" aria-label="Remove: ${esc(c.text)}" ${h(() => { S.queue.splice(j, 1); })}>${ico('no')}</button></li>`).join('')}</ol>`
+      : '<p class="empty">Empty. Commands wait here in turn, as in the game: each is checked again when its turn comes.</p>';
+  }
+  const TRY = {
+    ring: [
+      ['One tile, one tap', 'Tap a wood west of Norrgård, then the axe. Tap Sörgård\'s wood in the east to see a refusal.'],
+      ['A kind and a place', 'Tap the open land beside Norrgård, then Build. A second ring holds the kinds, a third turns and places the foundation.'],
+      ['A neighbour and an amount', 'Tap Sörgård, then Give. The ring becomes the goods, then a counter around the amount.'],
+      ['The village', 'Tap the green. Building commons from there asks for the site next. Untick alderman to see what a villager is told.'],
+    ],
+    menu: [
+      ['One verb, many tiles', 'Household, Chop wood, then tap wood after wood. The tool stays in hand until Done.'],
+      ['A kind and a place', 'Household, Build, Barn. The map lights the land that will take it. Tap, turn, place.'],
+      ['A neighbour and an amount', 'Household, Give. One form holds who, what and how much, with the warning beside it.'],
+      ['The village', 'Village lists the alderman\'s acts with no tile needed. Untick alderman and each row says why not.'],
+    ],
+  };
+  function render() {
+    const act = document.activeElement, keep = act && act.dataset ? act.dataset.k : null;
+    H = [];
+    drawMap(); drawBanner(); drawDock(); drawRing(); drawQueue();
+    $('vRing').setAttribute('aria-pressed', S.version === 'ring');
+    $('vMenu').setAttribute('aria-pressed', S.version === 'menu');
+    $('namesWrap').hidden = S.version !== 'ring';
+    $('names').checked = S.names;
+    const st = $('status'), idle = S.version === 'ring' ? 'Tap a tile to see what Ingrid may do there.' : 'Open a group under the map, or tap a tile to read it.';
+    st.textContent = S.msg ? S.msg.text : S.sel ? S.sel.name : idle;
+    st.classList.toggle('bad', !!(S.msg && S.msg.bad));
+    $('try').innerHTML = TRY[S.version].map(([b, t]) => `<li><b>${b}</b><span>${t}</span></li>`).join('');
+    if (keep) { const el = document.querySelector(`[data-k="${keep}"]`); if (el && el.focus) el.focus({ preventScroll: true }); }
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-h]');
+    if (el) { const fn = H[+el.dataset.h]; S.msg = null; S.cap = null; if (fn) fn(); render(); return; }
+    if (e.target.closest('#mapwrap')) {   // the sea: put the ring away, unless the map waits for a tile
+      if (S.flow && (S.flow.stage === 'tool' || S.flow.stage === 'pick' || S.flow.stage === 'confirm')) return;
+      S.sel = null; S.flow = null; S.menu = null; S.msg = null; render();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { S.flow = null; S.menu = null; S.sel = null; S.msg = null; render(); }
+    else if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('tile')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+  });
+  const setVersion = (v) => { S.version = v; S.flow = null; S.menu = null; S.sel = null; S.msg = null; render(); };
+  $('vRing').addEventListener('click', () => setVersion('ring'));
+  $('vMenu').addEventListener('click', () => setVersion('menu'));
+  $('alderman').addEventListener('change', (e) => { S.alderman = e.target.checked; S.flow = null; S.msg = null; render(); });
+  $('names').addEventListener('change', (e) => { S.names = e.target.checked; render(); });
+  window.addEventListener('resize', render);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  render();
+})();
+</script>
