@@ -75,5 +75,6 @@ VB['sim/registry'] = (() => {
         Object.freeze({ key, source, label, cause, range, tunables }))),
     })));
   }
-  return { declare, contribute, value, explain, list, seal };
+  // atLoad: other load-time tables (sim/stores' goods) close with the rules.
+  return { declare, contribute, value, explain, list, seal, atLoad };
 })();

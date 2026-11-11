@@ -2,7 +2,7 @@
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
-  const { cal, SERVICE } = VB['sim/rules'];
+  const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
   const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
@@ -116,6 +116,23 @@ VB['sim/opportunities'] = (() => {
     if (!lone) out.push(item('serve', null, null, spare || 'no holder of the village lives alone', atRound));
   }
 
+  // ---- marriage offers that wait for pawn id (VB-273): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
+  // offer: {id, man, woman ({id, name, age, farm}), home (a household id), farm (its farm's name), part ('the one to marry', or 'head of the household'
+  // for `for`, the pawn it speaks for), answers (who has said what so far: [{name, yes}]), daysLeft}. The player answers with Sim.answer.
+  function offers(view, id, out) {
+    const who = (i) => ({ id: i, name: fullName(view.pawns[i]), age: Math.floor((view.t - view.pawns[i].born) / YEAR),
+      farm: view.pawns[i].household !== null ? view.farmsteads[view.households[view.pawns[i].household].farmstead].name : null });
+    for (const o of view.offers) {
+      const mine = o.answers.find((a) => a.by === id && a.yes === null);
+      if (!mine) continue;
+      const side = mine.key === 'man' || mine.key === 'woman' ? null : o.answers.find((a) => a.key === mine.key.slice(0, -4)).by;
+      out.push(item('answer', o.id, null, null, { when: 'offer', offer: { id: o.id, man: who(o.man), woman: who(o.woman), home: o.home,
+        farm: view.farmsteads[view.households[o.home].farmstead].name, part: side === null ? 'the one to marry' : 'head of the household',
+        for: side, answers: o.answers.filter((a) => a.yes !== null).map((a) => ({ name: fullName(view.pawns[a.by]), key: a.key, yes: a.yes })),
+        daysLeft: Math.max(0, Math.ceil((o.due - view.t) / DAY)) } }));
+    }
+  }
+
   // What pawn `id` may do here (and at tile `near`, if given): its work, its own acts, a cause, and the round's acts; nothing for marriage
   // (Decided, 8 Nov). Read-only: it writes nothing and draws no random number. `view` is actorView's; every read of the world goes through it.
   function forPawn(st, view, id, near = null) {
@@ -125,6 +142,7 @@ VB['sim/opportunities'] = (() => {
     if (housed) work(view, p, cal(view.t), out);
     own(view, p, near, out);
     causes(view, p, out);
+    offers(view, id, out);
     if (housed) round(view, p, out);
     return out;
   }
