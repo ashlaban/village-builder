@@ -6,24 +6,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: the game's menu card grown to a two-pane sheet on the sea; a list to choose from on the left, what the choice means on the right. */
+/* Layout: the game's menu card (src/head.html: .panel, .genscreen) over a picture of the chosen scenario, as the main menu lies over its showcase island. */
+/* Step 1 comes in three layouts, chosen in the mock's bar: a, the menu card; b, picture cards; c, the annotated picture. */
 /* Tokens are the game's own (src/head.html), with a few added for the status tags and the chart. */
 :root {
   --sea: #16395f; --sea-deep: #0d2642;
-  --panel: rgba(238, 245, 242, 0.93); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
+  --panel: rgba(238, 245, 242, 0.88); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
   --accent: #23685a; --on-accent: #f2f8f6; --node: #fbfdfc; --good: #2f7a4b; --bad: #a8432f;
   --pick: rgba(35, 104, 90, 0.10); --sketch: #7a5a1e;
   --display: 'Alegreya', Georgia, serif; --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --panel: rgba(11, 27, 34, 0.92); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+    --panel: rgba(11, 27, 34, 0.86); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
     --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
     --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --panel: rgba(11, 27, 34, 0.92); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+  --panel: rgba(11, 27, 34, 0.86); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
   --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
   --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
 }
@@ -31,12 +32,12 @@
 html { background: var(--sea); }
 body {
   margin: 0; min-height: 100%; color: var(--ink); font: 16px/1.4 var(--body); -webkit-font-smoothing: antialiased;
-  background: radial-gradient(ellipse at 50% 20%, var(--sea) 0%, var(--sea-deep) 100%) fixed, var(--sea-deep);
+  background: var(--sea-deep);
   padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 button, input, select { font: inherit; color: inherit; }
-button { cursor: pointer; border: 1px solid var(--edge); background: var(--node); border-radius: 10px; padding: 7px 14px; }
-button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+button { cursor: pointer; font-size: 15px; font-weight: 500; line-height: 1.2; border: 1px solid var(--edge); background: transparent; border-radius: 999px; padding: 7px 14px; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 button:disabled { opacity: 0.5; cursor: default; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 h1, h2, h3, p { margin: 0; }
@@ -46,7 +47,7 @@ h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: 
 small, .muted { color: var(--muted); font-size: 14px; }
 
 .sheet { max-width: 1080px; margin: 0 auto; background: var(--panel); border-radius: 16px; padding: 20px 22px; display: grid; gap: 16px;
-  box-shadow: 0 12px 40px rgba(4, 16, 30, 0.35); }
+  box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); position: relative; z-index: 1; }
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .head h1 { flex: 1 1 auto; }
 .steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; font-size: 14px; color: var(--muted); }
@@ -111,8 +112,70 @@ canvas.chart { width: 100%; height: auto; border-radius: 10px; display: block; b
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.9s ease-out; }
 @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
 .toast { background: var(--ink); color: var(--panel); border-radius: 12px; padding: 12px 16px; }
+
+/* the stage behind the panel, under the menu's veil of sea */
+.stage { position: fixed; inset: 0; background: var(--sea) center / cover no-repeat; transition: background-image 0.4s; }
+.stage::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(22, 57, 95, 0.22) 0%, rgba(13, 38, 66, 0.62) 100%); }
+.stage.far::after { background: rgba(13, 38, 66, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+@media (prefers-reduced-motion: reduce) { .stage { transition: none; } }
+.mockbar { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  font-size: 13px; color: var(--muted); background: var(--panel); border: 1px dashed var(--edge); border-radius: 12px; padding: 7px 12px; }
+.mockbar button { padding: 3px 11px; font-size: 13px; }
+.mockbar button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.mockbar .legend { margin-left: auto; }
+.choice, .pawn { border-radius: 12px; }
+label .tag { justify-self: start; }
+.sheet.a { max-width: 384px; margin-left: max(0px, 5vw); gap: 14px; }
+.sheet.c { max-width: 1180px; }
+@media (max-width: 760px) { .sheet.a { margin-left: auto; } }
+.sheet.a label, .land2 label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.sheet select, .sheet input { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
+.sheet.a button.primary { min-height: 44px; }
+.land2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stepper { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; text-align: center; }
+.stepper button { width: 38px; height: 38px; padding: 0; font-size: 18px; }
+.stepper b { display: block; font: italic 700 22px/1.15 var(--display); }
+.dots { display: flex; justify-content: center; gap: 5px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--edge); } .dots i.on { background: var(--accent); }
+/* who starts, drawn: one mark a person, one underline a farm */
+.strip { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
+.strip .vl { flex-basis: 100%; font-size: 12px; color: var(--muted); margin-bottom: -4px; }
+.hh { display: inline-flex; gap: 3px; align-items: flex-end; padding: 0 2px 4px; border-bottom: 2px solid var(--edge); min-height: 18px; }
+.hh.none { border: 1.5px dashed var(--muted); border-radius: 3px; width: 26px; height: 16px; padding: 0; opacity: 0.7; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.h { background: var(--accent); width: 12px; height: 12px; } .dot.c { width: 6px; height: 6px; opacity: 0.75; }
+.dot.s { background: none; border: 2px solid var(--muted); }
+.strip.tiny { gap: 6px 8px; } .strip.tiny .hh { gap: 2px; padding: 4px; border: 0; border-radius: 5px; background: var(--pick); min-height: 0; flex-wrap: wrap; align-items: center; max-width: 86px; }
+.strip.tiny .dot { width: 4px; height: 4px; } .strip.tiny .dot.h { width: 5px; height: 5px; } .strip.tiny .dot.c { width: 3px; height: 3px; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.key span { display: inline-flex; gap: 5px; align-items: center; }
+/* b: picture cards */
+.cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 10px; overflow-x: auto; padding: 2px 2px 8px; }
+.card { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start; }
+.card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.card > *:not(img) { margin: 0 9px; } .card b { font-size: 15px; } .card small { font-size: 12.5px; line-height: 1.3; }
+.card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.card.sk img { filter: saturate(0.35) sepia(0.25); }
+/* c: the annotated picture */
+.cgrid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 18px; align-items: start; }
+.cgrid > * { min-width: 0; display: grid; gap: 12px; }
+@media (max-width: 860px) { .cgrid { grid-template-columns: minmax(0, 1fr); } }
+.figure { position: relative; margin: 0; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; background: var(--sea); }
+.figure img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.figure.sk img { filter: saturate(0.35) sepia(0.25); }
+.pin { position: absolute; transform: translate(-9px, -50%); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.pin i { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #fbfdfc; color: #17313a; border: 2px solid #17313a; font-style: normal; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.pin b { white-space: nowrap; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pin.left { transform: translate(calc(-100% + 9px), -50%); flex-direction: row-reverse; }
+.pinlist { display: none; margin: 0; padding-left: 20px; font-size: 14px; }
+@media (max-width: 560px) { .pin b { display: none; } .pinlist { display: grid; gap: 2px; } }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.tabs button.sk { border-style: dotted; }
 </style>
 
+<div class="stage" id="stage"></div>
+<div class="mockbar" id="mockbar"></div>
 <main class="sheet" id="app"></main>
 
 <script>
@@ -305,55 +368,98 @@ function drawChart(cv, seed, marks, sel) {
 }
 
 // ---- state and drawing ----
-const S = { step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
+const S = { lay: 'a', step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
 const scen = () => SCENARIOS.find((s) => s.key === S.sc);
 const pawns = () => S.world.flatMap((v) => v.farms.flatMap((f) => f.people || []));
 const hue = (p) => (p.n.charCodeAt(0) * 37 + p.n.length * 53 + p.a * 7) % 360;
 const face = (p, big) => `<span class="face${big ? ' big' : ''}" style="background:hsl(${hue(p)} 32% ${p.a < ADULT ? 55 : 38}%)">${esc(p.n.split(' ').map((x) => x[0]).join(''))}</span>`;
-const headBar = (title) => `<div class="head"><h1>${title}</h1>
-  <ol class="steps"><li ${S.step === 1 ? 'aria-current="step"' : ''}>1 The start</li><li ${S.step === 2 ? 'aria-current="step"' : ''}>2 Whom to play</li></ol></div>
-  <div class="legend"><span>${tag('built')} in the game today</span><span>${tag('designed')} in design.md, not built</span><span>${tag('sketch')} an idea for this mock</span></div>`;
+const headBar = (title, back) => `<div class="head"><h1>${title}</h1>${back ? `<button type="button" id="${back}">Back</button>` : `
+  <ol class="steps"><li ${S.step === 1 ? 'aria-current="step"' : ''}>1 The start</li><li ${S.step === 2 ? 'aria-current="step"' : ''}>2 Whom to play</li></ol>`}</div>`;
 
-function step1() {
-  const s = scen(), z = SIZES[S.size];
-  $('app').innerHTML = `${headBar('New archipelago')}
-  <div class="panes">
-    <section>
-      <h3>Starting scenario</h3>
-      <div class="choices">${SCENARIOS.map((x) => `<button type="button" class="choice" data-sc="${x.key}" aria-pressed="${x.key === S.sc}">
-        <b>${esc(x.name)}</b>${tag(x.status)}<small>${esc(x.line)}</small></button>`).join('')}</div>
-      <h3>The land</h3>
-      <div class="mapform">
-        <div style="display:grid;gap:8px">
-          <label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>
-          <label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll" aria-label="Another seed">Another</button></span></label>
-          <small>${esc(z.note)}</small>
-        </div>
-        <div><canvas class="chart" id="chart1" aria-label="A sketch of the island for this seed"></canvas><small>Preview ${tag('sketch')}</small></div>
-      </div>
-    </section>
-    <section class="detail">
-      <h2>${esc(s.name)}</h2>
-      <p>${esc(s.explores)}</p>
-      <dl class="facts">
-        <dt>Who starts</dt><dd>${esc(s.start)}</dd>
-        <dt>People</dt><dd>${esc(s.people(S.size))} on a ${z.name.toLowerCase()} map</dd>
-        <dt>Generations</dt><dd>${esc(s.gens)}</dd>
-        <dt>Land</dt><dd>${esc(s.land)}</dd>
-        <dt>Stores</dt><dd>${esc(s.stores)}</dd>
-        <dt>Customs</dt><dd>${esc(s.customs)}</dd>
-      </dl>
-      <h3>${s.key === 'founders' ? 'The first year' : 'What is waiting'} ${s.status === 'sketch' ? '' : tag(s.key === 'founders' ? 'designed' : 'sketch')}</h3>
-      <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
-      <h3>Lives to try ${tag('sketch')}</h3>
-      <div class="lives">${s.lives.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${(S.life || s.lives[0][0]) === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>
-      <small>You choose the person after the land is raised, from those who live there. This only decides whom the next screen shows first.</small>
-    </section>
-  </div>
-  <div class="foot"><span class="muted">${s.status === 'sketch' ? 'This scenario is a sketch. The mock raises a stand-in world for it.' : 'Any living adult may be played; the scenario suggests one (design.md, Which pawn).'}</span>
-    <button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
-  drawChart($('chart1'), S.seed, 0, -1);
+// ---- pictures: real screenshots of the game (seed 7, tiny map), one close and one of the whole island for each built scenario ----
+const PIC = { founders: 'founders', heirs: 'heirs', populous: 'populous', service: 'populous', outland: 'founders', alderman: 'populous', market: 'populous' };
+const pic = (k, far) => `img/${PIC[k]}-${far ? 'island' : 'close'}.jpg`;
+const PINS = { // x and y in hundredths of the close picture; the last flag puts the label to the left
+  founders: [[50, 54, 'The houses stand ready'], [66, 71, 'No field broken yet'], [31, 33, 'Forest to clear for hay meadows'], [55, 20, 'A river to cross', 1]],
+  heirs: [[52, 52, 'Skognes: four farms, one of them empty'], [38, 50, 'Fields three generations old', 1], [51, 31, 'Meadows fenced for hay'], [88, 17, 'A second village across the water', 1]],
+  populous: [[50, 46, 'Ekinge: six farms'], [58, 31, 'Every farm has its fields'], [66, 93, 'Sandinge, the next village'], [22, 56, 'Water between neighbours']],
+};
+const LAYS = [['a', 'Menu card'], ['b', 'Picture cards'], ['c', 'Annotated picture']];
+
+// Who starts, drawn: a mark a person, an underline a farm.
+function strip(key, size) {
+  const base = { heirs: 'heirs', outland: 'heirs', founders: 'founders' }[key] || 'populous';
+  const kind = (p) => (p.a < ADULT ? 'c' : p.r === 'servant' ? 's' : ['holder', 'widow', 'bachelor'].includes(p.r) ? 'h' : 'a');
+  const hh = (ks, title) => `<span class="hh" title="${esc(title || '')}">${ks.map((k) => `<i class="dot ${k}"></i>`).join('')}</span>`;
+  let body = '', tiny = false;
+  if (base !== 'populous') {
+    const w = makeWorld(key, 7, size);
+    body = w.map((v) => `${w.length > 1 ? `<span class="vl">${esc(v.name)}</span>` : ''}${v.farms.map((f) => (f.empty ? `<span class="hh none" title="${esc(f.name)}: ${esc(f.empty)}"></span>` : hh(f.people.map(kind), f.name))).join('')}`).join('');
+  } else {
+    tiny = true;
+    const [lo, hi] = SIZES[size].pop.split('–').map(Number), r = mulberry32(11); let left = (lo + hi) / 2;
+    while (left > 0) {
+      const x = r(), farms = x < 0.6 ? 2 + ((r() * 4) | 0) : x < 0.9 ? 6 + ((r() * 5) | 0) : 12 + ((r() * 5) | 0), ks = [];
+      for (let f = 0; f < farms && left > 0; f++) { const n = 4 + ((r() * 6) | 0); for (let i = 0; i < n; i++) ks.push(i === 0 ? 'h' : i === 1 || r() < 0.2 ? 'a' : 'c'); left -= n; }
+      body += hh(ks, `A village of ${farms} farms`);
+    }
+  }
+  return `<div class="strip${tiny ? ' tiny' : ''}" role="img" aria-label="The people who start, one mark each">${body}</div>
+    <div class="key"><span><i class="dot h"></i>holder</span><span><i class="dot"></i>adult</span><span><i class="dot c"></i>child</span>${tiny ? '<span>one cluster a village</span>' : '<span><i class="dot s"></i>servant</span><span><i class="hh none"></i>empty farm</span>'}</div>`;
 }
+const facts = (s, keys) => `<dl class="facts">${[['Who starts', s.start], ['People', `${s.people(S.size)} on a ${SIZES[S.size].name.toLowerCase()} map`], ['Generations', s.gens],
+  ['Land', s.land], ['Stores', s.stores], ['Customs', s.customs]].filter((x) => !keys || keys.includes(x[0])).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+const sizeField = () => `<label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>`;
+const seedField = () => `<label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll">Another</button></span></label>`;
+const yearHTML = (s) => `<h3>${s.key === 'founders' ? 'The first year' : 'What is waiting'} ${s.status === 'sketch' ? '' : tag(s.key === 'founders' ? 'designed' : 'sketch')}</h3>
+  <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>`;
+const livesHTML = (s) => `<h3>Lives to try ${tag('sketch')}</h3>
+  <div class="lives">${s.lives.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${(S.life || s.lives[0][0]) === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>`;
+const footHTML = (s) => `<div class="foot"><span class="muted">${s.status === 'sketch' ? 'This scenario is a sketch, shown with a stand-in picture and a stand-in world.' : 'You choose the person after the land is raised, from those who live there.'}</span>
+  <button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
+
+// a: the menu card. One scenario at a time; the stage behind the card is the scenario.
+function layA(s) {
+  const i = SCENARIOS.indexOf(s), n = SCENARIOS.length;
+  return `${headBar('New archipelago', 'back1')}
+    <div class="stepper"><button type="button" data-sc="${SCENARIOS[(i + n - 1) % n].key}" aria-label="Previous scenario">‹</button>
+      <div><b>${esc(s.name)}</b>${tag(s.status)}</div><button type="button" data-sc="${SCENARIOS[(i + 1) % n].key}" aria-label="Next scenario">›</button></div>
+    <div class="dots">${SCENARIOS.map((x) => `<i class="${x === s ? 'on' : ''}"></i>`).join('')}</div>
+    <p>${esc(s.line)} <span class="muted">${esc(s.explores)}</span></p>
+    ${strip(s.key, S.size)}
+    ${facts(s, ['People', 'Land', 'Stores'])}
+    ${sizeField()}${seedField()}
+    <label for="life">Show me first ${tag('sketch')}<select id="life">${s.lives.map(([k, l, sug]) => `<option value="${k}"${(S.life || s.lives[0][0]) === k ? ' selected' : ''}>${esc(l)}${sug ? ' (suggested)' : ''}</option>`).join('')}</select></label>
+    <button type="button" class="primary" id="go">Raise the land</button>`;
+}
+// b: picture cards. Every scenario in sight; the chosen one unfolds below.
+function layB(s) {
+  return `${headBar('New archipelago')}
+    <div class="cards">${SCENARIOS.map((x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">
+      <img src="${pic(x.key, x.key !== 'founders' && x.key !== 'outland')}" alt=""><b>${esc(x.name)}</b><small>${esc(x.line)}</small><span>${tag(x.status)}</span></button>`).join('')}</div>
+    <div class="panes">
+      <section><h2>${esc(s.name)}</h2><p>${esc(s.explores)}</p>${strip(s.key, S.size)}${yearHTML(s)}</section>
+      <section class="detail">${facts(s)}${livesHTML(s)}<div class="land2">${sizeField()}${seedField()}</div><small>${esc(SIZES[S.size].note)}</small></section>
+    </div>${footHTML(s)}`;
+}
+// c: the annotated picture. The scenario is read off the land itself.
+function layC(s) {
+  const pins = PINS[s.key] || [];
+  return `${headBar('New archipelago')}
+    <div class="tabs">${SCENARIOS.map((x) => `<button type="button" class="${x.status === 'sketch' ? 'sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">${esc(x.name)}</button>`).join('')}</div>
+    <div class="cgrid">
+      <section>
+        <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${pic(s.key)}" alt="The land as this scenario begins">
+          ${pins.map(([x, y, t, left], i) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%"><i>${i + 1}</i><b>${esc(t)}</b></span>`).join('')}</figure>
+        ${pins.length ? `<ol class="pinlist">${pins.map((x) => `<li>${esc(x[2])}</li>`).join('')}</ol>` : '<small>A stand-in picture: this scenario is a sketch.</small>'}
+        ${yearHTML(s)}
+      </section>
+      <section><h2>${esc(s.name)} ${tag(s.status)}</h2><p>${esc(s.line)} <span class="muted">${esc(s.explores)}</span></p>
+        ${strip(s.key, S.size)}${facts(s, ['People', 'Generations', 'Stores', 'Customs'])}${livesHTML(s)}
+        <div class="land2">${sizeField()}${seedField()}</div></section>
+    </div>${footHTML(s)}`;
+}
+function step1() { const s = scen(); $('app').innerHTML = { a: layA, b: layB, c: layC }[S.lay](s); }
 
 function loading() {
   $('app').innerHTML = `<div class="loading"><h2 id="lt">Raising the land</h2><div class="bar"><i id="lb"></i></div></div>`;
@@ -419,7 +525,15 @@ function step2() {
     <button type="button" id="back2">Back</button><button type="button" id="watch">Watch without playing</button><button type="button" class="primary" id="play">Play as ${esc(p.n.split(' ')[0])}</button></div>`;
   S.spots = drawChart($('chart2'), S.seed, S.world.length, S.village);
 }
-const draw = () => (S.step === 1 ? step1() : step2());
+function draw() {
+  $('app').className = 'sheet ' + (S.step === 1 ? S.lay : 'wide');
+  const far = S.step === 2 || S.lay !== 'a';
+  $('stage').className = 'stage' + (far ? ' far' : ''); $('stage').style.backgroundImage = `url(${pic(S.sc, S.step === 2)})`;
+  $('mockbar').innerHTML = `<b>Mock</b>${S.step === 1 ? `<span>Layout of this step:</span>${LAYS.map(([k, l]) => `<button type="button" data-lay="${k}" aria-pressed="${S.lay === k}">${l}</button>`).join('')}` : '<span>Step 2 keeps one layout for now.</span>'}
+    <span class="legend">${tag('built')} in the game ${tag('designed')} in design.md ${tag('sketch')} an idea</span>`;
+  if (S.step === 1) step1(); else step2();
+}
+$('mockbar').addEventListener('click', (e) => { const b = e.target.closest('[data-lay]'); if (b) { S.lay = b.dataset.lay; draw(); } });
 
 $('app').addEventListener('click', (e) => {
   const b = e.target.closest('button, canvas'); if (!b) return;
@@ -436,6 +550,7 @@ $('app').addEventListener('click', (e) => {
   else if (d.p) S.pawn = +d.p;
   else if (b.id === 'reroll') S.seed = (Math.random() * 1e6) | 0;
   else if (b.id === 'go') { loading(); return; }
+  else if (b.id === 'back1') return;
   else if (b.id === 'back2' || b.id === 'restart') { S.step = 1; S.done = false; }
   else if (b.id === 'play') S.done = true;
   else if (b.id === 'again') S.done = false;
@@ -445,6 +560,7 @@ $('app').addEventListener('click', (e) => {
 });
 $('app').addEventListener('change', (e) => {
   if (e.target.id === 'size') S.size = e.target.value;
+  else if (e.target.id === 'life') S.life = e.target.value;
   else if (e.target.id === 'seed') S.seed = +String(e.target.value).replace(/\D/g, '').slice(0, 9) || 0;
   else return;
   draw();
