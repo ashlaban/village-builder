@@ -4,10 +4,8 @@ VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
-  const { on } = VB['sim/events'];
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const M = SOCIAL.memories;
-
+  const { on } = VB['sim/events'], issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
   //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
@@ -153,8 +151,6 @@ VB['sim/relations'] = (() => {
     if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     touch(st, a, b);
   }
-  // The land's memories (sim/stakes, sim/territory, sim/herds emit; they load below this module): the loser remembers the taker, the favour is
-  // remembered by the borrower.
   on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
   on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
   on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));

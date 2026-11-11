@@ -1,5 +1,5 @@
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the read of familiarity (tieOf); the record of
-// events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the read of familiarity (tieOf); the
+// record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -382,8 +382,8 @@ VB['sim/records'] = (() => {
   const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR);
   function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); }
   return {
-    scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold,
-      clearMembers, setServant, personEvent, log,
+    scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold,
+      joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
       record, HISTORY, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
