@@ -5256,11 +5256,12 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
+  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
   function seedNeed(st, hh) {
-    const f = st.farmsteads[hh.farmstead];
+    const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
     let n = f.project ? 1 : 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * st.ECON.seedPerField;
+    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;
@@ -5881,11 +5882,12 @@ VB['sim/fields'] = (() => {
     for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) n += age(st, p) >= 14 ? ECON.ration.adult : ECON.ration.child; }
     return n * YEAR_DAYS;
   }
-  // Fields its hands can till: FIELDS.perHand for each working adult, and more with a team of oxen.
-  function fieldsWorkable(st, hh) {
+  // Fields its hands can till: perHand for each working adult (the plan's target, from its culture's template, sim/plans; FIELDS.perHand
+  // before the household has a plan), and more with a team of oxen.
+  function fieldsWorkable(st, hh, perHand = FIELDS.perHand) {
     let hands = 0;
     for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) hands++; }
-    return Math.floor(hands * FIELDS.perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
+    return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
@@ -7978,40 +7980,104 @@ VB['sim/occasions'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249): a standing plan per live household and village; targets, land
-// step, seed; planning days by the head's diligence, and the due-queue that opens the time-bound kinds at their hours
+// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252): a standing plan per live household and village, a
+// seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
+// diligence, and the due-queue that opens the time-bound kinds at their hours
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, cal } = VB['sim/rules'];
+  const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
-  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, due: the due-queue}; a plan is
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
+  //   seasonal plan, due: the due-queue}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
   //   household's also {targets, tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
+  // @state st.plans.seasons (VB-252): a household's seasonal plan, {holder, kind: 'season', year, season (of cal), made (the day), steps (the
+  //   season's routines in the template's order: kinds of sim/kinds)}; one per undissolved household, made with its standing plan and again
+  //   at the standing plan's first review in each season, from its culture's template; dropped with it. The order is recorded, not yet
+  //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state st.plans.due: [[hour, household id, index in WINDOWED]], sorted by hour, then id, then index: one entry per live household and
   //   time-bound kind, the hour its kind is next asked for the household (VB-249; Rules for cost, 4). Written only here.
   // @state pawn.diligence: a number in [0, 1) from the stream `traits`, drawn once, when the pawn first heads a household's review (a
   //   stand-in until VB-254); its thirds give the planning day's cadence (every third day, every second, daily).
-  // @state plan.targets (a household's; VB-248): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it), hayWinters
-  //   (hay is made while the barn holds less than this many winters' need), fields, workable (the fields wanted and those its hands can
-  //   till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted (sim/meadows), the land step.
+  // @state plan.targets (a household's; VB-248, VB-252): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it),
+  //   hayWinters (hay is made while the barn holds less than this many winters' need), seed (grain kept back for each field not yet sown),
+  //   perHand (fields a working adult can till): copied from the template when its seasonal plan is made; fields, workable (the fields
+  //   wanted and those its hands can till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted
+  //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
-  // The template of the year, one for every culture until foresight (VB-254): the woodpile is laid in for winter from summer on, so its
-  // goal is higher in summer and autumn; hay for two winters.
+  // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
+  // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
+  // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
+  // a target for each store. Its first values are those of the code before it, the same for every culture: the woodpile is laid in for
+  // winter from summer on, so its goal is higher in summer and autumn; hay for two winters; a field's seed; FIELDS.perHand fields a hand.
+  // ctx: {culture (an index of st.cenv.cultures; -1 for a household of none), season, routine (a kind of sim/kinds)}.
   const HAY_WINTERS = 2;
-  function template(st, T) {
-    const E = st.ECON;
-    T.wood[0] = E.woodTarget; T.wood[1] = E.woodWinter; T.wood[2] = E.woodWinter; T.wood[3] = E.woodTarget;
-    T.woodSecond = E.woodTarget * 0.4; T.hayWinters = HAY_WINTERS;
+  const ROUTINES = [
+    ['manure', 'plow', 'sow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk'],
+    ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk'],
+    ['reap', 'haul', 'mow', 'hay', 'thresh', 'slaughter', 'salt', 'wood', 'reclaim', 'clear', 'break', 'meadow', 'mend', 'water', 'cook',
+      'fodder', 'milk'],
+    ['thresh', 'wood', 'slaughter', 'salt', 'mend', 'water', 'cook', 'fodder', 'milk'],
+  ];
+  const ROUTINE_KINDS = [...new Set(ROUTINES.flat())];
+  for (const k of ROUTINE_KINDS) if (!KINDS[k]) throw new Error('The template names an unknown kind: ' + k);
+  const year = (id, base) => Rules.declare({ id: 'year.' + id, owner: 'sim/plans', combine: 'sum', base });
+  year('order', (st, x) => ROUTINES[x.season].indexOf(x.routine));
+  year('wood', (st, x) => (x.season === 1 || x.season === 2 ? st.ECON.woodWinter : st.ECON.woodTarget));
+  year('woodSecond', (st) => st.ECON.woodTarget * 0.4);
+  year('hayWinters', () => HAY_WINTERS);
+  year('seed', (st) => st.ECON.seedPerField);
+  year('perHand', () => FIELDS.perHand);
+  // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], woodSecond, hayWinters, seed, perHand,
+  // steps: [by season, the routines in order]}, made at its first need in a season, so a seasonal plan copies arrays and reads no rule. A
+  // cache of the rules, not state: never saved; a loaded run compiles it again from the same rules (one ctx, reused: value() allocates
+  // nothing, and neither does its caller per rule read).
+  const compiled = new WeakMap(), CTX = { culture: -1, season: 0, routine: '' };
+  const seasonKey = (c) => c.year * 4 + c.season;
+  const rule = (st, id) => Rules.value(st, 'year.' + id, CTX);
+  function templateOf(st, culture, c) {
+    let cache = compiled.get(st);
+    if (!cache || cache.key !== seasonKey(c)) compiled.set(st, cache = { key: seasonKey(c), by: new Map() });
+    let T = cache.by.get(culture);
+    if (T) return T;
+    CTX.culture = culture; CTX.season = 0; CTX.routine = '';
+    T = { wood: [0, 0, 0, 0], woodSecond: rule(st, 'woodSecond'), hayWinters: rule(st, 'hayWinters'), seed: rule(st, 'seed'),
+      perHand: rule(st, 'perHand'), steps: [] };
+    for (let s = 0; s < 4; s++) {
+      CTX.season = s; T.wood[s] = rule(st, 'wood');
+      const ranked = [];
+      for (const k of ROUTINE_KINDS) { CTX.routine = k; const n = rule(st, 'order'); if (n >= 0) ranked.push([n, k]); }
+      T.steps.push(ranked.sort((a, b) => a[0] - b[0]).map((e) => e[1]));
+    }
+    cache.by.set(culture, T);
+    return T;
   }
+  // The culture of a household's village (-1: no farm, or no culture yet).
+  function cultureOf(st, hh) {
+    const s = hh.farmstead !== null && st.cenv ? st.cenv.settlements[st.farmsteads[hh.farmstead].village] : null;
+    return s ? s.culture : -1;
+  }
+  // The household's seasonal plan for the season of c, from its culture's template, and the standing plan's targets copied from it; from
+  // then on the review reads the plan, never the template, so a later change to one household's plan touches no other.
+  function seasonal(st, plan, c) {
+    const id = plan.holder.id, T = templateOf(st, cultureOf(st, st.households[id]), c), P = plan.targets;
+    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s];
+    P.woodSecond = T.woodSecond; P.hayWinters = T.hayWinters; P.seed = T.seed; P.perHand = T.perHand;
+    const sp = { holder: { type: 'household', id }, kind: 'season', year: c.year, season: c.season, made: c.day, steps: [...T.steps[c.season]] };
+    st.plans.seasons.set(id, sp);
+    return sp;
+  }
+  const seasonOf = (st, id) => st.plans.seasons.get(id);
   // The hours at which plans may be reviewed and the due-queue is asked: every hour from one before work starts to the end of work
   // (sim/clock calls refreshJobs then).
   const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
@@ -8103,12 +8169,14 @@ VB['sim/plans'] = (() => {
     for (let k = 0; k < WINDOWED.length; k++) st.plans.due.push([opens(k, hour), id, k]);
     st.plans.due.sort(byDue);
   }
-  // A household's targets, tiles, cull record and reservation of seed, at its plan's making and at the load of a save without them.
+  // A household's targets, seasonal plan, tiles, cull record and reservation of seed, at its plan's making and at the load of a save
+  // without them.
   function household(st, plan) {
     const hh = st.households[plan.holder.id];
-    plan.targets = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, fields: 0, workable: 0 };
-    template(st, plan.targets);
-    if (hh.farmstead !== null) { plan.targets.workable = fieldsWorkable(st, hh); plan.targets.fields = fieldsWanted(st, hh, plan.targets.workable); }
+    plan.targets = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, seed: 0, perHand: 0, fields: 0, workable: 0 };
+    seasonal(st, plan, cal(st.t));
+    const T = plan.targets;
+    if (hh.farmstead !== null) { T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable); }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
     Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
@@ -8125,23 +8193,25 @@ VB['sim/plans'] = (() => {
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
-    if (type === 'household') st.plans.due = st.plans.due.filter((e) => e[1] !== id);
+    if (type === 'household') { st.plans.seasons.delete(id); st.plans.due = st.plans.due.filter((e) => e[1] !== id); }
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
   function seedPlans(st) {
-    st.plans = { households: new Map(), villages: new Map(), due: [] };
+    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [] };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
-  // A save made before the plans' targets and reservations (VB-248), or before planning days and the due-queue (VB-249): its plans get
-  // them as made now.
+  // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
+  // plans (VB-252): its plans get them as made now.
   function fillPlans(st) {
+    if (!st.plans.seasons) st.plans.seasons = new Map();
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
         plan.reserved = {}; plan.reasons = {}; // lint-allow: owner a save made before reservations gets empty ones (sim/stores writes them)
         if (plan.holder.type === 'household') household(st, plan);
       }
+      if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
       if (plan.last === undefined) {
         plan.last = null; plan.woke = null; plan.looked = null;
         plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
@@ -8150,9 +8220,9 @@ VB['sim/plans'] = (() => {
     if (!st.plans.due) { st.plans.due = []; for (const id of st.plans.households.keys()) enqueue(st, id); }
   }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
-  // flag of a store is cleared. A household's plan writes its targets with today's values (the fields wanted, which the land step reads),
-  // notes the year's count of its herds once it is held, and reserves the seed its unsown fields and its land project need (sim/stores
-  // counts it again when read).
+  // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
+  // reads the targets from the plan, writes those of today's values (the fields wanted, which the land step reads), notes the year's count
+  // of its herds once it is held, and reserves the seed its unsown fields and its land project need (sim/stores counts it again when read).
   function reviewed(st, plan, c, why = 'day') {
     const hour = Math.floor(st.tick / TICKS);
     VB.count.planReview++;
@@ -8161,9 +8231,9 @@ VB['sim/plans'] = (() => {
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') return;
-    const hh = st.households[plan.holder.id], T = plan.targets;
-    template(st, T);
-    T.workable = fieldsWorkable(st, hh); T.fields = fieldsWanted(st, hh, T.workable);
+    const hh = st.households[plan.holder.id], T = plan.targets, sp = seasonOf(st, hh.id);
+    if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed');
   }
@@ -8175,8 +8245,8 @@ VB['sim/plans'] = (() => {
     startMeadow(st, f, hh, built, plan.tiles.meadow);
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
-  return { reviewHour, makePlan, dropPlan, planOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED, dueNow,
-    again };
+  return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
+    dueNow, again, ROUTINES, cultureOf };
 })();
 </script>
 <script>
@@ -14788,7 +14858,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '446e5f328c', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '17e6aee797', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

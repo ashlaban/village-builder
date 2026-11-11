@@ -53,6 +53,26 @@ function checkState(st) {
           !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
+        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+      }
+    }
+    // VB-252: one seasonal plan per undissolved household, its steps kinds that exist; of the current season once the standing plan has
+    // been reviewed in it (a household makes it at its first review of the season, on its planning day), else of an earlier one
+    const seasons = st.plans.seasons, KINDS = globalThis.VB['sim/kinds'].KINDS, c = globalThis.VB['sim/rules'].cal(st.t);
+    const now = c.year * 4 + c.season, start = c.day - c.sday;
+    if (!(seasons instanceof Map) || seasons.size !== st.liveHouseholds.length) {
+      bad.push(`plans: ${seasons && seasons.size} seasonal plans, live households ${st.liveHouseholds.length}`);
+    } else {
+      for (const id of st.liveHouseholds) {
+        const sp = seasons.get(id), plan = st.plans.households.get(id);
+        if (!sp || sp.kind !== 'season' || sp.holder.type !== 'household' || sp.holder.id !== id || !Array.isArray(sp.steps) ||
+          !sp.steps.every((k) => KINDS[k])) {
+          bad.push(`plans: household ${id} has no seasonal plan of its own`); continue;
+        }
+        const key = sp.year * 4 + sp.season;
+        if (key > now || (key !== now && plan && plan.last !== null && plan.last >= start)) {
+          bad.push(`plans: household ${id}'s seasonal plan is of year ${sp.year}, season ${sp.season}, not of the current one`);
+        }
       }
     }
     // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
