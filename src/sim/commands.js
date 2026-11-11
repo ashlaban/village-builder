@@ -2,6 +2,7 @@
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
@@ -45,7 +46,10 @@ VB['sim/commands'] = (() => {
     work: {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
         : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
-      run: (st, c) => { const a = st.agents[c.actor]; release(st, a); start(st, a, st.jobs.get(c.target)); },
+      run: (st, c) => {
+        const a = st.agents[c.actor], j = st.jobs.get(c.target);
+        release(st, a); start(st, a, j); a.basis = eligible(st, j, st.pawns[a.id]);
+      },
     },
     // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
     walkTo: {

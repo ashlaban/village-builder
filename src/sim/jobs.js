@@ -7,6 +7,7 @@ VB['sim/jobs'] = (() => {
   const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
+  const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
@@ -152,11 +153,6 @@ VB['sim/jobs'] = (() => {
     }
     return out;
   }
-  function mayTake(st, p, j) {
-    if (j.owner.type === 'household') return j.owner.id === p.household;
-    if (j.owner.type === 'village') return villageOf(st, p) === j.owner.id;
-    return true;
-  }
   // A job's weight in a bid, as its kind says (sim/kinds).
   const urgency = (st, j, c) => (KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other);
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
@@ -177,7 +173,7 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !mayTake(st, p, j)) return -1;
+    if (!isOpen(j) || !eligible(st, j, p)) return -1;
     const s = score(st, p, j, c);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
@@ -230,7 +226,7 @@ VB['sim/jobs'] = (() => {
   }
   function explainIdle(st, id) {
     const p = st.pawns[id], c = cal(st.t), out = [];
-    for (const j of st.jobs.values()) if (mayTake(st, p, j)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
+    for (const j of st.jobs.values()) if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -290,5 +286,5 @@ VB['sim/jobs'] = (() => {
     }
     issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
   }
-  return { post, refreshJobs, lookForWork, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
+  return { post, refreshJobs, lookForWork, callCooks, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();

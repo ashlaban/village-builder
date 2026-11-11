@@ -7162,6 +7162,26 @@ VB['sim/kinds'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/eligibility: who may take a task, and on what basis (design.md section 7; VB-250): one table of bases, each a check, in a fixed order
+VB['sim/eligibility'] = (() => {
+  const { villageOf } = VB['sim/records'];
+  // A basis is a check of (st, task, pawn); the first that holds is the answer, so later bases (helper VB-106, debtor, hired) are added
+  // here, in their place in the order. A task is {owner: {type, id}}: a job, or the owner of a work opportunity not yet posted.
+  const BASES = [
+    ['servant', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household && p.servant],
+    ['member', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household],
+    ['villager', (st, t, p) => t.owner.type === 'village' && villageOf(st, p) === t.owner.id],
+    ['self', (st, t) => t.owner.type !== 'household' && t.owner.type !== 'village'],
+  ];
+  // The basis on which the pawn may take the task, or null.
+  function eligible(st, task, pawn) {
+    for (let i = 0; i < BASES.length; i++) if (BASES[i][1](st, task, pawn)) return BASES[i][0];
+    return null;
+  }
+  return { eligible, BASES };
+})();
+</script>
+<script>
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
@@ -7233,7 +7253,7 @@ VB['sim/agents'] = (() => {
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null;
+    a.phase = null; a.work = null; a.basis = null;
   }
   // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
   function freeHands(st, j, finisher) {
@@ -7260,7 +7280,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
     dropJob(st, j);
-    a.carry = null; a.job = null; a.phase = null;
+    a.carry = null; a.job = null; a.basis = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function arrived(st, a) {
@@ -7313,7 +7333,7 @@ VB['sim/agents'] = (() => {
         walkTo(st, a, f.house, x, y);
       } else {
         complete(st, a);
-        a.job = null; a.work = null;
+        a.job = null; a.basis = null; a.work = null;
         a.phase = null; a.inside = false;
         if (K.inside) { a.inside = false; a.anim = 'idle'; }
       }
@@ -7409,6 +7429,7 @@ VB['sim/agents'] = (() => {
 VB['sim/commands'] = (() => {
   const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
@@ -7452,7 +7473,10 @@ VB['sim/commands'] = (() => {
     work: {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
         : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
-      run: (st, c) => { const a = st.agents[c.actor]; release(st, a); start(st, a, st.jobs.get(c.target)); },
+      run: (st, c) => {
+        const a = st.agents[c.actor], j = st.jobs.get(c.target);
+        release(st, a); start(st, a, j); a.basis = eligible(st, j, st.pawns[a.id]);
+      },
     },
     // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
     walkTo: {
@@ -8165,6 +8189,7 @@ VB['sim/jobs'] = (() => {
   const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
+  const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
@@ -8310,11 +8335,6 @@ VB['sim/jobs'] = (() => {
     }
     return out;
   }
-  function mayTake(st, p, j) {
-    if (j.owner.type === 'household') return j.owner.id === p.household;
-    if (j.owner.type === 'village') return villageOf(st, p) === j.owner.id;
-    return true;
-  }
   // A job's weight in a bid, as its kind says (sim/kinds).
   const urgency = (st, j, c) => (KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other);
   // Matching, not first-come: every idle pawn bids for every open job it may take, and the best fits are
@@ -8335,7 +8355,7 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !mayTake(st, p, j)) return -1;
+    if (!isOpen(j) || !eligible(st, j, p)) return -1;
     const s = score(st, p, j, c);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
@@ -8388,7 +8408,7 @@ VB['sim/jobs'] = (() => {
   }
   function explainIdle(st, id) {
     const p = st.pawns[id], c = cal(st.t), out = [];
-    for (const j of st.jobs.values()) if (mayTake(st, p, j)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
+    for (const j of st.jobs.values()) if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -8448,7 +8468,7 @@ VB['sim/jobs'] = (() => {
     }
     issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 0.75 + rnd(st.rng.work) * 1.25 }, source: 'planner' });
   }
-  return { post, refreshJobs, lookForWork, callCooks, mayTake, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
+  return { post, refreshJobs, lookForWork, callCooks, urgency, score, bid, lookUp, planRound, idleAbout, explainIdle, idleLine, fit, jobsFor };
 })();
 </script>
 <script>
@@ -9111,7 +9131,8 @@ VB['sim/opportunities'] = (() => {
   const { VERBS, goOnAs } = VB['sim/commands'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/rules'];
-  const { mayTake, fit, jobsFor } = VB['sim/jobs'];
+  const { fit, jobsFor } = VB['sim/jobs'];
+  const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules } = VB['sim/matching'];
   const { MARRIAGE } = VB['sim/rules'];
@@ -9132,9 +9153,9 @@ VB['sim/opportunities'] = (() => {
     const hh = view.households[p.household], f = view.farmsteads[hh.farmstead], vid = villageOf(view, p), a = view.agents[p.id];
     const owners = [{ type: 'household', id: hh.id }, { type: 'village', id: vid }], seen = new Set(), list = [];
     const add = (key, kind, owner, j) => {
-      if (seen.has(key) || !mayTake(view, p, { owner })) return;
+      const basis = seen.has(key) ? null : eligible(view, { owner }, p);
+      if (!basis) return;
       seen.add(key);
-      const basis = owner.type === 'village' ? 'villager' : p.servant ? 'servant' : 'member';
       const row = j ? fit(view, p, j, c) : { bid: null, reason: 'not given out yet: work is given out in working hours' };
       const why = j && a.job === j ? 'doing it now' : row.reason || check(view, p.id, 'work', key, null);
       list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind }));
@@ -14767,7 +14788,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '55d3d8cb19', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '446e5f328c', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
