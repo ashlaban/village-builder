@@ -28,7 +28,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-141](backlog/VB-141.md) | Plan: customs of the animals | debt | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. |
 | [VB-160](backlog/VB-160.md) | Plan: what raised yields over the centuries, and a model for it | animals | 3 | S | Survey the historical causes of rising grain yields, their size and timescale, and propose a model in which a gain follows a change in farming; no code. |
 | [VB-180](backlog/VB-180.md) | Wrap-up: state ownership and boundaries | ownership | 3 | S | Rerun the map, see what fell, review the external stress tests against the code. |
-| [VB-184](backlog/VB-184.md) | Plan: debt and land (slice 5) | debt | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. |
+| [VB-185](backlog/VB-185.md) | Plan: the mill and the loom: facilities, recipes and crafts (slice 6) | mill | 3 | S | Design facilities and crafts: construction as recipes, the mill, the textile chain, skills, occupations. |
 | [VB-187](backlog/VB-187.md) | The gossip experiment: stories against opinion averaging, in a reduced scenario | talk | 3 | M | Stories against opinion averaging in a reduced scenario: spread, distortion and forgetting, before stories are built. |
 | [VB-207](backlog/VB-207.md) | death.hazard: the cause read from its contributions | yardstick | 3 | S | `deathRoll` takes a death's cause from the contributions of `death.hazard`, not by calling all extra risk hunger; golden unchanged. |
 | [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
@@ -116,7 +116,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-093](backlog/VB-093.md) | A village windmill | mill | 3 | M | VB-009 | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
 | [VB-121](backlog/VB-121.md) | Winter crafts: tools and fence poles | mill | 3 | M | VB-185 | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. |
 | [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | VB-185, VB-121 | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
-| [VB-185](backlog/VB-185.md) | Plan: the mill and the loom: facilities, recipes and crafts (slice 6) | mill | 3 | S | VB-184 | Design facilities and crafts: construction as recipes, the mill, the textile chain, skills, occupations. |
 | [VB-036](backlog/VB-036.md) | Plan: relationships and courting | talk | 2 | S | VB-186 | Design courting, relationships and food help between kin, so the courting tasks can be written. |
 | [VB-062](backlog/VB-062.md) | Mood and its modifiers, shown in the pawn panel | talk | 2 | M | VB-186 | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. |
 | [VB-040](backlog/VB-040.md) | Wrap-up: relationships and courting | talk | 3 | S | VB-036 | Long runs check marriage age, never-married share and help between kin against history; report. |
