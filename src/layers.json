@@ -2,7 +2,7 @@
   "layers": ["kernel", "material", "social", "agency", "derived"],
   "roots": ["sim/clock", "sim/saves", "sim/scenarios", "sim"],
   "modules": {
-    "kernel": ["vb", "gen/paths", "gen/rivers", "gen/marks", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
+    "kernel": ["vb", "gen/paths", "gen/rivers", "gen/marks", "gen/geology", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
       "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/forest", "sim/people", "sim/records", "sim/commands"],
     "material": ["sim/stores", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/herds", "sim/ownership", "sim/claims",
       "sim/stakes", "sim/territory", "sim/expansion"],

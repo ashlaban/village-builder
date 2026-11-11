@@ -30,7 +30,14 @@
     const claims = claimLines(i);
     if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
-      ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
+      ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), ...groundLines(i), where]);
+  }
+  // What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet, and all of it is known.
+  function groundLines(i) {
+    if (!w.rock || !w.rock[i]) return [];
+    const d = w.deposit[i], left = w.depositLeft[i];
+    return [`${Geo.ROCKS[w.rock[i]].name} bedrock`,
+      ...(d ? [`${Geo.DEPOSITS[d].name}: ${left === Geo.ENDLESS ? 'more than can ever be dug' : `about ${left} loads`}`] : [])];
   }
   // The claims on a tile (sim/claims) and its cairn (VB-157), one line each, for the tile panel.
   function claimLines(i) {
