@@ -139,11 +139,21 @@ VB['sim/plans'] = (() => {
     const last = st.ECON.sowWindow[1];
     return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2) || (c.season === 3 && c.sday === 0);
   }
-  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, once ('window'); a store
-  // that crossed a target, at most one such review a day ('store').
+  // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
+  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields only.
+  function fieldsDue(st, plan, c) {
+    if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
+    const hh = st.households[plan.holder.id], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || f.household !== hh.id) return false;
+    const W = st.ECON.sowWindow, sow = c.season === 0 && c.sday >= W[0] && c.sday <= W[1];
+    for (const fd of f.fields) if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    return false;
+  }
+  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
+  // once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && closing(st, c)) return 'window';
+    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c))) return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).

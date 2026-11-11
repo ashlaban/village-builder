@@ -8476,11 +8476,21 @@ VB['sim/plans'] = (() => {
     const last = st.ECON.sowWindow[1];
     return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2) || (c.season === 3 && c.sday === 0);
   }
-  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, once ('window'); a store
-  // that crossed a target, at most one such review a day ('store').
+  // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
+  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields only.
+  function fieldsDue(st, plan, c) {
+    if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
+    const hh = st.households[plan.holder.id], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || f.household !== hh.id) return false;
+    const W = st.ECON.sowWindow, sow = c.season === 0 && c.sday >= W[0] && c.sday <= W[1];
+    for (const fd of f.fields) if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    return false;
+  }
+  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
+  // once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && closing(st, c)) return 'window';
+    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c))) return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).
@@ -15343,7 +15353,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '529663463a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '5e6e7daf12', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
