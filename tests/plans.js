@@ -186,7 +186,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert.deepStrictEqual(sp.steps, Plans.ROUTINES[sp.season], 'its steps from the template');
   assert.strictEqual(pa.targets.wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
   const cultures = new Set(st.liveHouseholds.map((id) => Plans.cultureOf(st, st.households[id])));
-  assert.strictEqual(reads, cultures.size * (4 + 4 + 4 * new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
+  assert.strictEqual(reads, cultures.size * (4 + 4 + new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants after the turn');
 }
 { // a household's seasonal plan is dropped with it; a save made before seasonal plans gets them at load

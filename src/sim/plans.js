@@ -56,8 +56,9 @@ VB['sim/plans'] = (() => {
   year('hayWinters', () => HAY_WINTERS);
   year('seed', (st) => st.ECON.seedPerField);
   year('perHand', () => FIELDS.perHand);
-  // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], woodSecond, hayWinters, seed, perHand,
-  // steps: [by season, the routines in order]}, made at its first need in a season, so a seasonal plan copies arrays and reads no rule. A
+  // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], and of this season woodSecond,
+  // hayWinters, seed, perHand, steps: the routines in order}, made at its first need in a season, so a seasonal plan copies arrays and
+  // reads no rule (the woodpile's goal is kept for every season, since the kinds read it by the season of the hour). A
   // cache of the rules, not state: never saved; a loaded run compiles it again from the same rules (one ctx, reused: value() allocates
   // nothing, and neither does its caller per rule read).
   const compiled = new WeakMap(), CTX = { culture: -1, season: 0, routine: '' };
@@ -69,14 +70,13 @@ VB['sim/plans'] = (() => {
     let T = cache.by.get(culture);
     if (T) return T;
     CTX.culture = culture; CTX.season = 0; CTX.routine = '';
-    T = { wood: [0, 0, 0, 0], woodSecond: rule(st, 'woodSecond'), hayWinters: rule(st, 'hayWinters'), seed: rule(st, 'seed'),
-      perHand: rule(st, 'perHand'), steps: [] };
-    for (let s = 0; s < 4; s++) {
-      CTX.season = s; T.wood[s] = rule(st, 'wood');
-      const ranked = [];
-      for (const k of ROUTINE_KINDS) { CTX.routine = k; const n = rule(st, 'order'); if (n >= 0) ranked.push([n, k]); }
-      T.steps.push(ranked.sort((a, b) => a[0] - b[0]).map((e) => e[1]));
-    }
+    T = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, seed: 0, perHand: 0, steps: null };
+    for (let s = 0; s < 4; s++) { CTX.season = s; T.wood[s] = rule(st, 'wood'); }
+    CTX.season = c.season;
+    T.woodSecond = rule(st, 'woodSecond'); T.hayWinters = rule(st, 'hayWinters'); T.seed = rule(st, 'seed'); T.perHand = rule(st, 'perHand');
+    const ranked = [];
+    for (const k of ROUTINE_KINDS) { CTX.routine = k; const n = rule(st, 'order'); if (n >= 0) ranked.push([n, k]); }
+    T.steps = ranked.sort((a, b) => a[0] - b[0]).map((e) => e[1]);
     cache.by.set(culture, T);
     return T;
   }
@@ -91,7 +91,7 @@ VB['sim/plans'] = (() => {
     const id = plan.holder.id, T = templateOf(st, cultureOf(st, st.households[id]), c), P = plan.targets;
     for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s];
     P.woodSecond = T.woodSecond; P.hayWinters = T.hayWinters; P.seed = T.seed; P.perHand = T.perHand;
-    const sp = { holder: { type: 'household', id }, kind: 'season', year: c.year, season: c.season, made: c.day, steps: [...T.steps[c.season]] };
+    const sp = { holder: { type: 'household', id }, kind: 'season', year: c.year, season: c.season, made: c.day, steps: [...T.steps] };
     st.plans.seasons.set(id, sp);
     return sp;
   }
