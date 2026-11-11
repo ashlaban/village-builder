@@ -22,6 +22,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-284](backlog/VB-284.md) | Food balance, first pass: families short before harvest, measured | animals | 2 | M | VB-048's measuring step, runnable now: tools/balance.js at populous small, four seeds, 15 years, per household size and farm, against the 166 short rows of VB-270's replay; tuning proposals for Kim, no values committed. |
 | [VB-299](backlog/VB-299.md) | Goods for the fair: quanta, three classes and keeping goods | fair | 2 | M | - | The goods registry for what the fair trades: each good's quantum, class (food; animals, cloth and labour; land) and whether it is a keeping good. |
 | [VB-307](backlog/VB-307.md) | The village's wood is an area: each firewood trip fells a tree on a random tile of it | - | 2 | M | The commons wood becomes an allotment of wooded tiles sized to the village's hearths, so cutting spreads and regrowth can meet it; a trip's tile is drawn at random. |
+| [VB-314](backlog/VB-314.md) | The harvest is the year's peak: reaping 15 hours a field and threshing 20 | - | 2 | S | Reaping rises from 5 to 15 hours a field and threshing from 6 to 20, so grain takes a larger share of the year and the harvest, not the spring, is its crowded time. |
+| [VB-316](backlog/VB-316.md) | Sheaves come home by the load: 30 rations on the back, 90 on a cart | - | 2 | S | A field's harvest is carried in loads of the one size the fair and journeys use, three or four trips a field on the back or one with a cart and oxen, in place of one armful for the whole field. |
 | [VB-055](backlog/VB-055.md) | TypeScript: real modules, typed state, a formatter and measures of width: survey and tasks | yardstick | 3 | S | The checker sees little through VB[...]; plan the move to modules and TypeScript in three steps, with a formatter, and caps on exports and function length in place of the 400-line cap. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. |
@@ -51,6 +53,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-306](backlog/VB-306.md) | A well-kept house gives prestige, up to a cap; tar helps | fair | 3 | S | - | A house has a condition that upkeep raises and time wears; its holder's prestige follows it up to a cap; a tarred house has a slightly higher cap and decays more slowly. |
 | [VB-310](backlog/VB-310.md) | No pawn walks where there is no route: a job with no way by land is refused | - | 3 | S | A pawn bids for no job it has no route to; the straight walk over water stays only as a counted error that an invariant holds at 0. |
 | [VB-311](backlog/VB-311.md) | A home that took in a spouse at the round gives no settlers' provisions in it | - | 3 | S | The grain a marriage was allowed on is not given away the same afternoon: provisions skip households that gained a spouse in this round. |
+| [VB-315](backlog/VB-315.md) | Weeding in two rounds a crop, of 5 hours each | - | 3 | S | A growing field is weeded twice, 5 hours a round, in place of a round of 2 hours every 6 days: the same care for half the walking. |
 
 ## Waiting for Kim
 
@@ -59,6 +62,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
+| [VB-317](backlog/VB-317.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 so that keeping two oxen through the winter pays; the number waits for Kim. |
 
 ## Blocked
 
