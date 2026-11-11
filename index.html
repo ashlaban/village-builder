@@ -2533,7 +2533,9 @@ VB['sim/rules'] = (() => {
     // forgotten; counterparts a pawn
     share: 0.5, // the share of a holder's balances that passes to the new holder at a retirement or a holder's death
     limitDays: 30, // allowance: what the receiver owes beyond this many days of its household's need counts against it
-    acts: false, // slice 1 books and shows goodwill only; slice 4 switches on its terms (VB-220)
+    acts: true, // slice 1 booked and showed goodwill only; slice 4 switched on its terms (VB-220): gratitude, and allowance's two
+    gratitude: 0.15, scale: 20, // a debtor's opinion of its creditor gains gratitude x s / (s + scale) for a balance of s rations
+    opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
   };
 
   const SPEED = 3; // tiles per game hour on foot, on meadow
@@ -4115,7 +4117,7 @@ VB['sim/relations'] = (() => {
   //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
   //   own reserve (sim/help); goodwill's term comes with VB-217.
   const Rules = VB['sim/registry'];
-  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'reserve'] });
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'opinion', 'reserve'] });
 
   // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
@@ -4227,12 +4229,19 @@ VB['sim/relations'] = (() => {
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
   const A = SOCIAL.affinity, affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
   // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity (compatibility, shown as the two grow familiar),
-  // plus the memories, as they are now. Goodwill's gratitude (VB-220) is to add to the same sum.
+  // plus the memories, as they are now, plus gratitude for what b is owed (one Map lookup; VB-220).
   function opinionAt(st, a, b, tie) {
-    const k = standing(st, a, b), r = st.pawns[a].rel.get(b);
+    const pa = st.pawns[a], k = standing(st, a, b), r = pa.rel.get(b);
     let o = (k ? SOCIAL.situational[k] : 0) + affinity(st, a, b, tie);
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
+    if (GOODWILL.acts) o += gratitude(st, pa, b);
     return Math.max(-1, Math.min(1, o));
+  }
+  // a owes b s rations (a balance read as in `balance`): +gratitude x s / (s + scale), fading as the balance decays; else 0
+  function gratitude(st, pa, b) {
+    const g = pa.goodwill, e = g && g.get(b); if (!e || e.v >= 0) return 0;
+    const s = -goodwillNow(st, e); if (s < GOODWILL.forget) return 0;
+    return GOODWILL.gratitude * s / (s + GOODWILL.scale);
   }
   const opinionOf = (st, a, b) => opinionAt(st, a, b, tieOf(st, a, b));
   // close friend (1), enemy (-1) or neither (0): entered at SOCIAL.closeFriend and SOCIAL.enemy, left only SOCIAL.back past them
@@ -4492,6 +4501,7 @@ VB['sim/relations'] = (() => {
     const out = [], k = standing(st, a, b), r = st.pawns[a].rel.get(b);
     if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
     const f = affinity(st, a, b, tieOf(st, a, b)); if (Math.abs(f) >= 0.005) out.push({ label: f > 0 ? 'Get on well' : 'Do not get on', value: f });
+    if (GOODWILL.acts) { const gr = gratitude(st, st.pawns[a], b); if (gr > 0) out.push({ label: 'Owes us for help', value: gr }); }
     out.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
@@ -5698,21 +5708,25 @@ VB['sim/hunger'] = (() => {
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance } = VB['sim/relations'];
+  const { addTie, book, balance, opinionOf } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
   const Culture = VB['culture'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
-  // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
-  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+  // need. Switched on by GOODWILL.acts (VB-220).
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: 'Goodwill',
     tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
       return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
     } });
+  // allowance's opinion term (design.md, The gift: Allowance; Kim, 10 Nov): the giver's opinion of the receiver, -1 to 1, times
+  // GOODWILL.opinionRations. Coupled with goodwill, which colours opinion (gratitude): a high opinion lets a deal through.
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'opinion', label: 'Opinion of them', tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
+    value: (st, c) => (!GOODWILL.acts || c.giver === null || c.receiver === null ? 0 : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver)) });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
@@ -15386,7 +15400,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e7d6b5c04a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'b7a49563e3', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

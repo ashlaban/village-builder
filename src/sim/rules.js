@@ -216,7 +216,9 @@ VB['sim/rules'] = (() => {
     // forgotten; counterparts a pawn
     share: 0.5, // the share of a holder's balances that passes to the new holder at a retirement or a holder's death
     limitDays: 30, // allowance: what the receiver owes beyond this many days of its household's need counts against it
-    acts: false, // slice 1 books and shows goodwill only; slice 4 switches on its terms (VB-220)
+    acts: true, // slice 1 booked and showed goodwill only; slice 4 switched on its terms (VB-220): gratitude, and allowance's two
+    gratitude: 0.15, scale: 20, // a debtor's opinion of its creditor gains gratitude x s / (s + scale) for a balance of s rations
+    opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
   };
 
   const SPEED = 3; // tiles per game hour on foot, on meadow

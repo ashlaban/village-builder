@@ -11,7 +11,7 @@ VB['sim/relations'] = (() => {
   //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
   //   own reserve (sim/help); goodwill's term comes with VB-217.
   const Rules = VB['sim/registry'];
-  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'reserve'] });
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'opinion', 'reserve'] });
 
   // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
@@ -123,12 +123,19 @@ VB['sim/relations'] = (() => {
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
   const A = SOCIAL.affinity, affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
   // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity (compatibility, shown as the two grow familiar),
-  // plus the memories, as they are now. Goodwill's gratitude (VB-220) is to add to the same sum.
+  // plus the memories, as they are now, plus gratitude for what b is owed (one Map lookup; VB-220).
   function opinionAt(st, a, b, tie) {
-    const k = standing(st, a, b), r = st.pawns[a].rel.get(b);
+    const pa = st.pawns[a], k = standing(st, a, b), r = pa.rel.get(b);
     let o = (k ? SOCIAL.situational[k] : 0) + affinity(st, a, b, tie);
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
+    if (GOODWILL.acts) o += gratitude(st, pa, b);
     return Math.max(-1, Math.min(1, o));
+  }
+  // a owes b s rations (a balance read as in `balance`): +gratitude x s / (s + scale), fading as the balance decays; else 0
+  function gratitude(st, pa, b) {
+    const g = pa.goodwill, e = g && g.get(b); if (!e || e.v >= 0) return 0;
+    const s = -goodwillNow(st, e); if (s < GOODWILL.forget) return 0;
+    return GOODWILL.gratitude * s / (s + GOODWILL.scale);
   }
   const opinionOf = (st, a, b) => opinionAt(st, a, b, tieOf(st, a, b));
   // close friend (1), enemy (-1) or neither (0): entered at SOCIAL.closeFriend and SOCIAL.enemy, left only SOCIAL.back past them
@@ -388,6 +395,7 @@ VB['sim/relations'] = (() => {
     const out = [], k = standing(st, a, b), r = st.pawns[a].rel.get(b);
     if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
     const f = affinity(st, a, b, tieOf(st, a, b)); if (Math.abs(f) >= 0.005) out.push({ label: f > 0 ? 'Get on well' : 'Do not get on', value: f });
+    if (GOODWILL.acts) { const gr = gratitude(st, st.pawns[a], b); if (gr > 0) out.push({ label: 'Owes us for help', value: gr }); }
     out.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
