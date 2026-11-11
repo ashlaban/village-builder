@@ -20,8 +20,9 @@
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
-  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): heirs finds no room at 43 and 54
-  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], start: [7, 12, 15, 26, 28, 29, 75, 98], cols: 56, rows: 40, speed: 3 };
+  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
+  // began to place the biomes and the list was chosen again by that fit (VB-342)
+  const DEMO = { seeds: [9, 15, 18, 25, 29, 32, 33, 43, 44, 98], start: [9, 15, 18, 25, 29, 32, 33, 43, 44, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too

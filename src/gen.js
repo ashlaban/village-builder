@@ -166,6 +166,7 @@ const ArchGen = (() => {
       const v = hf[k];
       elev[k] = v >= sea ? Math.pow((v - sea) / (mx - sea), 0.9) : -Math.pow((sea - v) / (sea - mn), 0.7);
     }
+    VB['gen/climate'].erode(elev, CW, CH); // running water cuts its valleys before the light and the tiles read the relief
     const ZS = 75 * KS;
     const L = [-0.55, -0.6, 0.58];
     const shade = new Float32Array(CN), moist = new Float32Array(CN), macro = new Float32Array(CN);
@@ -200,8 +201,7 @@ const ArchGen = (() => {
         const i = row * COLS + col;
         hx[i] = HW * (col + 0.5 * (row & 1)) + AP; hy[i] = 1.5 * R * row + R;
         let s = 2 * csample(elev, hx[i], hy[i]);
-        for (let d = 0; d < 6;
-          d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
+        for (let d = 0, a = Math.PI / 6; d < 6; d++, a += Math.PI / 3) s += csample(elev, hx[i] + Math.cos(a) * R * 0.6, hy[i] + Math.sin(a) * R * 0.6);
         he[i] = s / 8;
         const u = hx[i] / S, v = hy[i] / S;
         hm[i] = csample(moist, hx[i], hy[i]) + 0.14 * fbm(n4, u * 30 + 5, v * 30 - 9, 2);
@@ -237,9 +237,10 @@ const ArchGen = (() => {
     }
     const landIdx = [];
     for (let i = 0; i < N; i++) if (!water[i]) landIdx.push(i);
+    // moisture, noise so far, is dealt out again by the rain of the seed's wind (gen/climate)
+    const { wind, rain } = VB['gen/climate'].tiles({ elev, CW, CH, csample, hx, hy, hm, N, land: landIdx }, mulberry32(seed ^ 0xc11a7e));
     landIdx.sort((a, b) => he[a] - he[b]);
-    const hp = new Float32Array(N);
-    landIdx.forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
+    const hp = new Float32Array(N); landIdx.forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
     for (let i = 0; i < N; i++) {
       if (water[i]) {
         biome[i] = !ocean[i] ? B.LAKE : landDist[i] <= 2 ? B.SHALLOW : landDist[i] <= 12 ? B.SEA : B.DEEP;
@@ -328,15 +329,13 @@ const ArchGen = (() => {
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2);
-        if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
+      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1, cx > 0 ? cdist[k - CW - 1] + D2 : v, cx < CW - 1 ? cdist[k - CW + 1] + D2 : v); }
       cdist[k] = v;
     }
     for (let cy = CH - 1; cy >= 0; cy--) for (let cx = CW - 1; cx >= 0; cx--) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-      if (cy < CH - 1) {
-        v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
+      if (cy < CH - 1) v = Math.min(v, cdist[k + CW] + D1, cx < CW - 1 ? cdist[k + CW + 1] + D2 : v, cx > 0 ? cdist[k + CW - 1] + D2 : v);
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
@@ -349,6 +348,7 @@ const ArchGen = (() => {
     // @state w.csample: function(arr, x, y); bilinear sample of a coarse-cell array at a map position
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
+    // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)
     // @state w.biome: Uint8Array per tile; B.* code
     // @state w.water,ocean: Uint8Array per tile; 1 = water, 1 = open sea (0 for lakes)
     // @state w.hrnd: Float32Array per tile; fixed random number 0..1
@@ -362,7 +362,7 @@ const ArchGen = (() => {
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
-      elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
+      elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, wind, rain, biome, water, ocean, hrnd, nb, landDist,
       region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };

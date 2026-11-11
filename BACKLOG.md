@@ -54,6 +54,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 |----|------|------|-----|------|---------|
 | [VB-023](backlog/VB-023.md) | Sowing first: the seasonal plan's order for field work | year | 2 | S | A hoed field is sown before the next is hoed, so small households bring in some crop. |
 | [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
+| [VB-342](backlog/VB-342.md) | Rain from a per-seed wind, a light erosion pass, and biomes placed by the rain | - | 2 | M | At generation: a wind direction per seed, light stream-power erosion of the relief, rain carried by the wind (wet windward, dry lee), and moisture, so biomes, from that rain; no effect in play yet. |
 
 ## Blocked
 

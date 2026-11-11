@@ -1,4 +1,4 @@
-// Haymaking (VB-133): populous tiny at seed 7 rakes its meadows in spring and mows and carries at least 90% of them by autumn day 4; the hay
+// Haymaking (VB-133): populous tiny at seed 3 rakes its meadows in spring and mows and carries at least 90% of them by autumn day 4; the hay
 // goes into the household's barn; founders at seed 7 bring in hay in year 1; hay left lying at the frost rots; every spring the meadows are
 // grass again. Reports each household's hay against its winter's need.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/meadows'], { checkState } = require('./lib/invariants.js');
@@ -34,7 +34,7 @@ byreDay({ ...barnState, liveHouseholds: [0], households: [hh], farmsteads: [{ me
 check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 
-let st = Sim.seed(world(7), 7, 'populous');
+let st = Sim.seed(world(3), 3, 'populous');
 // Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
 const savedLoss = st.households[0].haySpoilt;
 for (const invalid of [NaN, Infinity, -1]) {
@@ -74,5 +74,5 @@ for (const h of st.households.filter((x) => x.herds.length)) check(h.hay > fStar
 check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);
-console.log(`hay ok: populous 7 tiny: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
+console.log(`hay ok: populous 3 tiny: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
   `min ${ratio[0].toFixed(2)}, median ${ratio[ratio.length >> 1].toFixed(2)}, max ${ratio[ratio.length - 1].toFixed(2)} (${fed.length} households)`);

@@ -370,5 +370,5 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, FORDS, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, minHeap, trace, width, kind, lines, drawChunk, thin };
 })();
