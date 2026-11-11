@@ -41,9 +41,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-311](backlog/VB-311.md) | Land rights: own and use held apart, st.owner the user's cache | debt | 3 | M | A holding's owner and its user may differ; only holdings held apart are recorded; golden unchanged until a tenancy exists. |
 | [VB-313](backlog/VB-313.md) | Refactor: Decisions as a module, the meeting's votes asked through it | debt | 3 | M | Questions, procedures and ballots in one module; the custom votes go through it unchanged; ballots and margins kept. |
 | [VB-324](backlog/VB-324.md) | Measure VB-245 on the late saves: the bench and the bands | yardstick | 3 | S | VB-245's late-save numbers, never run: tools/bench.js at medium-y5 and medium-ref, tools/bands.js, populous seeds 11 and 42 at 15 years. |
-| [VB-328](backlog/VB-328.md) | Timber: a felled plot yields its wood, building fells trees, and a new household's first wood comes from somewhere | - | 3 | S | Wood stops appearing and vanishing: a plot's felled trees build its cottage and fill woodpiles, a cottage on open ground is built of felled timber, and a new household's first wood is taken from the homes its members leave. |
 | [VB-329](backlog/VB-329.md) | No pawn walks where there is no route: a job with no way by land is refused | - | 3 | S | A pawn bids for no job it has no route to; the straight walk over water stays only as a counted error that an invariant holds at 0. |
 | [VB-330](backlog/VB-330.md) | A home that took in a spouse at the round gives no settlers' provisions in it | - | 3 | S | The grain a marriage was allowed on is not given away the same afternoon: provisions skip households that gained a spouse in this round. |
+| [VB-332](backlog/VB-332.md) | Stone is used: a house on a stone foundation, and stone picked from stony meadows or quarried in the hills | - | 3 | M | A cheap timber cottage can be raised onto a stone foundation as long work, which lifts the well-kept house's prestige; stone comes from clearing, from stony meadows and from quarrying hills and mountains. |
 | [VB-334](backlog/VB-334.md) | Weeding in two rounds a crop, of 5 hours each | - | 3 | S | A growing field is weeded twice, 5 hours a round, in place of a round of 2 hours every 6 days: the same care for half the walking. |
 | [VB-336](backlog/VB-336.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 to 5, so that keeping two oxen through the winter pays. |
 
@@ -130,7 +130,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | VB-136 | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | VB-136 | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | VB-327 | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
-| [VB-332](backlog/VB-332.md) | Stone is used: a house on a stone foundation, and stone picked from stony meadows or quarried in the hills | - | 3 | M | VB-328 | A cheap timber cottage can be raised onto a stone foundation as long work, which lifts the well-kept house's prestige; stone comes from clearing, from stony meadows and from quarrying hills and mountains. |
 
 ## Archs
 
