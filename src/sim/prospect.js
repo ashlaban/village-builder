@@ -1,4 +1,4 @@
-// @sys sim/prospect: what each village knows of the ores in its uplands (VB-343): a hidden vein is found by work done near it
+// @sys sim/prospect: what each village knows of the ores in its uplands (VB-358): a hidden vein is found by work done near it
 // Bedrock, clay, peat, bog iron, flint, amber and salt springs show at the surface and are known to all. The upland ores (the deposits
 // marked `hidden` in gen/geology) are not: a village knows a vein once one of its pawns has come on it while working within reach.
 VB['sim/prospect'] = (() => {

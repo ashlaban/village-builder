@@ -5,7 +5,7 @@ VB['sim/stores'] = (() => {
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
-  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-344, sim/dig)
+  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
@@ -102,7 +102,7 @@ VB['sim/stores'] = (() => {
     type(hh); const n = hh.unthreshed.shift() || 0;
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
-  // ---- dug goods (VB-344; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
+  // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
   // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
   const DUG = ['clay', 'bogOre'];
   function setDug(hh, good, n) { if (good === 'clay') hh.clay = n; else hh.bogOre = n; }

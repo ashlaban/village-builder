@@ -1,4 +1,4 @@
-// Finding ores (VB-343, sim/prospect): every deposit tile is of a vein; the land within reach of a hidden vein names it; what shows at
+// Finding ores (VB-358, sim/prospect): every deposit tile is of a vein; the land within reach of a hidden vein names it; what shows at
 // the surface is known to all and an upland ore to none at the start; work near a vein finds it for the pawn's village only, once, with
 // an event on the record; work elsewhere finds nothing; the finds survive a save.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Geo = VB['gen/geology'], P = VB['sim/prospect'], { bfs } = VB['sim/hex'];

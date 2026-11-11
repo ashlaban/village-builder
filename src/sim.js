@@ -35,7 +35,7 @@ const Sim = (() => {
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
-  const { left: depositLeftNow } = VB['sim/dig']; // VB-344: loads left now, bog iron grown back
+  const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
   const { woodOf } = VB['sim/territory'];
 
   return {

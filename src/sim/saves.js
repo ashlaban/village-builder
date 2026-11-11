@@ -174,7 +174,7 @@ VB['sim/saves'] = (() => {
   // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
   // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay', 'forage', 'forageYear'];
-  WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-344: what has been dug (sim/dig); a save without them was never dug
+  WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -248,7 +248,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
-    for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-344: nor dug loads
+    for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
@@ -259,7 +259,7 @@ VB['sim/saves'] = (() => {
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
-    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-343: nor what the villages have found
+    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-358: nor what the villages have found
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');

@@ -51,7 +51,7 @@ VB['sim/building'] = (() => {
   // from clearing). One search, when the step opens or its tile is picked down.
   function stoneSource(st, f) {
     const w = st.w, own = (t) => st.owner[t] === f.household + 1 || (st.owner[t] === -f.village - 1 && !st.used.has(t));
-    // Proposed (merge of VB-332 with VB-344, 11 Nov): the tile is also within BUILD.stoneWalk hours' walk of the house, so that a trip up a
+    // Proposed (merge of VB-332 with VB-359, 11 Nov): the tile is also within BUILD.stoneWalk hours' walk of the house, so that a trip up a
     // steep slope does not end in the dark (tests/daylight.js); the nearest few of each kind are tried, nearest first.
     const near = (t) => findRoute(w, f.house, t, BUILD.stoneWalk * SPEED) !== null, picks = [], rocks = [];
     for (const [t, d] of bfs(w, f.house, BUILD.stoneReach, walkable(w)).dist) {

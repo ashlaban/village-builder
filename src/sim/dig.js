@@ -1,4 +1,4 @@
-// @sys sim/dig: digging clay and bog iron (VB-344): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
+// @sys sim/dig: digging clay and bog iron (VB-359): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
 // What shows at the surface and needs no facility is dug: clay and bog iron. The hidden ores, peat, flint, amber and salt wait for their goods
 // (design.md, Goods of place and side crafts, In the ground). The loads go into the household's store (sim/stores dig) and nothing uses them
 // until slice 6 (VB-185), so a household digs in its slack, and only up to DIG.stock loads of each.
@@ -7,7 +7,7 @@ VB['sim/dig'] = (() => {
   const Geo = VB['gen/geology'], { DEPOSIT, ENDLESS } = Geo;
   const { bfs } = VB['sim/hex'], { passable } = VB['sim/routes'];
   const { isOutland } = VB['sim/territory'], Stores = VB['sim/stores'];
-  // Proposed (VB-344, 11 Nov), until slice 6's plan gives the goods a use: hours a load; reach, walking steps from the house; stock,
+  // Proposed (VB-359, 11 Nov), until slice 6's plan gives the goods a use: hours a load; reach, walking steps from the house; stock,
   // the loads of each good a household keeps and no more; regrow, the loads a worked bog iron tile regains a year, up to its first amount;
   // urgency, the job's weight in a bid (MATCH.urgency's scale): the house's upkeep's, so that it is done in the household's slack.
   const DIG = { hours: 3, reach: 12, stock: 4, regrow: 1, urgency: 0.5 };

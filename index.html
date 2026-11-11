@@ -1016,7 +1016,7 @@ VB.COUNTERS = {
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
-  digGround: 'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-344)',
+  digGround: 'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -4413,7 +4413,7 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, // clay, bogOre: loads dug (VB-344; sim/stores dug)
+        haySpoilt: 0, clay: 0, bogOre: 0, // clay, bogOre: loads dug (VB-359; sim/stores dug)
       larder: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -4644,7 +4644,7 @@ VB['sim/records'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/prospect: what each village knows of the ores in its uplands (VB-343): a hidden vein is found by work done near it
+// @sys sim/prospect: what each village knows of the ores in its uplands (VB-358): a hidden vein is found by work done near it
 // Bedrock, clay, peat, bog iron, flint, amber and salt springs show at the surface and are known to all. The upland ores (the deposits
 // marked `hidden` in gen/geology) are not: a village knows a vein once one of its pawns has come on it while working within reach.
 VB['sim/prospect'] = (() => {
@@ -5934,7 +5934,7 @@ VB['sim/stores'] = (() => {
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
-  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-344, sim/dig)
+  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
@@ -6031,7 +6031,7 @@ VB['sim/stores'] = (() => {
     type(hh); const n = hh.unthreshed.shift() || 0;
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
-  // ---- dug goods (VB-344; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
+  // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
   // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
   const DUG = ['clay', 'bogOre'];
   function setDug(hh, good, n) { if (good === 'clay') hh.clay = n; else hh.bogOre = n; }
@@ -6192,7 +6192,7 @@ VB['sim/stores'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/dig: digging clay and bog iron (VB-344): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
+// @sys sim/dig: digging clay and bog iron (VB-359): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
 // What shows at the surface and needs no facility is dug: clay and bog iron. The hidden ores, peat, flint, amber and salt wait for their goods
 // (design.md, Goods of place and side crafts, In the ground). The loads go into the household's store (sim/stores dig) and nothing uses them
 // until slice 6 (VB-185), so a household digs in its slack, and only up to DIG.stock loads of each.
@@ -6201,7 +6201,7 @@ VB['sim/dig'] = (() => {
   const Geo = VB['gen/geology'], { DEPOSIT, ENDLESS } = Geo;
   const { bfs } = VB['sim/hex'], { passable } = VB['sim/routes'];
   const { isOutland } = VB['sim/territory'], Stores = VB['sim/stores'];
-  // Proposed (VB-344, 11 Nov), until slice 6's plan gives the goods a use: hours a load; reach, walking steps from the house; stock,
+  // Proposed (VB-359, 11 Nov), until slice 6's plan gives the goods a use: hours a load; reach, walking steps from the house; stock,
   // the loads of each good a household keeps and no more; regrow, the loads a worked bog iron tile regains a year, up to its first amount;
   // urgency, the job's weight in a bid (MATCH.urgency's scale): the house's upkeep's, so that it is done in the household's slack.
   const DIG = { hours: 3, reach: 12, stock: 4, regrow: 1, urgency: 0.5 };
@@ -7958,7 +7958,7 @@ VB['sim/building'] = (() => {
   // from clearing). One search, when the step opens or its tile is picked down.
   function stoneSource(st, f) {
     const w = st.w, own = (t) => st.owner[t] === f.household + 1 || (st.owner[t] === -f.village - 1 && !st.used.has(t));
-    // Proposed (merge of VB-332 with VB-344, 11 Nov): the tile is also within BUILD.stoneWalk hours' walk of the house, so that a trip up a
+    // Proposed (merge of VB-332 with VB-359, 11 Nov): the tile is also within BUILD.stoneWalk hours' walk of the house, so that a trip up a
     // steep slope does not end in the dark (tests/daylight.js); the nearest few of each kind are tried, nearest first.
     const near = (t) => findRoute(w, f.house, t, BUILD.stoneWalk * SPEED) !== null, picks = [], rocks = [];
     for (const [t, d] of bfs(w, f.house, BUILD.stoneReach, walkable(w)).dist) {
@@ -8428,7 +8428,7 @@ VB['sim/kinds'] = (() => {
       },
     },
   };
-  KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-344): its record is sim/dig's
+  KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -8448,7 +8448,7 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig')); // VB-344
+  ASK.farmAfterPlans.push(rule('dig')); // VB-359
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();
@@ -12522,7 +12522,7 @@ VB['sim/saves'] = (() => {
   // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
   // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay', 'forage', 'forageYear'];
-  WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-344: what has been dug (sim/dig); a save without them was never dug
+  WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -12596,7 +12596,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
-    for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-344: nor dug loads
+    for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
@@ -12607,7 +12607,7 @@ VB['sim/saves'] = (() => {
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
-    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-343: nor what the villages have found
+    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-358: nor what the villages have found
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
@@ -12658,7 +12658,7 @@ const Sim = (() => {
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
-  const { left: depositLeftNow } = VB['sim/dig']; // VB-344: loads left now, bog iron grown back
+  const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
   const { woodOf } = VB['sim/territory'];
 
   return {
@@ -17456,7 +17456,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '563840f0f2', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '2efd3ea77e', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

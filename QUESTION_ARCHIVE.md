@@ -5,7 +5,7 @@ Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind t
 # Archived 11 November 2026 (VB-185)
 
 ## VB-185: slice 6, the mill and the loom, the kiln and the quarry (raised 11 November 2026)
-Slice 6's plan (`backlog/VB-185.md`), asked and answered in the session of 11 November; the design is in `design.md`, The mill and the loom, the kiln and the quarry. The numbers of its tasks (VB-345 to VB-356, VB-009, VB-093, VB-121) are Proposed and wait for each task's report.
+Slice 6's plan (`backlog/VB-185.md`), asked and answered in the session of 11 November; the design is in `design.md`, The mill and the loom, the kiln and the quarry. The numbers of its tasks (VB-360 to VB-371, VB-009, VB-093, VB-121) are Proposed and wait for each task's report.
 1. Where do the ground's goods go? **P:** two halves: the mill and the loom as the roadmap has it, with iron for tools and stone for querns; then the kiln and the quarry (pots, brick, lime, the better houses).
    **A (Kim, 11 Nov):** P: two halves.
 2. The iron chain. **P:** two steps: smelting at a bloomery a household builds, then mending and making tools as winter craft at home; a smithy when someone specialises.
@@ -31,10 +31,10 @@ Slice 6's plan (`backlog/VB-185.md`), asked and answered in the session of 11 No
 12. Which of peat, salt springs, flint and amber does the slice build? **P:** peat and salt.
    **A (Kim, 11 Nov):** Peat as fuel only; salt, flint and amber wait.
 
-# Archived 11 November 2026 (VB-342)
+# Archived 11 November 2026 (VB-357)
 
-## VB-342: the ground, what is still open (raised 11 November 2026)
-The generator lays bedrock and deposits and the page shows them (`backlog/VB-342.md`; `design.md`, World and scale, Ground); nothing digs. These wait for the slices that give the kinds a use, and need no answer before then.
+## VB-357: the ground, what is still open (raised 11 November 2026)
+The generator lays bedrock and deposits and the page shows them (`backlog/VB-357.md`; `design.md`, World and scale, Ground); nothing digs. These wait for the slices that give the kinds a use, and need no answer before then.
 1. Known or found? **P:** bedrock, clay and bog iron are known to all, as today (they show at the surface); the upland ores are found: a vein is unknown until a pawn has worked or herded within 2 tiles of it for a season, or prospects it as long work, and the overlay shows only what the played pawn's village knows. Until that is built, all is shown.
    **A (Kim, 11 Nov):** P: the upland ores are found, the rest known; all is shown until that is built.
 2. What each kind is for, and when. **P:** clay with slice 6 (pots that keep food, daub and a brick hearth or oven for the better house); limestone with slice 6 (burnt to lime for mortar: a stone house needs it, so a granite village must trade for it); sandstone for querns, whetstones and grindstones (slice 6, in place of "stone ground"); bog and rock iron with VB-121 (tools that wear), rock iron needing a mine as a facility; slate, marble and soapstone for standing (roof, church and carving; slice 6 or 8); copper, tin, lead, silver and gold with slice 8 (coin and the Church's bells and vessels), through ships until then.
@@ -46,7 +46,7 @@ The generator lays bedrock and deposits and the page shows them (`backlog/VB-342
 5. Amounts and endless sources. **P:** leave the placeholders (clay 300 to 1,500 loads a tile, iron 200 to 1,200, gold 10 to 80; one tile endless in 5 to 15% of veins) until the first good that digs names a year's use; then set them so a village's vein lasts about three generations and an endless source is worth a town.
    **A (Kim, 11 Nov):** P: tune when a good uses them.
 6. Further resources to lay in the same way. **P:** salt springs (rare, inland; salt otherwise by ship, as designed), peat (in marsh: fuel where wood is short, a second good of the marsh beside bog iron), flint (in limestone by the coast: strike-a-lights) and amber (rare, on sandy shores: standing, and a good for the ships). Not now: alum, sulphur, saltpetre, calamine and coal, which wait for dyeing, gunpowder, brass and towns.
-   **A (Kim, 11 Nov):** All four: salt springs, peat, flint and amber (built in VB-342's second batch). The rest wait as proposed.
+   **A (Kim, 11 Nov):** All four: salt springs, peat, flint and amber (built in VB-357's second batch). The rest wait as proposed.
 
 # Archived 11 November 2026 (VB-341)
 

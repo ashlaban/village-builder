@@ -1,4 +1,4 @@
-// Digging (VB-344, sim/dig): clay and bog iron, a load a trip of 3 hours, carried home into the household's store through the ledger
+// Digging (VB-359, sim/dig): clay and bog iron, a load a trip of 3 hours, carried home into the household's store through the ledger
 // (sim/stores dug, reason 'dig'); only up to 4 loads of each; the nearest tile within 12 walking steps of the household's own land, its
 // village's outland or wilderness, searched when the want opens and kept; an endless tile stays endless; bog iron regains a load a year up
 // to its first amount, clay nothing; a save keeps the tiles and the stores, and one without them loads with none dug.
