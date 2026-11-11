@@ -12,7 +12,7 @@ const TEST = [
   ['node', '--expose-gc', 'tests/goods.js'],
   ['node', 'tests/bench.js'],
   ['node', 'tests/speed.js'],
-  ['node', '--expose-gc', 'tests/registry.js'],
+  ['node', '--expose-gc', 'tests/registry.js'], ['node', 'tests/causes.js'],
   ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
   ['node', 'tests/cacheowners.js'], ['node', 'tests/living.js'],
   ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/notable.js'], ['node', 'tests/counters.js'], ['node', 'tests/rng.js'], ['node', 'tests/plaindata.js'], ['node', 'tests/codec.js'], ['node', 'tests/record.js'], ['node', 'tests/commands.js'], ['node', 'tests/player.js'], ['node', 'tests/wishes.js'], ['node', 'tests/succession.js'], ['node', 'tests/skip.js'], ['node', 'tests/chronicle.js'], ['node', 'tests/opportunities.js'], ['node', 'tests/backlog.js'], ['node', 'tests/backlog-tool.js'], ['node', 'tests/targets-tool.js'], ['node', 'tests/doc-tool.js'], ['node', 'tests/questions-tool.js'], ['node', 'tests/agent-usage.js'], ['node', 'tests/regress.js'], ['node', 'tests/names.js'], ['node', 'tests/guardians.js'], ['node', 'tests/takenin.js'], ['node', 'tests/labour.js'], ['node', 'tests/marriage.js'], ['node', 'tests/spacing.js'],

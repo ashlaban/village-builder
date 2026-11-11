@@ -82,6 +82,14 @@ assert.deepStrictEqual(Array.from(R.list().find((r) => r.rule === 'early').contr
   Q.contribute({ ...factor, rule: 'r', key: 'k', range: undefined });
   assert.throws(() => Q.seal(), /order \[nope\]/);
 }
+{ // a rule that names causes refuses a factor that may fall below 1 (VB-207)
+  const box = { VB: { count: { ruleValue: 0 } } };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), box);
+  const Q = box.VB['sim/registry'];
+  Q.declare({ id: 'r', owner: 'test', combine: 'product', base: () => 0.5, baseCause: () => 'base' });
+  Q.contribute({ ...factor, rule: 'r', key: 'k', cause: 'c', range: [0.5, 2], value: () => 1 });
+  assert.throws(() => Q.seal(), /may fall below 1/);
+}
 assert.throws(() => R.declare({ ...product, id: 'late' }), /load time/);
 assert.throws(() => R.contribute(factor), /load time/);
 
