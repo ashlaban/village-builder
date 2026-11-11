@@ -160,10 +160,12 @@
     openPanel(null);
     $('tree').hidden = false;
     for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = true;
-    $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    // up to two villages are named; more are the island's records, by its name
+    $('treeTitle').textContent = `Family records of ${st.villages.length > 2 ? w.name : st.villages.map((v) => v.name).join(' and ')}`;
     const living = st.pawns.filter((p) => p.died === null).length;
     treeCounts = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages`;
-    if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
+    // it opens on a line, never on everyone: the selected person's, else the played pawn's (Everyone is a mode to choose)
+    if (treeSel < 0) treeSel = selPawn >= 0 ? selPawn : played();
     treePick = false; if (treeSel !== treeFocus && (treeMode !== 'path' || treeSel !== treeOther)) refocusTree(treeSel);
     renderTree(); renderTreeInfo(); centreTree(); $('treeClose').focus();
   }

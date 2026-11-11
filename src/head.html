@@ -145,6 +145,7 @@ body {
 .cust td.dev { background: rgba(201, 162, 74, 0.16); }
 .sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
 .sbar i { display: block; height: 100%; }
+.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -227,6 +228,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
 .save-files { gap: 10px; }
 .save-files button { flex: 1; min-height: 40px; padding: 7px 14px; font-size: 15px; }
+@media (pointer: coarse) { .screen-head button, .save-acts button, .save-arch h3 button, .save-files button { min-height: 44px; min-width: 44px; padding: 8px 16px; font-size: 15px; } }
 .save-msg { margin: 0; color: var(--muted); }
 .save-arch { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
 .save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
@@ -309,6 +311,7 @@ input, select { font: inherit; color: var(--ink); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
 .map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 #noticeBtn[aria-expanded="true"] { background: var(--edge); }
+@media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
@@ -479,7 +482,9 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .history p.more { color: var(--muted); }
 button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: var(--ink); text-align: left;
   text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
-@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; } }
+@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; }
+  .tabs button, .history .kinds button, button.chip, a.chip { min-height: 44px; padding: 5px 14px; }
+  .settlers p button.show-map { display: inline-block; padding: 12px 0; } }
 .tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
 .tile.peek .sheet-head { border-bottom: 0; }
 .settlers li { display: flex; align-items: flex-start; gap: 8px; }
@@ -626,6 +631,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .pyr .pb.l i { background: linear-gradient(to left, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .start-bar { position: sticky; bottom: 0; display: flex !important; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+.start-sheet .start-opts, .start-sheet .start-acts { display: contents; }
 .start-bar label { width: 200px; max-width: 100%; min-width: 0; } .start-bar select { width: 100%; min-width: 0; }
 .start-bar .grow { flex: 1 1 0; }
 .start-bar .err { flex: 1 1 220px; align-self: center; max-width: none; }
@@ -640,10 +646,16 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .scard .cpic { grid-row: 1 / span 3; height: 100%; min-height: 70px; padding: 0 4px 4px; }
   .scard .cpic img { width: 34px; height: 34px; margin: 0 -6px; }
   .scard > *:not(.cpic) { margin: 0 10px 0 0; } .scard > b { margin-top: 8px; } .scard > .stats { margin-bottom: 8px; }
-  .start-bar { gap: 8px; padding: 10px 12px; }
+  .start-bar { display: contents !important; }
+  .start-sheet .start-opts, .start-sheet .start-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 12px; }
+  .start-sheet .start-acts { position: sticky; bottom: 0; margin: 10px 0 max(14px, env(safe-area-inset-bottom, 0px)); padding: 8px 12px;
+    box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
+  /* room for the map size's words and the seed's six digits in one row, from 360px up */
+  .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
+  .start-bar select, .start-bar input { padding-left: 8px; padding-right: 6px; } .start-bar .seedrow button { padding: 6px 8px; }
   .start-bar .grow { display: none; }
-  .start-bar > button { flex: 1 1 120px; }
+  .start-acts > button { flex: 1 1 120px; }
   .scard .cpic { align-items: center; }
 }
 @media (max-width: 560px) {
@@ -666,7 +678,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
   .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
-  .calendar { flex: 1; min-width: 0; }
+  .calendar { flex: 1; min-width: 0; white-space: nowrap; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
@@ -710,4 +722,11 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .tree-info dd button { min-height: 44px; padding: 6px 0; }
   .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
     max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+}
+/* under 390px the date has no room beside the clock's five buttons: it takes a line of its own over them */
+@media (max-width: 389px) {
+  .clock { flex-wrap: wrap; padding: 6px 8px; gap: 2px 6px; justify-content: space-between; }
+  .calendar { flex: 1 1 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px; }
+  .clock strong, .clock span { display: inline; }
+  .tile .sheet-head strong { font-size: 16px; }
 }

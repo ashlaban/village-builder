@@ -66,7 +66,7 @@
     if (!choose) return;
     const f = choose.farm >= 0 ? st.farmsteads[choose.farm] : null, hh = f ? liveHousehold(f) : null, id = choose.pawn;
     let h = '';
-    if (!f) h = '<p class="hint">Drag the map and click a farm.</p>';
+    if (!f) h = '<p class="hint">Drag the map and pick a farm.</p>';
     else {
       const days = hh ? foodDays(hh) : null, v = st.villages[f.village];
       const food = !hh ? '' : days === null ? ' · no one to feed' : ` · food for ${days} ${days === 1 ? 'day' : 'days'}`;
@@ -114,6 +114,6 @@
     else if (b.id === 'choosePlay' && choose.pawn >= 0) {
       const id = choose.pawn, r = playAs(id);
       if (r !== true) { choose.msg = r; renderChoose(); return; }
-      closeChoose(); focusPawn(id); openPanel('actions');
+      closeChoose(); focusPawn(id); openBar(!mobileUI.matches); // on a narrow screen the bar alone: the sheet would cover the farm
     }
   });

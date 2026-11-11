@@ -72,7 +72,7 @@
       let body = '';
       if (expanded) {
         const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-        body += `<div class="farm"><p><button type="button" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
+        body += `<div class="farm"><p><button type="button" class="show-map" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
           <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
         if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
         if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
@@ -114,7 +114,7 @@
       const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
       let body = '';
       if (expanded) {
-        body = `<p><button type="button" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
+        body = `<p><button type="button" class="show-map" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
           + households.map(household).join('');
         const commonsKey = `commons-${v.id}`;
         let commons = '';
@@ -145,7 +145,8 @@
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
         <summary>${iconImg(villageIcon(v),
-          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} ${households.length === 1 ? 'household' :
+            'households'}</span></summary>${body}</details>`;
     }
     // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {
