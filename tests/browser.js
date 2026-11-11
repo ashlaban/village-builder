@@ -255,7 +255,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     if (!/would marry/.test(asked.text) || !(asked.before & 4) && !(asked.before & 2)) fail(`the question is not asked: ${JSON.stringify(asked)}`);
     await page.locator('#playBox .offer').scrollIntoViewIfNeeded();
       await page.evaluate(() => { document.querySelector('#playBox .offer').scrollIntoView({ block: 'start' }); });
-    await page.screenshot({ path: path.join(root, 'docs/img/vb273-offer.png') });
+    if (process.argv.includes('--shot')) await page.screenshot({ path: path.join(root, 'docs/img/vb273-offer.png') }); // re-take the committed picture
     await page.click('#playBox .offer [data-play="answer"][data-yes="false"]');
     await page.waitForSelector('#playBox .offer-end', { timeout: 5000 });
     const done = await page.evaluate((ids) => {
