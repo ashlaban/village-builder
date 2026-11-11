@@ -40,8 +40,8 @@ for (const [a, b, d] of [['food', 'food', 0], ['wares', 'food', 10], ['wares', '
 checks += 6;
 
 // ---- need, on a seeded founders run ----
-const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 3, 'founders');
+const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
+const st = Sim.seed(r.value, 7, 'founders');
 assert(!JSON.stringify(Sim.save(st)).includes('dried fish'), 'nothing of the goods in saved state');
 assert.throws(() => Stores.declareGood({ id: 'cloth' }), /load time/, 'goods close with the rules registry');
 checks += 2;

@@ -7,8 +7,8 @@ if (process.argv[2]) { // child: argv[2] is the order of registering, 'ab' or 'b
     value: (st, p) => 1 + 2 * (p.plague || 0) };
   const cold = { ...plague, key: 'cold', label: 'Cold', cause: 'exposure', value: (st, p) => 1 + (p.cold || 0) };
   for (const c of process.argv[2] === 'ab' ? [plague, cold] : [cold, plague]) Rules.contribute(c);
-  const it = VB.gen.generate(3, { cols: 60, rows: 40 }); let r; while (!(r = it.next()).done);
-  const st = VB.sim.seed(r.value, 3, 'populous'); // seals the registry
+  const it = VB.gen.generate(11, { cols: 60, rows: 40 }); let r; while (!(r = it.next()).done);
+  const st = VB.sim.seed(r.value, 11, 'populous'); // seals the registry
   const p = { born: st.t - 30 * YEAR, health: 100, hunger: 0.5, plague: 0.5, cold: 1 };
   const e = Rules.explain(st, 'death.hazard', p), N = 200000, tally = {};
   const hazard = Rules.value(st, 'death.hazard', p);

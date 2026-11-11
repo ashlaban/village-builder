@@ -1211,8 +1211,8 @@ VB['gen/paths'] = (() => {
 VB['gen/rivers'] = (() => {
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
-  // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
-  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3, longEnough: 15, noise: 10 };
+  // Which courses become rivers goes by drainage basin (VB-342): the main stems of the largest catchments first (trace).
+  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3 };
   // Fords: in stretches of `every` land tiles down each reach, the best site is a ford; a last stretch under `least` joins the one before.
   // A site's score (lower is better) is its drop to the next tile per `drop` of elevation, plus the root of its catchment per `narrow`,
   // plus up to `noise` at random: a ford is flat and narrow.
@@ -1286,9 +1286,6 @@ VB['gen/rivers'] = (() => {
     const acc = new Float64Array(N);
     for (const i of order) acc[i] = water[i] ? 1 : 0.5 + hm[i];
     for (let k = order.length - 1; k >= 0; k--) { const i = order[k], d = down[i]; if (!ocean[d]) acc[d] += acc[i]; }
-    // course length: land tiles from a tile to the sea
-    const len = new Int32Array(N);
-    for (const i of order) len[i] = (water[i] ? 0 : 1) + (ocean[down[i]] ? 0 : len[down[i]]);
     // steps to the nearest water, and islands (land joined through land neighbours) with their sizes
     const wet = new Int32Array(N).fill(-1), q = [];
     for (let i = 0; i < N; i++) if (water[i]) { wet[i] = 0; q.push(i); }
@@ -1304,13 +1301,24 @@ VB['gen/rivers'] = (() => {
       }
       left.push(Math.round(iq.length / RIVERS.perTiles));
     }
-    // sources: long courses first, with noise so they spread over the island instead of crowding the one longest drainage
-    const cand = [], score = new Float64Array(N);
-    for (let i = 0; i < N; i++) {
-      if (water[i] || !sources.includes(biome[i]) || wet[i] < RIVERS.fromWater) continue;
-      score[i] = Math.min(len[i], RIVERS.longEnough) + RIVERS.noise * rand(); cand.push(i);
+    // sources, by drainage basin: every basin is cut into stems. A stem runs from where it ends (at the sea, or on a larger stem) up
+    // the tributary of the largest catchment at each fork; the other tributaries are stems of their own. A stem's source is its highest
+    // tile in a source biome far enough from water, and stems are taken in the order of the catchment they carry: the trunk of the
+    // largest basin first, then large tributaries and the trunks of smaller basins.
+    const up = new Array(N), stems = [], cand = [], carried = new Float64Array(N);
+    for (const i of order) { const d = down[i]; if (ocean[d]) stems.push(i); else (up[d] || (up[d] = [])).push(i); }
+    for (let h = 0; h < stems.length; h++) {
+      let top = -1;
+      for (let i = stems[h]; i >= 0;) {
+        if (!water[i] && sources.includes(biome[i]) && wet[i] >= RIVERS.fromWater) top = i;
+        let best = -1;
+        for (const j of up[i] || []) if (best < 0 || acc[j] > acc[best] || (acc[j] === acc[best] && j < best)) best = j;
+        for (const j of up[i] || []) if (j !== best) stems.push(j);
+        i = best;
+      }
+      if (top >= 0) { carried[top] = acc[stems[h]]; cand.push(top); }
     }
-    cand.sort((a, b) => score[b] - score[a] || a - b);
+    cand.sort((a, b) => carried[b] - carried[a] || a - b);
     const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N), starts = [];
     for (const s of cand) {
       if (left[island[s]] <= 0 || blocked[s] || riverTo[s] >= 0) continue;
@@ -12712,7 +12720,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
   // began to place the biomes and the list was chosen again by that fit (VB-342)
-  const DEMO = { seeds: [9, 15, 18, 25, 29, 32, 33, 43, 44, 98], start: [9, 15, 18, 25, 29, 32, 33, 43, 44, 98], cols: 56, rows: 40, speed: 3 };
+  const DEMO = { seeds: [18, 23, 29, 32, 33, 43, 44, 93, 98, 101], start: [18, 23, 29, 32, 33, 43, 44, 93, 98, 101], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
@@ -15888,7 +15896,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [131, 155], s: [320, 359], m: [806, 872], l: [803, 833] },
+    populous: { t: [130, 152], s: [322, 351], m: [801, 867], l: [801, 851] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -16910,7 +16918,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '810d92d279', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e844a591fc', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
