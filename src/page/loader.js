@@ -18,18 +18,14 @@
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
-  let demo = false, demoJob = null, demoAt = null;
-  // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
-  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
+  let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
+  // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
+  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): heirs finds no room at 43 and 54
+  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], start: [7, 12, 15, 26, 28, 29, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
     $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
-  }
-  function showGenScreen(msg) {
-    $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
-    $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
-    $('landing').hidden = true; $('genScreen').hidden = false; loader.classList.add('done'); $('genSeed').focus();
   }
   // The sea and the overview level of a world, painted before it is swapped in; onP hears the share done.
   async function paintOverview(wd, onP) {
@@ -49,7 +45,7 @@
     for (const k of [...chunks.keys()]) dropChunk(k);
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
-    w = wd; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
+    w = wd; stagePainted = { wc, over }; loc = G.hexLocator(wd); sel = -1; hoverDirty = true; showTile(-1);
     const water = new PIXI.Sprite(texFrom(wc));
     water.scale.set(wd.STEP); water.position.set(-wd.STEP / 2, -wd.STEP / 2);
     L.water.addChild(water);
@@ -70,9 +66,9 @@
     choice = { seed, scenario, size };
     $('genScreen').hidden = true; $('landing').hidden = true;
     building = true; $('menuBtn').disabled = true;
-    loader.classList.remove('done'); $('playOffer').hidden = true; followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    loader.classList.remove('done');
     setLoad('Raising the land', 0);
-    if (demoJob) await demoJob; // the showcase island is still being raised: it is swapped in first, and out again below
+    while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
     const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
@@ -81,26 +77,32 @@
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('menuBtn').disabled = false;
-      showGenScreen(save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.');
+      const msg = save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.';
+      openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
+    closeChoose(); followPlayed = false; walkPick = false; playMsg = null; skipCursor = null; dropSkipNote();
+    dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
-    demo = false; demoAt = null; document.body.classList.remove('demo');
+    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo');
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
-    $('meta').textContent = `${named('genScenario', scenario)}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    const scName = (START_WORDS[scenario] || { name: scenario }).name;
+    $('meta').textContent = `${scName}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
-    // Opening move: start on the whole chart, then glide down through the clouds to the village.
-    let best = sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
+    // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
+    // scenario's suggestion, where whom to play opens (page/choose).
+    const sug = !save && !sim.player ? suggestedPawn() : -1, sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : null;
+    let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : -1, bd = sim ? -1 : Infinity;
     for (let i = 0; i < wd.N && bd >= 0; i++) {
       if (wd.water[i]) continue;
       const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
@@ -117,7 +119,7 @@
     }
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
-    if (!sim.player) offerPlay(); else if (sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
     building = false; $('menuBtn').disabled = false;
   }
 
@@ -126,17 +128,18 @@
   async function buildDemo() {
     const seed = DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0]; // a visit's island: the page's choice, as the offered seed is
     const wd = await drive(G.generate(seed, { cols: DEMO.cols, rows: DEMO.rows }), () => {});
-    let sim = null;
-    for (const sc of ['populous', 'founders']) { try { sim = sim || Sim.seed(wd, seed, sc); } catch (e) { /* no room: the next */ } }
-    if (!sim) return; // the menu stays on the plain sea
+    let sim = null, sc = null;
+    for (const k of ['populous', 'founders']) { try { if (!sim) { sim = Sim.seed(wd, seed, k); sc = k; } } catch (e) { /* no room: the next */ } }
+    if (!sim || w || start) return; // the menu stays on the plain sea; or a game, or the start's island, came first
     const painted = await paintOverview(wd, () => {});
-    demo = true; document.body.classList.add('demo');
+    if (w || start || building) return;
+    demo = true; demoRun = { seed, sc }; document.body.classList.add('demo');
     await swapWorld(wd, sim, painted);
     const v = sim.villages.reduce((a, b) => (b.farmsteads.length > a.farmsteads.length ? b : a));
     demoAt = { x: wd.hx[v.center], y: wd.hy[v.center], r: wd.HW * 5 };
     intro = null; T = 2; cam.x = demoAt.x; cam.y = demoAt.y; cam.z = zt = clamp(52 / wd.HW, zMin(), zMax); vel.x = vel.y = 0;
   }
-  function startDemo() { demoJob = buildDemo().catch((e) => console.warn('The showcase island could not be raised', e)).then(() => { demoJob = null; }); }
+  function startDemo() { onStage(buildDemo); }
 
   function makeClouds(wd) {
     for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); }

@@ -21,6 +21,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
       .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
+        + 'get speed() { return speed; }, get choose() { return choose; }, '
+        + 'look: (i) => { stopIntro(); cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 1.5; vel.x = vel.y = 0; }, '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween: drawingBetween() }; } };')),
   }));
@@ -90,12 +92,38 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     }
     console.log(`browser: whole steps: ${lines.join('; ')}`);
   }
-  // a new game offers the scenario's suggestion, a holder (VB-210); taking it plays that pawn and opens its card
-  await page.waitForSelector('#playOffer:not([hidden])');
-  await page.click('#playOfferYes'); await page.waitForSelector('#playBox [data-play="auto"]');
-  if (!(await page.evaluate(() => { const { st, Sim } = window.__play; return !!st.player && Sim.isHolder(st, st.player.pawn); }))) {
-    fail('the suggestion is not a holder');
-  }
+  // Whom to play (VB-339): a new game opens the choosing mode, paused, on the scenario's suggestion, a holder (VB-210). A click on another
+  // farm's house on the map chooses its household, a click on one of its grown people chooses them, and Play as plays that pawn, opens its
+  // actions and gives the game back its speed.
+  await page.waitForSelector('#choose:not([hidden])');
+  const opened = await page.evaluate(() => { const { st, Sim, choose } = window.__play; return { sug: choose.sug, pawn: choose.pawn, played: st.player,
+    holder: choose.sug >= 0 && Sim.isHolder(st, choose.sug), stories: document.querySelectorAll('#chooseStories .story').length }; });
+  if (opened.played !== null) fail('a pawn is played before one is chosen');
+  if (!opened.holder || opened.pawn !== opened.sug) fail(`the mode does not open on the suggestion, a holder: ${JSON.stringify(opened)}`);
+  if (!opened.stories) fail('no story archetype is offered');
+  const farm = await page.evaluate(() => {
+    const { st, choose } = window.__play, sug = st.farmsteads[st.households[st.pawns[choose.sug].household].farmstead];
+    const f = st.farmsteads.find((g) => g !== sug && g.household !== null && !st.households[g.household].dissolved
+      && st.households[g.household].members.filter((m) => st.pawns[m].age >= 18).length >= 2);
+    window.__play.look(f.house); return f.id;
+  });
+  await page.waitForTimeout(400);
+  const view = await page.locator('canvas').first().boundingBox();
+  await page.mouse.click(view.x + view.width / 2, view.y + view.height / 2); await page.waitForTimeout(200);
+  if ((await page.evaluate(() => window.__play.choose.farm)) !== farm) fail('a click on a farm\'s house does not choose that farm');
+  const people = await page.locator('#chooseCard .person:not([disabled])').count();
+  if (people < 2) fail(`the chosen farm shows ${people} people who may be played`);
+  const person = page.locator('#chooseCard .person:not([disabled])').nth(1), chosen = +(await person.getAttribute('data-p'));
+  await person.click();
+  if ((await page.evaluate(() => window.__play.choose.pawn)) !== chosen) fail('a click on a person does not choose them');
+  if (!/Play as/.test(await page.locator('#choosePlay').textContent())) fail('the bar does not offer to play the chosen person');
+  for (const part of ['Can', 'Ahead']) if (!(await page.locator('#chooseCard h3', { hasText: part }).count())) fail(`the person's details have no ${part}`);
+  await page.click('#choosePlay'); await page.waitForSelector('#playBox [data-play="auto"]');
+  const left = await page.evaluate(() => ({ pawn: window.__play.st.player && window.__play.st.player.pawn, speed: window.__play.speed,
+    open: !document.getElementById('choose').hidden }));
+  if (left.pawn !== chosen) fail(`Play as played ${left.pawn}, not the chosen ${chosen}`);
+  if (left.open) fail('the mode stays open after Play as');
+  if (left.speed !== 1) fail(`the game goes on at ${left.speed}, not the speed it had before (1)`);
   await stopPlaying();
   await page.click('#debugBtn');
   await page.click('[data-act="skip1"]');

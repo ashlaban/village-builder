@@ -280,7 +280,7 @@
   }
   function playAs(id) {
     const r = Sim.inhabit(st, id);
-    playMsg = r === true ? null : { id, text: r }; walkPick = false; $('playOffer').hidden = true;
+    playMsg = r === true ? null : { id, text: r }; walkPick = false;
     return r;
   }
   $('playBox').addEventListener('click', (e) => {
@@ -383,18 +383,3 @@
     $('toasts').appendChild(skipNote);
   }
   $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
-  // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
-  function offerPlay() {
-    const id = suggestedPawn(), box = $('playOffer');
-    if (id < 0) { box.hidden = true; return; }
-    const f = farmOf(st.pawns[id]);
-    box.dataset.pawn = String(id);
-    $('playOfferText').textContent = `Play as ${Sim.fullName(st.pawns[id])}${f ? `, who holds ${f.name}` : ''}?`;
-    box.hidden = false;
-  }
-  $('playOfferYes').addEventListener('click', () => {
-    const id = +$('playOffer').dataset.pawn;
-    if (!st || !st.pawns[id]) return;
-    if (playAs(id) === true) { focusPawn(id); openPanel('actions'); }
-  });
-  $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });

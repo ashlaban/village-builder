@@ -2,6 +2,19 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-340)
+
+## VB-340: the start's showcase island (raised 11 November 2026)
+VB-340 builds the start of a new game with the design's Proposed "how": the showcase island behind the menu, re-seeded with the chosen scenario, gives the annotated picture and the example "Who starts". It stopped before building: the heirs scenario finds no room on the showcase island (`DEMO`, 56 by 40 tiles) at any of its ten seeds. `seedHeirs` puts its first village on a landmass of at least 1,500 tiles and the showcase averages 838 land tiles. Founders and populous fit at all ten. Measured (headless Chromium, the page's own generation, seeding, overview and swap): a re-seed takes 0.18 to 0.25 s at 56 by 40 and up to 0.5 s at 84 by 60 or 96 by 68, mostly generation, which can be kept for a seed when only the scenario changes. Numbers in `backlog/VB-340.md`.
+1. Where does the heirs scenario stand for its picture? **P:** the start raises its own showcase at 84 by 60 tiles for every scenario, on the seeds of `DEMO.seeds` where all three fit (7, 15, 26, 28, 75), and the menu's backdrop keeps its 56 by 40 island and ten seeds. At 84 by 60 heirs has its two villages (18 living), founders its 10 and populous 135 to 160 in 5 to 7 villages; a re-seed costs about 0.5 s with generation, 0.1 s without. Other ways: raise heirs alone at 84 by 60 (founders and populous stay on the 56 by 40 island, a different island per card); or change `seedHeirs`'s landmass rule, which changes the simulation and its golden file.
+   **A (Kim, 11 Nov):** Let heirs fit small islands: change the scenario's landmass rule, not the island. As built: seedHeirs keeps 1,500 tiles where a landmass has them and otherwise falls back to the requirement scaled to the map as founders' is, so maps where it fits today are unchanged.
+2. With a game open, New archipelago now replaces the stage with the showcase. **P:** the open game (its world, run and painted overview) is kept aside while the start is shown and swapped back by Back to game; raising the land drops it, as today. Whom to play's Back returns to the start the same way, its raised game kept aside, so Back to game from the menu returns to the choosing mode.
+   **A (Kim, 11 Nov):** Keep it aside, as proposed.
+3. The second small view (the heirs' ruin on the far shore, the populous island whole): the stage has one camera. **P:** the inset is the same run's painted overview (the minimap's picture): the island whole for populous, and for heirs a crop round the ruin with the ruin's farm icon on it, not a second live view.
+   **A (Kim, 11 Nov):** No inset. One view; a callout at the picture's edge points to what lies outside it (the ruin on the far shore) or says it in words (the number of villages).
+4. "People at the chosen size" on the scenario cards: founders' and heirs' counts are fixed by the scenario and are read from the showcase run, but populous grows with the map, and the showcase is not the chosen size. **P:** the card gives populous's range at each size as measured from `Sim.seed` at the seeds of `DEMO.seeds` on that size's map, kept in a table that a test checks against the runs (the mock's 130 to 170 on Tiny and so on), so the number is read from runs and not invented; the generations on record are read from the showcase run.
+   **A (Kim, 11 Nov):** Measured ranges, as proposed, checked by a test.
+
 # Archived 11 November 2026 (Field work)
 
 ## Field work: the ox team (VB-336; raised 11 November 2026)

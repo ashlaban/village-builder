@@ -1,0 +1,518 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Skärgård Setup Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: the game's menu card (src/head.html: .panel, .genscreen) over a picture of the chosen scenario. Step 1 is a sheet: scenario cards,
+   then the chosen scenario read off an annotated picture. Step 2 is the game itself: the map to drag, a farm to click, its people in a panel. */
+:root {
+  --sea: #16395f; --sea-deep: #0d2642;
+  --panel: rgba(238, 245, 242, 0.9); --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14);
+  --accent: #23685a; --on-accent: #f2f8f6; --node: #fbfdfc; --good: #2f7a4b; --bad: #a8432f;
+  --pick: rgba(35, 104, 90, 0.10); --sketch: #7a5a1e;
+  --display: 'Alegreya', Georgia, serif; --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --panel: rgba(11, 27, 34, 0.88); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+    --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
+    --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --panel: rgba(11, 27, 34, 0.88); --ink: #e1ebe7; --muted: #93adae; --edge: rgba(225, 235, 231, 0.14);
+  --accent: #84c9b5; --on-accent: #0c1f25; --node: #17323b; --good: #8fd0a2; --bad: #f0a08c;
+  --pick: rgba(132, 201, 181, 0.13); --sketch: #e0bd77; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--sea-deep); }
+body { margin: 0; min-height: 100%; color: var(--ink); font: 16px/1.4 var(--body); -webkit-font-smoothing: antialiased; background: var(--sea-deep);
+  padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; font-size: 15px; font-weight: 500; line-height: 1.2; border: 1px solid var(--edge); background: transparent; border-radius: 999px; padding: 7px 14px; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+button:disabled { opacity: 0.5; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p, figure { margin: 0; }
+h1 { font: italic 700 30px/1.1 var(--display); text-wrap: balance; }
+h2 { font: italic 700 22px/1.15 var(--display); text-wrap: balance; }
+h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+small, .muted { color: var(--muted); font-size: 14px; }
+select, input { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); min-width: 0; width: 100%; }
+.panel { background: var(--panel); border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); border-radius: 16px; }
+
+.stage { position: fixed; inset: 0; background: var(--sea) center / cover no-repeat; }
+.stage::after { content: ""; position: absolute; inset: 0; background: rgba(13, 38, 66, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.mockbar { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  font-size: 13px; color: var(--muted); background: var(--panel); border: 1px dashed var(--edge); border-radius: 12px; padding: 7px 12px; }
+.legend { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px 12px; } .legend span { display: inline-flex; gap: 5px; align-items: center; }
+.st { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 1px; border: 1.5px solid currentColor; }
+.st.built { color: var(--good); background: var(--good); } .st.designed { color: var(--accent); } .st.sketch { color: var(--sketch); border-style: dotted; }
+
+.sheet { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 20px 22px; display: grid; gap: 16px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.stepno { font-size: 14px; color: var(--muted); }
+
+/* icons: one stroke, drawn for this page; people and farms use the game's own graphics */
+.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ic.dash { stroke-dasharray: 2.6 2.6; }
+.ic.sug { width: 15px; height: 15px; color: var(--sketch); fill: currentColor; stroke-width: 1; vertical-align: -2px; }
+.pf { width: 26px; height: 26px; flex: none; image-rendering: auto; } .pf.c { width: 20px; height: 20px; }
+.pf.off { opacity: 0.28; } .pf.on { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 2px var(--accent)); }
+.fi { width: 30px; height: 30px; flex: none; object-fit: contain; } .fi.gone { filter: grayscale(0.8); opacity: 0.75; }
+
+/* scenario cards */
+.cards { display: grid; gap: 10px; }
+.cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cards.row { grid-auto-flow: column; grid-auto-columns: minmax(150px, 220px); justify-content: start; overflow-x: auto; padding: 2px 2px 8px; margin-top: 8px; }
+.card { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start; }
+.card img { display: block; width: 100%; aspect-ratio: 16 / 6; object-fit: cover; }
+.card > *:not(img) { margin: 0 9px; }
+.card b { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+.card small { font-size: 13px; line-height: 1.3; }
+.card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.card.sk img { filter: saturate(0.35) sepia(0.25); aspect-ratio: 16 / 9; }
+.stats { display: flex; gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; } .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ic { width: 14px; height: 14px; }
+.more summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+@media (max-width: 620px) { .cards.three { grid-template-columns: minmax(0, 1fr); } .cards.three .card { grid-template-columns: 110px minmax(0, 1fr); padding: 0; column-gap: 9px; align-items: center; }
+  .cards.three .card img { grid-row: 1 / span 3; height: 100%; aspect-ratio: auto; } .cards.three .card > *:not(img) { margin: 0 9px 0 0; } }
+
+/* the annotated picture */
+.cgrid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 18px; align-items: start; }
+.cgrid > * { min-width: 0; display: grid; gap: 12px; }
+@media (max-width: 860px) { .cgrid { grid-template-columns: minmax(0, 1fr); } }
+.figure { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; background: var(--sea); }
+.figure > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.figure.sk > img { filter: saturate(0.35) sepia(0.25); }
+.pin { position: absolute; transform: translate(-14px, -50%); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.pin.left { transform: translate(calc(-100% + 14px), -50%); flex-direction: row-reverse; }
+.pin > .ic, .pin > .fi { width: 28px; height: 28px; padding: 4px; border-radius: 50%; background: #fbfdfc; color: #17313a; border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.4); }
+.pin > .fi { padding: 2px; }
+.pin b { white-space: nowrap; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pinlist { display: none; list-style: none; margin: 0; padding: 0; font-size: 14px; } .pinlist li { display: flex; gap: 8px; align-items: center; } .pinlist .fi { width: 20px; height: 20px; }
+@media (max-width: 560px) { .pin b { display: none; } .pinlist { display: grid; gap: 3px; } }
+.inset { position: absolute; right: 10px; bottom: 10px; width: 32%; display: grid; border-radius: 9px; overflow: hidden; border: 2px solid var(--node); background: var(--node); box-shadow: 0 4px 14px rgba(3, 16, 26, 0.35); }
+.inset img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; } .inset small { display: flex; gap: 5px; align-items: center; padding: 3px 7px; font-size: 12px; line-height: 1.25; color: var(--ink); } .inset .ic { width: 15px; height: 15px; }
+@media (max-width: 560px) { .inset { width: 42%; } }
+.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13px; }
+.year div { border-top: 3px solid var(--edge); padding-top: 5px; } .year b { display: block; }
+@media (max-width: 460px) { .year { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 14.5px; } .rows li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; } .rows .ic { color: var(--muted); margin-top: 1px; }
+
+/* who starts */
+.who-starts { display: grid; gap: 8px; }
+.groups { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.group { display: inline-flex; gap: 1px; align-items: flex-end; padding: 0 3px 3px; border-bottom: 2px solid var(--edge); }
+.fcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 6px; }
+.fcard { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--node); border: 1px solid var(--edge); min-width: 0; }
+.fcard.none { background: none; border-style: dashed; color: var(--muted); } .fcard.has { border-color: var(--accent); }
+.fcard b { font: italic 700 15px/1.2 var(--display); overflow-wrap: anywhere; } .fcard .fi { width: 24px; height: 24px; }
+.fcard .faces, .fcard small { grid-column: 1 / -1; } .faces { display: flex; flex-wrap: wrap; gap: 1px; align-items: flex-end; min-height: 26px; }
+.fcard small { font-size: 12.5px; }
+.picked { min-height: 1.4em; display: block; }
+.pyr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 3px 6px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pyr .lab { text-align: center; color: var(--muted); } .pyr .n { color: var(--muted); min-width: 2.2em; } .pyr .n.f { text-align: right; }
+.pyr .pb { display: flex; height: 12px; } .pyr .pb.l { justify-content: flex-end; }
+.pyr .pb i { display: flex; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--muted) 45%, transparent); } .pyr .pb.l i { justify-content: flex-end; } .pyr .pb i b { background: var(--accent); }
+
+/* story starts: the same cards on both steps */
+.stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px; padding: 8px 10px; background: var(--node); }
+.story > .ic { width: 22px; height: 22px; color: var(--accent); } .story b { font-size: 15px; }
+.story small { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.3; }
+.story .few { grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 0; font-size: 12.5px; color: var(--muted); min-height: 22px; } .story .few .pf { width: 20px; height: 20px; margin-right: -3px; } .story .few span { margin-left: 8px; }
+.story:hover { background: var(--pick); }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--pick); }
+
+.foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; border-top: 1px solid var(--edge); padding-top: 14px; }
+.foot label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); width: 190px; max-width: 100%; } .foot .grow { flex: 1 1 0; }
+.seedrow { display: flex; gap: 6px; } .seedrow button { flex: none; padding: 6px 10px; }
+.loading { text-align: center; padding: 70px 0; display: grid; gap: 14px; justify-items: center; }
+.bar { width: min(280px, 100%); height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.9s ease-out; }
+.toast { background: var(--ink); color: var(--panel); border-radius: 12px; padding: 12px 16px; }
+
+/* step 2: the game. The map is dragged; a farm is clicked; its people are in the panel. */
+.game { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); background: var(--sea); }
+.view { position: absolute; inset: 0; overflow: hidden; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.view.drag { cursor: grabbing; }
+.map { position: absolute; left: 0; top: 0; will-change: transform; } .map.glide { transition: transform 0.5s ease; }
+.map > img { display: block; width: 100%; height: 100%; pointer-events: none; -webkit-user-drag: none; }
+.fpin { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; padding: 0; border: 0; background: none; border-radius: 0; font-size: 13px; }
+.fpin .fi { width: 34px; height: 34px; padding: 2px; border-radius: 50%; background: #fbfdfc; border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.45); }
+.fpin b { position: absolute; top: 100%; margin-top: 3px; white-space: nowrap; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 1px 8px; display: none; }
+.fpin:hover b, .fpin.on b { display: block; } .fpin:hover { z-index: 3; }
+.fpin.on { z-index: 2; } .fpin.on .fi { border-color: #f6e7a8; box-shadow: 0 0 0 3px #23685a, 0 2px 8px rgba(3, 16, 26, 0.5); }
+.fpin.hit .fi { box-shadow: 0 0 0 3px #f6e7a8, 0 2px 8px rgba(3, 16, 26, 0.5); }
+.vname { position: absolute; transform: translate(-50%, -100%); font: italic 700 20px var(--display); color: #fff; text-shadow: 0 1px 3px #06202c, 0 0 8px #06202c; pointer-events: none; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .map.glide, .bar i { transition: none; } }
+.gp { position: absolute; padding: 14px 16px; display: grid; gap: 10px; align-content: start; }
+.list-p { left: 12px; top: 12px; width: 300px; max-height: calc(100% - 24px); overflow-y: auto; }
+.card-p { right: 12px; top: 12px; width: 300px; max-height: calc(100% - 92px); overflow-y: auto; }
+.offer { right: 12px; bottom: 12px; display: flex; gap: 8px; padding: 10px 12px; border-radius: 999px; }
+.gp h2 { font-size: 20px; } .list-p .stories { grid-template-columns: minmax(0, 1fr); }
+.villages { display: flex; flex-wrap: wrap; gap: 6px; } .villages button { padding: 4px 12px; font-size: 14px; }
+.villages button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: transparent; }
+.hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; } .hhead .fi { width: 44px; height: 44px; grid-row: 1 / span 2; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 4px; }
+.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; border-radius: 10px; border-color: transparent; font-size: 12.5px; line-height: 1.2; text-align: center; }
+.person .pf { width: 40px; height: 40px; } .person small { font-size: 11.5px; }
+.person:hover:not(:disabled) { background: var(--pick); } .person[aria-pressed="true"] { background: var(--pick); border-color: var(--accent); }
+.person.hit .pf { filter: drop-shadow(0 0 2px var(--sketch)); }
+.detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
+.posline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .posline .ic { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; } .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: var(--pick); font-size: 14px; } .chip .ic { width: 16px; height: 16px; color: var(--accent); }
+@media (max-width: 900px) {
+  .game { aspect-ratio: auto; overflow: visible; box-shadow: none; display: grid; gap: 12px; border-radius: 0; background: none; }
+  .view { position: relative; aspect-ratio: 4 / 3; border-radius: 16px; }
+  .gp { position: static; width: auto; max-height: none; } .list-p .stories { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .offer { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); justify-content: flex-end; z-index: 3; order: 9; }
+  .card-p { order: 1; } .list-p { order: 2; }
+}
+</style>
+
+<div class="stage" id="stage"></div>
+<div class="mockbar" id="mockbar"></div>
+<main id="app"></main>
+
+<script src="data/founders.js"></script>
+<script src="data/heirs.js"></script>
+<script src="data/populous.js"></script>
+<script>
+// A clickable mock of the screens after "New archipelago". It does not run the game: its people, farms, portraits, farm icons and maps were
+// taken once from the game (seed 7, tiny map; data/*.js, img/*-map.jpg), and the scenarios marked as sketches borrow a built one's.
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const TAGT = { built: 'In the game today', designed: 'In design.md, not built', sketch: 'An idea for this mock' };
+const tag = (k) => `<i class="st ${k}" title="${TAGT[k]}"></i>`;
+const ADULT = 18;
+
+const SIZES = {
+  t: { name: 'Tiny', tiles: '120 × 85', pop: '130–170', note: 'A handful of villages; quick to learn on.' },
+  s: { name: 'Small', tiles: '180 × 130', pop: '320–380', note: 'Room for a second culture across the water.' },
+  m: { name: 'Medium', tiles: '280 × 200', pop: '800–950', note: 'The reference: about 1,000 living late in the game.' },
+  l: { name: 'Large', tiles: '380 × 270', pop: '800–950', note: 'May reach about 2,000 living, at half the speed.' },
+};
+
+// ---- scenarios: three from design.md section 14, four sketches drawn from later slices ----
+const SCENARIOS = [
+  { key: 'founders', name: 'Founders', status: 'built', line: 'Ten strangers, a few houses, and land no one has broken.',
+    start: '10 unrelated founders: four couples, a farmhand and a maid', gens: 'None on record', people: () => '10',
+    land: 'Houses standing; next to no fields or meadows', stores: 'A year\'s food and seed; hay for one winter',
+    customs: 'Old Nordic, but first cousins may marry: the founders\' grandchildren are mostly cousins',
+    explores: 'The normal game. A frontier that grows faster than a settled society would.',
+    year: [['Spring', 'Break fields, sow'], ['Summer', 'Clear meadows, make hay'], ['Autumn', 'A small first harvest'], ['Winter', 'Live on stores']],
+    lives: [['holder', 'A founding holder', true], ['spouse', 'A founder\'s wife'], ['servant', 'The farmhand or the maid']] },
+  { key: 'heirs', name: 'Heirs and empty farms', status: 'built', line: 'Two old villages, three generations, and more heirs than farms.',
+    start: 'Two established villages of seven farms: five lived in, one empty, one a ruin', gens: 'Three; the founding grandparents are dead',
+    people: () => '23', land: 'Fields and meadows long made; scrub on the ruin', stores: 'What each farm has laid by',
+    customs: 'The remote village leans its own way: any child inherits, handover at death, looser claims, a wider voice',
+    explores: 'Inheritance, expansion and customs. One marriage joins the villages, so cousins live on both shores.',
+    year: [['Now', 'An heir of 29 waits'], ['The round', 'An empty farm, a ruin'], ['The meeting', 'Who may inherit?'], ['Soon', 'A childless holder of 47']],
+    lives: [['holder', 'An ageing holder', true], ['heir', 'The heir who waits'], ['child', 'A younger child'], ['widow', 'The widow'], ['heiress', 'The heiress']] },
+  { key: 'populous', name: 'Populous Villages', status: 'built', line: 'A settled archipelago, already full of neighbours.',
+    start: 'Only villages: small of 2–5 farms (6 in 10), medium of 6–10 (3 in 10), large of 12–16 (1 in 10)',
+    gens: 'Two at most; no grandparents on record', people: (z) => SIZES[z].pop,
+    land: 'Every farm has its fields', stores: 'What each farm has laid by',
+    customs: 'Old Nordic everywhere, until the villages drift apart',
+    explores: 'A high population from the first day: marriage across villages, the fair, crowded land.',
+    year: [['Now', 'Grown children at home'], ['The round', 'Service, a farm, new land'], ['The gathering', 'Trade and marriages'], ['Later', 'Land runs short']],
+    lives: [['holder', 'A holder in a large village', true], ['heir', 'An heir'], ['child', 'A younger child'], ['servant', 'A servant']] },
+  { key: 'service', name: 'A year in service', status: 'sketch', line: 'You own nothing but a year\'s contract.',
+    start: 'Populous, but you begin as a farmhand or maid on a stranger\'s farm', gens: 'Two', people: (z) => SIZES[z].pop,
+    land: 'None of it yours', stores: 'Your keep, at the holder\'s table', customs: 'Old Nordic',
+    explores: 'Leaving service and holding land: the moving round, empty farms, clearing a plot (design 5).',
+    year: [['Spring', 'Work the holder sets'], ['Autumn', 'The moving round: stay, move, or claim'], ['Winter', 'Earn goodwill for a marriage'], ['Year 5?', 'A farm of your own']],
+    lives: [['servant', 'The farmhand', true]] },
+  { key: 'outland', name: 'The far shore', status: 'sketch', line: 'A younger son, a boat, and an island with no village.',
+    start: 'Heirs, plus one household that has just moved to new land across the water', gens: 'Three', people: () => '27',
+    land: 'One house, no field', stores: 'Half a year\'s food', customs: 'Yours to set: a new village starts from its founders\' attitudes',
+    explores: 'Moving to new land, and distance between villages (design 5; boats, slice 10).',
+    year: [['Spring', 'Break a field alone'], ['Summer', 'A journey home for the gathering'], ['Autumn', 'Will anyone follow you?'], ['Later', 'A village with your customs']],
+    lives: [['holder', 'The one who left', true], ['spouse', 'The one who followed']] },
+  { key: 'alderman', name: 'The alderman\'s ledger', status: 'sketch', line: 'Half the village owes you. What will you take?',
+    start: 'A large village at year 40; you hold its richest farm and its neighbours\' obligations', gens: 'Three', people: () => 'about 120',
+    land: 'One farm, and claims on three', stores: 'A full granary', customs: 'Old Nordic; debts may be collected in land',
+    explores: 'Goodwill and obligations, a debt taken in land, paying for a mill: the first landed elite (design 9; slices 5 and 6).',
+    year: [['Now', 'Three households cannot repay'], ['The meeting', 'Argue for your right to collect'], ['Year 3?', 'A mill'], ['Later', 'An estate']],
+    lives: [['holder', 'The alderman', true], ['child', 'A debtor\'s son']] },
+  { key: 'market', name: 'Market day', status: 'sketch', line: 'A fair that wants to become a town.',
+    start: 'A region late in the game: a market place, a port, and its villages', gens: 'Four', people: (z) => (z === 'l' ? 'about 2,000' : 'about 1,000'),
+    land: 'Crowded', stores: 'Coin, where it exists', customs: 'Mixed; the Church has its own',
+    explores: 'Towns and regions, crafts, merchants and the world beyond (slices 9 and 10).',
+    year: [['Spring', 'Ships arrive'], ['Summer', 'Learn a craft'], ['Autumn', 'The fair'], ['Later', 'A charter']],
+    lives: [['holder', 'A master craftsman', true], ['servant', 'An apprentice'], ['child', 'A merchant\'s daughter']] },
+];
+
+// ---- positions: what each commands and what lies ahead, from design 1, 5, 10 and 15 ----
+const POS = {
+  holder: { name: 'Holder', commands: ['Directs the household: places the next field, meadow or building and sets the season\'s work',
+    'Answers for the household\'s members when a marriage is negotiated', 'Speaks at the meeting (custom: landholders speak)'],
+    ahead: ['Hands the farm over when the heir marries, and retires on it', 'The line\'s prestige starts here'] },
+  widow: { name: 'Widow, holds the farm', commands: ['Directs the household as a holder does', 'Keeps the farm for life (custom: the widow)',
+    'Speaks at the meeting as a landholder'], ahead: ['The farm passes to her child when she dies or steps down', 'May remarry: a negotiation'] },
+  bachelor: { name: 'Holder, unmarried', commands: ['Directs the household, alone', 'Speaks at the meeting'],
+    ahead: ['No child: the farm goes to kin, a nephew first', 'A late marriage would change everything'] },
+  spouse: { name: 'Holder\'s wife', commands: ['Her own work and queue; the household\'s open work', 'May take up a cause and argue it with her prestige'],
+    ahead: ['No voice at the meeting while only landholders speak', 'As a widow she would keep the farm for life'] },
+  heir: { name: 'Heir', commands: ['His own work; the household\'s open work', 'Answers for himself when his marriage is negotiated'],
+    ahead: ['Takes over the farm when he marries', 'Buys out his brothers and sisters (custom: how many heirs)'] },
+  heiress: { name: 'Heiress', commands: ['Her own work; the household\'s open work', 'Answers for herself when her marriage is negotiated'],
+    ahead: ['Inherits because there is no son (custom: sons first)', 'Her husband moves to her farm (custom: the couple lives with the land)'] },
+  child: { name: 'Younger child', commands: ['Their own work; the household\'s open work', 'At the moving round: take service, claim an empty farm, or move out to new land'],
+    ahead: ['Bought out, not landed; a daughter\'s share is half a son\'s (systerlott)', 'The life the game does not prescribe: most open, least secure'] },
+  servant: { name: 'Servant', commands: ['The work of the household served', 'At the moving round: stay, move to another farm, or claim one'],
+    ahead: ['Eats at the holder\'s table; owns nothing', 'Leaving service and holding land is the long ambition'] },
+  minor: { name: 'Child', commands: [], ahead: [] },
+};
+
+// ---- icons: one stroke, drawn for this page ----
+const ICON = {
+  house: 'M3 11 12 4l9 7M5.5 9.5V20h13V9.5M10 20v-5h4v5', well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10',
+  field: 'M12 21V4M12 9 8.5 5.5M12 9l3.5-3.5M12 13.5 8.5 10M12 13.5l3.5-3.5M12 18l-3.5-3.5M12 18l3.5-3.5', tree: 'M12 21v-6M12 3l6 12H6z',
+  ruin: 'M4 20v-8l3-3M11 20v-5l2-2M17 20v-9M3 20h18', meadow: 'M12 21V11M9 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M12 16q-4 0-5-3M12 18q4 0 5-3',
+  village: 'M2 13l5-4 5 4M3.5 12v7h7v-7M12 11l5-4 5 4M13.5 10v9h7v-9', rings: 'M4 14a5 5 0 1 0 10 0 5 5 0 1 0-10 0M10 14a5 5 0 1 0 10 0 5 5 0 1 0-10 0',
+  key: 'M4 15a4 4 0 1 0 8 0 4 4 0 1 0-8 0M11 12l9-9M17 6l3 3M14.5 8.5l2 2', road: 'M12 21V4M12 6h7l2 2-2 2h-7M12 12H6l-2 2 2 2h6',
+  sickle: 'M5 21l5-5M9 17C4 10 10 3 18 5 12 6 9 11 12 15',
+};
+Object.assign(ICON, {
+  voice: 'M4 5h16v10H10l-4 4v-4H4z', sack: 'M9 4h6l-1.5 3c4 2 5.5 6 4.5 10-.5 2-2 3-4 3h-4c-2 0-3.5-1-4-3-1-4 .5-8 4.5-10z',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2', flag: 'M6 21V4M6 5h11l-2 3.5 2 3.5H6',
+  gens: 'M12 3a2 2 0 1 0 0 4 2 2 0 1 0 0-4M6 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M18 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M12 7v4M6 16v-2.5h12V16',
+  scroll: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h3', next: 'M5 12h14M13 6l6 6-6 6', shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
+  people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
+  star: 'M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z',
+});
+ICON.empty = ICON.house;
+const star = () => `<svg class="ic sug" viewBox="0 0 24 24" role="img" aria-label="Suggested by the scenario"><title>Suggested by the scenario</title><path d="${ICON.star}"/></svg>`;
+const GENS = { founders: 1, heirs: 3, populous: 2, service: 2, outland: 3, alderman: 3, market: 4 };
+// What a position can do and what lies ahead, as an icon and a few words; the full sentences are POS.
+const CAN = {
+  holder: [['field', 'Places fields'], ['sun', 'Sets the work'], ['rings', 'Arranges marriages'], ['voice', 'Speaks at the meeting']],
+  widow: [['field', 'Places fields'], ['sun', 'Sets the work'], ['rings', 'Arranges marriages'], ['voice', 'Speaks at the meeting']],
+  bachelor: [['field', 'Places fields'], ['sun', 'Sets the work'], ['voice', 'Speaks at the meeting']],
+  spouse: [['sickle', 'Own work'], ['voice', 'Argues a cause']], heir: [['sickle', 'Own work'], ['rings', 'Own marriage']], heiress: [['sickle', 'Own work'], ['rings', 'Own marriage']],
+  child: [['sickle', 'Own work'], ['road', 'May leave'], ['flag', 'May claim a farm']], servant: [['sickle', 'Serves the farm'], ['road', 'May move'], ['flag', 'May claim a farm']], minor: [],
+};
+const NEXT = {
+  holder: [['key', 'Hands over when the heir marries']], widow: [['shield', 'The farm for life'], ['key', 'Then her child']], bachelor: [['key', 'No child: kin inherit']],
+  spouse: [['shield', 'As widow, keeps the farm']], heir: [['house', 'The farm, on marriage'], ['sack', 'Buys out siblings']], heiress: [['house', 'Inherits: no son'], ['rings', 'Husband moves in']],
+  child: [['sack', 'Bought out, no land']], servant: [['sack', 'Keep only'], ['house', 'Land: the long goal']], minor: [],
+};
+const chips = (list) => `<div class="chips">${list.map(([ic, t]) => `<span class="chip">${icon(ic)}${t}</span>`).join('')}</div>`;
+const icon = (k) => `<svg class="ic${k === 'empty' ? ' dash' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
+const LIFE_ICON = { holder: 'house', widow: 'house', bachelor: 'house', spouse: 'rings', heir: 'key', heiress: 'key', child: 'road', servant: 'sickle' };
+const HARD = { holder: 'Secure. The most to decide from the first day.', widow: 'Secure while she lives; the line hangs on one child.', bachelor: 'Secure, and a dead end unless he marries.',
+  spouse: 'Secure, with little formal say. Influence runs through ties and prestige.', heir: 'A waiting game: nothing is his until he marries.',
+  heiress: 'Sought after. The marriage decides everything.', child: 'Open and insecure: every road leads away from home.', servant: 'The hardest start. Nothing to lose.' };
+const RANK = ['holder', 'widow', 'bachelor', 'heiress', 'heir', 'spouse', 'child', 'servant']; // standing, from the most to the least
+
+// ---- pictures for step 1: close screenshots of the game (seed 7, tiny map), annotated by hand ----
+const PIC = { founders: 'founders', heirs: 'heirs', populous: 'populous', service: 'populous', outland: 'founders', alderman: 'populous', market: 'populous' };
+const pic = (k, far) => `img/${PIC[k]}-${far && PIC[k] === 'populous' ? 'island' : 'close'}.jpg`;
+const PINS = { // x and y in hundredths of the picture, a mark, the words; the last flag puts the label to the left. A mark of a farm is the game's icon.
+  founders: [[61, 47, 'occupied', 'The houses stand ready'], [49, 51, 'well', 'One well between them', 1], [75, 70, 'field', 'No field broken yet'], [22, 30, 'tree', 'Forest to clear for hay meadows']],
+  heirs: [[42, 50, 'derelict', 'Empty for six years: no smoke, no fence', 1], [59, 47, 'occupied', 'Three farms lived in'], [76, 39, 'field', 'Fields three generations old', 1], [56, 15, 'meadow', 'Hay meadows in flower']],
+  populous: [[52, 46, 'village', 'Ekinge: six farms round a green'], [63, 22, 'field', 'Every farm has its fields'], [29, 46, 'field', 'More fields across the river', 1]],
+};
+const INSET = { heirs: ['img/heirs-inset.jpg', 'ruin', 'The far shore: a ruin, 15 years empty'], populous: ['img/populous-island.jpg', 'village', 'Six villages on the smallest map'] };
+
+// ---- the world, from the game's dump: villages of farms of people, each person given one of this mock's positions ----
+const NOTES = { heirs: ['Sons first, the eldest; the heir takes over when he marries.', 'Across the water. Any child inherits; handover at death; a wider voice at the meeting.'],
+  founders: ['Founded this spring. First cousins or further may marry.'] };
+const worlds = new Map();
+function worldOf(key) {
+  const base = PIC[key]; if (worlds.has(base)) return worlds.get(base);
+  const d = window.VBDATA[base], fi = (f) => d.icons[f.icon], w = { map: { src: `img/${base}-map.jpg`, ...d.map }, icons: {}, villages: [] };
+  for (const v of d.villages) w.villages.push({ id: v.id, name: v.name, voice: base === 'heirs' && v.id === 1 ? 'all' : 'holders', farms: [],
+    note: (NOTES[base] || [])[v.id] || 'Old Nordic customs.' });
+  for (const f of d.farms) {
+    const v = w.villages[f.village], people = d.pawns.filter((p) => p.hh !== null && p.hh === f.hh).map((p) => ({ id: p.id, n: p.name, a: p.age, s: p.sex, face: p.face, role: p.role, spouse: p.spouse }));
+    const farm = { id: f.id, name: f.name, state: f.state, icon: fi(f), px: f.px, py: f.py, food: f.food, people, village: v,
+      empty: f.state === 'derelict' ? 'Empty for 6 years, after a couple and their baby died.' : f.state === 'ruin' ? 'A ruin, empty for 15 years.' : '' };
+    w.icons[f.state] = w.icons[f.state] || farm.icon;
+    const grown = people.filter((p) => p.a >= ADULT && (p.role === 'son' || p.role === 'daughter')).sort((a, b) => b.a - a.a);
+    const heir = v.voice === 'all' ? grown[0] : grown.find((p) => p.s === 'm') || (people.some((p) => p.role === 'son') ? null : grown[0]);
+    for (const p of people) {
+      p.farm = farm;
+      p.r = p.a < ADULT ? 'minor' : p.id === f.holder ? (p.s === 'f' ? 'widow' : p.spouse === null ? 'bachelor' : 'holder') : p.role === 'wife' ? 'spouse'
+        : p.role === 'farmhand' || p.role === 'maid' ? 'servant' : p === heir ? (p.s === 'm' ? 'heir' : 'heiress') : p.role === 'farmer' ? 'holder' : 'child';
+    }
+    people.sort((a, b) => (b.id === f.holder) - (a.id === f.holder) || (b.r === 'spouse') - (a.r === 'spouse') || b.a - a.a);
+    v.farms.push(farm);
+  }
+  for (const v of w.villages) { v.px = v.farms.reduce((n, f) => n + f.px, 0) / v.farms.length; v.py = Math.min(...v.farms.map((f) => f.py)); }
+  w.farms = w.villages.flatMap((v) => v.farms); w.people = w.farms.flatMap((f) => f.people);
+  worlds.set(base, w); return w;
+}
+const isLife = (k, p) => p.a >= ADULT && (p.r === k || (k === 'holder' && p.r === 'bachelor'));
+const face = (p, cls) => `<img class="pf${p.a < ADULT ? ' c' : ''} ${cls || ''}" src="${p.face}" alt="" title="${esc(`${p.n}, ${p.a}`)}">`;
+const farmImg = (f, cls) => `<img class="fi${f.people.length ? '' : ' gone'} ${cls || ''}" src="${f.icon}" alt="">`;
+const mark = (w, k) => (w.icons[k] ? `<img class="fi" src="${w.icons[k]}" alt="">` : icon(k === 'derelict' ? 'empty' : k === 'occupied' ? 'house' : k));
+
+// ---- state ----
+const S = { step: 1, sc: 'founders', size: 't', seed: 7, peek: null, hover: null, farm: -1, pawn: -1, story: null, pan: null, done: false };
+const scen = () => SCENARIOS.find((s) => s.key === S.sc);
+const headBar = (title) => `<div class="head"><h1>${title}</h1><span class="stepno">Step ${S.step} of 2</span></div>`;
+
+// Story archetypes: the same cards on both steps. On step 1 one is looked at; on step 2 it takes you to such a person, and to the next on another click.
+function stories(s, cur) {
+  const w = worldOf(s.key);
+  return `<div class="stories">${s.lives.map(([k, label, sug]) => { const who = w.people.filter((p) => isLife(k, p)); return who.length ? `<button type="button" class="story" data-story="${k}" aria-pressed="${cur === k}">
+    ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? star() : '<span></span>'}<small>${esc(HARD[k])}</small>
+    <span class="few">${who.slice(0, 6).map((p) => face(p)).join('')}<span>${who.length > 6 ? `and ${who.length - 6} more` : ''}</span></span></button>` : ''; }).join('')}</div>`;
+}
+
+// Who starts, before the land is raised: founders as households without names, heirs farm by farm, populous as an age pyramid.
+function households(s) {
+  const w = worldOf(s.key), base = PIC[s.key], all = w.people, cur = S.hover || S.peek, on = (p) => !!cur && isLife(cur, p), cls = (p) => (cur ? (on(p) ? 'on' : 'off') : '');
+  const picked = `<small class="picked">${cur ? `${all.filter(on).length} of ${all.length}: ${esc(s.lives.find((x) => x[0] === cur)[1].toLowerCase())}` : base === 'founders' ? 'Four couples, a farmhand and a maid.' : `${all.length} people on ${w.farms.length} farms.`}</small>`;
+  if (base === 'founders') return `<div class="groups">${w.farms.map((f) => `<span class="group">${f.people.map((p) => face(p, cls(p))).join('')}</span>`).join('')}</div>${picked}`;
+  if (base === 'heirs') return `<div class="fcards">${w.farms.map((f) => `<div class="fcard${f.people.length ? '' : ' none'}${f.people.some(on) ? ' has' : ''}">${farmImg(f)}<b>${esc(f.name)}</b>
+    ${f.people.length ? `<span class="faces">${f.people.map((p) => face(p, cls(p))).join('')}</span>` : `<small>${f.state === 'ruin' ? 'A ruin, 15 years' : 'Empty, 6 years'}</small>`}<small>${esc(f.village.name)}</small></div>`).join('')}</div>${picked}`;
+  const bands = [[60, 200, '60 and over'], [45, 59, '45 to 59'], [30, 44, '30 to 44'], [18, 29, '18 to 29'], [10, 17, '10 to 17'], [0, 9, 'Under 10']];
+  const rows = bands.map(([a, b, l]) => { const g = all.filter((p) => p.a >= a && p.a <= b), f = g.filter((p) => p.s === 'f'), m = g.filter((p) => p.s === 'm'); return [l, f.length, f.filter(on).length, m.length, m.filter(on).length]; })
+    .filter((x) => x[1] + x[3] > 0);
+  const max = Math.max(...rows.flatMap((x) => [x[1], x[3]]));
+  const bar = (n, k, left) => `<span class="pb${left ? ' l' : ''}"><i style="width:${(n / max) * 100}%"><b style="width:${n ? (k / n) * 100 : 0}%"></b></i></span>`;
+  return `<div class="pyr">${rows.map(([l, f, fk, m, mk]) => `<span class="n f">${f}</span>${bar(f, fk, 1)}<span class="lab">${l}</span>${bar(m, mk)}<span class="n">${m}</span>`).join('')}</div>
+    <small class="picked">${cur ? `${all.filter(on).length} of ${all.length}: ${esc(s.lives.find((x) => x[0] === cur)[1].toLowerCase())}` : `Women to the left, men to the right. ${all.length} people in ${w.villages.length} villages on the tiny map.`}</small>`;
+}
+
+// Step 1: the scenarios as picture cards, the built ones first; below, the chosen one read off the land.
+function step1() {
+  const s = scen(), w = worldOf(s.key), pins = PINS[s.key] || [], ins = INSET[s.key];
+  const rows = [['sack', s.stores], ['scroll', s.customs]].filter((x) => x[1] !== 'What each farm has laid by');
+  const card = (x) => `<button type="button" class="card${x.status === 'sketch' ? ' sk' : ''}" data-sc="${x.key}" aria-pressed="${x === s}">
+      <img src="${pic(x.key, true)}" alt=""><b>${esc(x.name)} ${tag(x.status)}</b><small>${esc(x.line)}</small>
+      <span class="stats"><span>${icon('people')}${esc(x.people(S.size))}</span><span>${icon('gens')}${GENS[x.key]} generation${GENS[x.key] > 1 ? 's' : ''}</span></span></button>`;
+  $('app').innerHTML = `${headBar('New archipelago')}
+    <div class="cards three">${SCENARIOS.filter((x) => x.status !== 'sketch').map(card).join('')}</div>
+    <details class="more"${s.status === 'sketch' ? ' open' : ''}><summary>Four ideas for later ${tag('sketch')}</summary><div class="cards row">${SCENARIOS.filter((x) => x.status === 'sketch').map(card).join('')}</div></details>
+    <div class="cgrid">
+      <section>
+        <figure class="figure${s.status === 'sketch' ? ' sk' : ''}"><img src="${pic(s.key)}" alt="The land as this scenario begins">
+          ${pins.map(([x, y, k, t, left]) => `<span class="pin${left ? ' left' : ''}" style="left:${x}%;top:${y}%">${mark(w, k)}<b>${esc(t)}</b></span>`).join('')}
+          ${ins ? `<span class="inset"><img src="${ins[0]}" alt=""><small>${esc(ins[2])}</small></span>` : ''}</figure>
+        ${pins.length ? `<ul class="pinlist">${pins.map((x) => `<li>${mark(w, x[2])}${esc(x[3])}</li>`).join('')}</ul>` : '<small>A stand-in picture.</small>'}
+        <div class="year">${s.year.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
+        <ul class="rows">${rows.map(([ic, t]) => `<li>${icon(ic)}<span>${esc(t)}</span></li>`).join('')}</ul>
+      </section>
+      <section><h2>${esc(s.name)}</h2>
+        <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3><div class="who-starts" id="who">${households(s)}</div>
+        <h3>Story archetypes ${tag('sketch')}</h3>${stories(s, S.peek)}
+        <small>Tap one to see who they are. You choose a person once the land is raised.</small></section>
+    </div>
+    <div class="foot"><label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>
+      <label for="seed">Seed<span class="seedrow"><input id="seed" inputmode="numeric" maxlength="9" value="${S.seed}"><button type="button" id="reroll">Another</button></span></label>
+      <span class="grow"></span><button type="button" id="back1">Back</button><button type="button" class="primary" id="go">Raise the land</button></div>`;
+}
+
+function loading() {
+  $('app').className = 'sheet panel';
+  $('app').innerHTML = `<div class="loading"><h2 id="lt">Raising the land</h2><div class="bar"><i id="lb"></i></div></div>`;
+  requestAnimationFrame(() => { $('lb').style.width = '100%'; });
+  setTimeout(() => { if ($('lt')) $('lt').textContent = scen().key === 'founders' ? 'Settling the founders' : 'Waking the villages'; }, 450);
+  setTimeout(() => {
+    const w = worldOf(S.sc), p = w.people.find((x) => isLife(scen().lives[0][0], x)) || w.people.find((x) => x.a >= ADULT);
+    S.step = 2; S.done = false; S.story = null; S.suggested = p.id; choose(p); draw();
+  }, 1000);
+}
+
+// ---- step 2: the game itself. Drag the map, click a farm, meet its people; a story start takes you to someone. ----
+const K = 0.8; // the map picture's scale on the page
+const choose = (p) => { S.pawn = p.id; S.farm = p.farm.id; S.pan = null; };
+const canOf = (p) => (p.farm.village.voice === 'all' && !CAN[p.r].some((x) => x[0] === 'voice') ? [...CAN[p.r], ['voice', 'Speaks at the meeting']] : CAN[p.r]);
+function step2() {
+  const s = scen(), w = worldOf(s.key), f = w.farms.find((x) => x.id === S.farm), p = f.people.find((x) => x.id === S.pawn), hit = (x) => !!S.story && isLife(S.story, x);
+  if (S.done) {
+    $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game goes on from here,</b> at ${esc(f.name)} in ${esc(f.village.name)}, as ${esc(p.n)}. The panels close; the map stays.</div>
+      <div class="foot"><span class="grow"></span><button type="button" id="again">Choose someone else</button><button type="button" id="restart">Start over</button></div>`;
+    return;
+  }
+  const grown = f.people.filter((x) => x !== p && x.a >= ADULT), next = grown.find((x) => x.r === 'heir' || x.r === 'heiress') || grown[0];
+  $('app').innerHTML = `
+    <div class="view" id="view"><div class="map" id="map" style="width:${w.map.w * K}px;height:${w.map.h * K}px"><img src="${w.map.src}" alt="The map" draggable="false">
+      ${w.farms.map((x) => `<button type="button" class="fpin${x === f ? ' on' : ''}${x.people.some(hit) ? ' hit' : ''}" data-farm="${x.id}" style="left:${x.px}%;top:${x.py}%" aria-label="${esc(x.name)}, ${esc(x.village.name)}">${farmImg(x)}<b>${esc(x.name)}</b></button>`).join('')}</div></div>
+    <section class="gp list-p panel">
+      <div class="head"><h2>Whom to play</h2><span class="stepno">Step 2 of 2</span></div>
+      <small>Drag the map and click a farm, or begin from an archetype.</small>
+      ${w.villages.length > 1 ? `<div class="villages">${w.villages.map((v) => `<button type="button" data-v="${v.id}" aria-pressed="${v === f.village}">${esc(v.name)}</button>`).join('')}</div>` : ''}
+      <h3>Story archetypes ${tag('sketch')}</h3>${stories(s, S.story)}
+    </section>
+    <section class="gp card-p panel">
+      <div class="hhead">${farmImg(f)}<h2>${esc(f.name)}</h2><span class="muted">${esc(f.village.name)}${f.people.length ? ` · ${f.food} days of food` : ''}</span></div>
+      <small>${esc(f.people.length ? f.village.note : f.empty + ' No one to play here; a younger child or a servant may claim it at the moving round.')}</small>
+      <div class="people">${f.people.map((x) => `<button type="button" class="person${hit(x) ? ' hit' : ''}" data-p="${x.id}" aria-pressed="${x === p}" ${x.a < ADULT ? 'disabled' : ''}>${face(x)}${esc(x.n.split(' ')[0])}<small>${x.a}</small></button>`).join('')}</div>
+      ${p ? `<div class="detail"><div><h2>${esc(p.n)}${p.id === S.suggested ? ' ' + star() : ''}</h2><span class="posline">${icon(LIFE_ICON[p.r])}${p.a} · ${esc(POS[p.r].name.toLowerCase())}</span></div>
+        <p class="muted">${HARD[p.r]}</p>
+        <ul class="rows"><li>${icon('next')}<span>${next ? `After ${p.s === 'm' ? 'him' : 'her'}, you go on as ${esc(next.n.split(' ')[0])}${next.r === 'heir' || next.r === 'heiress' ? ', the heir' : ''}` : 'No one after: the line would break'}</span></li></ul>
+        <h3>Can ${tag('designed')}</h3>${chips(canOf(p))}
+        <h3>Ahead ${tag('designed')}</h3>${chips(NEXT[p.r])}</div>` : ''}
+    </section>
+    <div class="gp offer panel"><button type="button" id="back2">Back</button><button type="button" id="watch">Watch only</button><button type="button" class="primary" id="play" ${p ? '' : 'disabled'}>${p ? `Play as ${esc(p.n.split(' ')[0])}` : 'No one here'}</button></div>`;
+  place(f);
+}
+// The map's place under the view: where it was dragged to, or gliding to the chosen farm, kept clear of the panels on a wide page.
+function clampPan(x, y) { const v = $('view'), m = $('map'); return { x: Math.min(0, Math.max(v.clientWidth - m.offsetWidth, x)), y: Math.min(0, Math.max(v.clientHeight - m.offsetHeight, y)) }; }
+function place(f) {
+  const v = $('view'), m = $('map'), old = S.pan;
+  if (!S.pan || S.center) S.pan = clampPan(v.clientWidth / 2 - (f.px / 100) * m.offsetWidth, v.clientHeight * 0.5 - (f.py / 100) * m.offsetHeight);
+  if (S.center && old) { m.style.transform = `translate(${S.last ? S.last.x : old.x}px, ${S.last ? S.last.y : old.y}px)`; m.getBoundingClientRect(); m.classList.add('glide'); }
+  S.center = false; S.last = S.pan; m.style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`;
+}
+let drag = null, dragged = false;
+$('app').addEventListener('pointerdown', (e) => { const v = e.target.closest('#view'); if (!v || !S.pan) return; drag = { x: e.clientX, y: e.clientY, px: S.pan.x, py: S.pan.y, id: e.pointerId }; dragged = false; });
+window.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!dragged && Math.hypot(dx, dy) < 5) return;
+  dragged = true; $('view').classList.add('drag'); $('map').classList.remove('glide');
+  S.pan = S.last = clampPan(drag.px + dx, drag.py + dy); $('map').style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`;
+});
+window.addEventListener('pointerup', () => { if (drag && $('view')) $('view').classList.remove('drag'); drag = null; });
+$('app').addEventListener('wheel', (e) => { if (!e.target.closest('#view') || !S.pan) return; e.preventDefault(); $('map').classList.remove('glide');
+  S.pan = S.last = clampPan(S.pan.x - e.deltaX, S.pan.y - e.deltaY); $('map').style.transform = `translate(${S.pan.x}px, ${S.pan.y}px)`; }, { passive: false });
+
+function draw() {
+  const game = S.step === 2 && !S.done;
+  $('app').className = game ? 'game' : 'sheet panel';
+  $('stage').style.backgroundImage = `url(${pic(S.sc)})`;
+  $('mockbar').innerHTML = `<b>Mock</b><span>${game ? 'The game after the land is raised. The map is a picture of the game\'s; people, portraits and farm icons are the game\'s own.' : 'People, portraits and pictures are the game\'s, for seed 7 on a tiny map, whatever is set below.'}</span>
+    <span class="legend"><span>${tag('built')} in the game</span><span>${tag('designed')} in design.md</span><span>${tag('sketch')} an idea</span></span>`;
+  if (S.step === 1) step1(); else step2();
+}
+
+$('app').addEventListener('click', (e) => {
+  if (dragged) { dragged = false; e.preventDefault(); return; }
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset, w = worldOf(S.sc), go = (p) => { choose(p); S.pan = S.last; S.center = true; };
+  if (d.sc) { S.sc = d.sc; S.peek = S.hover = null; }
+  else if (d.story && S.step === 1) S.peek = S.peek === d.story ? null : d.story;
+  else if (d.story) { const who = w.people.filter((p) => isLife(d.story, p)), i = S.story === d.story ? who.findIndex((p) => p.id === S.pawn) : -1; S.story = d.story; go(who[(i + 1) % who.length]); }
+  else if (d.v) go(w.villages[+d.v].farms.flatMap((x) => x.people).find((p) => p.a >= ADULT))
+  else if (d.farm) { const f = w.farms.find((x) => x.id === +d.farm), p = f.people.find((x) => S.story && isLife(S.story, x)) || f.people.find((x) => x.a >= ADULT); S.farm = f.id; S.pawn = p ? p.id : -1; S.pan = S.last; S.center = true; }
+  else if (d.p) S.pawn = +d.p;
+  else if (b.id === 'reroll') S.seed = (Math.random() * 1e6) | 0;
+  else if (b.id === 'go') { loading(); return; }
+  else if (b.id === 'back2' || b.id === 'restart') { S.step = 1; S.done = false; }
+  else if (b.id === 'play') S.done = true;
+  else if (b.id === 'again') S.done = false, S.pan = null;
+  else if (b.id === 'watch') { $('app').className = 'sheet panel'; $('app').innerHTML = `${headBar('Whom to play')}<div class="toast"><b>The game goes on with no one played,</b> as it does today after "Not now".</div><div class="foot"><span class="grow"></span><button type="button" id="again">Choose someone</button></div>`; return; }
+  else return;
+  draw();
+});
+// Pointing at a story archetype shows who they are, in "Who starts" only; nothing is chosen by it, and nothing moves.
+const look = (k) => { if (S.step !== 1 || S.hover === k) return; S.hover = k; const el = $('who'); if (el) el.innerHTML = households(scen()); };
+$('app').addEventListener('mouseover', (e) => { const b = e.target.closest('[data-story]'); if (b) look(b.dataset.story); });
+$('app').addEventListener('mouseout', (e) => { const b = e.target.closest('[data-story]'); if (b && !b.contains(e.relatedTarget)) look(null); });
+$('app').addEventListener('change', (e) => {
+  if (e.target.id === 'size') S.size = e.target.value;
+  else if (e.target.id === 'seed') S.seed = +String(e.target.value).replace(/\D/g, '').slice(0, 9) || 0;
+  else return;
+  draw();
+});
+draw();
+</script>

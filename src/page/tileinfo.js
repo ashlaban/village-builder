@@ -46,7 +46,8 @@
     return out;
   }
   function pick(sx, sy, inspect = true) {
-    if (!w || document.body.classList.contains('ui-hidden')) return;
+    if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
+    if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
     if (!inspect && (selectionPinned || (activePanel && activePanel !== 'tile'))) return;
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);

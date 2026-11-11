@@ -50,7 +50,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await page.goto('https://village.test/#pt7'); await done(); await page.waitForTimeout(300);
   await pause();
   const h0 = await world();
-  await page.click('#playOfferYes'); await pause();
+  await page.waitForSelector('#choose:not([hidden])'); await page.click('#choosePlay'); await pause(); // whom to play (VB-339): the suggestion
   await page.evaluate(() => { const { st, Sim } = window.__play; Sim.advance(st, Sim.DAY * 30); });
   const h1 = await hash();
   check(/pawn=\d+/.test(h1), 'no played pawn: ' + h1);
@@ -94,7 +94,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   check((await hash()) === h3b, 'Back to game changed the state');
 
   // 4. A second archipelago, and two saves made to look like another build's.
-  await page.goto('about:blank'); await page.goto('https://village.test/#st11'); await done(); await pause();
+  await page.goto('about:blank'); await page.goto('https://village.test/#st11'); await done(); await page.click('#chooseWatch'); await pause();
   await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click('#savesBody [data-save="2"]'); await settle(1);
   const oldBuild = (key) => page.evaluate((k) => window.__play.saveTx('readwrite', (m) => { const q = m.get(k); q.onsuccess = () => m.put({ ...q.result, build: 'old0000000' }); }), key);
@@ -118,11 +118,14 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await pause();
   await page.click(`#savesBody [data-load="${P7}:1"]`); await done(); await pause();
   check((await hash()) === h1, 'Continue after a reload: ' + (await hash()) + ' against ' + h1);
+  check(await page.locator('#choose').isHidden(), 'a load opens whom to play'); // VB-339: only a new game does
   await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click(`#savesBody [data-del="${P7}:3"]`);
   await until(async (k) => !(await window.__play.listSaves()).some((x) => x.key === k), `${P7}:3`);
   check((await keys()).includes(`${P7}:auto`), 'Delete it removed another save: ' + (await keys()));
   await page.click(`#savesBody [data-new="${P7}:auto"]`); await done(); await pause();
+  await page.waitForSelector('#choose:not([hidden])'); await page.click('#chooseWatch'); // a new game opens whom to play; Watch only plays no one
+  check(await page.evaluate(() => window.__play.st.player === null), 'Watch only left a pawn played');
   check((await world()) === h0, 'Start a new game did not generate the same archipelago: ' + (await world()) + ' against ' + h0);
   check((await keys()).includes(`${P7}:auto`), 'Start a new game deleted the save');
 
@@ -150,7 +153,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
     await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300); await shot('gen-phone.png');
     await reload(); await landing(); await shot('landing-phone.png');
     await savesOpen(); await shot('saves-landing-phone.png');
-    await reload('#pt7'); await done(); await pause();
+    await reload('#pt7'); await done(); await shot('choose-phone.png'); await page.click('#chooseWatch'); await pause();
     await page.click('#menuBtn'); await landing(); await savesOpen(); await shot('saves-game-phone.png');
   }
   await browser.close();

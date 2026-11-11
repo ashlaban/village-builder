@@ -33,9 +33,11 @@
       const k = reduceMotion ? 0 : 1;
       cam.x = demoAt.x + k * demoAt.r * Math.sin(time * 0.045); cam.y = demoAt.y + k * demoAt.r * 0.6 * Math.sin(time * 0.031 + 1);
     }
-    clampCam();
+    const framed = startOpen() && start.shown && st === start.shown.sim; // the start's picture: its frame keeps the camera (page/start)
+    if (framed) startCamera(); else clampCam();
     world.scale.set(cam.z);
     world.position.set(app.screen.width / 2 - cam.x * cam.z, app.screen.height / 2 - cam.y * cam.z);
+    if (framed) placeCallouts();
 
     T = levelFor(cam.z, T);
     // paint in bigger slices while the view is still; keep frames smooth while it moves
