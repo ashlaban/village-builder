@@ -113,7 +113,7 @@ VB['sim/stores'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       VB.count.storeWalk += hh.ledger.length + hh.totals.length;
-      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter(recent);
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter((t) => st.t - t < YEAR * BREW.years);
     }
     for (const v of st.villages) {
       VB.count.storeWalk += v.ledger.length + v.totals.length;

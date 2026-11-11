@@ -5445,7 +5445,7 @@ VB['sim/stores'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       VB.count.storeWalk += hh.ledger.length + hh.totals.length;
-      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter(recent);
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter((t) => st.t - t < YEAR * BREW.years);
     }
     for (const v of st.villages) {
       VB.count.storeWalk += v.ledger.length + v.totals.length;
@@ -15504,7 +15504,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '91864d493e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a0fda08197', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -37,6 +37,8 @@ assert.strictEqual(hh.poured.length, BREW.maxBarrels, 'the pours are bounded');
 assert.ok(Math.abs(S.aleStanding(st, hh) - 0.2) < 1e-9, 'standing at most 0.2');
 st.t += 2 * YEAR + 1; assert.ok(Math.abs(S.aleStanding(st, hh) - 0.2) < 1e-9, 'still there within 3 years'); st.t += YEAR;
 assert.strictEqual(S.aleStanding(st, hh), 0, 'gone after 3 years');
+{ const keep = hh.poured.length; st.t -= 2 * YEAR; S.prune(st); assert.strictEqual(hh.poured.length, keep, 'the year\'s turn keeps pours of the last 3 years');
+  st.t += 2 * YEAR; S.prune(st); assert.strictEqual(hh.poured.length, 0, 'and drops older ones'); }
 assert.deepStrictEqual(checkState(st).filter((x) => /ale|pours|stores/.test(x)), [], 'invariants (ale)'); // the clock was moved by years, so ages are stale
 
 // 5. At an occasion the host pours what it has and the guests remember it; a host with no ale pours nothing and is not remembered.
