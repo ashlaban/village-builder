@@ -75,7 +75,7 @@ body {
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
-/* The top bar's controls are icons (VB-324): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
+/* The top bar's controls are icons (VB-338): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
 .clock .icon-btn { width: 44px; height: 44px; flex: none; }
 .ico { display: block; flex: none; }
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
@@ -185,8 +185,8 @@ body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .nav
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
-/* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
-/* The open game at the main menu's top left (VB-324): its name and its map; neither is shown in play.
+/* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
+/* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
   width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
@@ -245,10 +245,10 @@ input, select { font: inherit; color: var(--ink); }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-324) */
+.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
-/* The dock is icons, each with its name under it (VB-324). */
+/* The dock is icons, each with its name under it (VB-338). */
 .navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
   padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
 .navigation button:not([aria-pressed="true"]) { color: var(--muted); }
@@ -256,7 +256,7 @@ input, select { font: inherit; color: var(--ink); }
 .sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
-/* The dock's panels rise from it, centred over it (VB-324); the selection card, opened from the map, keeps the bottom left. */
+/* The dock's panels rise from it, centred over it (VB-338); the selection card, opened from the map, keeps the bottom left. */
 .people-sheet, .drawer { left: max(14px, calc(50% - 215px)); right: auto; }
 .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
@@ -264,7 +264,7 @@ input, select { font: inherit; color: var(--ink); }
   overflow-wrap: anywhere; }
 .sheet-head button { padding: 6px 10px; flex-shrink: 0; }
 .sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
-/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-324). */
+/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-338). */
 .sheet-expand .ico { transition: transform 0.15s; }
 .sheet-expand[aria-expanded="false"] .ico { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .sheet-expand .ico { transition: none; } }
@@ -296,7 +296,7 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-/* The map's tools (VB-324), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+/* The map's tools (VB-338), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
    toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
 .map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -309,7 +309,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
 .notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
-/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-324: the dock's
+/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
 .toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
@@ -448,7 +448,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
-  /* the speed picker opens over everything, the notifications too (VB-324) */
+  /* the speed picker opens over everything, the notifications too (VB-338) */
   .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; flex-wrap: nowrap;
     padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
   .speed-open .speed { display: flex; }

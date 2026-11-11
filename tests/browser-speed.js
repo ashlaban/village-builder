@@ -86,7 +86,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       await page.evaluate((modifier) => window.dispatchEvent(new KeyboardEvent('keydown', { key: '4', [modifier]: true })), modifier);
       assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'modified keys belong to the browser');
     }
-    // the background run has no control for now (VB-324): blur pauses the run, and focus resumes it
+    // the background run has no control for now (VB-338): blur pauses the run, and focus resumes it
     await page.click('[data-speed="30"]');
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     const returning = await page.evaluate(() => window.__speedTest.st.t); await page.waitForTimeout(350);

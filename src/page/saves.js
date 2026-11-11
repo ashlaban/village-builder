@@ -100,7 +100,7 @@
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-324), with Back to the menu: Saves while
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
     // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;

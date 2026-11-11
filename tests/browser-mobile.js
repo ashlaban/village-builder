@@ -41,7 +41,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     };
     assert((await page.locator('#clock').boundingBox()).y + (await page.locator('#clock').boundingBox()).height < 115, 'compact mobile header');
     await fits('.navigation'); await capture('mobile-map');
-    // VB-324: no name in play; the speed picker opens over the notifications, its six icons in one row
+    // VB-338: no name in play; the speed picker opens over the notifications, its six icons in one row
     assert(await page.locator('#name').isHidden(), 'the archipelago name is not shown in play');
     await page.evaluate(() => { const t = document.createElement('button'); t.className = 'toast panel'; t.id = 'fakeToast';
       t.textContent = 'A notification long enough to run under the whole of the speed picker, as three at once do.';
@@ -55,7 +55,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     const rows = await page.locator('#speedOptions button').evaluateAll((bs) => new Set(bs.map((b) => Math.round(b.getBoundingClientRect().y))).size);
     assert.strictEqual(rows, 1, 'the speeds lie in one row');
     await page.click('#speedBtn'); await page.evaluate(() => document.getElementById('fakeToast').remove());
-    // VB-324: the dock's buttons are icons with their names under them; the panels' Close and fold are icons with accessible names
+    // VB-338: the dock's buttons are icons with their names under them; the panels' Close and fold are icons with accessible names
     const dock = await page.locator('.navigation button:visible').evaluateAll((bs) => bs.map((b) => [!!b.querySelector('svg'),
       b.querySelector('.nav-label') && b.querySelector('.nav-label').getBoundingClientRect().height > 0]));
     assert(dock.length >= 4 && dock.every(([icon, label]) => icon && label), `the dock's buttons have an icon and a label: ${JSON.stringify(dock)}`);
@@ -136,7 +136,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.locator('#treeSvg .tn').first().click();
     assert(await page.locator('#treeInfo h3').textContent());
     await page.keyboard.press('Escape'); assert(await page.locator('#tree').isHidden()); console.log('mobile: family closed');
-    // VB-324: the map's bar under the minimap; shut, only the minimap's toggle stays; open, the minimap, the layers and the bell
+    // VB-338: the map's bar under the minimap; shut, only the minimap's toggle stays; open, the minimap, the layers and the bell
     const onlyToggle = async () => await page.locator('#minimap').isHidden() && await page.locator('#landBtn').isHidden()
       && await page.locator('#noticeBtn').isHidden() && await page.locator('#minimapBtn').isVisible();
     assert(await onlyToggle(), 'a phone opens with the minimap shut, its toggle alone shown');
@@ -173,12 +173,12 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       await fits('#clock'); await fits('.navigation');
       assert.strictEqual(await page.locator('#pauseBtn').isVisible(), width <= 1024, 'the phone pause button only on a phone');
       assert.strictEqual(await page.locator('#speedBtn').isVisible(), width <= 1024, 'the phone speed button only on a phone');
-      // VB-324: Main menu ends the top bar, in the top-right corner; the map's tools fit, the minimap's toggle at their right end
+      // VB-338: Main menu ends the top bar, in the top-right corner; the map's tools fit, the minimap's toggle at their right end
       const [mb, ck] = [await page.locator('#menuBtn').boundingBox(), await page.locator('#clock').boundingBox()];
       assert(mb.x + mb.width >= ck.x + ck.width - 12 && mb.y < 80, `Main menu ends the top bar: ${JSON.stringify([mb, ck])}`);
       await fits('#mapTools');
       assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
-      // VB-324: the dock's panels rise from it (centred over it on a wide screen); the notifications start just under the top bar
+      // VB-338: the dock's panels rise from it (centred over it on a wide screen); the notifications start just under the top bar
       const rises = async (id) => {
         const [p, d] = [await page.locator(id).boundingBox(), await page.locator('.navigation').boundingBox()];
         assert(p.y + p.height <= d.y && (width <= 1024 || Math.abs(p.x + p.width / 2 - d.x - d.width / 2) <= 2),

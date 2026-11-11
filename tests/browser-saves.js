@@ -54,7 +54,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await page.evaluate(() => { const { st, Sim } = window.__play; Sim.advance(st, Sim.DAY * 30); });
   const h1 = await hash();
   check(/pawn=\d+/.test(h1), 'no played pawn: ' + h1);
-  // Saves is the main menu's (VB-324): Main menu, at the top bar's end, then Saves, Back, and Back to game
+  // Saves is the main menu's (VB-338): Main menu, at the top bar's end, then Saves, Back, and Back to game
   await page.click('#menuBtn'); await landing(); await savesOpen();
   check(await page.locator('#savesTitle').innerText() === 'Saves', 'with a game open the overlay is not titled Saves');
   await page.click('#savesBody [data-save="1"]'); await settle(1);

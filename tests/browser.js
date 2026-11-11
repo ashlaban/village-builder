@@ -138,7 +138,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   }, target, { timeout: 120000 });
   await page.click('[data-speed="0"]');
   // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the Actions panel, which rises from the dock over
-  // the view's middle (VB-324), is folded to choose it, and opened again
+  // the view's middle (VB-338), is folded to choose it, and opened again
   await page.click('#playBox [data-play="follow"]'); await page.waitForTimeout(600);
   await page.click('#playBox [data-play="walk"]'); await page.click('#actionSheet .sheet-expand');
   const box = await page.locator('canvas').first().boundingBox();

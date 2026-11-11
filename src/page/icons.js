@@ -1,4 +1,4 @@
-// @sys page/icons: the interface's icons (VB-324), inline SVG drawn in currentColor, so a button's colour and pressed state colour its icon
+// @sys page/icons: the interface's icons (VB-338), inline SVG drawn in currentColor, so a button's colour and pressed state colour its icon
   const svgIcon = (w, h, body, attrs = '') =>
     `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
   const ICON_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';

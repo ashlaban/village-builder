@@ -75,7 +75,7 @@ body {
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
-/* The top bar's controls are icons (VB-324): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
+/* The top bar's controls are icons (VB-338): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
 .clock .icon-btn { width: 44px; height: 44px; flex: none; }
 .ico { display: block; flex: none; }
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
@@ -185,8 +185,8 @@ body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .nav
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
-/* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
-/* The open game at the main menu's top left (VB-324): its name and its map; neither is shown in play.
+/* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
+/* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
   width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
@@ -245,10 +245,10 @@ input, select { font: inherit; color: var(--ink); }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-324) */
+.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
-/* The dock is icons, each with its name under it (VB-324). */
+/* The dock is icons, each with its name under it (VB-338). */
 .navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
   padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
 .navigation button:not([aria-pressed="true"]) { color: var(--muted); }
@@ -256,7 +256,7 @@ input, select { font: inherit; color: var(--ink); }
 .sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
-/* The dock's panels rise from it, centred over it (VB-324); the selection card, opened from the map, keeps the bottom left. */
+/* The dock's panels rise from it, centred over it (VB-338); the selection card, opened from the map, keeps the bottom left. */
 .people-sheet, .drawer { left: max(14px, calc(50% - 215px)); right: auto; }
 .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
@@ -264,7 +264,7 @@ input, select { font: inherit; color: var(--ink); }
   overflow-wrap: anywhere; }
 .sheet-head button { padding: 6px 10px; flex-shrink: 0; }
 .sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
-/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-324). */
+/* A panel's fold is a chevron, down while the panel is open (a press folds it) and up while it is folded (VB-338). */
 .sheet-expand .ico { transition: transform 0.15s; }
 .sheet-expand[aria-expanded="false"] .ico { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .sheet-expand .ico { transition: none; } }
@@ -296,7 +296,7 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-/* The map's tools (VB-324), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+/* The map's tools (VB-338), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
    toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
 .map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -309,7 +309,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
 .notice-pop .menu-label { margin: 12px 0 8px; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
-/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-324: the dock's
+/* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
 .toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
@@ -448,7 +448,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
-  /* the speed picker opens over everything, the notifications too (VB-324) */
+  /* the speed picker opens over everything, the notifications too (VB-338) */
   .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; flex-wrap: nowrap;
     padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
   .speed-open .speed { display: flex; }
@@ -12252,7 +12252,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-324)
+    $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
     $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
@@ -12551,7 +12551,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
-    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
       const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
@@ -12581,7 +12581,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  // Main menu, at the top bar's end (VB-324): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
@@ -12625,7 +12625,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
-  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-324).
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-338).
   function paintUIToggle(hidden) {
     $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
     $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
@@ -12638,7 +12638,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
     closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
-  // The minimap's toggle is the right end of the map's bar (VB-324): shut, it puts away the minimap and the bar's other buttons, and alone stays.
+  // The minimap's toggle is the right end of the map's bar (VB-338): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
@@ -12661,7 +12661,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
   });
-  // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  // A panel's fold is a chevron (VB-338); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
   function nameFold(button) {
     const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
     button.setAttribute('aria-label', name); button.title = name;
@@ -12680,7 +12680,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
-  // Pause and the speeds are icons (VB-324): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // Pause and the speeds are icons (VB-338): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
   // to come and the speed chosen.
   function paintSpeed(v) {
     const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
@@ -13817,7 +13817,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
   const uncappedButton = document.querySelector('[data-speed="Infinity"]');
-  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-324); a control would set keepRunning and call
+  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-338); a control would set keepRunning and call
   // syncBackgroundRun. While it is off, the run pauses when the page is hidden or the window loses focus.
   let keepRunning = false;
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
@@ -13826,7 +13826,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let skipCursor = null;
   function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
-  // The uncapped speed's button is an icon (VB-324): the rate it reaches is in its name and tooltip.
+  // The uncapped speed's button is an icon (VB-338): the rate it reaches is in its name and tooltip.
   function nameUncapped(name) { uncappedButton.setAttribute('aria-label', name); uncappedButton.title = `${name} (5)`; }
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
@@ -15563,7 +15563,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   });
 
   // ---- notifications ----
-  // A toast for each notable event the record gains: at the top centre, under the top bar (VB-324), for 6 s, at most 3 at once (a fourth replaces
+  // A toast for each notable event the record gains: at the top centre, under the top bar (VB-338), for 6 s, at most 3 at once (a fourth replaces
   // the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
   // happens at high speed. Which kinds show is the page's choice, kept in localStorage and never in st.
   const TOAST_SECONDS = 6, TOAST_MAX = 3, NOTICE_KEY = 'vb.notices.off';
@@ -15573,7 +15573,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   try { for (const k of JSON.parse(localStorage.getItem(NOTICE_KEY) || '[]')) if (Sim.NOTABLE[k]) noticeOff.add(k); } catch (e) { noticeOff.clear(); }
   $('noticeList').innerHTML = Object.entries(Sim.NOTABLE).map(([k, label]) =>
     `<label class="dchk"><input type="checkbox" data-notice="${k}"${noticeOff.has(k) ? '' : ' checked'}> ${esc(label)}</label>`).join('');
-  // The list is the bell's, in the map's bar under the minimap (VB-324): it opens over the minimap, and shuts on a press elsewhere or Esc.
+  // The list is the bell's, in the map's bar under the minimap (VB-338): it opens over the minimap, and shuts on a press elsewhere or Esc.
   function closeNotices() { $('noticePop').hidden = true; $('noticeBtn').setAttribute('aria-expanded', 'false'); }
   $('noticeBtn').addEventListener('click', () => {
     const open = $('noticePop').hidden; $('noticePop').hidden = !open; $('noticeBtn').setAttribute('aria-expanded', String(open));
@@ -15584,7 +15584,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (e.target.checked) noticeOff.delete(k); else noticeOff.add(k);
     try { localStorage.setItem(NOTICE_KEY, JSON.stringify([...noticeOff])); } catch (err) { return; } // no storage: the choice lasts the visit
   });
-  // The toasts stand just under the top bar, however tall a narrow screen's date makes it (VB-324): its bottom edge, as a CSS length.
+  // The toasts stand just under the top bar, however tall a narrow screen's date makes it (VB-338): its bottom edge, as a CSS length.
   const barBottom = () => document.documentElement.style.setProperty('--bar-bottom', `${Math.round($('clock').getBoundingClientRect().bottom)}px`);
   if (window.ResizeObserver) new ResizeObserver(barBottom).observe($('clock'));
   window.addEventListener('resize', barBottom); barBottom();
@@ -15663,7 +15663,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0a38873989', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '638100fa34', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -15760,7 +15760,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-324), with Back to the menu: Saves while
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
     // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;

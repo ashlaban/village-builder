@@ -1,7 +1,7 @@
 // @sys page/speed: simulation pacing, the uncapped frame budget and background progress (off, with no control for now)
   const SIM_BUDGET_MS = 12, SIM_SLICE_HOURS = 0.1;
   const uncappedButton = document.querySelector('[data-speed="Infinity"]');
-  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-324); a control would set keepRunning and call
+  // Keep running in background (VB-084) is off and has no control for now (11 Nov, VB-338); a control would set keepRunning and call
   // syncBackgroundRun. While it is off, the run pauses when the page is hidden or the window loses focus.
   let keepRunning = false;
   let windowFocused = document.hasFocus(), backgroundTimer = null, backgroundAt = 0;
@@ -10,7 +10,7 @@
   let skipCursor = null;
   function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
-  // The uncapped speed's button is an icon (VB-324): the rate it reaches is in its name and tooltip.
+  // The uncapped speed's button is an icon (VB-338): the rate it reaches is in its name and tooltip.
   function nameUncapped(name) { uncappedButton.setAttribute('aria-label', name); uncappedButton.title = `${name} (5)`; }
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;

@@ -42,7 +42,7 @@ for (const flag of ['building', 'skipping']) {
 screen.hidden = false; const t = ctx.st.t; ctx.advanceSimulation(1); assert.strictEqual(ctx.st.t, t); screen.hidden = true;
 const state = ctx.st; ctx.st = null; ctx.advanceSimulation(1); ctx.st = state;
 listeners['window:blur'](); assert(vm.runInContext('simulationAway()', ctx)); assert.strictEqual(timers.size, 0, 'background is opt in');
-// the background run has no control for now (VB-324): the flag a control would set
+// the background run has no control for now (VB-338): the flag a control would set
 vm.runInContext('keepRunning = true; syncBackgroundRun()', ctx); assert.strictEqual(timers.size, 1);
 for (let i = 0; i < 3; i++) { listeners['window:blur'](); listeners['document:visibilitychange'](); }
 assert.strictEqual(timers.size, 1, 'repeated focus/visibility notifications never stack timers');
@@ -70,7 +70,7 @@ const input = {
   matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {}, cancelSkip() {},
 };
 vm.createContext(input);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/icons.js'), 'utf8'), input); // the speeds' icons (VB-324)
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/icons.js'), 'utf8'), input); // the speeds' icons (VB-338)
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/input.js'), 'utf8'), input);
 const key = (key, flags = {}) => keyHandlers.keydown({ key, target: { closest: () => null }, preventDefault() {}, ...flags });
 for (const modifier of ['ctrlKey', 'metaKey', 'altKey', 'defaultPrevented', 'isComposing']) {

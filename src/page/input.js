@@ -65,7 +65,7 @@
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
-    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
       const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
@@ -95,7 +95,7 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  // Main menu, at the top bar's end (VB-324): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
+  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
@@ -139,7 +139,7 @@
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
-  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-324).
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-338).
   function paintUIToggle(hidden) {
     $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
     $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
@@ -152,7 +152,7 @@
     for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet, .map-bar')) el.inert = hidden;
     closeSpeedOptions(); closeNotices(); $('uiToggle').focus();
   }
-  // The minimap's toggle is the right end of the map's bar (VB-324): shut, it puts away the minimap and the bar's other buttons, and alone stays.
+  // The minimap's toggle is the right end of the map's bar (VB-338): shut, it puts away the minimap and the bar's other buttons, and alone stays.
   function setMinimap(on) {
     document.body.classList.toggle('minimap-open', on);
     $('minimapBtn').setAttribute('aria-pressed', String(on));
@@ -175,7 +175,7 @@
     if (mobileUI.matches) openPanel(null);
     setMinimap(on);
   });
-  // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
+  // A panel's fold is a chevron (VB-338); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
   function nameFold(button) {
     const name = button.getAttribute('aria-expanded') === 'true' ? 'Collapse' : button.dataset.sheet === 'tile' ? 'Details' : 'Expand';
     button.setAttribute('aria-label', name); button.title = name;
@@ -194,7 +194,7 @@
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
-  // Pause and the speeds are icons (VB-324): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // Pause and the speeds are icons (VB-338): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
   // to come and the speed chosen.
   function paintSpeed(v) {
     const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
