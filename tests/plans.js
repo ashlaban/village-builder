@@ -27,7 +27,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   setClock(st, DAY + WORK[0]);
   plan.targets.fields = -5; plan.reserved.grain = -1;
   refreshJobs(st, cal(st.t));
-  assert.strictEqual(plan.targets.fields, F.fieldsWanted(st, hh), 'the day\'s first work review writes the fields wanted');
+  assert.strictEqual(plan.targets.fields, F.fieldsWanted(st, hh), 'the first review writes the fields wanted');
   assert.strictEqual(plan.reserved.grain, seedNeed(st, hh), 'the review counts the seed reserved');
   assert.throws(() => Stores.reserve(st, hh, plan, 'grain', 1, 'barn'), /unknown reservation/, 'a reason it does not know');
   assert.throws(() => Stores.reserve(st, hh, Plans.planOf(st, 'household', st.households[1].id), 'grain', 1, 'seed'), /its holder's plan/,
@@ -64,7 +64,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
 { // the plan records the year's herd count
   const st = fresh('heirs'), hh = st.households.find((h) => h.herds.length), plan = Plans.planOf(st, 'household', hh.id);
   setClock(st, ((HERD.countDay) * DAY) + WORK[0]);
-  refreshJobs(st, cal(st.t));
+  refreshJobs(st, cal(st.t), true);
   assert.strictEqual(plan.counted, 1, 'the count held this year');
 }
 { // a save made before the targets and reservations gets them at load
@@ -79,7 +79,61 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   Sim.advance(st, YEAR_DAYS * DAY / 4);
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'plan invariants after a season');
   setClock(st, Math.ceil(st.t / DAY) * DAY + WORK[0]);
-  refreshJobs(st, cal(st.t));
+  refreshJobs(st, cal(st.t), true); // every holder reviewed now
   for (const id of st.liveHouseholds) assert.strictEqual(Plans.planOf(st, 'household', id).reserved.grain, seedNeed(st, st.households[id]), 'stored at review');
+}
+// ---- VB-249: windows and the due-queue, planning days ----
+{ // the due-queue opens the time-bound kinds at their hour, with no review: water from 5:00, cooking from 14:00
+  const st = fresh('populous');
+  const W = Plans.WINDOWED;
+  assert.deepStrictEqual([...W].sort(), ['cook', 'fodder', 'haul', 'milk', 'thresh', 'water'], 'the time-bound kinds');
+  assert.strictEqual(st.plans.due.length, st.liveHouseholds.length * W.length, 'one entry per household and kind');
+  for (const plan of st.plans.households.values()) plan.nextReview = 1e9;
+  for (const plan of st.plans.villages.values()) plan.nextReview = 1e9;
+  for (const j of [...st.jobs.values()]) VB['sim/agents'].dropJob(st, j);
+  setClock(st, DAY + WORK[0] - 1);
+  const reviews = VB.count.planReview;
+  refreshJobs(st, cal(st.t));
+  assert.strictEqual(VB.count.planReview, reviews, 'no plan was reviewed');
+  const day = cal(st.t).day;
+  for (const id of st.liveHouseholds) assert(st.jobs.has(`water:h${id}:${day}`), `household ${id} has its water posted at 5:00`);
+  assert(![...st.jobs.values()].some((j) => j.kind === 'cook'), 'no cooking before 14:00');
+  assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'queue invariants after a pop');
+  // the water drawn: the next hour's ask takes the job down and the entry waits for tomorrow's 5:00
+  const id0 = st.liveHouseholds[0], k = W.indexOf('water');
+  st.households[id0].waterDay = day;
+  setClock(st, DAY + WORK[0]); refreshJobs(st, cal(st.t));
+  assert(!st.jobs.has(`water:h${id0}:${day}`), 'water drawn: its task taken down');
+  assert.strictEqual(st.plans.due.find((e) => e[1] === id0 && e[2] === k)[0], 2 * DAY + WORK[0] - 1, 'asked again at tomorrow\'s 5:00');
+  // a dissolved household's entries leave the queue with its plan
+  Plans.dropPlan(st, 'household', id0);
+  assert(!st.plans.due.some((e) => e[1] === id0), 'no entry of a dropped plan');
+}
+{ // planning days: the head's diligence sets the cadence, the id the day and the hour; a store crossing a target wakes one review a day
+  const st = fresh('populous'), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id), head = st.pawns[hh.holder];
+  for (const [d, cad] of [[0.1, 3], [0.5, 2], [0.9, 1]]) { head.diligence = d; assert.strictEqual(Plans.cadence(st, plan), cad, `diligence ${d}`); }
+  head.diligence = 0.1;
+  setClock(st, 3 * DAY + WORK[0]);
+  Plans.reviewed(st, plan, cal(st.t));
+  const next = plan.nextReview, nd = Math.floor(next / DAY), nh = next - nd * DAY;
+  assert(next > st.t && (nd + hh.id) % 3 === 0 && nh >= WORK[0] - 1 && nh <= WORK[1], `the next planning day (${next})`);
+  const c = cal(st.t);
+  assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), c), null, 'not due again today');
+  Stores.take(st, hh, 'grain', hh.grain, 'meal');
+  assert(plan.dirty, 'the grain above the seed ran out: the plan is flagged');
+  assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), c), 'store', 'a store woke a review');
+  Plans.reviewed(st, plan, c, 'store');
+  assert(!plan.dirty && plan.nextReview === next, 'the flag cleared, the planning day kept');
+  Stores.put(st, hh, 'grain', 1000, 'gift');
+  assert(plan.dirty && Plans.reviewWhy(st, plan, Math.floor(st.t), c) === null, 'at most one store review a day');
+  const spring9 = cal(st.ECON.sowWindow[1] * DAY + WORK[0]);
+  assert(Plans.closing(st, spring9) && !Plans.closing(st, cal(3 * DAY)), 'the sowing window\'s last day is a closing day');
+}
+{ // a member without a task looks at the household's opportunities, once a household a day
+  const st = fresh('populous'), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id), J = VB['sim/jobs'];
+  const c = cal(st.t), a = st.agents[hh.members.find((m) => st.pawns[m].age >= 16)];
+  assert.deepStrictEqual(J.lookForWork(st, [a], c), [a], 'it looks');
+  assert.strictEqual(plan.looked, c.day);
+  assert.deepStrictEqual(J.lookForWork(st, [a], c), [], 'not twice a day');
 }
 console.log('plans ok');

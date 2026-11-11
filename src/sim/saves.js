@@ -246,6 +246,7 @@ VB['sim/saves'] = (() => {
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers

@@ -27,6 +27,8 @@ VB['sim/kinds'] = (() => {
   //   post(key, site, extra, kind), and the owner of a job not the household's, post(key, site, extra, kind, owner). A kind posted by two
   //   rules names its household's: clear and break, also a plot's steps, and the cottage's stages, also a plot's (plotWork).
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
+  //   window: a time-bound kind's (VB-249), {from: the hour of the day its work can first fall due}: the due-queue (sim/plans) asks it for
+  //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -115,7 +117,7 @@ VB['sim/kinds'] = (() => {
     },
     haul: {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
-      anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn',
+      anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn', window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f) => {
         Stores.sheaf(st, hh, j.field.held);
@@ -152,7 +154,7 @@ VB['sim/kinds'] = (() => {
     },
     water: {
       verb: 'Drawing water', go: 'Going for water', back: 'Carrying water home', name: 'Fetch water', label: 'Water', anim: 'draw', hours: 0.5,
-      hands: 1, type: 'household', carry: 'buckets', to: 'door',
+      hands: 1, type: 'household', carry: 'buckets', to: 'door', window: { from: WORK[0] - 1 },
       spot: (st, a, j) => {
         const w = st.w;
         return st.villages[j.farm.village].well ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8] : [w.hx[j.site] - 1, w.hy[j.site] + 4];
@@ -168,7 +170,7 @@ VB['sim/kinds'] = (() => {
     },
     cook: {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
-      inside: true,
+      inside: true, window: { from: 14 },
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
       done: (st, j, hh, c) => {
@@ -190,7 +192,7 @@ VB['sim/kinds'] = (() => {
     },
     thresh: {
       verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
-      hands: Infinity, type: 'threshing', inside: true, done: (st, j, hh) => { Stores.thresh(st, hh); },
+      hands: Infinity, type: 'threshing', inside: true, window: { from: WORK[0] - 1 }, done: (st, j, hh) => { Stores.thresh(st, hh); },
       // while the barn holds unthreshed sheaves
       available: (st, hh, f, c, post) => { if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, { farm: f }); },
     },
@@ -239,7 +241,8 @@ VB['sim/kinds'] = (() => {
     },
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
-      hands: 1, type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) => fodderDone(st, hh, c), available: byreWork,
+      hands: 1, type: 'husbandry', spot: byreSpot, window: { from: WORK[0] - 1 }, urgency: (st, j, c, U) => U.fodder, done: (st, j, hh, c) =>
+        fodderDone(st, hh, c), available: byreWork,
     },
     manure: {
       verb: 'Spreading manure on the field', go: 'Carting manure to the field', name: 'Cart manure', label: 'Manure', anim: 'gather', hours: 1,
@@ -253,7 +256,7 @@ VB['sim/kinds'] = (() => {
     },
     milk: {
       verb: 'Milking the cows', go: 'Going to milk the cows', name: 'Milk the cows', label: 'Milking', anim: 'milk', hours: 0.5, hands: 1,
-      type: 'husbandry', spot: byreSpot, urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
+      type: 'husbandry', spot: byreSpot, window: { from: WORK[0] }, urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
       done: (st, j, hh, c) => milkDone(st, hh, c), available: byreWork,
     },
     slaughter: {

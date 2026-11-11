@@ -50,13 +50,26 @@ VB['sim/stores'] = (() => {
     else if (kind === 'village') setVillage(holder, n);
     else setFood(holder, good, n);
   }
+  // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
+  // a day): the grain above the seed reserve running out or coming back, sheaves coming into an empty barn. The one call from the stores
+  // to the plans is this flag.
+  // @state plan.dirty: true when a store of the plan's household crossed a target since the plan's last review; set only here.
+  function wake(st, hh) {
+    const plan = st.plans && st.plans.households.get(hh.id);
+    if (plan) plan.dirty = true;
+  }
+  function crossed(st, holder, good, before) {
+    if (good !== 'grain' || !('farmstead' in holder) || !st.plans) return;
+    const r = reserved(st, holder, 'grain');
+    if ((before > r) !== (holder.grain > r)) wake(st, holder);
+  }
   function put(st, holder, good, n, why) {
-    amount(n); const k = field(holder, good);
-    record(st, holder, good, n, why); set(holder, good, (holder[k] || 0) + n); return n;
+    amount(n); const k = field(holder, good), before = holder[k] || 0;
+    record(st, holder, good, n, why); set(holder, good, before + n); crossed(st, holder, good, before); return n;
   }
   function take(st, holder, good, n, why) {
-    amount(n); const k = field(holder, good), got = Math.min(holder[k] || 0, n);
-    record(st, holder, good, -got, why); set(holder, good, (holder[k] || 0) - got); return got;
+    amount(n); const k = field(holder, good), before = holder[k] || 0, got = Math.min(before, n);
+    record(st, holder, good, -got, why); set(holder, good, before - got); crossed(st, holder, good, before); return got;
   }
   function move(st, from, to, good, n, why) {
     amount(n); field(from, good); field(to, good);
@@ -67,7 +80,9 @@ VB['sim/stores'] = (() => {
   // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
   function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
   function sheaf(st, hh, n) {
-    amount(n); record(st, hh, 'sheaves', n, 'harvest'); hh.unthreshed.push(n);
+    amount(n); record(st, hh, 'sheaves', n, 'harvest');
+    if (!hh.unthreshed.length) wake(st, hh);
+    hh.unthreshed.push(n);
   }
   function thresh(st, hh) {
     type(hh); const n = hh.unthreshed.shift() || 0;

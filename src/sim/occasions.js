@@ -118,7 +118,8 @@ VB['sim/occasions'] = (() => {
     && (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
   // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour, while it
   // could still arrive an hour before the end. At the end, o is over.
-  function visit(st, o) {
+  function visit(st) {
+    const o = st.occasions[0];
     if (st.t >= o.end) { finish(st, o); return; }
     let again = Infinity;
     for (let i = 0; i < o.asked.length && o.asked[i].leave <= st.t;) {
@@ -157,7 +158,7 @@ VB['sim/occasions'] = (() => {
   // Each six-minute step (sim/clock): the occasions due, each staying in the queue while its turn is taken (the attend verb finds it
   // there). Only the first one's due time is read, so nothing is polled (Rules for cost, 4).
   function occasionsDue(st) {
-    while (st.occasions.length && st.occasions[0].due <= st.t) visit(st, st.occasions[0]);
+    while (st.occasions.length && st.occasions[0].due <= st.t) visit(st);
   }
   // What the pawn is doing there, for its card (sim/agents describe), or null.
   function occasionLabel(st, a) {
