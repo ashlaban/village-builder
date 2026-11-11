@@ -23,7 +23,7 @@ VB['sim/cottage'] = (() => {
     const house = plot.tiles.find((t) => t.kind === 'house').tile, field = plot.tiles.find((t) => t.kind === 'field').tile;
     const f = makeFarmstead(st.w, st.farmsteads.length, house, [field], v, st.used);
     if (plot.tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
-    f.name = farmName(st, v, f, holder); f.woodlot = v.commonsWood; f.state = 'occupied'; f.condition = 1; f.emptySince = null; f.fence = null;
+    f.name = farmName(st, v, f, holder); f.woodlot = v.commonsWood; f.state = 'occupied'; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.fence = null;
     st.farmsteads.push(f); v.farmsteads.push(f.id); plot.farmstead = f.id;
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);

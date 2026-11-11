@@ -185,6 +185,7 @@
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}` :
       (p.advocate ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}` : ''),
+      p.age >= 16 ? `Prestige ${p.prestige.toFixed(2)}: ${Sim.prestigeParts(st, p).map(([l, v]) => `${l.toLowerCase()} ${v.toFixed(2)}`).join(', ')}` : '',
       Sim.idleLine(st, id)].filter(Boolean), Sim.describe(st, id), { badge: faceImg(id, 'badge'),
       links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) });
     showRelations(id);
