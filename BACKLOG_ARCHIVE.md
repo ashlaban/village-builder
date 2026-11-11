@@ -231,3 +231,5 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-046](backlog/VB-046.md) | Wrap-up: claims, ownership and territory | debt | 3 | S | Check owners, claims and the overlay at full scale; report speed and readability. |
 | [VB-184](backlog/VB-184.md) | Plan: debt and land (slice 5) | debt | 3 | S | Design the alderman's road: default, cases, foreclosure into tenancy, the landed household; the bodies decision. |
 | [VB-140](backlog/VB-140.md) | Livestock in shares and a new household's start | fair | 3 | S | Shares paid partly in animals; a cow and two ewes start a new household. |
+| [VB-117](backlog/VB-117.md) | Fishing in rivers, lakes and the sea | year | 2 | M | Fishing from spring to autumn, always posted, urgent when food is short; fish stocks per water tile. |
+| [VB-243](backlog/VB-243.md) | The ownership scan's unresolved writes, a baseline that only falls | - | 3 | S | A write whose receiver the scan cannot place is listed, not checked, and up to 20 are allowed; make the list a baseline that only falls and place the 19 there are. |
