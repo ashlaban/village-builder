@@ -1,10 +1,10 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
-// the registry of goods (VB-299) and Culture's worth and proper as rules
+// ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW } = VB['sim/rules'];
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
-    'catch', 'gathering'];
+    'catch', 'gathering', 'brew', 'pour'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
@@ -113,7 +113,7 @@ VB['sim/stores'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       VB.count.storeWalk += hh.ledger.length + hh.totals.length;
-      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept);
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter((t) => st.t - t < YEAR * BREW.years);
     }
     for (const v of st.villages) {
       VB.count.storeWalk += v.ledger.length + v.totals.length;
@@ -121,9 +121,55 @@ VB['sim/stores'] = (() => {
     }
   }
   // A household's ledger ends when it dissolves: no movement can reach it afterwards (type refuses a dissolved holder).
-  function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
+  function close(st, hh) {
+    if (!hh.dissolved) throw new Error('stores: close a dissolved household only');
+    hh.ledger = []; hh.totals = [];
+    hh.ale = []; hh.poured = [];
+  }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
+  // ---- ale (VB-305; design.md, Goods, Ale and standing): barrels in lots {n, until (game hours)}, oldest first, kept in hh.ale (a household
+  // holds ale and no other holder does); BREW.grain rations of grain make a barrel, which keeps the good's season. hh.poured: the game hours
+  // of the barrels poured in the last BREW.years years, the last BREW.maxBarrels of them (the host's standing counts no more), pruned at the
+  // year's turn. ----
+  // @state household.ale: [{n, until}]: lots of barrels of ale, oldest first, each n a whole number above 0, those past `until` lost at the day's turn
+  // @state household.poured: number[]: the game hours at which barrels were poured, oldest first, at most BREW.maxBarrels, those over BREW.years old pruned
+  const aleKeeps = () => goodOf('ale').perish.keepsDays * DAY;
+  // The barrels the household holds now.
+  function aleOf(st, hh) { let n = 0; for (const l of hh.ale) if (l.until > st.t) n += l.n; return n; }
+  // Brews a barrel from the household's grain (sim/kinds checks that it is surplus: grain above the floor); 0 if the grain is not there.
+  function brew(st, hh) {
+    type(hh);
+    if (hh.grain < BREW.grain) return 0;
+    take(st, hh, 'grain', BREW.grain, 'brew'); record(st, hh, 'ale', 1, 'brew');
+    hh.ale.push({ n: 1, until: st.t + aleKeeps() });
+    return 1;
+  }
+  // Ale past its season is lost (each day; sim/clock).
+  function spoilAle(st, hh) {
+    if (!hh.ale.length) return;
+    let lost = 0;
+    for (const l of hh.ale) if (l.until <= st.t) lost += l.n;
+    if (!lost) return;
+    record(st, hh, 'ale', -lost, 'spoilage'); hh.ale = hh.ale.filter((l) => l.until > st.t);
+  }
+  // Pours up to n barrels, the oldest first, and says how many (the host's standing counts them, sim/society); used up with its reason.
+  function pour(st, hh, n) {
+    type(hh); spoilAle(st, hh);
+    const rest = []; let left = Math.floor(n);
+    for (const l of hh.ale) { const k = Math.min(l.n, left); left -= k; if (l.n > k) rest.push({ n: l.n - k, until: l.until }); }
+    const got = Math.floor(n) - left;
+    if (!got) return 0;
+    hh.ale = rest; record(st, hh, 'ale', -got, 'pour');
+    for (let i = 0; i < got; i++) hh.poured.push(st.t);
+    if (hh.poured.length > BREW.maxBarrels) hh.poured.splice(0, hh.poured.length - BREW.maxBarrels);
+    return got;
+  }
+  // The host's standing from its pours: BREW.prestige a barrel poured in the last BREW.years years, counted up to BREW.maxBarrels.
+  function aleStanding(st, hh) {
+    let n = 0; for (const t of hh.poured) if (st.t - t < BREW.years * YEAR) n++;
+    return n * BREW.prestige;
+  }
   // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
   // two plans do not spend it twice and the holder's free stock is the rest. A count per holder, good and plan, kept on the plan (st.plans,
   // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
@@ -191,5 +237,5 @@ VB['sim/stores'] = (() => {
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
-    follow, reserve, release, reserved };
+    follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();

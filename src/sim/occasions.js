@@ -13,6 +13,8 @@ VB['sim/occasions'] = (() => {
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm } = VB['sim/records'];
   const { issue, unplanned } = VB['sim/commands'];
+  const { emit } = VB['sim/events'], { remember } = VB['sim/relations'], Stores = VB['sim/stores'];
+  const { BREW } = VB['sim/rules'];
   // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. The meeting is
   // held at noon (sim/lifecycle's stages, from 12:00): its people stand about the green from 10:00 until its four steps are done.
   const OCCASIONS = {
@@ -132,20 +134,36 @@ VB['sim/occasions'] = (() => {
     o.due = Math.min(again, nextLeave ? nextLeave.leave : Infinity, o.end);
     st.occasions.splice(st.occasions.indexOf(o), 1); enqueue(st, o);
   }
+  // The host household pours its ale for those who came (VB-305; a barrel serves BREW.guests): as many barrels as it has for them, used up through
+  // sim/stores with the reason 'pour'. Each guest of another household remembers the host's holder for it (SOCIAL.memories.ale), and the host's
+  // standing is told to sim/society ('alePoured'). Returns the barrels poured.
+  function pourAle(st, f, present) {
+    if (f.household === null) return 0;
+    const hh = st.households[f.household];
+    if (hh.dissolved || hh.holder === null || !st.pawns[hh.holder].alive) return 0;
+    const barrels = Stores.pour(st, hh, Math.min(Stores.aleOf(st, hh), Math.ceil(present.length / BREW.guests)));
+    if (!barrels) return 0;
+    for (const id of present) if (st.pawns[id].alive && st.pawns[id].household !== hh.id) remember(st, id, hh.holder, 'ale');
+    emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels });
+    return barrels;
+  }
   // The occasion ends: those who came are free; outside working hours those outdoors go home. A wedding or a funeral ale is told in the log.
   function finish(st, o) {
     st.occasions.splice(st.occasions.indexOf(o), 1);
     const h = cal(st.t).hour, late = h >= WORK[1] || h < WORK[0];
     let far = 0;
+    const present = [];
     for (const id of o.come) {
       const a = st.agents[id];
       if (a.occasion !== o.id) continue;
-      a.occasion = null;
+      a.occasion = null; present.push(id);
       if (o.village !== null && st.pawns[id].household !== null && st.farmsteads[st.households[st.pawns[id].household].farmstead].village !== o.village) far++;
       if (late && !a.inside && st.pawns[id].alive && !unplanned(st, id)) issue(st, { actor: id, verb: 'goHome', source: 'occasion' });
     }
     if (o.kind === 'meeting') return;
-    const f = st.farmsteads[o.farm], n = o.come.length, came = `${n} came${far ? `, ${far} of them from other villages` : ''}`;
+    const f = st.farmsteads[o.farm], n = o.come.length, barrels = pourAle(st, f, present);
+    const ale = barrels ? `; ${barrels === 1 ? 'a barrel' : barrels + ' barrels'} of ale poured` : '';
+    const came = `${n} came${far ? `, ${far} of them from other villages` : ''}${ale}`;
     const at = atFarm(f);
     if (o.kind === 'wedding') {
       log(st, `The wedding of ${fullName(st.pawns[o.for[0]])} and ${fullName(st.pawns[o.for[1]])} at ${f.name}: ${came}.`,

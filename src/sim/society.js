@@ -7,7 +7,8 @@ VB['sim/society'] = (() => {
   const { YEAR, houseTerm } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, membersOf, voiceOf } = VB['sim/records'];
+  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  const { on } = VB['sim/events'], { aleStanding } = VB['sim/stores'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
@@ -78,6 +79,7 @@ VB['sim/society'] = (() => {
     if (p.age >= 55) parts.push(['Age', 0.2]);
     const hh = holder || spHolder ? st.households[p.household] : null, f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
     if (f && f.household === hh.id && !f.booth) parts.push(['A well-kept house', houseTerm(st, f)]);
+    if (holder) { const ale = aleStanding(st, holdingOf(st, p.id)); if (ale > 0) parts.push(['Ale poured', ale]); }
     return parts;
   }
   function refreshPrestige(st) {
@@ -86,6 +88,8 @@ VB['sim/society'] = (() => {
       p.prestige = prestigeParts(st, p).reduce((s, x) => s + x[1], 0);
     }
   }
+  // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
+  on('alePoured', (st, e) => { const p = st.pawns[e.host]; if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0); });
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
     const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF, own = ownFirstOf(st);
