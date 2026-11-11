@@ -209,6 +209,7 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
+#landQuick small { display: block; color: var(--muted); font-size: 13px; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
@@ -885,6 +886,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
+    <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
     <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
@@ -12901,6 +12903,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
+  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen; whom to play opens as after any build
+  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't'); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
@@ -16756,7 +16760,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0c677f2c98', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '02c65fb67a', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

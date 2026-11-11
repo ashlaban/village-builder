@@ -105,6 +105,8 @@
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
+  // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen; whom to play opens as after any build
+  $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't'); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
