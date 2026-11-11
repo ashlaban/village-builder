@@ -12,6 +12,8 @@ VB['sim/opportunities'] = (() => {
   const { SOCIAL } = VB['sim/rules'];
   const { mayTake, fit, jobsFor } = VB['sim/jobs'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
+  const { matchBar, matchRules } = VB['sim/matching'];
+  const { MARRIAGE } = VB['sim/rules'];
   const { unfit, handsLeft } = VB['sim/service'];
   // What pawn `id` may read of the state. It filters nothing for now: every pawn knows everything (design.md, What a pawn knows). It is
   // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
@@ -113,7 +115,28 @@ VB['sim/opportunities'] = (() => {
       lone++;
       out.push(item('serve', hh.id, null, spare || check(view, p.id, 'serve', hh.id, null), { ...atRound, holder: { type: 'household', id: hh.id } }));
     }
+    match(view, p, wishes, out);
     if (!lone) out.push(item('serve', null, null, spare || 'no holder of the village lives alone', atRound));
+  }
+
+  // The wish for a match (VB-274), for the played pawn only, one single enough to marry: an item for each partner it might wish for, {verb:
+  // 'match', target: the partner's id (null for the first item, which says the pawn may wish), when: 'round', why: the round's rule that
+  // bars the match now or null, partner: {name, age}}: the unmarried of
+  // the other sex, of age, whom it knows best by tie, at most MATCH_PARTNERS, and the wished partner whoever it is.
+  const MATCH_PARTNERS = 8, yearsOld = (view, q) => Math.floor((view.t - q.born) / YEAR);
+  function match(view, p, wishes, out) {
+    if (!wishes || spouseOf(view, p.id) !== null || yearsOld(view, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return;
+    const of = (q) => q.alive && q.sex !== p.sex && spouseOf(view, q.id) === null &&
+      yearsOld(view, q) >= (q.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom);
+    const ids = relationsOf(view, p.id).filter((r) => of(view.pawns[r.id])).slice(0, MATCH_PARTNERS).map((r) => r.id);
+    if (typeof wishes.match === 'number' && !ids.includes(wishes.match)) ids.unshift(wishes.match);
+    let rules = null;
+    out.push(item('match', null, null, null, { when: 'round' })); // the pawn may wish for a match at all: "not this year", "as it would"
+    for (const q of ids) {
+      const bar = matchBar(view, p.id, q, rules || (rules = matchRules(view)));
+      out.push(item('match', q, null, bar.why || null, { when: 'round',
+        partner: { name: fullName(view.pawns[q]), age: yearsOld(view, view.pawns[q]) } }));
+    }
   }
 
   // ---- marriage offers that wait for pawn id (VB-273): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
