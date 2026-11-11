@@ -123,8 +123,9 @@ VB['sim/service'] = (() => {
   // ---- taken in before it starves (VB-308; design.md, Households short of people) ----
   // A household of at most one grown member, with fields, whose seasonal ask for food fell short (sim/help's shareFood names it, the same
   // day) is taken in at once. Kin first: the holder's nearest relative in st.demand (kinship over 0, then the oldest, as a guardian is chosen),
-  // fit to serve (unfit null: free, unmarried, 18 to 50), whose household keeps a grown member without them, from the village or within
-  // SERVICE.reach steps, moves in as a member with the minor children who live with them. Else a servant, as takeServants chooses for this
+  // fit to serve (unfit null: free, unmarried, 18 to 50), whose household is not left short of people without them (it keeps two grown
+  // members, or holds no fields), from the village or within SERVICE.reach steps, moves in as a member with the minor children who live
+  // with them. Else a servant, as takeServants chooses for this
   // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come,
   // nothing happens (VB-309). Only a household named searches: st.demand once with a kinship memo, then the servants' list.
   const grown = (st, hh) => hh.members.filter((id) => adult(st.pawns[id])).length;
@@ -139,7 +140,7 @@ VB['sim/service'] = (() => {
       for (const qid of st.demand) {
         const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
         const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
-        const from = st.households[q.household]; if (from.dissolved || grown(st, from) - 1 < 1) continue;
+        const from = st.households[q.household]; if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
         if (stepsBetween(st, from, hh) > SERVICE.reach) continue;
         best = q; bk = k;
       }

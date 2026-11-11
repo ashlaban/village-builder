@@ -71,5 +71,15 @@ let report = '';
   S.takeIn(st, [c.a.id]);
   check(c.sister.household === c.c.id, 'the sister stays');
 }
+// 4. Kin never leave their own household short of people: with only the sister and one other grown member at home, she stays.
+{
+  const st = fresh(), c = loneCase(st);
+  const other = st.households.find((h) => h !== c.a && h !== c.c && !h.dissolved);
+  for (const id of grown(st, c.c).filter((m) => m !== c.sister.id && m !== c.c.holder)) moveTo(st, id, other.id);
+  check(grown(st, c.c).length === 2, `setup: two grown at the sister's home (${grown(st, c.c).length})`);
+  starve(st); st.demand = [c.sister.id];
+  S.takeIn(st, H.shareFood(st));
+  check(c.sister.household === c.c.id, 'the sister stays: her home would be left short of people');
+}
 if (failed) process.exit(1);
 console.log(`takenin ok: ${report}`);
