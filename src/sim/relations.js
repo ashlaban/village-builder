@@ -3,7 +3,8 @@
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
+  const { on } = VB['sim/events'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
 
@@ -21,10 +22,8 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties;
+  const TIES = SOCIAL.ties; // scaleOf and tieOf, the reads, are in sim/records (read by sim/claims below this layer)
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.bands = new Map(); p.tieT = st.t; p.homeHours = 0; }
-  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
-  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
   // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
   // weaker still and not to kin either; then it is not kept.
   function put(st, p, b, w) {
@@ -154,6 +153,11 @@ VB['sim/relations'] = (() => {
     if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     touch(st, a, b);
   }
+  // The land's memories (sim/stakes, sim/territory, sim/herds emit; they load below this module): the loser remembers the taker, the favour is
+  // remembered by the borrower.
+  on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
+  on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
+  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }

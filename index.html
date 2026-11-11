@@ -2721,6 +2721,28 @@ VB['sim/registry'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/events: the channel by which a lower layer's act reaches a higher one (target-v2 3.2): `emit` calls the subscribers at once, in load order
+VB['sim/events'] = (() => {
+  const { atLoad } = VB['sim/registry'];
+  // Code, never saved state: kind -> subscribers in the order they registered. Closed with the registries (the first seed or load).
+  const subscribers = new Map();
+  // A higher module subscribes at load: fn(st, data) runs where the lower module emits, and cannot veto (its return is not read). A command it
+  // issues and sees refused changes nothing further (target-v2 4.1, Workflows, rule 4).
+  function on(kind, fn) {
+    atLoad();
+    if (!subscribers.has(kind)) subscribers.set(kind, []);
+    subscribers.get(kind).push(fn);
+  }
+  // Nothing allocated here beyond the caller's `data`.
+  function emit(st, kind, data) {
+    const list = subscribers.get(kind);
+    if (list === undefined) return;
+    for (let i = 0; i < list.length; i++) list[i](st, data);
+  }
+  return { on, emit };
+})();
+</script>
+<script>
 // @sys sim/rng: seeded random streams as plain data (mulberry32), one per system, so systems do not reshuffle each other and saves can hold them
 VB['sim/rng'] = (() => {
   // A stream is { s }: a 32-bit state. next() gives exactly the sequence of gen's mulberry32 closure started from the same state, and a stream
@@ -4020,8 +4042,12 @@ VB['sim/records'] = (() => {
     if (v === 'heads') { const sp = spouseOf(st, p.id); return sp !== null && isHolder(st, sp) ? 1 : 0; }
     return 0;
   }
+  // ---- familiarity, read (written by sim/relations) ----
+  // A pawn's ties are stored on its own decay scale: scaleOf puts its stored weights to now (at most 1); tieOf is a's tie to b now.
+  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR);
+  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); }
   return {
-    rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold,
+    scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold,
       clearMembers, setServant, personEvent, log,
       record, HISTORY, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
@@ -4038,7 +4064,8 @@ VB['sim/records'] = (() => {
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
+  const { on } = VB['sim/events'];
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories;
 
@@ -4056,10 +4083,8 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties;
+  const TIES = SOCIAL.ties; // scaleOf and tieOf, the reads, are in sim/records (read by sim/claims below this layer)
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.bands = new Map(); p.tieT = st.t; p.homeHours = 0; }
-  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
-  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
   // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
   // weaker still and not to kin either; then it is not kept.
   function put(st, p, b, w) {
@@ -4189,6 +4214,11 @@ VB['sim/relations'] = (() => {
     if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     touch(st, a, b);
   }
+  // The land's memories (sim/stakes, sim/territory, sim/herds emit; they load below this module): the loser remembers the taker, the favour is
+  // remembered by the borrower.
+  on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
+  on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
+  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }
@@ -4440,8 +4470,7 @@ VB['sim/claims'] = (() => {
   const Culture = VB['culture'];
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
-  const { kinship, membersOf, voiceOf } = VB['sim/records'];
-  const { tieOf } = VB['sim/relations'];
+  const { kinship, membersOf, voiceOf, tieOf } = VB['sim/records'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -4589,7 +4618,7 @@ VB['sim/territory'] = (() => {
   const Culture = VB['culture'];
   const CL = VB['sim/claims'];
   const { log, practice } = VB['sim/records'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // Land lies in three rings (claims review, docs/review-claims.md): the infield of houses, fields, meadows, greens and plots (owned and in use,
   // st.used, or a green); the outland, village land not in use, held in common (its pasture, wood and land to take in); and wilderness, held by
   // nobody. A village claims outland by need at its autumn meeting (landMeeting); a claim unopposed until the next meeting becomes its own.
@@ -4709,7 +4738,9 @@ VB['sim/territory'] = (() => {
       log(st, `${A} and ${Bn} meet over their border, and set cairns: ${what}, ${RULE_WORD[o.rule]}.`, { kind: 'border', village: a, n: o.took });
       for (const hb of homes(b)) {
         if (o.rules.length) hb.grievance = { rules: o.rules, until: st.t + CLAIMS.grievanceYears * YEAR };
-        for (const ha of homes(a)) if (st.pawns[hb.holder].alive && st.pawns[ha.holder].alive) remember(st, hb.holder, ha.holder, 'border');
+        for (const ha of homes(a)) {
+          if (st.pawns[hb.holder].alive && st.pawns[ha.holder].alive) emit(st, 'borderLost', { loser: hb.holder, winner: ha.holder });
+        }
       }
     }
   }
@@ -4783,7 +4814,7 @@ VB['sim/stakes'] = (() => {
   const CL = VB['sim/claims'];
   const { isOutland } = VB['sim/territory'];
   const { log, practice, atFarm } = VB['sim/records'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // Claims review, Decided 1 Nov: a project stakes an unrealised claim on its tile instead of owning it; breaking the ground (or finishing the
   // meadow) makes it the household's. Other households take in no staked tile (sim/territory, freeFor). The work renews the claim (the job
   // kinds' `worked`, sim/kinds), so a stake weakens only while its project stands still.
@@ -4823,7 +4854,7 @@ VB['sim/stakes'] = (() => {
     CL.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
     if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
-    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) remember(st, loser.holder, hh.holder, 'claim');
+    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
     log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
       kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
     return true;
@@ -4904,7 +4935,7 @@ VB['sim/herds'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
@@ -5035,7 +5066,7 @@ VB['sim/herds'] = (() => {
         // the cows were taken to another farm's bull: a favour remembered
         const other = st.households[bull.herd.household];
         if (bull.herd !== herd && st.cenv && hh.holder !== null && other.holder !== null && other.holder !== hh.holder) {
-          remember(st, hh.holder, other.holder, 'bull');
+          emit(st, 'bullLent', { borrower: hh.holder, lender: other.holder });
         }
       } else {
         if (!herd.ewes || !(herd.rams > 0 || ramNear(st, house))) continue;
@@ -15316,7 +15347,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '2cc7cdc850', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '06121e7526', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

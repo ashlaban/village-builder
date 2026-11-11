@@ -8,7 +8,7 @@ VB['sim/territory'] = (() => {
   const Culture = VB['culture'];
   const CL = VB['sim/claims'];
   const { log, practice } = VB['sim/records'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // Land lies in three rings (claims review, docs/review-claims.md): the infield of houses, fields, meadows, greens and plots (owned and in use,
   // st.used, or a green); the outland, village land not in use, held in common (its pasture, wood and land to take in); and wilderness, held by
   // nobody. A village claims outland by need at its autumn meeting (landMeeting); a claim unopposed until the next meeting becomes its own.
@@ -128,7 +128,9 @@ VB['sim/territory'] = (() => {
       log(st, `${A} and ${Bn} meet over their border, and set cairns: ${what}, ${RULE_WORD[o.rule]}.`, { kind: 'border', village: a, n: o.took });
       for (const hb of homes(b)) {
         if (o.rules.length) hb.grievance = { rules: o.rules, until: st.t + CLAIMS.grievanceYears * YEAR };
-        for (const ha of homes(a)) if (st.pawns[hb.holder].alive && st.pawns[ha.holder].alive) remember(st, hb.holder, ha.holder, 'border');
+        for (const ha of homes(a)) {
+          if (st.pawns[hb.holder].alive && st.pawns[ha.holder].alive) emit(st, 'borderLost', { loser: hb.holder, winner: ha.holder });
+        }
       }
     }
   }

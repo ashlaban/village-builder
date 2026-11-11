@@ -7,7 +7,7 @@ const { spawn } = require('child_process'), os = require('os'), path = require('
 const root = path.join(__dirname, '..');
 const TEST = [
   ['node', 'tests/marriage-demography.js'],
-  ['node', 'tests/spread.js'], ['node', 'tests/clock.js'], ['node', 'tests/dependencies.js'], ['node', 'tests/stores.js'], ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
+  ['node', 'tests/spread.js'], ['node', 'tests/clock.js'], ['node', 'tests/dependencies.js'], ['node', 'tests/events.js'], ['node', 'tests/stores.js'], ['node', 'tests/cost-rules.js'], ['node', 'tests/scaling.js'],
   ['node', 'tests/fixture-tools.js'],
   ['node', '--expose-gc', 'tests/goods.js'],
   ['node', 'tests/bench.js'],
