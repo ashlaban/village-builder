@@ -377,10 +377,24 @@ function checkState(st) {
     if (j.claims.length > globalThis.VB['sim/kinds'].KINDS[j.kind].hands) bad.push(`jobs[${j.key}]: ${j.claims.length} workers, more than its hands`);
     for (const id of j.claims) {
       const a = st.agents[id];
-      if (!a || a.job !== j) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
+      const side = a && a.side && (a.side.partial === j || a.side.background === j);
+      if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
+  // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
+  for (const a of st.agents) {
+    if (a.side === undefined) continue;
+    const K = globalThis.VB['sim/kinds'].KINDS;
+    if (!a.side || (!a.side.partial && !a.side.background)) bad.push(`agents[${a.id}]: an empty side`);
+    if (st.pawns[a.id].died !== null) bad.push(`agents[${a.id}]: a dead pawn holds a side task`);
+    for (const slot of ['partial', 'background']) {
+      const j = a.side && a.side[slot];
+      if (!j) continue;
+      if ((K[j.kind].attention || 'full') !== slot) bad.push(`agents[${a.id}]: holds ${j.key} as ${slot}, not its attention`);
+      if (st.jobs.get(j.key) !== j || !j.claims.includes(a.id)) bad.push(`agents[${a.id}]: holds ${j.key}, not posted or not listing it`);
+    }
+  }
   if (st.herds) checkHerds(st, bad);
   // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
   if (st.player !== null && st.player !== undefined) {
