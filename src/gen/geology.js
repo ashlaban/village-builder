@@ -41,7 +41,7 @@ VB['gen/geology'] = (() => {
     { rock: ROCK.SOAPSTONE, host: 'soapstone', chance: 0.25, full: 30, per: 400, most: 2, size: [1, 3] },
     { deposit: DEPOSIT.GOLD, host: 'peak', chance: 0.08, full: 30, per: 600, most: 2, size: [1, 2], amount: [10, 80], rich: 0 },
     { deposit: DEPOSIT.TIN, host: 'tin', chance: 0.12, full: 40, per: 500, most: 2, size: [1, 3], amount: [80, 400], rich: 0.05 },
-    { deposit: DEPOSIT.LEAD_SILVER, host: 'upland', chance: 0.2, full: 40, per: 400, most: 3, size: [1, 3], amount: [100, 500], rich: 0.1 },
+    { deposit: DEPOSIT.LEAD_SILVER, host: 'upland', chance: 0.3, full: 40, per: 400, most: 3, size: [1, 3], amount: [100, 500], rich: 0.1 },
     { deposit: DEPOSIT.COPPER, host: 'upland', chance: 0.25, full: 40, per: 400, most: 3, size: [2, 4], amount: [150, 800], rich: 0.15 },
     { deposit: DEPOSIT.IRON, host: 'upland', chance: 0.45, full: 40, per: 250, most: 5, size: [2, 5], amount: [200, 1200], rich: 0.15 },
     { deposit: DEPOSIT.BOG_IRON, host: 'bog', chance: 0.7, full: 12, per: 40, most: 8, size: [2, 5], amount: [60, 300], rich: 0 },

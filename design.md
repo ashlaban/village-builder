@@ -99,6 +99,7 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Map | One finite archipelago per seed, regenerable | Decided |
 | Tiles | Pointy-top hexes | Decided |
 | Terrain | Deep sea, sea, shallows, lakes, sandy shore, meadow, heath, broadleaf forest, pine forest, marsh, hills, mountains, snowfields | Agreed |
+| Ground | Under the terrain, a layer a tile, for a Europe of 1300 to 1700, continental and Scandinavian. Bedrock on all land: granite (the common ground), limestone, sandstone and slate in provinces, with lenses of marble and soapstone. Deposits on few tiles, as veins: clay in low, damp ground; bog iron in marsh and on lake shores; iron, copper and lead with silver (one ore) in the uplands; tin only in upland granite; gold in the high mountains. Each island draws which kinds it has, by tuned chance: an island with everything is uncommon, and islands commonly differ. Deposits are finite, counted in loads, and a few sources do not run out (to be weighed when play is balanced). Nothing digs yet (backlog VB-342) | Decided, 11 Nov (the kinds, the layer, chance by island, finite); Proposed (the shares and amounts) |
 | Mountains | Multi-tile rock relief; no peak glyphs | Decided |
 | Rivers | The world has rivers | Decided, 30 Oct |
 | River courses | Rivers rise in hills, mountains and marshes and run downhill to a lake or the sea, a few on each large island; brooks are narrow, larger rivers a tile wide; they carry fresh water and fish, drive water mills, and wet the ground along their banks, where hay grows well. Crossing is at fords and, later, bridges | Proposed |
@@ -697,6 +698,12 @@ proposed with them, for slice 4's plan (VB-183) to confirm.
 | Quanta and worth | Customary worth in rations, one table for every culture until norms learn from deals (slice 8): grain, a sack of 10 rations, 10; salt meat, butter and dried fish, a lot of 10 rations, 15 (they keep, and add a source to the pot); a barrel of tar 8; a barrel of ale 14; a cow 40, an ox 50, a heifer or steer 20, a sheep 6. Heirs' shares paid in animals use the same table (VB-140). Wool and cheese are not goods yet and wait for slice 6 | Agreed, 10 Nov |
 | Cost | A side craft is ordinary jobs on a household's planning day; goods of place add one reach test per village and resource, refreshed when its land changes | Proposed |
 
+**In the ground (11 November, VB-342).** The world now holds the resources these goods of place need (World and scale, Ground): bog iron
+lies where it is drawn, not in every marsh, and "stone ground" is the bedrock, so a village's stone has a kind. Clay, rock iron, copper,
+lead and silver, tin and gold, and limestone, sandstone, slate, marble and soapstone, are in the ground with no good that uses them yet:
+what each is for, and with which slice it comes, is open (`QUESTIONS.md`, VB-342). The player sees all of it from the start, in the tile
+panel and the Ground overlay (Proposed; prospecting is among the questions).
+
 **What each good is for.** A good has worth only through a need of pawns or households, or through standing (Kim, 10 November: Decided);
 no good is wanted because a table says so. The goods of place, and the goods beside them that the gathering gives a use, with what
 grounds each and when it could come. Dried fish, tar and ale are Agreed for slice 4 (10 November); the rest is Proposed.
@@ -1241,6 +1248,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (the ground) | 11 November 2026 | Kim's decisions in a session on the terrain: World and scale gains Ground (bedrock of six kinds; finite deposits of clay, bog iron, iron, copper, lead-silver, tin and gold; each island draws its kinds by tuned chance; a few endless sources), and Goods of place gains In the ground. Generation and views only (task VB-342); what the kinds are for is asked in `QUESTIONS.md` |
 | 0.4 (starting a game) | 11 November 2026 | Kim's decisions on a mock of the screens after New archipelago (`docs/mocks/setup.html`): The player, commands and views gains Starting a game, with ten principles for these screens (one choice made once; show it on the land; the game's own graphics; few words, none hidden; no invented measures; nothing moves under the pointer; only what exists; after the land is raised the game is the screen; the menu's family; the inputs by the button) and the two steps: the start (scenario cards, an annotated picture, who starts as farm cards or an age pyramid, story archetypes as a look) and whom to play (the map, a farm clicked for its household, a person for their details). Which pawn now chooses on the game itself; Starting scenarios points there |
 | 0.4 (field work) | 11 November 2026 | Kim's answers to a review of what three fields cost a household (about 215 pawn-hours a year, under a fifth of two hands' time): Goods and the farming year gains Field work (reaping 15 and threshing 20 hours a field, weeding in two rounds) and Bringing in the harvest (by the load, 30 on the back and 90 on a cart); Tilling power is raised to 5 times a hoe. Tasks VB-333 to VB-336; VB-337 makes the reviews' two measurements tools |
 | 0.4 (stocks audit) | 11 November 2026 | Kim's answers to an audit of the stored quantities nothing reads: Goods and the farming year gains Water (a day without it: no cooking and a little health; Decided); Land and ecology gains Stone (used for the better house, a cheap house can be upgraded, stone picked from stony meadows or quarried in hills and mountains; Decided); uncooked grain feeds 0.75 in every uncooked meal, confirmed with 29% of grain eaten uncooked today. Tasks VB-331 and VB-332; notes on VB-062, VB-306 and VB-327 |
