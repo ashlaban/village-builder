@@ -101,8 +101,7 @@
   window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   window.addEventListener('blur', () => keys.clear());
 
-  // Main menu, in the top-left corner (was the top bar's end, VB-338): the main menu, over the paused game; it has Back to game, so the
-  // button is put away with the bar
+  // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
   $('genCancel').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());

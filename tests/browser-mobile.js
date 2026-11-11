@@ -199,9 +199,9 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       await fits('#clock'); await fits('.navigation');
       assert.strictEqual(await page.locator('#pauseBtn').isVisible(), width <= 1024, 'the phone pause button only on a phone');
       assert.strictEqual(await page.locator('#speedBtn').isVisible(), width <= 1024, 'the phone speed button only on a phone');
-      // Main menu stands alone in the top-left corner, clear of the top bar; the map's tools fit, the minimap's toggle at their right end
+      // VB-338: Main menu ends the top bar, in the top-right corner; the map's tools fit, the minimap's toggle at their right end
       const [mb, ck] = [await page.locator('#menuBtn').boundingBox(), await page.locator('#clock').boundingBox()];
-      assert(mb.x <= 24 && mb.y < 80 && mb.x + mb.width <= ck.x, `Main menu is at the top left: ${JSON.stringify([mb, ck])}`);
+      assert(mb.x + mb.width >= ck.x + ck.width - 12 && mb.y < 80, `Main menu ends the top bar: ${JSON.stringify([mb, ck])}`);
       await fits('#mapTools');
       assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
       // VB-338: the dock's panels rise from it (centred over it on a wide screen); the notifications start just under the top bar

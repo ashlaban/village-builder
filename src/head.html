@@ -72,8 +72,6 @@ body {
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
 .clock { border-radius: 14px; padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
-/* Main menu, alone in the top-left corner; the clock and the speeds keep the top right */
-.icon-btn.menu-btn { width: 52px; height: 52px; flex: none; margin-right: auto; border-radius: 14px; }
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -252,7 +250,7 @@ input, select { font: inherit; color: var(--ink); }
 .hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip (VB-338) */
+.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
 /* The dock is icons, each with its name under it (VB-338). */
@@ -653,9 +651,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   :root { --dock-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
   .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
-    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 6px; flex-wrap: nowrap; align-items: stretch; }
-  .icon-btn.menu-btn { width: 44px; height: auto; min-height: 52px; border-radius: 16px; }
-  .clock { position: relative; flex: 1; min-width: 0; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
+    top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
+  .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
   .calendar { flex: 1; min-width: 0; }
   .clock strong { font-size: 17px; }
