@@ -4,7 +4,7 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR } = VB['sim/rules'];
+  const { YEAR, houseTerm } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, membersOf, voiceOf } = VB['sim/records'];
@@ -70,12 +70,20 @@ VB['sim/society'] = (() => {
       s.distance = d; s.kinLinks = kin;
     }
   }
+  // The parts of a pawn's prestige, [label, value]: standing (1.6 a holder, 1.3 a holder's spouse, else 1), age from 55, and for a holder and
+  // a holder's spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition).
+  function prestigeParts(st, p) {
+    const sp = spouseOf(st, p.id), holder = isHolder(st, p.id), spHolder = sp !== null && isHolder(st, sp);
+    const parts = [[holder ? 'Holder' : spHolder ? 'Holder\'s spouse' : 'Villager', holder ? 1.6 : spHolder ? 1.3 : 1]];
+    if (p.age >= 55) parts.push(['Age', 0.2]);
+    const hh = holder || spHolder ? st.households[p.household] : null, f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
+    if (f && f.household === hh.id && !f.booth) parts.push(['A well-kept house', houseTerm(st, f)]);
+    return parts;
+  }
   function refreshPrestige(st) {
     for (const id of st.living) {
       const p = st.pawns[id];
-      const sp = spouseOf(st, p.id);
-      p.prestige = isHolder(st, p.id) ? 1.6 : sp !== null && isHolder(st, sp) ? 1.3 : 1;
-      if (p.age >= 55) p.prestige += 0.2;
+      p.prestige = prestigeParts(st, p).reduce((s, x) => s + x[1], 0);
     }
   }
   // Self-interest follows position: what would this option do for me, or for my children?
@@ -140,5 +148,5 @@ VB['sim/society'] = (() => {
     });
     return { out, cells, cellOf, size: NEAR };
   }
-  return { hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, outdoors };
+  return { prestigeParts, hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, outdoors };
 })();
