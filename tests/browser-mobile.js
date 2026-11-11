@@ -99,6 +99,17 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
     assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
     await capture('mobile-play');
+    // the action bar (VB-339) over the dock: its four buttons and each group's list fit the phone, with targets of 44 px; the gift's form too
+    await fits('#actBar');
+    for (const g of ['self', 'house', 'village']) {
+      await page.click(`#actBar [data-group="${g}"]`); await page.locator('#actMenu').waitFor({ state: 'visible' }); await fits('#actMenu');
+      const small = await page.locator('#actMenu button, #actBar button').evaluateAll((bs) => bs.filter((b) => b.getBoundingClientRect().height < 44).length);
+      assert.strictEqual(small, 0, `the ${g} list's buttons are 44 px high or more`);
+      assert(await page.locator('#actionSheet').isHidden(), 'a group\'s list and the sheet are not open together');
+    }
+    await page.click('#actBar [data-group="house"]'); await page.click('#actMenu [data-view="give"]');
+    await fits('#actMenu'); await capture('mobile-actbar');
+    await page.click('#actMenu [data-bar="close"]'); assert(await page.locator('#actMenu').isHidden(), 'Close puts the list away');
     await page.click('#debugBtn'); await page.click('[data-act="unplay"]');
     await page.waitForFunction(() => document.getElementById('actionsBtn').hidden); assert.strictEqual(await page.evaluate(() => window.__mobile.st.player), null, 'Stop playing leaves no pawn played');
     // The shared card used to discard every detail after the fourth line.

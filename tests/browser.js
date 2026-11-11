@@ -21,7 +21,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
       .replace('let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
-        + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
+        + 'set st(v) { st = v; }, world: () => w, look: (i) => { followPlayed = false; cam.x = w.hx[i]; cam.y = w.hy[i]; vel.x = vel.y = 0; }, '
+        + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, '
+        + 'ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween: drawingBetween() }; } };')),
   }));
   await page.goto('https://village.test/');
@@ -113,8 +115,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const kind of await page.$$('#historyKinds button')) await kind.click();
     await page.click('#historyKinds [data-history=""]');
   }
-  // Playing a pawn (VB-210): play as the scenario's suggestion, queue a job and see it carried out, walk to a tile clicked on the map, then
-  // turn the automatic behaviour off and see the pawn idle in working hours.
+  // Playing a pawn (VB-210) through the action bar (VB-339): play as the scenario's suggestion; the dock's Actions shows the bar, its
+  // Household list a kind of work, queued at once where it is open at one place, else in the tool mode, whose marked tile is clicked on the
+  // map; the job is seen carried out. Then Walk here, from the Myself list: the tool takes an open tile clicked on the map.
   await page.click('[data-speed="0"]');
   const played = await page.evaluate(() => {
     const { st } = window.__play, hh = st.households.find((h) => !h.dissolved && h.holder !== null && st.pawns[h.holder].age >= 18);
@@ -122,32 +125,66 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   });
   await playSelected();
   if ((await page.evaluate(() => window.__play.st.player && window.__play.st.player.pawn)) !== played) fail('Play as did not inhabit the pawn');
-  const workable = `#playBox button[data-play="do"]:not([disabled])[data-cmd*='"verb":"work"']`;
+  if (!(await page.locator('#actBar').isVisible())) fail('the action bar is not shown with the played pawn\'s sheet');
+  for (const g of ['self', 'house', 'village']) {
+    await page.click(`#actBar [data-group="${g}"]`);
+    await page.waitForSelector('#actMenu:not([hidden]) .act-row, #actMenu:not([hidden]) .act-empty');
+    if ((await page.locator(`#actBar [data-group="${g}"]`).getAttribute('aria-expanded')) !== 'true') fail(`the ${g} group does not show as open`);
+  }
+  if (await page.locator('#actionSheet').isVisible()) fail('a group\'s list and the sheet are open together');
+  await page.click('#actBar [data-group="house"]');
+  const workable = '#actMenu [data-bar="work"]:not([aria-disabled])';
   await page.click('[data-speed="30"]');
   await page.waitForSelector(workable, { timeout: 120000 });
   await page.click('[data-speed="0"]');
   await page.waitForSelector(workable);
-  const target = JSON.parse(await page.locator(workable).first().getAttribute('data-cmd')).target;
+  const row = await page.locator(workable).first().evaluate((b) => ({ kind: b.dataset.kind, holder: b.dataset.holder }));
   await page.locator(workable).first().click();
-  if (!(await page.evaluate((k) => window.__play.st.player.queue.some((c) => c.verb === 'work' && c.target === k), target))) fail('the job was not queued');
-  await page.waitForSelector('#playBox .queue li');
+  let target = null;
+  const inTool = await page.evaluate(() => window.__play.tool());
+  if (inTool) {
+    if (inTool.kind !== 'work' || !inTool.sites.length || await page.locator('#actBanner').isHidden() || await page.locator('#actMenu').isVisible()) {
+      fail(`the work's tool: ${JSON.stringify(inTool)}`); }
+    // a tile no work of the kind is on is refused, and says why; then a marked one is queued, and the tool stays in hand until Done
+    const box = await page.locator('canvas').first().boundingBox();
+    await page.evaluate(() => window.__play.look(0)); // the map's corner, open sea
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
+    const said = await page.locator('#actBanner').textContent();
+    if (!/tap a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
+    await page.evaluate((i) => window.__play.look(i), inTool.sites[0]);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
+    target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
+    if (!target || !/Queued/.test(await page.locator('#actBanner').textContent())) fail('the marked tile did not queue the work');
+    if (!(await page.evaluate(() => !!window.__play.tool()))) fail('the work\'s tool did not stay in hand');
+    await page.click('#actBanner button[data-tool="end"]');
+    if (await page.evaluate(() => !!window.__play.tool()) || await page.locator('#actBanner').isVisible()) fail('Done did not put the tool away');
+  } else {
+    target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
+    if (!/Queued/.test(await page.locator('#actMenu .act-msg').textContent())) fail('the list does not say the work was queued');
+  }
+  if (!target) fail(`the job was not queued: ${JSON.stringify(row)}`);
+  console.log(`browser: the action bar queued ${row.kind} for its ${row.holder}${inTool ? `, in the tool mode, of ${inTool.sites.length} marked tiles` : ''}`);
+  await page.click('#queueBtn'); await page.waitForSelector('#playBox .queue li');
   await page.click('[data-speed="30"]');
   await page.waitForFunction((k) => {
     const { st } = window.__play, a = st.agents[st.player.pawn];
     return !!a.job && a.job.key === k && a.phase === 'work';
   }, target, { timeout: 120000 });
   await page.click('[data-speed="0"]');
-  // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the Actions panel, which rises from the dock over
-  // the view's middle (VB-338), is folded to choose it, and opened again
+  // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the tool closes the sheet, and the banner names it
   await page.click('#playBox [data-play="follow"]'); await page.waitForTimeout(600);
-  await page.click('#playBox [data-play="walk"]'); await page.click('#actionSheet .sheet-expand');
+  await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-bar="walk"]');
+  if (!/Walk here/.test(await page.locator('#actBanner').textContent()) || await page.locator('#actionSheet').isVisible()) {
+    fail('Walk here\'s tool is not shown'); }
   const box = await page.locator('canvas').first().boundingBox();
   if (!(await page.evaluate((p) => document.elementFromPoint(p.x, p.y).tagName === 'CANVAS', { x: box.x + box.width / 2, y: box.y + box.height / 2 }))) {
-    fail('the folded Actions panel still covers the middle of the view');
+    fail('the action bar covers the middle of the view');
   }
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.click('#actionSheet .sheet-expand');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(300);
   if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
+  if (await page.evaluate(() => !!window.__play.tool())) fail('Walk here\'s tool stayed in hand after its walk was queued');
+  await page.click('#queueBtn');
   // the automatic behaviour off, the queue emptied: in working hours the pawn takes no work once its job in hand is done
   await page.click('#playBox [data-play="auto"]');
   while (await page.locator('#playBox [data-play="unqueue"]').count()) await page.locator('#playBox [data-play="unqueue"]').first().click();
@@ -162,11 +199,12 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(600);
   if (!/off/.test(await page.locator('#playBox [data-play="auto"]').textContent())) fail('the switch does not show off');
   // the wishes for the moving round (VB-212): a wish is set from the panel, shown as pressed, and taken back
-  const stay = '#playBox [data-play="wish"][data-kind="out"][data-value="false"]';
+  await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-view="round"]');
+  const stay = '#actMenu [data-play="wish"][data-kind="out"][data-value="false"]';
   await page.click(stay);
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== false) fail('the wish to stay was not set');
   if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
-  await page.click('#playBox [data-play="wish"][data-kind="out"][data-value="null"]');
+  await page.click('#actMenu [data-play="wish"][data-kind="out"][data-value="null"]');
   if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
   // the wish for a match (VB-274): played as a single adult, "not this year" and a partner are set from the panel
   const single = await page.evaluate(() => {
@@ -176,17 +214,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     Sim.inhabit(st, p.id); return p.id;
   });
   if (single === null) fail('no single adult to wish a match for');
-  const notYear = '#playBox [data-play="wish"][data-kind="match"][data-value="false"]';
+  const notYear = '#actMenu [data-play="wish"][data-kind="match"][data-value="false"]';
   await page.waitForSelector(notYear);
   await page.click(notYear);
   if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== false) fail('the wish not to marry this year was not set');
   if ((await page.locator(notYear).getAttribute('aria-pressed')) !== 'true') fail('the wish not to marry does not show as pressed');
-  const partner = '#playBox [data-play="wish"][data-kind="match"]:not([data-value="false"]):not([data-value="null"])';
+  const partner = '#actMenu [data-play="wish"][data-kind="match"]:not([data-value="false"]):not([data-value="null"])';
   if (await page.locator(partner).count()) {
     await page.locator(partner).first().click();
     if (!Number.isInteger(await page.evaluate(() => window.__play.st.player.wishes.match))) fail('the wished partner was not set');
   }
-  await page.click('#playBox [data-play="wish"][data-kind="match"][data-value="null"]');
+  await page.click('#actMenu [data-play="wish"][data-kind="match"][data-value="null"]');
   if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== null) fail('the wish for a match was not taken back');
   await stopPlaying();
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
@@ -252,7 +290,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     ids.open = await page.evaluate(() => { window.__round(); return window.__play.st.offers.length; });
     if (ids.open !== 1) fail(`no offer waits for the played pawn: ${JSON.stringify(ids)}`);
     await page.waitForSelector('#toasts .toast', { timeout: 5000 }).catch(() => fail('no notice of the offer'));
-    await page.click('#actionsBtn'); await page.waitForSelector('#playBox .offer [data-play="answer"][data-yes="false"]', { timeout: 5000 });
+    await page.click('#actionsBtn'); await page.click('#queueBtn');
+    await page.waitForSelector('#playBox .offer [data-play="answer"][data-yes="false"]', { timeout: 5000 });
     const asked = await page.evaluate(() =>
       ({ text: document.querySelector('#playBox .offer').textContent,
       before: document.querySelector('#playBox .offer').compareDocumentPosition(document.querySelector('#playBox .queue, #playBox .hint')) }));
