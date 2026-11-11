@@ -9,7 +9,6 @@ function checkSeeding(st, label) {
   for (const v of st.villages) {
     check(v.green === v.well && v.green === (v.farmsteads.length >= 2), `${label}: ${v.name} green/well ${v.green}/${v.well} with ${v.farmsteads.length} farms`);
     check(Object.keys(v).every((k) => !/lone|degenerate/i.test(k)), `${label}: ${v.name} has a lone flag`);
-    if (v.commonsWood >= 0) expected.set(v.commonsWood, { type: 'village', id: v.id });
     if (!houses.has(v.center)) expected.set(v.center, { type: 'village', id: v.id });
   }
   for (const f of st.farmsteads) {
@@ -23,13 +22,13 @@ function checkSeeding(st, label) {
   for (const v of st.villages) {
     const out = T.outlandOf(st, v), want = Sim.CLAIMS.outPerFarm * T.occupied(st, v);
     for (const t of out) if (!expected.has(t)) expected.set(t, { type: 'village', id: v.id });
-    if (st.scenario === 'founders') check(out.filter((t) => t !== v.commonsWood).length === 0, `${label}: ${v.name} holds outland before its first meeting`);
+    if (st.scenario === 'founders') check(out.length === 0, `${label}: ${v.name} holds outland before its first meeting`);
     else check(out.length >= 1 && out.length <= want + 1, `${label}: ${v.name} holds ${out.length} tiles of outland for ${want} wanted`);
   }
   for (let t = 0; t < st.w.N; t++) check(same(own(t), expected.get(t) || null), `${label}: tile ${t} owner ${JSON.stringify(own(t))}`);
   for (const v of st.villages) if (v.farmsteads.length === 1) {
     const f = st.farmsteads[v.farmsteads[0]];
-    check(v.center === f.house && v.commonsWood === f.woodlot, `${label}: one-farm village ${v.name} centre or woods`);
+    check(v.center === f.house && v.wood.length > 0, `${label}: one-farm village ${v.name} centre or wood`);
     check(v.fence.length > 0 && v.fence.every((s) => s.owner.type === 'village' && s.owner.id === v.id), `${label}: ${v.name} fence owner`);
   }
   check(st.cenv.settlements.length === st.villages.length, `${label}: settlements and villages differ`);

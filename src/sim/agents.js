@@ -208,11 +208,11 @@ VB['sim/agents'] = (() => {
       if (K.carry) {
         freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
-        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
-        // sheaves go to the barn door, firewood to the woodpile, water into the cottage
-        const hx = st.w.hx[f.house], hy = st.w.hy[f.house];
-        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
-        walkTo(st, a, f.house, x, y);
+        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
+        // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
+        const hx = st.w.hx[to], hy = st.w.hy[to];
+        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' || K.to === 'site' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
+        walkTo(st, a, to, x, y);
       } else {
         complete(st, a);
         a.job = null; a.basis = null; a.work = null;

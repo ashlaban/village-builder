@@ -43,7 +43,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   hh.wood = 1000; K.wood.available(st, hh, f, c, (key) => posted.push(key));
   assert.strictEqual(posted.length, 0, 'a full woodpile posts no wood');
   plan.targets.wood[c.season] = 2000; K.wood.available(st, hh, f, c, (key) => posted.push(key));
-  assert.strictEqual(posted.length, f.woodlot >= 0 ? 1 : 0, 'the plan\'s goal for the season is read');
+  assert.strictEqual(posted.length, st.villages[f.village].wood.length ? 1 : 0, 'the plan\'s goal for the season is read');
   const M = VB['sim/meadows'];
   if (M.hayWanted(st, f, hh) === false && hh.herds.length) { plan.targets.hayWinters = 1e9; assert(M.hayWanted(st, f, hh), 'hay winters read'); }
 }

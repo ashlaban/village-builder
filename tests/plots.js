@@ -26,7 +26,7 @@ for (const rule of ['village', 'labour', 'intended']) {
   check(v.plots.length === 2, `${rule}: two projects at a time (got ${v.plots.length})`);
   for (const tr of plot.tiles) {
     check(Sim.ownerOf(st, tr.tile) && Sim.ownerOf(st, tr.tile).type === 'village', `${rule}: tile ${tr.tile} owned by the village`);
-    check(tr.tile !== v.center && tr.tile !== v.commonsWood, `${rule}: tile ${tr.tile} is the green or the woods`);
+    check(tr.tile !== v.center && !v.wood.includes(tr.tile), `${rule}: tile ${tr.tile} is the green or the wood`);
   }
   check(X.plotJobs(st).length >= 2, `${rule}: jobs are posted`);
   plot.hours[c.id] = 30; plot.hours[b.id] = 10;

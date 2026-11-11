@@ -13,8 +13,11 @@ function setUp() {
   const sib = m && Sim.siblingsOf(st, m.id).map((q) => st.pawns[q]).find(inA);
   return { st, v: st.villages[0], m, sib };
 }
-// No room left near village v: every tile within 6 steps is taken.
-const fill = (st, v) => { for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t); };
+// No room left near village v: every tile within 6 steps is taken (and the villages' woods reckoned again, VB-326, as a tile built on is).
+const fill = (st, v) => {
+  for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t);
+  for (const u of st.villages) VB['sim/territory'].reckonWood(st, u);
+};
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
 
 // Spatial occupancy is the union of radius searches, including overlaps, duplicate marks and map edges.

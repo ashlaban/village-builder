@@ -38,10 +38,10 @@ for (const seed of [7, 42]) {
     const seen = new Set([v.center]), q = [v.center];
     for (let h = 0; h < q.length; h++) for (const j of nbs(w, q[h])) if (group.has(j) && !seen.has(j)) { seen.add(j); q.push(j); }
     check(houses.every((h) => seen.has(h)), `${tag}: the houses of ${v.name} do not hang together with its green`);
-    // every farm reaches its green, fields and woodlot on foot (VB-112)
+    // every farm reaches its green, fields and its village's wood (its nearest and farthest tile) on foot (VB-112)
     for (const id of v.farmsteads) {
       const f = st.farmsteads[id];
-      for (const t of [v.center, f.woodlot, ...f.fields.map((fd) => fd.tile)]) if (t >= 0) check(findRoute(w, f.house, t), `${tag}: ${f.name} cannot reach ${t}`);
+      for (const t of [v.center, v.wood[0] ?? -1, v.wood[v.wood.length - 1] ?? -1, ...f.fields.map((fd) => fd.tile)]) if (t >= 0) check(findRoute(w, f.house, t), `${tag}: ${f.name} cannot reach ${t}`);
     }
   }
 }

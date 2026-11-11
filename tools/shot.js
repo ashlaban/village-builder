@@ -50,7 +50,7 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
     st.visualDirty = true;
   }, [years, hours]);
   console.error(`${tag}: advanced ${years} years in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-  if (land) await page.click('#landBtn');
+  if (land) await page.evaluate(() => document.getElementById('landBtn').click()); // the button may sit in a closed menu
   await page.waitForTimeout(1500);
   const info = await page.evaluate(() => {
     const st = window.__vb.st, Sim = window.__vb.Sim(), held = Sim.holdings(st);

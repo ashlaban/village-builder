@@ -76,7 +76,8 @@
   const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
   // a job kind's icon (sim/kinds); a kind not named here takes the hoe
   const KIND_ICON = { sow: 'sow', gather: 'sow', reap: 'mow', mow: 'mow', rake: 'mow', haul: 'hay', hay: 'hay', fodder: 'hay', wood: 'chop',
-    fell: 'chop', grub: 'chop', water: 'water', cook: 'pot', brew: 'pot', thresh: 'sack', salt: 'sack', slaughter: 'sack', milk: 'pail',
+    fell: 'chop', grub: 'chop', timber: 'chop', pick: 'build', quarry: 'build', raise: 'build',
+    water: 'water', cook: 'pot', brew: 'pot', thresh: 'sack', salt: 'sack', slaughter: 'sack', milk: 'pail',
     restore: 'build', foundation: 'build', walls: 'build', roof: 'build', mend: 'build', repair: 'build', fish: 'fish' };
   for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
   // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).

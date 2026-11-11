@@ -139,8 +139,8 @@ VB['sim/commands'] = (() => {
         : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
       run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
-    // leave({from, party: {all, followers}, house, field, village | wood}): the actor's party leaves village `from` to settle at `house` with
-    // its first `field`: in the small village `village` if given, else founding a new one with woodlot `wood`; provisions as the round reckons them
+    // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first
+    // `field`: in the small village `village` if given, else founding a new one; provisions as the round reckons them
     leave: {
       check: (st, c) => {
         const a = c.args || {}, S = later('sim/settle');
@@ -155,7 +155,7 @@ VB['sim/commands'] = (() => {
         const a = c.args, S = later('sim/settle'), home = st.villages[a.from], party = { all: a.party.all, followers: a.party.followers || [] };
         const prov = S.provisions(st, party.all);
         if (a.village !== undefined) S.settleFarm(st, st.villages[a.village], home, party, a.house, a.field, prov);
-        else S.found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field, wood: a.wood }, prov);
+        else S.found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field }, prov);
       },
     },
     // A restored farm gains its household; construction keeps plot/farm-specific steps in their owners.

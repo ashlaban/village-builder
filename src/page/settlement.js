@@ -103,6 +103,12 @@
           stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
         for (const b of [lada, harbre, stuga]) { b.tint = tint; if (empty && !ruin) b.alpha = 0.9; }
         if (ruin) { lada.visible = harbre.visible = false; stuga.scale.y = ART_S * 0.55; stuga.alpha = 0.85; }
+        if (f.grade === 'stone' && !ruin) { // the stone sill a house raised onto a foundation stands on (VB-332)
+          const sx = hx + YARD.stuga[0], sy = hy + YARD.stuga[1], sill = new PIXI.Graphics();
+          for (let k = 0; k < 7; k++) sill.ellipse(sx - 10.5 + k * 3.5, sy + 0.6 + (k % 2) * 0.3, 2, 1.25);
+          sill.fill({ color: empty ? 0x77736e : 0x9a958c }).stroke({ width: 0.35, color: 0x4a463f });
+          sill.zIndex = sy + 0.005; L.objects.addChild(sill);
+        }
       }
       const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9); wood.visible = !empty;
       const herds = !empty && st.households[f.household].herds.length > 0;

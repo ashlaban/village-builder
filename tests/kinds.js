@@ -7,7 +7,7 @@ for (const [k, K] of Object.entries(Sim.KINDS)) {
   for (const f of ['verb', 'go', 'name', 'label']) check(typeof K[f] === 'string' && K[f].length > 0, `${k} has no ${f}`);
   check(K.hours > 0, `${k} has no hours`);
   check(types.has(K.type), `${k}: no role ranks its type of work "${K.type}"`);
-  if (K.carry) check(K.back && ['door', 'woodpile', 'barn'].includes(K.to) && K.deliver, `${k} carries ${K.carry} but lacks back, to or deliver`);
+  if (K.carry) check(K.back && ['door', 'woodpile', 'barn', 'site'].includes(K.to) && K.deliver, `${k} carries ${K.carry} but lacks back, to or deliver`);
   else check(!K.deliver && !K.to, `${k} delivers but carries nothing`);
   check(!(K.inside && K.field), `${k} is both inside and on a field`);
   if (K.field) check(typeof K.spot === 'function', `${k} is field work without a spot on the field`);

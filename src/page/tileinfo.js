@@ -27,7 +27,8 @@
       ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
-    const claims = claimLines(i);
+    const claims = claimLines(i), cutBy = st && Sim.woodOf(st, i); // the village whose wood the tile is (VB-326)
+    if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
     if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), ...groundLines(i), where]);

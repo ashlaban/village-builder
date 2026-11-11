@@ -3,14 +3,15 @@ VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
   const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
-  const { fellTree } = VB['sim/forest'];
+  const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
-  const { finishBoothStage, plotJobs, boothJob } = VB['sim/expansion'];
+  const { plotJobs } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
+  const Building = VB['sim/building'];
   const { ground, landCatch } = VB['sim/fish'], { ground: forageGround, gather } = VB['sim/forage'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
@@ -20,6 +21,7 @@ VB['sim/kinds'] = (() => {
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
+  //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
   //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
   //   available(st, holder, at, c, post, f): where the kind could be done now (VB-208); it calls post(key, site, extra) for each job it
@@ -74,10 +76,6 @@ VB['sim/kinds'] = (() => {
   // The farm's land project, a new field or meadow, at its present stage (clear, break, meadow) on its tile (sim/fields, sim/meadows).
   function landProject(st, hh, f, c, post) {
     if (f.project) post(`${f.project.stage}:f${f.id}`, f.project.tile, { farm: f, hours: f.project.hours }, f.project.stage);
-  }
-  // Settlers build their cottage (sim/settle): the open stage while the farm's booth stands (sim/expansion).
-  function boothWork(st, hh, f, c, post) {
-    const bj = boothJob(st, f); if (bj) post(bj[0], f.house, bj[2], bj[1]);
   }
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
@@ -162,14 +160,17 @@ VB['sim/kinds'] = (() => {
         const goal = woodTargets(st, hh).wood[c.season];
         return (goal - hh.wood) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
-      deliver: (st, j, hh) => { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); },
-      // from a farm with a woodlot while the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
+      // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
+      deliver: (st, j, hh) => {
+        Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood'); fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
+      },
+      draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
+      // while the village has a wood and the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
       available: (st, hh, f, c, post) => {
-        if (f.woodlot < 0) return;
-        const T = woodTargets(st, hh);
-        if (hh.wood < T.wood[c.season]) {
-          post(`wood:h${hh.id}`, f.woodlot, { farm: f });
-          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, f.woodlot, { farm: f });
+        const wood = st.villages[f.village].wood, T = woodTargets(st, hh);
+        if (wood.length && hh.wood < T.wood[c.season]) {
+          post(`wood:h${hh.id}`, wood[0], { farm: f });
+          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
         }
       },
     },
@@ -305,13 +306,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Grubbing out stumps', go: 'Going to grub out stumps', name: 'Grub out stumps', label: 'Grub', anim: 'hoe', hours: 6, hands: Infinity,
       type: 'tilling', field: true, spot: onField, available: plotWork,
     },
-    // the cottage's stages: a plot's are finished by sim/expansion (j.plot); a booth's (j.booth, settlers) here
-    foundation: { verb: 'Laying the foundation', go: 'Going to lay a foundation', name: 'Lay the foundation', label: 'Foundation', anim: 'mallet', hours: 30,
-      hands: Infinity, type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork }, // also a plot's (plotWork)
-    walls: { verb: 'Raising the log walls', go: 'Going to raise the walls', name: 'Raise the walls', label: 'Walls', anim: 'chop', hours: 60, hands: Infinity,
-      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork },
-    roof: { verb: 'Laying the turf roof', go: 'Going to lay the roof', name: 'Lay the roof', label: 'Roof', anim: 'mallet', hours: 30, hands: Infinity,
-      type: 'wood', done: (st, j) => { if (j.booth) finishBoothStage(st, j); }, available: boothWork },
+    ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
     mend: {
       verb: 'Mending the fence', go: 'Going to mend the fence', name: 'Mend the fence', label: 'Mending', anim: 'mallet', hours: 2.5, hands: 1,
       type: 'upkeep',
@@ -389,9 +384,10 @@ VB['sim/kinds'] = (() => {
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
     farm: [meadowWork, 'manure', byreWork].map(rule),
-    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'brew', 'mend', 'repair', 'fish', 'gather'].map(rule),
+    farmAfterPlans: [landProject, Building.boothWork, 'wood', 'thresh', 'water', 'cook', 'brew', 'mend', 'repair', 'fish', 'gather',
+      Building.stoneWork].map(rule),
     village: ['mend'].map(rule),
-    island: [plotWork, claimWork].map(rule),
+    island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
   ASK.farmAfterPlans.push(rule('dig')); // VB-344

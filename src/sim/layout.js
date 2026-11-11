@@ -1,7 +1,7 @@
 // @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -97,17 +97,20 @@ VB['sim/layout'] = (() => {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
+      grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
     };
   }
 
-  // cache (optional): a Float32Array of NaN that remembers site scores between calls on the same world.
+  // cache (optional): a Float32Array of NaN that remembers site scores between calls on the same world. A village stands only within reach
+  // of a wood: WOOD.least wooded tiles within WOOD.reach walking steps (VB-326), asked only of a site that would be the best so far.
+  const NONE = new Set();
   function findSite(w, rand, comp, filter, cache = null) {
     let best = -1, bs = -Infinity;
     for (let i = 0; i < w.N; i++) {
       if (w.biome[i] !== B.MEADOW || (i * 7919) % 5 || !filter(i)) continue;
       if (cache && cache[i] !== cache[i]) cache[i] = siteScore(w, i);
       const s = (cache ? cache[i] : siteScore(w, i)) + rand() * 2;
-      if (s > bs) { bs = s; best = i; }
+      if (s > bs && woodNear(w, NONE, i, WOOD.least).length >= WOOD.least) { bs = s; best = i; }
     }
     return best;
   }
@@ -180,7 +183,7 @@ VB['sim/layout'] = (() => {
     return row;
   }
   function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
-    const village = { id, name, center, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: true, well: true };
     used.add(center);
     const taken = new Set([...fieldsAt, ...homes]);
     const street = !withStreet ? new Set()
@@ -252,30 +255,34 @@ VB['sim/layout'] = (() => {
   }
   // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
   const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
-  // The nearest forest tile within 24 walking steps that is not a house or field, or -1 (a river can put the wood out of easy reach).
-  function nearestWood(w, used, from) {
-    const { dist: dd } = bfs(w, from, 24, walkable(w));
-    let wl = -1, wd = Infinity;
-    for (const [j, d] of dd) if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && d < wd) { wd = d; wl = j; }
-    return wl;
+  // Up to n wooded tiles within WOOD.reach walking steps of `from`, nearest first, none a house or field (`used`) or in `taken`.
+  function woodNear(w, used, from, n, taken = null) {
+    const out = [];
+    for (const [j, d] of bfs(w, from, WOOD.reach, walkable(w)).dist) {
+      if ((w.biome[j] === B.FOREST || w.biome[j] === B.PINE) && !used.has(j) && !(taken && taken.has(j))) out.push([j, d]);
+    }
+    return out.sort((a, b) => a[1] - b[1] || a[0] - b[0]).slice(0, n).map(([j]) => j);
   }
-  // bare: the farms keep their houses only; the fields they would have had stay unmade meadow, with their stones.
+  // bare: the farms keep their houses only; the fields they would have had stay unmade meadow, with their stones. Each village's wood
+  // (VB-326): WOOD.perHousehold of the nearest wooded tiles for each of its farms, at least WOOD.least, none another village's; sim/territory
+  // reckons it again once the land is held.
   function finishLand(w, villages, farmsteads, used, rand, bare = false) {
     if (bare) for (const f of farmsteads) { for (const fd of f.fields) used.delete(fd.tile); f.fields = []; }
-    const nearWood = (from) => nearestWood(w, used, from);
+    const taken = new Set();
     for (const v of villages) {
-      v.commonsWood = nearWood(v.center);
+      const n = Math.min(WOOD.cap, Math.max(WOOD.least, WOOD.perHousehold * v.farmsteads.length));
+      v.wood = woodNear(w, used, v.center, n, taken); for (const t of v.wood) taken.add(t);
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
       v.fence = makeFence(w, enclose(w, vin, v.center), v.center, { type: 'village', id: v.id }, 8, rand);
     }
-    for (const f of farmsteads) f.woodlot = villages[f.village].commonsWood;
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w); initFish(w); initForage(w);
   }
-  // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
+  // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields and a wood
+  // in reach (findSite).
   function findLoneFarm(w, used, rand, center, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {
     const { dist: reach } = bfs(w, center, 40, walkable(w));
     let lone = null, ls = -Infinity;
@@ -284,13 +291,13 @@ VB['sim/layout'] = (() => {
       const fields = placeFields(w, used, j, 3, yards);
       if (!fields) continue;
       const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
-      if (s > ls) { ls = s; lone = { house: j, fields }; }
+      if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
     // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], commonsWood: -1, grain: 0, ledger: [], totals: [], green: false, well: false };
+      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
@@ -346,6 +353,6 @@ VB['sim/layout'] = (() => {
   }
   return {
     settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, nearestWood, findLoneFarm,
+    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();
