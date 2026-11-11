@@ -52,7 +52,7 @@ function violations(deps) {
 }
 
 // VB-230: the layer rule (target-v2 3.1). Calls go downward; a module of a lower layer naming a higher one is an upward call, unless it is
-// `issue` (the command door). Composition roots are apart. `emit` and hook contributions join the exclusions as they land (VB-229).
+// `issue` (the command door). Composition roots are apart. `emit` needs no exclusion: it is a call down into `sim/events` (VB-229); hook contributions join the exclusions as they land.
 const fs = require('fs'), path = require('path');
 function loadLayers() {
   const l = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'layers.json'), 'utf8'));

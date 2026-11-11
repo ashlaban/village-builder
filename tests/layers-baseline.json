@@ -1,15 +1,11 @@
 {
-  "total": 24,
+  "total": 20,
   "pairs": {
     "sim/names -> culture": 1,
     "sim/records -> culture": 1,
     "sim/claims -> culture": 1,
-    "sim/claims -> sim/relations": 1,
     "sim/territory -> culture": 1,
-    "sim/territory -> sim/relations": 1,
-    "sim/stakes -> sim/relations": 1,
     "sim/forest -> sim/territory": 1,
-    "sim/herds -> sim/relations": 1,
     "sim/herds -> culture": 1,
     "sim/stores -> culture": 1,
     "sim/byre -> culture": 1,

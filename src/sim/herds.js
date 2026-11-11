@@ -6,7 +6,7 @@ VB['sim/herds'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
@@ -137,7 +137,7 @@ VB['sim/herds'] = (() => {
         // the cows were taken to another farm's bull: a favour remembered
         const other = st.households[bull.herd.household];
         if (bull.herd !== herd && st.cenv && hh.holder !== null && other.holder !== null && other.holder !== hh.holder) {
-          remember(st, hh.holder, other.holder, 'bull');
+          emit(st, 'bullLent', { borrower: hh.holder, lender: other.holder });
         }
       } else {
         if (!herd.ewes || !(herd.rams > 0 || ramNear(st, house))) continue;
