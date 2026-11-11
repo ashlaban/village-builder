@@ -17,11 +17,12 @@ VB['sim/fields'] = (() => {
     for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) n += age(st, p) >= 14 ? ECON.ration.adult : ECON.ration.child; }
     return n * YEAR_DAYS;
   }
-  // Fields its hands can till: FIELDS.perHand for each working adult, and more with a team of oxen.
-  function fieldsWorkable(st, hh) {
+  // Fields its hands can till: perHand for each working adult (the plan's target, from its culture's template, sim/plans; FIELDS.perHand
+  // before the household has a plan), and more with a team of oxen.
+  function fieldsWorkable(st, hh, perHand = FIELDS.perHand) {
     let hands = 0;
     for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) hands++; }
-    return Math.floor(hands * FIELDS.perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
+    return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
