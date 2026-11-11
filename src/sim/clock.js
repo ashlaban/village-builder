@@ -25,6 +25,7 @@ VB['sim/clock'] = (() => {
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
+  const { takeIn } = VB['sim/service'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
@@ -46,8 +47,9 @@ VB['sim/clock'] = (() => {
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
     if (h === 0) {
-      endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
+      const short = endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
+      if (st.cenv && short.length) takeIn(st, short); // households short of people whose ask fell short are taken in (sim/service, VB-308)
       if (st.cenv && c.season === 2 && c.sday === 9) callMeetings(st); // the meeting's people gather on the green (sim/occasions, VB-126)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
@@ -55,7 +57,7 @@ VB['sim/clock'] = (() => {
   }
   function endOfDay(st, c) {
     const E = st.ECON;
-    shareFood(st);
+    const short = shareFood(st); // households short of people whose ask for food fell short (sim/help, VB-308)
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
@@ -79,6 +81,7 @@ VB['sim/clock'] = (() => {
     for (const s of all) {
       const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
     }
+    return short;
   }
   function newYear(st, c) {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;

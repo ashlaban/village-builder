@@ -4,7 +4,7 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -173,7 +173,7 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !eligible(st, j, p)) return -1;
+    if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
     const s = score(st, p, j, c);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
@@ -197,7 +197,7 @@ VB['sim/jobs'] = (() => {
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
         VB.count.lookUpJob++;
-        if (k === j || !isOpen(k)) continue;
+        if (k === j || !isOpen(k) || attentionOf(k) !== 'full') continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
       }

@@ -8,11 +8,12 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
+  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
   function seedNeed(st, hh) {
-    const f = st.farmsteads[hh.farmstead];
+    const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
     let n = f.project ? 1 : 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * st.ECON.seedPerField;
+    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;

@@ -699,6 +699,8 @@ VB.COUNTERS = {
   lookUpJob: 'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked: 'Pawns weighed as guests of an occasion: a village\'s people at its meeting, kin and housemates at a wedding or a death '
     + '(sim/occasions, VB-126)',
+  takeInWeighed: 'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants '
+    + '(sim/service, takeIn; VB-308)',
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
 };
@@ -5375,11 +5377,12 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
+  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
   function seedNeed(st, hh) {
-    const f = st.farmsteads[hh.farmstead];
+    const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
     let n = f.project ? 1 : 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * st.ECON.seedPerField;
+    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;
@@ -5704,10 +5707,15 @@ VB['sim/help'] = (() => {
     const toHarvest = c.season < AUTUMN ? AUTUMN * SEASON_DAYS - c.doy : YEAR_DAYS - c.doy + AUTUMN * SEASON_DAYS;
     return Math.max(HELP.askDays, toHarvest);
   }
+  // Short of people (design.md, Households short of people: Taken in before it starves; VB-308): at most one member of 18 or more, and fields.
+  // Over its members only; read at the ask, never polled.
+  const shortOfPeople = (st, hh) => st.farmsteads[hh.farmstead].fields.length > 0
+    && hh.members.filter((id) => { const p = st.pawns[id]; return p.alive && p.age >= 18; }).length <= 1;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days, and that has not asked this season, asks kin, then the
-  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season.
+  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. Returns the ids of
+  // the households short of people whose ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
   function shareFood(st) {
-    const season = seasonOf(st.t);
+    const season = seasonOf(st.t), short = [];
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
@@ -5721,8 +5729,10 @@ VB['sim/help'] = (() => {
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, v.grain);
-      if (n > 1e-9) give(st, v, hh, n);
+      if (n > 1e-9 && give(st, v, hh, n)) want -= n;
+      if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
+    return short;
   }
   // At the moving round every household gives a share of its surplus to its village's store.
   function fillStores(st) {
@@ -5733,7 +5743,7 @@ VB['sim/help'] = (() => {
       give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
     }
   }
-  return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf };
+  return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf, shortOfPeople };
 })();
 </script>
 <script>
@@ -6000,11 +6010,12 @@ VB['sim/fields'] = (() => {
     for (const id of hh.members) { const p = st.pawns[id]; if (p.died === null) n += age(st, p) >= 14 ? ECON.ration.adult : ECON.ration.child; }
     return n * YEAR_DAYS;
   }
-  // Fields its hands can till: FIELDS.perHand for each working adult, and more with a team of oxen.
-  function fieldsWorkable(st, hh) {
+  // Fields its hands can till: perHand for each working adult (the plan's target, from its culture's template, sim/plans; FIELDS.perHand
+  // before the household has a plan), and more with a team of oxen.
+  function fieldsWorkable(st, hh, perHand = FIELDS.perHand) {
     let hands = 0;
     for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) hands++; }
-    return Math.floor(hands * FIELDS.perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
+    return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
@@ -6990,6 +7001,9 @@ VB['sim/kinds'] = (() => {
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
   //   window: a time-bound kind's (VB-249), {from: the hour of the day its work can first fall due}: the due-queue (sim/plans) asks it for
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
+  //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
+  //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
+  //   (VB-251; sim/agents). No kind of the game declares one yet.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -7341,10 +7355,12 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
+  const { hexSteps } = VB['sim/hex'];
+  const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
-  const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
+  const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -7365,7 +7381,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function stillAtDeath(st, a) {
-    release(st, a); a.path = null; a.inside = true; sleep(st, a.id);
+    release(st, a); dropSides(st, a); a.path = null; a.inside = true; sleep(st, a.id);
   }
   function tileAt(st, x, y) {
     const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
@@ -7407,12 +7423,73 @@ VB['sim/agents'] = (() => {
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
     a.phase = null; a.work = null; a.basis = null;
   }
+  // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
+  // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
+  //   among its workers (j.claims), or null; absent when it holds none. A kind's attention is `full` (the default), `partial` or `background`
+  //   (sim/kinds): a background task is done at the side at the kind's `rate` of the pawn's hours, while the pawn is within `reach` steps of it.
+  const attentionOf = (j) => KINDS[j.kind].attention || 'full';
+  const heldAt = (a, slot) => (a.side ? a.side[slot] : null);
+  // The held task a is within reach of from tile `at`, or beyond it (a background task only).
+  const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
+  // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
+  // pawn, or of its full task's site (a full task never takes a background one out of reach).
+  function sideWhy(st, a, j) {
+    const att = attentionOf(j);
+    if (att === 'full') return `${j.key} is not a side task`;
+    if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
+    if (att === 'background' && !(inReach(st, j, tileAt(st, a.x, a.y)) && (!a.job || inReach(st, j, a.job.site)))) return `${j.key} is out of its reach`;
+    return null;
+  }
+  // The pawn takes up side task j.
+  function hold(st, a, j) {
+    if (!a.side) a.side = { partial: null, background: null };
+    a.side[attentionOf(j)] = j; j.claims.push(a.id);
+  }
+  // The pawn lets go of side task j, which stays posted, with its progress, for others.
+  function unhold(a, j) {
+    const i = j.claims.indexOf(a.id); if (i >= 0) j.claims.splice(i, 1);
+    for (const slot of ['partial', 'background']) if (a.side[slot] === j) a.side[slot] = null;
+    if (!a.side.partial && !a.side.background) delete a.side;
+  }
+  function dropSides(st, a) { if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(a, a.side[slot]); }
+  // The matcher offers a pawn that holds a background task only partial tasks within its reach (and a full one never, until the urgency
+  // switch); null when job j may be bid for, else why not.
+  function offerWhy(st, a, j) {
+    const att = attentionOf(j), bg = heldAt(a, 'background');
+    if (att !== 'full') return sideWhy(st, a, j);
+    if (bg) return `${j.key} would take the background task ${bg.key} out of reach`;
+    return null;
+  }
+  // The pawn takes a full task by the urgency switch (or an order): a background task the new site takes out of reach is let go.
+  function reachAfter(st, a) {
+    const bg = heldAt(a, 'background');
+    if (bg && a.job && !inReach(st, bg, a.job.site)) unhold(a, bg);
+  }
+  // Each step of a pawn that holds side tasks: a task finished or gone from the board is let go; a background task is done at its rate
+  // of the pawn's hours, and let go once the pawn is out of its reach.
+  function stepSide(st, a, dt) {
+    for (const slot of ['partial', 'background']) {
+      const j = heldAt(a, slot); if (!j) continue;
+      if (st.jobs.get(j.key) !== j) { unhold(a, j); if (!a.side) return; continue; }
+      if (slot !== 'background') continue;
+      const K = KINDS[j.kind];
+      if (!inReach(st, j, tileAt(st, a.x, a.y))) { unhold(a, j); if (!a.side) return; continue; }
+      j.done += dt * K.rate * rateOf(st, st.pawns[a.id]);
+      if (j.done >= (j.hours ?? K.hours)) {
+        unhold(a, j);
+        if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+        dropJob(st, j);
+        if (!a.side) return;
+      }
+    }
+  }
   // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
   function freeHands(st, j, finisher) {
     for (const id of j.claims) {
       if (id === finisher) continue;
       const b = st.agents[id];
       if (b.phase === 'go') b.path = null;
+      if (b.side) unhold(b, j);
       b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
     }
     j.claims = j.claims.filter((id) => id === finisher);
@@ -7549,6 +7626,7 @@ VB['sim/agents'] = (() => {
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
+      if (a.side) stepSide(st, a, dt);
       if (a.path) moveAgent(st, a, dt);
       else if (a.phase === 'work') stepWork(st, a, dt);
       else if (wantsWork(st, a, c)) out.push(a);
@@ -7573,13 +7651,14 @@ VB['sim/agents'] = (() => {
       wantsWork, arrived, goHome, rateOf,
     withOxen, stepWork,
     moveAgent, stepAgents, describe,
+    attentionOf, heldAt, sideWhy, offerWhy, hold, unhold, dropSides, reachAfter,
   };
 })();
 </script>
 <script>
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -7624,10 +7703,13 @@ VB['sim/commands'] = (() => {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
-        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
+        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room`
+        : attentionOf(st.jobs.get(c.target)) !== 'full' ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target)) : null),
       run: (st, c) => {
         const a = st.agents[c.actor], j = st.jobs.get(c.target);
+        if (attentionOf(j) !== 'full') { hold(st, a, j); return; } // a partial or background task is held beside the pawn's task (VB-251)
         release(st, a); start(st, a, j); a.basis = eligible(st, j, st.pawns[a.id]);
+        if (a.side) reachAfter(st, a);
       },
     },
     // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
@@ -8130,40 +8212,104 @@ VB['sim/occasions'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249): a standing plan per live household and village; targets, land
-// step, seed; planning days by the head's diligence, and the due-queue that opens the time-bound kinds at their hours
+// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252): a standing plan per live household and village, a
+// seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
+// diligence, and the due-queue that opens the time-bound kinds at their hours
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, cal } = VB['sim/rules'];
+  const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
-  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, due: the due-queue}; a plan is
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
+  //   seasonal plan, due: the due-queue}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
   //   household's also {targets, tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
+  // @state st.plans.seasons (VB-252): a household's seasonal plan, {holder, kind: 'season', year, season (of cal), made (the day), steps (the
+  //   season's routines in the template's order: kinds of sim/kinds)}; one per undissolved household, made with its standing plan and again
+  //   at the standing plan's first review in each season, from its culture's template; dropped with it. The order is recorded, not yet
+  //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state st.plans.due: [[hour, household id, index in WINDOWED]], sorted by hour, then id, then index: one entry per live household and
   //   time-bound kind, the hour its kind is next asked for the household (VB-249; Rules for cost, 4). Written only here.
   // @state pawn.diligence: a number in [0, 1) from the stream `traits`, drawn once, when the pawn first heads a household's review (a
   //   stand-in until VB-254); its thirds give the planning day's cadence (every third day, every second, daily).
-  // @state plan.targets (a household's; VB-248): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it), hayWinters
-  //   (hay is made while the barn holds less than this many winters' need), fields, workable (the fields wanted and those its hands can
-  //   till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted (sim/meadows), the land step.
+  // @state plan.targets (a household's; VB-248, VB-252): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it),
+  //   hayWinters (hay is made while the barn holds less than this many winters' need), seed (grain kept back for each field not yet sown),
+  //   perHand (fields a working adult can till): copied from the template when its seasonal plan is made; fields, workable (the fields
+  //   wanted and those its hands can till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted
+  //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
-  // The template of the year, one for every culture until foresight (VB-254): the woodpile is laid in for winter from summer on, so its
-  // goal is higher in summer and autumn; hay for two winters.
+  // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
+  // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
+  // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
+  // a target for each store. Its first values are those of the code before it, the same for every culture: the woodpile is laid in for
+  // winter from summer on, so its goal is higher in summer and autumn; hay for two winters; a field's seed; FIELDS.perHand fields a hand.
+  // ctx: {culture (an index of st.cenv.cultures; -1 for a household of none), season, routine (a kind of sim/kinds)}.
   const HAY_WINTERS = 2;
-  function template(st, T) {
-    const E = st.ECON;
-    T.wood[0] = E.woodTarget; T.wood[1] = E.woodWinter; T.wood[2] = E.woodWinter; T.wood[3] = E.woodTarget;
-    T.woodSecond = E.woodTarget * 0.4; T.hayWinters = HAY_WINTERS;
+  const ROUTINES = [
+    ['manure', 'plow', 'sow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
+    ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
+    ['reap', 'haul', 'mow', 'hay', 'thresh', 'slaughter', 'salt', 'wood', 'reclaim', 'clear', 'break', 'meadow', 'mend', 'water', 'cook',
+      'fodder', 'milk', 'fish'], // fishing last, as a household checks it (VB-117); not in winter, under the ice
+    ['thresh', 'wood', 'slaughter', 'salt', 'mend', 'water', 'cook', 'fodder', 'milk'],
+  ];
+  const ROUTINE_KINDS = [...new Set(ROUTINES.flat())];
+  for (const k of ROUTINE_KINDS) if (!KINDS[k]) throw new Error('The template names an unknown kind: ' + k);
+  const year = (id, base) => Rules.declare({ id: 'year.' + id, owner: 'sim/plans', combine: 'sum', base });
+  year('order', (st, x) => ROUTINES[x.season].indexOf(x.routine));
+  year('wood', (st, x) => (x.season === 1 || x.season === 2 ? st.ECON.woodWinter : st.ECON.woodTarget));
+  year('woodSecond', (st) => st.ECON.woodTarget * 0.4);
+  year('hayWinters', () => HAY_WINTERS);
+  year('seed', (st) => st.ECON.seedPerField);
+  year('perHand', () => FIELDS.perHand);
+  // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], and of this season woodSecond,
+  // hayWinters, seed, perHand, steps: the routines in order}, made at its first need in a season, so a seasonal plan copies arrays and
+  // reads no rule (the woodpile's goal is kept for every season, since the kinds read it by the season of the hour). A
+  // cache of the rules, not state: never saved; a loaded run compiles it again from the same rules (one ctx, reused: value() allocates
+  // nothing, and neither does its caller per rule read).
+  const compiled = new WeakMap(), CTX = { culture: -1, season: 0, routine: '' };
+  const seasonKey = (c) => c.year * 4 + c.season;
+  const rule = (st, id) => Rules.value(st, 'year.' + id, CTX);
+  function templateOf(st, culture, c) {
+    let cache = compiled.get(st);
+    if (!cache || cache.key !== seasonKey(c)) compiled.set(st, cache = { key: seasonKey(c), by: new Map() });
+    let T = cache.by.get(culture);
+    if (T) return T;
+    CTX.culture = culture; CTX.season = 0; CTX.routine = '';
+    T = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, seed: 0, perHand: 0, steps: null };
+    for (let s = 0; s < 4; s++) { CTX.season = s; T.wood[s] = rule(st, 'wood'); }
+    CTX.season = c.season;
+    T.woodSecond = rule(st, 'woodSecond'); T.hayWinters = rule(st, 'hayWinters'); T.seed = rule(st, 'seed'); T.perHand = rule(st, 'perHand');
+    const ranked = [];
+    for (const k of ROUTINE_KINDS) { CTX.routine = k; const n = rule(st, 'order'); if (n >= 0) ranked.push([n, k]); }
+    T.steps = ranked.sort((a, b) => a[0] - b[0]).map((e) => e[1]);
+    cache.by.set(culture, T);
+    return T;
   }
+  // The culture of a household's village (-1: no farm, or no culture yet).
+  function cultureOf(st, hh) {
+    const s = hh.farmstead !== null && st.cenv ? st.cenv.settlements[st.farmsteads[hh.farmstead].village] : null;
+    return s ? s.culture : -1;
+  }
+  // The household's seasonal plan for the season of c, from its culture's template, and the standing plan's targets copied from it; from
+  // then on the review reads the plan, never the template, so a later change to one household's plan touches no other.
+  function seasonal(st, plan, c) {
+    const id = plan.holder.id, T = templateOf(st, cultureOf(st, st.households[id]), c), P = plan.targets;
+    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s];
+    P.woodSecond = T.woodSecond; P.hayWinters = T.hayWinters; P.seed = T.seed; P.perHand = T.perHand;
+    const sp = { holder: { type: 'household', id }, kind: 'season', year: c.year, season: c.season, made: c.day, steps: [...T.steps] };
+    st.plans.seasons.set(id, sp);
+    return sp;
+  }
+  const seasonOf = (st, id) => st.plans.seasons.get(id);
   // The hours at which plans may be reviewed and the due-queue is asked: every hour from one before work starts to the end of work
   // (sim/clock calls refreshJobs then).
   const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
@@ -8256,12 +8402,14 @@ VB['sim/plans'] = (() => {
     for (let k = 0; k < WINDOWED.length; k++) st.plans.due.push([opens(k, hour), id, k]);
     st.plans.due.sort(byDue);
   }
-  // A household's targets, tiles, cull record and reservation of seed, at its plan's making and at the load of a save without them.
+  // A household's targets, seasonal plan, tiles, cull record and reservation of seed, at its plan's making and at the load of a save
+  // without them.
   function household(st, plan) {
     const hh = st.households[plan.holder.id];
-    plan.targets = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, fields: 0, workable: 0 };
-    template(st, plan.targets);
-    if (hh.farmstead !== null) { plan.targets.workable = fieldsWorkable(st, hh); plan.targets.fields = fieldsWanted(st, hh, plan.targets.workable); }
+    plan.targets = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, seed: 0, perHand: 0, fields: 0, workable: 0 };
+    seasonal(st, plan, cal(st.t));
+    const T = plan.targets;
+    if (hh.farmstead !== null) { T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable); }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
     Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
@@ -8278,23 +8426,25 @@ VB['sim/plans'] = (() => {
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
-    if (type === 'household') st.plans.due = st.plans.due.filter((e) => e[1] !== id);
+    if (type === 'household') { st.plans.seasons.delete(id); st.plans.due = st.plans.due.filter((e) => e[1] !== id); }
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
   function seedPlans(st) {
-    st.plans = { households: new Map(), villages: new Map(), due: [] };
+    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [] };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
-  // A save made before the plans' targets and reservations (VB-248), or before planning days and the due-queue (VB-249): its plans get
-  // them as made now.
+  // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
+  // plans (VB-252): its plans get them as made now.
   function fillPlans(st) {
+    if (!st.plans.seasons) st.plans.seasons = new Map();
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
         plan.reserved = {}; plan.reasons = {}; // lint-allow: owner a save made before reservations gets empty ones (sim/stores writes them)
         if (plan.holder.type === 'household') household(st, plan);
       }
+      if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
       if (plan.last === undefined) {
         plan.last = null; plan.woke = null; plan.looked = null;
         plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
@@ -8303,9 +8453,9 @@ VB['sim/plans'] = (() => {
     if (!st.plans.due) { st.plans.due = []; for (const id of st.plans.households.keys()) enqueue(st, id); }
   }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
-  // flag of a store is cleared. A household's plan writes its targets with today's values (the fields wanted, which the land step reads),
-  // notes the year's count of its herds once it is held, and reserves the seed its unsown fields and its land project need (sim/stores
-  // counts it again when read).
+  // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
+  // reads the targets from the plan, writes those of today's values (the fields wanted, which the land step reads), notes the year's count
+  // of its herds once it is held, and reserves the seed its unsown fields and its land project need (sim/stores counts it again when read).
   function reviewed(st, plan, c, why = 'day') {
     const hour = Math.floor(st.tick / TICKS);
     VB.count.planReview++;
@@ -8314,9 +8464,9 @@ VB['sim/plans'] = (() => {
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') return;
-    const hh = st.households[plan.holder.id], T = plan.targets;
-    template(st, T);
-    T.workable = fieldsWorkable(st, hh); T.fields = fieldsWanted(st, hh, T.workable);
+    const hh = st.households[plan.holder.id], T = plan.targets, sp = seasonOf(st, hh.id);
+    if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed');
   }
@@ -8328,8 +8478,8 @@ VB['sim/plans'] = (() => {
     startMeadow(st, f, hh, built, plan.tiles.meadow);
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
-  return { reviewHour, makePlan, dropPlan, planOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED, dueNow,
-    again };
+  return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
+    dueNow, again, ROUTINES, cultureOf };
 })();
 </script>
 <script>
@@ -8339,7 +8489,7 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -8508,7 +8658,7 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !eligible(st, j, p)) return -1;
+    if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
     const s = score(st, p, j, c);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
   }
@@ -8532,7 +8682,7 @@ VB['sim/jobs'] = (() => {
       let best = null, top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
         VB.count.lookUpJob++;
-        if (k === j || !isOpen(k)) continue;
+        if (k === j || !isOpen(k) || attentionOf(k) !== 'full') continue;
         const s = score(st, p, k, c), b = s === null ? -1 : s * MATCH.join ** k.claims.length;
         if (b > top) { top = b; best = k; }
       }
@@ -9158,7 +9308,8 @@ VB['sim/membership'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/service: households short of people: a guardian for orphaned minor heirs, and a servant for a holder who lives alone
+// @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, and kin or a
+// servant for a household of at most one grown member whose ask for food fell short (VB-308)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
@@ -9225,11 +9376,11 @@ VB['sim/service'] = (() => {
   // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
   function enterService(st, id, hhId) {
     const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
-    const from = farmIn(st, st.households[best.household], v);
+    const from = farmIn(st, st.households[best.household], v), alone = hh.members.length === 1;
     moveTo(st, best.id, hh.id); setServant(st, best.id, true);
     personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
-    log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, who lived alone.`, {
-      kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+    log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${alone ? 'who lived alone'
+      : 'which was short of hands'}.`, { kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
   }
   // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
   function unfit(st, q) {
@@ -9243,32 +9394,83 @@ VB['sim/service'] = (() => {
     const from = st.households[q.household];
     return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
   }
+  // Those who would serve now, in demand order: fit (unfit null), and not declining by the player's wish (VB-212).
+  const willServe = (st) => st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
+  // Steps between the village centres of households a and b (0 in one village).
+  const stepsBetween = (st, a, b) => {
+    const u = farmOf(st, a).village, v = farmOf(st, b).village;
+    return u === v ? 0 : hexSteps(st.w, st.villages[u].center, st.villages[v].center);
+  };
+  // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
+  // hh's village first, then the nearest village within SERVICE.reach steps; then the household that keeps the most hands, then the oldest.
+  function servantFor(st, hh, available) {
+    let best = null, bs = null;
+    for (const id of available) {
+      const q = st.pawns[id];
+      if (q.household === hh.id) continue;
+      const left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
+      const d = stepsBetween(st, st.households[q.household], hh); if (d > SERVICE.reach) continue;
+      const s = [d, -left, q.born];
+      if (!bs || before(s, bs)) { best = q; bs = s; }
+    }
+    return best;
+  }
   function takeServants(st) {
     const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
     if (!lone.length) return;
-    const village = (hh) => farmOf(st, hh).village;
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
     // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
-    const available = st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
+    const available = willServe(st);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
-      const v = st.villages[village(hh)], holder = st.pawns[hh.holder];
-      let best = null, bs = null;
-      for (const id of available) {
-        const q = st.pawns[id];
-        const from = st.households[q.household], left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
-        const u = st.villages[village(from)], d = u.id === v.id ? 0 : hexSteps(st.w, u.center, v.center);
-        if (d > SERVICE.reach) continue;
-        const s = [d, -left, q.born];
-        if (!bs || before(s, bs)) { best = q; bs = s; }
-      }
-      if (!best) continue;
+      const best = servantFor(st, hh, available); if (!best) continue;
       issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' });
     }
     refreshRoles(st); st.visualDirty = true;
   }
-  return { careForOrphans, takeServants, enterService, hands, unfit, handsLeft };
+
+  // ---- taken in before it starves (VB-308; design.md, Households short of people) ----
+  // A household of at most one grown member, with fields, whose seasonal ask for food fell short (sim/help's shareFood names it, the same
+  // day) is taken in at once. Kin first: the holder's nearest relative in st.demand (kinship over 0, then the oldest, as a guardian is chosen),
+  // fit to serve (unfit null: free, unmarried, 18 to 50), whose household is not left short of people without them (it keeps two grown
+  // members, or holds no fields), from the village or within SERVICE.reach steps, moves in as a member with the minor children who live
+  // with them. Else a servant, as takeServants chooses for this
+  // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come,
+  // nothing happens (VB-309). Only a household named searches: st.demand once with a kinship memo, then the servants' list.
+  const grown = (st, hh) => hh.members.filter((id) => adult(st.pawns[id])).length;
+  function takeIn(st, ids) {
+    let available = null;
+    for (const id of ids) {
+      const hh = st.households[id];
+      if (hh.dissolved || hh.holder === null || !farmOf(st, hh).fields.length || grown(st, hh) > 1) continue;
+      const holder = st.pawns[hh.holder], memo = new Map();
+      let best = null, bk = 0;
+      VB.count.takeInWeighed += st.demand.length;
+      for (const qid of st.demand) {
+        const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
+        const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
+        const from = st.households[q.household]; if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
+        if (stepsBetween(st, from, hh) > SERVICE.reach) continue;
+        best = q; bk = k;
+      }
+      if (best) {
+        const from = farmIn(st, st.households[best.household], farmOf(st, hh).village);
+        for (const m of familyOf(st, best.id)) moveTo(st, m, hh.id);
+        personEvent(st, best.id, 'moved', `Moved to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands`, false); // below
+        log(st, `${fullName(best)} of ${from} moves to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands.`, {
+          kind: 'moved', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+      } else {
+        if (!available) available = willServe(st);
+        VB.count.takeInWeighed += available.length;
+        const s = servantFor(st, hh, available); if (!s) continue;
+        if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
+        available = available.filter((x) => x !== s.id);
+      }
+      refreshRoles(st); st.visualDirty = true;
+    }
+  }
+  return { careForOrphans, takeServants, takeIn, enterService, hands, unfit, handsLeft };
 })();
 </script>
 <script>
@@ -10709,7 +10911,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
-    //   one per pawn, map units
+    //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
     // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
@@ -10787,6 +10989,7 @@ VB['sim/clock'] = (() => {
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
+  const { takeIn } = VB['sim/service'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
@@ -10808,8 +11011,9 @@ VB['sim/clock'] = (() => {
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
     if (h === 0) {
-      endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
+      const short = endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
+      if (st.cenv && short.length) takeIn(st, short); // households short of people whose ask fell short are taken in (sim/service, VB-308)
       if (st.cenv && c.season === 2 && c.sday === 9) callMeetings(st); // the meeting's people gather on the green (sim/occasions, VB-126)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
@@ -10817,7 +11021,7 @@ VB['sim/clock'] = (() => {
   }
   function endOfDay(st, c) {
     const E = st.ECON;
-    shareFood(st);
+    const short = shareFood(st); // households short of people whose ask for food fell short (sim/help, VB-308)
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
@@ -10841,6 +11045,7 @@ VB['sim/clock'] = (() => {
     for (const s of all) {
       const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
     }
+    return short;
   }
   function newYear(st, c) {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
@@ -14971,7 +15176,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0c0783f70f', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '2d15b27948', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

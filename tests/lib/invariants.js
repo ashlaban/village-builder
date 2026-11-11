@@ -53,6 +53,26 @@ function checkState(st) {
           !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
+        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+      }
+    }
+    // VB-252: one seasonal plan per undissolved household, its steps kinds that exist; of the current season once the standing plan has
+    // been reviewed in it (a household makes it at its first review of the season, on its planning day), else of an earlier one
+    const seasons = st.plans.seasons, KINDS = globalThis.VB['sim/kinds'].KINDS, c = globalThis.VB['sim/rules'].cal(st.t);
+    const now = c.year * 4 + c.season, start = c.day - c.sday;
+    if (!(seasons instanceof Map) || seasons.size !== st.liveHouseholds.length) {
+      bad.push(`plans: ${seasons && seasons.size} seasonal plans, live households ${st.liveHouseholds.length}`);
+    } else {
+      for (const id of st.liveHouseholds) {
+        const sp = seasons.get(id), plan = st.plans.households.get(id);
+        if (!sp || sp.kind !== 'season' || sp.holder.type !== 'household' || sp.holder.id !== id || !Array.isArray(sp.steps) ||
+          !sp.steps.every((k) => KINDS[k])) {
+          bad.push(`plans: household ${id} has no seasonal plan of its own`); continue;
+        }
+        const key = sp.year * 4 + sp.season;
+        if (key > now || (key !== now && plan && plan.last !== null && plan.last >= start)) {
+          bad.push(`plans: household ${id}'s seasonal plan is of year ${sp.year}, season ${sp.season}, not of the current one`);
+        }
       }
     }
     // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
@@ -357,10 +377,24 @@ function checkState(st) {
     if (j.claims.length > globalThis.VB['sim/kinds'].KINDS[j.kind].hands) bad.push(`jobs[${j.key}]: ${j.claims.length} workers, more than its hands`);
     for (const id of j.claims) {
       const a = st.agents[id];
-      if (!a || a.job !== j) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
+      const side = a && a.side && (a.side.partial === j || a.side.background === j);
+      if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
+  // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
+  for (const a of st.agents) {
+    if (a.side === undefined) continue;
+    const K = globalThis.VB['sim/kinds'].KINDS;
+    if (!a.side || (!a.side.partial && !a.side.background)) bad.push(`agents[${a.id}]: an empty side`);
+    if (st.pawns[a.id].died !== null) bad.push(`agents[${a.id}]: a dead pawn holds a side task`);
+    for (const slot of ['partial', 'background']) {
+      const j = a.side && a.side[slot];
+      if (!j) continue;
+      if ((K[j.kind].attention || 'full') !== slot) bad.push(`agents[${a.id}]: holds ${j.key} as ${slot}, not its attention`);
+      if (st.jobs.get(j.key) !== j || !j.claims.includes(a.id)) bad.push(`agents[${a.id}]: holds ${j.key}, not posted or not listing it`);
+    }
+  }
   if (st.herds) checkHerds(st, bad);
   // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
   if (st.player !== null && st.player !== undefined) {
