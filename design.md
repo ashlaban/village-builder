@@ -638,46 +638,46 @@ The choice is made on the head's planning day when a field falls free or a sowin
 - **What skill never does:** a good head's field of barley yields what a poor head's does, on the same soil, sown the same day and weeded as well.
 - **Cost:** a choice a field a year, made on the holder's planning day; the village's usual rotation once a year at its meeting, over its farms. No new loop, and nothing daily.
 
-#### Seed (Proposed, but for the first row)
+#### Seed (Agreed, 11 Nov; the first row Decided)
 
 Seed is not a good of its own: seed rye is rye. So every way grain already moves carries a crop with it, and no rule is needed for the spread of crops.
 
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Having seed is knowing the crop | A household can sow a crop when its store holds a field's seed of it (25 rations of barley or rye, 20 of peas) | Decided, 11 Nov |
-| Grain in subtypes | The household's grain is held a crop: barley and rye are subtypes of grain, peas the first of pulses (Goods, recipes and facilities: goods in subtypes). The village's store holds them the same way. A ration of any of them feeds as a ration | Proposed |
-| The reserve | The plan reserves, of each crop, the seed for the fields its rotation sows with it next; a trial reserves one field's seed. What is not reserved is food | Proposed |
+| Grain in subtypes | The household's grain is held a crop: barley and rye are subtypes of grain, peas the first of pulses (Goods, recipes and facilities: goods in subtypes). The village's store holds them the same way. A ration of any of them feeds as a ration | Agreed, 11 Nov |
+| The reserve | The plan reserves, of each crop, the seed for the fields its rotation sows with it next; a trial reserves one field's seed. What is not reserved is food | Agreed, 11 Nov |
 | What is eaten first | The cook takes what spoils first, as now, and unreserved grain whatever its crop. A hungry household eats its seed as the last step (Seed, above): the crop it holds most seed of first, and the last field's seed of each crop last of all, so a household loses a crop only by real hunger | Agreed, 11 Nov |
-| Losing a crop and getting it back | A household with less than a field's seed of a crop cannot sow it; its fields at that course lie fallow, and the head falls back on a rotation it has seed for. It has the crop again when a field's seed of it comes in | Proposed |
-| How a crop moves inside a village | By what moves grain already: help in hunger and gifts (most often eaten, sometimes kept by a good head), the heirs' shares, the village's store. A new household's start in life takes a field's seed of each crop its old home holds above its own reserve, and so do settlers' provisions | Proposed |
-| How a crop moves between villages | A marriage between villages (the start in life above; a dowry once slice 4 has it) and the fair: a field's seed is under one back load, and a head who wants a trial is the one who has a need for it. Later the ship, for crops the island has not got | Proposed |
+| Losing a crop and getting it back | A household with less than a field's seed of a crop cannot sow it; its fields at that course lie fallow, and the head falls back on a rotation it has seed for. It has the crop again when a field's seed of it comes in | Agreed, 11 Nov |
+| How a crop moves inside a village | By what moves grain already: help in hunger and gifts (most often eaten, sometimes kept by a good head), the heirs' shares, the village's store. A new household's start in life takes a field's seed of each crop its old home holds above its own reserve, and so do settlers' provisions | Agreed, 11 Nov |
+| How a crop moves between villages | A marriage between villages (the start in life above; a dowry once slice 4 has it) and the fair: a field's seed is under one back load, and a head who wants a trial is the one who has a need for it. Later the ship, for crops the island has not got | Agreed, 11 Nov |
 | Loans of seed | Seed corn after a failed year is slice 5's first loan; whether it is repaid in the crop lent is left to that slice | Open (slice 5) |
 | Cost | A few numbers a household in place of one; nothing is walked that is not walked today | |
 
-#### The scenarios' crops (a mix, by presets: Decided, 11 Nov; rye and peas in founders: Agreed, 11 Nov; the rest Proposed)
+#### The scenarios' crops (a mix, by presets: Decided, 11 Nov; the presets as written: Agreed, 11 Nov)
 
 Every village has barley. What else it has is its scenario's preset, so villages differ from the first day and have something to get from each other.
 
 | Scenario | Crops | Status |
 | --- | --- | --- |
-| Founders | Its two villages are the village of three farms and the lone farm, a village of one. The three farms bring barley and rye, and start in three courses; the lone farm brings barley and peas, and starts with barley and peas by turns. Each household brings a year's food in barley, as now, and seed for the fields it wants, by its rotation. One farm of the village, the backup, also carries a field's seed of peas, held as reserved seed that it does not sow and eats only in hunger, so one bad year at the lone farm does not lose the island its peas (Kim, 11 Nov). Where the map has no room for the lone farm, the third farm of the village grows the peas | Agreed, 11 Nov (barley in both, rye in one, peas in the other); Decided, 11 Nov (a backup household); Proposed (which village has which, the fallback) |
-| Heirs and empty farms | Village A, the culture's centre, has barley and rye in three courses; village B, the remote one, barley and peas. The marriage between the villages in the parents' generation has not carried a crop across | Proposed |
-| Populous Villages | Drawn a village from its ground, by a seeded draw: rye where forest is most of the land within reach (fresh land to break), peas where meadow is, both in a large village of 12 farms or more, barley alone on heath and high ground. About a third of villages have barley alone | Proposed (shares to tune) |
+| Founders | Its two villages are the village of three farms and the lone farm, a village of one. The three farms bring barley and rye, and start in three courses; the lone farm brings barley and peas, and starts with barley and peas by turns. Each household brings a year's food in barley, as now, and seed for the fields it wants, by its rotation. One farm of the village, the backup, also carries a field's seed of peas, held as reserved seed that it does not sow and eats only in hunger, so one bad year at the lone farm does not lose the island its peas (Kim, 11 Nov). Where the map has no room for the lone farm, the third farm of the village grows the peas | Agreed, 11 Nov (barley in both, rye in one, peas in the other); Decided, 11 Nov (a backup household) |
+| Heirs and empty farms | Village A, the culture's centre, has barley and rye in three courses; village B, the remote one, barley and peas. The marriage between the villages in the parents' generation has not carried a crop across | Agreed, 11 Nov |
+| Populous Villages | Drawn a village from its ground, by a seeded draw: rye where forest is most of the land within reach (fresh land to break), peas where meadow is, both in a large village of 12 farms or more, barley alone on heath and high ground. About a third of villages have barley alone | Agreed, 11 Nov (shares to tune) |
 
-#### Crops and the weather (Proposed; starting values, the thinnest part of the plan)
+#### Crops and the weather (Agreed, 11 Nov, as starting values with no source, to be fitted to the weather branch's harvest factor when it lands)
 
 One yearly weather factor cannot make crops differ. It is replaced by a season's weather, which each crop reads in its own way over its own months, so that crops fail in different years and a mix is worth having. The crops are built before the weather (slice 10), so the question a crop asks is fixed now, and what answers it changes later.
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| What a crop asks | For a place and a season: its warmth and its wetness, each from −1 (cold, dry) to 1 (warm, wet) about the place's normal; and for a place and a year, two days: the thaw in spring, before which no ground is tilled or sown, and the first frost of autumn | Proposed |
-| What answers before the weather does | The weather is being built on a branch of its own (Kim, 11 Nov): its first batch gives each land tile its rain from the seed's wind, and its next is to bring fronts, temperature and the harvest's factor. If that lands first, it answers the question and nothing here is drawn. If the crops land first: a draw for the whole archipelago at the start of each season, from the `weather` stream, most seasons near the normal: 8 numbers a year, and the two days (the thaw on spring day 1 to 4, the frost on autumn day 8 to 12, most often 11, where it is fixed today). Nobody knows a season ahead: the spring's line "the year promises well" gives way to a line a season (fine to lose it for now: Kim, 11 Nov) | Proposed; losing the forecast Decided, 11 Nov |
-| What answers once the weather is in | The same question, a region, from the weather itself (Weather, seasons and daylight): the temperature curve and its spells, the rain fronts, the colder high ground and north. The weather keeps running sums a region, once a day; a field reads the difference between its sowing and its reaping. Crops do not change when it lands | Proposed |
-| How the yield reads it | Once, at reaping, as today: harvest = the crop's yield × soil × the crop's reading of its seasons × weeding × the field's small chance. No pass over fields is added | Proposed |
-| Warmth also moves the ripening | A cold summer ripens barley and peas up to 2 days later, a warm one a day earlier; so a cold year pushes the late-sown field into the frost, and sowing early is worth a good head's care | Proposed |
-| The frost | Kills what stands unreaped of the spring-sown crops, as today, but on a day that differs a year. Rye is past it: it is reaped in summer and its seedlings stand the winter | Proposed |
-| Wind | No part in the first version; a storm that flattens ripe grain waits for slice 10 | Proposed |
-| Hay | The meadows read the same seasons, in place of the same yearly factor | Proposed |
+| What a crop asks | For a place and a season: its warmth and its wetness, each from −1 (cold, dry) to 1 (warm, wet) about the place's normal; and for a place and a year, two days: the thaw in spring, before which no ground is tilled or sown, and the first frost of autumn | Agreed, 11 Nov |
+| What answers before the weather does | The weather is being built on a branch of its own (Kim, 11 Nov): its first batch gives each land tile its rain from the seed's wind, and its next is to bring fronts, temperature and the harvest's factor. If that lands first, it answers the question and nothing here is drawn. If the crops land first: a draw for the whole archipelago at the start of each season, from the `weather` stream, most seasons near the normal: 8 numbers a year, and the two days (the thaw on spring day 1 to 4, the frost on autumn day 8 to 12, most often 11, where it is fixed today). Nobody knows a season ahead: the spring's line "the year promises well" gives way to a line a season (fine to lose it for now: Kim, 11 Nov) | Agreed, 11 Nov; losing the forecast Decided, 11 Nov |
+| What answers once the weather is in | The same question, a region, from the weather itself (Weather, seasons and daylight): the temperature curve and its spells, the rain fronts, the colder high ground and north. The weather keeps running sums a region, once a day; a field reads the difference between its sowing and its reaping. Crops do not change when it lands | Agreed, 11 Nov |
+| How the yield reads it | Once, at reaping, as today: harvest = the crop's yield × soil × the crop's reading of its seasons × weeding × the field's small chance. No pass over fields is added | Agreed, 11 Nov |
+| Warmth also moves the ripening | A cold summer ripens barley and peas up to 2 days later, a warm one a day earlier; so a cold year pushes the late-sown field into the frost, and sowing early is worth a good head's care | Agreed, 11 Nov |
+| The frost | Kills what stands unreaped of the spring-sown crops, as today, but on a day that differs a year. Rye is past it: it is reaped in summer and its seedlings stand the winter | Agreed, 11 Nov |
+| Wind | No part in the first version; a storm that flattens ripe grain waits for slice 10 | Agreed, 11 Nov |
+| Hay | The meadows read the same seasons, in place of the same yearly factor | Agreed, 11 Nov |
 | Cost | Before slice 10: 10 numbers drawn a year and two years of them kept in `st` (rye stands across two); a reading a field at its reaping. From slice 10: regions × days for the sums, the weather's own line of the budget, and the same reading | |
 
 What each reads (the harvest is multiplied by each line that applies; w and r are the season's warmth and wetness):

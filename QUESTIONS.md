@@ -21,8 +21,11 @@ The plan is `design.md`, Goods and the farming year, Crops and rotations (`node 
 4. The heads' thresholds: the lowest and highest fifth of foresight; an ordinary head rests a field below soil 0.85; a trial as a project. **P:** as written.
    **A (Kim, 11 Nov):** P (as proposed).
 5. Seed: seed is the crop's own grain, in subtypes; help and gifts carry grain in the proportion the giver holds; a start in life and settlers' provisions carry a field's seed of each crop. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
 6. The presets beyond founders: heirs (A rye, B peas) and populous (by the ground; about a third of villages barley alone); and in founders, the three farms the rye and the lone farm the peas. **P:** as written.
+   **A (Kim, 11 Nov):** P (as proposed).
 7. Each crop's reading of the weather (Crops and the weather, the table), and warmth moving the ripening by up to 2 days. **P:** as written, as starting values with no source; to be fitted to the weather branch's harvest factor when it lands.
+   **A (Kim, 11 Nov):** P (as proposed).
 8. Threshing may wait for winter. **P:** not in this arch; the wrap-up measures the autumn's crowding first.
 9. The pot: barley and rye one source, peas a second. **P:** yes.
 10. The tasks' order and priority: VB-346 to VB-350 in a row, then the head's choice, seed, the scenarios, the weather and the player's verbs, all at priority 3. **P:** as written; raise the priority if crops should come before slice 4's work.
