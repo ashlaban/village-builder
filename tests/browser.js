@@ -304,12 +304,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.evaluate(() => window.__play.setSpeed(0));
     const ids = await page.evaluate(() => {
       const P = window.__play, { Sim } = P, w = P.world();
-      const make = () => { const s = Sim.seed(w, 7, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
+      let people = 7; // the seed of the island's people: the first at which a man of the round, when played, is asked (VB-342)
+      const make = () => { const s = Sim.seed(w, people, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
       const round = (s) => {
         const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
         try { Sim.movingRound(s); } finally { rs.forEach((r) => { delete r.fix; }); } };
-      const a = make(), mark = a.record.length; round(a);
-      const wed = a.record.slice(mark).find((e) => typeof e === 'object' && !e.self && e.kind === 'married');
+      let wed;
+      for (; !wed && people < 40; wed || people++) {
+        const a = make(), mark = a.record.length; round(a);
+        wed = a.record.slice(mark).filter((e) => typeof e === 'object' && !e.self && e.kind === 'married')
+          .find((e) => { const probe = make(); Sim.inhabit(probe, e.pawn); round(probe); return probe.offers.length === 1; });
+      }
       const s = make(); Sim.inhabit(s, wed.pawn); P.st = s; P.focusPawn(wed.pawn); window.__round = () => round(s);
       return { man: wed.pawn, woman: wed.other };
     });
