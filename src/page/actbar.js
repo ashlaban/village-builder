@@ -133,7 +133,7 @@
       else if (b.dataset.play === 'do') barMsg = { text: `Queued: ${commandWords(JSON.parse(b.dataset.cmd))}.` };
     } else if (act === 'close') { const g = barMenu.g; closeBarMenu(); document.querySelector(`#actBar [data-group="${g}"]`).focus(); return; }
     else if (act === 'back') barMenu.view = null;
-    else if (act === 'view') { barMenu.view = b.dataset.view; if (barMenu.view === 'give' && $('giveTo')) { gift.warn = null; gift.msg = ''; } }
+    else if (act === 'view') { barMenu.view = b.dataset.view; if (barMenu.view === 'give') { gift.warn = null; gift.msg = ''; } }
     else if (act === 'why') barMsg = { text: `${b.querySelector('.nm').firstChild.textContent}: ${b.dataset.why}.`, bad: true };
     else if (act === 'sheet') { openPanel('actions'); }
     else if (act === 'walk') startTool({ kind: 'walk', icon: 'walk', title: 'Walk here', needs: 'an open tile', keep: false });
