@@ -122,7 +122,8 @@
     loader.classList.add('done');
     // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
     if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
-    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    else if (!save && !sim.player) openChoose();
+    else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
     building = false; $('menuBtn').disabled = false;
   }
 

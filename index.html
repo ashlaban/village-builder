@@ -145,6 +145,7 @@ body {
 .cust td.dev { background: rgba(201, 162, 74, 0.16); }
 .sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
 .sbar i { display: block; height: 100%; }
+.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -227,6 +228,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
 .save-files { gap: 10px; }
 .save-files button { flex: 1; min-height: 40px; padding: 7px 14px; font-size: 15px; }
+@media (pointer: coarse) { .screen-head button, .save-acts button, .save-arch h3 button, .save-files button { min-height: 44px; min-width: 44px; padding: 8px 16px; font-size: 15px; } }
 .save-msg { margin: 0; color: var(--muted); }
 .save-arch { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
 .save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
@@ -309,6 +311,7 @@ input, select { font: inherit; color: var(--ink); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
 .map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 #noticeBtn[aria-expanded="true"] { background: var(--edge); }
+@media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
@@ -467,7 +470,9 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .history p.more { color: var(--muted); }
 button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: var(--ink); text-align: left;
   text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
-@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; } }
+@media (pointer: coarse) { button.name { padding: 9px 0; } .history p, .settlers .log p { line-height: 1.9; }
+  .tabs button, .history .kinds button, button.chip, a.chip { min-height: 44px; padding: 5px 14px; }
+  .settlers p button.show-map { display: inline-block; padding: 12px 0; } }
 .tile.peek .sheet-content, .tile.peek .sheet-head button { display: none; }
 .tile.peek .sheet-head { border-bottom: 0; }
 .settlers li { display: flex; align-items: flex-start; gap: 8px; }
@@ -614,6 +619,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .pyr .pb.l i { background: linear-gradient(to left, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .start-bar { position: sticky; bottom: 0; display: flex !important; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+.start-sheet .start-opts, .start-sheet .start-acts { display: contents; }
 .start-bar label { width: 200px; max-width: 100%; min-width: 0; } .start-bar select { width: 100%; min-width: 0; }
 .start-bar .grow { flex: 1 1 0; }
 .start-bar .err { flex: 1 1 220px; align-self: center; max-width: none; }
@@ -628,10 +634,16 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .scard .cpic { grid-row: 1 / span 3; height: 100%; min-height: 70px; padding: 0 4px 4px; }
   .scard .cpic img { width: 34px; height: 34px; margin: 0 -6px; }
   .scard > *:not(.cpic) { margin: 0 10px 0 0; } .scard > b { margin-top: 8px; } .scard > .stats { margin-bottom: 8px; }
-  .start-bar { gap: 8px; padding: 10px 12px; }
+  .start-bar { display: contents !important; }
+  .start-sheet .start-opts, .start-sheet .start-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 12px; }
+  .start-sheet .start-acts { position: sticky; bottom: 0; margin: 10px 0 max(14px, env(safe-area-inset-bottom, 0px)); padding: 8px 12px;
+    box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
+  /* room for the map size's words and the seed's six digits in one row, from 360px up */
+  .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
+  .start-bar select, .start-bar input { padding-left: 8px; padding-right: 6px; } .start-bar .seedrow button { padding: 6px 8px; }
   .start-bar .grow { display: none; }
-  .start-bar > button { flex: 1 1 120px; }
+  .start-acts > button { flex: 1 1 120px; }
   .scard .cpic { align-items: center; }
 }
 @media (max-width: 560px) {
@@ -654,7 +666,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
   .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
-  .calendar { flex: 1; min-width: 0; }
+  .calendar { flex: 1; min-width: 0; white-space: nowrap; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
@@ -699,6 +711,13 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
     max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
 }
+/* under 390px the date has no room beside the clock's five buttons: it takes a line of its own over them */
+@media (max-width: 389px) {
+  .clock { flex-wrap: wrap; padding: 6px 8px; gap: 2px 6px; justify-content: space-between; }
+  .calendar { flex: 1 1 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px; }
+  .clock strong, .clock span { display: inline; }
+  .tile .sheet-head strong { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -734,7 +753,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
     <h1 id="chooseTitle">Whom to play</h1>
-    <p class="hint">Drag the map and click a farm, or begin from a story. Children are shown, and cannot be played.</p>
+    <p class="hint">Drag the map and pick a farm, or begin from a story. Children are shown, and cannot be played.</p>
     <h3>Story archetypes</h3>
     <div id="chooseStories"></div>
     <p class="hint sug-note"><svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path
@@ -927,7 +946,9 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
           d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
       </section>
     </div>
+    <!-- one bar; on a phone two: the choices lie at the page's end, and only Back and Raise the land stay at the screen's foot -->
     <div class="panel start-bar">
+      <div class="panel start-opts">
       <label>Map size
         <select id="genSize">
           <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
@@ -938,10 +959,13 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         <span class="seedrow"><input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required><button type="button"
           id="genReroll">Another</button></span>
       </label>
+      </div>
+      <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
       <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
+      </div>
     </div>
   </form>
 </div>
@@ -12863,7 +12887,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     loader.classList.add('done');
     // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
     if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
-    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    else if (!save && !sim.player) openChoose();
+    else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
     building = false; $('menuBtn').disabled = false;
   }
 
@@ -14700,7 +14725,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       let body = '';
       if (expanded) {
         const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-        body += `<div class="farm"><p><button type="button" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
+        body += `<div class="farm"><p><button type="button" class="show-map" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
           <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
         if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
         if (f.booth) body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
@@ -14741,7 +14766,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const key = `village-${v.id}`, expanded = !!query || foldOpen(key);
       let body = '';
       if (expanded) {
-        body = `<p><button type="button" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
+        body = `<p><button type="button" class="show-map" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>`
           + households.map(household).join('');
         const commonsKey = `commons-${v.id}`;
         let commons = '';
@@ -14772,7 +14797,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
         <summary>${iconImg(villageIcon(v),
-          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} ${households.length === 1 ? 'household' :
+            'households'}</span></summary>${body}</details>`;
     }
     // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {
@@ -15871,7 +15897,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!choose) return;
     const f = choose.farm >= 0 ? st.farmsteads[choose.farm] : null, hh = f ? liveHousehold(f) : null, id = choose.pawn;
     let h = '';
-    if (!f) h = '<p class="hint">Drag the map and click a farm.</p>';
+    if (!f) h = '<p class="hint">Drag the map and pick a farm.</p>';
     else {
       const days = hh ? foodDays(hh) : null, v = st.villages[f.village];
       const food = !hh ? '' : days === null ? ' · no one to feed' : ` · food for ${days} ${days === 1 ? 'day' : 'days'}`;
@@ -15919,7 +15945,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     else if (b.id === 'choosePlay' && choose.pawn >= 0) {
       const id = choose.pawn, r = playAs(id);
       if (r !== true) { choose.msg = r; renderChoose(); return; }
-      closeChoose(); focusPawn(id); openPanel('actions');
+      closeChoose(); focusPawn(id); openBar(!mobileUI.matches); // on a narrow screen the bar alone: the sheet would cover the farm
     }
   });
 // with it, in a framed view of the stage with callouts on its real farms and tiles; who starts and the story archetypes, as a look
@@ -16641,10 +16667,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
     openPanel(null);
     $('tree').hidden = false;
     for (const el of document.querySelectorAll('.hud, .navigation, .sheet, #uiToggle')) el.inert = true;
-    $('treeTitle').textContent = `Family records of ${st.villages.map((v) => v.name).join(' and ')}`;
+    // up to two villages are named; more are the island's records, by its name
+    $('treeTitle').textContent = `Family records of ${st.villages.length > 2 ? w.name : st.villages.map((v) => v.name).join(' and ')}`;
     const living = st.pawns.filter((p) => p.died === null).length;
     treeCounts = `${living} living, ${st.pawns.length - living} dead, ${st.unions.length} marriages`;
-    if (treeSel < 0 && selPawn >= 0) treeSel = selPawn;
+    // it opens on a line, never on everyone: the selected person's, else the played pawn's (Everyone is a mode to choose)
+    if (treeSel < 0) treeSel = selPawn >= 0 ? selPawn : played();
     treePick = false; if (treeSel !== treeFocus && (treeMode !== 'path' || treeSel !== treeOther)) refocusTree(treeSel);
     renderTree(); renderTreeInfo(); centreTree(); $('treeClose').focus();
   }
@@ -16744,8 +16772,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
         optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
         <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
           `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw" style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(
-          support[offset + j] * 100)}%`).join(' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
+        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
+          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
+            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
     });
     h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
       `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
@@ -16767,8 +16796,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
-    $('drawerBody').innerHTML = `<h2 class="dh">Debug</h2>
-      <p class="dm" id="dbgWhen"></p>
+    $('drawerBody').innerHTML = `<p class="dm" id="dbgWhen"></p>
       <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
       <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button
         type="button" data-act="move">Run the moving round</button></div>
@@ -16965,7 +16993,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '84acf44980', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '087f12cb19', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
