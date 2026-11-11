@@ -259,6 +259,9 @@ VB['sim/herds'] = (() => {
     if ((kind === 'cow' ? cowsOf(st, hh) - 1 : cowsOf(st, hh)) < 1 || hh.hay < winterNeed(st, hh) - need) return false;
     const dest = herdFor(st, to, kind === 'ewe' ? 'sheep' : 'cattle');
     if (kind === 'ewe') { from.ewes--; dest.ewes++; } else dest.head.push(...from.head.splice(idx, 1));
+    // an animal marked for slaughter may be the one that went: the cull list names only animals still there (as sim/byre's tidy)
+    const left = { ewe: from.ewes, ram: from.rams, lamb: from.lambs };
+    from.cull = from.cull.filter((e) => (kind === 'ewe' ? left[e.sheep]-- > 0 : from.head.some((h) => h.id === e.head)));
     const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
     if (hay > 0) { hh.hay -= hay; to.hay = (to.hay || 0) + hay; }
     return true;

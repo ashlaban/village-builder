@@ -1213,8 +1213,8 @@ VB['gen/paths'] = (() => {
 VB['gen/rivers'] = (() => {
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
-  // longEnough: a course of this many land tiles counts as long, so beyond it the noise (up to `noise`) spreads sources over the island.
-  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3, longEnough: 15, noise: 10 };
+  // Which courses become rivers goes by drainage basin (VB-342): the main stems of the largest catchments first (trace).
+  const RIVERS = { perTiles: 700, fromWater: 3, spacing: 10, own: 3 };
   // Fords: in stretches of `every` land tiles down each reach, the best site is a ford; a last stretch under `least` joins the one before.
   // A site's score (lower is better) is its drop to the next tile per `drop` of elevation, plus the root of its catchment per `narrow`,
   // plus up to `noise` at random: a ford is flat and narrow.
@@ -1288,9 +1288,6 @@ VB['gen/rivers'] = (() => {
     const acc = new Float64Array(N);
     for (const i of order) acc[i] = water[i] ? 1 : 0.5 + hm[i];
     for (let k = order.length - 1; k >= 0; k--) { const i = order[k], d = down[i]; if (!ocean[d]) acc[d] += acc[i]; }
-    // course length: land tiles from a tile to the sea
-    const len = new Int32Array(N);
-    for (const i of order) len[i] = (water[i] ? 0 : 1) + (ocean[down[i]] ? 0 : len[down[i]]);
     // steps to the nearest water, and islands (land joined through land neighbours) with their sizes
     const wet = new Int32Array(N).fill(-1), q = [];
     for (let i = 0; i < N; i++) if (water[i]) { wet[i] = 0; q.push(i); }
@@ -1306,13 +1303,24 @@ VB['gen/rivers'] = (() => {
       }
       left.push(Math.round(iq.length / RIVERS.perTiles));
     }
-    // sources: long courses first, with noise so they spread over the island instead of crowding the one longest drainage
-    const cand = [], score = new Float64Array(N);
-    for (let i = 0; i < N; i++) {
-      if (water[i] || !sources.includes(biome[i]) || wet[i] < RIVERS.fromWater) continue;
-      score[i] = Math.min(len[i], RIVERS.longEnough) + RIVERS.noise * rand(); cand.push(i);
+    // sources, by drainage basin: every basin is cut into stems. A stem runs from where it ends (at the sea, or on a larger stem) up
+    // the tributary of the largest catchment at each fork; the other tributaries are stems of their own. A stem's source is its highest
+    // tile in a source biome far enough from water, and stems are taken in the order of the catchment they carry: the trunk of the
+    // largest basin first, then large tributaries and the trunks of smaller basins.
+    const up = new Array(N), stems = [], cand = [], carried = new Float64Array(N);
+    for (const i of order) { const d = down[i]; if (ocean[d]) stems.push(i); else (up[d] || (up[d] = [])).push(i); }
+    for (let h = 0; h < stems.length; h++) {
+      let top = -1;
+      for (let i = stems[h]; i >= 0;) {
+        if (!water[i] && sources.includes(biome[i]) && wet[i] >= RIVERS.fromWater) top = i;
+        let best = -1;
+        for (const j of up[i] || []) if (best < 0 || acc[j] > acc[best] || (acc[j] === acc[best] && j < best)) best = j;
+        for (const j of up[i] || []) if (j !== best) stems.push(j);
+        i = best;
+      }
+      if (top >= 0) { carried[top] = acc[stems[h]]; cand.push(top); }
     }
-    cand.sort((a, b) => score[b] - score[a] || a - b);
+    cand.sort((a, b) => carried[b] - carried[a] || a - b);
     const river = new Uint16Array(N), riverTo = new Int32Array(N).fill(-1), blocked = new Uint8Array(N), starts = [];
     for (const s of cand) {
       if (left[island[s]] <= 0 || blocked[s] || riverTo[s] >= 0) continue;
@@ -1579,7 +1587,196 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, FORDS, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, minHeap, drainage, trace, width, kind, lines, drawChunk, thin };
+})();
+</script>
+<script>
+// @sys gen/climate: the weather that shapes a generated world (VB-342): the seed's wind, erosion of the relief by running water, the rain the
+// ===== Climate at generation: wind carries off the sea, and each tile's moisture from that rain and the water of its valley =====
+// Listed before gen.js, which calls it on its coarse grid (CW by CH cells, elevation above 0 land); it reads gen/rivers for its heap only.
+VB['gen/climate'] = (() => {
+  const { minHeap } = VB['gen/rivers'];
+  // Erosion: `rounds` of stream power, each lowering a cell towards the cell it drains to by k times (the root of its catchment in cells, less
+  // `hillside`, so slopes that gather no water keep their shape), then `creep` of the way to the mean of its four neighbours; land stays
+  // above `floor`, so the coast does not move. The drainage is found afresh every `redrain` rounds: it is most of the cost and shifts little.
+  // Rain: air crosses the map along the wind with a load of water, 1 where it enters. Over water it takes up `evap` of what it lacks a
+  // cell; over land it drops `base` of its load a cell, and `rise` more per unit of elevation gained over the last cell, on relief
+  // smoothed `smooth` times; where the ground falls it drops `lee` less. `spread`: how sharply the load follows the wind's own line.
+  // Moisture: rain between its 2nd and 98th percentile on land is 0 to 1; a valley floor adds up to `valley` by the log of its catchment
+  // of rain, counted from `valleyFrom` cells of the wettest rain; `noise` of the generator's old moisture noise keeps the land patchy.
+  // Lakes: where a basin has no way down to the sea its water ponds to the level of its lowest rim. Land more than `pondDepth` under that
+  // level, in a patch of `pondCells` cells or more, becomes lake (bed at -`pondBed`); a shallower or smaller hollow stays land, and so does
+  // one that would stand above `pondHigh`: water lies at sea level in this world, so a lake in the hills would sit in a pit.
+  const CLIMATE = { rounds: 12, redrain: 3, k: 0.008, hillside: 1.5, creep: 0.1, floor: 0.002, pondDepth: 0.012, pondHigh: 0.12, pondCells: 27, pondBed: 0.02,
+    evap: 0.03, base: 0.01, rise: 1.6, lee: 0.4, spread: 2, smooth: 10, valley: 0.3, valleyFrom: 150, valleyMost: 1.5, noise: 0.25 };
+  const DX = [1, 1, 0, -1, -1, -1, 0, 1], DY = [0, -1, -1, -1, 0, 1, 1, 1], DL = [1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2];
+
+  // The wind of a world: a unit vector, the way the air moves (y grows southwards), fixed for the seed (Kim, 11 Nov). rand: a seeded source.
+  function wind(rand) { const a = rand() * Math.PI * 2; return [Math.cos(a), Math.sin(a)]; }
+
+  // Every land cell drains to one of its eight neighbours (down) on a path to water that never climbs above its spill level: a priority
+  // flood from the water, as gen/rivers does on tiles. order lists the land cells as the flood reached them, downstream first.
+  // With `sea` (a mask of cells), the flood starts from those cells only and runs over everything else, lakes too; fill is then the level
+  // water stands at in each cell.
+  function drainage(z, CW, CH, sea) {
+    const N = CW * CH, fill = new Float64Array(N), down = new Int32Array(N).fill(-1), seen = new Uint8Array(N), order = [], h = minHeap(fill);
+    for (let k = 0; k < N; k++) {
+      if (sea ? !sea[k] : z[k] > 0) continue;
+      seen[k] = 1;
+      const x = k % CW, y = (k / CW) | 0;
+      for (let d = 0; d < 8; d++) {
+        const X = x + DX[d], Y = y + DY[d];
+        if (X >= 0 && Y >= 0 && X < CW && Y < CH && (sea ? !sea[Y * CW + X] : z[Y * CW + X] > 0)) { h.push(k); break; }
+      }
+    }
+    while (h.size) {
+      const k = h.pop(), x = k % CW, y = (k / CW) | 0;
+      for (let d = 0; d < 8; d++) {
+        const X = x + DX[d], Y = y + DY[d];
+        if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+        const j = Y * CW + X;
+        if (seen[j]) continue;
+        seen[j] = 1; fill[j] = Math.max(z[j], fill[k] + 1e-6); down[j] = k; order.push(j); h.push(j);
+      }
+    }
+    return { down, order, fill };
+  }
+  // Catchment: each land cell's own water (1, or rain[k]) plus all that drains through it.
+  function catchment({ down, order }, N, rain) {
+    const acc = new Float32Array(N);
+    for (const k of order) acc[k] = rain ? rain[k] : 1;
+    for (let i = order.length - 1; i >= 0; i--) { const k = order[i], d = down[k]; if (acc[d] > 0) acc[d] += acc[k]; }
+    return acc;
+  }
+
+  // The relief as water leaves it, for gen.js: eroded, then ponded. In place.
+  function shape(z, CW, CH) { erode(z, CW, CH); pond(z, CW, CH); }
+
+  // Erodes z in place (see CLIMATE). The step is implicit, so it is stable for any k: a cell never falls below the cell it drains to.
+  function erode(z, CW, CH) {
+    const C = CLIMATE, N = CW * CH, t = new Float32Array(N);
+    for (let round = 0, dr, acc; round < C.rounds; round++) {
+      if (round % C.redrain === 0) { dr = drainage(z, CW, CH); acc = catchment(dr, N); }
+      for (const k of dr.order) {
+        const zd = Math.max(0, z[dr.down[k]]), f = C.k * Math.max(0, Math.sqrt(acc[k]) - C.hillside);
+        if (z[k] > zd) z[k] = Math.max(C.floor, (z[k] + f * zd) / (1 + f));
+      }
+      t.set(z);
+      for (let y = 1; y < CH - 1; y++) for (let x = 1; x < CW - 1; x++) {
+        const k = y * CW + x;
+        if (t[k] <= 0) continue;
+        const mean = (Math.max(0, t[k - 1]) + Math.max(0, t[k + 1]) + Math.max(0, t[k - CW]) + Math.max(0, t[k + CW])) / 4;
+        z[k] = Math.max(C.floor, t[k] + C.creep * (mean - t[k]));
+      }
+    }
+  }
+
+  // Lakes where basins pond (see CLIMATE): lowers the ponded land of z to a lake bed, in place; returns the number of cells made lake.
+  function pond(z, CW, CH) {
+    const C = CLIMATE, N = CW * CH, sea = new Uint8Array(N), q = [];
+    for (let k = 0; k < N; k++) {
+      const x = k % CW, y = (k / CW) | 0;
+      if (z[k] <= 0 && (x === 0 || y === 0 || x === CW - 1 || y === CH - 1)) { sea[k] = 1; q.push(k); }
+    }
+    for (let h = 0; h < q.length; h++) for (let d = 0; d < 8; d += 2) {
+      const X = (q[h] % CW) + DX[d], Y = ((q[h] / CW) | 0) + DY[d];
+      if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+      const j = Y * CW + X; if (z[j] <= 0 && !sea[j]) { sea[j] = 1; q.push(j); }
+    }
+    const { fill } = drainage(z, CW, CH, sea), seen = new Uint8Array(N);
+    const deep = (k) => !sea[k] && fill[k] - z[k] > C.pondDepth && fill[k] <= C.pondHigh;
+    let made = 0;
+    for (let s = 0; s < N; s++) {
+      if (seen[s] || !deep(s)) continue;
+      const patch = [s]; seen[s] = 1;
+      for (let h = 0; h < patch.length; h++) for (let d = 0; d < 8; d += 2) {
+        const X = (patch[h] % CW) + DX[d], Y = ((patch[h] / CW) | 0) + DY[d];
+        if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+        const j = Y * CW + X; if (!seen[j] && deep(j)) { seen[j] = 1; patch.push(j); }
+      }
+      if (patch.length >= C.pondCells) for (const k of patch) if (z[k] > 0) { z[k] = -C.pondBed; made++; }
+    }
+    return made;
+  }
+
+  // `times` passes of a 3 by 3 mean over a coarse-cell array; returns a new array.
+  function blur(a, CW, CH, times) {
+    let s = a;
+    for (let p = 0; p < times; p++) {
+      const t = new Float32Array(s.length);
+      for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+        let v = 0, n = 0;
+        const x0 = Math.max(0, x - 1), x1 = Math.min(CW - 1, x + 1), y0 = Math.max(0, y - 1), y1 = Math.min(CH - 1, y + 1);
+        for (let Y = y0; Y <= y1; Y++) for (let X = x0; X <= x1; X++) { v += s[Y * CW + X]; n++; }
+        t[y * CW + x] = v / n;
+      }
+      s = t;
+    }
+    return s;
+  }
+
+  // Rain per coarse cell for a wind (see CLIMATE), on a scale of its own. Cells are walked with the wind, along its longer axis first, so
+  // the cells a cell's air comes from (the neighbours against the wind) are always done before it.
+  function rainfall(z, CW, CH, dir) {
+    const C = CLIMATE, N = CW * CH, [wx, wy] = dir;
+    const land = new Float32Array(N); for (let k = 0; k < N; k++) land[k] = Math.max(0, z[k]);
+    const zs = blur(land, CW, CH, C.smooth);
+    const wgt = DX.map((dx, d) => Math.pow(Math.max(0, -(dx * wx + DY[d] * wy) / DL[d]), C.spread));
+    const load = new Float32Array(N), rain = new Float32Array(N), byX = Math.abs(wx) >= Math.abs(wy);
+    const outer = byX ? CW : CH, inner = byX ? CH : CW, oUp = (byX ? wx : wy) >= 0, iUp = (byX ? wy : wx) >= 0;
+    for (let a = 0; a < outer; a++) for (let b = 0; b < inner; b++) {
+      const o = oUp ? a : outer - 1 - a, i = iUp ? b : inner - 1 - b, x = byX ? o : i, y = byX ? i : o, k = y * CW + x;
+      let h = 0, zu = 0, w = 0;
+      for (let d = 0; d < 8; d++) {
+        if (!wgt[d]) continue;
+        const X = x + DX[d], Y = y + DY[d];
+        if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+        const j = Y * CW + X; h += wgt[d] * load[j]; zu += wgt[d] * zs[j]; w += wgt[d];
+      }
+      if (!w) { load[k] = 1; continue; }
+      h /= w; zu /= w;
+      if (z[k] <= 0) { load[k] = h + (1 - h) * C.evap; rain[k] = h * C.base; continue; }
+      const up = zs[k] - zu, r = Math.min(h, h * (C.base + (up > 0 ? C.rise * up : 0)) * (up < 0 ? 1 - C.lee : 1));
+      rain[k] = r; load[k] = h - r;
+    }
+    return blur(rain, CW, CH, 3);
+  }
+
+  // Rain and wetness of a world's coarse grid: rain 0..1 between its 2nd and 98th percentile on land (it may pass 1), and wet, what a
+  // valley floor adds to its moisture (0..valley * valleyMost).
+  function climate(z, CW, CH, dir) {
+    const C = CLIMATE, N = CW * CH, raw = rainfall(z, CW, CH, dir), on = [];
+    for (let k = 0; k < N; k++) if (z[k] > 0) on.push(raw[k]);
+    const s = Float32Array.from(on).sort(), lo = s[(s.length * 0.02) | 0] || 0, hi = s[(s.length * 0.98) | 0] || 1, span = Math.max(1e-9, hi - lo);
+    const acc = catchment(drainage(z, CW, CH), N, raw), rain = new Float32Array(N), wet = new Float32Array(N);
+    for (let k = 0; k < N; k++) {
+      rain[k] = Math.max(0, (raw[k] - lo) / span);
+      if (acc[k] > 0) wet[k] = C.valley * Math.min(C.valleyMost, Math.max(0, Math.log(acc[k] / (hi * C.valleyFrom))));
+    }
+    return { rain, wet: blur(wet, CW, CH, 4) };
+  }
+
+  // Moisture of the land tiles from their wetness: the values of `was` (the generator's noise moisture) handed out again in the order of
+  // `wetness`, ties by tile, so the world is as moist as it was, tile for tile in number, and only where it is moist follows the weather:
+  // each biome keeps its share of the land. Writes hm for the tiles listed.
+  function moisture(tiles, wetness, was, hm) {
+    const byWet = tiles.slice().sort((a, b) => wetness[a] - wetness[b] || a - b), vals = Float32Array.from(tiles, (i) => was[i]).sort();
+    byWet.forEach((i, r) => { hm[i] = vals[r]; });
+  }
+
+  // The climate of a world's tiles, for gen.js: t is {elev, CW, CH, csample, hx, hy, hm, N, land (its land tiles)} and rand a seeded source.
+  // Rewrites hm on the land and returns {wind, rain}: the wind, and each land tile's rain, 0..1.
+  function tiles(t, rand) {
+    const C = CLIMATE, dir = wind(rand), cl = climate(t.elev, t.CW, t.CH, dir), rain = new Float32Array(t.N), wetness = new Float32Array(t.N);
+    for (const i of t.land) {
+      const r = t.csample(cl.rain, t.hx[i], t.hy[i]);
+      rain[i] = Math.min(1, r); wetness[i] = r + t.csample(cl.wet, t.hx[i], t.hy[i]) + C.noise * t.hm[i];
+    }
+    moisture(t.land, wetness, t.hm, t.hm);
+    return { wind: dir, rain };
+  }
+
+  return { CLIMATE, wind, drainage, catchment, erode, pond, shape, rainfall, climate, moisture, tiles };
 })();
 </script>
 <script>
@@ -1858,6 +2055,7 @@ const ArchGen = (() => {
       const v = hf[k];
       elev[k] = v >= sea ? Math.pow((v - sea) / (mx - sea), 0.9) : -Math.pow((sea - v) / (sea - mn), 0.7);
     }
+    VB['gen/climate'].shape(elev, CW, CH); // running water cuts its valleys and ponds in its basins before the light and the tiles read the relief
     const ZS = 75 * KS;
     const L = [-0.55, -0.6, 0.58];
     const shade = new Float32Array(CN), moist = new Float32Array(CN), macro = new Float32Array(CN);
@@ -1892,8 +2090,7 @@ const ArchGen = (() => {
         const i = row * COLS + col;
         hx[i] = HW * (col + 0.5 * (row & 1)) + AP; hy[i] = 1.5 * R * row + R;
         let s = 2 * csample(elev, hx[i], hy[i]);
-        for (let d = 0; d < 6;
-          d++) s += csample(elev, hx[i] + Math.cos(d * Math.PI / 3 + Math.PI / 6) * R * 0.6, hy[i] + Math.sin(d * Math.PI / 3 + Math.PI / 6) * R * 0.6);
+        for (let d = 0, a = Math.PI / 6; d < 6; d++, a += Math.PI / 3) s += csample(elev, hx[i] + Math.cos(a) * R * 0.6, hy[i] + Math.sin(a) * R * 0.6);
         he[i] = s / 8;
         const u = hx[i] / S, v = hy[i] / S;
         hm[i] = csample(moist, hx[i], hy[i]) + 0.14 * fbm(n4, u * 30 + 5, v * 30 - 9, 2);
@@ -1929,9 +2126,10 @@ const ArchGen = (() => {
     }
     const landIdx = [];
     for (let i = 0; i < N; i++) if (!water[i]) landIdx.push(i);
+    // moisture, noise so far, is dealt out again by the rain of the seed's wind (gen/climate)
+    const { wind, rain } = VB['gen/climate'].tiles({ elev, CW, CH, csample, hx, hy, hm, N, land: landIdx }, mulberry32(seed ^ 0xc11a7e));
     landIdx.sort((a, b) => he[a] - he[b]);
-    const hp = new Float32Array(N);
-    landIdx.forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
+    const hp = new Float32Array(N); landIdx.forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
     for (let i = 0; i < N; i++) {
       if (water[i]) {
         biome[i] = !ocean[i] ? B.LAKE : landDist[i] <= 2 ? B.SHALLOW : landDist[i] <= 12 ? B.SEA : B.DEEP;
@@ -2020,15 +2218,13 @@ const ArchGen = (() => {
     for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1); if (cx > 0) v = Math.min(v, cdist[k - CW - 1] + D2);
-        if (cx < CW - 1) v = Math.min(v, cdist[k - CW + 1] + D2); }
+      if (cy > 0) { v = Math.min(v, cdist[k - CW] + D1, cx > 0 ? cdist[k - CW - 1] + D2 : v, cx < CW - 1 ? cdist[k - CW + 1] + D2 : v); }
       cdist[k] = v;
     }
     for (let cy = CH - 1; cy >= 0; cy--) for (let cx = CW - 1; cx >= 0; cx--) {
       const k = cy * CW + cx; let v = cdist[k];
       if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-      if (cy < CH - 1) {
-        v = Math.min(v, cdist[k + CW] + D1); if (cx < CW - 1) v = Math.min(v, cdist[k + CW + 1] + D2); if (cx > 0) v = Math.min(v, cdist[k + CW - 1] + D2); }
+      if (cy < CH - 1) v = Math.min(v, cdist[k + CW] + D1, cx < CW - 1 ? cdist[k + CW + 1] + D2 : v, cx > 0 ? cdist[k + CW - 1] + D2 : v);
       cdist[k] = v;
     }
     const name = SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
@@ -2041,6 +2237,7 @@ const ArchGen = (() => {
     // @state w.csample: function(arr, x, y); bilinear sample of a coarse-cell array at a map position
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
+    // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)
     // @state w.biome: Uint8Array per tile; B.* code
     // @state w.water,ocean: Uint8Array per tile; 1 = water, 1 = open sea (0 for lakes)
     // @state w.hrnd: Float32Array per tile; fixed random number 0..1
@@ -2054,7 +2251,7 @@ const ArchGen = (() => {
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
-      elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
+      elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, wind, rain, biome, water, ocean, hrnd, nb, landDist,
       region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
@@ -5554,6 +5751,9 @@ VB['sim/herds'] = (() => {
     if ((kind === 'cow' ? cowsOf(st, hh) - 1 : cowsOf(st, hh)) < 1 || hh.hay < winterNeed(st, hh) - need) return false;
     const dest = herdFor(st, to, kind === 'ewe' ? 'sheep' : 'cattle');
     if (kind === 'ewe') { from.ewes--; dest.ewes++; } else dest.head.push(...from.head.splice(idx, 1));
+    // an animal marked for slaughter may be the one that went: the cull list names only animals still there (as sim/byre's tidy)
+    const left = { ewe: from.ewes, ram: from.rams, lamb: from.lambs };
+    from.cull = from.cull.filter((e) => (kind === 'ewe' ? left[e.sheep]-- > 0 : from.head.some((h) => h.id === e.head)));
     const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
     if (hay > 0) { hh.hay -= hay; to.hay = (to.hay || 0) + hay; }
     return true;
@@ -11937,7 +12137,9 @@ VB['sim/saves'] = (() => {
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
   // Since VB-240 a record has no band (pawn.bands holds them): its slot is written 0 and not read.
-  const FORMAT = 3, READS = [3];
+  // Format 4 (VB-342): the same data, on another island: the generator's climate and rivers changed what a seed makes, and a save lies on
+  // its seed's island as generated (heights, rivers and moisture are not saved), so older saves are refused.
+  const FORMAT = 4, READS = [4];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
@@ -12559,8 +12761,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
-  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): heirs finds no room at 43 and 54
-  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], start: [7, 12, 15, 26, 28, 29, 75, 98], cols: 56, rows: 40, speed: 3 };
+  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
+  // began to place the biomes and the list was chosen again by that fit (VB-342)
+  const DEMO = { seeds: [18, 23, 29, 32, 33, 44, 74, 93, 98, 101], start: [18, 23, 29, 32, 33, 44, 74, 93, 98, 101], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
@@ -15740,7 +15943,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [131, 156], s: [321, 356], m: [806, 866], l: [801, 864] },
+    populous: { t: [135, 157], s: [320, 352], m: [807, 835], l: [800, 859] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -16762,7 +16965,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '210651ab3e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '84acf44980', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

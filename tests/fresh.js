@@ -7,7 +7,7 @@ const world = (seed, size = [120, 85]) => {
   const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
 const cal = (doy, hour = 8) => ({ doy, day: doy, season: Math.floor(doy / 12), sday: doy % 12, hour });
 const S = Sim.SOIL, near = (a, b) => Math.abs(a - b) < 1e-9;
-const st = Sim.seed(world(7), 7, 'populous'), w = st.w;
+const st = Sim.seed(world(3), 3, 'populous'), w = st.w;
 const f = st.farmsteads.find((x) => x.household !== null), hh = st.households[f.household];
 // two free farmable tiles near the farm: one never farmed, one farmed before (an old field's ground)
 const free = [];
