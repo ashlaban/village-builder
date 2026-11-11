@@ -230,8 +230,7 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
-    f.condition = houseCondition(st, f); // the house as it was kept (VB-306)
-    f.household = null; f.state = 'derelict'; f.emptySince = st.t;
+    f.condition = houseCondition(st, f); f.household = null; f.state = 'derelict'; f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)

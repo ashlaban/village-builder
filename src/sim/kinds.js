@@ -319,7 +319,9 @@ VB['sim/kinds'] = (() => {
       verb: 'Mending the house', go: 'Going to mend the house', name: 'Mend the house', label: 'House', anim: 'mallet', hours: HOUSE.hours, hands: 1,
       type: 'upkeep', urgency: (st, j, c, U) => U.repair,
       done: (st, j) => { const f = j.farm; f.condition = Math.min(1, houseCondition(st, f) + HOUSE.raise); f.condAt = st.t; },
-      available: (st, hh, f, c, post) => { if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow) post(`repair:f${f.id}`, f.house, { farm: f }); },
+      available: (st, hh, f, c, post) => {
+        if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow) post(`repair:f${f.id}`, f.house, { farm: f });
+      },
     },
     fish: {
       verb: 'Fishing', go: 'Going fishing', back: 'Carrying the catch home', name: 'Go fishing', label: 'Fishing', anim: 'fish', hours: 3, hands: 1,

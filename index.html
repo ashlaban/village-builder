@@ -7464,7 +7464,9 @@ VB['sim/kinds'] = (() => {
       verb: 'Mending the house', go: 'Going to mend the house', name: 'Mend the house', label: 'House', anim: 'mallet', hours: HOUSE.hours, hands: 1,
       type: 'upkeep', urgency: (st, j, c, U) => U.repair,
       done: (st, j) => { const f = j.farm; f.condition = Math.min(1, houseCondition(st, f) + HOUSE.raise); f.condAt = st.t; },
-      available: (st, hh, f, c, post) => { if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow) post(`repair:f${f.id}`, f.house, { farm: f }); },
+      available: (st, hh, f, c, post) => {
+        if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow) post(`repair:f${f.id}`, f.house, { farm: f });
+      },
     },
     fish: {
       verb: 'Fishing', go: 'Going fishing', back: 'Carrying the catch home', name: 'Go fishing', label: 'Fishing', anim: 'fish', hours: 3, hands: 1,
@@ -9217,8 +9219,7 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
-    f.condition = houseCondition(st, f); // the house as it was kept (VB-306)
-    f.household = null; f.state = 'derelict'; f.emptySince = st.t;
+    f.condition = houseCondition(st, f); f.household = null; f.state = 'derelict'; f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
@@ -11127,7 +11128,8 @@ VB['sim/scenarios'] = (() => {
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
-    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, condAt (hours; occupied houses wear from it, sim/rules houseCondition), tarredUntil (hours, from VB-301), emptySince}
+    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, condAt,
+    //   tarredUntil, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
     //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
     //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
@@ -11135,7 +11137,8 @@ VB['sim/scenarios'] = (() => {
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
-    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
+    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
+    //   sim/rules); tarredUntil (hours, VB-301);
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
     //   their cottage is built (sim/settle, sim/expansion)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], totals[] (as a household's), green, well};
@@ -11637,8 +11640,8 @@ const Sim = (() => {
   const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
-    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, prestigeParts, settlementIdOf,
-    membersOf, voiceOf,
+    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, prestigeParts,
+    settlementIdOf, membersOf, voiceOf,
   } = VB['sim/records'];
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'], { occasionLabel } = VB['sim/occasions'];
@@ -15440,7 +15443,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'ec2b7e64b7', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'a326c7310d', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
