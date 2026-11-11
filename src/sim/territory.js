@@ -171,7 +171,7 @@ VB['sim/territory'] = (() => {
     const w = st.w, others = new Set(), own = [], free = [];
     for (const u of st.villages) if (u !== v && u.wood) for (const t of u.wood) others.add(t);
     for (const [t, d] of bfs(w, v.center, WOOD.reach, walkable(w)).dist) {
-      if (!wooded(w, t) || w.trees[t] <= 0 || others.has(t) || !freeFor(st, t, v.id)) continue;
+      if (!wooded(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id)) continue;
       (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
     }
     const near = (a, b) => a[1] - b[1] || a[0] - b[0];

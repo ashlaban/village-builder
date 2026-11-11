@@ -5157,7 +5157,7 @@ VB['sim/territory'] = (() => {
     const w = st.w, others = new Set(), own = [], free = [];
     for (const u of st.villages) if (u !== v && u.wood) for (const t of u.wood) others.add(t);
     for (const [t, d] of bfs(w, v.center, WOOD.reach, walkable(w)).dist) {
-      if (!wooded(w, t) || w.trees[t] <= 0 || others.has(t) || !freeFor(st, t, v.id)) continue;
+      if (!wooded(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id)) continue;
       (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
     }
     const near = (a, b) => a[1] - b[1] || a[0] - b[0];
@@ -12106,6 +12106,7 @@ const Sim = (() => {
   const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
+  const { woodOf } = VB['sim/territory'];
 
   return {
     seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
@@ -12120,7 +12121,7 @@ const Sim = (() => {
       seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, woodOf,
     giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop, answer,
   };
@@ -12507,7 +12508,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- the Land overlay (VB-004): who holds each tile and who claims it ----
   // Village land a light tint of the village's colour, household land a stronger one with the household's own outline; borders between
   // villages' land dark; unrealised claims as a dashed ring in the claimant's colour, realised ones (a birthright) as a solid ring; tiles claimed
-  // by two or more hatched; cairns (VB-157) as small stone piles. Redrawn whole when st.landDirty holds tiles, at most twice a second.
+  // by two or more hatched; cairns (VB-157) as small stone piles; the tiles of each village's wood (VB-326) as a small tree in its colour.
+  // Redrawn whole when st.landDirty holds tiles, at most twice a second.
   let landG = null, landOn = false, landAt = -1;
   const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
   function hslHex(h, sat, l) {
@@ -12572,6 +12574,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
           else for (let d = 0; d < 6; d++) for (const [a, b] of [[0, 0.32], [0.5, 0.82]]) edge(g, i, d, s, a, b);
         g.stroke({ width: R * 0.08, color: claimColour(c.by), alpha: 0.95 });
       });
+    }
+    // each village's wood (VB-326): a small tree in the village's colour on each of its tiles
+    for (const v of st.villages) {
+      if (!v.wood || !v.wood.length) continue;
+      for (const i of v.wood) g.poly([w.hx[i], w.hy[i] - R * 0.4, w.hx[i] + R * 0.24, w.hy[i] + R * 0.14, w.hx[i] - R * 0.24, w.hy[i] + R * 0.14]);
+      g.fill({ color: hslHex(villageHue(v.id), 0.8, 0.35), alpha: 0.9 }).stroke({ width: R * 0.05, color: 0xf6f1e2, alpha: 0.9 });
     }
     for (const i of (st.cairns || new Map()).keys()) {
       for (const [dx, dy, r] of [[-0.16, 0.1, 0.13], [0.16, 0.1, 0.13], [0, -0.1, 0.14]]) g.circle(w.hx[i] + dx * R, w.hy[i] + dy * R, r * R);
@@ -12803,7 +12811,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'}`] : [];
     const river = w.river[i] ? [`${Rivers.kind(w, i)} runs through; ${cross}`] : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`] : [];
-    const claims = claimLines(i);
+    const claims = claimLines(i), cutBy = st && Sim.woodOf(st, i); // the village whose wood the tile is (VB-326)
+    if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
     if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), where]);
@@ -16804,7 +16813,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e23ae46a53', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '989749ecc0', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

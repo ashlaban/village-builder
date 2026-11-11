@@ -34,6 +34,7 @@ const Sim = (() => {
   const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
+  const { woodOf } = VB['sim/territory'];
 
   return {
     seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
@@ -48,7 +49,7 @@ const Sim = (() => {
       seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance, woodOf,
     giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop, answer,
   };
