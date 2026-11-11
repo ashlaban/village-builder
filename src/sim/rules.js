@@ -294,10 +294,25 @@ VB['sim/rules'] = (() => {
       fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
+      repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
       fishCalm: 0.2, fishLean: 2, fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
-  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS,
+  // ---- a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house) ----
+  // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
+  // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
+  // nothing tars a house before VB-301). An empty farm's condition is worn by the daily pass of sim/clock, as before.
+  // Upkeep is offered under `mendBelow`; `hours` of work raise it `raise`; prestige gains `term` (tarred `termTarred`) times the condition.
+  const HOUSE = { wear: 0.1, wearTarred: 0.067, term: 0.15, termTarred: 0.18, mendBelow: 0.8, hours: 4, raise: 0.1, tarYears: 6 };
+  const houseTarred = (st, f) => (f.tarredUntil || 0) > st.t;
+  function houseCondition(st, f) {
+    const c = f.condition ?? 1;
+    if (f.household === null) return c;
+    const t0 = f.condAt ?? 0, tar = Math.min(st.t, f.tarredUntil || 0), tarred = Math.max(0, tar - t0), plain = Math.max(0, st.t - t0) - tarred;
+    return Math.max(0, c - (plain * HOUSE.wear + tarred * HOUSE.wearTarred) / YEAR);
+  }
+  const houseTerm = (st, f) => (houseTarred(st, f) ? HOUSE.termTarred : HOUSE.term) * houseCondition(st, f);
+  return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS, HOUSE, houseCondition, houseTarred, houseTerm,
     SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,

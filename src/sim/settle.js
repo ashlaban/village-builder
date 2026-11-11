@@ -179,7 +179,7 @@ VB['sim/settle'] = (() => {
   function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
-    f.woodlot = v.commonsWood; f.condition = 1; f.emptySince = null; f.booth = { i: 0, done: 0 };
+    f.woodlot = v.commonsWood; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.booth = { i: 0, done: 0 };
     st.farmsteads.push(f); v.farmsteads.push(f.id);
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);

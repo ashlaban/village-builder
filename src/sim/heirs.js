@@ -12,7 +12,7 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { SHARES, GOODWILL } = VB['sim/rules'];
+  const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'], { dropPlan } = VB['sim/plans'];
@@ -230,7 +230,7 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
-    f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
+    f.condition = houseCondition(st, f); f.household = null; f.state = 'derelict'; f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)

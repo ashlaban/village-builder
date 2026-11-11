@@ -1067,7 +1067,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] How strongly weather acts on work and yields, and whether weather differs between islands.
 - [x] Whether rivers can be waded anywhere or only at fords, and when bridges come. Decided (30 Oct): only at fords or bridges; the rule is built (VB-112), building bridges is VB-115.
 - [ ] Whether animals wear paths as people do. (The speed of each stage is Decided, 30 Oct.)
-- [ ] What a more prestigious house brings its owner. Partly decided (10 Nov): a well-maintained house gives prestige up to a cap, and tar helps (Goods of place and side crafts); what a fancier house adds is still open.
+- [ ] What a more prestigious house brings its owner. Partly decided (10 Nov): a well-maintained house gives prestige up to a cap, and tar helps (Goods of place and side crafts); built (VB-306: condition by closed form, upkeep work, prestige term, tar's effects waiting for VB-301); what a fancier house adds is still open.
 - [ ] How to make the ownership overlay and its filters both modular and fast. The backlog builds a simple overlay first (VB-004), then filters by scope (VB-043, VB-044) and a cache per chunk (VB-045).
 - [ ] How to keep the family tree fast at full scale.
 - [ ] Farm, village and population sizing revised for hay meadows. Partly covered: 2–4 fields per farm (VB-010), village size bands and population targets (VB-021); meadow area per farm still open.
