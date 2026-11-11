@@ -144,7 +144,8 @@
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
         <summary>${iconImg(villageIcon(v),
-          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} ${households.length === 1 ? 'household' :
+            'households'}</span></summary>${body}</details>`;
     }
     // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {

@@ -227,6 +227,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
 .save-files { gap: 10px; }
 .save-files button { flex: 1; min-height: 40px; padding: 7px 14px; font-size: 15px; }
+@media (pointer: coarse) { .screen-head button, .save-acts button, .save-arch h3 button, .save-files button { min-height: 44px; min-width: 44px; padding: 8px 16px; font-size: 15px; } }
 .save-msg { margin: 0; color: var(--muted); }
 .save-arch { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
 .save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
@@ -654,7 +655,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
   .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
-  .calendar { flex: 1; min-width: 0; }
+  .calendar { flex: 1; min-width: 0; white-space: nowrap; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
@@ -699,6 +700,12 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
     max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
 }
+/* under 390px the date has no room beside the clock's five buttons: it takes a line of its own over them */
+@media (max-width: 389px) {
+  .clock { flex-wrap: wrap; padding: 6px 8px; gap: 2px 6px; justify-content: space-between; }
+  .calendar { flex: 1 1 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px; }
+  .clock strong, .clock span { display: inline; }
+}
 </style>
 </head>
 <body>
@@ -734,7 +741,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
     <h1 id="chooseTitle">Whom to play</h1>
-    <p class="hint">Drag the map and click a farm, or begin from a story. Children are shown, and cannot be played.</p>
+    <p class="hint">Drag the map and pick a farm, or begin from a story. Children are shown, and cannot be played.</p>
     <h3>Story archetypes</h3>
     <div id="chooseStories"></div>
     <p class="hint sug-note"><svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path
@@ -12660,7 +12667,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     loader.classList.add('done');
     // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
     if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
-    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    else if (!save && !sim.player) openChoose();
+    else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
     building = false; $('menuBtn').disabled = false;
   }
 
@@ -14569,7 +14577,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const population = households.reduce((sum, item) => sum + item.members.length, 0);
       h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
         <summary>${iconImg(villageIcon(v),
-          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} households</span></summary>${body}</details>`;
+          'mini')}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} ${households.length === 1 ? 'household' :
+            'households'}</span></summary>${body}</details>`;
     }
     // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
     if (!query) h += fold('recent', 'Recent events', foldOpen('recent') ? '<div class="log">' + Sim.villageLog(st).map((e) => {
@@ -15668,7 +15677,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!choose) return;
     const f = choose.farm >= 0 ? st.farmsteads[choose.farm] : null, hh = f ? liveHousehold(f) : null, id = choose.pawn;
     let h = '';
-    if (!f) h = '<p class="hint">Drag the map and click a farm.</p>';
+    if (!f) h = '<p class="hint">Drag the map and pick a farm.</p>';
     else {
       const days = hh ? foodDays(hh) : null, v = st.villages[f.village];
       const food = !hh ? '' : days === null ? ' · no one to feed' : ` · food for ${days} ${days === 1 ? 'day' : 'days'}`;
@@ -15716,7 +15725,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     else if (b.id === 'choosePlay' && choose.pawn >= 0) {
       const id = choose.pawn, r = playAs(id);
       if (r !== true) { choose.msg = r; renderChoose(); return; }
-      closeChoose(); focusPawn(id); openPanel('actions');
+      closeChoose(); focusPawn(id); openBar(!mobileUI.matches); // on a narrow screen the bar alone: the sheet would cover the farm
     }
   });
 // with it, in a framed view of the stage with callouts on its real farms and tiles; who starts and the story archetypes, as a look
@@ -16762,7 +16771,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '210651ab3e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '0262b4d159', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

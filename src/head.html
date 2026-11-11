@@ -227,6 +227,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
 .save-files { gap: 10px; }
 .save-files button { flex: 1; min-height: 40px; padding: 7px 14px; font-size: 15px; }
+@media (pointer: coarse) { .screen-head button, .save-acts button, .save-arch h3 button, .save-files button { min-height: 44px; min-width: 44px; padding: 8px 16px; font-size: 15px; } }
 .save-msg { margin: 0; color: var(--muted); }
 .save-arch { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
 .save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
@@ -654,7 +655,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
   .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
-  .calendar { flex: 1; min-width: 0; }
+  .calendar { flex: 1; min-width: 0; white-space: nowrap; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
@@ -698,4 +699,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .tree-info dd button { min-height: 44px; padding: 6px 0; }
   .genscreen { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
     max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+}
+/* under 390px the date has no room beside the clock's five buttons: it takes a line of its own over them */
+@media (max-width: 389px) {
+  .clock { flex-wrap: wrap; padding: 6px 8px; gap: 2px 6px; justify-content: space-between; }
+  .calendar { flex: 1 1 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px; }
+  .clock strong, .clock span { display: inline; }
 }
