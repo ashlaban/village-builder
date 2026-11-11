@@ -625,7 +625,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 
 <div class="genscreen" id="landing" hidden>
   <div class="panel landing">
-    <h1>Village builder</h1>
+    <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -14039,7 +14039,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0dc542e91b', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '7a34b22d45', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
