@@ -145,8 +145,20 @@
       for (let k = 0; k < 16; k++) {
       const x = 3 + k * 1.5; g.beginPath(); g.moveTo(x, 4 + (k % 3)); g.quadraticCurveTo(x + 2, 10, x - 1, 16 - (k % 2)); g.stroke();
       } g.strokeStyle = 'rgb(110,86,60)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(5, 6); g.lineTo(23, 14); g.stroke(); });
-    for (const n of ['shoe', 'belt', 'band', 'hoe', 'axe', 'sickle', 'mallet', 'basket', 'bucket', 'sheaf', 'logs', 'scythe', 'hay']) P[n] = contoured(P[n],
-      0.8 * k);
+    // fishing (VB-117): a long hazel rod with its line hanging from the tip and a float; the catch, a few fish on a withy
+    mk('rod', 40, 46, (g) => {
+      g.strokeStyle = wood; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(3, 1); g.quadraticCurveTo(14, 18, 34, 30); g.stroke();
+      g.strokeStyle = 'rgba(230,230,220,0.9)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(34, 30); g.lineTo(36, 43); g.stroke();
+      g.fillStyle = 'rgb(200,64,48)'; g.beginPath(); g.ellipse(36, 42, 1.6, 2.4, 0, 0, 7); g.fill(); });
+    mk('catch', 12, 22, (g) => {
+      g.strokeStyle = 'rgb(110,86,50)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(6, 0); g.lineTo(6, 6); g.stroke();
+      for (const [x, y, r] of [[4, 6, 0.25], [8, 7, -0.2], [6, 9, 0.05]]) {
+        g.save(); g.translate(x, y); g.rotate(r); g.fillStyle = 'rgb(150,168,176)'; g.beginPath(); g.ellipse(0, 6, 2.4, 6, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgb(206,216,220)'; g.beginPath(); g.ellipse(0.6, 6.5, 1, 4.5, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgb(120,136,146)'; g.beginPath(); g.moveTo(0, 11); g.lineTo(-2.4, 14.5); g.lineTo(2.4, 14.5); g.closePath(); g.fill(); g.restore();
+      } });
+    const loads = ['shoe', 'belt', 'band', 'hoe', 'axe', 'sickle', 'mallet', 'basket', 'bucket', 'sheaf', 'logs', 'scythe', 'hay', 'rod', 'catch'];
+    for (const n of loads) P[n] = contoured(P[n], 0.8 * k);
     return P;
   }
   function buildAtlas() {
@@ -260,6 +272,9 @@
         legF = -0.32; legB = 0.32; break; }
       case 'gather': {
         const k = 0.5 + 0.5 * Math.sin(cyc * 3); lean = 0.25 + k * 0.5; armF = -0.4 - k * 0.3; armB = -0.3 - k * 0.3; legF = -0.2; legB = 0.25; break; }
+      // fishing (VB-117): standing at the bank, the rod held out over the water, its tip bobbing now and then as a fish takes the bait
+      case 'fish': { const k = Math.max(0, Math.sin(cyc * 0.8)) ** 8; lean = 0.08; armF = -0.95 + k * 0.35; armB = -0.8 + k * 0.3; tool = 'rod';
+        toolR = -0.35 - k * 0.25; legF = -0.1; legB = 0.1; break; }
       case 'draw': { lean = 0.1; armF = swing(cyc * 4, -1.0, -2.4); armB = swing(cyc * 4 + Math.PI, -1.0, -2.4); break; }
       // behind the ard (VB-138): walking the furrow, both hands on the stilt, leaning into it
       case 'plough': { lean = 0.32; armF = -0.95; armB = -0.8; break; }
@@ -271,6 +286,7 @@
     if (a.carry === 'sheaf') { shoulder = 'sheaf'; armF = -2.45; }
     if (a.carry === 'hay') { back = 'hay'; armF = -2.3; armB = -2.1; lean += 0.15; }
     if (a.carry === 'logs') { back = 'logs'; armF = -0.35 + armF * 0.3; armB = -0.35 + armB * 0.3; lean += 0.12; }
+    if (a.carry === 'fish') { heldF = 'catch'; armF = armF * 0.25 + 0.05; }
     if (a.carry === 'buckets') { heldF = 'bucket'; heldB = 'bucket'; armF = armF * 0.25 + 0.05; armB = armB * 0.25 + 0.05; }
     if (!walking && anim === 'idle' && a.id % 3 === 0) headR = Math.sin(t * 0.4 + a.id) * 0.08;
     R.legF.rotation = legF; R.legB.rotation = legB; R.armF.rotation = armF; R.armB.rotation = armB;

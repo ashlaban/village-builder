@@ -332,6 +332,25 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
     if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
   }
+  // fish stocks (VB-117): from 0 to 1, set on a day not after today; below 1 or set only on a river or small lake tile, whose stock runs down
+  const { fish, fishDay } = st.w;
+  if (fish) {
+    const F = globalThis.VB['sim/fish'], day = Math.floor(st.t / 24);
+    let off = 0;
+    for (let i = 0; i < N; i++) {
+      if (!(fish[i] >= 0 && fish[i] <= 1) || fishDay[i] < 0 || fishDay[i] > day) off++;
+      else if ((fish[i] < 1 || fishDay[i] > 0) && !F.runsDown(st.w, i)) off++;
+    }
+    if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
+  }
+  // fishing jobs (VB-117): at a bank (land, not a river) next to the water they fish
+  for (const j of st.jobs.values()) {
+    if (j.kind !== 'fish') continue;
+    const w = st.w, F = globalThis.VB['sim/fish'];
+    if (!tileOk(j.site) || w.water[j.site] || w.river[j.site] || !F.isWater(w, j.water) || !w.nb.slice(j.site * 6, j.site * 6 + 6).includes(j.water)) {
+      bad.push(`jobs[${j.key}]: not at a bank next to its water ${j.water}`);
+    }
+  }
   // jobs (VB-102): each worker of a job has it as its job, no worker twice, no more workers than the kind's hands
   for (const j of st.jobs.values()) {
     if (new Set(j.claims).size !== j.claims.length) bad.push(`jobs[${j.key}]: a worker listed twice in ${j.claims}`);

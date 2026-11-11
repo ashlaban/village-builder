@@ -69,10 +69,11 @@ VB['sim/plans'] = (() => {
     return day * DAY + h;
   }
   // Days on which a window is about to close, or has just closed, and every holder is reviewed at its first review hour: the last day of
-  // sowing and the day after it (its hoeing and sowing taken down), and the two last days of autumn (the harvest before the frost).
+  // sowing and the day after it (its hoeing and sowing taken down), the two last days of autumn (the harvest before the frost), and the first
+  // day of winter (the ice: fishing taken down, VB-117).
   function closing(st, c) {
     const last = st.ECON.sowWindow[1];
-    return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2);
+    return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2) || (c.season === 3 && c.sday === 0);
   }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, once ('window'); a store
   // that crossed a target, at most one such review a day ('store').

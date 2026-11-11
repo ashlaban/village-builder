@@ -38,6 +38,12 @@ VB['sim/rules'] = (() => {
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
   // walking steps of its house besides its first field, for more fields, meadow and pasture; so fewer farms fit between villages.
   const FIELDS = { want: 1.1, expect: 0.75, perHand: 2, oxenHands: 1.5, room: 6 };
+  // ---- fishing (VB-117; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 1): from a bank within `reach` walking steps of the
+  // house; a trip brings home `trip` rations times the water tile's stock and lowers a river or small lake tile's stock by `take`, which
+  // recovers `recover` a day; lakes of `bigLake` tiles or more and the sea do not run down. Water holds fish at a stock of `least` or more (a
+  // trip's take). Posted from spring day `from + 1` to the end of autumn; a second trip while the household's spare food covers fewer than
+  // `secondDays` days of its need ----
+  const FISH = { reach: 6, trip: 4, take: 0.1, recover: 0.02, bigLake: 20, least: 0.1, from: 2, secondDays: 12 };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
@@ -50,20 +56,21 @@ VB['sim/rules'] = (() => {
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
   const ROLES = {
-    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3 },
-      except: { reap: 9, cook: 1, slaughter: 8 } },
+    farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3,
+      foraging: 3 }, except: { reap: 9, cook: 1, slaughter: 8 } },
     wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
-      husbandry: 9 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10 } },
-    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4 },
-      except: { cook: 0, slaughter: 8 } },
-    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10 },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
-    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3 },
-      except: { cook: 0, slaughter: 7 } },
+      husbandry: 9, foraging: 4 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 } },
+    farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4,
+      foraging: 6 }, except: { cook: 0, slaughter: 8 } },
+    maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10,
+      foraging: 5 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
+    son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3,
+      foraging: 7 }, except: { cook: 0, slaughter: 7 } },
     daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
-      husbandry: 9 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2 } },
-    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3 }, except: { cook: 4, slaughter: 2 } },
-    child: { title: 'Child', sv: 'barn', work: { harvest: 3 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
+      husbandry: 9, foraging: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3 },
+      except: { cook: 4, slaughter: 2 } },
+    child: { title: 'Child', sv: 'barn', work: { harvest: 3, foraging: 5 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -270,10 +277,11 @@ VB['sim/rules'] = (() => {
       fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
+      fishCalm: 0.2, fishLean: 2, fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS,
-    SEASONS, cal, WORK, dark, ECON, FIELDS, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH, CLAIMS };
