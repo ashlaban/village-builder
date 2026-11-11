@@ -83,24 +83,25 @@ const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${la
   ok(st, 'taking in');
 }
 
-// ---- the commons wood: the nearest forest first when a village holds none, and from its own land after a wood is felled ----
+// ---- the village's wood (VB-326): its tiles outside its land are claimed first, its own land comes first, and a tile cut bare leaves it ----
 {
   const put = {}; for (const k of ['13,6', '14,6', '13,7', '3,2']) put[k] = 'F';
   const st = tinyState(open(20, 12, put), [{ at: [8, 6], farms: 1 }], { seed: 6, outland: false });
-  const v = st.villages[0], wood0 = v.commonsWood;
-  VB['sim/ownership'].setOwner(st, wood0, null); // the village holds no forest
+  const v = st.villages[0], forest = (t) => [VB.gen.B.FOREST, VB.gen.B.PINE].includes(st.w.biome[t]);
+  check(v.wood.length === 4 && v.wood.every(forest), `the wood is the four forest tiles in reach (${v.wood.length})`);
   T.claimOutland(st);
   const first = [...st.claims.entries()].sort((a, b) => a[1][0].seq - b[1][0].seq)[0][0];
-  check([VB.gen.B.FOREST, VB.gen.B.PINE].includes(st.w.biome[first]), `the first claim is forest (${st.w.biome[first]})`);
+  check(v.wood.includes(first), `the first claim is a tile of the wood (${first})`);
   T.settleOutland(st, true);
-  const grove = [tileAt(st.w, 13, 6), tileAt(st.w, 14, 6), tileAt(st.w, 13, 7)];
-  check(grove.some((t) => st.owner[t] === -v.id - 1), 'the village holds forest');
-  for (const t of grove) VB['sim/ownership'].setOwner(st, t, { type: 'village', id: v.id }); // and the whole grove, so it has more than its wood
-  // the wood it uses is felled to the last tree: the next is in its own land, and the farm's woodlot follows
-  const f = st.farmsteads[v.farmsteads[0]];
-  VB['sim/forest'].clearTile(st, v.commonsWood);
-  check(grove.includes(v.commonsWood) && st.owner[v.commonsWood] === -v.id - 1 && f.woodlot === v.commonsWood, `the next wood ${v.commonsWood} is the village's own`);
+  const own = v.wood.filter((t) => st.owner[t] === -v.id - 1);
+  check(own.length > 0, 'the village holds forest of its wood');
+  T.reckonWood(st, v);
+  check(st.owner[v.wood[0]] === -v.id - 1, 'its own land comes first');
+  // a tile cut bare leaves the wood; the rest stay
+  const gone = v.wood[0], rest = v.wood.slice(1);
+  VB['sim/forest'].clearTile(st, gone);
+  check(!v.wood.includes(gone) && rest.every((t) => v.wood.includes(t)) && v.wood.length === 3, `the wood after a tile is cut bare: ${v.wood}`);
   ok(st, 'wood');
 }
 if (failed) process.exit(1);
-console.log(`territory ok: ${CLAIMS.outPerFarm} tiles of outland a farm; claims a year and a day; no taking in of another village's land; wood from own land`);
+console.log(`territory ok: ${CLAIMS.outPerFarm} tiles of outland a farm; claims a year and a day; no taking in of another village's land; the village's wood`);

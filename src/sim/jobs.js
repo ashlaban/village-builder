@@ -17,6 +17,7 @@ VB['sim/jobs'] = (() => {
   function post(st, key, kind, owner, site, extra) {
     let j = st.jobs.get(key);
     if (!j) { j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claims: [], posted: st.t, ...extra }; st.jobs.set(key, j);
+      if (KINDS[kind].draw) { const t = KINDS[kind].draw(st, j); if (t >= 0) j.site = t; }
       const ok = ownerKey(owner); if (!st.jobsBy.has(ok)) st.jobsBy.set(ok, new Set());
       st.jobsBy.get(ok).add(j); }
     j.live = true;

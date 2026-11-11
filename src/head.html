@@ -174,7 +174,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 216px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 258px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -303,7 +303,7 @@ input, select { font: inherit; color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
 #personFamily { margin: 12px 0; }
-/* The map's tools (VB-338), as wide as the bar's five buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
+/* The map's tools (VB-338), as wide as the bar's six buttons: the minimap over a bar of the map's layers, which notifications show and, at its right end, the minimap's own
    toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
 .map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -316,6 +316,18 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
 .notice-pop .menu-label { margin: 12px 0 8px; }
+/* The Ground overlay's key (page/ground), over the minimap while the overlay is on: a swatch for each bedrock, a mark for each deposit. */
+.ground-key { width: 258px; padding: 0 14px 10px; border-radius: 14px; font-size: 13px; }
+.ground-key .menu-label { margin: 10px 0 6px; }
+.ground-key ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.ground-key li { display: flex; align-items: center; gap: 7px; }
+.ground-key i { flex: none; width: 14px; height: 14px; border: 1.5px solid #2a1a0c; }
+.ground-key i.rock { border-width: 1px; border-radius: 3px; }
+.ground-key i.ore { border-radius: 50%; }
+.ground-key i.faint { background: #33363c; opacity: .35; }
+.ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
+.ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
+body:not(.minimap-open) .ground-key { display: none; }
 .lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,

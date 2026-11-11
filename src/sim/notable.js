@@ -91,7 +91,7 @@ VB['sim/notable'] = (() => {
     life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
-      'plotStarted', 'field', 'meadow', 'stake', 'border', 'service', 'guardian'] },
+      'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
     custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of

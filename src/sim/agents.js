@@ -10,6 +10,7 @@ VB['sim/agents'] = (() => {
   const { hasTeam } = VB['sim/herds'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
+  const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
@@ -128,6 +129,7 @@ VB['sim/agents'] = (() => {
       if (j.done >= (j.hours ?? K.hours)) {
         unhold(a, j);
         if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+        prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours);
         dropJob(st, j);
         if (!a.side) return;
       }
@@ -150,6 +152,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
+    prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
@@ -205,11 +208,11 @@ VB['sim/agents'] = (() => {
       if (K.carry) {
         freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
-        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
-        // sheaves go to the barn door, firewood to the woodpile, water into the cottage
-        const hx = st.w.hx[f.house], hy = st.w.hy[f.house];
-        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
-        walkTo(st, a, f.house, x, y);
+        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
+        // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
+        const hx = st.w.hx[to], hy = st.w.hy[to];
+        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' || K.to === 'site' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
+        walkTo(st, a, to, x, y);
       } else {
         complete(st, a);
         a.job = null; a.basis = null; a.work = null;

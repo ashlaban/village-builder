@@ -188,6 +188,9 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     for (const k of ['grain', 'wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
+    for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 || h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (h.digAt !== undefined && !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
     for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
@@ -215,10 +218,11 @@ function checkState(st) {
       bad.push(`households[${h.id}]: not in the index of lines under ${line}`);
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
+  const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale'].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -228,7 +232,7 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || !['grain', 'meals', 'sheaves', 'milk', 'butter', 'ale'].includes(x.good) || seen.has(key)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...WOODS].includes(x.good) || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
     }
@@ -243,6 +247,18 @@ function checkState(st) {
     const fd = v.founded;
     if (fd !== null && !(Number.isInteger(fd.from) && fd.from >= 0 && fd.from < v.id && st.pawns[fd.by] && Number.isFinite(fd.t))) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
+    }
+  }
+  // the village's wood (VB-326): every tile wooded, in no other village's wood and not in use; within the cap
+  const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB.gen, inWood = new Map();
+  for (const v of st.villages) {
+    if (!Array.isArray(v.wood) || v.wood.length > WOOD.cap) { bad.push(`villages[${v.id}]: wood is ${JSON.stringify(v.wood)}`); continue; }
+    for (const t of v.wood) {
+      const b = st.w.biome[t];
+      if (!(b === B.FOREST || b === B.PINE) || !(st.w.trees[t] > 0)) bad.push(`villages[${v.id}]: wood tile ${t} is not wooded`);
+      if (st.used.has(t)) bad.push(`villages[${v.id}]: wood tile ${t} is in use`);
+      if (inWood.has(t)) bad.push(`villages[${v.id}]: wood tile ${t} is also village ${inWood.get(t)}'s`);
+      inWood.set(t, v.id);
     }
   }
   if (st.cenv.settlements.length !== st.villages.length) bad.push(`${st.cenv.settlements.length} settlements for ${st.villages.length} villages`);
@@ -288,6 +304,8 @@ function checkState(st) {
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
     const b = f.booth; // settlers' booth: cottage stages done (0..2) and hours on the open one (sim/settle)
     if (b !== null && !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
+    if (b !== null && b.wood !== undefined && !within(b.wood, 0, 1e4)) bad.push(`farmsteads[${f.id}]: booth timber ${b.wood}`); // VB-328
+    if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
     if (st.owner) {
       const want = f.household === null ? -f.village - 1 : f.household + 1;
@@ -346,6 +364,11 @@ function checkState(st) {
   for (const [tile, c] of st.cairns || []) {
     if (!tileOk(tile) || !st.villages[c.a] || !st.villages[c.b] || c.a === c.b || !(c.t <= st.t)) bad.push(`cairns[${tile}]: ${JSON.stringify(c)}`);
   }
+  // what the villages have found (VB-358): a live village id, and each vein once, a hidden one of this world
+  (st.finds || new Map()).forEach((found, v) => {
+    const hiddenKind = (id) => st.w.veinKind && id >= 1 && id < st.w.veinKind.length && [3, 4, 5, 6, 7].includes(st.w.veinKind[id]);
+    if (!st.villages[v] || new Set(found).size !== found.length || !found.every(hiddenKind)) bad.push(`finds[${v}]: ${JSON.stringify(found)}`);
+  });
   // nothing is built on a river tile (VB-111): houses, fields, fields in the making, plots and greens
   const onRiver = (t) => tileOk(t) && st.w.river[t] > 0;
   for (const f of st.farmsteads) {
@@ -358,6 +381,7 @@ function checkState(st) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
     for (const pl of v.plots || []) {
       if (pl.cottage && !(Number.isInteger(pl.cottage.i) && pl.cottage.i >= 0 && pl.cottage.i <= 3)) bad.push(`villages[${v.id}]: plot ${pl.id} cottage stage ${pl.cottage.i}`);
+      if (pl.wood !== undefined && !within(pl.wood, 0, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.id} wood ${pl.wood}`); // VB-328
       if (pl.built && !st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
     }
     for (const pl of v.plots || []) for (const tr of pl.tiles) if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id} on river tile ${tr.tile}`);
@@ -393,6 +417,18 @@ function checkState(st) {
     let off = 0;
     for (let i = 0; i < N; i++) if (!(forage[i] >= 0 && forage[i] <= 1) || forageYear[i] < 0 || forageYear[i] > year) off++;
     if (off) bad.push(`w.forage: ${off} tiles with a stock or year out of place`);
+  }
+  // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
+  // and nothing dug but clay and bog iron; an endless tile stays endless
+  {
+    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['gen/geology'];
+    let off = 0;
+    if (deposit) for (let i = 0; i < N; i++) {
+      if (!deposit[i] && depositLeft[i]) off++;
+      else if (dugDay && dugDay[i] && (dugDay[i] > today + 1 || depositFull[i] < depositLeft[i] || depositFull[i] === E.ENDLESS
+        || (deposit[i] !== E.DEPOSIT.CLAY && deposit[i] !== E.DEPOSIT.BOG_IRON))) off++;
+    }
+    if (off) bad.push(`w.depositLeft: ${off} tiles with loads or a digging out of place`);
   }
   // fishing jobs (VB-117): at a bank (land, not a river) next to the water they fish
   for (const j of st.jobs.values()) {

@@ -61,6 +61,7 @@
     await buildSettlement(wd, sim);
     if (landG) landG.clear();
     if (landOn) drawLand();
+    resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
   async function build(seed, scenario, size, save = null, quick = false) {

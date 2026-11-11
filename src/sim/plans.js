@@ -10,6 +10,7 @@ VB['sim/plans'] = (() => {
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
   const { startMeadow } = VB['sim/meadows'];
+  const { buildStep } = VB['sim/building'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -33,6 +34,8 @@ VB['sim/plans'] = (() => {
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
+  //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -265,6 +268,7 @@ VB['sim/plans'] = (() => {
     T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed');
+    plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.

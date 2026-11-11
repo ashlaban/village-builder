@@ -303,9 +303,11 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   {
     await page.evaluate(() => window.__play.setSpeed(0));
     const ids = await page.evaluate(() => {
-      const P = window.__play, { Sim } = P, w = P.world();
+      const P = window.__play, { Sim } = P, w0 = P.world();
+      // each state on a world fresh from the generator, as tests/offers.js makes them: a run writes its world (stones picked, trees felled)
+      const fresh = () => { const it = VB.gen.generate(7, { cols: w0.COLS, rows: w0.ROWS }); let r; while (!(r = it.next()).done); return r.value; };
       let people = 7; // the seed of the island's people: the first at which a man of the round, when played, is asked (VB-342)
-      const make = () => { const s = Sim.seed(w, people, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
+      const make = () => { const s = Sim.seed(fresh(), people, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
       const round = (s) => {
         const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
         try { Sim.movingRound(s); } finally { rs.forEach((r) => { delete r.fix; }); } };

@@ -5,8 +5,13 @@ VB['sim/stores'] = (() => {
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
+  KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
+  // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
+  KINDS.push('firewood', 'burn', 'plot', 'timber', 'start'); ROUTINE.push('firewood', 'burn');
+  // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
+  KINDS.push('clear', 'pick', 'quarry', 'foundation');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -42,15 +47,21 @@ VB['sim/stores'] = (() => {
   function field(holder, good, kind = type(holder)) {
     if (kind === 'pawn' && good === 'grain') return 'stake';
     if (good === 'grain' || kind === 'household' && good === 'meals') return good;
+    if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
+    if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
+  const setWood = (hh, n) => { hh.wood = n; };
+  const setStone = (hh, n) => { hh.stone = n; };
   function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (kind === 'village') setVillage(holder, n);
+    else if (good === 'wood') setWood(holder, n);
+    else if (good === 'stone') setStone(holder, n);
     else setFood(holder, good, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -91,10 +102,20 @@ VB['sim/stores'] = (() => {
     type(hh); const n = hh.unthreshed.shift() || 0;
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, 'grain', n, 'thresh');
   }
+  // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
+  // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
+  const DUG = ['clay', 'bogOre'];
+  function setDug(hh, good, n) { if (good === 'clay') hh.clay = n; else hh.bogOre = n; }
+  function dug(st, hh, good, n) {
+    amount(n);
+    if (type(hh) !== 'household' || !DUG.includes(good)) throw new Error(`stores: cannot dig ${good}`);
+    record(st, hh, good, n, 'dig'); setDug(hh, good, (hh[good] || 0) + n); return n;
+  }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed.
   function start(st, hh, grain, meals = 0) {
     amount(grain); amount(meals); type(hh);
     hh.grain = grain; hh.meals = meals;
+    hh.wood = 0; // its first wood comes from somewhere (sim/membership, VB-328)
     record(st, hh, 'grain', grain, 'provisions'); record(st, hh, 'meals', meals, 'provisions');
   }
   function spoil(st, hh, n) {
@@ -236,6 +257,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
+    dug,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();

@@ -42,7 +42,7 @@ VB['sim/paths'] = (() => {
       for (const fm of farmsteads) {
         const v = villages[fm.village], trips = fm.fields.map((fd) => [fd.tile, T.field]);
         if (v.well) trips.push([v.center, T.water + T.stroll]);
-        if (fm.woodlot >= 0) trips.push([fm.woodlot, T.wood]);
+        if (v.wood.length) trips.push([v.wood[(season + fm.id) % v.wood.length], T.wood]); // a tile of the village's wood (VB-326)
         for (const [to, n] of trips) {
           const p = to >= 0 && to !== fm.house ? findRoute(w, fm.house, to) : null;
           if (!p) continue;

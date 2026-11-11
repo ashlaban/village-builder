@@ -16,28 +16,28 @@ for (let i = 0; i < w1.N; i++) {
 check(forest > 100, 'too few forest tiles');
 
 // felling and clearing
-const st = Sim.seed(w1, 7, 'founders'), farm = st.farmsteads[0], lot = farm.woodlot, max = w1.treesMax[lot], YEAR_DAYS = Sim.YEAR_DAYS;
-check(max > 0 && w1.trees[lot] === max, 'woodlot is not a full forest tile');
-F.fellTree(st, farm);
+const st = Sim.seed(w1, 7, 'founders'), v = st.villages[0], lot = v.wood[0], max = w1.treesMax[lot], YEAR_DAYS = Sim.YEAR_DAYS;
+check(max > 0 && w1.trees[lot] === max, 'the village wood\'s first tile is not a full forest tile');
+F.fellTree(st, lot);
 check(w1.trees[lot] === max - 1 && st.regrow.has(lot), 'one trip did not fell exactly one tree');
 
 // regrowth: linear, from a single tree to full in 30 years, daily; a half-felled tile is full after 15 years
-const other = st.farmsteads.find((f) => f.woodlot !== lot);
+const other = st.villages.find((u) => u !== v && u.wood.length), otherWood = other ? other.wood.slice() : null;
 w1.trees[lot] = 1; let day = 0;
 const grow = (days) => { for (let k = 0; k < days; k++, day++) F.growTrees(st); };
 grow(15 * YEAR_DAYS); check(Math.abs(w1.trees[lot] - (1 + max / 2)) < 0.01, `after 15 years: ${w1.trees[lot]} trees, expected ${1 + max / 2}`);
 grow(15 * YEAR_DAYS); check(w1.trees[lot] === max && !st.regrow.has(lot), `after 30 years: ${w1.trees[lot]} of ${max}`);
 check(st.treeDirty.has(lot), 'density stage changes were not reported to the page');
 
-// clearing: at 0 trees the tile is meadow, never regrows, and the woodlot moves to the nearest forest
+// clearing: at 0 trees the tile is meadow, never regrows, and leaves the village's wood, which takes the next wooded tile (VB-326)
 w1.trees[lot] = 1; st.regrow.add(lot); st.treeDirty.clear();
-const sharing = st.farmsteads.filter((f) => f.woodlot === lot);
-F.fellTree(st, farm);
+const size = v.wood.length;
+F.fellTree(st, lot);
 check(w1.biome[lot] === G.B.MEADOW && w1.trees[lot] === 0 && w1.treesMax[lot] === 0, 'tile did not become meadow at 0 trees');
 check(!st.regrow.has(lot) && st.biomeDirty.has(lot), 'cleared tile still regrows or was not reported');
-for (const f of sharing) check(f.woodlot !== lot && (f.woodlot < 0 || w1.trees[f.woodlot] > 0), 'woodlot did not move to a wooded tile');
+check(!v.wood.includes(lot) && v.wood.every((t) => w1.trees[t] > 0) && v.wood.length === size, `the wood did not move on: ${v.wood.length} of ${size}`);
 const before = w1.trees[lot]; grow(30 * YEAR_DAYS); check(w1.trees[lot] === before && w1.biome[lot] === G.B.MEADOW, 'cleared tile regrew');
-if (other) check(other.woodlot !== lot || sharing.includes(other), 'unrelated farm lost its woodlot');
+if (other) check(other.wood.join() === otherWood.join(), 'another village\'s wood changed');
 
 // drawing: fewer trees at lower stages; a cleared tile has none
 const stage = (t) => { w1.trees[tile] = t; return G.treeStage(w1, tile); };

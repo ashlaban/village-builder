@@ -15,7 +15,13 @@ for (const tr of plot.tiles) while (tr.i < tr.steps.length) X.finishStep(st, { p
 plot.hours[m.id] = 10; plot.holder = m.id;
 check(plot.done && plot.cottage && plot.cottage.i === 0, 'cottage waits at the foundation');
 const farms = st.farmsteads.length, hhs = st.households.length;
+// the walls wait for BUILD.timber loads at the site (VB-328): the plot's felled trees, or timber felled in the village's wood
+const TIMBER = VB['sim/rules'].BUILD.timber, felled = plot.wood || 0;
 for (const [i, kind, hours] of [[0, 'foundation', 30], [1, 'walls', 60], [2, 'roof', 30]]) {
+  if (kind === 'walls' && felled < TIMBER) {
+    check(!X.plotJobs(st).some((j) => j[3].cottage && j[3].plot === plot), `the walls wait for timber (${felled} loads at the site)`);
+    plot.wood = TIMBER + 6; // six trips' timber came (sim/building)
+  }
   const jobs = X.plotJobs(st).filter((j) => j[3].cottage && j[3].plot === plot);
   check(jobs.length === 1 && jobs[0][1] === kind && jobs[0][3].hours === hours, `stage ${i} is a ${kind} job of ${hours} h`);
   check(st.farmsteads.length === farms, 'no farmstead before the roof');
@@ -23,6 +29,10 @@ for (const [i, kind, hours] of [[0, 'foundation', 30], [1, 'walls', 60], [2, 'ro
 }
 check(plot.built && st.farmsteads.length === farms + 1 && st.households.length === hhs + 1, 'ids are appended');
 const fm = st.farmsteads[plot.farmstead], hh = st.households[fm.household];
+// what the walls left (6 loads, or the felled tiles' more) is the new household's first wood, up to its winter goal; its old homes give the
+// rest up to 16 (VB-328)
+const left = Math.max(felled, TIMBER + 6) - TIMBER, want = Math.min(left, VB['sim/rules'].ECON.woodWinter);
+check(plot.wood === 0 && hh.wood >= want && hh.wood <= Math.max(want, 16), `the new household's first wood: ${hh.wood} (${left} left by the walls)`);
 check(hh && hh.holder === m.id && hh.members.includes(m.id) && hh.members.includes(f.id), 'holder and spouse live in the new household');
 check(m.household === hh.id && f.household === hh.id, 'both moved in');
 check(hh.grain === 400 && !m.stake && !f.stake, `stake became grain (${hh.grain})`);

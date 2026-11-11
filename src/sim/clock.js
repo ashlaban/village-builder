@@ -62,7 +62,7 @@ VB['sim/clock'] = (() => {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
       feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
-      hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
+      Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
     }
     Stores.villageDay(st); // it spoils too (balance review)
     growTrees(st);

@@ -10,6 +10,7 @@ VB['sim/fields'] = (() => {
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
+  const Stores = VB['sim/stores'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
@@ -70,7 +71,7 @@ VB['sim/fields'] = (() => {
   // Clearing done: the stones go to the household's store, the tile is bare ground.
   function finishClear(st, f, hh) {
     const w = st.w, tile = f.project.tile;
-    hh.stone += Math.round(w.stones[tile] / STONES_PER_LOAD);
+    const loads = Math.round(w.stones[tile] / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
     st.biomeDirty.add(tile);
   }

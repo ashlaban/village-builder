@@ -141,6 +141,7 @@
     <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
+    <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
@@ -152,6 +153,8 @@
         aria-pressed="false"></button>
       <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
         title="Land ownership (L)" aria-pressed="false"></button>
+      <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
+        title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
         aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"

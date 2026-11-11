@@ -146,6 +146,7 @@ Measured over 20–30 years on the small map (populous seeds 7 and 42, founders 
 
 ### VB-121: winter crafts (job review, second pass)
 1. Tools. **P:** each household's tools from 0 to 1; 0.01 lost per 10 hours of field work; field work at (0.7 + 0.3 × tools) of the rate; a 4-hour craft job restores 0.1, posted in winter below 1 and in autumn below 0.6.
+   **A (Kim, 11 Nov):** P, with iron: without iron tools mend only to 0.5, with it to 1 (slice 6's plan, VB-185).
 2. Fence poles. **P:** a 4-hour trip in winter brings 4 poles and fells a tree; mending a stretch uses one; posted while a household has under 8.
 3. Who. **P:** a new type of work, crafts: farmer 6, farmhand 7, son 7, retired 5, wife 2, maid 1, daughter 1, child 0.
 

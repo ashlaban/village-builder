@@ -235,12 +235,11 @@ const ArchGen = (() => {
       const i = q2[h];
       for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && landDist[j] > landDist[i] + 1) { landDist[j] = landDist[i] + 1; q2.push(j); } }
     }
-    const landIdx = [];
+    const landIdx = [], hp = new Float32Array(N);
     for (let i = 0; i < N; i++) if (!water[i]) landIdx.push(i);
     // moisture, noise so far, is dealt out again by the rain of the seed's wind (gen/climate)
     const { wind, rain } = VB['gen/climate'].tiles({ elev, CW, CH, csample, hx, hy, hm, N, land: landIdx }, mulberry32(seed ^ 0xc11a7e));
-    landIdx.sort((a, b) => he[a] - he[b]);
-    const hp = new Float32Array(N); landIdx.forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
+    landIdx.sort((a, b) => he[a] - he[b]).forEach((i, r) => { hp[i] = r / Math.max(1, landIdx.length - 1); });
     for (let i = 0; i < N; i++) {
       if (water[i]) {
         biome[i] = !ocean[i] ? B.LAKE : landDist[i] <= 2 ? B.SHALLOW : landDist[i] <= 12 ? B.SEA : B.DEEP;
@@ -364,6 +363,7 @@ const ArchGen = (() => {
       seed, name, R, COLS, ROWS, RR, W, H, HW, AP, N, STEP, CW, CH, KS,
       elev, shade, macro, csample, cdist, chex, hx, hy, he, hp, hm, wind, rain, biome, water, ocean, hrnd, nb, landDist,
       region, regions, tr, tg, tb, trees, treesMax, stones, ...rivers,
+      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }, mulberry32, B),
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }

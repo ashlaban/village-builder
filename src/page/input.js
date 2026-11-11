@@ -58,7 +58,8 @@
   }, { passive: false });
 
   const keys = new Set();
-  const SHORTCUTS = { p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', m: 'minimapBtn', f: 'centre' };
+  const SHORTCUTS = {
+    p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -124,6 +125,7 @@
   toggle($('gridBtn'), (on) => { gridOn = on; });
   toggle($('regionBtn'), (on) => { L.regions.visible = on; });
   toggle($('landBtn'), (on) => { landOn = on; L.land.visible = on; if (on) drawLand(); });
+  toggle($('groundBtn'), (on) => setGround(on));
   // Panel choices and folds belong to the page, never to saved simulation state.
   const mobileUI = matchMedia('(max-width: 1024px)');
   let activePanel = null, selectionPinned = false;

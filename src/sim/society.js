@@ -78,7 +78,7 @@ VB['sim/society'] = (() => {
     const parts = [[holder ? 'Holder' : spHolder ? 'Holder\'s spouse' : 'Villager', holder ? 1.6 : spHolder ? 1.3 : 1]];
     if (p.age >= 55) parts.push(['Age', 0.2]);
     const hh = holder || spHolder ? st.households[p.household] : null, f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
-    if (f && f.household === hh.id && !f.booth) parts.push(['A well-kept house', houseTerm(st, f)]);
+    if (f && f.household === hh.id && !f.booth) parts.push([f.grade === 'stone' ? 'A well-kept house on stone' : 'A well-kept house', houseTerm(st, f)]);
     if (holder) { const ale = aleStanding(st, holdingOf(st, p.id)); if (ale > 0) parts.push(['Ale poured', ale]); }
     return parts;
   }
