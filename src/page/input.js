@@ -99,7 +99,7 @@
   $('genCancel').addEventListener('click', () => showLanding());
   $('landNew').addEventListener('click', () => showGenScreen());
   $('landLoad').addEventListener('click', () => showSaves(true));
-  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $(mobileUI.matches ? 'menuBtn' : 'regen').focus(); });
+  $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const seed = $('genSeed').value.trim();
@@ -130,7 +130,7 @@
     $('tile').hidden = panel !== 'tile';
     $('drawer').hidden = !['customs', 'debug'].includes(panel);
     drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
-    $('worldMenu').hidden = mobileUI.matches && panel !== 'menu';
+    $('worldMenu').hidden = panel !== 'menu'; if (panel === 'menu') placeMenu();
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
@@ -150,7 +150,7 @@
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
     paintUIToggle(hidden);
-    for (const el of document.querySelectorAll('.chart, #clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
+    for (const el of document.querySelectorAll('#clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
     closeSpeedOptions(); $('uiToggle').focus();
   }
   function setMinimap(on) {
@@ -160,11 +160,18 @@
     if (!mobileUI.matches) $('minimap').style.visibility = on ? '' : 'hidden';
   }
   function adaptUI() {
-    $('worldMenu').hidden = mobileUI.matches && activePanel !== 'menu';
+    $('worldMenu').hidden = activePanel !== 'menu';
     $('minimap').style.visibility = '';
     setMinimap(!mobileUI.matches); closeSpeedOptions();
   }
   if (mobileUI.addEventListener) mobileUI.addEventListener('change', adaptUI);
+  // The menu is the dock's, on every screen (VB-324): on a wide one it rises from the dock's right end, which moves as the dock gains or
+  // loses Actions; on a phone it spans the screen, as the other panels do.
+  function placeMenu() {
+    const r = document.querySelector('.navigation').getBoundingClientRect();
+    $('worldMenu').style.setProperty('--dock-right', `${Math.max(14, Math.round(innerWidth - r.right))}px`);
+  }
+  window.addEventListener('resize', () => { if (activePanel === 'menu') placeMenu(); });
   $('uiToggle').addEventListener('click', toggleUI);
   $('menuBtn').addEventListener('click', () => openPanel(activePanel === 'menu' ? null : 'menu'));
   $('menuClose').addEventListener('click', () => { openPanel(null); $('menuBtn').focus(); });
@@ -182,7 +189,7 @@
     setMinimap(on);
   });
   $('minimapClose').addEventListener('click', () => {
-    setMinimap(false); $(mobileUI.matches ? 'menuBtn' : 'minimapBtn').focus();
+    setMinimap(false); $('menuBtn').focus();
   });
   // A panel's fold is a chevron (VB-324); its name says what a press does: Collapse, or Details (a card) or Expand (a panel).
   function nameFold(button) {

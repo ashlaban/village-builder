@@ -165,7 +165,14 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       await fits('#clock'); await fits('.navigation');
       assert.strictEqual(await page.locator('#pauseBtn').isVisible(), width <= 1024, 'the phone pause button only on a phone');
       assert.strictEqual(await page.locator('#speedBtn').isVisible(), width <= 1024, 'the phone speed button only on a phone');
-      if (width <= 1024) { await page.click('#menuBtn'); await fits('#worldMenu'); await page.click('#menuClose'); }
+      // the menu is the dock's on every screen (VB-324): shut until its button opens it; on a wide screen it rises from the dock's right end
+      assert(await page.locator('#worldMenu').isHidden(), 'the menu is shut until the dock opens it');
+      await page.click('#menuBtn'); await fits('#worldMenu');
+      if (width > 1024) {
+        const [m, d] = [await page.locator('#worldMenu').boundingBox(), await page.locator('.navigation').boundingBox()];
+        assert(Math.abs(m.x + m.width - d.x - d.width) <= 1 && m.y + m.height <= d.y, `the menu rises from the dock's right end: ${JSON.stringify([m, d])}`);
+      }
+      await page.click('#menuClose');
       await page.click('#settlersBtn'); await fits('#peopleSheet'); await page.click('#peopleClose');
       await page.click('#customsBtn'); await fits('#drawer'); await page.click('#drawerClose');
       await page.click('#treeBtn'); await fits('.tree-card'); await page.click('#treeClose');

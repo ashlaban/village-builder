@@ -91,14 +91,6 @@
       links: (mother ? villageChip(mother) : '') + customs, list });
   }
 
-  // ---- the left sheets end below the world menu on a wide screen: its bottom edge, as a CSS length ----
-  const chartBox = document.querySelector('.chart');
-  function measureChart() {
-    document.documentElement.style.setProperty('--chart-bottom', `${mobileUI.matches ? 0 : Math.round(chartBox.getBoundingClientRect().bottom)}px`);
-  }
-  if (window.ResizeObserver) new ResizeObserver(measureChart).observe(chartBox);
-  window.addEventListener('resize', measureChart);
-  measureChart();
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
   if (!mobileUI.matches) {
     $('tile').classList.remove('collapsed');

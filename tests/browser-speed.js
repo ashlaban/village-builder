@@ -87,6 +87,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       await page.evaluate((modifier) => window.dispatchEvent(new KeyboardEvent('keydown', { key: '4', [modifier]: true })), modifier);
       assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'modified keys belong to the browser');
     }
+    await page.click('#menuBtn'); // Keep running in background is the dock's Menu's (VB-324)
     await page.focus('#backgroundRun'); await page.keyboard.press('Space');
     assert.strictEqual(await page.isChecked('#backgroundRun'), true);
     assert.strictEqual(await page.evaluate(() => window.__speedTest.speed), 0, 'checkbox space does not resume the game');

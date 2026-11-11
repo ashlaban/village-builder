@@ -12,7 +12,7 @@
   $('customsBtn').addEventListener('click', () => openDrawer('customs'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('drawerClose').addEventListener('click', () => {
-    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
+    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'menuBtn' : 'customsBtn').focus();
   });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
