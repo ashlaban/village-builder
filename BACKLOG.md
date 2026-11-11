@@ -55,6 +55,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-310](backlog/VB-310.md) | No pawn walks where there is no route: a job with no way by land is refused | - | 3 | S | A pawn bids for no job it has no route to; the straight walk over water stays only as a counted error that an invariant holds at 0. |
 | [VB-311](backlog/VB-311.md) | A home that took in a spouse at the round gives no settlers' provisions in it | - | 3 | S | The grain a marriage was allowed on is not given away the same afternoon: provisions skip households that gained a spouse in this round. |
 | [VB-315](backlog/VB-315.md) | Weeding in two rounds a crop, of 5 hours each | - | 3 | S | A growing field is weeded twice, 5 hours a round, in place of a round of 2 hours every 6 days: the same care for half the walking. |
+| [VB-317](backlog/VB-317.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 to 5, so that keeping two oxen through the winter pays. |
 
 ## Waiting for Kim
 
@@ -63,7 +64,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-269](backlog/VB-269.md) | walkTies grows faster than the living from small-y5 to small-y40 | - | 3 | S | tests/history.js reported walkTies at 1.436 against 1.25 before VB-235 (0.970 after it): confirm it is within on fresh fixtures and close, or find whether the ties walked grow with history or with the cap. |
-| [VB-317](backlog/VB-317.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 so that keeping two oxen through the winter pays; the number waits for Kim. |
 
 ## Blocked
 

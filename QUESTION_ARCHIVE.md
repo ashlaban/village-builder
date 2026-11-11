@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (Field work)
+
+## Field work: the ox team (VB-317; raised 11 November 2026)
+From the review of field work of 11 November. Kim: the team's advantage can be raised. Today the first hand at the hoe or at breaking works 2.5 times as fast with a team, which saves a farm of three fields about 30 hours a year; 7 of 53 such households kept one.
+1. How much faster does a team till? **P:** 5 times (it was 2.5): an ard against a hand hoe, still well short of the real difference, and with VB-316's cart a second reason to winter two oxen. VB-317 reports what a team is then worth and how many keep one.
+   **A (Kim, 11 Nov):** P
+
 # Archived 11 November 2026 (Stocks audit)
 
 ## Stocks audit: stone (VB-313; raised 11 November 2026)
