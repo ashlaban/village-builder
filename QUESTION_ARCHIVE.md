@@ -38,6 +38,13 @@ Asked as the plan task VB-342 wrote `design.md`, Crops and rotations, in batches
 4. Does a rotation become the village's usual one when most farms hold it, or does the meeting decide it? **P:** when most farms hold it.
    **A (Kim, 11 Nov):** yes (most farms hold it), but updated at the meeting.
 
+## VB-342: crops and rotations, seed (raised 11 November 2026)
+Asked as the plan task VB-342 wrote `design.md`, Seed and The scenarios' crops.
+1. One household holds all the island's peas in founders, so a bad first year could lose the crop for good: an acceptable story, or should a second household carry a little pea seed? **P:** either; a second household makes the start less brittle.
+   **A (Kim, 11 Nov):** have a backup household carry extra.
+2. The order in which a hungry household eats its seed: the crop it holds most of first, the last field's seed of each crop last? **P:** yes.
+   **A (Kim, 11 Nov):** yes.
+
 # Archived 11 November 2026 (VB-341)
 
 ## VB-341: the action bar, as built (raised 11 November 2026)
