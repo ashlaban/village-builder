@@ -11731,7 +11731,7 @@ const Sim = (() => {
   const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
-    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, prestigeParts,
+    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf,
     settlementIdOf, membersOf, voiceOf,
   } = VB['sim/records'];
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
@@ -11744,7 +11744,7 @@ const Sim = (() => {
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
-  const { updateTies, refreshInterests, hooks } = VB['sim/society'];
+  const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer } = VB['sim/commands'];
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
@@ -11771,8 +11771,8 @@ const Sim = (() => {
       YEAR,
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
-    isHolder, holdingOf, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve,
-      fieldsWanted,
+    isHolder, holdingOf, prestigeParts, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner,
+      seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
@@ -15534,7 +15534,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e2b610cb21', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '18999f4f26', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

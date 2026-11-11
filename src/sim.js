@@ -4,7 +4,7 @@ const Sim = (() => {
   const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
-    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf, prestigeParts,
+    age, birthYear, fullName, spouseOf, childrenOf, siblingsOf, kinship, kinDegree, villageOf, practice, farmPractice, isHolder, holdingOf,
     settlementIdOf, membersOf, voiceOf,
   } = VB['sim/records'];
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
@@ -17,7 +17,7 @@ const Sim = (() => {
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
-  const { updateTies, refreshInterests, hooks } = VB['sim/society'];
+  const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer } = VB['sim/commands'];
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
@@ -44,8 +44,8 @@ const Sim = (() => {
       YEAR,
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
-    isHolder, holdingOf, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner, seedReserve,
-      fieldsWanted,
+    isHolder, holdingOf, prestigeParts, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner,
+      seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
