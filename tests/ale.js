@@ -58,7 +58,9 @@ assert.deepStrictEqual(checkState(st).filter((x) => /ale|pours|stores/.test(x)),
   const o2 = mk([host.holder, ...guests]); o2.end = 2; run(o2);
   assert.strictEqual(S.aleOf(s2, host), 0, 'the barrel is used up'); assert.strictEqual(host.poured.length, 1);
   assert.ok(host.ledger.some((x) => x.kind === 'pour' && x.good === 'ale' && x.n === -1), 'booked with its reason');
-  assert.ok(Math.abs(s2.pawns[host.holder].prestige - prestige - BREW.prestige) < 1e-9, 'the host gains 0.05');
+  const ale = Soc.prestigeParts(s2, s2.pawns[host.holder]).find((x) => x[0] === 'Ale poured');
+  assert.ok(ale && Math.abs(ale[1] - BREW.prestige) < 1e-9, 'the host gains 0.05, listed among the parts');
+  assert.ok(s2.pawns[host.holder].prestige > prestige - 0.2, 'and the prestige follows');
   guests.forEach((g, i) => assert.ok(opinionOf(s2, g, host.holder) - before[i] > 0.04, `guest ${g} thinks the better of the host`));
   assert.ok(s2.pawns[guests[0]].rel.get(host.holder).mem.ale, 'a memory of it');
   assert.deepStrictEqual(checkState(s2).filter((x) => /ale|pours|stores|occasion/.test(x)), [], 'invariants after (the clock was set by hand)');
