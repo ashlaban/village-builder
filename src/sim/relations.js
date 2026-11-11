@@ -29,16 +29,16 @@ VB['sim/relations'] = (() => {
   // weaker still and not to kin either; then it is not kept.
   function put(st, p, b, w) {
     if (p.ties.size >= TIES.cap && !p.ties.has(b)) {
-      const kin = kinNear(st, p.id), isKin = kin.includes(b);
-      let worst = -1, least = Infinity;
-      VB.count.walkTies += p.ties.size;
-      for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
-      if (worst < 0 ? !isKin : !isKin && w <= least) return; else if (worst >= 0) p.ties.delete(worst);
+      const kin = kinNear(st, p.id), isKin = kin.includes(b); let worst = -1, least = Infinity;
+      VB.count.walkTies += p.ties.size; for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
+      if (worst < 0 && !isKin) return; // every tie is to kin, none may be dropped, and the new one is not to kin
+      if (!isKin && w <= least) return; // not to kin, and no stronger than the weakest that may be dropped
+      if (worst >= 0) p.ties.delete(worst); // the weakest that may be dropped goes; kin is kept, over the cap if all are kin
     }
     p.ties.set(b, w);
   }
   function addTie(st, a, b, v) { const p = st.pawns[a]; put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p)); } // a's tie to b grows by v
-  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); } // at least v
+  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if ((p.ties.get(b) || 0) < w) put(st, p, b, w); } // at least v
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties (one who had dropped its own tie to them keeps theirs, read by
   // nobody, until they renormalise).
   function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }

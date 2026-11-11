@@ -172,5 +172,30 @@ if (weakest !== null && newcomer) {
   check(cp.ties.has(newcomer.id) && !cp.ties.has(weakest) && cp.ties.size === TS.cap, 'a stronger tie replaces the weakest at the cap');
 }
 for (const id of fake) cp.ties.delete(id);
+// the cap, case by case (VB-238), on a cap set to the ties each case holds
+{
+  const cap0 = TS.cap, kinNear = VB['sim/records'].kinNear, owner = st.pawns.find((p) => p.alive && kinNear(st, p.id).length >= 3);
+  const kin = kinNear(st, owner.id), oldTies = owner.ties, scale = Math.pow(2, (owner.tieT - st.t) / VB['sim/rules'].YEAR);
+  const [s0, s1, s2] = st.pawns.filter((p) => p.alive && p.id !== owner.id && !kin.includes(p.id)).map((p) => p.id);
+  const run = (setup, who, w) => { // the ties as listed (id, weight), the cap their number; `who` arrives at weight w; the ties after
+    owner.ties = new Map(setup); TS.cap = owner.ties.size; R.addTie(st, owner.id, who, w * scale); return owner.ties;
+  };
+  try {
+    let t = run([[kin[0], 1], [kin[1], 2]], s0, 9);
+    check(!t.has(s0) && t.size === 2, 'all kin at the cap: a stranger is not kept, however strong');
+    t = run([[kin[0], 1], [kin[1], 2]], kin[2], 0.1);
+    check(t.has(kin[2]) && t.size === 3, 'all kin at the cap and kin arrives: kept, over the cap');
+    t = run([[s0, 3], [s1, 1]], s2, 0.5);
+    check(!t.has(s2) && t.has(s1) && t.size === 2, 'a stranger weaker than the weakest is not kept');
+    t = run([[s0, 3], [s1, 1]], s2, 1);
+    check(!t.has(s2) && t.size === 2, 'a stranger no stronger than the weakest is not kept');
+    t = run([[s0, 3], [s1, 1]], s2, 2);
+    check(t.has(s2) && !t.has(s1) && t.has(s0), 'a stronger stranger takes the weakest place');
+    t = run([[kin[0], 0.1], [s1, 4]], s2, 5);
+    check(t.has(s2) && t.has(kin[0]) && !t.has(s1), 'kin against strangers: the weakest that may be dropped is the stranger, though kin is weaker');
+    t = run([[kin[0], 5], [s1, 4]], kin[1], 0.1);
+    check(t.has(kin[1]) && t.has(kin[0]) && !t.has(s1), 'kin arriving at the cap takes the weakest stranger, even if weaker');
+  } finally { TS.cap = cap0; owner.ties = oldTies; }
+}
 check(checkState(st).length === 0, 'invariants after familiarity: ' + checkState(st).slice(0, 3).join('; '));
 if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}; ${st.talks - t1} talks in one crowded hour`);
