@@ -8,9 +8,11 @@
   let skipCursor = null;
   function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
+  // The uncapped speed's button is an icon (VB-324): the rate it reaches is in its name and tooltip.
+  function nameUncapped(name) { uncappedButton.setAttribute('aria-label', name); uncappedButton.title = `${name} (5)`; }
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
-    if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
+    if (uncappedButton.title !== 'Uncapped (5)') nameUncapped('Uncapped');
   }
   // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
   // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
@@ -63,7 +65,7 @@
       speedSampleHours += st.t - before;
       const now = performance.now(), elapsed = (now - speedSampleAt) / 1000;
       if (elapsed >= 0.5) {
-        uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
+        nameUncapped(`Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`);
         speedSampleAt = now; speedSampleHours = 0;
       }
     } else {

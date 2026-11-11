@@ -69,8 +69,7 @@ body {
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
 .chart { border-radius: 18px; padding: 12px 16px 14px; max-width: 330px; }
-.chart h1 { font-family: 'Alegreya', Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; font-size: 32px; line-height: 1.05; margin: 0; }
-.chart .meta { margin: 3px 0 0; color: var(--muted); font-size: 15px; }
+.chart .meta { margin: 0; color: var(--muted); font-size: 15px; }
 .chart .hint { margin: 2px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.35; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
@@ -79,8 +78,10 @@ body {
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
-.speed button { padding: 5px 10px; font-size: 14px; }
-.speed button[data-speed="Infinity"] { min-width: 145px; font-variant-numeric: tabular-nums; }
+/* The top bar's controls are icons (VB-324): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
+.clock .icon-btn { width: 44px; height: 44px; flex: none; }
+.ico { display: block; flex: none; }
+.ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
 .background-run { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .background-run input { margin: 0; accent-color: var(--accent); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
@@ -189,6 +190,10 @@ body:has(.genscreen:not([hidden])) .hud, body:has(.genscreen:not([hidden])) .nav
 body:has(.genscreen:not([hidden])) .lod, body:has(.genscreen:not([hidden])) .toasts, body:has(.genscreen:not([hidden])) .play-offer,
 body:has(.genscreen:not([hidden])) #menuBtn, body:has(.genscreen:not([hidden])) #uiToggle { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
+/* the open game's name, at the main menu's top left (VB-324); it is not shown in play */
+.game-name { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px)); margin: 0;
+  max-width: calc(100% - 36px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: italic 700 32px/1.1 'Alegreya', Georgia, serif; color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; }
 .genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -238,9 +243,7 @@ input, select { font: inherit; color: var(--ink); }
 .menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
 .background-run { margin: 8px 0 12px; min-height: 44px; font-size: 14px; }
 .background-run input, .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { margin-right: 100px; max-width: 590px; }
-.speed button { min-width: 44px; }
-.ui-toggle { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); z-index: 8; }
+.clock { max-width: 590px; }
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: 18px; }
 .navigation button { min-width: 90px; border: 0; border-radius: 12px; }
@@ -357,6 +360,8 @@ body:has(.play-offer:not([hidden])) .toasts { bottom: calc(var(--dock-bottom) + 
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
 body.ui-hidden .hud * { pointer-events: none; }
+body.ui-hidden #uiToggle { visibility: visible; pointer-events: auto; background: var(--panel); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(3, 16, 26, 0.28); }
 .genscreen { overflow-y: auto; }
 .genscreen > .panel { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
@@ -408,6 +413,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .tile .sheet-content { padding-top: 2px; }
 .collapsed .selection-summary, .peek .selection-summary { padding-bottom: 12px; }
 @media (min-width: 1025px) {
+  .mobile-only { display: none !important; } /* over a display a later rule gives, such as .icon-btn's */
   .chart .actions { gap: 6px; }
   .chart .actions button { min-height: 36px; padding: 6px 11px; font-size: 14px; }
   .chart .hint { font-size: 13px; }
@@ -428,23 +434,18 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .mobile-only { display: inline-flex; align-items: center; justify-content: center; }
   .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
-  .chart { width: calc(100% - 90px); max-width: none; border: 0; box-shadow: none; background: transparent; backdrop-filter: none;
-    padding: 6px 8px 0; height: 38px; }
-  .chart h1 { color: #f2f8f6; text-shadow: 0 1px 4px #102b3b; font-size: 23px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ui-toggle { top: calc(env(safe-area-inset-top, 0px) + 8px); right: max(8px, env(safe-area-inset-right, 0px));
-    min-height: 44px; padding: 8px 12px; font-size: 13px; }
-  .clock { position: relative; width: 100%; max-width: none; margin: 6px 0 0; padding: 6px 8px 6px 12px; gap: 6px;
+  .chart { display: contents; }
+  .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
     flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
   .calendar { flex: 1; min-width: 0; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
-  #pauseBtn { padding: 7px 10px; min-width: 60px; }
-  #speedBtn { padding: 7px 10px; min-width: 52px; color: var(--accent); font-weight: 700; }
-  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; width: min(300px, calc(100vw - 16px));
+  #speedBtn { color: var(--accent); }
+  /* the speed picker opens over everything, the notifications too (VB-324) */
+  .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; flex-wrap: nowrap;
     padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
   .speed-open .speed { display: flex; }
-  .speed button { flex: 1 0 26%; padding: 8px; }
-  .speed button[data-speed="Infinity"] { min-width: 145px; }
+  .hud.top:has(.speed-open) { z-index: 8; }
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
     border-radius: 16px; gap: 0; padding: 4px; }
   .navigation button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 15px; }
@@ -463,7 +464,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   body.ui-hidden .minimap { visibility: hidden; pointer-events: none; }
   .lod { display: none; }
   .toasts { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: auto; transform: none;
-    top: calc(env(safe-area-inset-top, 0px) + 112px); bottom: auto; }
+    top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: auto; }
   .tree { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   .tree-card { width: 100%; height: 100%; max-height: 100dvh; border-radius: 0; }
   .tree-head { padding: 10px 12px; gap: 6px; align-items: center; }
@@ -486,7 +487,6 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 
 <div class="hud top">
   <header class="chart panel">
-    <h1 id="name">Archipelago</h1>
     <div id="worldMenu" class="world-menu">
       <div class="sheet-head mobile-only"><h2>Menu</h2><button id="menuClose" type="button">Close</button></div>
       <p class="meta" id="meta"></p>
@@ -510,20 +510,22 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   </header>
   <div class="clock panel" id="clock">
     <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
-    <button id="pauseBtn" class="mobile-only" type="button" aria-label="Pause game">Pause</button>
-    <button id="speedBtn" class="mobile-only" type="button" aria-expanded="false" aria-controls="speedOptions">1×</button>
+    <button id="pauseBtn" class="mobile-only icon-btn" type="button" aria-label="Pause game" title="Pause (Space)"></button>
+    <button id="speedBtn" class="mobile-only icon-btn" type="button" aria-expanded="false" aria-controls="speedOptions"></button>
     <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
-      <button type="button" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" title="Pause (Space)">Pause</button>
-      <button type="button" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" title="1× (1)">1×</button>
-      <button type="button" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" title="3× (2)">3×</button>
-      <button type="button" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" title="10× (3)">10×</button>
-      <button type="button" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" title="30× (4)">30×</button>
-      <button type="button" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" title="Uncapped (5)">Uncapped</button>
+      <button type="button" class="icon-btn" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" aria-label="Pause" title="Pause (Space)"></button>
+      <button type="button" class="icon-btn" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" aria-label="1×" title="1× (1)"></button>
+      <button type="button" class="icon-btn" data-speed="3" aria-pressed="false" aria-keyshortcuts="2" aria-label="3×" title="3× (2)"></button>
+      <button type="button" class="icon-btn" data-speed="10" aria-pressed="false" aria-keyshortcuts="3" aria-label="10×" title="10× (3)"></button>
+      <button type="button" class="icon-btn" data-speed="30" aria-pressed="false" aria-keyshortcuts="4" aria-label="30×" title="30× (4)"></button>
+      <button type="button" class="icon-btn" data-speed="Infinity" aria-pressed="false" aria-keyshortcuts="5" aria-label="Uncapped"
+        title="Uncapped (5)"></button>
     </div>
     <button id="skipBtn" type="button" aria-pressed="false" title="Run ahead to the next event that concerns your pawn" hidden>Skip to next event</button>
+    <button id="uiToggle" class="icon-btn ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" aria-label="Hide the interface"
+      title="Hide the interface (H)"></button>
   </div>
 </div>
-<button id="uiToggle" class="panel ui-toggle" type="button" aria-pressed="false" aria-keyshortcuts="h" title="Hide or show the interface (H)">Hide UI</button>
 <div class="lod" id="lod" hidden></div>
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <div class="play-offer panel" id="playOffer" hidden><span id="playOfferText"></span><button type="button" class="primary" id="playOfferYes">Play</button><button type="button" id="playOfferNo">Not now</button></div>
@@ -625,6 +627,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 </div>
 
 <div class="genscreen" id="landing" hidden>
+  <p class="game-name" id="name" hidden></p>
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">New archipelago</button>
@@ -11902,6 +11905,26 @@ if (typeof module !== 'undefined') module.exports = Sim;
   };
   const stopIntro = () => { intro = null; };
 
+  const svgIcon = (w, h, body, attrs = '') =>
+    `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
+  const ICON_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  // A speed is one to five play arrows (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped. Infinity is the uncapped speed.
+  const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };
+  function speedIcon(v) {
+    const n = SPEED_ARROWS[v] || 1, step = 6, w = step * (n - 1) + 8;
+    let d = '';
+    for (let k = 0; k < n; k++) d += `M${k * step} 1L${k * step + 8} 7L${k * step} 13Z`;
+    return svgIcon(w, 14, `<path d="${d}" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>`);
+  }
+  const ICON = {
+    pause: svgIcon(14, 14, '<rect x="2" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'
+      + '<rect x="8.5" y="1" width="3.5" height="12" rx="1" fill="currentColor"/>'),
+    play: svgIcon(14, 14, '<path d="M3 1L12 7L3 13Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>'),
+    // the interface shown: an eye struck through, to hide it; hidden: an open eye, to show it again
+    eye: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/>', ICON_STROKE),
+    eyeOff: svgIcon(20, 20, '<path d="M1.5 10S5 4 10 4s8.5 6 8.5 6-3.5 6-8.5 6S1.5 10 1.5 10Z"/><circle cx="10" cy="10" r="2.6"/><path d="M3 17L17 3"/>',
+      ICON_STROKE),
+  };
   // ---- level-of-detail chunks ----
   // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
   const chunks = new Map();
@@ -12193,7 +12216,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
+    $('landBack').hidden = $('name').hidden = !w || demo; // the open game's name, at the menu's top left (VB-324)
+    $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;
@@ -12491,8 +12515,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
-      closeSpeedOptions(); openPanel(null); return;
+      if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
+      const open = activePanel !== null || $('clock').classList.contains('speed-open');
+      closeSpeedOptions(); openPanel(null);
+      if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
+      return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
     // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
@@ -12561,11 +12590,17 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-324).
+  function paintUIToggle(hidden) {
+    $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
+    $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
+    $('uiToggle').setAttribute('aria-pressed', String(hidden));
+  }
+  paintUIToggle(false);
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
-    $('uiToggle').textContent = hidden ? 'Show UI' : 'Hide UI';
-    $('uiToggle').setAttribute('aria-pressed', String(hidden));
-    for (const el of document.querySelectorAll('.hud, .navigation, .sheet')) el.inert = hidden;
+    paintUIToggle(hidden);
+    for (const el of document.querySelectorAll('.chart, #clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
     closeSpeedOptions(); $('uiToggle').focus();
   }
   function setMinimap(on) {
@@ -12614,16 +12649,25 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
+  // Pause and the speeds are icons (VB-324): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // to come and the speed chosen.
+  function paintSpeed(v) {
+    const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
+    $('pauseBtn').innerHTML = v === 0 ? ICON.play : ICON.pause;
+    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
+    $('pauseBtn').title = v === 0 ? 'Resume (Space)' : 'Pause (Space)';
+    $('speedBtn').innerHTML = speedIcon(chosen);
+    $('speedBtn').setAttribute('aria-label', `Game speed: ${name}`); $('speedBtn').title = `Game speed: ${name}`;
+    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+  }
+  document.querySelectorAll('.speed button').forEach((bt) => { bt.innerHTML = +bt.dataset.speed === 0 ? ICON.pause : speedIcon(+bt.dataset.speed); });
+  paintSpeed(1); // the page opens at 1×
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
     cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
-    $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
-    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
-    const chosen = v === 0 ? lastSpeed : v;
-    $('speedBtn').textContent = chosen === Infinity ? 'Max' : `${chosen}×`;
-    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+    paintSpeed(v);
   }
   document.querySelectorAll('.speed button').forEach((bt) =>
     bt.addEventListener('click', () => { setSpeed(+bt.dataset.speed); closeSpeedOptions(); if (mobileUI.matches) $('speedBtn').focus(); }));
@@ -13749,9 +13793,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let skipCursor = null;
   function cancelSkip() { if (skipCursor) { skipCursor = null; $('skipBtn').setAttribute('aria-pressed', 'false'); } }
   const simulationAway = () => document.hidden || !windowFocused;
+  // The uncapped speed's button is an icon (VB-324): the rate it reaches is in its name and tooltip.
+  function nameUncapped(name) { uncappedButton.setAttribute('aria-label', name); uncappedButton.title = `${name} (5)`; }
   function resetSpeedSample() {
     speedSampleAt = performance.now(); speedSampleHours = 0;
-    if (uncappedButton.textContent !== 'Uncapped') uncappedButton.textContent = 'Uncapped';
+    if (uncappedButton.title !== 'Uncapped (5)') nameUncapped('Uncapped');
   }
   // ---- whole steps, drawn between (VB-244): the page asks the simulation for whole 6-minute steps only, so a seed is the same run at any
   // frame rate as headless; it keeps here, never in st, the part of the next step its frames have asked for (stepShare, in [0, 1)) and
@@ -13804,7 +13850,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       speedSampleHours += st.t - before;
       const now = performance.now(), elapsed = (now - speedSampleAt) / 1000;
       if (elapsed >= 0.5) {
-        uncappedButton.textContent = `Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`;
+        nameUncapped(`Uncapped (${Math.round(speedSampleHours * HOUR_SECONDS / elapsed)}×)`);
         speedSampleAt = now; speedSampleHours = 0;
       }
     } else {
@@ -15583,7 +15629,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '072e751b7f', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '79c80732c2', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

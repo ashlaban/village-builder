@@ -22,7 +22,8 @@
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest
   const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
-    $('landBack').hidden = !w || demo; $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
+    $('landBack').hidden = $('name').hidden = !w || demo; // the open game's name, at the menu's top left (VB-324)
+    $('genScreen').hidden = true; $('landing').hidden = false; loader.classList.add('done'); $('landNew').focus();
   }
   function showGenScreen(msg) {
     $('genSeed').value = String(choice.seed); $('genScenario').value = choice.scenario; $('genSize').value = choice.size;

@@ -2,7 +2,8 @@
 const assert = require('assert'), fs = require('fs'), vm = require('vm'), path = require('path');
 const listeners = {}, timers = new Map();
 const listen = (target) => (event, fn) => { listeners[target + ':' + event] = fn; };
-const button = { textContent: '' }, checkbox = { checked: false, addEventListener: listen('checkbox') };
+const button = { title: '', label: '', setAttribute(k, v) { if (k === 'aria-label') this.label = v; } };
+const checkbox = { checked: false, addEventListener: listen('checkbox') };
 const screen = { hidden: true };
 let now = 0, calls = 0, clocks = 0, cost = 3, nextTimer = 0;
 const ctx = {
@@ -35,7 +36,7 @@ cost = 20; calls = 0; ctx.advanceSimulation(0.016);
 assert.strictEqual(calls, 1, 'a costly step must not start a second step'); cost = 3;
 ctx.resetSpeedSample(); const sampleAt = now, sampleT = ctx.st.t;
 for (let k = 0; k < 40; k++) { now += 5; ctx.advanceSimulation(0.016); }
-assert.strictEqual(button.textContent, `Uncapped (${Math.round((ctx.st.t - sampleT) * 2 / ((now - sampleAt) / 1000))}×)`);
+assert.strictEqual(button.label, `Uncapped (${Math.round((ctx.st.t - sampleT) * 2 / ((now - sampleAt) / 1000))}×)`);
 for (const flag of ['building', 'skipping']) {
   ctx[flag] = true; const t = ctx.st.t; ctx.advanceSimulation(1); assert.strictEqual(ctx.st.t, t); ctx[flag] = false;
 }
@@ -69,6 +70,7 @@ const input = {
   matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {}, cancelSkip() {},
 };
 vm.createContext(input);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/icons.js'), 'utf8'), input); // the speeds' icons (VB-324)
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/input.js'), 'utf8'), input);
 const key = (key, flags = {}) => keyHandlers.keydown({ key, target: { closest: () => null }, preventDefault() {}, ...flags });
 for (const modifier of ['ctrlKey', 'metaKey', 'altKey', 'defaultPrevented', 'isComposing']) {

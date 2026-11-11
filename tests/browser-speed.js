@@ -72,7 +72,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       assert.deepStrictEqual(sample.faults, [], 'full date, clock and visible pawn positions follow simulation');
       positionsChecked += sample.positions;
       if (speed === 'Infinity') await page.waitForFunction(() =>
-        /Uncapped \(\d+×\)/.test(document.querySelector('[data-speed="Infinity"]').textContent));
+        /Uncapped \(\d+×\)/.test(document.querySelector('[data-speed="Infinity"]').getAttribute('aria-label')));
       await page.click('[data-speed="0"]');
     }
     assert(positionsChecked > 0, 'the picture check covers visible pawns');

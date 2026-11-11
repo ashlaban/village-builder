@@ -65,8 +65,13 @@
       if (e.key === 'Escape') { e.preventDefault(); closeTree(); }
       return;
     }
+    // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-324)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
-      closeSpeedOptions(); openPanel(null); return;
+      if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
+      const open = activePanel !== null || $('clock').classList.contains('speed-open');
+      closeSpeedOptions(); openPanel(null);
+      if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
+      return;
     }
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
     // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
@@ -135,11 +140,17 @@
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
     if (panel === 'actions' && st) renderActions();
   }
+  // The eye at the end of the top bar hides the interface; it alone stays, where it was, to bring it back (VB-324).
+  function paintUIToggle(hidden) {
+    $('uiToggle').innerHTML = hidden ? ICON.eye : ICON.eyeOff;
+    $('uiToggle').title = hidden ? 'Show the interface (H)' : 'Hide the interface (H)';
+    $('uiToggle').setAttribute('aria-pressed', String(hidden));
+  }
+  paintUIToggle(false);
   function toggleUI() {
     const hidden = document.body.classList.toggle('ui-hidden');
-    $('uiToggle').textContent = hidden ? 'Show UI' : 'Hide UI';
-    $('uiToggle').setAttribute('aria-pressed', String(hidden));
-    for (const el of document.querySelectorAll('.hud, .navigation, .sheet')) el.inert = hidden;
+    paintUIToggle(hidden);
+    for (const el of document.querySelectorAll('.chart, #clock > :not(#uiToggle), .navigation, .sheet')) el.inert = hidden;
     closeSpeedOptions(); $('uiToggle').focus();
   }
   function setMinimap(on) {
@@ -188,16 +199,25 @@
   $('pauseBtn').addEventListener('click', () => setSpeed(speed === 0 ? lastSpeed : 0));
   adaptUI();
   let lastSpeed = 1;
+  // Pause and the speeds are icons (VB-324): pause, then one to five arrows (page/icons); the phone's two buttons show the pause or play
+  // to come and the speed chosen.
+  function paintSpeed(v) {
+    const chosen = v === 0 ? lastSpeed : v, name = chosen === Infinity ? 'uncapped' : `${chosen}×`;
+    $('pauseBtn').innerHTML = v === 0 ? ICON.play : ICON.pause;
+    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
+    $('pauseBtn').title = v === 0 ? 'Resume (Space)' : 'Pause (Space)';
+    $('speedBtn').innerHTML = speedIcon(chosen);
+    $('speedBtn').setAttribute('aria-label', `Game speed: ${name}`); $('speedBtn').title = `Game speed: ${name}`;
+    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+  }
+  document.querySelectorAll('.speed button').forEach((bt) => { bt.innerHTML = +bt.dataset.speed === 0 ? ICON.pause : speedIcon(+bt.dataset.speed); });
+  paintSpeed(1); // the page opens at 1×
   function setSpeed(v) {
     if (v > 0) lastSpeed = v;
     speed = v;
     cancelSkip(); // choosing a speed, or pausing, ends a skip to the next event (page/speed)
     resetSpeedSample();
-    $('pauseBtn').textContent = v === 0 ? 'Play' : 'Pause';
-    $('pauseBtn').setAttribute('aria-label', v === 0 ? 'Resume game' : 'Pause game');
-    const chosen = v === 0 ? lastSpeed : v;
-    $('speedBtn').textContent = chosen === Infinity ? 'Max' : `${chosen}×`;
-    document.querySelectorAll('.speed button').forEach((bt) => bt.setAttribute('aria-pressed', String(+bt.dataset.speed === v)));
+    paintSpeed(v);
   }
   document.querySelectorAll('.speed button').forEach((bt) =>
     bt.addEventListener('click', () => { setSpeed(+bt.dataset.speed); closeSpeedOptions(); if (mobileUI.matches) $('speedBtn').focus(); }));
