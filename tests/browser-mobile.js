@@ -23,7 +23,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
     await page.goto('https://village.test/', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => !document.getElementById('landing').hidden); await page.click('#landNew');
-    await page.selectOption('#genSize', 't'); await page.selectOption('#genScenario', 'founders'); await page.fill('#genSeed', '7');
+    await page.selectOption('#genSize', 't'); await page.click('[data-sc="founders"]'); await page.fill('#genSeed', '7');
     await page.click('#genGo');
     await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 120000 });
     // Whom to play on a phone (VB-339): the map's strip first, the household under it, the archetypes last, the bar at the bottom of the

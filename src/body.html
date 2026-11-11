@@ -183,26 +183,54 @@
   </div>
 </div>
 
-<div class="genscreen" id="genScreen" hidden>
-  <form class="panel" id="genForm" autocomplete="off">
-    <div class="screen-head"><h1>New archipelago</h1><button id="genCancel" type="button">Back</button></div>
-    <label>Map size
-      <select id="genSize">
-        <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
-        <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
-      </select>
-    </label>
-    <label>Seed
-      <input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required>
-    </label>
-    <label>Starting scenario
-      <select id="genScenario">
-        <option value="founders">Founders</option><option value="heirs">Heirs and empty farms</option>
-        <option value="populous">Populous Villages</option>
-      </select>
-    </label>
-    <p class="err" id="genMsg" role="alert" hidden></p>
-    <button class="primary" id="genGo" type="submit">Generate</button>
+<!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
+     with its callouts; who starts and the story archetypes; size, seed, Back and Raise the land in the bar -->
+<div class="genscreen start" id="genScreen" hidden>
+  <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
+    <section class="panel start-top">
+      <div class="screen-head"><h1 id="startTitle">New archipelago</h1><span class="stepno">Step 1 of 2</span></div>
+      <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
+      <input type="hidden" id="genScenario" value="founders">
+    </section>
+    <div class="cgrid">
+      <section class="start-left">
+        <div class="start-view" id="startView" role="img" aria-label="The land as the scenario begins, on an example island">
+          <div class="pins" id="startPins"></div></div>
+        <div class="panel start-under">
+          <ul class="pinlist" id="startPinList"></ul>
+          <h3>The year ahead</h3>
+          <div class="year" id="startYear"></div>
+          <ul class="rows" id="startRows"></ul>
+        </div>
+      </section>
+      <section class="panel start-side" aria-labelledby="startName">
+        <h2 id="startName"></h2>
+        <h3>Who starts</h3>
+        <p class="hint">An example: the people of the island in the picture. Each island has its own.</p>
+        <div class="who-starts" id="startWho"></div>
+        <h3>Story archetypes</h3>
+        <div id="startStories"></div>
+        <p class="hint">Point at one, or tap it, to see who they are. You choose a person once the land is raised.</p>
+        <p class="hint sug-note"><svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path
+          d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
+      </section>
+    </div>
+    <div class="panel start-bar">
+      <label>Map size
+        <select id="genSize">
+          <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+          <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
+        </select>
+      </label>
+      <label>Seed
+        <span class="seedrow"><input id="genSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required><button type="button"
+          id="genReroll">Another</button></span>
+      </label>
+      <p class="err" id="genMsg" role="alert" hidden></p>
+      <span class="grow"></span>
+      <button id="genCancel" type="button">Back</button>
+      <button class="primary" id="genGo" type="submit">Raise the land</button>
+    </div>
   </form>
 </div>
 

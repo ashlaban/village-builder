@@ -71,11 +71,13 @@
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
+      if (!$('genScreen').hidden) { startBack(); return; } // on the start, Back
       const open = activePanel !== null || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
       closeSpeedOptions(); closeNotices(); openPanel(null);
       if (!open && st && !demo && !building && !skipping && $('genScreen').hidden) showLanding();
       return;
     }
+    if (!$('genScreen').hidden || !$('landing').hidden) return; // a menu screen is up: the game's keys wait
     if (e.key.toLowerCase() === 'h' && !(e.target.closest && e.target.closest('input, select, textarea'))) { toggleUI(); return; }
     // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
     const press = SHORTCUTS[e.key.toLowerCase()];
@@ -100,8 +102,8 @@
 
   // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
-  $('genCancel').addEventListener('click', () => showLanding());
-  $('landNew').addEventListener('click', () => showGenScreen());
+  $('genCancel').addEventListener('click', () => startBack());
+  $('landNew').addEventListener('click', () => openStart());
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
