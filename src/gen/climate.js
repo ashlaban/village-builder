@@ -11,7 +11,10 @@ VB['gen/climate'] = (() => {
   // smoothed `smooth` times; where the ground falls it drops `lee` less. `spread`: how sharply the load follows the wind's own line.
   // Moisture: rain between its 2nd and 98th percentile on land is 0 to 1; a valley floor adds up to `valley` by the log of its catchment
   // of rain, counted from `valleyFrom` cells of the wettest rain; `noise` of the generator's old moisture noise keeps the land patchy.
-  const CLIMATE = { rounds: 12, redrain: 3, k: 0.008, hillside: 1.5, creep: 0.1, floor: 0.002,
+  // Lakes: where a basin has no way down to the sea its water ponds to the level of its lowest rim. Land more than `pondDepth` under that
+  // level, in a patch of `pondCells` cells or more, becomes lake (bed at -`pondBed`); a shallower or smaller hollow stays land, and so does
+  // one that would stand above `pondHigh`: water lies at sea level in this world, so a lake in the hills would sit in a pit.
+  const CLIMATE = { rounds: 12, redrain: 3, k: 0.008, hillside: 1.5, creep: 0.1, floor: 0.002, pondDepth: 0.012, pondHigh: 0.12, pondCells: 27, pondBed: 0.02,
     evap: 0.03, base: 0.01, rise: 1.6, lee: 0.4, spread: 2, smooth: 10, valley: 0.3, valleyFrom: 150, valleyMost: 1.5, noise: 0.25 };
   const DX = [1, 1, 0, -1, -1, -1, 0, 1], DY = [0, -1, -1, -1, 0, 1, 1, 1], DL = [1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2];
 
@@ -20,15 +23,17 @@ VB['gen/climate'] = (() => {
 
   // Every land cell drains to one of its eight neighbours (down) on a path to water that never climbs above its spill level: a priority
   // flood from the water, as gen/rivers does on tiles. order lists the land cells as the flood reached them, downstream first.
-  function drainage(z, CW, CH) {
+  // With `sea` (a mask of cells), the flood starts from those cells only and runs over everything else, lakes too; fill is then the level
+  // water stands at in each cell.
+  function drainage(z, CW, CH, sea) {
     const N = CW * CH, fill = new Float64Array(N), down = new Int32Array(N).fill(-1), seen = new Uint8Array(N), order = [], h = minHeap(fill);
     for (let k = 0; k < N; k++) {
-      if (z[k] > 0) continue;
+      if (sea ? !sea[k] : z[k] > 0) continue;
       seen[k] = 1;
       const x = k % CW, y = (k / CW) | 0;
       for (let d = 0; d < 8; d++) {
         const X = x + DX[d], Y = y + DY[d];
-        if (X >= 0 && Y >= 0 && X < CW && Y < CH && z[Y * CW + X] > 0) { h.push(k); break; }
+        if (X >= 0 && Y >= 0 && X < CW && Y < CH && (sea ? !sea[Y * CW + X] : z[Y * CW + X] > 0)) { h.push(k); break; }
       }
     }
     while (h.size) {
@@ -41,7 +46,7 @@ VB['gen/climate'] = (() => {
         seen[j] = 1; fill[j] = Math.max(z[j], fill[k] + 1e-6); down[j] = k; order.push(j); h.push(j);
       }
     }
-    return { down, order };
+    return { down, order, fill };
   }
   // Catchment: each land cell's own water (1, or rain[k]) plus all that drains through it.
   function catchment({ down, order }, N, rain) {
@@ -50,6 +55,9 @@ VB['gen/climate'] = (() => {
     for (let i = order.length - 1; i >= 0; i--) { const k = order[i], d = down[k]; if (acc[d] > 0) acc[d] += acc[k]; }
     return acc;
   }
+
+  // The relief as water leaves it, for gen.js: eroded, then ponded. In place.
+  function shape(z, CW, CH) { erode(z, CW, CH); pond(z, CW, CH); }
 
   // Erodes z in place (see CLIMATE). The step is implicit, so it is stable for any k: a cell never falls below the cell it drains to.
   function erode(z, CW, CH) {
@@ -68,6 +76,34 @@ VB['gen/climate'] = (() => {
         z[k] = Math.max(C.floor, t[k] + C.creep * (mean - t[k]));
       }
     }
+  }
+
+  // Lakes where basins pond (see CLIMATE): lowers the ponded land of z to a lake bed, in place; returns the number of cells made lake.
+  function pond(z, CW, CH) {
+    const C = CLIMATE, N = CW * CH, sea = new Uint8Array(N), q = [];
+    for (let k = 0; k < N; k++) {
+      const x = k % CW, y = (k / CW) | 0;
+      if (z[k] <= 0 && (x === 0 || y === 0 || x === CW - 1 || y === CH - 1)) { sea[k] = 1; q.push(k); }
+    }
+    for (let h = 0; h < q.length; h++) for (let d = 0; d < 8; d += 2) {
+      const X = (q[h] % CW) + DX[d], Y = ((q[h] / CW) | 0) + DY[d];
+      if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+      const j = Y * CW + X; if (z[j] <= 0 && !sea[j]) { sea[j] = 1; q.push(j); }
+    }
+    const { fill } = drainage(z, CW, CH, sea), seen = new Uint8Array(N);
+    const deep = (k) => !sea[k] && fill[k] - z[k] > C.pondDepth && fill[k] <= C.pondHigh;
+    let made = 0;
+    for (let s = 0; s < N; s++) {
+      if (seen[s] || !deep(s)) continue;
+      const patch = [s]; seen[s] = 1;
+      for (let h = 0; h < patch.length; h++) for (let d = 0; d < 8; d += 2) {
+        const X = (patch[h] % CW) + DX[d], Y = ((patch[h] / CW) | 0) + DY[d];
+        if (X < 0 || Y < 0 || X >= CW || Y >= CH) continue;
+        const j = Y * CW + X; if (!seen[j] && deep(j)) { seen[j] = 1; patch.push(j); }
+      }
+      if (patch.length >= C.pondCells) for (const k of patch) if (z[k] > 0) { z[k] = -C.pondBed; made++; }
+    }
+    return made;
   }
 
   // `times` passes of a 3 by 3 mean over a coarse-cell array; returns a new array.
@@ -147,5 +183,5 @@ VB['gen/climate'] = (() => {
     return { wind: dir, rain };
   }
 
-  return { CLIMATE, wind, drainage, catchment, erode, rainfall, climate, moisture, tiles };
+  return { CLIMATE, wind, drainage, catchment, erode, pond, shape, rainfall, climate, moisture, tiles };
 })();

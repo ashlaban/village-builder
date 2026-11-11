@@ -32,6 +32,16 @@ const dr = C.drainage(after, 60, 60); let climbs = 0;
 for (const k of dr.order) if (dr.down[k] < 0) climbs++;
 check(dr.order.length === after.filter((v) => v > 0).length && !climbs, 'not every land cell drains to water');
 
+// 2b. Lakes: a low bowl with no way out ponds; the same bowl high in the hills, and a hollow of a few cells, stay land; the sea is not touched.
+{ const bowl = (base, r) => { const z = new Float32Array(60 * 60); for (let y = 0; y < 60; y++) for (let x = 0; x < 60; x++) {
+    const d = Math.hypot(x - 30, y - 30); z[y * 60 + x] = d > 26 ? -0.1 : d < r ? base - 0.05 * (1 - d / r) : base + 0.02 + 0.001 * (26 - d); } return z; };
+  const low = bowl(0.06, 8), high = bowl(0.4, 8), small = bowl(0.06, 2), seaBefore = low.filter((v) => v <= 0).length;
+  const made = C.pond(low, 60, 60);
+  check(made > 100 && low[30 * 60 + 30] < 0 && low[30 * 60 + 45] > 0, `a low bowl ponds (${made} cells), its rim stays land`);
+  check(low.filter((v) => v <= 0).length === seaBefore + made, 'ponding touches the sea');
+  check(C.pond(high, 60, 60) === 0, 'a bowl high in the hills is made a lake');
+  check(C.pond(small, 60, 60) === 0, 'a hollow of a few cells is made a lake'); }
+
 // 3. Moisture: the old values, in the order of wetness.
 { const tiles = [4, 1, 7, 2], wet = [0, 0.9, 0.1, 0, 0.5, 0, 0, 0.5], was = Float32Array.from([0, 0.2, 0.8, 0, 0.6, 0, 0, 0.4]), hm = Float32Array.from(was);
   C.moisture(tiles, wet, was, hm);

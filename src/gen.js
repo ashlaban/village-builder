@@ -166,7 +166,7 @@ const ArchGen = (() => {
       const v = hf[k];
       elev[k] = v >= sea ? Math.pow((v - sea) / (mx - sea), 0.9) : -Math.pow((sea - v) / (sea - mn), 0.7);
     }
-    VB['gen/climate'].erode(elev, CW, CH); // running water cuts its valleys before the light and the tiles read the relief
+    VB['gen/climate'].shape(elev, CW, CH); // running water cuts its valleys and ponds in its basins before the light and the tiles read the relief
     const ZS = 75 * KS;
     const L = [-0.55, -0.6, 0.58];
     const shade = new Float32Array(CN), moist = new Float32Array(CN), macro = new Float32Array(CN);
