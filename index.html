@@ -2614,6 +2614,8 @@ VB['sim/rules'] = (() => {
 VB['sim/registry'] = (() => {
   // Code, never saved state. Nothing may register once a simulation has been seeded or loaded.
   const rules = new Map();
+  // Contributions to a rule not yet declared wait here (a module loading before the rule's owner registers its own terms).
+  const waiting = new Map();
   let sealed = false;
   function atLoad() { if (sealed) throw new Error('Rules may only be registered at load time'); }
   function ruleOf(id) {
@@ -2623,28 +2625,55 @@ VB['sim/registry'] = (() => {
   }
   const text = (s) => typeof s === 'string' && s.length > 0;
   const range = (r) => Array.isArray(r) && r.length === 2 && r.every(Number.isFinite) && r[0] <= r[1];
+  // A clamp may be open on one side (Infinity); a contribution's range, when it has one, is finite.
+  const clampOf = (r) => Array.isArray(r) && r.length === 2 && r.every((x) => typeof x === 'number' && !Number.isNaN(x)) && r[0] <= r[1];
+  const needsRange = (rule, c) => { if (rule.spec.combine === 'product' && !c.range) throw new Error('A product rule needs a range for ' + c.key); };
   function declare(spec) {
     atLoad();
     if (!spec || !text(spec.id) || !text(spec.owner) || typeof spec.base !== 'function'
-      || !['product', 'sum'].includes(spec.combine) || (spec.clamp !== undefined && !range(spec.clamp))) {
+      || !['product', 'sum'].includes(spec.combine) || (spec.clamp !== undefined && !clampOf(spec.clamp))
+      || (spec.order !== undefined && !(Array.isArray(spec.order) && spec.order.every(text)))) {
       throw new Error('Invalid rule specification');
     }
     if (rules.has(spec.id)) throw new Error('Duplicate rule: ' + spec.id);
-    const copy = Object.freeze({ ...spec, clamp: spec.clamp ? Object.freeze([...spec.clamp]) : undefined });
-    rules.set(spec.id, { spec: copy, contributions: [] });
+    const copy = Object.freeze({ ...spec, clamp: spec.clamp ? Object.freeze([...spec.clamp]) : undefined,
+      order: spec.order ? Object.freeze([...spec.order]) : undefined });
+    const rule = { spec: copy, contributions: [] };
+    rules.set(spec.id, rule);
+    for (const c of waiting.get(spec.id) || []) attach(rule, c);
+    waiting.delete(spec.id);
   }
   function contribute(c) {
     atLoad();
     if (!c || !text(c.source) || !text(c.key) || !text(c.label) || typeof c.value !== 'function'
-      || !range(c.range) || !Array.isArray(c.tunables) || !c.tunables.every(text)
+      || (c.range !== undefined && !range(c.range)) || !Array.isArray(c.tunables) || !c.tunables.every(text)
       || (c.cause !== undefined && !text(c.cause))) throw new Error('Invalid rule contribution');
-    const rule = ruleOf(c.rule);
+    const frozen = Object.freeze({ ...c, range: c.range ? Object.freeze([...c.range]) : undefined, tunables: Object.freeze([...c.tunables]) });
+    const rule = rules.get(c.rule);
+    if (rule) return attach(rule, frozen);
+    if (!text(c.rule)) throw new Error('Invalid rule contribution');
+    const list = waiting.get(c.rule) || [];
+    if (list.some((p) => p.key === c.key)) throw new Error('Duplicate contribution: ' + c.key);
+    waiting.set(c.rule, list); list.push(frozen);
+  }
+  function attach(rule, c) {
+    needsRange(rule, c);
     if (rule.contributions.some((p) => p.key === c.key)) throw new Error('Duplicate contribution: ' + c.key);
-    rule.contributions.push(Object.freeze({ ...c, range: Object.freeze([...c.range]), tunables: Object.freeze([...c.tunables]) }));
+    rule.contributions.push(c);
   }
   function seal() {
     if (sealed) return;
-    for (const rule of rules.values()) Object.freeze(rule.contributions);
+    if (waiting.size) throw new Error('Contributions to rules never declared: ' + [...waiting.keys()].join(', '));
+    for (const { spec, contributions } of rules.values()) {
+      if (spec.order) { // the declared order names every contribution's key once; it overrides the order registered
+        const keys = contributions.map((c) => c.key);
+        if (spec.order.length !== keys.length || !keys.every((k) => spec.order.includes(k)) || new Set(spec.order).size !== keys.length) {
+          throw new Error(`Rule ${spec.id}: order [${spec.order}] does not name its contributions [${keys}]`);
+        }
+        contributions.sort((a, b) => spec.order.indexOf(a.key) - spec.order.indexOf(b.key));
+      }
+      Object.freeze(contributions);
+    }
     sealed = true;
   }
   const clamped = (n, bounds) => bounds ? Math.max(bounds[0], Math.min(bounds[1], n)) : n;
@@ -2673,7 +2702,7 @@ VB['sim/registry'] = (() => {
     const base = checked(id, 'base (' + spec.owner + ')', spec.base(st, ctx));
     let n = base;
     for (const c of contributions) {
-      const factor = checked(id, 'contribution ' + c.key + ' (' + c.source + ')', c.value(st, ctx), c.range);
+      const factor = checked(id, 'contribution ' + c.key + ' (' + c.source + ')', c.value(st, ctx), c.range || null);
       n = checked(id, 'combined value after ' + c.key, spec.combine === 'product' ? n * factor : n + factor);
       parts.push({ key: c.key, source: c.source, label: c.label, cause: c.cause, factor });
     }
@@ -2684,7 +2713,7 @@ VB['sim/registry'] = (() => {
     return Object.freeze([...rules.values()].map(({ spec, contributions }) => Object.freeze({
       rule: spec.id, owner: spec.owner, combine: spec.combine, clamp: spec.clamp || null,
       contributions: Object.freeze(contributions.map(({ key, source, label, cause, range, tunables }) =>
-        Object.freeze({ key, source, label, cause, range, tunables }))),
+        Object.freeze({ key, source, label, cause, range: range || null, tunables }))),
     })));
   }
   // atLoad: other load-time tables (sim/stores' goods) close with the rules.
@@ -4016,9 +4045,9 @@ VB['sim/relations'] = (() => {
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
   //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
-  //   own reserve (sim/help); goodwill's term comes with VB-217. ALLOWANCE_BOUND is a bound above any store, for the registry's checks.
-  const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
-  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
+  //   own reserve (sim/help); goodwill's term comes with VB-217.
+  const Rules = VB['sim/registry'];
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ['slack', 'goodwill', 'reserve'] });
 
   // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
@@ -4401,7 +4430,7 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, floorKin, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, touch, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord,
-    relationsOf, reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
+    relationsOf, reasonsOf, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
 })();
 </script>
@@ -5416,10 +5445,10 @@ VB['sim/stores'] = (() => {
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { age, farmPractice, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'];
-  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
+  const Rules = VB['sim/registry'];
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
@@ -5443,8 +5472,15 @@ VB['sim/hunger'] = (() => {
   }
   // The floor (VB-182): the seed reserve and HELP.floorDays of the household's need; no deal takes a household below it.
   const floorOf = (st, hh) => reserved(st, hh, 'grain') + HELP.floorDays * dailyNeed(st, hh);
+  // death.hazard's hunger and frailty terms (the rule is declared in sim/deaths, which loads later)
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'hunger', label: 'Hunger', cause: 'hunger',
+    range: [1, 2.5], tunables: ['HUNGER.k'],
+    value: (st, p) => 1 + HUNGER.k(Math.floor((st.t - p.born) / YEAR)) * p.hunger });
+  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'frailty', label: 'Poor health', cause: 'hunger',
+    range: [1, 3], tunables: ['HEALTH.riskBelow', 'HEALTH.riskSlope'],
+    value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
-  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', range: [0, ALLOWANCE_BOUND],
+  Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', 
     tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
   // ---- need (VB-299; design.md, The fair: Need; target-v2 5.1): what a quantity of a good is worth to the household taking it now, in rations of
   // its welfare; the sum of each good's term, by the module that knows the need (food here, animals sim/byre, tar and ale sim/exchange). The
@@ -5480,7 +5516,7 @@ VB['sim/hunger'] = (() => {
   }
   // Food: the change in the stock's worth; and a food the pot lacks (its source held below a fifth of the need to the next harvest) counts
   // NEED.lacking times for the part of it that fills that fifth.
-  Rules.contribute({ rule: 'need', source: 'sim/hunger', key: 'food', label: 'Food against the year ahead', range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND],
+  Rules.contribute({ rule: 'need', source: 'sim/hunger', key: 'food', label: 'Food against the year ahead', 
     tunables: ['HELP.bufferDays', 'NEED.empty', 'NEED.beyond', 'NEED.lacking'], value: (st, c) => {
       const r = c.n * c.good.quantum * c.good.rations;
       if (r === 0) return 0;
@@ -5592,7 +5628,7 @@ VB['sim/hunger'] = (() => {
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance, ALLOWANCE_BOUND } = VB['sim/relations'];
+  const { addTie, book, balance } = VB['sim/relations'];
   const { HELP, GOODWILL } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
@@ -5600,8 +5636,8 @@ VB['sim/exchange'] = (() => {
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. 0 until slice 4 switches it on (GOODWILL.acts, VB-220).
-  Rules.contribute({ rule: 'allowance', source: 'sim/relations', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
-    range: [-ALLOWANCE_BOUND, ALLOWANCE_BOUND], tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: GOODWILL.acts ? 'Goodwill' : 'Goodwill (acts from slice 4)',
+    tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
@@ -5675,7 +5711,7 @@ VB['sim/exchange'] = (() => {
   const ALE = { noOccasion: 0.5 };
   Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'tar', label: 'Tar, for a boat or the house due (from VB-301)', range: [0, 0],
     tunables: [], value: () => 0 });
-  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'ale', label: 'Ale, for an occasion ahead (occasions from VB-126)', range: [-1e9, 1e9],
+  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'ale', label: 'Ale, for an occasion ahead (occasions from VB-126)', 
     tunables: ['ALE.noOccasion'], value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Culture.norm('worth', 'ale') : 0) });
   // A keeping good is worth its customary worth to a taker with no need of it, for the quanta that keep what it holds to pass on within
   // KEEPING.cap rations' worth (one back load; design.md, The fair, Keeping goods).
@@ -5708,10 +5744,10 @@ VB['sim/help'] = (() => {
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
   const { childrenOf, siblingsOf } = VB['sim/records'];
   const { dailyNeed } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
-  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
+  const Rules = VB['sim/registry'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
   // generosity until traits; a household without a holder keeps the most, as surplus does
-  Rules.contribute({ rule: 'allowance', source: 'sim/help', key: 'reserve', label: 'Own reserve', range: [-ALLOWANCE_BOUND, 0],
+  Rules.contribute({ rule: 'allowance', source: 'sim/help', key: 'reserve', label: 'Own reserve', 
     tunables: ['HELP.bufferDays', 'HELP.floorDays'],
     value: (st, c) => -((c.giver !== null ? st.pawns[c.giver].buffer : HELP.bufferDays[1]) - HELP.floorDays) * dailyNeed(st, c.from) });
   // grain a household would give: what is above its holder's buffer and its seed reserve
@@ -5796,16 +5832,10 @@ VB['sim/help'] = (() => {
 // @sys sim/deaths: causes of death, the death.hazard rule and its daily roll
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, hazard } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   Rules.declare({ id: 'death.hazard', owner: 'sim/deaths', combine: 'product',
-    base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS });
-  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'hunger', label: 'Hunger', cause: 'hunger',
-    range: [1, 2.5], tunables: ['HUNGER.k'],
-    value: (st, p) => 1 + HUNGER.k(Math.floor((st.t - p.born) / YEAR)) * p.hunger });
-  Rules.contribute({ rule: 'death.hazard', source: 'sim/hunger', key: 'frailty', label: 'Poor health', cause: 'hunger',
-    range: [1, 3], tunables: ['HEALTH.riskBelow', 'HEALTH.riskSlope'],
-    value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
+    base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS, order: ['hunger', 'frailty'] }); // the terms are contributed by sim/hunger
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
   const CAUSES = {
@@ -6373,7 +6403,7 @@ VB['sim/byre'] = (() => {
     }
     return n;
   }
-  Rules.contribute({ rule: 'need', source: 'sim/byre', key: 'animal', label: 'An animal, and hay for the winter', range: [-1e9, 1e9],
+  Rules.contribute({ rule: 'need', source: 'sim/byre', key: 'animal', label: 'An animal, and hay for the winter', 
     tunables: ['HERD.hay', 'HERD.stall'], value: (st, c) => {
       const kind = c.good.kind;
       if ((kind !== 'cattle' && kind !== 'sheep') || c.n === 0) return 0;
@@ -15286,7 +15316,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '32ed572979', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'dc57497b15', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

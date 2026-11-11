@@ -5,10 +5,10 @@ VB['sim/help'] = (() => {
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
   const { childrenOf, siblingsOf } = VB['sim/records'];
   const { dailyNeed } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
-  const Rules = VB['sim/registry'], { ALLOWANCE_BOUND } = VB['sim/relations'];
+  const Rules = VB['sim/registry'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
   // generosity until traits; a household without a holder keeps the most, as surplus does
-  Rules.contribute({ rule: 'allowance', source: 'sim/help', key: 'reserve', label: 'Own reserve', range: [-ALLOWANCE_BOUND, 0],
+  Rules.contribute({ rule: 'allowance', source: 'sim/help', key: 'reserve', label: 'Own reserve', 
     tunables: ['HELP.bufferDays', 'HELP.floorDays'],
     value: (st, c) => -((c.giver !== null ? st.pawns[c.giver].buffer : HELP.bufferDays[1]) - HELP.floorDays) * dailyNeed(st, c.from) });
   // grain a household would give: what is above its holder's buffer and its seed reserve
