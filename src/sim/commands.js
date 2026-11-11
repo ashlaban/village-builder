@@ -1,6 +1,6 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -45,10 +45,13 @@ VB['sim/commands'] = (() => {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
-        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
+        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room`
+        : attentionOf(st.jobs.get(c.target)) !== 'full' ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target)) : null),
       run: (st, c) => {
         const a = st.agents[c.actor], j = st.jobs.get(c.target);
+        if (attentionOf(j) !== 'full') { hold(st, a, j); return; } // a partial or background task is held beside the pawn's task (VB-251)
         release(st, a); start(st, a, j); a.basis = eligible(st, j, st.pawns[a.id]);
+        if (a.side) reachAfter(st, a);
       },
     },
     // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
