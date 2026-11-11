@@ -35,7 +35,7 @@ VB['sim/births'] = (() => {
     personEvent(st, m.id, 'child', `Child born: ${given}`, false); personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
     st.agents.push({
       id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rnd(st.rng.people) * 6,
-      ox: (rnd(st.rng.people) - 0.5) * 12, oy: (rnd(st.rng.people) - 0.5) * 8, work: null, idleUntil: 0, talk: null,
+      ox: (rnd(st.rng.people) - 0.5) * 12, oy: (rnd(st.rng.people) - 0.5) * 8, work: null, idleUntil: 0, talk: null, occasion: null,
     });
     placeAtHome(st, st.agents[id]);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;

@@ -8,7 +8,9 @@ const Sim = (() => {
     membersOf, voiceOf,
   } = VB['sim/records'];
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } = VB['sim/notable'];
-  const { describe } = VB['sim/agents'];
+  const { describe: doing } = VB['sim/agents'], { occasionLabel } = VB['sim/occasions'];
+  // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
+  const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'];
   const { fieldsWanted } = VB['sim/fields'];

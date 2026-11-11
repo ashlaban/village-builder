@@ -88,8 +88,8 @@ VB['sim/notable'] = (() => {
   // ---- the chronicle (VB-099): the record as the history of a pawn, a farm or a village, and as the village log ----
   // The kinds a history is filtered by, in the order the page offers them.
   const CHRONICLE = {
-    life: { label: 'Births and deaths', kinds: ['born', 'died'] },
-    marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed'] },
+    life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
+    marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
       'plotStarted', 'field', 'meadow', 'stake', 'border', 'service', 'guardian'] },
     custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },

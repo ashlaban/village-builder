@@ -130,7 +130,7 @@ const tables = {
   relations: () => {
     const R = VB['sim/relations'], rows = new Map(), WORD = { 'close friend': 'close', friend: 'friend', neutral: 'neutral', dislikes: 'dislikes', enemy: 'enemy' };
     const row = (k, name) => rows.get(k) || rows.set(k, { village: name, people: 0, adults: 0, records: 0, close: 0, friend: 0, neutral: 0, dislikes: 0,
-      enemy: 0, friendsOut: 0, dislikedOut: 0 }).get(k);
+      enemy: 0, friendsOut: 0, dislikedOut: 0, tiesAcross: 0, friendsAcross: 0 }).get(k);
     for (const p of st.pawns) {
       if (!p.alive) continue;
       const v = Sim.settlementIdOf(st, p);
@@ -142,6 +142,9 @@ const tables = {
           x.records++; x[WORD[R.opinionWord(o)]]++;
           if (p.age >= 16 && out && o >= VB['sim/rules'].SOCIAL.friend) x.friendsOut++;
           if (p.age >= 16 && out && o <= VB['sim/rules'].SOCIAL.dislike) x.dislikedOut++;
+          const across = p.age >= 16 && Sim.settlementIdOf(st, st.pawns[j]) !== v; // of another village (VB-126)
+          if (across && p.ties.has(j)) x.tiesAcross++;
+          if (across && o >= VB['sim/rules'].SOCIAL.friend) x.friendsAcross++;
         }
       }
     }
@@ -149,7 +152,8 @@ const tables = {
       const pc = (k) => +(100 * x[k] / Math.max(1, x.records)).toFixed(1), per = (k) => +(x[k] / Math.max(1, x.adults)).toFixed(2);
       const talks = x.village === 'all' && st.talks !== undefined ? { talksPerPawnDay: +(st.talks * 2 / x.people / (st.t / 24)).toFixed(2) } : {};
       return { village: x.village, people: x.people, records: x.records, close: pc('close'), friend: pc('friend'), neutral: pc('neutral'),
-        dislikes: pc('dislikes'), enemy: pc('enemy'), friendsOut: per('friendsOut'), dislikedOut: per('dislikedOut'), ...talks };
+        dislikes: pc('dislikes'), enemy: pc('enemy'), friendsOut: per('friendsOut'), dislikedOut: per('dislikedOut'),
+        tiesAcross: per('tiesAcross'), friendsAcross: per('friendsAcross'), ...talks };
     });
   },
   // worn paths per village (tiles within 8 steps of the green, by stage), and the walking network: fords and the route cache
