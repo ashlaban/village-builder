@@ -1,7 +1,8 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk } = VB['sim/agents'];
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
@@ -17,7 +18,7 @@ VB['sim/commands'] = (() => {
   const settlement = (st, c) =>
     (c.actor && st.cenv && st.cenv.settlements[c.actor.settlement] ? null : `there is no settlement ${c.actor && c.actor.settlement}`);
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
-  // later 'player', 'debug', 'meeting' or 'round' (VB-168 to VB-171). Each verb checks the command and returns why it is refused, or null;
+  // later 'player', 'debug', 'meeting', 'round' (VB-168 to VB-171) or 'occasion' (VB-126). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
@@ -44,8 +45,14 @@ VB['sim/commands'] = (() => {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) => living(st, c.actor) || (!st.jobs.has(c.target) ? `there is no job ${c.target}`
-        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room` : null),
-      run: (st, c) => { const a = st.agents[c.actor]; release(st, a); start(st, a, st.jobs.get(c.target)); },
+        : !isOpen(st.jobs.get(c.target)) ? `job ${c.target} has no room`
+        : attentionOf(st.jobs.get(c.target)) !== 'full' ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target)) : null),
+      run: (st, c) => {
+        const a = st.agents[c.actor], j = st.jobs.get(c.target);
+        if (attentionOf(j) !== 'full') { hold(st, a, j); return; } // a partial or background task is held beside the pawn's task (VB-251)
+        release(st, a); start(st, a, j); a.basis = eligible(st, j, st.pawns[a.id]);
+        if (a.side) reachAfter(st, a);
+      },
     },
     // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
     walkTo: {
@@ -72,6 +79,17 @@ VB['sim/commands'] = (() => {
       check: (st, c) => living(st, c.actor) || (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past`
         : commanded(st, c.actor) ? `pawn ${c.actor} is on the player's command` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
+    },
+    // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
+    // about it and stand there until its end
+    attend: {
+      check: (st, c) => living(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
+      run: (st, c) => {
+        const a = st.agents[c.actor];
+        release(st, a);
+        const [tile, x, y, until] = later('sim/occasions').join(st, a, c.target);
+        walkTo(st, a, tile, x, y); idle(st, a, until);
+      },
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
     // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store
@@ -223,9 +241,10 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve}: what
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve, match}: what
   //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
-  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline). Set by wish, kept
+  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline);
+  //   match false (not this year) or a pawn id (that partner). Set by wish, kept
   //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
@@ -245,7 +264,7 @@ VB['sim/commands'] = (() => {
   function inhabit(st, id) {
     const dead = living(st, id); if (dead) return dead;
     if (st.player) uninhabit(st);
-    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null }, left: null };
+    st.player = { pawn: id, auto: true, queue: [], refused: null, since: st.t, wishes: { out: null, claim: null, serve: null, match: null }, left: null };
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -312,13 +331,21 @@ VB['sim/commands'] = (() => {
   function wish(st, kind, value) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve') return `there is no wish ${kind}`;
-    const farm = kind === 'claim' && Number.isInteger(value);
-    if (farm ? !st.farmsteads[value] : !(value === null || value === false || (value === true && kind !== 'claim'))) {
-      return farm ? `there is no farm ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
+    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve' && kind !== 'match') return `there is no wish ${kind}`;
+    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out and serve null, true or false
+    const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
+    const target = kind === 'claim' ? st.farmsteads[value] : st.pawns[value];
+    if (id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match'))) {
+      return id ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}` : `${kind} cannot be wished ${JSON.stringify(value)}`;
     }
+    if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive)) return `${value} is not one the pawn may marry`;
     pl.wishes[kind] = value;
     return true;
+  }
+  // The wish for a match ends when the played pawn or the wished partner marries (a and b have married) or dies (a is b).
+  function clearMatchWish(st, a, b) {
+    const pl = st.player;
+    if (pl && pl.wishes.match !== null && (pl.pawn === a || pl.pawn === b || pl.wishes.match === a || pl.wishes.match === b)) pl.wishes.match = null;
   }
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
@@ -349,6 +376,7 @@ VB['sim/commands'] = (() => {
     return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
   return {
-    issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, playerStep, playerDied, goOnAs, TIES_MAX,
+    issue, VERBS, QUEUE_MAX, commanded, unplanned, inhabit, uninhabit, queue, unqueue, setAuto, wish, clearMatchWish, answer, playerStep, playerDied, goOnAs,
+      TIES_MAX,
   };
 })();

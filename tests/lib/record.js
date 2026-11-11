@@ -8,6 +8,7 @@ function dropKind(st, kind) {
   const F = st.recordFold, down = (i) => { let n = i; while (n > 0 && !at.has(n - 1)) n--; return n ? at.get(n - 1) + 1 : 0; };
   if (!F) return;
   F.shortAt = down(F.shortAt); F.longAt = down(F.longAt);
-  if (F.pass) { F.pass.shortEnd = down(F.pass.shortEnd); F.pass.longEnd = down(F.pass.longEnd); }
+  if (F.pass) { F.pass.shortEnd = down(F.pass.shortEnd); F.pass.longEnd = down(F.pass.longEnd);
+    F.pass.shortNext = down(F.pass.shortNext); F.pass.longNext = down(F.pass.longNext); }
 }
 module.exports = { dropKind };

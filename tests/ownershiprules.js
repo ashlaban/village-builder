@@ -103,3 +103,12 @@ for (const change of [
   assert(validateOwners(policy, context).length > 0, 'must reject malformed policy metadata');
 }
 console.log('ownership rules ok: writes rejected, creation/signals/exemptions allowed, baseline only decreases');
+// VB-243: a write through a parameter named `home` (the case found on 10 November) fails as an unplaced write, not unseen.
+{
+  const { auditUnresolved } = require('./ownership.js');
+  const src = require('fs').readFileSync('src/sim/herds.js', 'utf8') + '\nfunction f(st, home) { home.grain = 0; }';
+  const b = build({ 'src/sim/herds.js': src }, { stateOnly: true });
+  assert(b.unresolved.some((u) => u.mod === 'sim/herds' && /home\.grain/.test(u.text)), 'home.grain reaches the unresolved list');
+  assert(auditUnresolved(b.unresolved, {}).some((e) => /home\.grain/.test(e) && /herds\.js:\d+/.test(e)), 'and fails the unresolved check');
+  assert.deepStrictEqual(auditUnresolved([], {}), []);
+}

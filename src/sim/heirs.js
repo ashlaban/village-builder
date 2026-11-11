@@ -12,9 +12,9 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { SHARES, GOODWILL } = VB['sim/rules'];
+  const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
-  const { passHerds } = VB['sim/herds'];
+  const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'], { dropPlan } = VB['sim/plans'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, watch = null, family = null) {
@@ -182,13 +182,13 @@ VB['sim/heirs'] = (() => {
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
         const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
-        Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q }); st.pawns[q].owed = (st.pawns[q].owed || 0) + (due - paid);
-        if (due > paid) st.pawns[q].owedFrom = hh.id; // the farm the debt is paid from (sim/cottage)
-        if (due) {
-          personEvent(st, q, 'share',
-            `Received ${paid} rations as a share of ${f.name}${due > paid ? `, ${due - paid} still owed` : ''}` +
-            `${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`, { n: paid, ...atHousehold(st, hh) });
-        }
+        Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
+        const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
+        const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0, owed = due - paid - animals;
+        st.pawns[q].owed = (st.pawns[q].owed || 0) + owed; if (owed) st.pawns[q].owedFrom = hh.id; // owedFrom: the farm that pays (sim/cottage)
+        if (due) personEvent(st, q, 'share', `Received ${paid} rations${animals ? ` and animals worth ${animals}` : ''} as a share of ${f.name}` +
+          `${owed ? `, ${owed} still owed` : ''}${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`,
+        { n: paid + animals, ...atHousehold(st, hh) });
       }
     }
     personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`, false); // recorded below
@@ -230,7 +230,7 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
-    f.household = null; f.state = 'derelict'; f.emptySince = st.t; f.condition = 1;
+    f.condition = houseCondition(st, f); f.household = null; f.state = 'derelict'; f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     hh.dissolved = true; noteDissolved(st, hh); dropPlan(st, 'household', hh.id); Stores.close(st, hh); dropStakes(st, hh); farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)

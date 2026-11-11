@@ -8,6 +8,8 @@ VB['sim/saves'] = (() => {
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans, fillPlans } = VB['sim/plans'];
   const { TICKS } = VB['sim/rules'];
+  const { makeStream } = VB['sim/rng'];
+  const { initFish } = VB['sim/fish'], { initForage } = VB['sim/forage'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -169,8 +171,8 @@ VB['sim/saves'] = (() => {
   }
   // ---- a run ----
   // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
-  // also recomputes the tile's colours from it; dev, wear and worn are added to the world by seeding.
-  const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn'];
+  // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
+  const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay', 'forage', 'forageYear'];
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -228,10 +230,13 @@ VB['sim/saves'] = (() => {
     if (enc && ('contacts' in enc || 'events' in enc)) { enc = { ...enc }; delete enc.contacts; delete enc.events; }
     const st = decode(enc, REVIVE);
     st.w = w;
+    if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
+    if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
-    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
+    if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); }
     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
-    if (st.tickPart) { st.tickPart = 0; st.t = st.tick / TICKS; }
+    // VB-285: and the field that held that part is gone
+    if ('tickPart' in st) { if (st.tickPart) st.t = st.tick / TICKS; delete st.tickPart; }
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
@@ -243,10 +248,15 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+    if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
+    if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
+    if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
+    for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }

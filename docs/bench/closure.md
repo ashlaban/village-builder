@@ -51,6 +51,10 @@ before the harvest (populous 42, year 30, household 9: 2 adults and an infant, 5
 autumn, none in winter; populous 3 has 52 such rows, populous 42 has 36, and the same households recur: 55 households make populous 3's 92 rows, 27 make populous 42's 44). Labour, land and herd all play: this is the food balance VB-048 was written for (its goal: "a couple with 4 or more children
 runs short every year before harvest"), and none of its prerequisites are in. VB-048 stays blocked, behind VB-136 (VB-251), VB-144 (VB-185,
 VB-121) and VB-139, VB-160 (ready), so the proposed task **VB-270-c** is its first, measuring pass, runnable now.
+*Measured (VB-284, 11 November; `docs/bench/food-balance.md`):* after VB-282, populous small at four seeds has no shortage in years 4 to 15 and 196
+household-years hungry over 0.3 in years 16 to 30, of the same shape (4.0 members, 2.9 fields) and with no cattle; short in summer and autumn after poor
+harvests in a row, on worn soil, with fields planned on the gross yield (0.73 of need net). Five tuning questions for Kim: QUESTIONS.md, "VB-284: tuning
+the food balance".
 
 **Cause 3, the household of one and the heir: 90 of the 114 reserve rows and 36 of the short ones are households of one adult or fewer; 25
 rows have a holder under 16.** Their deaths mostly show above as reserve deaths (the lone adult at 19 or 20 next to a child holder). A
@@ -71,8 +75,8 @@ are not diagnosed here; they stay residuals of the early game's small founding g
 | Residual | Where | Closed by |
 |---|---|---|
 | Seed reserve never eaten: 91 of 141 hunger deaths, 114 rows | all ten runs but founders 11 | Kim's question 1; VB-270-a |
-| Real shortage before harvest: 49 deaths, 166 rows | all ten | VB-270-c, then VB-048 |
-| Lone survivors and wards | populous 3, 11, heirs, founders 42 | VB-270-b (with VB-090, VB-034) |
+| Real shortage before harvest: 49 deaths, 166 rows | all ten | measured by VB-284 (`food-balance.md`); Kim's answers to its questions, then VB-048 |
+| Lone survivors and wards | populous 3, 11, heirs, founders 42 | VB-270-b, planned by VB-283: VB-323, VB-308, VB-309 (with VB-090, VB-034); the wards are lone adults after their death (`backlog/VB-283.md`) |
 | The worst household as the band's reading | six of ten runs at 1.00 | Kim's question 2 |
 
 ## Slice 0's wrap-up: the lines at `7205992` (VB-200, 10 November)
@@ -213,3 +217,13 @@ what is left and cuts it to 0.5 s, with gzip off the main thread.
   round's day as its targets, and daily life's share.
 - VB-199 and VB-200: `medium-y60` replaced by `medium-ref`; the save counted on the main thread.
 - New: VB-226 (the save, after the folds) and VB-227 (jobs).
+
+## recordFold's history ratio (11 November, VB-268)
+
+The fold walked its whole window once for each village and once more for the events of none, so its work was window times
+(villages + 1), and the window itself doubles at year 25, when the long (generation) fold starts: at `small-y5` only the short
+window runs, at `small-y40` both. History ratio 2.993 tonight (1.558 when VB-199 landed). The fold now takes a slice of the slots a
+day over four days (one scan to mark, one to fold, no village loop): 1.382, residual +0.13. What is left is the long window itself:
+each routine event is passed twice at two years and twice again at 25, so the work per slot at year 40 is about twice that at year 5
+(361 and 1,017 slots passed at the two saves, 0.033 and 0.046 a living pawn-day). Cutting it further needs the marking scan replaced
+by a position index per year (a new state field); the work is under 0.05 a pawn-day, so it is left as a residual.

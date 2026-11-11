@@ -185,7 +185,8 @@ VB['sim/scenarios'] = (() => {
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
-    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
+    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, condAt,
+    //   tarredUntil, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
     //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
     //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
@@ -193,7 +194,8 @@ VB['sim/scenarios'] = (() => {
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
-    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1;
+    //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
+    //   sim/rules); tarredUntil (hours, VB-301);
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
     //   their cottage is built (sim/settle, sim/expansion)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], totals[] (as a household's), green, well};
@@ -226,9 +228,10 @@ VB['sim/scenarios'] = (() => {
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
+    // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
-    //   one per pawn, map units
+    //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
     // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
@@ -237,17 +240,17 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
     const st = {
-      t: 6, tick: 6 * TICKS, tickPart: 0, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
+      t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
       recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
       pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
       talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
       agents: R.pawns.map((p) => ({
         id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
-        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null,
+        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null, occasion: null,
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
-      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0,
+      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0, occasions: [], occasionSeq: 0,
     };
     rebuildLiving(st);
     seedPlans(st);

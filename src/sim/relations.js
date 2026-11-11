@@ -3,16 +3,14 @@
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear } = VB['sim/records'];
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const M = SOCIAL.memories;
-
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
+  const { on } = VB['sim/events'], issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
-  //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the giving and receiving
-  //   households, an object the caller reuses. Contributions: the giving household's grain above its floor (sim/hunger) and its holder's
-  //   own reserve (sim/help); goodwill's term comes with VB-217. ALLOWANCE_BOUND is a bound above any store, for the registry's checks.
-  const Rules = VB['sim/registry'], ALLOWANCE_BOUND = 1e9;
-  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, ALLOWANCE_BOUND] });
+  //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the two households, reused.
+  //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help).
+  const Rules = VB['sim/registry'], ORDER = ['slack', 'goodwill', 'opinion', 'reserve'];
+  Rules.declare({ id: 'allowance', owner: 'sim/relations', combine: 'sum', base: () => 0, clamp: [0, Infinity], order: ORDER });
 
   // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
@@ -21,24 +19,22 @@ VB['sim/relations'] = (() => {
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
   //   in its house since midnight. All initialized and changed only here.
-  const TIES = SOCIAL.ties;
+  const TIES = SOCIAL.ties; // scaleOf and tieOf, the reads, are in sim/records (read by sim/claims below this layer)
   function initRelations(st, p) { p.ties = new Map(); p.rel = new Map(); p.bands = new Map(); p.tieT = st.t; p.homeHours = 0; }
-  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR); // pawn p's stored weights to now: at most 1
-  function tieOf(st, a, b) { const p = st.pawns[a], w = p.ties.get(b); return w === undefined ? 0 : w * scaleOf(st, p); } // a's tie to b now
   // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
   // weaker still and not to kin either; then it is not kept.
   function put(st, p, b, w) {
     if (p.ties.size >= TIES.cap && !p.ties.has(b)) {
-      const kin = kinNear(st, p.id), isKin = kin.includes(b);
-      let worst = -1, least = Infinity;
-      VB.count.walkTies += p.ties.size;
-      for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
-      if (worst < 0 ? !isKin : !isKin && w <= least) return; else if (worst >= 0) p.ties.delete(worst);
+      const kin = kinNear(st, p.id), isKin = kin.includes(b); let worst = -1, least = Infinity;
+      VB.count.walkTies += p.ties.size; for (const [j, v] of p.ties) if (v < least && !kin.includes(j)) { least = v; worst = j; }
+      if (worst < 0 && !isKin) return; // every tie is to kin, none may be dropped, and the new one is not to kin
+      if (!isKin && w <= least) return; // not to kin, and no stronger than the weakest that may be dropped
+      if (worst >= 0) p.ties.delete(worst); // the weakest that may be dropped goes; kin is kept, over the cap if all are kin
     }
     p.ties.set(b, w);
   }
   function addTie(st, a, b, v) { const p = st.pawns[a]; put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p)); } // a's tie to b grows by v
-  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if (!((p.ties.get(b) || 0) >= w)) put(st, p, b, w); } // at least v
+  function raiseTie(st, a, b, v) { const p = st.pawns[a], w = v / scaleOf(st, p); if ((p.ties.get(b) || 0) < w) put(st, p, b, w); } // at least v
   // Keep the dead pawn's historical ties, but remove it from its contacts' ties (one who had dropped its own tie to them keeps theirs, read by
   // nobody, until they renormalise).
   function dropTies(st, id) { for (const [j] of st.pawns[id].ties) { const q = st.pawns[j]; if (q && q.ties) q.ties.delete(id); } }
@@ -125,21 +121,25 @@ VB['sim/relations'] = (() => {
   //   so reaching one is told once. Checked for the pair touched (touch), never by a pass over pairs; empty for the dead.
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
   const A = SOCIAL.affinity, affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
-  // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity (compatibility, shown as the two grow familiar),
-  // plus the memories, as they are now. Goodwill's gratitude (VB-220) is to add to the same sum.
+  // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity, plus the memories as they are now, plus
+  // gratitude for what a owes b (one Map lookup; VB-220).
   function opinionAt(st, a, b, tie) {
-    const k = standing(st, a, b), r = st.pawns[a].rel.get(b);
+    const pa = st.pawns[a], k = standing(st, a, b), r = pa.rel.get(b);
     let o = (k ? SOCIAL.situational[k] : 0) + affinity(st, a, b, tie);
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
+    if (GOODWILL.acts) o += gratitude(st, pa, b);
     return Math.max(-1, Math.min(1, o));
   }
+  // a owes b s rations: +gratitude x s / (s + scale), fading as the balance decays; else 0
+  const gratitude = (st, pa, b, e = pa.goodwill && pa.goodwill.get(b), s = e && e.v < 0 ? -goodwillNow(st, e) : 0) =>
+    (s < GOODWILL.forget ? 0 : GOODWILL.gratitude * s / (s + GOODWILL.scale));
   const opinionOf = (st, a, b) => opinionAt(st, a, b, tieOf(st, a, b));
   // close friend (1), enemy (-1) or neither (0): entered at SOCIAL.closeFriend and SOCIAL.enemy, left only SOCIAL.back past them
   const bandOf = (was, o) => (o >= SOCIAL.closeFriend || (was === 1 && o >= SOCIAL.closeFriend - SOCIAL.back) ? 1
     : o <= SOCIAL.enemy || (was === -1 && o <= SOCIAL.enemy + SOCIAL.back) ? -1 : 0);
-  // a's opinion of b may have moved: its tie grew (a talk, a job done together, the day's hours at home, the season's kin floor), a memory
-  // came, or the season's pass. The band is checked for this pair only; reaching close friends or enemies is a life event of a. A line
-  // crossed lazily, as a tie or a memory fades, is told when the pair is next touched, dated then.
+  // a's opinion of b may have moved: its tie grew (a talk, a job done together, hours at home, the season's kin floor), a memory came, or
+  // the season's pass. The band is checked for this pair only; reaching close friends or enemies is a life event of a. A line crossed
+  // lazily, as a tie or a memory fades, is told when the pair is next touched, dated then.
   function touch(st, a, b) {
     const bands = st.pawns[a].bands, was = bands.get(b) || 0, now = bandOf(was, opinionOf(st, a, b));
     if (now === was) return;
@@ -154,6 +154,9 @@ VB['sim/relations'] = (() => {
     if (m) { m.v = v; m.t = st.t; } else r.mem[kind] = { v, t: st.t };
     touch(st, a, b);
   }
+  on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
+  on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
+  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }
@@ -301,9 +304,9 @@ VB['sim/relations'] = (() => {
 
   // ---- goodwill (VB-217; design.md, The gift): one signed balance per pair of pawns that have dealt, in customary rations ----
   // @state pawn.goodwill: Map of the other pawn's id to {v, t}, made at the pawn's first booking and written only here: v > 0 means the
-  //   other owes this pawn v rations as of game hour t. It is read as v halved every GOODWILL.halfLife years since t, so no step decays
-  //   it (Kim, 8 Nov: decay when read). The other pawn holds {v: -v, t}. A balance read under GOODWILL.forget is forgotten: it reads as 0,
-  //   and is dropped when either pawn next books, when a pawn has GOODWILL.cap counterparts, or at a death, when the map goes too.
+  //   other owes this pawn v rations as of game hour t, read as v halved every GOODWILL.halfLife years since t (decay when read; Kim,
+  //   8 Nov). The other pawn holds {v: -v, t}. A balance under GOODWILL.forget reads as 0 and is dropped when either pawn next books,
+  //   at GOODWILL.cap counterparts, or at a death, when the map goes too.
   const GW = GOODWILL;
   const goodwillNow = (st, e) => e.v * Math.pow(0.5, (st.t - e.t) / (GW.halfLife * YEAR));
   // what b owes a now (negative: what a owes b); 0 once forgotten
@@ -312,9 +315,7 @@ VB['sim/relations'] = (() => {
     const v = goodwillNow(st, e); return Math.abs(v) < GW.forget ? 0 : v;
   }
   function setPair(st, a, b, v) {
-    const pa = st.pawns[a], pb = st.pawns[b];
-    if (!pa.goodwill) pa.goodwill = new Map();
-    if (!pb.goodwill) pb.goodwill = new Map();
+    const pa = st.pawns[a], pb = st.pawns[b]; pa.goodwill ||= new Map(); pb.goodwill ||= new Map();
     pa.goodwill.set(b, { v, t: st.t }); pb.goodwill.set(a, { v: -v, t: st.t });
   }
   function dropPair(st, a, b) { const ga = st.pawns[a].goodwill, gb = st.pawns[b].goodwill; if (ga) ga.delete(b); if (gb) gb.delete(a); }
@@ -337,16 +338,14 @@ VB['sim/relations'] = (() => {
     dropForgotten(st, a); dropForgotten(st, b);
     const g = st.pawns[a].goodwill, e = g && g.get(b);
     if (!e) { makeRoom(st, a); makeRoom(st, b); setPair(st, a, b, x); return; }
-    const v = goodwillNow(st, e) + x;
-    if (v === 0) dropPair(st, a, b); else setPair(st, a, b, v);
+    const v = goodwillNow(st, e) + x; if (v === 0) dropPair(st, a, b); else setPair(st, a, b, v);
   }
   // a gives b something worth `rations`: b owes a that much more
   function book(st, creditor, debtor, rations) {
     if (!(rations > 0)) throw new Error(`goodwill: cannot book ${rations}`);
     addGoodwill(st, creditor, debtor, rations);
   }
-  // At a handover, `share` of each of from's balances passes to `to`; from keeps the rest. A balance with `to` itself is only reduced; a
-  // forgotten one goes.
+  // At a handover, `share` of each of from's balances passes to `to`; from keeps the rest (one with `to` itself is only reduced).
   function passGoodwill(st, from, to, share) {
     const g = st.pawns[from].goodwill; if (!g || from === to) return;
     for (const j of [...g.keys()]) {
@@ -388,6 +387,7 @@ VB['sim/relations'] = (() => {
     const out = [], k = standing(st, a, b), r = st.pawns[a].rel.get(b);
     if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
     const f = affinity(st, a, b, tieOf(st, a, b)); if (Math.abs(f) >= 0.005) out.push({ label: f > 0 ? 'Get on well' : 'Do not get on', value: f });
+    const gr = GOODWILL.acts ? gratitude(st, st.pawns[a], b) : 0; if (gr > 0) out.push({ label: 'Owes us for help', value: gr });
     out.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
     if (k) out.unshift({ label: WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0], value: SOCIAL.situational[k] });
     return out;
@@ -395,6 +395,6 @@ VB['sim/relations'] = (() => {
   return {
     initRelations, tieOf, addTie, raiseTie, dropTies, workedTogether, renormalise, dailyTies, floorKin, migrateTies,
     compat, standing, standingWord, memNow, opinionOf, bandOf, touch, remember, fadeRelations, forget, talkHour, talkWeight, companyFor, opinionWord,
-    relationsOf, reasonsOf, ALLOWANCE_BOUND, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
+    relationsOf, reasonsOf, balance, book, addGoodwill, passGoodwill, endGoodwill, goodwillOf,
   };
 })();

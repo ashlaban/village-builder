@@ -6,6 +6,7 @@ VB['sim/layout'] = (() => {
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { initFish } = VB['sim/fish'], { initForage } = VB['sim/forage'];
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
@@ -272,7 +273,7 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
-    initWear(w);
+    initWear(w); initFish(w); initForage(w);
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields.
   function findLoneFarm(w, used, rand, center, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set()) {

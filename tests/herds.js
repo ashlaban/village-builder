@@ -57,5 +57,24 @@ check(!checkState(st).length, 'populous at the start: ' + checkState(st).slice(0
 Sim.advance(st, Sim.YEAR);
 check(!checkState(st).length, 'populous after a year: ' + checkState(st).slice(0, 3).join('; '));
 
+// --- shares and a new household's start (VB-140): a cow and two ewes, when the old household keeps a cow and its winter hay
+{
+  const live = (s) => s.households.filter((h) => !h.dissolved);
+  const s2 = Sim.seed(world(7, 120, 85), 7, 'founders'), old = live(s2)[1], nw = live(s2)[2];
+  const oc = H.herdOf(s2, old, 'cattle'), os = H.herdOf(s2, old, 'sheep'), cows0 = oc.head.length, ewes0 = os.ewes;
+  check(H.startHerd(s2, old, nw) === 3, 'start: a cow and two ewes move');
+  check(oc.head.length === cows0 - 1 && os.ewes === ewes0 - 2, 'start: the old household gives up one cow and two ewes');
+  check(H.herdOf(s2, nw, 'cattle').head.filter((h) => h.kind === 'cow').length >= 1, 'start: the new household has a cow');
+  check(old.hay >= H.winterNeed(s2, old), `start: the old household keeps its winter hay (${old.hay} of ${H.winterNeed(s2, old)})`);
+  check(oc.head.some((h) => h.kind === 'cow'), 'start: a cow stays');
+  check(!checkState(s2).length, 'start: ' + checkState(s2).slice(0, 3).join('; '));
+  const s3 = Sim.seed(world(7, 120, 85), 7, 'founders'), o3 = live(s3)[1], n3 = live(s3)[2];
+  o3.hay = 0; check(H.startHerd(s3, o3, n3) === 0, 'start: no hay, no animals');
+  const s4 = Sim.seed(world(7, 120, 85), 7, 'founders'), o4 = live(s4)[1], n4 = live(s4)[2];
+  const paid = H.payInAnimals(s4, o4, n4, 70);
+  check(paid === 64, `share in animals: ${paid} of 70 rations paid`);
+  check(!checkState(s4).length, 'share: ' + checkState(s4).slice(0, 3).join('; '));
+}
+
 if (failed) process.exit(1);
 console.log(`herds ok: ${report}`);

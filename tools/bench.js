@@ -1,7 +1,7 @@
 // VB-194: diagnostic measurements only. Run fixtures sequentially in fresh processes; no clocks enter src/.
 // Each system's share of the 200 ms a game day at medium-ref, in tools/perf.js names (VB-203, Kim, 9 November); later slices'
 // plans add theirs. The shares sum to 192.1 ms: 7.9 ms is kept back for noise between runs and growth within today's systems (8 until
-// slice 1's 0.1 ms, VB-219).
+// slice 1's 0.1 ms, VB-219; slice 2 (a life) takes 0 ms, VB-078: the player's queue, wishes, offers and succession run only for a played pawn).
 // VB-205 split agents and walking's 60 ms among its named parts and what is left of Sim.advance.
 const SYSTEM_BUDGETS = {
   'agents: idle strolls': 33, 'agents: walking and working': 23, 'agents and walking (the rest of Sim.advance)': 4, 'talk and contacts': 55, 'daily life and births': 35,
@@ -186,7 +186,7 @@ function budget(run) {
         + ` made at \`${f.stamp?.commit ?? 'unknown'}\`${f.stamp?.key ? `, key \`${f.stamp.key}\`` : ''}.` : `${name}: unavailable.`;
     }).join('\n\n') + '\n\n'
     + `| Measure | Budget (at medium-ref) | ${column(NAMES[0])} | ${column(NAMES[1])} |\n|---|---|---|---|\n` + rows.join('\n')
-    + `\n\nSystem shares sum to ${+(200 - RESERVE).toFixed(1)} ms; ${+RESERVE.toFixed(1)} ms is kept back (VB-203; slice 1's 0.1 ms, VB-219). The closure table is in \`closure.md\`.\n\n`
+    + `\n\nSystem shares sum to ${+(200 - RESERVE).toFixed(1)} ms; ${+RESERVE.toFixed(1)} ms is kept back (VB-203; slice 1's 0.1 ms, VB-219; slice 2's 0 ms, VB-078: the player, offers and wishes cost the simulation nothing). The closure table is in \`closure.md\`.\n\n`
     + 'A whole game year (48 days) from the save, 6-minute calls; exclusive system timings include profiling overhead.'
     + ' The round and the meetings run inside the window; their lines are that one call, inclusive.\n'
     + 'Heap is used heap without forced GC. Save/load totals include the listed codec stages; load excludes world generation and disk IO.\n'

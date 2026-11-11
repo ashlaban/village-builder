@@ -54,7 +54,7 @@ for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/expansion',
   check(dep && !dep.lookups.some((l) => l.key === target), `writes map: direct founding lookup ${from} → ${target}`);
   check(dep && dep.lookups.some((l) => l.key === 'sim/commands'), `writes map: missing command lookup in ${from}`);
 }
-check(wr.unresolved.length < 20, `writes map: ${wr.unresolved.length} unresolved writes; the scan has lost track of names`);
+// unresolved writes: a baseline checked by tests/ownership.js (VB-243)
 const counts = JSON.parse(run('--years', '1', '--report', 'counts', '--json'));
 check(counts.length === Object.keys(VB.COUNTERS).length && counts.every((r) =>
   r.total >= 0 && Number.isFinite(r.perDay) && Number.isFinite(r.perLivingPawnDay)), 'counts report invalid');

@@ -12,7 +12,7 @@ VB['sim/clock'] = (() => {
   const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
-  const { refreshJobs, callCooks, lookUp, planRound, idleAbout } = VB['sim/jobs'];
+  const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
@@ -24,6 +24,8 @@ VB['sim/clock'] = (() => {
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
+  const { occasionsDue, callMeetings } = VB['sim/occasions'];
+  const { takeIn } = VB['sim/service'];
   function onHour(st, h, c) {
     if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
     if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
@@ -40,23 +42,26 @@ VB['sim/clock'] = (() => {
       if (st.pawns[a.id].died) continue;
       if (a.phase === 'back') continue; // finish the delivery first
       if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
+      if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
       release(st, a);
       if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
     }
     if (h === 0) {
-      endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
+      const short = endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
       if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
+      if (st.cenv && short.length) takeIn(st, short); // households short of people whose ask fell short are taken in (sim/service, VB-308)
+      if (st.cenv && c.season === 2 && c.sday === 9) callMeetings(st); // the meeting's people gather on the green (sim/occasions, VB-126)
       if (c.doy === 0) newYear(st, c);
       foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
     }
   }
   function endOfDay(st, c) {
     const E = st.ECON;
-    shareFood(st);
+    const short = shareFood(st); // households short of people whose ask for food fell short (sim/help, VB-308)
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      feedHousehold(st, hh); spoilGrain(st, hh);
+      feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     Stores.villageDay(st); // it spoils too (balance review)
@@ -76,6 +81,7 @@ VB['sim/clock'] = (() => {
     for (const s of all) {
       const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
     }
+    return short;
   }
   function newYear(st, c) {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
@@ -87,16 +93,15 @@ VB['sim/clock'] = (() => {
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
-  // @state st.tickPart: 0 always. VB-235's part of a step went back to the page (VB-244); the field stays only so the golden file is
-  //   unchanged (dropping it re-records that file's tickPart key alone), and a save that carries a part loads at its last whole step.
   // @state st.t is st.tick / TICKS, written here only.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
-  // Each 6-minute step that ends here: the hour it begins (onHour), then the steps of the day (sim/lifecycle): the night's culture, a
-  // settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the outland; VB-206); from
-  // noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
+  // Each 6-minute step that ends here: the hour it begins (onHour), the occasions due (VB-126), then the steps of the day (sim/lifecycle):
+  // the night's culture, a settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the
+  // outland; VB-206); from noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
   function stepEnds(st) {
     const k = st.tick, hour = Math.floor(k / TICKS);
     if (k % TICKS === 0) onHour(st, mod(hour, DAY), cal(hour));
+    occasionsDue(st); // those asked set out, and occasions end (sim/occasions, VB-126)
     if (!st.cenv) return;
     const n = mod(k, STEPS_A_DAY), r = n - 12 * TICKS;
     nightCulture(st, n);
@@ -123,7 +128,13 @@ VB['sim/clock'] = (() => {
     stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t), all = stepAgents(st, c), idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
-    if (idle.length) { const got = planRound(st, idle, c); for (const a of idle) if (!got.has(a)) idleAbout(st, a); }
+    if (idle.length) {
+      const got = planRound(st, idle, c);
+      // those the plan's tasks did not employ look at the household's opportunities, and are matched again (VB-249)
+      const looked = got.size < idle.length ? lookForWork(st, idle.filter((a) => !got.has(a)), c) : [];
+      if (looked.length) for (const a of planRound(st, looked, c)) got.add(a);
+      for (const a of idle) if (!got.has(a)) idleAbout(st, a);
+    }
   }
   const advance = (st, hours) => ticking(st, hours, step);
   return { onHour, endOfDay, newYear, advance, ticking, stepsIn };

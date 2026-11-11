@@ -5,6 +5,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 `grep -rn "^// @sys" src`, the state schema `grep -rn "@state" src`, and who writes each field `docs/architecture/ownership.md` and
 `node tools/writes.js`. Keep this list current when a module changes purpose.
 
+- `VB['sim/events']` (VB-229): `on(kind, fn)` at load, `emit(st, kind, data)` calls the subscribers at once in load order; they cannot veto. A
+  lower layer's act reaches a higher one this way; `node tools/events.js` lists each kind's emitters and subscribers (`tests/events.js`).
 - `VB['sim/registry']` combines load-time rule declarations and ordered contributions; `value` creates no per-call containers or closures.
   `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
   The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
@@ -28,7 +30,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Names (VB-026): `src/sim/names.js` holds the generators (farms by compass, landmark, owner; villages by syllables or founder) and each culture's
   order of preference (`c.namePrefs`); a lone farm's village bears its farm's name, and the page labels a village of two or more farms once.
 - Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
-  servant to a holder who lives alone; marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
+  servant to a holder who lives alone; a household of at most one grown member whose ask for food falls short (`shareFood`, `src/sim/help.js`,
+  names it) takes in kin, else a servant, at once (`takeIn`, VB-308); at the moving round a landless adult from a household with hands to
+  spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
   and `src/sim/heirs.js`.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
@@ -45,6 +49,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): kin standing, plus affinity (the pair's compatibility, shown as the tie
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
   change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
+- Occasions (VB-126): `src/sim/occasions.js` calls a gathering at a place from a start to an end (the village meeting on the green on autumn
+  day 10, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
+  six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
+  talk there is talk as anywhere. The gathering of villages (VB-295) is the next kind.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
@@ -55,7 +63,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The chronicle (VB-099): `Sim.chronicle(st, {pawn | farm | village}, group)` and `Sim.villageLog(st, n)`, also in `src/sim/notable.js`, are the
   record as a history, newest first, and as the village log (`st.events` is gone: `log` writes the record only). `CHRONICLE` names the
   filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
-- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`; `decide`; `marry`, `handOn`, `serve`,
+- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `serve`,
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
@@ -78,6 +86,18 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
+
+## Layers (VB-230)
+Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
+free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
+- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
+  `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/commands`.
+- Material and land: `sim/stores`, `sim/hunger`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/herds`, `sim/ownership`, `sim/claims`,
+  `sim/stakes`, `sim/territory`, `sim/expansion`.
+- Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
+  `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings).
+- Agency: `sim/agents`, `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
+- Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
 
 ## Adding things
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`

@@ -5,7 +5,7 @@ VB['sim/stakes'] = (() => {
   const CL = VB['sim/claims'];
   const { isOutland } = VB['sim/territory'];
   const { log, practice, atFarm } = VB['sim/records'];
-  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   // Claims review, Decided 1 Nov: a project stakes an unrealised claim on its tile instead of owning it; breaking the ground (or finishing the
   // meadow) makes it the household's. Other households take in no staked tile (sim/territory, freeFor). The work renews the claim (the job
   // kinds' `worked`, sim/kinds), so a stake weakens only while its project stands still.
@@ -45,7 +45,7 @@ VB['sim/stakes'] = (() => {
     CL.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
     if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
-    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) remember(st, loser.holder, hh.holder, 'claim');
+    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
     log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
       kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
     return true;

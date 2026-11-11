@@ -12,6 +12,14 @@ for (const n of [-1, NaN, Infinity]) for (const op of ['put', 'take']) assert.th
 assert.throws(() => S.move(st, b, { ...a, dissolved: true }, 'grain', 1, 'gift'), /dissolved/);
 assert.strictEqual(b.grain, 14, 'invalid recipient must not debit sender');
 assert.throws(() => S.put(st, v, 'meals', 1, 'gift'), /cannot hold/);
+// VB-237: a holder is a household, a village or a pawn; an agent record, a farmstead and {} are refused and left unchanged.
+for (const bad of [{ id: 0, x: 1, y: 1 }, { id: 0, tile: 1, household: 0 }, {}]) {
+  const before = JSON.stringify(bad);
+  for (const op of ['put', 'take']) assert.throws(() => S[op](st, bad, 'grain', 3, 'gift'), /not a holder/);
+  assert.throws(() => S.move(st, bad, a, 'grain', 1, 'gift'), /not a holder/);
+  assert.throws(() => S.move(st, a, bad, 'grain', 1, 'gift'), /not a holder/);
+  assert.strictEqual(JSON.stringify(bad), before, 'a refused holder is unchanged');
+}
 assert.throws(() => S.put(st, b, 'grain', 1, 'unknown'), /reason/);
 // VB-204: routine kinds add to a yearly total per holder, kind and good; other kinds stay entries.
 {

@@ -5,10 +5,12 @@ VB['sim/agents'] = (() => {
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
+  const { hexSteps } = VB['sim/hex'];
+  const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
-  const { KINDS, rowAngle, firstRow } = VB['sim/kinds'];
+  const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -22,14 +24,14 @@ VB['sim/agents'] = (() => {
     const [x, y] = homeSpot(st, a); a.x = x; a.y = y;
   }
   function idle(st, a, until) { a.idleUntil = until; wake(st, a.id); }
-  // A talk stops only an idle pawn outdoors, and never shortens an existing pause.
+  // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause.
   function haltForTalk(st, g, until) {
-    if (!g.inside && !g.job && g.phase === null) {
+    if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
       g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until);
     }
   }
   function stillAtDeath(st, a) {
-    release(st, a); a.path = null; a.inside = true; sleep(st, a.id);
+    release(st, a); dropSides(st, a); a.path = null; a.inside = true; sleep(st, a.id);
   }
   function tileAt(st, x, y) {
     const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
@@ -69,7 +71,67 @@ VB['sim/agents'] = (() => {
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null;
+    a.phase = null; a.work = null; a.basis = null;
+  }
+  // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
+  // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
+  //   among its workers (j.claims), or null; absent when it holds none. A kind's attention is `full` (the default), `partial` or `background`
+  //   (sim/kinds): a background task is done at the side at the kind's `rate` of the pawn's hours, while the pawn is within `reach` steps of it.
+  const attentionOf = (j) => KINDS[j.kind].attention || 'full';
+  const heldAt = (a, slot) => (a.side ? a.side[slot] : null);
+  // The held task a is within reach of from tile `at`, or beyond it (a background task only).
+  const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
+  // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
+  // pawn, or of its full task's site (a full task never takes a background one out of reach).
+  function sideWhy(st, a, j) {
+    const att = attentionOf(j);
+    if (att === 'full') return `${j.key} is not a side task`;
+    if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
+    if (att === 'background' && !(inReach(st, j, tileAt(st, a.x, a.y)) && (!a.job || inReach(st, j, a.job.site)))) return `${j.key} is out of its reach`;
+    return null;
+  }
+  // The pawn takes up side task j.
+  function hold(st, a, j) {
+    if (!a.side) a.side = { partial: null, background: null };
+    a.side[attentionOf(j)] = j; j.claims.push(a.id);
+  }
+  // The pawn lets go of side task j, which stays posted, with its progress, for others.
+  function unhold(a, j) {
+    const i = j.claims.indexOf(a.id); if (i >= 0) j.claims.splice(i, 1);
+    for (const slot of ['partial', 'background']) if (a.side[slot] === j) a.side[slot] = null;
+    if (!a.side.partial && !a.side.background) delete a.side;
+  }
+  function dropSides(st, a) { if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(a, a.side[slot]); }
+  // The matcher offers a pawn that holds a background task only partial tasks within its reach (and a full one never, until the urgency
+  // switch); null when job j may be bid for, else why not.
+  function offerWhy(st, a, j) {
+    const att = attentionOf(j), bg = heldAt(a, 'background');
+    if (att !== 'full') return sideWhy(st, a, j);
+    if (bg) return `${j.key} would take the background task ${bg.key} out of reach`;
+    return null;
+  }
+  // The pawn takes a full task by the urgency switch (or an order): a background task the new site takes out of reach is let go.
+  function reachAfter(st, a) {
+    const bg = heldAt(a, 'background');
+    if (bg && a.job && !inReach(st, bg, a.job.site)) unhold(a, bg);
+  }
+  // Each step of a pawn that holds side tasks: a task finished or gone from the board is let go; a background task is done at its rate
+  // of the pawn's hours, and let go once the pawn is out of its reach.
+  function stepSide(st, a, dt) {
+    for (const slot of ['partial', 'background']) {
+      const j = heldAt(a, slot); if (!j) continue;
+      if (st.jobs.get(j.key) !== j) { unhold(a, j); if (!a.side) return; continue; }
+      if (slot !== 'background') continue;
+      const K = KINDS[j.kind];
+      if (!inReach(st, j, tileAt(st, a.x, a.y))) { unhold(a, j); if (!a.side) return; continue; }
+      j.done += dt * K.rate * rateOf(st, st.pawns[a.id]);
+      if (j.done >= (j.hours ?? K.hours)) {
+        unhold(a, j);
+        if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+        dropJob(st, j);
+        if (!a.side) return;
+      }
+    }
   }
   // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
   function freeHands(st, j, finisher) {
@@ -77,6 +139,7 @@ VB['sim/agents'] = (() => {
       if (id === finisher) continue;
       const b = st.agents[id];
       if (b.phase === 'go') b.path = null;
+      if (b.side) unhold(b, j);
       b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
     }
     j.claims = j.claims.filter((id) => id === finisher);
@@ -96,7 +159,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
     dropJob(st, j);
-    a.carry = null; a.job = null; a.phase = null;
+    a.carry = null; a.job = null; a.basis = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function arrived(st, a) {
@@ -149,7 +212,7 @@ VB['sim/agents'] = (() => {
         walkTo(st, a, f.house, x, y);
       } else {
         complete(st, a);
-        a.job = null; a.work = null;
+        a.job = null; a.basis = null; a.work = null;
         a.phase = null; a.inside = false;
         if (K.inside) { a.inside = false; a.anim = 'idle'; }
       }
@@ -213,6 +276,7 @@ VB['sim/agents'] = (() => {
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
+      if (a.side) stepSide(st, a, dt);
       if (a.path) moveAgent(st, a, dt);
       else if (a.phase === 'work') stepWork(st, a, dt);
       else if (wantsWork(st, a, c)) out.push(a);
@@ -237,5 +301,6 @@ VB['sim/agents'] = (() => {
       wantsWork, arrived, goHome, rateOf,
     withOxen, stepWork,
     moveAgent, stepAgents, describe,
+    attentionOf, heldAt, sideWhy, offerWhy, hold, unhold, dropSides, reachAfter,
   };
 })();

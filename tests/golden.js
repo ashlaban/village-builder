@@ -30,7 +30,7 @@ const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.ne
 const out = {};
 // state fields that only index other fields (VB-071) stay out of the fingerprint
 // st.plans holds nothing yet but one plan per live holder and the next review hour (VB-258); the task that gives plans a choice hashes it
-const DERIVED = ['w', 'jobsBy', 'living', 'liveHouseholds', 'plans'];
+const DERIVED = ['w', 'jobsBy', 'living', 'liveHouseholds', 'peopleCheck', 'plans'];
 for (const seed of [7, 42]) {
   out[`world/${seed}`] = hashKeys(world(seed), [], `world/${seed}`);
   for (const scenario of ['founders', 'heirs']) {

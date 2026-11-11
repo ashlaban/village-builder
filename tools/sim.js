@@ -1,14 +1,15 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|paths|relations|herds|villages|hunger|perf|counts|land] [--json]
-//   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years)
+//   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years; --household N --report plans: its plans)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
-const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land'];
+const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
+  'plans'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
-  --pawn ID, --household ID   one pawn or household in detail
+  --pawn ID, --household ID   one pawn or household in detail; with --report plans, that household's plans
   --at Y            stop at year Y, overriding --years
   --save FILE       save the run at its end (.gz is gzipped)
   --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year`;
@@ -75,6 +76,18 @@ const pawnDays = report === 'counts' ? require('./counts.js').livingPawnDays(st,
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
 const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(h.grain), wood: Math.round(h.wood),
   hungryDays: h.hungryDays, dissolved: h.dissolved });
+// A household's plans (sim/plans): the standing plan's targets, reservations and next review; the seasonal plan's season and steps.
+const when = (hour) => {
+  const c = Sim.cal(hour);
+  return `year ${c.year} ${Sim.SEASONS[c.season]} day ${c.sday + 1} ${String(Math.floor(c.hour)).padStart(2, '0')}:00`;
+};
+function plansOf(h) {
+  const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id), sp = P.seasonOf(st, h.id);
+  if (!plan) return { household: h.id, plans: 'none (dissolved)' };
+  return { household: h.id, culture: P.cultureOf(st, h), targets: plain(plan.targets), reserved: plain(plan.reserved),
+    nextReview: when(plan.nextReview), cadenceDays: P.cadence(st, plan), lastReviewDay: plan.last,
+    season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
+}
 const tables = {
   counts: () => Object.keys(VB.COUNTERS).map((counter) => ({ counter, total: VB.count[counter],
     perDay: (st.t > countsFrom) ? VB.count[counter] / ((st.t - countsFrom) / Sim.DAY) : 0,
@@ -101,6 +114,8 @@ const tables = {
       booths: farms.filter((f) => f.booth).length, people, crowded: v.crowded,
       founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '' };
   }),
+  // plans (sim/plans, VB-252): per live household, its standing plan's targets and next review, and its seasonal plan's steps in order
+  plans: () => st.liveHouseholds.map((id) => plansOf(st.households[id])),
   // land (sim/claims, VB-155): per village, the tiles it holds by kind and its households' tiles, claims held and on disputed tiles, cairns
   // (VB-157), and the hex steps from its land to the nearest other village's land
   land: () => {
@@ -130,7 +145,7 @@ const tables = {
   relations: () => {
     const R = VB['sim/relations'], rows = new Map(), WORD = { 'close friend': 'close', friend: 'friend', neutral: 'neutral', dislikes: 'dislikes', enemy: 'enemy' };
     const row = (k, name) => rows.get(k) || rows.set(k, { village: name, people: 0, adults: 0, records: 0, close: 0, friend: 0, neutral: 0, dislikes: 0,
-      enemy: 0, friendsOut: 0, dislikedOut: 0 }).get(k);
+      enemy: 0, friendsOut: 0, dislikedOut: 0, tiesAcross: 0, friendsAcross: 0 }).get(k);
     for (const p of st.pawns) {
       if (!p.alive) continue;
       const v = Sim.settlementIdOf(st, p);
@@ -142,6 +157,9 @@ const tables = {
           x.records++; x[WORD[R.opinionWord(o)]]++;
           if (p.age >= 16 && out && o >= VB['sim/rules'].SOCIAL.friend) x.friendsOut++;
           if (p.age >= 16 && out && o <= VB['sim/rules'].SOCIAL.dislike) x.dislikedOut++;
+          const across = p.age >= 16 && Sim.settlementIdOf(st, st.pawns[j]) !== v; // of another village (VB-126)
+          if (across && p.ties.has(j)) x.tiesAcross++;
+          if (across && o >= VB['sim/rules'].SOCIAL.friend) x.friendsAcross++;
         }
       }
     }
@@ -149,7 +167,8 @@ const tables = {
       const pc = (k) => +(100 * x[k] / Math.max(1, x.records)).toFixed(1), per = (k) => +(x[k] / Math.max(1, x.adults)).toFixed(2);
       const talks = x.village === 'all' && st.talks !== undefined ? { talksPerPawnDay: +(st.talks * 2 / x.people / (st.t / 24)).toFixed(2) } : {};
       return { village: x.village, people: x.people, records: x.records, close: pc('close'), friend: pc('friend'), neutral: pc('neutral'),
-        dislikes: pc('dislikes'), enemy: pc('enemy'), friendsOut: per('friendsOut'), dislikedOut: per('dislikedOut'), ...talks };
+        dislikes: pc('dislikes'), enemy: pc('enemy'), friendsOut: per('friendsOut'), dislikedOut: per('dislikedOut'),
+        tiesAcross: per('tiesAcross'), friendsAcross: per('friendsAcross'), ...talks };
     });
   },
   // worn paths per village (tiles within 8 steps of the green, by stage), and the walking network: fords and the route cache
@@ -171,7 +190,8 @@ if (pawnId !== null) {
   out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
 } else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
-  out = { ...plain(h), farm: plain(st.farmsteads[h.farmstead]), people: h.members.map((m) => ({ ...pawnRow(st.pawns[m]), events: Sim.recordOf(st, { pawn: m, life: true }) })) };
+  if (report === 'plans') out = plansOf(h);
+  else out ={ ...plain(h), farm: plain(st.farmsteads[h.farmstead]), people: h.members.map((m) => ({ ...pawnRow(st.pawns[m]), events: Sim.recordOf(st, { pawn: m, life: true }) })) };
 } else if (report) out = plain(tables[report]());
 if (out !== null && report === 'idle' && !json) {
   console.log('share of work hours (%): working / walking / carrying / idle');

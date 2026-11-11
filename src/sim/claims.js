@@ -3,8 +3,7 @@ VB['sim/claims'] = (() => {
   const Culture = VB['culture'];
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
-  const { kinship, membersOf, voiceOf } = VB['sim/records'];
-  const { tieOf } = VB['sim/relations'];
+  const { kinship, membersOf, voiceOf, tieOf } = VB['sim/records'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -132,7 +131,8 @@ VB['sim/claims'] = (() => {
       r[greens.has(t) ? 'green' : k === 'plots' ? 'plots' : k ? 'farms' : 'outland']++;
     }
     for (const list of st.claims.values()) for (const c of list) {
-      if (c.by.type === 'household') row(households, c.by.id, HK).claims++; else if (c.by.type === 'village') row(villages, c.by.id, VK).claims++;
+      if (c.by.type === 'household') { const r = row(households, c.by.id, HK); r.claims++; }
+      else if (c.by.type === 'village') { const r = row(villages, c.by.id, VK); r.claims++; }
     }
     return { households, villages };
   }
