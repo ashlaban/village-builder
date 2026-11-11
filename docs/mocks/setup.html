@@ -240,6 +240,10 @@ label .tag { justify-self: start; }
 .posline { display: inline-flex; gap: 6px; align-items: center; } .posline .ic { color: var(--accent); }
 .figs.lg .fig { transform-origin: bottom; } .figs.lg { gap: 4px; min-height: 30px; } .figs.lg .fig { height: auto !important; width: 15px; } .figs.lg .fig.c { width: 10px; }
 @media (min-width: 861px) { .stick { position: sticky; top: 12px; } }
+.who-starts { display: grid; gap: 12px; }
+/* a life looked at on step 1 is marked lightly: it is a look, not a choice */
+.peekable [aria-pressed="true"] { background: var(--pick); color: var(--ink); border: 1px dashed var(--accent); box-shadow: none; }
+.peekable button:hover { background: var(--pick); }
 </style>
 
 <div class="stage" id="stage"></div>
@@ -411,7 +415,7 @@ function makeWorld(sc, seed, size) {
 }
 
 // ---- state and drawing ----
-const S = { lives: 'cards', step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
+const S = { peek: null, hover: null, lives: 'cards', step: 1, sc: 'founders', size: 'm', seed: 417203, life: null, world: null, village: 0, pawn: -1, only: 'all', done: false };
 const scen = () => SCENARIOS.find((s) => s.key === S.sc);
 const pawns = () => S.world.flatMap((v) => v.farms.flatMap((f) => f.people || []));
 const hue = (p) => (p.n.charCodeAt(0) * 37 + p.n.length * 53 + p.a * 7) % 360;
@@ -458,12 +462,12 @@ const figKey = () => `<div class="key"><span>${fig({ n: '', a: 40, r: 'holder' }
 // Who starts: every farm as a card where they are few, an age pyramid where they are many. The life chosen below is picked out.
 function households(s) {
   const w = worldOf(s.key), big = w.length > 3, all = w.flatMap((v) => v.farms.flatMap((f) => f.people || [])), nf = w.reduce((n, v) => n + v.farms.length, 0);
-  const cur = S.life || s.lives[0][0], label = s.lives.find((x) => x[0] === cur)[1], on = (p) => p.a >= ADULT && isLife(cur, p);
+  const cur = S.hover || S.peek, label = cur ? s.lives.find((x) => x[0] === cur)[1] : '', on = (p) => !!cur && p.a >= ADULT && isLife(cur, p);
   if (!big) {
     return `<div class="fcards">${w.map((v) => v.farms.map((f) => (f.empty ? `<div class="fcard none"><b>${esc(f.name)}</b><span class="figs">${icon(/ruin/.test(f.empty) ? 'ruin' : 'empty')}</span><small>${esc(f.empty.split('.')[0])}</small></div>`
-      : `<div class="fcard${f.people.some(on) ? ' has' : ''}"><b>${esc(f.name)}</b><span class="figs">${f.people.map((p) => fig(p, on(p) ? 'on' : 'off')).join('')}</span>
+      : `<div class="fcard${f.people.some(on) ? ' has' : ''}"><b>${esc(f.name)}</b><span class="figs">${f.people.map((p) => fig(p, cur ? (on(p) ? 'on' : 'off') : '')).join('')}</span>
         <small>${f.people.map((x) => x.a).join(' · ')}${f.tests && f.tests !== 'No field yet' ? `<br>${esc(f.tests)}` : ''}</small></div>`)).join('')).join('')}</div>
-      ${figKey()}<small>${all.filter(on).length} of ${all.length} people could be “${esc(label.toLowerCase())}”: the figures picked out.</small>`;
+      ${figKey()}<small>${cur ? `${all.filter(on).length} of ${all.length} people could be “${esc(label.toLowerCase())}”: the figures picked out.` : `${all.length} people on ${nf} farms.`}</small>`;
   }
   const bands = [[60, 200, '60 and over'], [45, 59, '45 to 59'], [30, 44, '30 to 44'], [18, 29, '18 to 29'], [10, 17, '10 to 17'], [0, 9, 'Under 10']];
   const rows = bands.map(([a, b, l]) => { const g = all.filter((p) => p.a >= a && p.a <= b), f = g.filter((p) => p.s === 'f'), m = g.filter((p) => p.s === 'm'); return [l, f.length, f.filter(on).length, m.length, m.filter(on).length]; })
@@ -471,24 +475,24 @@ function households(s) {
   const max = Math.max(...rows.flatMap((x) => [x[1], x[3]])), grown = w.flatMap((v) => v.farms).filter((f) => f.people.slice(2).some((p) => p.a >= ADULT && p.r !== 'servant')).length;
   const bar = (n, k, left) => `<span class="pb${left ? ' l' : ''}"><i style="width:${(n / max) * 100}%"><b style="width:${n ? (k / n) * 100 : 0}%"></b></i></span>`;
   return `<div class="pyr">${rows.map(([l, f, fk, m, mk]) => `<span class="n f">${f}</span>${bar(f, fk, 1)}<span class="lab">${l}</span>${bar(m, mk)}<span class="n">${m}</span>`).join('')}</div>
-    <div class="key"><span>women to the left, men to the right</span><span><i class="sw on"></i>${esc(label.toLowerCase())}: ${all.filter(on).length}</span><span><i class="sw"></i>everyone else</span></div>
+    <div class="key"><span>women to the left, men to the right</span>${cur ? `<span><i class="sw on"></i>${esc(label.toLowerCase())}: ${all.filter(on).length}</span><span><i class="sw"></i>everyone else</span>` : ''}</div>
     <small>${all.length} people on ${nf} farms in ${w.length} villages, for seed ${S.seed}. In ${grown} households a child is 18 or more.</small>`;
 }
 
 // Lives to try, in three ways. A life is a position; the count is how many hold it as the scenario starts.
 function lives(s) {
-  const all = worldOf(s.key).flatMap((v) => v.farms.flatMap((f) => f.people || [])), cur = S.life || s.lives[0][0];
+  const all = worldOf(s.key).flatMap((v) => v.farms.flatMap((f) => f.people || [])), cur = S.peek;
   const n = (k) => all.filter((p) => p.a >= ADULT && isLife(k, p)).length;
   const list = S.lives === 'ladder' ? [...s.lives].sort((a, b) => RANK.indexOf(a[0]) - RANK.indexOf(b[0])) : s.lives;
-  const head = `<h3>Lives to try ${tag('sketch')}</h3>`;
-  if (S.lives === 'pills') return `${head}<div class="lives">${list.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${cur === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>`;
+  const head = `<h3>Lives this start offers ${tag('sketch')}</h3>`, hint = '<small>Point at a life, or tap it, to see who they are above. You choose the person once the land is raised.</small>';
+  if (S.lives === 'pills') return `${head}<div class="lives">${list.map(([k, label, sug]) => `<button type="button" data-life="${k}" aria-pressed="${cur === k}">${esc(label)}${sug ? ' · suggested' : ''}</button>`).join('')}</div>${hint}`;
   if (S.lives === 'cards') return `${head}<div class="lcards">${list.map(([k, label, sug]) => `<button type="button" class="lcard" data-life="${k}" aria-pressed="${cur === k}">
-    ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? '<span class="tag built">Suggested</span>' : '<span></span>'}<small>${esc(HARD[k])}</small><small class="n">${n(k)} to choose from</small></button>`).join('')}</div>`;
+    ${icon(LIFE_ICON[k])}<b>${esc(label)}</b>${sug ? '<span class="tag built">Suggested</span>' : '<span></span>'}<small>${esc(HARD[k])}</small><small class="n">${n(k)} at the start</small></button>`).join('')}</div>${hint}`;
   const max = Math.max(1, ...list.map((x) => n(x[0])));
   return `${head}<div class="ladder">${list.map(([k, label, sug]) => `<button type="button" class="rung" data-life="${k}" aria-pressed="${cur === k}">
     ${icon(LIFE_ICON[k])}<span><b>${esc(label)}</b>${sug ? ' <span class="tag built">Suggested</span>' : ''}<small>${esc(POS[k].commands[0])}</small></span>
     <span class="cnt"><i style="width:${Math.max(4, (n(k) / max) * 100)}%"></i><small>${n(k)}</small></span></button>`).join('')}</div>
-    <small>From the most standing to the least; the bar is how many hold the position as the scenario starts.</small>`;
+    <small>From the most standing to the least; the bar is how many hold the position as the scenario starts.</small>${hint}`;
 }
 
 const facts = (s, keys) => `<dl class="facts">${[['Who starts', s.start], ['People', `${s.people(S.size)} on a ${SIZES[S.size].name.toLowerCase()} map`], ['Generations', s.gens],
@@ -514,8 +518,8 @@ function step1() {
         ${facts(s, ['Land', 'Stores', 'Customs'])}
       </section>
       <section><h2>${esc(s.name)} ${tag(s.status)}</h2><p>${esc(s.line)} <span class="muted">${esc(s.explores)}</span></p>
-        <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3>${households(s)}
-        ${lives(s)}
+        <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3><div class="who-starts" id="who">${households(s)}</div>
+        <div class="peekable">${lives(s)}</div>
         <div class="land2">${sizeField()}${seedField()}</div></section>
     </div>
     <div class="foot"><span class="muted">${s.status === 'sketch' ? 'This scenario is a sketch, shown with a stand-in picture and a stand-in world.' : 'You choose the person after the land is raised, from those who live there.'}</span>
@@ -528,9 +532,9 @@ function loading() {
   setTimeout(() => { if ($('lt')) $('lt').textContent = scen().key === 'founders' ? 'Settling the founders' : 'Waking the villages'; }, 450);
   setTimeout(() => {
     S.world = worldOf(S.sc); S.step = 2; S.done = false;
-    const want = S.life || scen().lives[0][0], all = pawns().filter((p) => p.a >= ADULT);
+    const want = scen().lives[0][0], all = pawns().filter((p) => p.a >= ADULT);
     const p = all.find((x) => x.r === want) || all.find((x) => x.r === 'widow' && want === 'widow') || all.find((x) => x.r === 'holder') || all[0];
-    S.suggested = (all.find((x) => x.r === scen().lives[0][0]) || all[0]).id; S.pawn = p.id; S.village = p.village; S.only = want; draw();
+    S.suggested = (all.find((x) => x.r === scen().lives[0][0]) || all[0]).id; S.pawn = p.id; S.village = p.village; S.only = 'all'; draw();
   }, 1000);
 }
 
@@ -593,7 +597,7 @@ function draw() {
   $('app').className = 'sheet c';
   $('stage').className = 'stage far'; $('stage').style.backgroundImage = `url(${pic(S.sc, S.step === 2)})`;
   const sw = (k, label) => `<span>${label}:</span>${VARIANTS[k].map(([v, l]) => `<button type="button" data-var="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${l}</button>`).join('')}`;
-  $('mockbar').innerHTML = `<b>Mock</b>${S.step === 1 ? sw('lives', 'Lives to try') : '<span>Pick a village, then a farm on the picture or a person below.</span>'}
+  $('mockbar').innerHTML = `<b>Mock</b>${S.step === 1 ? sw('lives', 'Lives') : '<span>Pick a village, then a farm on the picture or a person below.</span>'}
     <span class="legend">${tag('built')} in the game ${tag('designed')} in design.md ${tag('sketch')} an idea</span>`;
   if (S.step === 1) step1(); else step2();
 }
@@ -607,8 +611,8 @@ $('app').addEventListener('click', (e) => {
     let best = 0, bd = 9; S.spots.forEach(([sx, sy], i) => { const dd = Math.hypot(sx - x, sy - y); if (dd < bd) { bd = dd; best = i; } });
     S.village = best; draw(); return;
   }
-  if (d.sc) { S.sc = d.sc; S.life = null; }
-  else if (d.life) S.life = d.life;
+  if (d.sc) { S.sc = d.sc; S.peek = S.hover = null; }
+  else if (d.life) S.peek = S.peek === d.life ? null : d.life;
   else if (d.v) { S.village = +d.v; const a = S.world[S.village].farms.flatMap((x) => x.people || []).filter((x) => x.a >= ADULT); S.pawn = (a.find((x) => isLife(S.only, x)) || a[0]).id; }
   else if (d.farm) { const a = S.world[S.village].farms[+d.farm].people.filter((x) => x.a >= ADULT); S.pawn = (a.find((x) => S.only !== 'all' && isLife(S.only, x)) || a[0]).id; }
   else if (d.only) S.only = d.only;
@@ -623,9 +627,12 @@ $('app').addEventListener('click', (e) => {
   else return;
   draw();
 });
+// Pointing at a life shows who they are, in "Who starts" only; nothing is chosen by it.
+const look = (k) => { if (S.step !== 1 || S.hover === k) return; S.hover = k; const w = $('who'); if (w) w.innerHTML = households(scen()); };
+$('app').addEventListener('mouseover', (e) => { const b = e.target.closest('[data-life]'); if (b) look(b.dataset.life); });
+$('app').addEventListener('mouseout', (e) => { const b = e.target.closest('[data-life]'); if (b && !b.contains(e.relatedTarget)) look(null); });
 $('app').addEventListener('change', (e) => {
   if (e.target.id === 'size') S.size = e.target.value;
-  else if (e.target.id === 'life') S.life = e.target.value;
   else if (e.target.id === 'seed') S.seed = +String(e.target.value).replace(/\D/g, '').slice(0, 9) || 0;
   else return;
   draw();
