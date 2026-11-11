@@ -4,7 +4,7 @@
 // automatic behaviour off, does only what its queue and the dark told it.
 const assert = require('assert');
 const { playLine } = require('./lib/line.js');
-const SOURCES = new Set(['planner', 'player', 'round', 'meeting', 'debug', 'talk', 'help', 'construction', 'restoration']);
+const SOURCES = new Set(['planner', 'player', 'round', 'meeting', 'debug', 'talk', 'help', 'construction', 'restoration', 'occasion']);
 const diff = (a, b) => Object.keys({ ...a, ...b }).filter((k) => a[k] !== b[k]);
 const base = { scenario: 'populous', seed: 7, map: 'tiny', years: 3 }, window = { autoOffDay: 20, takeFrom: 60 };
 
