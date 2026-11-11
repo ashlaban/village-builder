@@ -9,7 +9,7 @@ VB['sim/saves'] = (() => {
   const { seedPlans, fillPlans } = VB['sim/plans'];
   const { TICKS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
-  const { initFish } = VB['sim/fish'];
+  const { initFish } = VB['sim/fish'], { initForage } = VB['sim/forage'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -171,8 +171,8 @@ VB['sim/saves'] = (() => {
   }
   // ---- a run ----
   // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
-  // also recomputes the tile's colours from it; dev, wear, worn, fish and fishDay are added to the world by seeding.
-  const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay'];
+  // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
+  const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay', 'forage', 'forageYear'];
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -231,6 +231,7 @@ VB['sim/saves'] = (() => {
     const st = decode(enc, REVIVE);
     st.w = w;
     if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
+    if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
     if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); st.tickPart = 0; }
     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
