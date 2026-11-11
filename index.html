@@ -8696,8 +8696,9 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
-  // The job it leaves is kept as it stands, with its progress.
+  // From 14:00 a household short of meals calls its best cook off other work, or from idling (waiting or out for company; not on its way
+  // to an occasion): an idle cook looked for work only when its wait ended, often too late to finish the 2 hours before the end of work, and
+  // the household ate uncooked (VB-119). The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
     VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
@@ -8709,7 +8710,9 @@ VB['sim/jobs'] = (() => {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
         if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
       }
-      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
+      const idle = best && !best.job && best.phase === null && best.occasion === null;
+      const called = best && (idle || best.job && (best.phase === 'work' || best.phase === 'go'));
+      if (called) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
   // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
@@ -15409,7 +15412,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c0ccc25da0', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '86c27732f1', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

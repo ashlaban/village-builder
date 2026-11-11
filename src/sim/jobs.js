@@ -22,8 +22,9 @@ VB['sim/jobs'] = (() => {
     j.live = true;
     return j;
   }
-  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
-  // The job it leaves is kept as it stands, with its progress.
+  // From 14:00 a household short of meals calls its best cook off other work, or from idling (waiting or out for company; not on its way
+  // to an occasion): an idle cook looked for work only when its wait ended, often too late to finish the 2 hours before the end of work, and
+  // the household ate uncooked (VB-119). The job it leaves is kept as it stands, with its progress.
   function callCooks(st, c) {
     VB.count.cookFarm += st.farmsteads.length;
     for (const f of st.farmsteads) {
@@ -35,7 +36,9 @@ VB['sim/jobs'] = (() => {
         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
         if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
       }
-      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
+      const idle = best && !best.job && best.phase === null && best.occasion === null;
+      const called = best && (idle || best.job && (best.phase === 'work' || best.phase === 'go'));
+      if (called) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
     }
   }
   // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
