@@ -358,7 +358,7 @@ const S = { step: 1, sc: 'founders', size: 't', seed: 7, peek: null, hover: null
 const scen = () => SCENARIOS.find((s) => s.key === S.sc);
 const headBar = (title) => `<div class="head"><h1>${title}</h1><span class="stepno">Step ${S.step} of 2</span></div>`;
 
-// Story starts: the same cards on both steps. On step 1 one is looked at; on step 2 it takes you to such a person, and to the next on another click.
+// Story archetypes: the same cards on both steps. On step 1 one is looked at; on step 2 it takes you to such a person, and to the next on another click.
 function stories(s, cur) {
   const w = worldOf(s.key);
   return `<div class="stories">${s.lives.map(([k, label, sug]) => { const who = w.people.filter((p) => isLife(k, p)); return who.length ? `<button type="button" class="story" data-story="${k}" aria-pressed="${cur === k}">
@@ -403,7 +403,7 @@ function step1() {
       </section>
       <section><h2>${esc(s.name)}</h2>
         <h3>Who starts ${tag(s.status === 'sketch' ? 'sketch' : 'built')}</h3><div class="who-starts" id="who">${households(s)}</div>
-        <h3>Story starts ${tag('sketch')}</h3>${stories(s, S.peek)}
+        <h3>Story archetypes ${tag('sketch')}</h3>${stories(s, S.peek)}
         <small>Tap one to see who they are. You choose a person once the land is raised.</small></section>
     </div>
     <div class="foot"><label for="size">Map size<select id="size">${Object.entries(SIZES).map(([k, v]) => `<option value="${k}"${k === S.size ? ' selected' : ''}>${v.name} (${v.tiles})</option>`).join('')}</select></label>
@@ -439,9 +439,9 @@ function step2() {
       ${w.farms.map((x) => `<button type="button" class="fpin${x === f ? ' on' : ''}${x.people.some(hit) ? ' hit' : ''}" data-farm="${x.id}" style="left:${x.px}%;top:${x.py}%" aria-label="${esc(x.name)}, ${esc(x.village.name)}">${farmImg(x)}<b>${esc(x.name)}</b></button>`).join('')}</div></div>
     <section class="gp list-p panel">
       <div class="head"><h2>Whom to play</h2><span class="stepno">Step 2 of 2</span></div>
-      <small>Drag the map and click a farm, or begin from a story.</small>
+      <small>Drag the map and click a farm, or begin from an archetype.</small>
       ${w.villages.length > 1 ? `<div class="villages">${w.villages.map((v) => `<button type="button" data-v="${v.id}" aria-pressed="${v === f.village}">${esc(v.name)}</button>`).join('')}</div>` : ''}
-      <h3>Story starts ${tag('sketch')}</h3>${stories(s, S.story)}
+      <h3>Story archetypes ${tag('sketch')}</h3>${stories(s, S.story)}
     </section>
     <section class="gp card-p panel">
       <div class="hhead">${farmImg(f)}<h2>${esc(f.name)}</h2><span class="muted">${esc(f.village.name)}${f.people.length ? ` · ${f.food} days of food` : ''}</span></div>
@@ -504,7 +504,7 @@ $('app').addEventListener('click', (e) => {
   else return;
   draw();
 });
-// Pointing at a story start shows who they are, in "Who starts" only; nothing is chosen by it, and nothing moves.
+// Pointing at a story archetype shows who they are, in "Who starts" only; nothing is chosen by it, and nothing moves.
 const look = (k) => { if (S.step !== 1 || S.hover === k) return; S.hover = k; const el = $('who'); if (el) el.innerHTML = households(scen()); };
 $('app').addEventListener('mouseover', (e) => { const b = e.target.closest('[data-story]'); if (b) look(b.dataset.story); });
 $('app').addEventListener('mouseout', (e) => { const b = e.target.closest('[data-story]'); if (b && !b.contains(e.relatedTarget)) look(null); });
