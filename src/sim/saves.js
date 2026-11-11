@@ -9,6 +9,7 @@ VB['sim/saves'] = (() => {
   const { seedPlans, fillPlans } = VB['sim/plans'];
   const { TICKS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
+  const { reckonWood } = VB['sim/territory'];
   const { initFish } = VB['sim/fish'], { initForage } = VB['sim/forage'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
@@ -257,6 +258,10 @@ VB['sim/saves'] = (() => {
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
+    // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
+    if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
+    for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
+    for (const v of st.villages) if (!v.wood) { delete v.commonsWood; reckonWood(st, v); }
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }

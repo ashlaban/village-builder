@@ -7,7 +7,7 @@ VB['sim/expansion'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { freeFor } = VB['sim/territory'];
+  const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile } = VB['sim/forest'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, nextTo } = VB['sim/layout'];
@@ -44,7 +44,7 @@ VB['sim/expansion'] = (() => {
       return false;
     };
     for (const [t, d] of bfs(w, v.center, REACH, walkable(w)).dist) {
-      if (d < 1 || !freeFor(st, t, v.id) || st.used.has(t) || t === v.commonsWood || w.river[t]) continue;
+      if (d < 1 || !freeFor(st, t, v.id) || st.used.has(t) || v.wood.includes(t) || w.river[t]) continue;
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
@@ -74,7 +74,7 @@ VB['sim/expansion'] = (() => {
       tiles: [{ tile: site.house, kind: 'house' }, { tile: site.field, kind: 'field' }] };
     for (const tr of plot.tiles) {
       tr.steps = stepsFor(w, tr.tile, tr.kind); tr.i = 0;
-      setOwner(st, tr.tile, { type: 'village', id: v.id }); st.used.add(tr.tile);
+      setOwner(st, tr.tile, { type: 'village', id: v.id }); st.used.add(tr.tile); woodTaken(st, tr.tile);
     }
     v.plots.push(plot); st.visualDirty = true;
     log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, { kind: 'plotStarted', pawn: intended, village: v.id });

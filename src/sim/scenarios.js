@@ -186,7 +186,7 @@ VB['sim/scenarios'] = (() => {
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
-    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, condAt,
+    // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt,
     //   tarredUntil, emptySince}
     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
     //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
@@ -199,8 +199,8 @@ VB['sim/scenarios'] = (() => {
     //   sim/rules); tarredUntil (hours, VB-301);
     //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage)} or null: settlers live in a booth until
     //   their cottage is built (sim/settle, sim/expansion)
-    // @state st.villages[]: {id, name, center, farmsteads[], fence, commonsWood, grain, ledger[], totals[] (as a household's), green, well};
-    //   center is a tile index, farmsteads are ids;
+    // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
+    //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
     //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;

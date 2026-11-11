@@ -3,12 +3,12 @@ VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { SETTLE, ECON, FIELDS, fertility, farmable } = VB['sim/rules'];
+  const { SETTLE, ECON, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
-  const { placeFields, siteScore, nearestWood, makeFarmstead } = VB['sim/layout'];
+  const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, clearHours } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
@@ -17,6 +17,7 @@ VB['sim/settle'] = (() => {
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
   const { makePlan } = VB['sim/plans'];
+  const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
@@ -130,7 +131,7 @@ VB['sim/settle'] = (() => {
   }
   // The best site for a new village from village v: of the best SETTLE.candidates sites still free, one with a block of SETTLE.fields fields
   // (placeFields, none near other farms) at least SETTLE.fertility times as fertile on average as v's fields, and a wood within reach; scored
-  // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps, wood}, or null.
+  // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps}, or null.
   function newSite(st, v, use, cands) {
     const w = st.w, minFert = SETTLE.fertility * meanFertility(st, v);
     let best = null, bs = -Infinity, tried = 0;
@@ -143,8 +144,8 @@ VB['sim/settle'] = (() => {
       if (roomAt(st, t, (j) => j === t || block.includes(j) || use.taken.has(j) || use.near.has(j)) < FIELDS.room) continue;
       const fert = block.reduce((a, k) => a + fertility(w, k), 0), s = s0 + SETTLE.fieldWeight * fert;
       if (fert / block.length < minFert || s <= bs) continue;
-      const wood = nearestWood(w, use.taken, t); if (wood < 0) continue;
-      bs = s; best = { house: t, field: block[0], steps: d, wood };
+      if (woodNear(w, use.taken, t, WOOD.least).length < WOOD.least) continue; // a wood in reach (VB-326)
+      bs = s; best = { house: t, field: block[0], steps: d };
     }
     return best;
   }
@@ -179,7 +180,7 @@ VB['sim/settle'] = (() => {
   function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
-    f.woodlot = v.commonsWood; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.booth = { i: 0, done: 0 };
+    f.condition = 1; f.condAt = st.t; f.emptySince = null; f.booth = { i: 0, done: 0 };
     st.farmsteads.push(f); v.farmsteads.push(f.id);
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
@@ -187,6 +188,7 @@ VB['sim/settle'] = (() => {
     for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions');
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers });
+    woodTaken(st, house); reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
     return f;
@@ -194,7 +196,7 @@ VB['sim/settle'] = (() => {
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
   function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
-    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], commonsWood: site.wood, grain: 0,
+    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], wood: [], grain: 0,
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     return settleFarm(st, v, home, party, site.house, site.field, prov);
@@ -234,7 +236,7 @@ VB['sim/settle'] = (() => {
         else if (!noLand) {
           if (!cands) cands = candidates(st, v, use, reach);
           const site = newSite(st, v, use, cands);
-          if (site) { f = leave({ house: site.house, field: site.field, wood: site.wood }); steps = site.steps; }
+          if (site) { f = leave({ house: site.house, field: site.field }); steps = site.steps; }
           else { noLand = true; log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`, { kind: 'noLand', village: v.id }); }
         }
         if (!f) continue;

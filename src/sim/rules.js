@@ -236,7 +236,7 @@ VB['sim/rules'] = (() => {
   // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
   // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
-  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the woodlot; set so a new village has the paths a
+  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the village's wood; set so a new village has the paths a
   // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
   const PATHS = { at: [0, 50, 200, 800], keep: 0.85, halfLifeDays: YEAR_DAYS, speed: [1, 1.05, 1.15, 1.3],
     wornYears: 3, trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 } };
@@ -257,13 +257,19 @@ VB['sim/rules'] = (() => {
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
   // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
-  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a wood within
-  // woodReach; sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the best `candidates` by the first and last
-  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join` steps of home. Spacing (stability review,
-  // VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village centre. Provisions were 36 days,
-  // which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
+  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a
+  // wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the
+  // best `candidates` by the first and last terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join`
+  // steps of home. Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from
+  // every village centre. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = { ages: [18, 45], chance: [0.3, 0.6, 0.8], follow: 0.5, maxFollow: 2, provisionDays: 42, reach: [10, 30], apart: 5, centreApart: 12,
-    fields: 3, fertility: 0.9, woodReach: 24, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
+    fields: 3, fertility: 0.9, fieldWeight: 3, perStep: 0.15, candidates: 40, smallFarms: 3, join: 30 };
+  // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
+  // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
+  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
+  // so a trip with its 3 hours' cutting fits the working day). A trip cuts on a tile drawn evenly among those keeping more than `thin` of
+  // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`.
+  const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, thin: 0.25 };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
   // centre lies within `reach` steps of it. Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
@@ -317,5 +323,5 @@ VB['sim/rules'] = (() => {
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
-      CLAIMS };
+      CLAIMS, WOOD };
 })();

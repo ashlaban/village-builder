@@ -35,6 +35,7 @@
     "village.grain": "sim/stores",
     "village.ledger": "sim/stores",
     "village.totals": "sim/stores",
+    "village.wood": "sim/territory",
     "pawn.stake": "sim/stores",
     "pawn.household": {"owner": "sim/records", "category": "cache"},
     "household.members": {"owner": "sim/records", "category": "cache"},

@@ -29,7 +29,7 @@ VB['sim/records'] = (() => {
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
-    wedding: GENERATION, funeralAle: GENERATION,
+    wedding: GENERATION, funeralAle: GENERATION, noWood: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record

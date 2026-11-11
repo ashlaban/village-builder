@@ -41,7 +41,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   setClock(st, Math.floor(st.t / DAY) * DAY + 14); st.jobs.clear();
   const c = cal(st.t), mate = hh.members.filter((m) => st.pawns[m].role === 'wife')[0], a = st.agents[mate];
   hh.meals = 0; hh.grain = 100; hh.cookDay = -1;
-  const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: f.woodlot, done: 1.5, claims: [], posted: st.t, farm: f, live: true };
+  const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: st.villages[f.village].wood[0], done: 1.5, claims: [], posted: st.t, farm: f, live: true };
   st.jobs.set(wood.key, wood); start(st, a, wood); a.path = null; a.phase = 'work';
   refreshJobs(st, c); callCooks(st, c);
   assert.strictEqual(a.job.kind, 'cook', 'the cook goes home to cook'); assert.strictEqual(wood.claims.length, 0); assert.strictEqual(wood.done, 1.5);

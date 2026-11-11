@@ -1,30 +1,41 @@
 // @sys sim/forest: felling, regrowth and clearing of forest tiles
 VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['gen'];
-  const { YEAR_DAYS } = VB['sim/rules'];
+  const { YEAR_DAYS, WOOD } = VB['sim/rules'];
+  const { next } = VB['sim/rng'];
   const { costChanged } = VB['sim/routes'];
-  const { villageWood, moveWood } = VB['sim/territory'];
+  const { woodTaken } = VB['sim/territory'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
 
   function stageChanged(st, tile, was) { if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile); }
 
-  // A tile with no trees left becomes meadow for good; villages that used it as their wood take the nearest forest in their own land, else the
-  // nearest no other village holds (sim/territory), and their farms with it; a farm with a woodlot of its own takes the nearest forest.
+  // A tile with no trees left becomes meadow for good (until forest spread, VB-091); a village whose wood held it reckons its wood again
+  // (sim/territory).
   function clearTile(st, tile) {
     const w = st.w;
     w.trees[tile] = 0; w.treesMax[tile] = 0; st.regrow.delete(tile);
     setBiome(w, tile, B.MEADOW);
     st.treeDirty.add(tile); st.biomeDirty.add(tile); costChanged(st, tile);
-    for (const v of st.villages) if (v.commonsWood === tile) { const wd = villageWood(st, v); moveWood(st, v, wd); v.commonsWood = wd; }
-    for (const f of st.farmsteads) {
-      if (f.woodlot !== tile) continue;
-      f.woodlot = st.villages[f.village].commonsWood;
-    }
+    woodTaken(st, tile);
   }
 
-  // A completed firewood trip fells one tree from the farm's woodlot.
-  function fellTree(st, farm) {
-    const w = st.w, tile = farm.woodlot;
+  // The tile a firewood trip of village v cuts on (VB-326), drawn when its job is posted from the stream rng.forest: evenly among the tiles
+  // of the village's wood that keep more than WOOD.thin of their trees, else among those with any; -1 when it has none.
+  function drawWood(st, v) {
+    const w = st.w, wood = v.wood, thick = (t) => w.trees[t] > WOOD.thin * w.treesMax[t];
+    let n = 0;
+    for (const t of wood) if (thick(t)) n++;
+    const any = n === 0;
+    if (any) for (const t of wood) if (w.trees[t] > 0) n++;
+    if (!n) return -1;
+    let k = Math.floor(next(st.rng.forest) * n);
+    for (const t of wood) if (any ? w.trees[t] > 0 : thick(t)) { if (k === 0) return t; k--; }
+    return -1;
+  }
+
+  // A completed firewood trip fells one tree on its tile.
+  function fellTree(st, tile) {
+    const w = st.w;
     if (tile < 0 || w.trees[tile] <= 0) return;
     const was = treeStage(w, tile);
     w.trees[tile] = Math.max(0, w.trees[tile] - 1);
@@ -42,5 +53,5 @@ VB['sim/forest'] = (() => {
       stageChanged(st, tile, was);
     }
   }
-  return { fellTree, growTrees, clearTile };
+  return { fellTree, drawWood, growTrees, clearTile };
 })();

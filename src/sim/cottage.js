@@ -4,6 +4,7 @@ VB['sim/cottage'] = (() => {
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, SOIL } = VB['sim/rules'];
   const { foundHousehold } = VB['sim/membership'];
+  const { reckonWood } = VB['sim/territory'];
   const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
   const names = VB['sim/names'];
@@ -23,7 +24,7 @@ VB['sim/cottage'] = (() => {
     const house = plot.tiles.find((t) => t.kind === 'house').tile, field = plot.tiles.find((t) => t.kind === 'field').tile;
     const f = makeFarmstead(st.w, st.farmsteads.length, house, [field], v, st.used);
     if (plot.tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
-    f.name = farmName(st, v, f, holder); f.woodlot = v.commonsWood; f.state = 'occupied'; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.fence = null;
+    f.name = farmName(st, v, f, holder); f.state = 'occupied'; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.fence = null;
     st.farmsteads.push(f); v.farmsteads.push(f.id); plot.farmstead = f.id;
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
@@ -35,6 +36,7 @@ VB['sim/cottage'] = (() => {
       }
     }
     const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true });
+    reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     // a cow and two ewes from the old household, when that leaves it a cow and its winter hay (VB-140)
     const oldId = [...from].find((id) => id !== null && id !== hh.id), oldHh = oldId === undefined ? null : st.households[oldId];
     if (oldHh && !oldHh.dissolved) startHerd(st, oldHh, hh);

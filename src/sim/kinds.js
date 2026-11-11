@@ -3,7 +3,7 @@ VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
   const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
-  const { fellTree } = VB['sim/forest'];
+  const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
@@ -20,6 +20,7 @@ VB['sim/kinds'] = (() => {
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
+  //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
   //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
   //   available(st, holder, at, c, post, f): where the kind could be done now (VB-208); it calls post(key, site, extra) for each job it
@@ -162,14 +163,15 @@ VB['sim/kinds'] = (() => {
         const goal = woodTargets(st, hh).wood[c.season];
         return (goal - hh.wood) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
-      deliver: (st, j, hh) => { hh.wood += st.ECON.woodPerTrip; fellTree(st, j.farm); },
-      // from a farm with a woodlot while the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
+      // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
+      deliver: (st, j, hh) => { hh.wood += st.ECON.woodPerTrip; fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village])); },
+      draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
+      // while the village has a wood and the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
       available: (st, hh, f, c, post) => {
-        if (f.woodlot < 0) return;
-        const T = woodTargets(st, hh);
-        if (hh.wood < T.wood[c.season]) {
-          post(`wood:h${hh.id}`, f.woodlot, { farm: f });
-          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, f.woodlot, { farm: f });
+        const wood = st.villages[f.village].wood, T = woodTargets(st, hh);
+        if (wood.length && hh.wood < T.wood[c.season]) {
+          post(`wood:h${hh.id}`, wood[0], { farm: f });
+          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
         }
       },
     },

@@ -10,12 +10,11 @@ VB['sim/ownership'] = (() => {
     st.owner[tile] = !owner ? 0 : owner.type === 'household' ? owner.id + 1 : -owner.id - 1;
     if (st.landDirty) st.landDirty.add(tile);
   };
-  // Seeding: house and fields belong to the household, or to the village when the farm stands empty; the commons wood and the centre
-  // (unless it is a house) belong to the village.
+  // Seeding: house and fields belong to the household, or to the village when the farm stands empty; the centre (unless it is a house)
+  // belongs to the village. Its wood is claimed as outland (sim/territory, VB-326).
   function seedOwners(st) {
     st.owner = new Int32Array(st.w.N);
     for (const v of st.villages) {
-      if (v.commonsWood >= 0) setOwner(st, v.commonsWood, { type: 'village', id: v.id });
       setOwner(st, v.center, { type: 'village', id: v.id });
     }
     for (const f of st.farmsteads) {
