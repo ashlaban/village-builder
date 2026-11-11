@@ -1,4 +1,4 @@
-// @sys page/gift: the player's gift (VB-221), the action bar's form (VB-339): who, how much, the floor's warning; the household chosen from a
+// @sys page/gift: the player's gift (VB-221), the action bar's form (VB-341): who, how much, the floor's warning; the household chosen from a
 // list or on the map
   // ---- the player's gift: while it plays a holder, grain to any household, by the verb give; below the floor it is warned ----
   // The draft: to (a household id), n (whole rations), warn (Sim.giftWarning's answer, waiting for the player to confirm) and msg. It is a view

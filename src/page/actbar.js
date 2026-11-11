@@ -1,4 +1,4 @@
-// @sys page/actbar: the action bar (VB-339): the dock's Actions opens a second bar, Myself, Household and Village (and the Queue); each group lists
+// @sys page/actbar: the action bar (VB-341): the dock's Actions opens a second bar, Myself, Household and Village (and the Queue); each group lists
 // the played pawn's acts by their basis, an act that needs a tile puts the map in a tool mode, and the gift is one form in the list
   // ======== the action bar ========
   // All of it is the page's own state, never saved: whether the bar is open (barOpen), the list open above it (barMenu: {g, view}, the group

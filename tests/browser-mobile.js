@@ -23,9 +23,24 @@ assert(html.includes('window.__mobile'), 'page hook exists');
       ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
     await page.goto('https://village.test/', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => !document.getElementById('landing').hidden); await page.click('#landNew');
-    await page.selectOption('#genSize', 't'); await page.selectOption('#genScenario', 'founders'); await page.fill('#genSeed', '7');
+    await page.selectOption('#genSize', 't'); await page.click('[data-sc="founders"]'); await page.fill('#genSeed', '7');
     await page.click('#genGo');
     await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 120000 });
+    // Whom to play on a phone (VB-339): the map's strip first, the household under it, the archetypes last, the bar at the bottom of the
+    // screen; no sideways scroll; paused, the dock put away. Watch only closes it with no one played and the game at its speed again.
+    await page.waitForSelector('#choose:not([hidden])');
+    const tops = await page.evaluate(() => ['chooseMap', 'chooseCard', 'chooseTitle'].map((id) => document.getElementById(id).getBoundingClientRect().top));
+    assert(tops[0] < tops[1] && tops[1] < tops[2], `on a phone the map, the household and the archetypes come in that order: ${tops}`);
+    const bar = await page.locator('.choose-bar').boundingBox(), vp = page.viewportSize();
+    assert(bar && bar.y + bar.height <= vp.height + 1 && bar.y + bar.height > vp.height - 60, `the bar stays at the bottom of the screen: ${JSON.stringify(bar)}`);
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.getElementById('choose').scrollWidth <= innerWidth),
+      'whom to play scrolls sideways on a phone');
+    assert.strictEqual(await page.evaluate(() => window.__mobile.speed), 0, 'whom to play pauses the game');
+    assert(await page.locator('.navigation').evaluate((e) => getComputedStyle(e).visibility === 'hidden'), 'the dock shows while choosing');
+    await page.click('#chooseWatch');
+    assert(await page.locator('#choose').isHidden(), 'Watch only leaves whom to play open');
+    assert.strictEqual(await page.evaluate(() => window.__mobile.st.player), null, 'Watch only plays a pawn');
+    assert.strictEqual(await page.evaluate(() => window.__mobile.speed), 1, 'Watch only does not give the game its speed back');
     await page.click('#pauseBtn');
     await page.evaluate(() => window.__mobile.village());
     const fits = async (selector) => {
@@ -99,7 +114,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
     assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
     await capture('mobile-play');
-    // the action bar (VB-339) over the dock: its four buttons and each group's list fit the phone, with targets of 44 px; the gift's form too
+    // the action bar (VB-341) over the dock: its four buttons and each group's list fit the phone, with targets of 44 px; the gift's form too
     await fits('#actBar');
     for (const g of ['self', 'house', 'village']) {
       await page.click(`#actBar [data-group="${g}"]`); await page.locator('#actMenu').waitFor({ state: 'visible' }); await fits('#actMenu');

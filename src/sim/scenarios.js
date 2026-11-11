@@ -80,8 +80,9 @@ VB['sim/scenarios'] = (() => {
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
     const S = fromState((seedNum * 2654435761) ^ 0x2a11), rand = drawer(S);
-    const comp = landComponents(w);
-    const a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
+    const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // on a small map, the requirement scaled to it
+    let a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
+    if (a < 0) a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
     const { dist: far } = bfs(w, a, 200, walkable(w));

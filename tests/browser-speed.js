@@ -22,9 +22,10 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
       ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
     await page.goto('https://village.test/');
     await page.waitForFunction(() => !document.getElementById('landing').hidden); await page.click('#landNew');
-    await page.selectOption('#genScenario', 'populous'); await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
+    await page.click('[data-sc="populous"]'); await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
     await page.locator('#genForm').evaluate((form) => form.dispatchEvent(new Event('submit', { cancelable: true })));
     await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 120000 });
+    await page.click('#chooseWatch'); // whom to play (VB-339) opens on a new game; this test plays no one
     await page.click('[data-speed="0"]');
     await page.evaluate(() => window.__speedTest.village());
     let positionsChecked = 0;

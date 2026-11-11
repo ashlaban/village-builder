@@ -135,7 +135,7 @@
     if (offerEnd && offerEnd.pawn === id && st.t < offerEnd.until) h += `<p class="hint offer-end" role="status">${esc(offerEnd.text)}</p>`;
     return h;
   }
-  // The played pawn's sheet (the action bar's Queue, VB-339): its state, its switches, the offers that wait for its answer, its queue and the
+  // The played pawn's sheet (the action bar's Queue, VB-341): its state, its switches, the offers that wait for its answer, its queue and the
   // last refusal; what it may do is the action bar's (page/actbar). Rebuilt while the sheet or the bar's list is open, at most four times a
   // second (page/animate), and Sim.opportunities is called once per rebuild, for both.
   function renderActions() {
@@ -171,7 +171,7 @@
   }
   function playAs(id) {
     const r = Sim.inhabit(st, id);
-    playMsg = r === true ? null : { id, text: r }; endTool(); $('playOffer').hidden = true;
+    playMsg = r === true ? null : { id, text: r }; endTool();
     return r;
   }
   // A button of the sheet or of the bar's lists marked data-play: a switch, an answer, a wish, or an opportunity to queue (data-cmd). The
@@ -269,18 +269,3 @@
     $('toasts').appendChild(skipNote);
   }
   $('skipBtn').addEventListener('click', () => { if (skipCursor) setSpeed(0); else startSkip(); });
-  // A new game offers the scenario's suggestion; it goes when a pawn is played, a panel opens or another world is built.
-  function offerPlay() {
-    const id = suggestedPawn(), box = $('playOffer');
-    if (id < 0) { box.hidden = true; return; }
-    const f = farmOf(st.pawns[id]);
-    box.dataset.pawn = String(id);
-    $('playOfferText').textContent = `Play as ${Sim.fullName(st.pawns[id])}${f ? `, who holds ${f.name}` : ''}?`;
-    box.hidden = false;
-  }
-  $('playOfferYes').addEventListener('click', () => {
-    const id = +$('playOffer').dataset.pawn;
-    if (!st || !st.pawns[id]) return;
-    if (playAs(id) === true) { focusPawn(id); openPanel('actions'); }
-  });
-  $('playOfferNo').addEventListener('click', () => { $('playOffer').hidden = true; });
