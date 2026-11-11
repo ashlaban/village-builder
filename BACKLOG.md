@@ -45,7 +45,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-330](backlog/VB-330.md) | A home that took in a spouse at the round gives no settlers' provisions in it | - | 3 | S | The grain a marriage was allowed on is not given away the same afternoon: provisions skip households that gained a spouse in this round. |
 | [VB-334](backlog/VB-334.md) | Weeding in two rounds a crop, of 5 hours each | - | 3 | S | A growing field is weeded twice, 5 hours a round, in place of a round of 2 hours every 6 days: the same care for half the walking. |
 | [VB-336](backlog/VB-336.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 to 5, so that keeping two oxen through the winter pays. |
-| [VB-344](backlog/VB-344.md) | Digging: clay and bog iron are dug into a household's store, and bog iron grows back | - | 3 | M | a job kind dig takes loads from a clay or bog iron deposit within reach into the household's store, up to a small stock; a bog iron tile regains a load a year, read in closed form |
 
 ## Waiting for Kim
 
