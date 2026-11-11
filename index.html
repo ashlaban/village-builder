@@ -339,11 +339,6 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .play .offer { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
 .play-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .play-head h3 { margin: 0; }
-.give-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 6px 0; }
-.give-row label { display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
-.give-row select, .give-row input { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
-.give-row select { max-width: 220px; }
-.give-row input { width: 6em; }
 .play .switches { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .play .switches button { min-height: 36px; padding: 4px 12px; font-size: 14px; }
 .play .switches button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
@@ -14711,13 +14706,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     return VERB_WORDS[c.verb] || c.verb;
   }
   const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
-  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only for the round's acts, which the
-  // round carries out for a pawn that wishes them (roundBox).
-  function oppRow(o, open) {
-    const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
-    if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
-    const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
-    return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  // An opportunity the round carries out for a pawn that wishes it (roundBox): read-only, with the reason it may not be taken now or its basis.
+  function oppRow(o) {
+    return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
   }
   // The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
   // wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
@@ -14737,7 +14728,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
       : '<p class="hint">No farm of its village stands empty.</p>';
     h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
-    h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
     const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
     if (acts.some((o) => o.verb === 'match')) {
       h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
@@ -15978,7 +15969,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'fc9871b671', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '92c192f3e3', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -10,6 +10,17 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 
 ## Priority 2
 
+### VB-339: the action bar, as built (raised 11 November 2026)
+Built from the mock-up's Menu draft (`docs/mockups/action-menu.html`), with the acts the simulation has. Three choices were made in Kim's place
+and stand until answered; the bar works either way.
+1. `design.md`, The player and what they see, still puts "what it may do here" in the pawn panel. **P:** a design pass rewrites the row: the
+   played pawn's acts are in the action bar (Myself, Household, Village, by basis), its sheet (the bar's Queue) keeps its state, its switches,
+   the offers that wait for its answer and its queue.
+2. Work open at a single place is queued from the list at once, with no tap on the map; at several places the tool marks them and stays in hand
+   until Done. Walk here marks no tiles (every open tile takes it); a refused tap says why. **P:** keep this.
+3. An act queued from a list leaves the list open with a line ("Queued: ..."), so several can be queued in turn; the mock-up closed it. **P:** keep
+   it open; the tool's acts close it, as in the mock-up.
+
 ### VB-294: where the village's choice of gathering is made (raised 11 November 2026)
 Raised by the backlog's curation of 11 November. VB-294's criterion reads "A village's choice is a routine of its meeting (VB-257), so the player's pawn argues for it by advocacy as for any cause." VB-257's routines are village work (at most four a year, each a source of tasks on the `villager` basis), set "as a decision of the meeting (a command of the meeting, as its other decisions)"; a choice among hosts posts no work. Slice 5's VB-313 builds `sim/decisions`, the one place where a body's questions, procedures and ballots are asked (the custom votes first; VB-293's offers are planned to move there), but it is slice 5 and P3, and VB-294 is slice 4 and P2.
 1. Is the choice of gathering one of VB-257's routines, or a question of the meeting of its own? **P:** a question of its own, made as VB-257 makes its decisions (a command of the meeting, the player's pawn arguing by advocacy), not one of the four routines; VB-294 keeps waiting for VB-257 only, and VB-313 moves the choice into `sim/decisions` with the other questions when it lands, so slice 4 does not wait for slice 5. The other way: VB-294 waits for VB-313 as well, and the fair moves behind slice 5's refactor.

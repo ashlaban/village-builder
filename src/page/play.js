@@ -38,13 +38,9 @@
     return VERB_WORDS[c.verb] || c.verb;
   }
   const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
-  // An opportunity: a button that queues it, or greyed with the reason it may not be taken now; read-only for the round's acts, which the
-  // round carries out for a pawn that wishes them (roundBox).
-  function oppRow(o, open) {
-    const what = esc(commandWords(o)), note = esc(o.why || BASIS[o.basis]);
-    if (!open) return `<li class="opp${o.why ? ' barred' : ''}"><span>${what}</span><i>${note}</i></li>`;
-    const cmd = esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.verb === 'argue' || o.verb === 'dropCause' ? o.args : undefined }));
-    return `<li><button type="button" class="opp" data-play="do" data-cmd="${cmd}"${o.why ? ' disabled' : ''}>${what}<i>${note}</i></button></li>`;
+  // An opportunity the round carries out for a pawn that wishes it (roundBox): read-only, with the reason it may not be taken now or its basis.
+  function oppRow(o) {
+    return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
   }
   // The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
   // wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
@@ -64,7 +60,7 @@
       esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
       : '<p class="hint">No farm of its village stands empty.</p>';
     h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
-    h += `<ul class="opps">${serve.map((o) => oppRow(o, false)).join('')}</ul>`;
+    h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
     const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
     if (acts.some((o) => o.verb === 'match')) {
       h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
