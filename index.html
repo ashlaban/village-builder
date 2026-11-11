@@ -2445,6 +2445,7 @@ VB['sim/rules'] = (() => {
       border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
       claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
       // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
+      ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
@@ -2520,6 +2521,12 @@ VB['sim/rules'] = (() => {
   // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
   // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
   const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
+  // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
+  // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
+  // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
+  // an occasion gives the host `prestige` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
+  // it is SOCIAL.memories.ale.
+  const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
   const HELP = {
     bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
@@ -2599,7 +2606,7 @@ VB['sim/rules'] = (() => {
       field: 1, fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3, reapFrostPerDay: 5, haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
       woodLow: 8, woodLowUrgency: 2.2, woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
-      waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, mendPerCond: 2, other: 1,
+      waterMorning: 1.4, waterMorningHour: 10, water: 1, cookEvening: 2.2, cookEveningHour: 15, cook: 0.6, brew: 0.5, mendPerCond: 2, other: 1,
       rake: 0.8, mow: 1, mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
       fodder: 1.5, slaughter: 1.2, slaughterNow: 3, salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
@@ -2611,7 +2618,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS };
 })();
 </script>
@@ -3880,7 +3887,7 @@ VB['sim/records'] = (() => {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
         haySpoilt: 0,
-      larder: [], fodderDay: -1,
+      larder: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
     f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
@@ -5324,12 +5331,12 @@ VB['sim/herds'] = (() => {
 </script>
 <script>
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
-// the registry of goods (VB-299) and Culture's worth and proper as rules
+// ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
-  const { YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW } = VB['sim/rules'];
   const Rules = VB['sim/registry'], Culture = VB['culture'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
-    'catch', 'gathering'];
+    'catch', 'gathering', 'brew', 'pour'];
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
@@ -5438,7 +5445,7 @@ VB['sim/stores'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       VB.count.storeWalk += hh.ledger.length + hh.totals.length;
-      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept);
+      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter(recent);
     }
     for (const v of st.villages) {
       VB.count.storeWalk += v.ledger.length + v.totals.length;
@@ -5446,9 +5453,55 @@ VB['sim/stores'] = (() => {
     }
   }
   // A household's ledger ends when it dissolves: no movement can reach it afterwards (type refuses a dissolved holder).
-  function close(st, hh) { if (!hh.dissolved) throw new Error('stores: close a dissolved household only'); hh.ledger = []; hh.totals = []; }
+  function close(st, hh) {
+    if (!hh.dissolved) throw new Error('stores: close a dissolved household only');
+    hh.ledger = []; hh.totals = [];
+    hh.ale = []; hh.poured = [];
+  }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
   function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
+  // ---- ale (VB-305; design.md, Goods, Ale and standing): barrels in lots {n, until (game hours)}, oldest first, kept in hh.ale (a household
+  // holds ale and no other holder does); BREW.grain rations of grain make a barrel, which keeps the good's season. hh.poured: the game hours
+  // of the barrels poured in the last BREW.years years, the last BREW.maxBarrels of them (the host's standing counts no more), pruned at the
+  // year's turn. ----
+  // @state household.ale: [{n, until}]: lots of barrels of ale, oldest first, each n a whole number above 0, those past `until` lost at the day's turn
+  // @state household.poured: number[]: the game hours at which barrels were poured, oldest first, at most BREW.maxBarrels, those over BREW.years old pruned
+  const aleKeeps = () => goodOf('ale').perish.keepsDays * DAY;
+  // The barrels the household holds now.
+  function aleOf(st, hh) { let n = 0; for (const l of hh.ale) if (l.until > st.t) n += l.n; return n; }
+  // Brews a barrel from the household's grain (sim/kinds checks that it is surplus: grain above the floor); 0 if the grain is not there.
+  function brew(st, hh) {
+    type(hh);
+    if (hh.grain < BREW.grain) return 0;
+    take(st, hh, 'grain', BREW.grain, 'brew'); record(st, hh, 'ale', 1, 'brew');
+    hh.ale.push({ n: 1, until: st.t + aleKeeps() });
+    return 1;
+  }
+  // Ale past its season is lost (each day; sim/clock).
+  function spoilAle(st, hh) {
+    if (!hh.ale.length) return;
+    let lost = 0;
+    for (const l of hh.ale) if (l.until <= st.t) lost += l.n;
+    if (!lost) return;
+    record(st, hh, 'ale', -lost, 'spoilage'); hh.ale = hh.ale.filter((l) => l.until > st.t);
+  }
+  // Pours up to n barrels, the oldest first, and says how many (the host's standing counts them, sim/society); used up with its reason.
+  function pour(st, hh, n) {
+    type(hh); spoilAle(st, hh);
+    const rest = []; let left = Math.floor(n);
+    for (const l of hh.ale) { const k = Math.min(l.n, left); left -= k; if (l.n > k) rest.push({ n: l.n - k, until: l.until }); }
+    const got = Math.floor(n) - left;
+    if (!got) return 0;
+    hh.ale = rest; record(st, hh, 'ale', -got, 'pour');
+    for (let i = 0; i < got; i++) hh.poured.push(st.t);
+    if (hh.poured.length > BREW.maxBarrels) hh.poured.splice(0, hh.poured.length - BREW.maxBarrels);
+    return got;
+  }
+  // The host's standing from its pours: BREW.prestige a barrel poured in the last BREW.years years, counted up to BREW.maxBarrels.
+  function aleStanding(st, hh) {
+    let n = 0; for (const t of hh.poured) if (st.t - t < BREW.years * YEAR) n++;
+    return n * BREW.prestige;
+  }
   // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
   // two plans do not spend it twice and the holder's free stock is the rest. A count per holder, good and plan, kept on the plan (st.plans,
   // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
@@ -5516,7 +5569,7 @@ VB['sim/stores'] = (() => {
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
-    follow, reserve, release, reserved };
+    follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
 </script>
 <script>
@@ -7131,10 +7184,10 @@ VB['sim/farmclaims'] = (() => {
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
-  const { ROLES, WORK, FISH, FORAGE, cal } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, FORAGE, BREW, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
-  const { dailyNeed } = VB['sim/hunger'], { reserved } = Stores;
+  const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
@@ -7185,6 +7238,9 @@ VB['sim/kinds'] = (() => {
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
   const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
+  // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
+  // seed reserve): a household never brews grain it needs.
+  const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && hh.grain - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -7328,6 +7384,16 @@ VB['sim/kinds'] = (() => {
       // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
       available: (st, hh, f, c, post) => {
         if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
+      },
+    },
+    brew: {
+      verb: 'Brewing ale', go: 'Going home to brew', name: 'Brew ale', label: 'Brewing', anim: null, hours: BREW.hours, hands: 1, type: 'household',
+      inside: true, urgency: (st, j, c, U) => U.brew,
+      // a barrel from the grain, if it is still surplus when the work is done
+      done: (st, j, hh) => { if (hh.grain - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh); },
+      // in autumn and winter, once the harvest is in, while ale is wanted (brewWanted)
+      available: (st, hh, f, c, post) => {
+        if ((c.season === 2 || c.season === 3) && brewWanted(st, hh)) post(`brew:h${hh.id}:${c.day}`, f.house, { farm: f });
       },
     },
     weed: {
@@ -7497,7 +7563,7 @@ VB['sim/kinds'] = (() => {
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
     farm: [meadowWork, 'manure', byreWork].map(rule),
-    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'mend', 'fish', 'gather'].map(rule),
+    farmAfterPlans: [landProject, boothWork, 'wood', 'thresh', 'water', 'cook', 'brew', 'mend', 'fish', 'gather'].map(rule),
     village: ['mend'].map(rule),
     island: [plotWork, claimWork].map(rule),
     fieldAt: {},
@@ -8234,6 +8300,8 @@ VB['sim/occasions'] = (() => {
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm } = VB['sim/records'];
   const { issue, unplanned } = VB['sim/commands'];
+  const { emit } = VB['sim/events'], { remember } = VB['sim/relations'], Stores = VB['sim/stores'];
+  const { BREW } = VB['sim/rules'];
   // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. The meeting is
   // held at noon (sim/lifecycle's stages, from 12:00): its people stand about the green from 10:00 until its four steps are done.
   const OCCASIONS = {
@@ -8353,20 +8421,36 @@ VB['sim/occasions'] = (() => {
     o.due = Math.min(again, nextLeave ? nextLeave.leave : Infinity, o.end);
     st.occasions.splice(st.occasions.indexOf(o), 1); enqueue(st, o);
   }
+  // The host household pours its ale for those who came (VB-305; a barrel serves BREW.guests): as many barrels as it has for them, used up through
+  // sim/stores with the reason 'pour'. Each guest of another household remembers the host's holder for it (SOCIAL.memories.ale), and the host's
+  // standing is told to sim/society ('alePoured'). Returns the barrels poured.
+  function pourAle(st, f, present) {
+    if (f.household === null) return 0;
+    const hh = st.households[f.household];
+    if (hh.dissolved || hh.holder === null || !st.pawns[hh.holder].alive) return 0;
+    const barrels = Stores.pour(st, hh, Math.min(Stores.aleOf(st, hh), Math.ceil(present.length / BREW.guests)));
+    if (!barrels) return 0;
+    for (const id of present) if (st.pawns[id].alive && st.pawns[id].household !== hh.id) remember(st, id, hh.holder, 'ale');
+    emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels });
+    return barrels;
+  }
   // The occasion ends: those who came are free; outside working hours those outdoors go home. A wedding or a funeral ale is told in the log.
   function finish(st, o) {
     st.occasions.splice(st.occasions.indexOf(o), 1);
     const h = cal(st.t).hour, late = h >= WORK[1] || h < WORK[0];
     let far = 0;
+    const present = [];
     for (const id of o.come) {
       const a = st.agents[id];
       if (a.occasion !== o.id) continue;
-      a.occasion = null;
+      a.occasion = null; present.push(id);
       if (o.village !== null && st.pawns[id].household !== null && st.farmsteads[st.households[st.pawns[id].household].farmstead].village !== o.village) far++;
       if (late && !a.inside && st.pawns[id].alive && !unplanned(st, id)) issue(st, { actor: id, verb: 'goHome', source: 'occasion' });
     }
     if (o.kind === 'meeting') return;
-    const f = st.farmsteads[o.farm], n = o.come.length, came = `${n} came${far ? `, ${far} of them from other villages` : ''}`;
+    const f = st.farmsteads[o.farm], n = o.come.length, barrels = pourAle(st, f, present);
+    const ale = barrels ? `; ${barrels === 1 ? 'a barrel' : barrels + ' barrels'} of ale poured` : '';
+    const came = `${n} came${far ? `, ${far} of them from other villages` : ''}${ale}`;
     const at = atFarm(f);
     if (o.kind === 'wedding') {
       log(st, `The wedding of ${fullName(st.pawns[o.for[0]])} and ${fullName(st.pawns[o.for[1]])} at ${f.name}: ${came}.`,
@@ -8437,8 +8521,8 @@ VB['sim/plans'] = (() => {
     ['manure', 'plow', 'sow', 'rake', 'reclaim', 'clear', 'break', 'meadow', 'thresh', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish'],
     ['weed', 'mow', 'hay', 'reclaim', 'clear', 'break', 'meadow', 'wood', 'mend', 'water', 'cook', 'fodder', 'milk', 'fish', 'gather'],
     ['reap', 'haul', 'mow', 'hay', 'thresh', 'slaughter', 'salt', 'wood', 'reclaim', 'clear', 'break', 'meadow', 'mend', 'water', 'cook',
-      'fodder', 'milk', 'fish', 'gather'], // fishing last, gathering after it (VB-118), as a household checks it (VB-117); not in winter, under the ice
-    ['thresh', 'wood', 'slaughter', 'salt', 'mend', 'water', 'cook', 'fodder', 'milk'],
+      'fodder', 'milk', 'fish', 'gather', 'brew'], // fishing last, gathering after it (VB-118), as a household checks it (VB-117); not in winter, under the ice
+    ['thresh', 'wood', 'slaughter', 'salt', 'mend', 'water', 'cook', 'fodder', 'milk', 'brew'],
   ];
   const ROUTINE_KINDS = [...new Set(ROUTINES.flat())];
   for (const k of ROUTINE_KINDS) if (!KINDS[k]) throw new Error('The template names an unknown kind: ' + k);
@@ -10041,7 +10125,8 @@ VB['sim/society'] = (() => {
   const { YEAR } = VB['sim/rules'];
   const { stepsTo, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, membersOf, voiceOf } = VB['sim/records'];
+  const { log, age, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, holdingOf, membersOf, voiceOf } = VB['sim/records'];
+  const { on } = VB['sim/events'], { aleStanding } = VB['sim/stores'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
@@ -10104,14 +10189,21 @@ VB['sim/society'] = (() => {
       s.distance = d; s.kinLinks = kin;
     }
   }
+  // A pawn's prestige: its place (holder, a holder's spouse), age, and, for a holder, the ale its household poured in the last three years (VB-305).
+  function prestigeOf(st, p) {
+    const sp = spouseOf(st, p.id), hold = holdingOf(st, p.id);
+    let v = hold ? 1.6 : sp !== null && isHolder(st, sp) ? 1.3 : 1;
+    if (p.age >= 55) v += 0.2;
+    return hold ? v + aleStanding(st, hold) : v;
+  }
   function refreshPrestige(st) {
     for (const id of st.living) {
       const p = st.pawns[id];
-      const sp = spouseOf(st, p.id);
-      p.prestige = isHolder(st, p.id) ? 1.6 : sp !== null && isHolder(st, sp) ? 1.3 : 1;
-      if (p.age >= 55) p.prestige += 0.2;
+      p.prestige = prestigeOf(st, p);
     }
   }
+  // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
+  on('alePoured', (st, e) => { const p = st.pawns[e.host]; if (p.alive) p.prestige = prestigeOf(st, p); });
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
     const D = Culture.DIMS, I = Culture.IDX, O = Culture.OFF, own = ownFirstOf(st);
@@ -11258,7 +11350,7 @@ VB['sim/clock'] = (() => {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      feedHousehold(st, hh); spoilGrain(st, hh);
+      feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     Stores.villageDay(st); // it spoils too (balance review)
@@ -15412,7 +15504,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '86c27732f1', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '91864d493e', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -61,7 +61,7 @@ VB['sim/clock'] = (() => {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      feedHousehold(st, hh); spoilGrain(st, hh);
+      feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
       hh.wood = Math.max(0, hh.wood - E.woodUse[c.season]);
     }
     Stores.villageDay(st); // it spoils too (balance review)
