@@ -20,7 +20,8 @@ VB['sim/exchange'] = (() => {
     } });
   // allowance's opinion term (design.md, The gift: Allowance; Kim, 10 Nov): the giver's opinion of the receiver, -1 to 1, times
   // GOODWILL.opinionRations. Coupled with goodwill, which colours opinion (gratitude): a high opinion lets a deal through.
-  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'opinion', label: 'Opinion of them', tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
+  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'opinion', label: 'Opinion of them',
+    tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
     value: (st, c) => (!GOODWILL.acts || c.giver === null || c.receiver === null ? 0 : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver)) });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.

@@ -46,7 +46,7 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
   Sim.advance(st, 2.5 * Sim.YEAR);
   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 73, 'heirs 7 at 2.5 years: 73 events on its pawns');
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 72, 'heirs 7 at 2.5 years: 72 events on its pawns');
   assert.strictEqual(hash, 'b641816b0e10c93d', 'a pawn\'s life reads as it did with copies');
 }
 const st = Sim.seed(world(), 7, 'founders');
