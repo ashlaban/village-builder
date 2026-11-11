@@ -703,7 +703,9 @@ lies where it is drawn, not in every marsh, and "stone ground" is the bedrock, s
 November (Decided; the numbers are each slice's plan's to set):
 - Known and found. Bedrock, clay, peat and bog iron are known to all: they show at the surface. The upland ores (iron, copper, lead and
   silver, tin, gold) are found: a vein is unknown until a pawn has worked or herded near it for a season, or prospects for it, and the
-  views show only what is known. Until that is built, all is shown (the tile panel and the Ground overlay).
+  views show only what is known. Built (VB-343): knowledge is the village's; a finished job within 2 tiles of a vein finds it with chance
+  work hours / 60; a played pawn sees what its village knows, a watcher everything, the unfound faint. Prospecting as work of its own waits
+  for the first good that needs ore.
 - Bog iron grows back, slowly, up to what the tile began with: the peasant's lasting source, where rock iron is the rich and finite one.
 - Quarried stone (VB-332) is of the tile's bedrock. A foundation takes any kind; later uses want the right one. Picked field stone is granite.
 - What each is for: clay, limestone and sandstone with slice 6 (pots, daub and brick; lime burnt for mortar; querns, whetstones and

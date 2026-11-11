@@ -105,6 +105,7 @@
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
     if (st.landDirty.size) refreshLand();
+    refreshGround();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }

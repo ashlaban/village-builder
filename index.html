@@ -320,6 +320,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .ground-key i { flex: none; width: 14px; height: 14px; border: 1.5px solid #2a1a0c; }
 .ground-key i.rock { border-width: 1px; border-radius: 3px; }
 .ground-key i.ore { border-radius: 50%; }
+.ground-key i.faint { background: #33363c; opacity: .35; }
 .ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
 .ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
 body:not(.minimap-open) .ground-key { display: none; }
@@ -1719,17 +1720,17 @@ VB['gen/geology'] = (() => {
     { key: 'marble', name: 'Marble' },
     { key: 'soapstone', name: 'Soapstone' },
   ];
-  // Deposits, w.deposit's codes.
+  // Deposits, w.deposit's codes. hidden: an ore that does not show at the surface, and must be found (sim/prospect).
   const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7, SALT: 8, PEAT: 9, FLINT: 10, AMBER: 11 };
   const DEPOSITS = [
     { key: 'none', name: '' },
     { key: 'clay', name: 'Clay' },
     { key: 'bogIron', name: 'Bog iron ore' },
-    { key: 'iron', name: 'Iron ore' },
-    { key: 'copper', name: 'Copper ore' },
-    { key: 'leadSilver', name: 'Lead and silver ore' },
-    { key: 'tin', name: 'Tin ore' },
-    { key: 'gold', name: 'Gold' },
+    { key: 'iron', name: 'Iron ore', hidden: true },
+    { key: 'copper', name: 'Copper ore', hidden: true },
+    { key: 'leadSilver', name: 'Lead and silver ore', hidden: true },
+    { key: 'tin', name: 'Tin ore', hidden: true },
+    { key: 'gold', name: 'Gold', hidden: true },
     { key: 'salt', name: 'Salt spring' },
     { key: 'peat', name: 'Peat' },
     { key: 'flint', name: 'Flint' },
@@ -1737,6 +1738,8 @@ VB['gen/geology'] = (() => {
   ];
   // A deposit tile's w.depositLeft of ENDLESS is a source that does not run out in any game.
   const ENDLESS = 65535;
+  // A hidden vein can be come on by work within `reach` tiles of it (w.veinNear).
+  const FIND = { reach: 2 };
   // tiles: map tiles (sea included) to a bedrock province, at least `least` provinces; ragged: how far, in tiles, noise moves a border.
   const PROVINCES = { tiles: 2200, least: 3, ragged: 2.5 };
   // Lenses of stone and deposits, laid island by island in this order (the rarest first: a tile holds one deposit, the first to reach it).
@@ -1769,7 +1772,11 @@ VB['gen/geology'] = (() => {
     // @state w.rock: Uint8Array per tile; bedrock, a ROCK code of gen/geology (granite..soapstone on land, 0 on water)
     // @state w.deposit: Uint8Array per tile; what can be dug here, a DEPOSIT code of gen/geology (0 on most tiles)
     // @state w.depositLeft: Uint16Array per tile; loads left of the tile's deposit, 65535 (ENDLESS) for one that does not run out; 0 with none
+    // @state w.vein: Uint16Array per tile; the id (1..) of the vein the tile's deposit belongs to, 0 with none
+    // @state w.veinKind: array by vein id of the vein's DEPOSIT code (index 0 unused)
+    // @state w.veinNear: Uint16Array per tile; the id of a hidden vein within FIND.reach tiles over land, the nearest, 0 with none
     const rock = new Uint8Array(N), deposit = new Uint8Array(N), depositLeft = new Uint16Array(N);
+    const vein = new Uint16Array(N), veinNear = new Uint16Array(N), veinKind = [0];
 
     // ---- bedrock: provinces round scattered centres, the nearest centre's rock, with ragged borders ----
     const K = Math.max(PROVINCES.least, Math.round(N / PROVINCES.tiles)), px = [], py = [], pr = [];
@@ -1835,15 +1842,17 @@ VB['gen/geology'] = (() => {
         for (let n = 0; n < veins; n++) {
           const first = at[(draw() * at.length) | 0], size = v.size[0] + ((draw() * (v.size[1] - v.size[0] + 1)) | 0), rich = draw() < (v.rich || 0);
           if (!free(v, first)) continue;
-          const vein = [first], edge = [first], inVein = new Set(vein);
-          while (vein.length < size && edge.length) {
+          const run = [first], edge = [first], inVein = new Set(run);
+          if (v.deposit) veinKind.push(v.deposit);
+          while (run.length < size && edge.length) {
             const e = (draw() * edge.length) | 0, i = edge[e], open = [];
             for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && !inVein.has(j) && host(j) && free(v, j)) open.push(j); }
             if (!open.length) { edge[e] = edge[edge.length - 1]; edge.pop(); continue; }
-            const j = open[(draw() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
+            const j = open[(draw() * open.length) | 0]; inVein.add(j); run.push(j); edge.push(j);
           }
-          for (const i of vein) {
+          for (const i of run) {
             if (v.rock) { rock[i] = v.rock; continue; }
+            vein[i] = veinKind.length - 1;
             const r = draw();
             deposit[i] = v.deposit;
             depositLeft[i] = rich && i === first ? ENDLESS : Math.round(v.amount[0] + (v.amount[1] - v.amount[0]) * r * r);
@@ -1851,10 +1860,20 @@ VB['gen/geology'] = (() => {
         }
       }
     }
-    return { rock, deposit, depositLeft };
+    // ---- the land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals) ----
+    const q = [], steps = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (vein[i] && DEPOSITS[deposit[i]].hidden) { veinNear[i] = vein[i]; q.push(i); }
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h]; if (steps[i] >= FIND.reach) continue;
+      for (let d = 0; d < 6; d++) {
+        const j = nb[i * 6 + d]; if (j < 0 || water[j] || veinNear[j]) continue;
+        veinNear[j] = veinNear[i]; steps[j] = steps[i] + 1; q.push(j);
+      }
+    }
+    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
   }
 
-  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, PROVINCES, VEINS };
+  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
 })();
 </script>
 <script>
@@ -3295,7 +3314,8 @@ VB['sim/rng'] = (() => {
     return fromState(Math.imul(seed | 0, 0x9e3779b1) ^ h);
   }
   // The systems that draw, one stream each once seeding is over (Kim, 2 Nov: every system has its own source of randomness).
-  const SYSTEMS = ['work', 'fields', 'weather', 'fences', 'births', 'deaths', 'culture', 'people', 'society', 'talk', 'herds', 'settle', 'occasions', 'traits'];
+  const SYSTEMS = ['work', 'fields', 'weather', 'fences', 'births', 'deaths', 'culture', 'people', 'society', 'talk', 'herds', 'settle', 'occasions', 'traits',
+    'prospect'];
   // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
   const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
   // Once seeding is over: a stream of its own for each system, from the scenario's seed and the system's name, so a change to one system's
@@ -4221,7 +4241,7 @@ VB['sim/records'] = (() => {
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
-    stake: 0, stakeLapsed: 0, border: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
+    stake: 0, stakeLapsed: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
     matchRefused: 0, offerLapsed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
@@ -4594,6 +4614,52 @@ VB['sim/records'] = (() => {
     kinNear, villageOf, settlementIdOf, isHolder, membersOf, voiceOf, holdingOf, noteHolder, noteUnionEnd, unionOf, wasWidowed, index, practice, farmPractice,
     noteLine, householdsOfLine, ancestorsOf, wishOf, spokesmanOf,
   };
+})();
+</script>
+<script>
+// @sys sim/prospect: what each village knows of the ores in its uplands (VB-343): a hidden vein is found by work done near it
+// Bedrock, clay, peat, bog iron, flint, amber and salt springs show at the surface and are known to all. The upland ores (the deposits
+// marked `hidden` in gen/geology) are not: a village knows a vein once one of its pawns has come on it while working within reach.
+VB['sim/prospect'] = (() => {
+  const { next: rnd } = VB['sim/rng'];
+  const { villageOf, fullName, log, atHousehold } = VB['sim/records'];
+  const Geo = VB['gen/geology'];
+  // hours: work hours within reach of a vein (w.veinNear: 2 tiles) for an even chance times two of finding it: a finished job of h work
+  // hours finds it with chance h / hours, at most 1. Drawn as the work ends, so no tally of hours is kept (Rules for cost 3).
+  const PROSPECT = { hours: 60 };
+  const hidden = (w, tile) => !!Geo.DEPOSITS[w.deposit[tile]].hidden;
+  // Does the village know the deposit on this tile? Every village knows what shows at the surface. A village's finds are at most the
+  // map's hidden veins, some tens (the declared cap of this list).
+  function knows(st, village, tile) {
+    const w = st.w;
+    if (!w.deposit[tile] || !hidden(w, tile)) return true;
+    const found = st.finds.get(village);
+    return !!found && found.includes(w.vein[tile]);
+  }
+  // Does any village know it? (the watcher's view)
+  function known(st, tile) {
+    const w = st.w;
+    if (!w.deposit[tile] || !hidden(w, tile)) return true;
+    for (const found of st.finds.values()) if (found.includes(w.vein[tile])) return true;
+    return false;
+  }
+  // A pawn has finished `hours` of work on `tile`: with a hidden vein within reach that its village does not know, it may come on it.
+  function worked(st, pawnId, tile, hours) {
+    const w = st.w, vein = tile >= 0 && w.veinNear ? w.veinNear[tile] : 0;
+    if (!vein) return;
+    const p = st.pawns[pawnId]; if (p.household === null) return;
+    const hh = st.households[p.household], v = villageOf(st, p);
+    // @state st.finds: Map of village id to the vein ids (w.vein) the village has found, in the order found; a village with none has no entry
+    let found = st.finds.get(v);
+    if (!found) st.finds.set(v, found = []);
+    if (found.includes(vein) || rnd(st.rng.prospect) >= hours / PROSPECT.hours) return;
+    found.push(vein);
+    const ore = Geo.DEPOSITS[w.veinKind[vein]].name.toLowerCase();
+    st.visualDirty = true;
+    log(st, `${fullName(p)} of ${st.farmsteads[hh.farmstead].name} has come on ${ore} in the hills: ${st.villages[v].name} knows of it now.`,
+      { kind: 'oreFound', pawn: pawnId, ...atHousehold(st, hh) });
+  }
+  return { PROSPECT, knows, known, worked };
 })();
 </script>
 <script>
@@ -6569,7 +6635,7 @@ VB['sim/notable'] = (() => {
     life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
-      'plotStarted', 'field', 'meadow', 'stake', 'border', 'service', 'guardian'] },
+      'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
     custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
@@ -8093,6 +8159,7 @@ VB['sim/agents'] = (() => {
   const { hasTeam } = VB['sim/herds'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
+  const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
@@ -8211,6 +8278,7 @@ VB['sim/agents'] = (() => {
       if (j.done >= (j.hours ?? K.hours)) {
         unhold(a, j);
         if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+        prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours);
         dropJob(st, j);
         if (!a.side) return;
       }
@@ -8233,6 +8301,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
+    prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
@@ -11752,6 +11821,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0, occasions: [], occasionSeq: 0,
+      finds: new Map(),
     };
     rebuildLiving(st);
     seedPlans(st);
@@ -12184,6 +12254,7 @@ VB['sim/saves'] = (() => {
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
+    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-343: nor what the villages have found
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
@@ -12228,6 +12299,7 @@ const Sim = (() => {
   const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { claimsOn, strength, holdings } = VB['sim/claims'];
+  const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
 
   return {
     seed, advance, save, load, recordOf, command, inhabit, uninhabit, queue, unqueue, setAuto, wish, opportunities, successors, succeed, cal, age, birthYear,
@@ -12242,7 +12314,7 @@ const Sim = (() => {
       seedReserve, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
-    claimsOn, claimStrength: strength, holdings, CLAIMS, goodwillOf, explainAllowance,
+    claimsOn, claimStrength: strength, holdings, CLAIMS, knowsDeposit, depositKnown, goodwillOf, explainAllowance,
     giftWarning, kinHouseholds, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog,
     SKIP, skipFrom, skipStop, answer,
   };
@@ -12710,44 +12782,68 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- the Ground overlay (gen/geology): what lies in the ground ----
   // Bedrock tints the tile; a deposit is a mark in its kind's colour: a disc for an ore, a square for clay and peat, a diamond for salt,
   // flint and amber; a ring goes round a source that does not run out.
-  // The ground is the generator's and nothing digs yet, so it is drawn once a world, when the overlay is first turned on.
-  let groundG = null, groundOn = false, groundFor = null;
+  // The ores hidden in the uplands are shown as the viewer knows them (sim/prospect): a played pawn sees what its village has found; a
+  // watcher sees all, a vein no village has found drawn faint. Nothing digs yet, so the ground is redrawn only for a new world, another
+  // viewer or a new find.
+  let groundG = null, groundOn = false, groundFor = null, groundSeen = '', groundAt = -1;
   const ROCK_COLOUR = [0, 0xc98a8a, 0xf0e8c8, 0xe0a050, 0x56627a, 0xffffff, 0x6fae8e]; // by ROCK code: granite..soapstone
   const DEPOSIT_COLOUR = [0, 0xc4552d, 0x8a5a2a, 0x33363c, 0x1fa98a, 0xdfe6ee, 0x7fb4e6, 0xf5c518, 0xffffff, 0x4a3526, 0x5d6675,
     0xff9d1c]; // by DEPOSIT code: clay..amber
   const DEPOSIT_MARK = ['', 'earth', 'ore', 'ore', 'ore', 'ore', 'ore', 'ore', 'gem', 'earth', 'gem', 'gem'];
   const hex6 = (c) => '#' + c.toString(16).padStart(6, '0');
+  // Whose knowledge the map shows: the played pawn's village, or -1 for a watcher.
+  function seerVillage() {
+    const id = st ? played() : -1, p = id >= 0 ? st.pawns[id] : null;
+    return p && p.household !== null ? st.farmsteads[st.households[p.household].farmstead].village : -1;
+  }
+  // How the viewer sees a tile's deposit: 0 not at all, 1 plainly, 2 faintly (a watcher's view of a vein no village has found).
+  function depositShown(i) {
+    if (!st) return 1;
+    const v = seerVillage();
+    return v >= 0 ? (Sim.knowsDeposit(st, v, i) ? 1 : 0) : Sim.depositKnown(st, i) ? 1 : 2;
+  }
+  const groundSight = () => (st ? `${seerVillage()}:${[...st.finds.values()].reduce((n, f) => n + f.length, 0)}` : '');
   function drawGround() {
-    if (!w || !w.rock || groundFor === w) return;
+    if (!w || !w.rock) return;
+    const sight = groundSight();
+    if (groundFor === w && groundSeen === sight) return;
     if (!groundG) { groundG = new PIXI.Graphics(); L.ground.addChild(groundG); }
     const g = groundG, R = w.R, rocks = Geo.ROCKS.map(() => 0), deps = Geo.DEPOSITS.map(() => 0);
-    g.clear(); groundFor = w;
+    g.clear(); groundFor = w; groundSeen = sight; groundAt = time;
+    const shown = new Uint8Array(w.N); let faint = 0;
+    for (let i = 0; i < w.N; i++) if (w.deposit[i]) shown[i] = depositShown(i);
     for (let r = 1; r < Geo.ROCKS.length; r++) {
       for (let i = 0; i < w.N; i++) if (w.rock[i] === r) { g.poly(hexPoly(i)); rocks[r]++; }
       if (rocks[r]) g.fill({ color: ROCK_COLOUR[r], alpha: 0.5 });
     }
-    for (let d = 1; d < Geo.DEPOSITS.length; d++) {
+    for (let d = 1; d < Geo.DEPOSITS.length; d++) for (const how of [1, 2]) {
+      let n = 0;
       for (let i = 0; i < w.N; i++) {
-        if (w.deposit[i] !== d) continue;
-        deps[d]++;
+        if (w.deposit[i] !== d || shown[i] !== how) continue;
+        n++;
         const x = w.hx[i], y = w.hy[i], m = DEPOSIT_MARK[d];
         if (m === 'earth') g.rect(x - R * 0.38, y - R * 0.38, R * 0.76, R * 0.76);
         else if (m === 'gem') g.poly([x, y - R * 0.52, x + R * 0.52, y, x, y + R * 0.52, x - R * 0.52, y]);
         else g.circle(x, y, R * 0.44);
       }
-      if (deps[d]) g.fill({ color: DEPOSIT_COLOUR[d] }).stroke({ width: R * 0.09, color: 0x2a1a0c });
+      if (!n) continue;
+      deps[d] += n; if (how === 2) faint += n;
+      g.fill({ color: DEPOSIT_COLOUR[d], alpha: how === 1 ? 1 : 0.35 }).stroke({ width: R * 0.09, color: 0x2a1a0c, alpha: how === 1 ? 1 : 0.4 });
     }
     let endless = 0;
-    for (let i = 0; i < w.N; i++) if (w.deposit[i] && w.depositLeft[i] === Geo.ENDLESS) { g.circle(w.hx[i], w.hy[i], R * 0.68); endless++; }
+    for (let i = 0; i < w.N; i++) if (shown[i] && w.depositLeft[i] === Geo.ENDLESS) { g.circle(w.hx[i], w.hy[i], R * 0.68); endless++; }
     if (endless) g.stroke({ width: R * 0.1, color: 0x2a1a0c });
-    // the key: only the kinds this map has
+    // the key: only the kinds the viewer sees on this map
     const row = (cls, colour, name) => `<li><i class="${cls}" style="background:${hex6(colour)}"></i>${name}</li>`;
     $('groundKey').innerHTML = '<h2 class="menu-label">Bedrock</h2><ul>'
       + Geo.ROCKS.map((r, k) => (rocks[k] ? row('rock', ROCK_COLOUR[k], r.name) : '')).join('') + '</ul><h2 class="menu-label">Deposits</h2><ul>'
       + (Geo.DEPOSITS.map((d, k) => (deps[k] ? row(DEPOSIT_MARK[k], DEPOSIT_COLOUR[k], d.name) : '')).join('')
-        || '<li>None on this map</li>') + (endless ? '<li><i class="ore endless"></i>Does not run out</li>' : '') + '</ul>';
+        || '<li>None on this map</li>') + (endless ? '<li><i class="ore endless"></i>Does not run out</li>' : '')
+      + (faint ? '<li><i class="ore faint"></i>Not yet found</li>' : '') + '</ul>';
   }
   function setGround(on) { groundOn = on; L.ground.visible = on; $('groundKey').hidden = !on; if (on) drawGround(); }
+  // Each frame while the overlay is on: a new find or another viewer redraws it, looked for at most twice a second.
+  function refreshGround() { if (groundOn && time - groundAt >= 0.5) { groundAt = time; drawGround(); } }
   // A new world: the old one's ground is wiped, and drawn anew if the overlay is on.
   function resetGround() { groundFor = null; if (groundG) groundG.clear(); if (groundOn) drawGround(); }
   // ---- loader ----
@@ -12975,12 +13071,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
     else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims, ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []), ...groundLines(i), where]);
   }
-  // What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet, and all of it is known.
+  // What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet. An upland ore shows only
+  // as the viewer knows it (page/ground's depositShown).
   function groundLines(i) {
     if (!w.rock || !w.rock[i]) return [];
-    const d = w.deposit[i], left = w.depositLeft[i];
+    const how = w.deposit[i] ? depositShown(i) : 0, d = how ? w.deposit[i] : 0, left = w.depositLeft[i];
     return [`${Geo.ROCKS[w.rock[i]].name} bedrock`,
-      ...(d ? [`${Geo.DEPOSITS[d].name}: ${left === Geo.ENDLESS ? 'more than can ever be dug' : `about ${left} loads`}`] : [])];
+      ...(d ? [`${Geo.DEPOSITS[d].name}: ${left === Geo.ENDLESS ? 'more than can ever be dug' : `about ${left} loads`}${how === 2 ?
+        ', which no village has found' : ''}`] : [])];
   }
   // The claims on a tile (sim/claims) and its cairn (VB-157), one line each, for the tile panel.
   function claimLines(i) {
@@ -14558,6 +14656,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
     if (st.landDirty.size) refreshLand();
+    refreshGround();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
       if (s !== o.stage) { o.stage = s; o.sp.texture = fieldTex[s]; }
@@ -16980,7 +17079,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '7c57b2335b', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '719d4a2298', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

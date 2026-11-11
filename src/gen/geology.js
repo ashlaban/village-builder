@@ -15,17 +15,17 @@ VB['gen/geology'] = (() => {
     { key: 'marble', name: 'Marble' },
     { key: 'soapstone', name: 'Soapstone' },
   ];
-  // Deposits, w.deposit's codes.
+  // Deposits, w.deposit's codes. hidden: an ore that does not show at the surface, and must be found (sim/prospect).
   const DEPOSIT = { NONE: 0, CLAY: 1, BOG_IRON: 2, IRON: 3, COPPER: 4, LEAD_SILVER: 5, TIN: 6, GOLD: 7, SALT: 8, PEAT: 9, FLINT: 10, AMBER: 11 };
   const DEPOSITS = [
     { key: 'none', name: '' },
     { key: 'clay', name: 'Clay' },
     { key: 'bogIron', name: 'Bog iron ore' },
-    { key: 'iron', name: 'Iron ore' },
-    { key: 'copper', name: 'Copper ore' },
-    { key: 'leadSilver', name: 'Lead and silver ore' },
-    { key: 'tin', name: 'Tin ore' },
-    { key: 'gold', name: 'Gold' },
+    { key: 'iron', name: 'Iron ore', hidden: true },
+    { key: 'copper', name: 'Copper ore', hidden: true },
+    { key: 'leadSilver', name: 'Lead and silver ore', hidden: true },
+    { key: 'tin', name: 'Tin ore', hidden: true },
+    { key: 'gold', name: 'Gold', hidden: true },
     { key: 'salt', name: 'Salt spring' },
     { key: 'peat', name: 'Peat' },
     { key: 'flint', name: 'Flint' },
@@ -33,6 +33,8 @@ VB['gen/geology'] = (() => {
   ];
   // A deposit tile's w.depositLeft of ENDLESS is a source that does not run out in any game.
   const ENDLESS = 65535;
+  // A hidden vein can be come on by work within `reach` tiles of it (w.veinNear).
+  const FIND = { reach: 2 };
   // tiles: map tiles (sea included) to a bedrock province, at least `least` provinces; ragged: how far, in tiles, noise moves a border.
   const PROVINCES = { tiles: 2200, least: 3, ragged: 2.5 };
   // Lenses of stone and deposits, laid island by island in this order (the rarest first: a tile holds one deposit, the first to reach it).
@@ -65,7 +67,11 @@ VB['gen/geology'] = (() => {
     // @state w.rock: Uint8Array per tile; bedrock, a ROCK code of gen/geology (granite..soapstone on land, 0 on water)
     // @state w.deposit: Uint8Array per tile; what can be dug here, a DEPOSIT code of gen/geology (0 on most tiles)
     // @state w.depositLeft: Uint16Array per tile; loads left of the tile's deposit, 65535 (ENDLESS) for one that does not run out; 0 with none
+    // @state w.vein: Uint16Array per tile; the id (1..) of the vein the tile's deposit belongs to, 0 with none
+    // @state w.veinKind: array by vein id of the vein's DEPOSIT code (index 0 unused)
+    // @state w.veinNear: Uint16Array per tile; the id of a hidden vein within FIND.reach tiles over land, the nearest, 0 with none
     const rock = new Uint8Array(N), deposit = new Uint8Array(N), depositLeft = new Uint16Array(N);
+    const vein = new Uint16Array(N), veinNear = new Uint16Array(N), veinKind = [0];
 
     // ---- bedrock: provinces round scattered centres, the nearest centre's rock, with ragged borders ----
     const K = Math.max(PROVINCES.least, Math.round(N / PROVINCES.tiles)), px = [], py = [], pr = [];
@@ -131,15 +137,17 @@ VB['gen/geology'] = (() => {
         for (let n = 0; n < veins; n++) {
           const first = at[(draw() * at.length) | 0], size = v.size[0] + ((draw() * (v.size[1] - v.size[0] + 1)) | 0), rich = draw() < (v.rich || 0);
           if (!free(v, first)) continue;
-          const vein = [first], edge = [first], inVein = new Set(vein);
-          while (vein.length < size && edge.length) {
+          const run = [first], edge = [first], inVein = new Set(run);
+          if (v.deposit) veinKind.push(v.deposit);
+          while (run.length < size && edge.length) {
             const e = (draw() * edge.length) | 0, i = edge[e], open = [];
             for (let d = 0; d < 6; d++) { const j = nb[i * 6 + d]; if (j >= 0 && !water[j] && !inVein.has(j) && host(j) && free(v, j)) open.push(j); }
             if (!open.length) { edge[e] = edge[edge.length - 1]; edge.pop(); continue; }
-            const j = open[(draw() * open.length) | 0]; inVein.add(j); vein.push(j); edge.push(j);
+            const j = open[(draw() * open.length) | 0]; inVein.add(j); run.push(j); edge.push(j);
           }
-          for (const i of vein) {
+          for (const i of run) {
             if (v.rock) { rock[i] = v.rock; continue; }
+            vein[i] = veinKind.length - 1;
             const r = draw();
             deposit[i] = v.deposit;
             depositLeft[i] = rich && i === first ? ENDLESS : Math.round(v.amount[0] + (v.amount[1] - v.amount[0]) * r * r);
@@ -147,8 +155,18 @@ VB['gen/geology'] = (() => {
         }
       }
     }
-    return { rock, deposit, depositLeft };
+    // ---- the land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals) ----
+    const q = [], steps = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (vein[i] && DEPOSITS[deposit[i]].hidden) { veinNear[i] = vein[i]; q.push(i); }
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h]; if (steps[i] >= FIND.reach) continue;
+      for (let d = 0; d < 6; d++) {
+        const j = nb[i * 6 + d]; if (j < 0 || water[j] || veinNear[j]) continue;
+        veinNear[j] = veinNear[i]; steps[j] = steps[i] + 1; q.push(j);
+      }
+    }
+    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
   }
 
-  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, PROVINCES, VEINS };
+  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
 })();

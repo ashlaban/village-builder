@@ -346,6 +346,11 @@ function checkState(st) {
   for (const [tile, c] of st.cairns || []) {
     if (!tileOk(tile) || !st.villages[c.a] || !st.villages[c.b] || c.a === c.b || !(c.t <= st.t)) bad.push(`cairns[${tile}]: ${JSON.stringify(c)}`);
   }
+  // what the villages have found (VB-343): a live village id, and each vein once, a hidden one of this world
+  (st.finds || new Map()).forEach((found, v) => {
+    const hiddenKind = (id) => st.w.veinKind && id >= 1 && id < st.w.veinKind.length && [3, 4, 5, 6, 7].includes(st.w.veinKind[id]);
+    if (!st.villages[v] || new Set(found).size !== found.length || !found.every(hiddenKind)) bad.push(`finds[${v}]: ${JSON.stringify(found)}`);
+  });
   // nothing is built on a river tile (VB-111): houses, fields, fields in the making, plots and greens
   const onRiver = (t) => tileOk(t) && st.w.river[t] > 0;
   for (const f of st.farmsteads) {

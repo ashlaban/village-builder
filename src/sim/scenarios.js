@@ -252,6 +252,7 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
       claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0, occasions: [], occasionSeq: 0,
+      finds: new Map(),
     };
     rebuildLiving(st);
     seedPlans(st);

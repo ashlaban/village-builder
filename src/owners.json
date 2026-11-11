@@ -9,6 +9,7 @@
     "st.peopleCheck": "sim/records",
     "st.awake": {"owner": "sim/agents", "category": "cache"},
     "st.claims": "sim/claims",
+    "st.finds": "sim/prospect",
     "st.player": "sim/commands",
     "st.plans": "sim/plans",
     "plan.targets": "sim/plans",

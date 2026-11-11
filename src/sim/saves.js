@@ -256,6 +256,7 @@ VB['sim/saves'] = (() => {
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
+    if (!st.finds) { st.finds = new Map(); st.rng.prospect = makeStream(data.seed, 'prospect'); } // VB-343: nor what the villages have found
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;

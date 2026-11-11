@@ -10,6 +10,7 @@ VB['sim/agents'] = (() => {
   const { hasTeam } = VB['sim/herds'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
+  const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
   const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
   function homeSpot(st, a) {
@@ -128,6 +129,7 @@ VB['sim/agents'] = (() => {
       if (j.done >= (j.hours ?? K.hours)) {
         unhold(a, j);
         if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+        prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours);
         dropJob(st, j);
         if (!a.side) return;
       }
@@ -150,6 +152,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
+    prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);

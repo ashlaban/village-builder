@@ -16,7 +16,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
-  (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Generation only: nothing reads them but the tile panel
+  (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
+  has found of the hidden upland ores (`st.finds`; `w.vein`, `w.veinNear`): a finished job near a vein may find it (`sim/agents` calls
+  `worked`); `Sim.knowsDeposit` and `Sim.depositKnown` are the views' reads. They are shown by the tile panel
   and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; the map bar, key O).
 - Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
   search, the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
