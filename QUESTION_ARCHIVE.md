@@ -2,6 +2,26 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 11 November 2026 (VB-119)
+
+## VB-119 and VB-023: two tasks built and held back (raised 11 November 2026)
+Both were built in the night's run and left out of its PR, because their own numbers show households no better or worse off. Each is kept as a
+patch (`docs/patches/`) with its notes in the task file; the tasks are `needs-review`.
+1. VB-119, fresh food spoils. With a 3-day shelf life, the cooking order and the cap of 4 batches, about a fifth of the fish landed spoils, and
+   over 30 years (populous small) seed 3 goes from 3 to 9 household-years hungry on over 0.3 of their days and grain at harvest falls 10 to 30%;
+   a mixed pot (a tenth saved) is in a fifth of the pots. Spoilage is 87% of the loss. **P:** merge it only with a way to keep fish (dried fish,
+   VB-300, which the fair needs anyway): build VB-300 first, then VB-119 on it, measured by the same runs.
+   **A (Kim, 11 Nov):** Accepted as proposed: dried fish (VB-300) is built first, then VB-119 is merged on it from its patch and measured by the same runs.
+2. VB-119, grain eaten raw costs a quarter more (`ECON.rawGrain` 1.25, the agent's value; the design gives none). It is 13% of the loss, and less
+   since the cook is called from idling (applied in the night's PR: days eaten uncooked 1,738 to 517 at seed 7, 2 years). **P:** 1.25, once a
+   cook job under way may finish after work ends (most of the days still uncooked are cooks walking home at 18:00).
+   **A (Kim, 11 Nov):** Accepted as proposed: raw grain stays at 1.25, once a cook job under way may finish after work ends.
+3. VB-023, sowing first. Hoeing waits while a hoed field is unsown, so sowing comes 0.2 to 0.4 days earlier on every seed, but crops brought in
+   over years 4 to 15 fall on two seeds of four (seed 3: 3,430 to 3,280; 42: 3,242 to 3,189; 7 and 11 rise by 10 and 64), within what runs
+   diverge by, and `routeRefresh` triples for a reason not found. VB-322 already brought frost losses back to 3.6 to 5.7%. **P:** close VB-023
+   as not needed after VB-322, and keep only its spring order of the template (sow before plow) if a head's plan should read so (VB-253).
+   **A (Kim, 11 Nov):** Accepted as proposed: VB-023 is closed as not needed after VB-322; the template's spring order (sow before plow) is VB-253's to take up if a head's plan should read so.
+
 # Archived 11 November 2026 (VB-185)
 
 ## VB-185: slice 6, the mill and the loom, the kiln and the quarry (raised 11 November 2026)

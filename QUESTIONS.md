@@ -27,21 +27,6 @@ Slice 5's plan (`backlog/VB-184.md`), written while Kim was away: `design.md`, H
 9. Hired hands' wage. **P (decided in Kim's place):** 3 rations a day of 8 work hours, the worth table's day's work, paid at the day's end; hired at sowing, haymaking and harvest when a field task has waited 2 hours, from the landless adults of the village with no task of their own; a landed household hires first, and none hires below its floor.
 10. Who owes. **P (decided in Kim's place):** a loan, rent or wage binds the household (or village) its agent dealt for, so a holder's death leaves it standing, and there is no personal estate until personal goods exist (silver, slice 8); a dissolved debtor's obligations pass to the household that takes its farm, else to the one its last holder's heir lives in, else they lapse and the creditor remembers it.
 
-### VB-119 and VB-023: two tasks built and held back (raised 11 November 2026)
-Both were built in the night's run and left out of its PR, because their own numbers show households no better or worse off. Each is kept as a
-patch (`docs/patches/`) with its notes in the task file; the tasks are `needs-review`.
-1. VB-119, fresh food spoils. With a 3-day shelf life, the cooking order and the cap of 4 batches, about a fifth of the fish landed spoils, and
-   over 30 years (populous small) seed 3 goes from 3 to 9 household-years hungry on over 0.3 of their days and grain at harvest falls 10 to 30%;
-   a mixed pot (a tenth saved) is in a fifth of the pots. Spoilage is 87% of the loss. **P:** merge it only with a way to keep fish (dried fish,
-   VB-300, which the fair needs anyway): build VB-300 first, then VB-119 on it, measured by the same runs.
-2. VB-119, grain eaten raw costs a quarter more (`ECON.rawGrain` 1.25, the agent's value; the design gives none). It is 13% of the loss, and less
-   since the cook is called from idling (applied in the night's PR: days eaten uncooked 1,738 to 517 at seed 7, 2 years). **P:** 1.25, once a
-   cook job under way may finish after work ends (most of the days still uncooked are cooks walking home at 18:00).
-3. VB-023, sowing first. Hoeing waits while a hoed field is unsown, so sowing comes 0.2 to 0.4 days earlier on every seed, but crops brought in
-   over years 4 to 15 fall on two seeds of four (seed 3: 3,430 to 3,280; 42: 3,242 to 3,189; 7 and 11 rise by 10 and 64), within what runs
-   diverge by, and `routeRefresh` triples for a reason not found. VB-322 already brought frost losses back to 3.6 to 5.7%. **P:** close VB-023
-   as not needed after VB-322, and keep only its spring order of the template (sow before plow) if a head's plan should read so (VB-253).
-
 ### VB-284: tuning the food balance (raised 11 November 2026)
 VB-284 measured where rations fall short (`docs/bench/food-balance.md`; populous small, seeds 3, 7, 11, 42, 15 and 30 years, after VB-282). Nobody is short
 before year 16; in years 16 to 30, 196 household-years are hungry over 0.3 of their days: households of about 4 (2.3 adults, 1.6 children) on 2.9 fields,
