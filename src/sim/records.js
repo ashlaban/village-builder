@@ -119,9 +119,18 @@ VB['sim/records'] = (() => {
   function rebuildLiving(st) {
     st.living = st.pawns.filter((p) => p.died === null).map((p) => p.id);
     st.liveHouseholds = st.households.filter((h) => !h.dissolved).map((h) => h.id);
+    if (!st.peopleCheck) st.peopleCheck = st.liveHouseholds.slice(); // a new run, or an older save: every household is checked once
   }
+  // @state st.peopleCheck: ids of households whose membership lost a member, or took in a minor, since sim/service last asked whether
+  //   an adult is left (VB-307); no duplicates; owned here, emptied by takePeopleCheck
+  function notePeopleCheck(st, hh) { if (st.peopleCheck && !hh.dissolved && !st.peopleCheck.includes(hh.id)) st.peopleCheck.push(hh.id); }
+  // The noted households in ascending id, the queue emptied.
+  function takePeopleCheck(st) { const q = st.peopleCheck.sort((a, b) => a - b); st.peopleCheck = []; return q; }
   function noteDeath(st, id) { const i = st.living.indexOf(id); if (i >= 0) st.living.splice(i, 1); }
-  function noteDissolved(st, hh) { const i = st.liveHouseholds.indexOf(hh.id); if (i >= 0) st.liveHouseholds.splice(i, 1); }
+  function noteDissolved(st, hh) {
+    const i = st.liveHouseholds.indexOf(hh.id); if (i >= 0) st.liveHouseholds.splice(i, 1);
+    const j = st.peopleCheck ? st.peopleCheck.indexOf(hh.id) : -1; if (j >= 0) st.peopleCheck.splice(j, 1);
+  }
   // A person on record. Patronymics come from the recorded father, or from a name known only from the patronymic.
   function person(R, o) {
     const father = o.father !== undefined && o.father !== null ? R.pawns[o.father] : null;
@@ -165,15 +174,16 @@ VB['sim/records'] = (() => {
   // @state pawn.household, pawn.servant, household.members: membership and service, written only here.
   function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
     if (!hh.members.includes(id)) hh.members.push(id);
+    if (R.pawns[id].age < 18) notePeopleCheck(R, hh); // a minor may be all a household has
     R.pawns[id].household = hh.id; setServant(R, id, servant);
   }
   // Death keeps the last household and service on the historical person record.
   function leaveHousehold(st, id, historical = false) {
     const p = st.pawns[id], hh = p.household !== null ? st.households[p.household] : null;
-    if (hh) hh.members = hh.members.filter((m) => m !== id);
+    if (hh) { hh.members = hh.members.filter((m) => m !== id); notePeopleCheck(st, hh); }
     if (!historical) p.household = null;
   }
-  function clearMembers(st, hh) { hh.members = []; }
+  function clearMembers(st, hh) { hh.members = []; } // an empty household is skipped by the check, so it is not noted
   function setServant(st, id, servant) { st.pawns[id].servant = servant; }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -367,7 +377,8 @@ VB['sim/records'] = (() => {
     return 0;
   }
   return {
-    rebuildLiving, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
+    rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold, joinHousehold, leaveHousehold,
+      clearMembers, setServant, personEvent, log,
       record, HISTORY, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
