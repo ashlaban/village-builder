@@ -81,6 +81,18 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 
+## Layers (VB-230)
+Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
+free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
+- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
+  `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/commands`.
+- Material and land: `sim/stores`, `sim/hunger`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/herds`, `sim/ownership`, `sim/claims`,
+  `sim/stakes`, `sim/territory`, `sim/expansion`.
+- Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
+  `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings).
+- Agency: `sim/agents`, `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
+- Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
+
 ## Adding things
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
   and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`

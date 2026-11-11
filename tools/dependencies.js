@@ -1,4 +1,4 @@
-// Module edges for the writes map and dependency gate. Policy is separate from extraction so layers can replace load order.
+// Module edges for the writes map and dependency gate. Policy is separate from extraction so layers can replace load order. `node tools/dependencies.js` lists the upward calls by layer (VB-230; `src/layers.json`).
 require('./help.js')(__filename);
 function dependencies(tree, src, mod) {
   const out = [];
@@ -50,4 +50,37 @@ function violations(deps) {
   }
   return errors;
 }
-module.exports = { dependencies, violations };
+
+// VB-230: the layer rule (target-v2 3.1). Calls go downward; a module of a lower layer naming a higher one is an upward call, unless it is
+// `issue` (the command door). Composition roots are apart. `emit` and hook contributions join the exclusions as they land (VB-229).
+const fs = require('fs'), path = require('path');
+function loadLayers() {
+  const l = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'layers.json'), 'utf8'));
+  const of = {};
+  l.layers.forEach((name, i) => (l.modules[name] || []).forEach((m) => { of[m] = i; }));
+  return { names: l.layers, roots: l.roots, of };
+}
+function missingLayers(mods, L = loadLayers()) {
+  return mods.filter((m) => L.of[m] === undefined && !L.roots.includes(m)).map((m) => `${m} has no layer in src/layers.json`);
+}
+// Upward edges as {from, to, line, kind}; deps is the list of {mod, importSites, lookups}.
+function upward(deps, L = loadLayers()) {
+  const out = [];
+  for (const d of deps) {
+    const a = L.of[d.mod];
+    if (a === undefined) continue;
+    const edges = [...(d.importSites || []).map((s) => ({ ...s, kind: 'import' })), ...d.lookups.map((s) => ({ ...s, kind: 'lookup' }))];
+    for (const e of edges) {
+      const b = L.of[e.key];
+      if (e.allowed || b === undefined || b <= a) continue;
+      out.push({ from: d.mod, to: e.key, line: e.line, kind: e.kind, text: `src/${d.mod}.js:${e.line} ${L.names[a]} -> ${L.names[b]}: ${e.key}` });
+    }
+  }
+  return out;
+}
+module.exports = { dependencies, violations, loadLayers, missingLayers, upward };
+if (require.main === module) {
+  const { build } = require('./writes.js'), r = build(), up = upward(r.deps);
+  const n = r.deps.reduce((t, d) => t + d.lookups.length + (d.importSites || []).length, 0);
+  console.log(up.map((u) => u.text).join('\n') + `\n${up.length} upward of ${n} edges`);
+}

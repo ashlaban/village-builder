@@ -1,0 +1,30 @@
+{
+  "total": 25,
+  "pairs": {
+    "sim/names -> culture": 1,
+    "sim/records -> culture": 1,
+    "sim/claims -> culture": 1,
+    "sim/claims -> sim/relations": 1,
+    "sim/territory -> culture": 1,
+    "sim/territory -> sim/relations": 1,
+    "sim/stakes -> sim/relations": 1,
+    "sim/forest -> sim/territory": 1,
+    "sim/herds -> sim/relations": 1,
+    "sim/herds -> culture": 1,
+    "sim/stores -> culture": 1,
+    "sim/hunger -> sim/relations": 1,
+    "sim/byre -> culture": 1,
+    "sim/commands -> sim/agents": 1,
+    "sim/commands -> sim/kinds": 1,
+    "sim/commands -> sim/eligibility": 1,
+    "sim/commands -> culture": 1,
+    "sim/commands -> sim/relations": 1,
+    "sim/commands -> sim/exchange": 1,
+    "sim/heirs -> sim/agents": 1,
+    "sim/heirs -> sim/plans": 1,
+    "sim/membership -> sim/plans": 1,
+    "sim/settle -> sim/plans": 1,
+    "sim/births -> sim/agents": 1,
+    "sim/births -> sim/lifecycle": 1
+  }
+}
