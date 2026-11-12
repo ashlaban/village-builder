@@ -10,6 +10,6 @@
     "social": ["culture", "sim/relations", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
       "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/occasions"],
     "agency": ["sim/agents", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/eligibility", "sim/plans"],
-    "derived": ["sim/notable", "sim/opportunities"]
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities"]
   }
 }

@@ -442,7 +442,11 @@ body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .customs .tag.gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
 .customs .tag.red { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
 .customs .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px 2px; align-items: start; margin-top: 6px; }
-.customs .voice { display: grid; justify-items: center; text-align: center; font-size: 13px; color: var(--ink); }
+.customs .voice { display: grid; justify-items: center; align-content: start; text-align: center; min-height: 0; padding: 4px 2px; border: 1px solid transparent;
+  border-radius: 10px; background: none; font-size: 13px; color: var(--ink); }
+.customs .voice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
+  line-height: 1.45; color: var(--ink); }
 .customs .voice img { width: 40px; height: 40px; }
 .customs .voice b { margin-top: 3px; font-weight: 500; }
 .customs .voice small { font-size: 11.5px; line-height: 1.25; color: var(--muted); }

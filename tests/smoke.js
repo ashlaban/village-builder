@@ -248,9 +248,31 @@ async function goodwillPanel() {
     if (stand && voices <= 8 && stand.querySelectorAll('.voice').length !== voices) fail(`${stand.querySelectorAll('.voice').length} faces for ${voices} voices`);
     if (stand && stand.querySelectorAll('.tag').length < 1) fail('no way of the opened custom is marked as in force');
     if (/%/.test(box.textContent)) fail('the Customs tab shows a percentage');
+    // a face shows its note (VB-391): how far the person leans, as two percentages, and why; again, and it goes
+    const voice = box.querySelector('.voice');
+    if (voice) {
+      voice.click(); tick(2);
+      const why = box.querySelector('.why');
+      if (!why || !/leans? \d+% to “.+” and \d+% to “.+”\. \S/.test(why.textContent)) fail(`a voice's note reads: ${why && why.textContent}`);
+      if (box.querySelector('.voice[aria-pressed="true"]').dataset.voice !== voice.dataset.voice) fail('the chosen face is not marked');
+      console.log('voice note:', why && why.textContent);
+      box.querySelector('.voice[aria-pressed="true"]').click(); tick(2);
+      if (box.querySelector('.why')) fail('the note stays when its face is chosen again');
+    }
     box.querySelector('[aria-expanded="true"]').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); tick(2);
     if (box.querySelector('.stand')) fail('Enter on the open phrase did not close it');
     console.log('customs tab:', phrases.length, 'phrases |', ways, 'ways,', voices, 'voices |', box.querySelector('.charter').textContent.replace(/\s+/g, ' '));
+    // the name in a note opens the person's card
+    box.querySelector('.charter [data-phrase]').click(); tick(2);
+    const other = [...box.querySelectorAll('.voice')].find((v) => !st.player || +v.dataset.voice !== st.player.pawn);
+    if (other) {
+      other.click(); tick(2);
+      const name = box.querySelector('.why button.name');
+      if (!name) fail("a voice's note has no name to follow"); else {
+        name.click(); tick(5);
+        if (doc.getElementById('tileName').textContent !== name.textContent) fail(`the name ${name.textContent} opened ${doc.getElementById('tileName').textContent}`);
+      }
+    }
     settlers.querySelector(`button[data-pawn="${holder.id}"]`).click(); tick(5);
     if (!tabC.hidden || doc.getElementById('tileFacts').hidden || !box.hidden) fail("a pawn's card shows the Customs tab or not its Details");
     doc.getElementById('tabFacts').click(); tick(2);

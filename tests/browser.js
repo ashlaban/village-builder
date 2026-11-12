@@ -141,6 +141,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     else { // the village's Customs tab (VB-389): the charter, and a phrase opened to its ways
       await page.click('#tabCustoms'); await page.waitForSelector('#tileCustoms .charter [data-phrase]');
       await page.click('#tileCustoms [data-phrase]'); await page.waitForSelector('#tileCustoms .stand .way');
+      if (await page.locator('#tileCustoms .voice').count()) { await page.click('#tileCustoms .voice'); await page.waitForSelector('#tileCustoms .why'); }
     }
     await page.click('#tabHistory'); await page.waitForSelector('#historyList time');
     for (const kind of await page.$$('#historyKinds button')) await kind.click();

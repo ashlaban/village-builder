@@ -1,4 +1,4 @@
-// @sys page/customs: the Customs tab of a village's card: its customs as a charter, and who stands by which way (VB-389)
+// @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-389, VB-391)
   // ======== customs ========
   // The customs are told as sentences under four heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
   const CHARTER = [['Land', ['claims', 'dispute', 'newLand']],
@@ -29,7 +29,7 @@
   // A voice wavers when its first and second leanings are this close; a way that leads is contested within this of the share it must pass;
   // a strong voice has this many times an even share of the say; and so many faces stand by one way before a count.
   const WAVER = 0.15, NEAR = 0.1, STRONG = 1.5, FACES = 8;
-  let customOpen = -1, customsOf = -1, charterStamp = '';
+  let customOpen = -1, customVoice = -1, customsOf = -1, charterStamp = '';
   // The village of the card, if it has customs of its own (a settlement of the culture model), else -1.
   const customsVillage = () => (st && selPawn < 0 && selVillage >= 0 && st.cenv.settlements[selVillage]
     && st.cenv.settlements[selVillage].id === selVillage ? selVillage : -1);
@@ -49,33 +49,52 @@
         let top = 0, next = -1;
         for (let j = 1; j < n; j++) if (p.att[o + j] > p.att[o + top]) top = j;
         for (let j = 0; j < n; j++) if (j !== top && (next < 0 || p.att[o + j] > p.att[o + next])) next = j;
-        return { id: p.id, say: say(p) / W, top, next, waver: p.att[o + top] - p.att[o + next] < WAVER };
+        return { id: p.id, say: say(p) / W, top, next, lean: [p.att[o + top], p.att[o + next]], waver: p.att[o + top] - p.att[o + next] < WAVER };
       }).sort((a, b) => b.say - a.say || a.id - b.id);
       return { k, d, x, cust, y, state, differs: x !== cust, who };
     }) };
   }
   const markOf = (c) => (c.state === 'turning' || c.state === 'contested' ? c.state : c.differs ? 'differs' : '');
-  // An opened custom: each way with its verdict and the faces of those who favour it most.
-  function standHTML(c, r) {
+  // The note of a chosen voice (VB-391): how far they lean to their first and second way, and the strongest pull towards the first, as the
+  // daily drift weighs them (sim/leanings): their own cause, what they learned young, those they deal with, a cause argued near them, their
+  // interest.
+  function voiceNote(c, f, s) {
+    const me = played(), you = f.id === me, p = st.pawns[f.id], k = Culture.OFF[c.k] + f.top, pct = (v) => `${Math.round(v * 100)}%`;
+    const near = Sim.membersOf(st, s.id).filter((q) => q.alive && q.age >= 12);
+    const mean = near.length ? near.reduce((a, q) => a + q.att[k], 0) / near.length : null;
+    const w = VB['sim/leanings'].pulls(p, c.k, f.top, (id) => st.pawns[id], mean, s.kind), name = (id) => esc(st.pawns[id].given);
+    const best = ['upbringing', 'company', 'cause', 'interest'].reduce((x, y) => (w[y] > w[x] ? y : x));
+    const why = w.own ? (you ? 'You argue this cause.' : 'Argues this cause.') : w[best] <= 0 ? `Nothing pulls ${you ? 'you' : 'them'} further this way.`
+      : best === 'upbringing' ? 'Raised to it.' : best === 'interest' ? `It serves ${you ? 'your' : 'their'} interest.`
+        : best === 'cause' ? (w.arguer === me ? 'Swayed by your cause.' : `Swayed by ${name(w.arguer)}’s cause.`)
+          : w.friend === null ? `Those around ${you ? 'you' : 'them'} lean this way.`
+            : w.friend === me ? 'Close to you, and you favour it.' : `Close to ${name(w.friend)}, who favours it.`;
+    const who = you ? 'You lean' : `<button type="button" class="name" data-pawn="${f.id}">${esc(Sim.fullName(p))}</button> leans`;
+    return `<p class="why">${who} ${pct(f.lean[0])} to “${esc(c.d.opts[f.top][1])}” and ${pct(f.lean[1])} to “${esc(c.d.opts[f.next][1])}”. ${why}</p>`;
+  }
+  // An opened custom: each way with its verdict and the faces of those who favour it most; a face is a button that shows its note.
+  function standHTML(c, r, s) {
     const me = played(), cn = esc(r.culture.name), tag = (cls, text) => `<em class="tag ${cls}">${text}</em>`;
-    const face = (f) => `<div class="voice${f.waver ? ' waver' : ''}">${faceImg(f.id)}<b>${f.id === me ? 'You' : esc(st.pawns[f.id].given)}</b><small>${
-      f.waver ? `wavering towards “${esc(c.d.opts[f.next][1])}”` : f.say > STRONG / r.voices ? 'a strong voice' : ''}</small></div>`;
+    const face = (f) => `<button type="button" class="voice${f.waver ? ' waver' : ''}" id="voice${f.id}" data-voice="${f.id}"
+      aria-pressed="${f.id === customVoice}">${faceImg(f.id)}<b>${f.id === me ? 'You' : esc(st.pawns[f.id].given)}</b><small>${
+      f.waver ? `wavering towards “${esc(c.d.opts[f.next][1])}”` : f.say > STRONG / r.voices ? 'a strong voice' : ''}</small></button>`;
     const verdict = (j) => (j === c.x ? tag('', 'In force') : '') + (j === c.cust && c.differs ? tag('custom', `${cn} custom`) : '')
       + (j !== c.y || c.state === 'settled' ? '' : c.state === 'lead' ? tag('gold', 'More support, but cannot win yet')
         : c.state === 'contested' ? tag('gold', 'Close to winning') : tag('red', 'Wins at the next meeting'));
+    const chosen = c.who.find((f) => f.id === customVoice);
     return `<div class="stand" id="customStand"><p class="of">${esc(c.d.label)}</p>${c.d.opts.map((o, j) => {
-      const w = c.who.filter((f) => f.top === j);
-      const more = w.length > FACES ? `<small class="rest">and ${w.length - FACES} more</small>` : '';
+      const w = c.who.filter((f) => f.top === j), more = w.length > FACES ? `<small class="rest">and ${w.length - FACES} more</small>` : '';
       return `<div class="way${j === c.x ? ' in' : ''}"><p>${esc(o[1])}${verdict(j)}</p>${w.length
-        ? `<div class="faces">${w.slice(0, FACES).map(face).join('')}${more}</div>` : '<p class="none">No one stands here.</p>'}</div>`;
+        ? `<div class="faces">${w.slice(0, FACES).map(face).join('')}${more}</div>` : '<p class="none">No one stands here.</p>'}${
+        chosen && chosen.top === j ? voiceNote(c, chosen, s) : ''}</div>`;
     }).join('')}<p class="note">${r.voices ? `${r.voices} of ${r.people} speak at the meeting, and each stands by the way they favour most. `
-      + 'Those who waver are the ones to win over.' : 'No one here speaks at the meeting yet.'}</p></div>`;
+      + 'Those who waver are the ones to win over. Choose a face to see how far they lean, and why.' : 'No one here speaks at the meeting yet.'}</p></div>`;
   }
   // Drawn when the day, the village, a practice, the played pawn or the open phrase changes, not every frame.
   function renderCustoms(id) {
     const s = st.cenv.settlements[id];
-    if (customsOf !== id) { customsOf = id; customOpen = -1; }
-    const stamp = `${Math.floor(st.t / Sim.DAY)}:${id}:${customOpen}:${played()}:${s.practice.join(',')}:${st.cenv.cultures[s.culture].customs.join(',')}`;
+    if (customsOf !== id) { customsOf = id; customOpen = customVoice = -1; }
+    const stamp = [Math.floor(st.t / Sim.DAY), id, customOpen, customVoice, played(), s.practice, st.cenv.cultures[s.culture].customs].join(':');
     if (stamp === charterStamp) return;
     charterStamp = stamp;
     const r = readCustoms(s), days = nextMeeting(), cn = esc(r.culture.name);
@@ -85,18 +104,26 @@
       const cs = keys.map((key) => r.dims[Culture.IDX[key]]), open = cs.find((c) => c.k === customOpen);
       const said = (c) => `${SAID[c.d.key][0]}<span role="button" tabindex="0" class="phrase ${markOf(c)}" id="phrase${c.k}" data-phrase="${c.k}"
         aria-expanded="${c.k === customOpen}">${phraseOf(c.k, c.x)}</span>${SAID[c.d.key][2]}`;
-      h += `<h3>${head}</h3><p class="charter">${cs.map(said).join(' ')}</p>${open ? standHTML(open, r) : ''}`;
+      h += `<h3>${head}</h3><p class="charter">${cs.map(said).join(' ')}</p>${open ? standHTML(open, r, s) : ''}`;
     }
     h += `<p class="key"><span><span class="phrase differs">Differs</span> from ${cn} custom</span><span><span class="phrase contested">Contested</span></span>`
       + '<span><span class="phrase turning">Set to change</span></span></p>';
     updatePanelHTML($('tileCustoms'), h);
   }
-  // A phrase opens and closes by a click, Enter or Space; the opened custom is brought into view.
+  // A phrase opens and closes by a click, Enter or Space, and the opened custom is brought into view; a face shows and hides its note.
   function togglePhrase(e) {
-    const p = e.target.closest('[data-phrase]');
+    const p = e.target.closest('[data-phrase]'), v = e.target.closest('[data-voice]');
+    if (v && e.type === 'click') {
+      customVoice = customVoice === +v.dataset.voice ? -1 : +v.dataset.voice;
+      renderCustoms(customsOf);
+      const again = $(`voice${v.dataset.voice}`), why = $('tileCustoms').querySelector('.why');
+      if (again) again.focus({ preventScroll: true });
+      if (why && why.scrollIntoView) why.scrollIntoView({ block: 'nearest' });
+      return;
+    }
     if (!p || (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ')) return;
     e.preventDefault();
-    customOpen = customOpen === +p.dataset.phrase ? -1 : +p.dataset.phrase;
+    customOpen = customOpen === +p.dataset.phrase ? -1 : +p.dataset.phrase; customVoice = -1;
     renderCustoms(customsOf);
     const again = $(`phrase${p.dataset.phrase}`), stand = $('customStand');
     if (again) again.focus({ preventScroll: true });
