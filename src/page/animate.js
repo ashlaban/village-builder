@@ -108,7 +108,7 @@
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
-    if (st.landDirty.size) refreshLand();
+    if (landOn || st.landDirty.size) refreshLand();
     refreshGround();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
