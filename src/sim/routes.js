@@ -33,6 +33,7 @@ VB['sim/routes'] = (() => {
     return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2 + slopeCost(w, a, b);
   };
 
+  const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
   // Scratch arrays per world, reused by every search: g (cost so far), prev, and the search that last touched each tile (mark).
   const scratch = new WeakMap();
@@ -81,7 +82,12 @@ VB['sim/routes'] = (() => {
     VB.count.routeSearch++;
     let expanded = 0;
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
-    const h = (i) => hexSteps(w, i, to) * lo;
+    // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
+    // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
+    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-396).
+    const flat = !!w.hx, fx = flat ? w.hx[from] : 0, fy = flat ? w.hy[from] : 0, lx = flat ? w.hx[to] - fx : 0, ly = flat ? w.hy[to] - fy : 0;
+    const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
+    const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
     g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
     while (open.size) {
       const i = open.pop(); expanded++;

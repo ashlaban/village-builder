@@ -50,10 +50,26 @@ check(onBuilt === 0, `${onBuilt} worn houses, greens or water tiles`);
 check(onFields > 0, 'no way is worn over a field or meadow after a populous year');
 check(bad === 0, `${bad} tiles whose stage does not fit their count`);
 const counts = P.stageCounts(pw);
+// a way ends at a house's door and never goes on through the house: the house draws nothing, and of the tiles round it only its door,
+// the most worn of them, sends a way to it
+let doors = 0;
+for (const f of pop.farmsteads) {
+  const h = f.house, d = Look.door(pw, h), nbs = [0, 1, 2, 3, 4, 5].map((k) => pw.nb[h * 6 + k]);
+  check(Look.segments(pw, h).length === 0, `house ${h} draws a trail`);
+  for (const j of nbs) if (j >= 0 && pw.dev[j] < 2 && pw.worn[j] >= Look.LOOK.from && !pw.river[j]) {
+    check(Look.exits(pw, j).includes(nbs.indexOf(j) < 0 ? -1 : (nbs.indexOf(j) + 3) % 6) === (j === d),
+      `house ${h}: tile ${j} ${j === d ? 'is' : 'is not'} its door`);
+  }
+  if (d >= 0 && pw.dev[d] !== 2) doors++;
+}
+check(doors > pop.farmsteads.length / 4, `only ${doors} of ${pop.farmsteads.length} houses have a way to their door`);
+// trodden ground is walked and counted and draws nothing (LOOK.from)
+const faint = pw.worn.findIndex((s, i) => s === 1 && pw.dev[i] < 2 && !pw.river[i]);
+if (faint >= 0) check(Look.segments(pw, faint).length === 0, 'trodden ground draws a trail');
 // the trails on the map: every worn trail tile has segments, each from its bend to a joint at most a tile away
 let segs = 0;
 for (let i = 0; i < pw.N; i++) {
-  if (!pw.worn[i] || pw.dev[i] > 1 || pw.river[i]) continue; // worn fields and meadows draw their trail too
+  if (pw.worn[i] < Look.LOOK.from || pw.dev[i] > 1 || pw.river[i]) continue; // paths and lanes are drawn, over fields and meadows too
   const g = Look.segments(pw, i);
   segs += g.length;
   check(g.length > 0 && g.every((s) => Math.hypot(s[4] - pw.hx[i], s[5] - pw.hy[i]) < 1.2 * pw.HW), `tile ${i}: trail segments ${g.length}`);

@@ -71,11 +71,12 @@ VB['sim/layout'] = (() => {
     return out;
   }
   // Fence (gärdesgård) around an infield: hex edges between enclosed land and open land, split into stretches.
-  function makeFence(w, infield, centre, owner, stretches, rand) {
+  // open: the centre is a green, open ground that ways cross from every side (VB-396): no fence runs along it.
+  function makeFence(w, infield, centre, owner, stretches, rand, open = false) {
     const NA = [0, -60, -120, 180, 120, 60], edges = [];
     for (const i of infield) for (let d = 0; d < 6; d++) {
       const j = w.nb[i * 6 + d];
-      if (j < 0 || infield.has(j) || w.water[j]) continue;
+      if (j < 0 || infield.has(j) || w.water[j] || (open && i === centre)) continue;
       const a0 = ((NA[d] - 30) * Math.PI) / 180, a1 = ((NA[d] + 30) * Math.PI) / 180, R = w.R;
       const x1 = w.hx[i] + Math.cos(a0) * R, y1 = w.hy[i] + Math.sin(a0) * R, x2 = w.hx[i] + Math.cos(a1) * R, y2 = w.hy[i] + Math.sin(a1) * R;
       edges.push({ x1, y1, x2, y2, tile: i, ang: Math.atan2((y1 + y2) / 2 - w.hy[centre], (x1 + x2) / 2 - w.hx[centre]) });
@@ -286,7 +287,7 @@ VB['sim/layout'] = (() => {
       const n = Math.min(WOOD.cap, Math.max(WOOD.least, WOOD.perHousehold * v.farmsteads.length));
       v.wood = woodNear(w, used, v.center, n, taken); for (const t of v.wood) taken.add(t);
       const vin = new Set([v.center]); for (const f of farmsteads) if (f.village === v.id) { vin.add(f.house); for (const fd of f.fields) vin.add(fd.tile); }
-      v.fence = makeFence(w, enclose(w, vin, v.center), v.center, { type: 'village', id: v.id }, 8, rand);
+      v.fence = makeFence(w, enclose(w, vin, v.center), v.center, { type: 'village', id: v.id }, 8, rand, v.green);
     }
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
