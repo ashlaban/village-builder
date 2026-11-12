@@ -3957,7 +3957,7 @@ VB['sim/rng'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/hex: hex-grid search, paths and land components
+// @sys sim/hex: hex-grid search, paths and land components, and where a house would close a way or a green in
 VB['sim/hex'] = (() => {
   // ---- hex helpers ----
   function bfs(w, from, maxSteps, pass) {
@@ -4013,7 +4013,39 @@ VB['sim/hex'] = (() => {
     }
     return { id, size };
   }
-  return { bfs, stepsTo, pathTo, land, hexSteps, landComponents };
+  // ---- where a house may stand (VB-396): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
+  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-396), so a house may not stand where it would close
+  // a way: true when t would have no open tile beside it, when it would take the last open tile beside a house next to it, or when the
+  // open tiles round it would no longer reach each other going round it (looked for within CUT_REACH steps, so a long way round counts
+  // as none). shut(j): no route crosses j (off the map, water, a house); house(j): a house stands on j.
+  const CUT_REACH = 10;
+  function cutsOff(w, t, shut, house) {
+    const open = [];
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[t * 6 + k];
+      if (j < 0) continue;
+      if (!shut(j)) { open.push(k); continue; }
+      if (!house(j)) continue;
+      let left = 0; for (let q = 0; q < 6; q++) { const n = w.nb[j * 6 + q]; if (n >= 0 && n !== t && !shut(n)) left++; }
+      if (!left) return true;
+    }
+    if (!open.length) return true;
+    let arcs = 0; for (const k of open) if (!open.includes((k + 1) % 6)) arcs++;
+    if (arcs < 2) return false;
+    const { dist } = bfs(w, w.nb[t * 6 + open[0]], CUT_REACH, (j) => j !== t && !shut(j));
+    return open.some((k) => !dist.has(w.nb[t * 6 + k]));
+  }
+  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-396): of the six tiles round
+  // it at most GREEN_HOUSES bear a house, and never two side by side. True when t is one of the six and breaks that.
+  const GREEN_HOUSES = 3;
+  function rimFull(w, center, t, house) {
+    let at = -1, n = 0;
+    for (let k = 0; k < 6; k++) { const j = w.nb[center * 6 + k]; if (j === t) at = k; else if (j >= 0 && house(j)) n++; }
+    if (at < 0) return false;
+    const side = (d) => { const j = w.nb[center * 6 + ((at + d) % 6)]; return j >= 0 && house(j); };
+    return n >= GREEN_HOUSES || side(1) || side(5);
+  }
+  return { bfs, stepsTo, pathTo, land, hexSteps, landComponents, cutsOff, rimFull };
 })();
 </script>
 <script>
@@ -4126,15 +4158,19 @@ VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
-  // bridges, VB-112). Houses, greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or
-  // meadow too; houses and greens (w.dev 3 and 2) wear no path.
+  // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
+  // buildings (VB-396). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
+    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
     const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
     return w.worn ? c / PATHS.speed[w.worn[i]] : c;
   }
-  const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
+  const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
+  // Land a route may cross: passable, and not a house.
+  const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
   // What the slope of the step between a and b adds: SLOPE.perRise for each unit of elevation between them, up or down alike (so the
@@ -4212,7 +4248,7 @@ VB['sim/routes'] = (() => {
       }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (j !== to && !passable(w, j))) continue;
+        if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj; prev[j] = i; mark[j] = run;
@@ -4237,10 +4273,10 @@ VB['sim/routes'] = (() => {
       const i = open.pop();
       if (shut[i] === run) continue;
       shut[i] = run; settled++;
-      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !passable(w, i)) continue; }
+      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !through(w, i)) continue; }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (tgt[j] !== run && !passable(w, j))) continue;
+        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj; mark[j] = run;
@@ -4556,7 +4592,7 @@ VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
-  const { bfs, hexSteps } = VB['sim/hex'];
+  const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
   const { initFish } = VB['sim/fish'], { initForage } = VB['sim/forage'];
@@ -4671,11 +4707,12 @@ VB['sim/layout'] = (() => {
   // ---- the form of a village: a street, and houses along it ----
   // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
   // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
-  // opposite sides and a village of ten or more farms sending a side lane off as a third. An arm grows a tile at a time, straight on or
+  // opposite sides, and a larger village sending off one more for every STREET.armFarms farms over STREET.from (a third from ten
+  // farms, a fourth from sixteen, six at the most). An arm grows a tile at a time, straight on or
   // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
   // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
   // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
-  const STREET = { from: 4, perFarm: 0.7, lane: 10, level: 14, straight: 0.35, hook: 1.2, room: 0.25, wander: 0.9 };
+  const STREET = { from: 4, perFarm: 0.7, armFarms: 6, level: 14, straight: 0.35, hook: 1.2, room: 0.25, wander: 0.9 };
   function layStreet(w, used, rand, center, need, arms, taken) {
     const street = new Set(), level = w.hp[center];
     const open = (t) => t >= 0 && farmable(w, t) && !used.has(t) && !street.has(t) && !w.river[t] && !taken.has(t) && !nextTo(w, t, taken);
@@ -4685,27 +4722,32 @@ VB['sim/layout'] = (() => {
       const b = w.biome[t];
       return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
     };
-    const heads = []; // the directions the arms left the green in
+    const heads = [], rim = new Set(); // the directions the arms left the green in, and their first tiles
+    const free = (k) => open(w.nb[center * 6 + k]) && !heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2);
     for (let a = 0; a < arms && street.size < need; a++) {
-      const len = Math.ceil((need - street.size) / (arms - a));
+      const len = Math.ceil((need - street.size) / (arms - a)), apart = [0, 1, 2, 3, 4, 5].some(free);
       let at = center, dir = -1, bent = 0;
       for (let n = 0; n < len; n++) {
         let pick = -1, pd = -1, ps = -Infinity;
         for (let k = 0; k < 6; k++) {
           const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
           if (dir >= 0 && Math.abs(turn) > 1) continue;
-          // a new arm leaves the green well away from the others: opposite the first, or between them
-          if (dir < 0 && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
+          // a new arm leaves the green well away from the others (opposite the first, or between them) while such a side is free,
+          // and then on any side no arm has taken: a large village's green has a way out on every side (VB-396)
+          if (dir < 0 && (apart ? heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2) : heads.includes(k))) continue;
           const t = w.nb[at * 6 + k];
           if (!open(t)) continue;
-          let doubled = false; // touching the street anywhere but where it came from
-          for (let q = 0; q < 6; q++) { const j = w.nb[t * 6 + q]; if (j !== at && (street.has(j) || (j === center && at !== center))) doubled = true; }
+          let doubled = false; // touching the street anywhere but where it came from, or, leaving the green, the arm beside it
+          for (let q = 0; q < 6; q++) {
+            const j = w.nb[t * 6 + q];
+            if (j !== at && ((street.has(j) && !(at === center && rim.has(j))) || (j === center && at !== center))) doubled = true;
+          }
           if (doubled) continue;
           const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
           if (sc > ps) { ps = sc; pick = t; pd = k; }
         }
         if (pick < 0) break;
-        if (dir < 0) heads.push(pd); else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
+        if (dir < 0) { heads.push(pd); rim.add(pick); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
         street.add(pick); at = pick; dir = pd;
       }
     }
@@ -4741,7 +4783,8 @@ VB['sim/layout'] = (() => {
     used.add(center);
     const taken = new Set([...fieldsAt, ...homes]);
     const street = !withStreet ? new Set()
-      : layStreet(w, used, rand, center, Math.ceil(nFarms * STREET.perFarm) + 1, nFarms >= STREET.lane ? 3 : 2, taken);
+      : layStreet(w, used, rand, center, Math.ceil(nFarms * STREET.perFarm) + 1,
+        Math.min(6, 2 + Math.floor((nFarms - STREET.from) / STREET.armFarms)), taken);
     const mine = new Set([center]), near = new Set();
     const build = (t) => { mine.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
     build(center);
@@ -4751,11 +4794,14 @@ VB['sim/layout'] = (() => {
     for (const t of street) { yards.add(t); sides.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) sides.add(j); } }
     for (const t of near) { yards.add(t); sides.add(t); }
     const front = new Set([center, ...street]), reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    // no route crosses a house: this village's so far (mine, but its green) and the other villages' (homes)
+    const walk = walkable(w), house = (j) => j !== center && (mine.has(j) || homes.has(j)), shut = (j) => j < 0 || !walk(j) || house(j);
     // the house sites still open, best first
     const sites = () => {
       const out = [];
       for (const [t, d] of reach) {
         if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        if (cutsOff(w, t, shut, house) || rimFull(w, center, t, house)) continue;
         let touch = 0; for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
         const b = w.biome[t];
         out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (nextTo(w, t, front) ? 0 : HOUSE.offStreet) - (1.5 * w.stones[t]) / 255
@@ -4793,6 +4839,8 @@ VB['sim/layout'] = (() => {
       if (!done) break;
     }
     village.green = village.well = village.farmsteads.length >= 2;
+    // a village that came to one farm is a lone farm: its centre is the house, and the ground meant for the green is free again
+    if (village.farmsteads.length === 1) { used.delete(center); village.center = farmsteads[village.farmsteads[0]].house; }
     return village;
   }
   // Names at seeding (VB-026), before any culture exists, so by the generators every culture starts with (sim/names): the farms of a village
@@ -8834,8 +8882,8 @@ VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
   const Stores = VB['sim/stores'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
@@ -8899,9 +8947,12 @@ VB['sim/expansion'] = (() => {
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
     const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
+    const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
       if (nextTo(w, h, fields)) continue;
+      // a house may not close a way, since no route crosses one, nor close the green in (VB-396)
+      if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
       let f = -1, fs = -Infinity;
       for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
@@ -8922,6 +8973,7 @@ VB['sim/expansion'] = (() => {
     for (const tr of tiles) {
       tr.steps = stepsFor(w, tr.tile, tr.kind); tr.i = 0;
       setOwner(st, tr.tile, { type: 'village', id: v.id }); st.used.add(tr.tile); woodTaken(st, tr.tile);
+      if (tr.kind === 'house') { w.dev[tr.tile] = 3; costChanged(st, tr.tile); } // the house's ground: routes go round it from now on
     }
     // its project plan, made by sim/plans: the clearing of its tiles, then the cottage's stages
     const cottage = COTTAGE.map((kind) => ({ kind, place: site.house, hours: COTTAGE_HOURS[kind], done: 0, ...kind === 'walls' ? { wood: 0 } : {} }));
@@ -12908,8 +12960,8 @@ VB['sim/settle'] = (() => {
   const { B } = VB['gen'];
   const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable, villageAdded } = VB['sim/routes'];
+  const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
+  const { walkable, villageAdded, costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -13040,10 +13092,11 @@ VB['sim/settle'] = (() => {
   // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps}, or null.
   function newSite(st, v, use, cands) {
     const w = st.w, minFert = SETTLE.fertility * meanFertility(st, v);
+    const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity, tried = 0;
     for (const [t, d, s0] of cands) {
       if (tried >= SETTLE.candidates) break;
-      if (use.taken.has(t) || use.near.has(t)) continue;
+      if (use.taken.has(t) || use.near.has(t) || cutsOff(w, t, shut, house)) continue; // a house may not close a way (VB-396)
       tried++;
       const block = placeFields(w, use.taken, t, SETTLE.fields, use.near); if (!block) continue;
       // room besides the block for meadow and pasture, away from other farms (VB-154)
@@ -13087,7 +13140,7 @@ VB['sim/settle'] = (() => {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
     f.condition = 1; f.condAt = st.t; f.emptySince = null; f.booth = { i: 0, done: 0 };
-    st.farmsteads.push(f); v.farmsteads.push(f.id);
+    st.farmsteads.push(f); v.farmsteads.push(f.id); costChanged(st, house); // routes go round the house from now on
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
     const grain = {}; // by crop (VB-347), as the stakes and the gifts are taken
@@ -20075,7 +20128,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '315a5aaccf', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '204664245c', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

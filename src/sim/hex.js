@@ -1,4 +1,4 @@
-// @sys sim/hex: hex-grid search, paths and land components
+// @sys sim/hex: hex-grid search, paths and land components, and where a house would close a way or a green in
 VB['sim/hex'] = (() => {
   // ---- hex helpers ----
   function bfs(w, from, maxSteps, pass) {
@@ -54,5 +54,37 @@ VB['sim/hex'] = (() => {
     }
     return { id, size };
   }
-  return { bfs, stepsTo, pathTo, land, hexSteps, landComponents };
+  // ---- where a house may stand (VB-396): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
+  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-396), so a house may not stand where it would close
+  // a way: true when t would have no open tile beside it, when it would take the last open tile beside a house next to it, or when the
+  // open tiles round it would no longer reach each other going round it (looked for within CUT_REACH steps, so a long way round counts
+  // as none). shut(j): no route crosses j (off the map, water, a house); house(j): a house stands on j.
+  const CUT_REACH = 10;
+  function cutsOff(w, t, shut, house) {
+    const open = [];
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[t * 6 + k];
+      if (j < 0) continue;
+      if (!shut(j)) { open.push(k); continue; }
+      if (!house(j)) continue;
+      let left = 0; for (let q = 0; q < 6; q++) { const n = w.nb[j * 6 + q]; if (n >= 0 && n !== t && !shut(n)) left++; }
+      if (!left) return true;
+    }
+    if (!open.length) return true;
+    let arcs = 0; for (const k of open) if (!open.includes((k + 1) % 6)) arcs++;
+    if (arcs < 2) return false;
+    const { dist } = bfs(w, w.nb[t * 6 + open[0]], CUT_REACH, (j) => j !== t && !shut(j));
+    return open.some((k) => !dist.has(w.nb[t * 6 + k]));
+  }
+  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-396): of the six tiles round
+  // it at most GREEN_HOUSES bear a house, and never two side by side. True when t is one of the six and breaks that.
+  const GREEN_HOUSES = 3;
+  function rimFull(w, center, t, house) {
+    let at = -1, n = 0;
+    for (let k = 0; k < 6; k++) { const j = w.nb[center * 6 + k]; if (j === t) at = k; else if (j >= 0 && house(j)) n++; }
+    if (at < 0) return false;
+    const side = (d) => { const j = w.nb[center * 6 + ((at + d) % 6)]; return j >= 0 && house(j); };
+    return n >= GREEN_HOUSES || side(1) || side(5);
+  }
+  return { bfs, stepsTo, pathTo, land, hexSteps, landComponents, cutsOff, rimFull };
 })();

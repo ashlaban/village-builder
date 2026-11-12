@@ -4,15 +4,19 @@ VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
-  // bridges, VB-112). Houses, greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or
-  // meadow too; houses and greens (w.dev 3 and 2) wear no path.
+  // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
+  // buildings (VB-396). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
+    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
     const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
     return w.worn ? c / PATHS.speed[w.worn[i]] : c;
   }
-  const passable = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
+  const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
+  // Land a route may cross: passable, and not a house.
+  const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
   // What the slope of the step between a and b adds: SLOPE.perRise for each unit of elevation between them, up or down alike (so the
@@ -90,7 +94,7 @@ VB['sim/routes'] = (() => {
       }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (j !== to && !passable(w, j))) continue;
+        if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj; prev[j] = i; mark[j] = run;
@@ -115,10 +119,10 @@ VB['sim/routes'] = (() => {
       const i = open.pop();
       if (shut[i] === run) continue;
       shut[i] = run; settled++;
-      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !passable(w, i)) continue; }
+      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !through(w, i)) continue; }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (tgt[j] !== run && !passable(w, j))) continue;
+        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj; mark[j] = run;
