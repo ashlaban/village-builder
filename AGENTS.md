@@ -38,8 +38,8 @@ Otherwise decide by these, write the decision and its reason in the task file, a
    held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
 3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. Agents do not tune:
    tuning is a run over many parameters, for gameplay balance, that Kim starts. A measurement that shows a shortfall is reported and
-   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix, reported before and after; and a
-   collapse may be tuned away.
+   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix,
+   reported before and after; and a collapse may be tuned away.
 4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
 5. **Customs** are grounded in history, with defaults leaning to gameplay. Add them freely; Kim will later review them for a smaller set.
 6. **References:** founders is the early game's, populous the late game's (many pawns). Heirs is reported without a target.
