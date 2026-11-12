@@ -27,7 +27,8 @@ for (const j of herdJobs) {
   check(j.key === `herd:h${hh.id}:${day}`, `herd job ${j.key} not of today`);
   check(hexSteps(st.w, f.house, j.site) <= H.steps && j.site !== f.house, `${j.key}: pasture ${hexSteps(st.w, f.house, j.site)} steps from the house`);
   const aftermath = f.meadows.some((m) => m.tile === j.site && m.stage === 'aftermath'); // the farm's own meadow, mown and carried
-  check((!st.used.has(j.site) || aftermath) && !(st.owner[j.site] > 0 && st.owner[j.site] !== hh.id + 1), `${j.key}: pasture on a field, a house or another's land`);
+  check((!st.used.has(j.site) || aftermath) && !(st.owner[j.site] > 0 && st.owner[j.site] !== hh.id + 1),
+    `${j.key}: pasture on a field, a house or another's land`);
   for (const id of j.claims) {
     const p = st.pawns[id], a = st.agents[id];
     check(p.household === hh.id && Sim.age(st, p) >= H.minAge, `${j.key}: herder ${id} of household ${p.household}, aged ${Sim.age(st, p)}`);
@@ -45,7 +46,8 @@ const done = held.filter((j) => !st.jobs.has(j.key));
 check(done.length > 0, 'no herding finished by 20:00');
 for (const j of done) {
   const hh = st.households[j.owner.id], g = Z.grazeOf(st, j.site);
-  check(g >= 0.95 * H.hours * Z.herdLoad(st, hh), `${j.key}: pressure ${g.toFixed(1)} on its pasture after ${H.hours} hours of a load of ${Z.herdLoad(st, hh)}`);
+  check(g >= 0.95 * H.hours * Z.herdLoad(st, hh),
+    `${j.key}: pressure ${g.toFixed(1)} on its pasture after ${H.hours} hours of a load of ${Z.herdLoad(st, hh)}`);
   const nb = st.w.nb[j.site * 6];
   if (nb >= 0) check(Z.grazeOf(st, nb) >= 0.95 * H.nb * H.hours * Z.herdLoad(st, hh), `${j.key}: a neighbour's pressure ${Z.grazeOf(st, nb).toFixed(1)}`);
 }
@@ -72,7 +74,8 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
   s.owner[q] = hh.id + 2; // another household's now
   check(Z.todaysPasture(s, hh, next(1)) !== q, 'a pasture kept on another\'s land');
   s.owner[q] = was;
-  check(s.liveHouseholds.every((id) => !s.households[id].pasture || Z.grazable(s, s.households[id], s.households[id].pasture.tile)), 'a kept pasture not grazable');
+  check(s.liveHouseholds.every((id) => !s.households[id].pasture || Z.grazable(s, s.households[id], s.households[id].pasture.tile)),
+    'a kept pasture not grazable');
 }
 
 // --- the pressure halves each game year in closed form, put on the new year's scale at its first step
@@ -112,6 +115,8 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
   const hh = farms.map((f) => s.households[f.household]).find((h) => h.herds.some((id) => s.herds[id].species === 'cattle' && s.herds[id].head.length));
   const herd = hh.herds.map((id) => s.herds[id]).find((x) => x.species === 'cattle'), g = farms.find((f) => f.household !== hh.id) || farms[0];
   const fd = g.fields[0];
+  // the one standing crop by the gap: with the fields beside the houses, another field may lie nearer the herd's home
+  for (const f of farms) for (const x of f.fields) if (x !== fd) x.stage = 'stubble';
   fd.stage = 'growing'; fd.sown = c.day - 4; delete fd.trampled;
   for (const x of v.fence) x.cond = 1;
   const sx = v.fence[0]; sx.cond = 0.3; sx.edges = [{ ...sx.edges[0], tile: fd.tile }];
@@ -136,7 +141,8 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
   sx.cond = 1; s.rng.herds.fix = 0; Y.stray(s, hh, herd); delete s.rng.herds.fix;
   check(fd.trampled === 1, 'cattle through a mended fence');
   // the reaping: the field gives 10% less for each time the cattle got in
-  const yieldOf = (n) => { if (n) fd.trampled = n; else delete fd.trampled; s.rng.fields.fix = 0.5; Fd.reaped(s, fd, c); delete s.rng.fields.fix; return fd.held; };
+  const yieldOf = (n) => {
+    if (n) fd.trampled = n; else delete fd.trampled; s.rng.fields.fix = 0.5; Fd.reaped(s, fd, c); delete s.rng.fields.fix; return fd.held; };
   const soil = fd.soil, plain = yieldOf(0); fd.soil = soil; const lost = yieldOf(1); fd.soil = soil;
   check(Math.abs(lost - Math.round(plain * (1 - HD.stray.loss))) <= 1 && lost < plain, `reaped ${lost} trampled, ${plain} not`);
   check(fd.trampled === undefined, 'trampled kept past the reaping');

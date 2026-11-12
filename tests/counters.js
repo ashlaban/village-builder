@@ -3,7 +3,8 @@ const assert = require('assert'), fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), { tinyWorld, tinyState } = require('./lib/tiny.js'), Sim = VB.sim;
 const { target } = require('./lib/targets.js'), { livingPawnDays } = require('../tools/counts.js');
 const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
-  [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], { seed: 7, herds: true });
+  [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], {
+    seed: 1, herds: true }); // seed 1: a seed whose round has pairs to score
 assert.strictEqual(st.villages.length, 2);
 VB.resetCounts();
 const from = st.t;
@@ -17,7 +18,8 @@ assert(roundRank > 0, 'round must compute heir rankings');
 const values = Object.fromEntries(Object.keys(VB.COUNTERS).map((k) => [k, VB.count[k] / pawnDays]));
 values.roundRank = roundRank / pawnDays;
 assert(Object.entries(VB.count).every(([k, v]) => Number.isFinite(v)
-  && (k === 'routeEvict' || k === 'recordFold' || k === 'reachSettled' ? v === 0 : k === 'occasionAsked' || k === 'takeInWeighed' || k === 'labourWeighed' || k === 'boatAsk' ? v >= 0 : v > 0)),
+  && (k === 'routeEvict' || k === 'recordFold' || k === 'reachSettled' ? v === 0 : k === 'occasionAsked' || k === 'takeInWeighed' || k === 'labourWeighed' ||
+    k === 'boatAsk' ? v >= 0 : v > 0)),
   'fixture must exercise every counter except eviction (the tiny cache fits; routes.js exercises eviction), the fold of the record '
   + '(at the year\'s turn; record.js exercises it) and the guests of occasions (a marriage, a death or the meeting; occasions.js exercises it)'
   + ' and the take-in search (a household short of people whose ask fell short; takenin.js exercises it)'
@@ -45,9 +47,10 @@ VB['sim/heirs'].ownFirstOf(st);
 assert(VB.count.heirRank >= st.liveHouseholds.length, 'nested ownFirstOf rankings must be counted');
 // A second tiny fixture exercises many pair comparisons without advancing into hunger first: two villages of four large households, at
 // four seeds, since how many unmarried adults a seed's villages hold varies widely (one village pair of three farms gave 32 pairs at
-// seed 7 and under ten at most seeds; five at seed 7 since the villages were laid out anew, VB-402).
+// seed 7 and under ten at most seeds; five at seed 7 since the villages were laid out anew, VB-402; the seeds chosen again when
+// villages were laid out by their land, Kim, 12 Nov).
 VB.resetCounts();
-for (const seed of [3, 6, 11, 12]) {
+for (const seed of [2, 12, 13, 15]) {
   Sim.movingRound(tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
     [{ at: [10, 15], farms: 4, sizes: [9, 9, 9, 9] }, { at: [38, 15], farms: 4, sizes: [9, 9, 9, 9] }], { seed }));
 }
@@ -67,4 +70,5 @@ const lifetimes = { t: 48, pawns: [{ born: -48, died: null }, { born: 12, died: 
 assert.strictEqual(livingPawnDays(lifetimes, 0), 5);
 assert.strictEqual(livingPawnDays(lifetimes, 24), 2.5);
 assert.strictEqual(livingPawnDays(lifetimes, 0, 0), 0);
-console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(0)} living pawn-days; ${probePairs}-pair round probe; ${out} counters out against baseline`);
+console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(
+  0)} living pawn-days; ${probePairs}-pair round probe; ${out} counters out against baseline`);
