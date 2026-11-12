@@ -121,6 +121,29 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
+### VB-187: the gossip experiment, for the talk plan VB-186 (raised 12 November 2026)
+From the experiment of target-v2 10.2 (`docs/gossip-experiment.md`; `node tools/gossip.js`, seeds 1 to 10): stories meet the spread and
+lie bands, averaging only its own; forgetting is the weak band. None blocks a task; VB-186 takes them up.
+1. Which model for gossip. Averaging fails the forgetting, lie and counter-story bands by construction and makes strangers judge the
+   subject as harshly as the witness (-0.60 against -0.19 under stories, at a year). **P:** model B, stories, as decided; averaging
+   stays for attitudes (customs).
+2. Saturation per audience. A story from spring is stale by the winter gathering: an island joined by ice hears it in 3 of 10 seeds
+   (8 of 10 when the story is six days old), because its tellers lost zeal at home. **P:** a held story keeps two zeals, for its own
+   village and for others, so news is told afresh to people from elsewhere. (The other way: only what happens at the gathering crosses
+   the water, and other news only while fresh.)
+3. Forgetting as a cohort. A village that retold a story together forgets it within a few days; at a heard story's half-life of one
+   game year it is mostly forgotten by year 3 in 4 of 10 seeds, at 40 days in 10 of 10. **P:** a heard story's half-life of 40 game
+   days, first-hand memories three times as long, and a per-pawn factor of 0.5 to 1.5 (wits, or seeded), so forgetting is a curve.
+4. The forgetting band's measure. **P:** "mostly forgotten within three years" is held by under half of those who held it at its peak.
+5. Sharpening and the hop discount. Without a discount on what a heard story writes, 54% of held opinions reach the extremes, since each
+   hop sharpens. **P:** both: 8% sharper a hop on the told valence, 0.8 a hop on the memory it writes; the Proposed polarisation band
+   measured as extremes (|opinion| at 0.8 or more) under 0.25 of held opinions and no village with 20% on each side of 0.3, checked in
+   slice 7's wrap-up on the game (one story cannot test it).
+6. The alehouse, not the gathering, carries news to the neighbouring village (the share of goers changes nothing; halving B's alehouse
+   visits drops the fair-village band to 7 of 10). **P:** tune that band on the alehouse's draw from neighbouring villages.
+7. Belief is the parameter everything hangs on (a base of 0.3 leaves the fair's other village unaware in 7 of 10 seeds). **P:** a base of
+   0.6, moved by the tie to and opinion of the teller and by fit, as in the experiment; fitted in the wrap-up.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
