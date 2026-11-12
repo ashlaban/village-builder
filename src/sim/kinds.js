@@ -159,21 +159,22 @@ VB['sim/kinds'] = (() => {
       // 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
-        if (hh.wood < U.woodLow) return U.woodLowUrgency;
+        const free = hh.wood - reserved(st, hh, 'wood'); // what a project plan holds back is not for the fire (VB-123)
+        if (free < U.woodLow) return U.woodLowUrgency;
         const goal = woodTargets(st, hh).wood[c.season];
-        return (goal - hh.wood) / goal + (c.season === 2 ? U.woodSummer : 0);
+        return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
       // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
       deliver: (st, j, hh) => {
         Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood'); fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
       },
       draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
-      // while the village has a wood and the pile is below the plan's goal for the season; a second job while it is below the plan's woodSecond
+      // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
       available: (st, hh, f, c, post) => {
-        const wood = st.villages[f.village].wood, T = woodTargets(st, hh);
-        if (wood.length && hh.wood < T.wood[c.season]) {
+        const wood = st.villages[f.village].wood, T = woodTargets(st, hh), free = hh.wood - reserved(st, hh, 'wood');
+        if (wood.length && free < T.wood[c.season]) {
           post(`wood:h${hh.id}`, wood[0], { farm: f });
-          if (hh.wood < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
+          if (free < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
         }
       },
     },
