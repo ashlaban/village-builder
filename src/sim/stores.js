@@ -14,6 +14,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
+  // VB-300: a catch hung on the drying rack (sim/drying), the fish going out of the rack's store and dried fish into the larder.
+  KINDS.push('drying'); ROUTINE.push('drying');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -51,6 +53,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'meals') return good;
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // ---- grain by crop (VB-347; design.md, Goods, recipes and facilities: goods in subtypes): a household's and a village's grain is
@@ -66,15 +69,12 @@ VB['sim/stores'] = (() => {
   // The grain a household or a village holds, of every crop or of one (VB-347): the one reader of the store's grain. Allocates nothing; the
   // crops are added in CROPS' order, so that grain of one crop is its number itself.
   function grainOf(holder, crop) {
-    const g = holder.grain;
-    if (crop !== undefined) return g[crop] || 0;
-    let n = 0;
-    for (let i = 0; i < CROP_LIST.length; i++) { const x = g[CROP_LIST[i]]; if (x !== undefined) n += x; }
+    const g = holder.grain; if (crop !== undefined) return g[crop] || 0;
+    let n = 0; for (let i = 0; i < CROP_LIST.length; i++) { const x = g[CROP_LIST[i]]; if (x !== undefined) n += x; }
     return n;
   }
   // Grain by crop as a take's `into` gave it, or as a constructor names it: an object of crops of CROPS, each a number >= 0.
-  const partsOk = (parts) => !!parts && typeof parts === 'object' && Object.keys(parts).every((c) => CROP_GOOD[c] !== undefined && parts[c] >= 0
-    && Number.isFinite(parts[c]));
+  const partsOk = (parts) => !!parts && typeof parts === 'object' && Object.keys(parts).every((c) => CROP_GOOD[c] && parts[c] >= 0 && parts[c] < Infinity);
   const partsSum = (parts) => { let n = 0; for (const c of CROP_LIST) if (parts[c] !== undefined) n += parts[c]; return n; };
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
@@ -84,10 +84,13 @@ VB['sim/stores'] = (() => {
   const setWood = (hh, n) => { hh.wood = n; };
   const setStone = (hh, n) => { hh.stone = n; };
   const setMeals = (hh, n) => { hh.meals = n; };
+  // @state household.rack: rations of fresh fish laid by the drying rack, waiting to be split and hung (VB-300; sim/drying), 0 at the start
+  const setRack = (hh, n) => { hh.rack = n; };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
+    else if (good === 'fish') setRack(holder, n);
     else setMeals(holder, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -103,14 +106,12 @@ VB['sim/stores'] = (() => {
     const r = reserved(st, holder, GRAIN);
     if ((before > r) !== (grainOf(holder) > r)) wake(st, holder);
   }
-  // Puts n of a good. Grain: 'grain/<crop>' into its crop; 'grain' by `parts` ({[crop]: n}, summing to n: a take's `into`); a pawn's stake
-  // takes it whatever its crop.
+  // Puts n of a good. Grain: 'grain/<crop>' into its crop; 'grain' by `parts` ({[crop]: n}, summing to n: a take's `into`); a stake: any crop.
   function put(st, holder, good, n, why, parts) {
     amount(n); const kind = type(holder), k = field(holder, good, kind);
     if (k === GRAIN) {
       if (good === GRAIN && !(partsOk(parts) && Math.abs(partsSum(parts) - n) <= 1e-9 * Math.max(1, n))) throw new Error('stores: grain is put by its crops');
-      const before = grainOf(holder);
-      record(st, holder, good, n, why, kind);
+      const before = grainOf(holder); record(st, holder, good, n, why, kind);
       if (good !== GRAIN) setGrain(holder, GOOD_CROP[good], (holder.grain[GOOD_CROP[good]] || 0) + n);
       else for (const c of CROP_LIST) if (parts[c] > 0) setGrain(holder, c, (holder.grain[c] || 0) + parts[c]);
       crossed(st, holder, kind, before); return n;
@@ -129,16 +130,13 @@ VB['sim/stores'] = (() => {
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;
   }
-  // Takes up to n of a household's unreserved grain, whatever its crop (VB-347; the cook, the meal, the brewer): from each crop in proportion
-  // to what is held of it above its reservation (by what is held, when nothing is above it).
+  // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
   function takeSpare(st, hh, n, why, into) {
-    amount(n); const kind = type(hh);
-    if (kind !== 'household') throw new Error('stores: spare grain is a household\'s');
-    return takeGrain(st, hh, GRAIN, n, why, into, kind, true);
+    amount(n); if (type(hh) !== 'household') throw new Error('stores: spare grain is a household\'s');
+    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
   }
   function takeGrain(st, holder, good, n, why, into, kind, spare) {
-    const before = grainOf(holder);
-    let got;
+    const before = grainOf(holder); let got;
     if (good !== GRAIN) {
       const c = GOOD_CROP[good], x = holder.grain[c] || 0; got = Math.min(x, n);
       setGrain(holder, c, x - got); if (into) into[c] = (into[c] || 0) + got;
@@ -148,10 +146,7 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  function weight(st, holder, c, spare) {
-    const x = holder.grain[c] || 0;
-    return spare ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
-  }
+  const weight = (st, holder, c, spare) => (spare ? Math.max(0, (holder.grain[c] || 0) - reserved(st, holder, CROP_GOOD[c])) : holder.grain[c] || 0);
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
   function split(st, holder, n, spare, into) {
@@ -160,20 +155,15 @@ VB['sim/stores'] = (() => {
     if (last < 0) { if (spare) split(st, holder, n, false, into); return; }
     let left = n;
     for (let i = 0; i <= last; i++) {
-      const c = CROP_LIST[i], w = weight(st, holder, c, spare);
-      if (!(w > 0)) continue;
-      const x = holder.grain[c], k = i === last ? Math.min(x, left) : Math.min(x, left, n * w / total);
-      setGrain(holder, c, x - k); left -= k; if (into) into[c] = (into[c] || 0) + k;
+      const c = CROP_LIST[i], w = weight(st, holder, c, spare), x = holder.grain[c];
+      if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, n * w / total), into);
     }
-    for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
-      const c = CROP_LIST[i], x = holder.grain[c] || 0, k = Math.min(x, left);
-      if (k > 0) { setGrain(holder, c, x - k); left -= k; if (into) into[c] = (into[c] || 0) + k; }
-    }
+    for (let i = 0; i < CROP_LIST.length && left > 0; i++) left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
   }
+  function takeCrop(holder, c, k, into) { if (k > 0) { setGrain(holder, c, holder.grain[c] - k); if (into) into[c] = (into[c] || 0) + k; } return k; }
   // Moves up to n of a good between holders; grain keeps its crops (in the proportion the giver holds them, for 'grain').
   function move(st, from, to, good, n, why) {
-    amount(n); field(from, good); field(to, good);
-    const parts = isGrain(good) ? {} : undefined;
+    amount(n); field(from, good); field(to, good); const parts = isGrain(good) ? {} : undefined;
     const got = take(st, from, good, n, why, parts); put(st, to, good, got, why, parts); return got;
   }
   // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
@@ -182,6 +172,25 @@ VB['sim/stores'] = (() => {
   function cook(st, hh, food, n) {
     const got = food === GRAIN ? takeSpare(st, hh, n, 'cooking') : take(st, hh, food, n, 'cooking');
     put(st, hh, 'meals', mealsFrom(food, got), 'cooking');
+  }
+  // ---- dried fish (VB-300; sim/drying): a lot in the larder (sim/hunger's {kind, n, until}), kept the good's keepsDays ----
+  // The fish waiting by the rack are split and hung: they leave the rack's store and are dried fish from now (the weeks on the rack are not
+  // told apart: fish hanging is food in store). Returns the rations hung.
+  function dry(st, hh) {
+    const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
+    if (!(n > 0)) return 0;
+    record(st, hh, 'dried fish', n, 'drying'); hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
+    return n;
+  }
+  // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
+  function cookLarder(st, hh, kind, n) {
+    amount(n); let got = 0;
+    const lots = hh.larder.filter((l) => l.kind === kind).sort((a, b) => a.until - b.until);
+    for (const l of lots) { if (got >= n) break; const k = Math.min(l.n, n - got); l.n -= k; got += k; }
+    if (!(got > 0)) return 0;
+    hh.larder = hh.larder.filter((l) => l.n > 1e-9);
+    record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
+    return got;
   }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest');
@@ -385,7 +394,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
-    dug, grainOf, grainGood, partsOk, partsSum, takeSpare, CROP_LIST, STAKE_CROP,
+    dug, dry, cookLarder, grainOf, grainGood, partsOk, partsSum, takeSpare, CROP_LIST, STAKE_CROP,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();

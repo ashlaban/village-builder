@@ -1,7 +1,7 @@
 // @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH } = VB['sim/rules'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
@@ -26,6 +26,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
+  const { boatYear } = VB['sim/drying'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -120,6 +121,8 @@ VB['sim/clock'] = (() => {
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     { every: 'year', at: FROST, owner: 'sim/meadows', note: 'the autumn frost rots hay still lying', run: (st) => meadowsFrost(st) },
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
+    { every: 'year', at: { season: 0, sday: FISH.from }, owner: 'sim/drying', note: 'the ice is gone: households by the sea begin a boat (VB-300)',
+      run: (st) => boatYear(st) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
     { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
     { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },

@@ -59,6 +59,8 @@ function main() {
     else if (name === 'takeInWeighed') continue;
     // Service where labour is short (VB-090) needs a landless adult with hands to spare at home in the round; tests/labour.js exercises it.
     else if (name === 'labourWeighed') continue;
+    // Boats are asked for only in a village by fishing water (VB-300), which these all-land villages are not; tests/drying.js exercises it.
+    else if (name === 'boatAsk') continue;
     // The walking hours between villages are refreshed on autumn day 9 (VB-286); tests/villagehours.js exercises them.
     else if (name === 'reachSettled') assert(early.work[name] === 0 && late.work[name] === 0, 'no autumn in 30 days');
     else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);

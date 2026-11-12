@@ -1043,6 +1043,9 @@ VB.COUNTERS = {
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
+  fishReach: 'Tiles within reach of a house searched for fishing water: a village\'s reach test when it has a new farm, a household\'s shore '
+    + 'for a boat (sim/drying; VB-300)',
+  boatAsk: 'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround: 'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
   pastureTiles: 'Tiles within reach of a house searched for its herds\' pasture, once a grazing day a household (sim/herds; VB-136)',
 };
@@ -3271,6 +3274,7 @@ VB['sim/rules'] = (() => {
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
     milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
     butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', raw: true },
+    'dried fish': { worth: 1, keeps: YEAR_DAYS, source: 'fish', raw: true }, // hung on the rack (VB-300); also cooked into the winter's pot
   };
   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
@@ -4767,7 +4771,7 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, // clay, bogOre: loads dug (VB-359; sim/stores dug)
+        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, // clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -5002,9 +5006,10 @@ VB['sim/records'] = (() => {
 // plans of steps, each opening when the one before is done; sim/plans writes them
 VB['sim/projects'] = (() => {
   // @state st.plans.projects (VB-123): {household, village, pawn: Map of a holder's id to its project plans, in the order made}; a project
-  //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow': what it makes), steps: [{kind (an opportunity kind of
+  //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow' | 'boat': what it makes), steps: [{kind (an opportunity kind of
   //   sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent), spends ({[good]: n}
-  //   taken from the holder's store when the step is done, or absent)}], open (the index of the open step), reserved, reasons (sim/stores)}.
+  //   taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and loads brought, or
+  //   absent; VB-300's boat)}], open (the index of the open step), reserved, reasons (sim/stores)}.
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
   //   Written only by sim/plans (which hears the lower modules' changes by events: a step done, a right lost, a store short); read here.
   // The plans a holder has (an empty list for none; never written to).
@@ -5016,6 +5021,8 @@ VB['sim/projects'] = (() => {
   // The holder's first project plan, or null: a household has at most one (design.md section 7, Holders and plans).
   const projectOf = (st, type, id) => { const list = projectsOf(st, type, id); return list.length ? list[0] : null; };
   const openStep = (plan) => plan.steps[plan.open];
+  // Whether a step has what it waits for at its site: a step with `timber` (loads it needs, VB-300's boat) once `wood` (loads brought) reaches it.
+  const supplied = (s) => !(s.timber > (s.wood || 0));
   // The open step of a holder's first project plan, or null. Allocates nothing (the review and the kinds read it hourly).
   const openOf = (st, type, id) => { const plan = projectOf(st, type, id); return plan ? plan.steps[plan.open] : null; };
   // Every live project plan, in the order of holders' types and ids (a few per village at most).
@@ -5049,7 +5056,7 @@ VB['sim/projects'] = (() => {
   }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
-  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, onFarm, impossible, dropWords, emptyProjects };
+  return { projectsOf, projectOf, openStep, supplied, openOf, forEach, holderOf, onFarm, impossible, dropWords, emptyProjects };
 })();
 </script>
 <script>
@@ -6440,7 +6447,7 @@ VB['sim/herds'] = (() => {
         ? { species: 'cattle', head: hd.head.map((h) => ({ name: h.name, kind: h.kind, sex: h.sex, age: Math.floor(years(st, h)) })) }
         : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs })),
       text: describeHerds(st, hh), cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
-      larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter']
+      larder: Object.fromEntries(['meat', 'salt meat', 'milk', 'butter', 'dried fish']
         .map((k) => [k, Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0))])),
       // rations of fresh milk and of butter made since the start of this game year (VB-135), from the stores' yearly totals (VB-204)
       ...Object.fromEntries(['milk', 'butter'].map((k) => [k + 'Year', +hh.totals.filter((x) => x.kind === k && x.year === Math.floor(st.t / YEAR) + 1)
@@ -6471,6 +6478,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
+  // VB-300: a catch hung on the drying rack (sim/drying), the fish going out of the rack's store and dried fish into the larder.
+  KINDS.push('drying'); ROUTINE.push('drying');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -6508,6 +6517,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'meals') return good;
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // ---- grain by crop (VB-347; design.md, Goods, recipes and facilities: goods in subtypes): a household's and a village's grain is
@@ -6523,15 +6533,12 @@ VB['sim/stores'] = (() => {
   // The grain a household or a village holds, of every crop or of one (VB-347): the one reader of the store's grain. Allocates nothing; the
   // crops are added in CROPS' order, so that grain of one crop is its number itself.
   function grainOf(holder, crop) {
-    const g = holder.grain;
-    if (crop !== undefined) return g[crop] || 0;
-    let n = 0;
-    for (let i = 0; i < CROP_LIST.length; i++) { const x = g[CROP_LIST[i]]; if (x !== undefined) n += x; }
+    const g = holder.grain; if (crop !== undefined) return g[crop] || 0;
+    let n = 0; for (let i = 0; i < CROP_LIST.length; i++) { const x = g[CROP_LIST[i]]; if (x !== undefined) n += x; }
     return n;
   }
   // Grain by crop as a take's `into` gave it, or as a constructor names it: an object of crops of CROPS, each a number >= 0.
-  const partsOk = (parts) => !!parts && typeof parts === 'object' && Object.keys(parts).every((c) => CROP_GOOD[c] !== undefined && parts[c] >= 0
-    && Number.isFinite(parts[c]));
+  const partsOk = (parts) => !!parts && typeof parts === 'object' && Object.keys(parts).every((c) => CROP_GOOD[c] && parts[c] >= 0 && parts[c] < Infinity);
   const partsSum = (parts) => { let n = 0; for (const c of CROP_LIST) if (parts[c] !== undefined) n += parts[c]; return n; };
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
@@ -6541,10 +6548,13 @@ VB['sim/stores'] = (() => {
   const setWood = (hh, n) => { hh.wood = n; };
   const setStone = (hh, n) => { hh.stone = n; };
   const setMeals = (hh, n) => { hh.meals = n; };
+  // @state household.rack: rations of fresh fish laid by the drying rack, waiting to be split and hung (VB-300; sim/drying), 0 at the start
+  const setRack = (hh, n) => { hh.rack = n; };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
+    else if (good === 'fish') setRack(holder, n);
     else setMeals(holder, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -6560,14 +6570,12 @@ VB['sim/stores'] = (() => {
     const r = reserved(st, holder, GRAIN);
     if ((before > r) !== (grainOf(holder) > r)) wake(st, holder);
   }
-  // Puts n of a good. Grain: 'grain/<crop>' into its crop; 'grain' by `parts` ({[crop]: n}, summing to n: a take's `into`); a pawn's stake
-  // takes it whatever its crop.
+  // Puts n of a good. Grain: 'grain/<crop>' into its crop; 'grain' by `parts` ({[crop]: n}, summing to n: a take's `into`); a stake: any crop.
   function put(st, holder, good, n, why, parts) {
     amount(n); const kind = type(holder), k = field(holder, good, kind);
     if (k === GRAIN) {
       if (good === GRAIN && !(partsOk(parts) && Math.abs(partsSum(parts) - n) <= 1e-9 * Math.max(1, n))) throw new Error('stores: grain is put by its crops');
-      const before = grainOf(holder);
-      record(st, holder, good, n, why, kind);
+      const before = grainOf(holder); record(st, holder, good, n, why, kind);
       if (good !== GRAIN) setGrain(holder, GOOD_CROP[good], (holder.grain[GOOD_CROP[good]] || 0) + n);
       else for (const c of CROP_LIST) if (parts[c] > 0) setGrain(holder, c, (holder.grain[c] || 0) + parts[c]);
       crossed(st, holder, kind, before); return n;
@@ -6586,16 +6594,13 @@ VB['sim/stores'] = (() => {
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;
   }
-  // Takes up to n of a household's unreserved grain, whatever its crop (VB-347; the cook, the meal, the brewer): from each crop in proportion
-  // to what is held of it above its reservation (by what is held, when nothing is above it).
+  // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
   function takeSpare(st, hh, n, why, into) {
-    amount(n); const kind = type(hh);
-    if (kind !== 'household') throw new Error('stores: spare grain is a household\'s');
-    return takeGrain(st, hh, GRAIN, n, why, into, kind, true);
+    amount(n); if (type(hh) !== 'household') throw new Error('stores: spare grain is a household\'s');
+    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
   }
   function takeGrain(st, holder, good, n, why, into, kind, spare) {
-    const before = grainOf(holder);
-    let got;
+    const before = grainOf(holder); let got;
     if (good !== GRAIN) {
       const c = GOOD_CROP[good], x = holder.grain[c] || 0; got = Math.min(x, n);
       setGrain(holder, c, x - got); if (into) into[c] = (into[c] || 0) + got;
@@ -6605,10 +6610,7 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  function weight(st, holder, c, spare) {
-    const x = holder.grain[c] || 0;
-    return spare ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
-  }
+  const weight = (st, holder, c, spare) => (spare ? Math.max(0, (holder.grain[c] || 0) - reserved(st, holder, CROP_GOOD[c])) : holder.grain[c] || 0);
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
   function split(st, holder, n, spare, into) {
@@ -6617,20 +6619,15 @@ VB['sim/stores'] = (() => {
     if (last < 0) { if (spare) split(st, holder, n, false, into); return; }
     let left = n;
     for (let i = 0; i <= last; i++) {
-      const c = CROP_LIST[i], w = weight(st, holder, c, spare);
-      if (!(w > 0)) continue;
-      const x = holder.grain[c], k = i === last ? Math.min(x, left) : Math.min(x, left, n * w / total);
-      setGrain(holder, c, x - k); left -= k; if (into) into[c] = (into[c] || 0) + k;
+      const c = CROP_LIST[i], w = weight(st, holder, c, spare), x = holder.grain[c];
+      if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, n * w / total), into);
     }
-    for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
-      const c = CROP_LIST[i], x = holder.grain[c] || 0, k = Math.min(x, left);
-      if (k > 0) { setGrain(holder, c, x - k); left -= k; if (into) into[c] = (into[c] || 0) + k; }
-    }
+    for (let i = 0; i < CROP_LIST.length && left > 0; i++) left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
   }
+  function takeCrop(holder, c, k, into) { if (k > 0) { setGrain(holder, c, holder.grain[c] - k); if (into) into[c] = (into[c] || 0) + k; } return k; }
   // Moves up to n of a good between holders; grain keeps its crops (in the proportion the giver holds them, for 'grain').
   function move(st, from, to, good, n, why) {
-    amount(n); field(from, good); field(to, good);
-    const parts = isGrain(good) ? {} : undefined;
+    amount(n); field(from, good); field(to, good); const parts = isGrain(good) ? {} : undefined;
     const got = take(st, from, good, n, why, parts); put(st, to, good, got, why, parts); return got;
   }
   // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
@@ -6639,6 +6636,25 @@ VB['sim/stores'] = (() => {
   function cook(st, hh, food, n) {
     const got = food === GRAIN ? takeSpare(st, hh, n, 'cooking') : take(st, hh, food, n, 'cooking');
     put(st, hh, 'meals', mealsFrom(food, got), 'cooking');
+  }
+  // ---- dried fish (VB-300; sim/drying): a lot in the larder (sim/hunger's {kind, n, until}), kept the good's keepsDays ----
+  // The fish waiting by the rack are split and hung: they leave the rack's store and are dried fish from now (the weeks on the rack are not
+  // told apart: fish hanging is food in store). Returns the rations hung.
+  function dry(st, hh) {
+    const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
+    if (!(n > 0)) return 0;
+    record(st, hh, 'dried fish', n, 'drying'); hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
+    return n;
+  }
+  // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
+  function cookLarder(st, hh, kind, n) {
+    amount(n); let got = 0;
+    const lots = hh.larder.filter((l) => l.kind === kind).sort((a, b) => a.until - b.until);
+    for (const l of lots) { if (got >= n) break; const k = Math.min(l.n, n - got); l.n -= k; got += k; }
+    if (!(got > 0)) return 0;
+    hh.larder = hh.larder.filter((l) => l.n > 1e-9);
+    record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
+    return got;
   }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest');
@@ -6842,7 +6858,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
-    dug, grainOf, grainGood, partsOk, partsSum, takeSpare, CROP_LIST, STAKE_CROP,
+    dug, dry, cookLarder, grainOf, grainGood, partsOk, partsSum, takeSpare, CROP_LIST, STAKE_CROP,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
@@ -8715,9 +8731,10 @@ VB['sim/building'] = (() => {
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
   const WALLS = COTTAGE.indexOf('walls');
   // Loads the site still lacks for its walls: none once they stand.
-  const short = (site, stage) => (stage <= WALLS ? Math.max(0, BUILD.timber - (site.wood || 0)) : 0);
+  const short = (site, stage) => (stage <= WALLS ? Math.max(0, (site.timber ?? BUILD.timber) - (site.wood || 0)) : 0);
   // Asked once for the island: for each cottage being built on a plot (the village's job) and each booth's cottage (its household's) short of
-  // timber, a trip for each load of it still lacking, at most two at a time; none where the village has no wood (sim/territory).
+  // timber, and each household's boat being built (VB-300), a trip for each load of it still lacking, at most two at a time; none where the
+  // village has no wood (sim/territory).
   function timberWork(st, holder, at, c, post) {
     const ask = (key, v, site, stage, dest, owner) => {
       const n = Math.min(2, Math.ceil(short(site, stage) / ECON.woodPerTrip));
@@ -8731,6 +8748,8 @@ VB['sim/building'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
+        const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
+        if (s && s.kind === 'boat') ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household });
       }
     }
   }
@@ -8849,6 +8868,155 @@ VB['sim/building'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
+// fishing for the drying rack and hanging the catch, a side craft of spring and early summer; the fishing boat, a household's facility on
+// a shore built as a project plan; and the share of dried fish the cook puts in the winter's pot
+// Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
+// split and hung on racks in the dry winds of spring and early summer (stockfish, klippfisk), and keep a year or more: here through winter
+// and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+VB['sim/drying'] = (() => {
+  const { FISH, SEASON_DAYS } = VB['sim/rules'];
+  const { bfs } = VB['sim/hex'], { passable } = VB['sim/routes'];
+  const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
+  const { age } = VB['sim/records'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { dailyNeed, larderOf } = VB['sim/hunger'];
+  // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for `share` of its pot over the days
+  // without fresh fish (the winter and spring's first FISH.from days, under the ice), in whole lots of `lot` rations; it fishes for the
+  // rack from spring day FISH.from + 1 to summer day `until` (the drying winds of spring and early summer), one catch waiting at a time;
+  // splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as salting meat: the catch does not wait),
+  // the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the household's slack). Out of the fishing season the
+  // cook puts dried fish in for `share` of the meals it makes.
+  const DRY = { share: 0.25, lot: 10, until: 6, hours: 1, hang: 1.6, urgency: 0.5 };
+  // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
+  // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
+  // where the bank gives 4). A household with `hands` working hands (14 to 59) may build one, at the start of the drying season.
+  const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2 };
+  const winterDays = SEASON_DAYS + FISH.from;
+  // ---- the village's reach (the reach test, as VB-117's): fishing water (a river, a lake or the sea) next to a bank within FISH.reach
+  // walking steps of one of its houses. The world's water does not change in play, so the test changes only with the village's farms. ----
+  // @state village.fishing: {farms, near}: the reach test as of the village's farms (farms: how many it had when tested; near: whether
+  //   fishing water was in reach of one of their houses); a cache, written only here, tested again when the village has a new farm.
+  function nearWater(st, house) {
+    const w = st.w, { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));
+    VB.count.fishReach += dist.size;
+    for (const t of dist.keys()) {
+      if (w.river[t]) continue;
+      for (let k = 0; k < 6; k++) if (isWater(w, w.nb[t * 6 + k])) return true;
+    }
+    return false;
+  }
+  function villageFishes(st, v) {
+    const n = v.farmsteads.length;
+    if (v.fishing && v.fishing.farms === n) return v.fishing.near;
+    let near = false;
+    for (const id of v.farmsteads) if (nearWater(st, st.farmsteads[id].house)) { near = true; break; }
+    v.fishing = { farms: n, near };
+    return near;
+  }
+  // ---- where a household fishes: from its boat while it lies in reach of the house it was built for, else from its fishing ground ----
+  // @state household.boat: {tile, water, house, built} or null: the household's fishing boat, kept on shore tile `tile` by water tile
+  //   `water`, built for the house on tile `house` (a household that moves leaves it behind), at game hour `built`; it does not decay
+  //   until tar (VB-301). Written only here.
+  function fishingPlace(st, hh, f) {
+    const b = hh.boat;
+    if (b && b.house === f.house) return { shore: b.tile, water: b.water, boat: true };
+    const g = ground(st, f.house);
+    return g ? { shore: g.shore, water: g.water, boat: false } : null;
+  }
+  // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat.
+  const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
+  // ---- drying ----
+  // The dried fish a household wants in store: DRY.share of its need over the days without fresh fish, in whole lots.
+  const wanted = (st, hh) => Math.ceil(DRY.share * dailyNeed(st, hh) * winterDays / DRY.lot - 1e-9) * DRY.lot;
+  // The drying season: from spring day FISH.from + 1 to summer day DRY.until.
+  const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || (c.season === 1 && c.sday < DRY.until);
+  // ---- the boat's project (VB-123's project plan: one step at the shore, which waits for its timber; sim/building fells it) ----
+  // The bank nearest the house within FISH.reach walking steps by the sea or a lake of FISH.bigLake tiles or more: {shore, water}, or null.
+  function boatShore(st, house) {
+    const w = st.w, { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j)), size = lakeSizes(w);
+    VB.count.fishReach += dist.size;
+    for (const t of dist.keys()) {
+      if (w.river[t]) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[t * 6 + k];
+        if (j >= 0 && w.water[j] === 1 && (w.ocean[j] || size[j] >= FISH.bigLake)) return { shore: t, water: j };
+      }
+    }
+    return null;
+  }
+  function hands(st, hh) {
+    let n = 0;
+    for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) n++; }
+    return n;
+  }
+  // At the start of the drying season: each household of a village by fishing water, with no boat for its house, no project plan, BOAT.hands
+  // working hands and a village wood to fell in, begins a boat if a shore by the sea or a large lake is in its reach.
+  function boatYear(st) {
+    for (const v of st.villages) {
+      if (!v.wood.length || !villageFishes(st, v)) continue;
+      for (const id of v.farmsteads) {
+        const f = st.farmsteads[id], hh = f.household === null ? null : st.households[f.household];
+        VB.count.boatAsk++;
+        if (!hh || hh.dissolved || f.booth || (hh.boat && hh.boat.house === f.house) || Projects.projectOf(st, 'household', hh.id)) continue;
+        if (hands(st, hh) < BOAT.hands) continue;
+        const s = boatShore(st, f.house);
+        if (s) emit(st, 'projectBegun', { type: 'household', id: hh.id, project: { what: 'boat', water: s.water,
+          steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }] } });
+      }
+    }
+  }
+  // The boat built: the household's, at the plan's shore; the plan is finished (sim/plans).
+  function boatBuilt(st, j, hh) {
+    const plan = Projects.projectOf(st, 'household', hh.id), s = plan && Projects.openStep(plan);
+    if (!s || s.kind !== 'boat' || s.place !== j.site) return;
+    const f = st.farmsteads[hh.farmstead];
+    hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t };
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // ---- the job kinds (sim/kinds registers them; their fields are described there) ----
+  const nearHouse = (dx, dy) => (st, a, j) => [st.w.hx[j.farm.house] + dx + a.ox * 0.3, st.w.hy[j.farm.house] + dy + a.oy * 0.2];
+  const KINDS = {
+    rackfish: {
+      verb: 'Fishing for the drying rack', go: 'Going fishing for the rack', back: 'Carrying the catch to the rack', name: 'Fish for the rack',
+      label: 'Fishing', anim: 'fish', hours: 3, hands: 1, type: 'foraging', carry: 'fish', to: 'door',
+      spot: (st, a, j) => {
+        const w = st.w, x = w.hx[j.site], y = w.hy[j.site], k = w.water[j.water] ? 0.45 : 0.7;
+        return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
+      },
+      urgency: () => DRY.urgency,
+      // the catch is laid by the rack, to be split and hung
+      deliver: (st, j, hh) => { Stores.put(st, hh, 'fish', catchOf(st, j), 'catch'); },
+      // in the drying season, in a village by fishing water, while the household holds less dried fish than it wants and no catch waits
+      available: (st, hh, f, c, post) => {
+        if (!drying(c) || hh.rack > 0 || larderOf(hh, 'dried fish') >= wanted(st, hh) || !villageFishes(st, st.villages[f.village])) return;
+        const g = fishingPlace(st, hh, f);
+        if (g) post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+      },
+    },
+    dry: {
+      verb: 'Splitting and hanging fish to dry', go: 'Going to the drying rack', name: 'Hang fish to dry', label: 'Drying', anim: 'gather',
+      hours: DRY.hours, hands: 1, type: 'household', spot: nearHouse(18, 4), urgency: () => DRY.hang,
+      done: (st, j, hh) => { Stores.dry(st, hh); },
+      available: (st, hh, f, c, post) => { if (hh.rack > 0) post(`dry:h${hh.id}`, f.house, { farm: f }); },
+    },
+    boat: {
+      verb: 'Building a fishing boat', go: 'Going to the boat on the shore', name: 'Build a fishing boat', label: 'Boat', anim: 'mallet',
+      hours: BOAT.hours, hands: 2, type: 'wood', project: true,
+      spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.3],
+      done: (st, j, hh) => boatBuilt(st, j, hh),
+    },
+  };
+  // ---- the pot: dried fish for DRY.share of the meals the cook makes, out of the fishing season (when there is no fresh fish) ----
+  // Rations of dried fish cooked into meals, of `want` meals still wanted (sim/kinds' cook, before the grain).
+  function intoPot(st, hh, c, want) {
+    if ((c.season !== 3 && !(c.season === 0 && c.sday < FISH.from)) || !(want > 0) || !hh.larder.length) return 0;
+    return Stores.cookLarder(st, hh, 'dried fish', DRY.share * want);
+  }
+  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear, intoPot };
+})();
+</script>
+<script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
@@ -8863,7 +9031,7 @@ VB['sim/kinds'] = (() => {
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'];
-  const { ground, landCatch } = VB['sim/fish'], { ground: forageGround, gather } = VB['sim/forage'];
+  const { ground: forageGround, gather } = VB['sim/forage'], Drying = VB['sim/drying'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -8927,8 +9095,8 @@ VB['sim/kinds'] = (() => {
     if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
   // The open step of the household's project plan (a new field's clear and break, a meadow; sim/projects): made once the one before is done.
-  const landProject = (st, hh, f, c, post) => {
-    const s = Projects.openOf(st, 'household', hh.id); if (s) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind); };
+  const landProject = (st, hh, f, c, post) => { const s = Projects.openOf(st, 'household', hh.id); // not while it waits for timber (VB-300)
+    if (s && Projects.supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind); };
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
   function plotWork(st, holder, at, c, post) {
@@ -9047,10 +9215,10 @@ VB['sim/kinds'] = (() => {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
       inside: true, window: { from: 14 },
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
+      // the meals still missing for the coming day: in winter a share of dried fish (sim/drying), the rest grain above the seed reserve
       done: (st, j, hh, c) => {
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, Stores.grainOf(hh) - reserved(st, hh, 'grain')));
-        Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
+        const want = dailyNeed(st, hh) - hh.meals, left = want - Drying.intoPot(st, hh, c, want);
+        Stores.cook(st, hh, 'grain', Math.max(0, Math.min(left, Stores.grainOf(hh) - reserved(st, hh, 'grain')))); hh.cookDay = c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
       available: (st, hh, f, c, post) => {
@@ -9195,16 +9363,16 @@ VB['sim/kinds'] = (() => {
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch goes straight into the household's meals until fresh food (VB-119)
-      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', landCatch(st, j.water), 'catch'); },
-      // in the fishing season, at the house's fishing ground (sim/fish): one trip, two while spare food covers fewer than FISH.secondDays
+      // the catch (twice the bank's from a boat, VB-300) goes straight into the household's meals until fresh food (VB-119)
+      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', Drying.catchOf(st, j), 'catch'); },
+      // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
         if (!fishing(c)) return;
-        const g = ground(st, f.house);
+        const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review
-        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water });
-        if (spareDays(st, hh) < FISH.secondDays) post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water });
+        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+        if (spareDays(st, hh) < FISH.secondDays) post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat });
       },
     },
     gather: {
@@ -9225,7 +9393,7 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
-  KINDS.herd = VB['sim/grazing'].KIND; // herding (VB-136): its record is sim/grazing's
+  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -9245,7 +9413,7 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig')); // VB-359
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry')); // VB-359, VB-300 (the boat is a project's step: landProject)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();
@@ -13102,7 +13270,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
-    //   wood (loads), stone (loads),
+    //   wood (loads), stone (loads), rack (rations of fish waiting by the drying rack; sim/stores) and boat (null or the household's fishing
+    //   boat; sim/drying; VB-300),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
@@ -13213,7 +13382,7 @@ VB['sim/scenarios'] = (() => {
 // @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH } = VB['sim/rules'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
@@ -13238,6 +13407,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
+  const { boatYear } = VB['sim/drying'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -13332,6 +13502,8 @@ VB['sim/clock'] = (() => {
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     { every: 'year', at: FROST, owner: 'sim/meadows', note: 'the autumn frost rots hay still lying', run: (st) => meadowsFrost(st) },
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
+    { every: 'year', at: { season: 0, sday: FISH.from }, owner: 'sim/drying', note: 'the ice is gone: households by the sea begin a boat (VB-300)',
+      run: (st) => boatYear(st) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
     { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
     { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
@@ -13720,6 +13892,7 @@ VB['sim/saves'] = (() => {
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
+    for (const hh of st.households) if (hh.rack === undefined) { hh.rack = 0; hh.boat = null; } // VB-300: nor a drying rack nor a boat
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
@@ -16455,6 +16628,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads.</p>
+          <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
+            hh.boat ? '; a fishing boat on the shore' : ''}.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
         body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
           `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
@@ -16462,7 +16637,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
           <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
         let animals = '';
         if (foldOpen(animalsKey)) {
-          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
+          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk'], ['dried fish', 'dried fish']]
             .map(([kind, label]) => [Sim.larderOf(hh, kind), label]).filter(([n]) => n >= .5);
           animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
             <p>Hay ${Math.round(hh.hay)}, ${Math.round(hh.haySpoilt || 0)} spoilt; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
@@ -17687,7 +17862,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [135, 157], s: [320, 352], m: [807, 835], l: [800, 859] },
+    populous: { t: [135, 157], s: [320, 354], m: [800, 852], l: [800, 879] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -18711,7 +18886,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'fc1c3746d6', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '1465066a13', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

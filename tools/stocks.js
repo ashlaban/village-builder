@@ -33,9 +33,11 @@ const QUANTITIES = [
     none: 'the household eats its grain uncooked, at the same ration (sim/hunger): nothing is lost by not cooking' },
   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
     kinds: ['haul'], none: 'nothing to thresh: the threshing job is not posted' },
-  { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter)', unit: 'rations', fields: ['household.larder'],
-    kinds: ['slaughter', 'salt', 'milk'],
+  { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
+    kinds: ['slaughter', 'salt', 'milk', 'dry'],
     none: 'meals and grain feed the household alone' },
+  { id: 'rack', of: 'household', name: 'fish by the drying rack', unit: 'rations', fields: ['household.rack'], good: 'fish', holder: 'household',
+    kinds: ['rackfish'], none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
   { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['wood'],
     none: 'nothing: the day\'s fire takes what there is, and a cold house costs nothing (VB-327)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
@@ -87,8 +89,7 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows',
-    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded',
-      'village.founded'],
+    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
@@ -136,7 +137,7 @@ function stateFields(known = null) {
 // ---- the scan ----
 const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: 'cook', sheaf: 'add', thresh: 'thresh', spoil: 'take', dug: 'add',
   start: 'start', brew: 'brew',
-  pour: 'take', spoilAle: 'take', villageDay: 'take' };
+  pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre'] };
 const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'handingOn', 'provisions', 'start']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
@@ -190,6 +191,8 @@ function storeCalls(mod, src, fns) {
       else if (op === 'start') goods = [g('grain', +1, 'provisions'), g('meals', +1, 'provisions')];
       else if (op === 'brew') goods = [g('grain', -1, 'brew'), g('ale', +1, 'brew')];
       else if (op === 'pour') goods = [g('ale', -1, 'pour')];
+      else if (op === 'dry') goods = [g('fish', -1, 'drying')];
+      else if (op === 'cookLarder') goods = [g('meals', +1, 'cooking')];
       else if (op === 'spoilAle') goods = [g('ale', -1, 'spoilage')];
       else if (op === 'villageDay') goods = [g('grain', -1, 'spoilage')];
       calls.push({ mod, line, fn: fn ? fn.name : '(module)', fnRange: fn, op, goods, village: village || op === 'villageDay' });

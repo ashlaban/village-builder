@@ -269,6 +269,12 @@ function checkState(st) {
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     if (h.digAt !== undefined &&
       !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+    // the catch waiting by the drying rack, and the household's boat: a shore tile next to water of the sea or a large lake (VB-300)
+    if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
+    const b = h.boat;
+    if (b && !(tileOk(b.tile) && tileOk(b.house) && st.w.water[b.water] === 1 && Array.from({ length: 6 }, (_, k) => st.w.nb[b.tile * 6 + k]).includes(b.water)
+      && b.built <= st.t)) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
+    if (b !== undefined && b !== null && typeof b !== 'object') bad.push(`households[${h.id}]: boat ${b}`);
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
     for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw ||
@@ -300,10 +306,11 @@ function checkState(st) {
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
+  const FISHES = ['fish', 'dried fish']; // the catch by the drying rack and the fish hung on it (VB-300)
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -313,7 +320,8 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...WOODS].includes(x.good) || seen.has(key)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
     }
@@ -321,6 +329,9 @@ function checkState(st) {
   }
   for (const v of st.villages) {
     if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
+    // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has
+    if (v.fishing !== undefined && !(v.fishing && Number.isInteger(v.fishing.farms) && v.fishing.farms <= v.farmsteads.length
+      && typeof v.fishing.near === 'boolean')) bad.push(`villages[${v.id}]: fishing ${JSON.stringify(v.fishing)}`);
     // every village has the Culture settlement of the same id (sim/society, addSettlement); moving to new land (sim/settle)
     const s = st.cenv.settlements[v.id];
     if (!s || s.id !== v.id) bad.push(`villages[${v.id}]: no Culture settlement with its id`);
@@ -714,7 +725,7 @@ function checkHerds(st, bad) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);
     if (!(Number.isFinite(hh.haySpoilt) && hh.haySpoilt >= 0)) bad.push(`households[${hh.id}]: haySpoilt is ${hh.haySpoilt}`);
     if (!(hh.hay >= 0)) bad.push(`households[${hh.id}]: hay is ${hh.hay}`);
-    const KINDS = ['meat', 'salt meat', 'milk', 'butter'];
+    const KINDS = ['meat', 'salt meat', 'milk', 'butter', 'dried fish'];
     for (const l of hh.larder ||
       []) if (!(l.n > 0 && KINDS.includes(l.kind) && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
     if (hh.milkDay !== undefined &&

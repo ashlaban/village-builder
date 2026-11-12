@@ -177,7 +177,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
-    //   wood (loads), stone (loads),
+    //   wood (loads), stone (loads), rack (rations of fish waiting by the drying rack; sim/stores) and boat (null or the household's fishing
+    //   boat; sim/drying; VB-300),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
