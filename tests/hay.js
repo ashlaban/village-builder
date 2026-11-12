@@ -35,7 +35,7 @@ check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without anim
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 
 let st = Sim.seed(world(3), 3, 'populous');
-st.naturalDeaths = false; // haymaking is tested, not who lives: a holder who dies in spring leaves a widow whose hay lies mown (VB-396's seed)
+st.naturalDeaths = false; // haymaking is tested, not who lives: a holder who dies in spring leaves a widow whose hay lies mown (VB-402's seed)
 // Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
 const savedLoss = st.households[0].haySpoilt;
 for (const invalid of [NaN, Infinity, -1]) {

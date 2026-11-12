@@ -9,10 +9,13 @@ VB['sim/cottage'] = (() => {
   const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'], { emit } = VB['sim/events'];
   const names = VB['sim/names'];
-  // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
-  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
-  const farmName = (st, v, f, owner = null) => names.farmName({ w: st.w, f, village: v, owner },
-    new Set(v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id].name)), names.tileRand(f.house), names.prefsOf(st, v.id).farm);
+  // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
+  // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
+  function farmName(st, v, f, owner = null) {
+    const rand = names.tileRand(f.house), others = v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id]);
+    return names.farmName({ w: st.w, f, village: v, owner, farms: [f, ...others], fresh: true }, new Set(others.map((g) => g.name)), rand,
+      names.farmOrder(names.prefsOf(st, v.id).farm, rand));
+  }
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).

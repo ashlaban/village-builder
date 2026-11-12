@@ -54,8 +54,8 @@ VB['sim/hex'] = (() => {
     }
     return { id, size };
   }
-  // ---- where a house may stand (VB-396): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
-  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-396), so a house may not stand where it would close
+  // ---- where a house may stand (VB-402): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
+  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-402), so a house may not stand where it would close
   // a way: true when t would have no open tile beside it, when it would take the last open tile beside a house next to it, or when the
   // open tiles round it would no longer reach each other going round it (looked for within CUT_REACH steps, so a long way round counts
   // as none). shut(j): no route crosses j (off the map, water, a house); house(j): a house stands on j.
@@ -76,7 +76,7 @@ VB['sim/hex'] = (() => {
     const { dist } = bfs(w, w.nb[t * 6 + open[0]], CUT_REACH, (j) => j !== t && !shut(j));
     return open.some((k) => !dist.has(w.nb[t * 6 + k]));
   }
-  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-396): of the six tiles round
+  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-402): of the six tiles round
   // it at most GREEN_HOUSES bear a house, and never two side by side. True when t is one of the six and breaks that.
   const GREEN_HOUSES = 3;
   function rimFull(w, center, t, house) {

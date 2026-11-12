@@ -12,7 +12,7 @@ VB['gen/paths'] = (() => {
     // the stage from which a way is drawn: 3, a lane (PATHS.at[3] crossings, about sixteen a day kept up). One household alone makes
     // some eleven crossings a day of the tile at its door (water, the green, its fields and the wood, there and back), so a path
     // (four a day) is every household's own way and a village's middle was a net of them; a lane is a way several households share,
-    // and those are the roads (Kim, VB-396). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
+    // and those are the roads (Kim, VB-402). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
     from: 3,
     width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
@@ -29,7 +29,7 @@ VB['gen/paths'] = (() => {
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
   // A worn tile that draws its own trail: land, a field or a meadow (w.dev 0 and 1) worn to LOOK.from or more, not a green, a house or
-  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-396): the small ways
+  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-402): the small ways
   // everyone takes across the grass are too slight for the map, and drawn they hid the roads.
   const trail = (w, i) => i >= 0 && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
@@ -75,7 +75,7 @@ VB['gen/paths'] = (() => {
     }
     return true;
   }
-  // A house's door (VB-396): the one worn tile beside it that its way runs to, the most worn of them (a fixed number by pair settles
+  // A house's door (VB-402): the one worn tile beside it that its way runs to, the most worn of them (a fixed number by pair settles
   // ties), or the green if the house stands on one; -1 where nothing beside it is worn. A way ends at a house, and never goes on
   // through it: the house draws no trail of its own.
   function door(w, h) {
@@ -92,7 +92,7 @@ VB['gen/paths'] = (() => {
   }
   // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
   const DOOR = 0.7;
-  // The ways onto a green (Kim, VB-396): of its six sides at most three bring a way, never two side by side, so the green keeps open
+  // The ways onto a green (Kim, VB-402): of its six sides at most three bring a way, never two side by side, so the green keeps open
   // ground between its ways. The sides' trail tiles are taken most worn first, by their count of crossings (the lower side settles
   // ties), each unless a side beside it is taken. The directions (0..5) taken, from the green g.
   function greenWays(w, g) {
@@ -197,7 +197,7 @@ VB['gen/paths'] = (() => {
     const qx = bx + ((A[0] + B[0]) / 2 - bx) * pull, qy = by + ((A[1] + B[1]) / 2 - by) * pull, mx = (A[0] + 2 * qx + B[0]) / 4,
       my = (A[1] + 2 * qy + B[1]) / 4;
     const out = [[A[0], A[1], (A[0] + qx) / 2, (A[1] + qy) / 2, mx, my, A[2], A[3]], [mx, my, (qx + B[0]) / 2, (qy + B[1]) / 2, B[0], B[1], B[2], B[3]]];
-    // every other way joins the main one at its middle, one meeting place a tile: a fork, not a knot of crossings (VB-396)
+    // every other way joins the main one at its middle, one meeting place a tile: a fork, not a knot of crossings (VB-402)
     for (let c = 0; c < ends.length; c++) {
       if (c === a || c === b) continue;
       const E = ends[c];

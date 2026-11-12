@@ -45,7 +45,7 @@ VB['sim/heirs'].ownFirstOf(st);
 assert(VB.count.heirRank >= st.liveHouseholds.length, 'nested ownFirstOf rankings must be counted');
 // A second tiny fixture exercises many pair comparisons without advancing into hunger first: two villages of four large households, at
 // four seeds, since how many unmarried adults a seed's villages hold varies widely (one village pair of three farms gave 32 pairs at
-// seed 7 and under ten at most seeds; five at seed 7 since the villages were laid out anew, VB-396).
+// seed 7 and under ten at most seeds; five at seed 7 since the villages were laid out anew, VB-402).
 VB.resetCounts();
 for (const seed of [3, 6, 11, 12]) {
   Sim.movingRound(tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),

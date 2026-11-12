@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), Sim = VB.sim, { WORK } = VB['sim/rules'], 
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 // One village of three farms under a forest; household 0 is a farmer (pawn 0), his wife (1), a son and five daughters, the grown ones
-// hoeing in spring. Seed 6: at seed 7 the wife is free and fetches the firewood before the farmer looks up (villages laid out anew, VB-396).
+// hoeing in spring. Seed 6: at seed 7 the wife is free and fetches the firewood before the farmer looks up (villages laid out anew, VB-402).
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = (hours = 0) => { const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 6 }); if (hours) Sim.advance(st, hours); return st; };
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };

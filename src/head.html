@@ -124,14 +124,6 @@ body {
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
-.cust { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 6px; }
-.cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
-.cust thead th { font-weight: 600; border-top: 0; }
-.cust tbody th { font-weight: 500; }
-.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
-.sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
-.sbar i { display: block; height: 100%; }
-.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -413,16 +405,69 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-banner button { flex: none; border-radius: 10px; }
 body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
-.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
-.custom-picker select { width: 100%; font-size: 16px; }
-.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
-.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
-.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
-.custom-card .different { color: var(--accent); }
-.custom-card .support { font-size: 13px; color: var(--muted); }
-.custom-card .sbar { height: 8px; margin: 8px 0; }
-.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
-.cust { min-width: 500px; }
+/* the Customs tab of a village's card (page/customs): the charter, its marked phrases, and an opened custom's ways with their faces */
+.customs span, .customs strong { display: inline; margin: 0; font: inherit; color: inherit; }
+.customs h3 { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted); }
+.customs h3.lead { margin: 4px 0; padding: 0; border: 0; font: italic 700 18px/1.15 'Alegreya', Georgia, serif; letter-spacing: 0; text-transform: none;
+  color: var(--ink); }
+.customs p { margin: 0; }
+.customs .note { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.customs .note strong { font-weight: 600; color: var(--ink); }
+.customs .charter { margin: 4px 0 2px; font-size: 16px; line-height: 1.75; color: var(--ink); }
+.customs .phrase { padding: 1px 2px; margin: 0 -2px; border-radius: 4px; font-weight: 600; color: var(--ink); cursor: pointer;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  text-decoration: underline dotted color-mix(in srgb, var(--muted) 70%, transparent); text-underline-offset: 4px; }
+.customs .phrase.differs { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); text-decoration: none; }
+.customs .phrase.contested { text-decoration: underline solid var(--gold); text-decoration-thickness: 2.5px; }
+.customs .phrase.turning { text-decoration: underline solid var(--bad); text-decoration-thickness: 2.5px; }
+.customs .phrase[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.customs .phrase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.customs .stand { margin: 4px 0 6px 2px; padding: 2px 0 6px 12px; border-left: 2px solid var(--edge); }
+.customs .stand .of { font-size: 13px; color: var(--muted); }
+.customs .way { padding: 7px 0 8px; font-size: 15px; color: var(--ink); }
+.customs .way + .way { border-top: 1px solid var(--edge); }
+.customs .way.in > p:first-child { font-weight: 600; }
+.customs .way .none { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.customs .tag { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 99px; font-size: 12px; font-style: normal; font-weight: 500;
+  line-height: 19px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.customs .tag.custom { background: none; box-shadow: inset 0 0 0 1px var(--edge); color: var(--muted); }
+.customs .tag.gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .tag.red { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.customs .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px 2px; align-items: start; margin-top: 6px; }
+.customs .voice { display: grid; justify-items: center; align-content: start; text-align: center; min-height: 0; padding: 4px 2px; border: 1px solid transparent;
+  border-radius: 10px; background: none; font-size: 13px; color: var(--ink); }
+.customs .voice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
+  line-height: 1.45; color: var(--ink); }
+.customs .voice img { width: 40px; height: 40px; }
+.customs .voice b { margin-top: 3px; font-weight: 500; }
+.customs .voice small { font-size: 11.5px; line-height: 1.25; color: var(--muted); }
+.customs .voice.waver img { border-radius: 50%; outline: 2px dashed var(--gold); outline-offset: 1px; }
+.customs .voice.waver small { color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .faces .rest { align-self: center; font-size: 13px; color: var(--muted); }
+.customs .stand .note { margin-top: 6px; }
+.customs .key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 13px;
+  color: var(--muted); }
+.customs .key .phrase { font-size: 13px; font-weight: 500; cursor: default; }
+@media (pointer: coarse) { .customs .charter { line-height: 2.05; } }
+/* the Culture pane (page/culture): the charter's pieces again, the villages as rows, the meetings by year */
+.culture .links { margin: 0 0 8px; }
+.culture .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.culture .tabs { margin: 10px 0; }
+.culture .row { padding: 7px 0; border-radius: 0; }
+.culture .row + .row, .culture .kept .row:first-of-type { border-top: 1px solid var(--edge); }
+.culture .row img.mini { width: 32px; height: 32px; }
+.culture .row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.culture .row .who i { font-weight: 400; line-height: 1.35; }
+.culture .row .who i.stir { color: var(--ink); }
+.culture .mark { display: inline-block; margin-right: 5px; }
+.culture .row .state { font-size: 18px; color: var(--muted); }
+.culture .kept { margin-top: 4px; border-top: 1px solid var(--edge); }
+.culture .kept summary { padding: 10px 0; font-size: 14px; color: var(--muted); cursor: pointer; }
+.culture .stand .links { margin: 6px 0 2px; }
+.culture h3.lead { margin-top: 14px; }
+.culture .said { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer,
 body.ui-hidden .act-bar, body.ui-hidden .act-menu, body.ui-hidden .act-banner { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }

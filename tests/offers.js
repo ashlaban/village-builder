@@ -13,7 +13,7 @@ const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); 
 const roll = (st, f) => {
   const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
-// Populous tiny at seed 54 (51 until the villages were laid out anew, VB-396: the scene needs a bride who speaks for herself), natural deaths off, every household given the means to marry; `before(st)` runs before the round (to play a pawn).
+// Populous tiny at seed 54 (51 until the villages were laid out anew, VB-402: the scene needs a bride who speaks for herself), natural deaths off, every household given the means to marry; `before(st)` runs before the round (to play a pawn).
 function scene(before = () => {}) {
   const st = Sim.seed(world(54), 54, 'populous'); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;

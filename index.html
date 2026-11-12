@@ -124,14 +124,6 @@ body {
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
-.cust { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 6px; }
-.cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
-.cust thead th { font-weight: 600; border-top: 0; }
-.cust tbody th { font-weight: 500; }
-.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
-.sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
-.sbar i { display: block; height: 100%; }
-.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -413,16 +405,69 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-banner button { flex: none; border-radius: 10px; }
 body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
-.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
-.custom-picker select { width: 100%; font-size: 16px; }
-.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
-.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
-.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
-.custom-card .different { color: var(--accent); }
-.custom-card .support { font-size: 13px; color: var(--muted); }
-.custom-card .sbar { height: 8px; margin: 8px 0; }
-.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
-.cust { min-width: 500px; }
+/* the Customs tab of a village's card (page/customs): the charter, its marked phrases, and an opened custom's ways with their faces */
+.customs span, .customs strong { display: inline; margin: 0; font: inherit; color: inherit; }
+.customs h3 { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted); }
+.customs h3.lead { margin: 4px 0; padding: 0; border: 0; font: italic 700 18px/1.15 'Alegreya', Georgia, serif; letter-spacing: 0; text-transform: none;
+  color: var(--ink); }
+.customs p { margin: 0; }
+.customs .note { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.customs .note strong { font-weight: 600; color: var(--ink); }
+.customs .charter { margin: 4px 0 2px; font-size: 16px; line-height: 1.75; color: var(--ink); }
+.customs .phrase { padding: 1px 2px; margin: 0 -2px; border-radius: 4px; font-weight: 600; color: var(--ink); cursor: pointer;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  text-decoration: underline dotted color-mix(in srgb, var(--muted) 70%, transparent); text-underline-offset: 4px; }
+.customs .phrase.differs { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); text-decoration: none; }
+.customs .phrase.contested { text-decoration: underline solid var(--gold); text-decoration-thickness: 2.5px; }
+.customs .phrase.turning { text-decoration: underline solid var(--bad); text-decoration-thickness: 2.5px; }
+.customs .phrase[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.customs .phrase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.customs .stand { margin: 4px 0 6px 2px; padding: 2px 0 6px 12px; border-left: 2px solid var(--edge); }
+.customs .stand .of { font-size: 13px; color: var(--muted); }
+.customs .way { padding: 7px 0 8px; font-size: 15px; color: var(--ink); }
+.customs .way + .way { border-top: 1px solid var(--edge); }
+.customs .way.in > p:first-child { font-weight: 600; }
+.customs .way .none { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.customs .tag { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 99px; font-size: 12px; font-style: normal; font-weight: 500;
+  line-height: 19px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.customs .tag.custom { background: none; box-shadow: inset 0 0 0 1px var(--edge); color: var(--muted); }
+.customs .tag.gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .tag.red { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.customs .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px 2px; align-items: start; margin-top: 6px; }
+.customs .voice { display: grid; justify-items: center; align-content: start; text-align: center; min-height: 0; padding: 4px 2px; border: 1px solid transparent;
+  border-radius: 10px; background: none; font-size: 13px; color: var(--ink); }
+.customs .voice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
+  line-height: 1.45; color: var(--ink); }
+.customs .voice img { width: 40px; height: 40px; }
+.customs .voice b { margin-top: 3px; font-weight: 500; }
+.customs .voice small { font-size: 11.5px; line-height: 1.25; color: var(--muted); }
+.customs .voice.waver img { border-radius: 50%; outline: 2px dashed var(--gold); outline-offset: 1px; }
+.customs .voice.waver small { color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .faces .rest { align-self: center; font-size: 13px; color: var(--muted); }
+.customs .stand .note { margin-top: 6px; }
+.customs .key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 13px;
+  color: var(--muted); }
+.customs .key .phrase { font-size: 13px; font-weight: 500; cursor: default; }
+@media (pointer: coarse) { .customs .charter { line-height: 2.05; } }
+/* the Culture pane (page/culture): the charter's pieces again, the villages as rows, the meetings by year */
+.culture .links { margin: 0 0 8px; }
+.culture .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.culture .tabs { margin: 10px 0; }
+.culture .row { padding: 7px 0; border-radius: 0; }
+.culture .row + .row, .culture .kept .row:first-of-type { border-top: 1px solid var(--edge); }
+.culture .row img.mini { width: 32px; height: 32px; }
+.culture .row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.culture .row .who i { font-weight: 400; line-height: 1.35; }
+.culture .row .who i.stir { color: var(--ink); }
+.culture .mark { display: inline-block; margin-right: 5px; }
+.culture .row .state { font-size: 18px; color: var(--muted); }
+.culture .kept { margin-top: 4px; border-top: 1px solid var(--edge); }
+.culture .kept summary { padding: 10px 0; font-size: 14px; color: var(--muted); cursor: pointer; }
+.culture .stand .links { margin: 6px 0 2px; }
+.culture h3.lead { margin-top: 14px; }
+.culture .said { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer,
 body.ui-hidden .act-bar, body.ui-hidden .act-menu, body.ui-hidden .act-banner { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
@@ -854,8 +899,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     aria-controls="peopleSheet"><span class="nav-label">People</span></button>
   <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
     class="nav-label">Family</span></button>
-  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Customs</span></button>
+  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Culture</span></button>
   <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
     hidden><span class="nav-label">Agenda</span></button>
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
@@ -898,10 +943,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
-    <h2 id="drawerTitle">Customs</h2>
+    <h2 id="drawerTitle">Culture</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
       aria-label="Collapse" title="Collapse"></button>
-    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -923,6 +968,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       <div class="tabs" id="tileTabs" role="tablist" aria-label="About the selection" hidden>
         <button type="button" role="tab" id="tabFacts" data-tab="facts" aria-selected="true" aria-controls="tileFacts">Details</button>
         <button type="button" role="tab" id="tabHistory" data-tab="history" aria-selected="false" aria-controls="tileHistory" tabindex="-1">History</button>
+        <button type="button" role="tab" id="tabCustoms" data-tab="customs" aria-selected="false" aria-controls="tileCustoms" tabindex="-1" hidden>Customs</button>
       </div>
       <div id="tileFacts" role="tabpanel" aria-labelledby="tabFacts">
         <span id="tileCoord"></span>
@@ -939,6 +985,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         <div class="kinds" id="historyKinds" role="group" aria-label="Kinds of event"></div>
         <div id="historyList"></div>
       </div>
+      <div id="tileCustoms" class="customs" role="tabpanel" aria-labelledby="tabCustoms" hidden></div>
     </div>
   </aside>
   <div class="map-tools" id="mapTools">
@@ -1270,7 +1317,7 @@ VB['gen/paths'] = (() => {
     // the stage from which a way is drawn: 3, a lane (PATHS.at[3] crossings, about sixteen a day kept up). One household alone makes
     // some eleven crossings a day of the tile at its door (water, the green, its fields and the wood, there and back), so a path
     // (four a day) is every household's own way and a village's middle was a net of them; a lane is a way several households share,
-    // and those are the roads (Kim, VB-396). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
+    // and those are the roads (Kim, VB-402). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
     from: 3,
     width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
@@ -1287,7 +1334,7 @@ VB['gen/paths'] = (() => {
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
   // A worn tile that draws its own trail: land, a field or a meadow (w.dev 0 and 1) worn to LOOK.from or more, not a green, a house or
-  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-396): the small ways
+  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-402): the small ways
   // everyone takes across the grass are too slight for the map, and drawn they hid the roads.
   const trail = (w, i) => i >= 0 && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
@@ -1333,7 +1380,7 @@ VB['gen/paths'] = (() => {
     }
     return true;
   }
-  // A house's door (VB-396): the one worn tile beside it that its way runs to, the most worn of them (a fixed number by pair settles
+  // A house's door (VB-402): the one worn tile beside it that its way runs to, the most worn of them (a fixed number by pair settles
   // ties), or the green if the house stands on one; -1 where nothing beside it is worn. A way ends at a house, and never goes on
   // through it: the house draws no trail of its own.
   function door(w, h) {
@@ -1350,7 +1397,7 @@ VB['gen/paths'] = (() => {
   }
   // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
   const DOOR = 0.7;
-  // The ways onto a green (Kim, VB-396): of its six sides at most three bring a way, never two side by side, so the green keeps open
+  // The ways onto a green (Kim, VB-402): of its six sides at most three bring a way, never two side by side, so the green keeps open
   // ground between its ways. The sides' trail tiles are taken most worn first, by their count of crossings (the lower side settles
   // ties), each unless a side beside it is taken. The directions (0..5) taken, from the green g.
   function greenWays(w, g) {
@@ -1455,7 +1502,7 @@ VB['gen/paths'] = (() => {
     const qx = bx + ((A[0] + B[0]) / 2 - bx) * pull, qy = by + ((A[1] + B[1]) / 2 - by) * pull, mx = (A[0] + 2 * qx + B[0]) / 4,
       my = (A[1] + 2 * qy + B[1]) / 4;
     const out = [[A[0], A[1], (A[0] + qx) / 2, (A[1] + qy) / 2, mx, my, A[2], A[3]], [mx, my, (qx + B[0]) / 2, (qy + B[1]) / 2, B[0], B[1], B[2], B[3]]];
-    // every other way joins the main one at its middle, one meeting place a tile: a fork, not a knot of crossings (VB-396)
+    // every other way joins the main one at its middle, one meeting place a tile: a fork, not a knot of crossings (VB-402)
     for (let c = 0; c < ends.length; c++) {
       if (c === a || c === b) continue;
       const E = ends[c];
@@ -3150,7 +3197,7 @@ const Culture = (() => {
 
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
-  const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  const NAME_PREFS = { farm: ['compass', 'owner', 'position', 'landmark', 'feature', 'age'] };
   // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
   // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
   // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
@@ -3329,18 +3376,21 @@ const Culture = (() => {
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
+  // The share by which a way y must pass the practice x at a village's meeting: most where the practice is the culture's custom (more the
+  // closer the village's tie), least to return to that custom; times fewVoices, as a handful of voices is noisy (below ten the margin grows).
+  const margin = (s, x, y, cust) => (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+  const fewVoices = (n) => 1 + Math.max(0, 10 - n) * 0.1;
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture], changes = [];
     const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s));
     s.lastSupport = S; s.lastVoices = W;
     if (W <= 0) return changes;
-    // a handful of voices is noisy: below ten voices the margin grows
-    const nv = hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length, small = 1 + Math.max(0, 10 - nv) * 0.1;
+    const small = fewVoices(hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length);
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d], n = NOPT[d], x = s.practice[d], cust = c.customs[d];
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
       if (y === x) continue;
-      const h = small * (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+      const h = small * margin(s, x, y, cust);
       if (!(S[o + y] > S[o + x] * (1 + h))) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
       if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
@@ -3427,7 +3477,7 @@ const Culture = (() => {
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, causeFree: { value: causeFree }, norm: { value: norm },
     WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
-    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf }, margin: { value: margin }, fewVoices: { value: fewVoices } });
   return api;
 })();
 VB['culture'] = Culture;
@@ -4088,8 +4138,8 @@ VB['sim/hex'] = (() => {
     }
     return { id, size };
   }
-  // ---- where a house may stand (VB-396): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
-  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-396), so a house may not stand where it would close
+  // ---- where a house may stand (VB-402): no route crosses a house (sim/routes), so it may close neither a way nor the green in ----
+  // Would a house on tile t shut land off? No route crosses a house (sim/routes, VB-402), so a house may not stand where it would close
   // a way: true when t would have no open tile beside it, when it would take the last open tile beside a house next to it, or when the
   // open tiles round it would no longer reach each other going round it (looked for within CUT_REACH steps, so a long way round counts
   // as none). shut(j): no route crosses j (off the map, water, a house); house(j): a house stands on j.
@@ -4110,7 +4160,7 @@ VB['sim/hex'] = (() => {
     const { dist } = bfs(w, w.nb[t * 6 + open[0]], CUT_REACH, (j) => j !== t && !shut(j));
     return open.some((k) => !dist.has(w.nb[t * 6 + k]));
   }
-  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-396): of the six tiles round
+  // Would a house on tile t close the green at `center` in? The green keeps ways out on every side (Kim, VB-402): of the six tiles round
   // it at most GREEN_HOUSES bear a house, and never two side by side. True when t is one of the six and breaks that.
   const GREEN_HOUSES = 3;
   function rimFull(w, center, t, house) {
@@ -4124,78 +4174,121 @@ VB['sim/hex'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/names: name generators by kind of thing named (farms, villages) and the culture's order of preference among them (VB-026)
+// @sys sim/names: name generators by kind of thing named (farms, villages; VB-026, VB-399) and the culture's order of preference among the farms'
 VB['sim/names'] = (() => {
   const { B } = VB['gen'];
   const { DIRNAME } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   // ---- farms ----
   // A generator is (ctx, rand) => [names, best first]; the caller takes the first not already taken. ctx: {w, f (the farmstead),
-  // village (its centre for compass names), owner (the first holder, a pawn, or null)}. A generator offers nothing ([]) when it has no name.
-  // compass: by direction from the village centre (Norrgården, Södergården), then the middle farm and the new farm.
+  // village (its centre for the names that need one), owner (the first holder, a pawn, or null), farms (the village's farmsteads, for
+  // the largest and the smallest, or none), fresh (a farm built in play)}. A generator offers nothing ([]) when it has no name.
+  const FARMS = { near: 1, out: 3, rise: 0.08 };
+  // The sixth of the compass tile `to` lies in, seen from `from`: an index of DIRNAME.
+  function sixth(w, from, to) {
+    const a = (Math.atan2(w.hy[from] - w.hy[to], w.hx[to] - w.hx[from]) + Math.PI * 2) % (Math.PI * 2);
+    return Math.round(a / (Math.PI / 3)) % 6;
+  }
+  // compass: by direction from the village centre (Norrgården, Södergården).
   function compass(ctx) {
     const { w, f, village: v } = ctx;
+    return !v || f.house === v.center ? [] : [DIRNAME[sixth(w, v.center, f.house)] + 'gården'];
+  }
+  // position: by where the farm lies in the village: above or below its centre by FARMS.rise of height (Övergården, Uppgården;
+  // Nedergården), within FARMS.near steps of it (Mellangården, Hemgården, Innergården) or FARMS.out steps and more from it (Yttergården,
+  // Bortgården); height first or distance first, by one draw.
+  function position(ctx, rand) {
+    const { w, f, village: v } = ctx, first = rand() < 0.5;
     if (!v || f.house === v.center) return [];
-    const dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
-    const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
-    return [DIRNAME[k] + 'gården', 'Mellangården', 'Nygården'];
+    const dh = w.he[f.house] - w.he[v.center], d = hexSteps(w, v.center, f.house);
+    const height = dh >= FARMS.rise ? ['Övergården', 'Uppgården'] : dh <= -FARMS.rise ? ['Nedergården'] : [];
+    const dist = d <= FARMS.near ? ['Mellangården', 'Hemgården', 'Innergården'] : d >= FARMS.out ? ['Yttergården', 'Bortgården'] : [];
+    return first ? [...height, ...dist] : [...dist, ...height];
+  }
+  // The ground of the house tile and its six neighbours, for feature; and the kind of ground within 2 steps, for landmark.
+  function around(w, t, steps) {
+    const g = { coast: false, woods: 0, pine: 0, hills: 0, marsh: 0, beach: 0, open: 0 };
+    for (const [j] of bfs(w, t, steps, () => true).dist) {
+      if (w.water[j]) g.coast = true; const b = w.biome[j];
+      if (b === B.FOREST) g.woods++; if (b === B.PINE) { g.woods++; g.pine++; } if (b === B.HILLS) g.hills++; if (b === B.MARSH) g.marsh++;
+      if (b === B.BEACH) g.beach++; if (b === B.MEADOW || b === B.HEATH) g.open++;
+    }
+    return g;
+  }
+  const kindOf = (g) => (g.coast ? 'coast' : g.woods >= 4 ? 'woods' : g.hills >= 3 ? 'hills' : g.marsh >= 2 ? 'marsh' : 'open');
+  const landKind = (w, t) => kindOf(around(w, t, 2));
+  // feature: by what lies at the house, the rarer first: water, marsh, a hill, stony ground, wood, open land (Strandgården, Kärrgården,
+  // Backgården, Stengården, Lundgården, Ängsgården).
+  function feature(ctx) {
+    const { w, f } = ctx, g = around(w, f.house, 1);
+    return [...(g.coast ? ['Strandgården', 'Sjögården'] : []), ...(g.marsh ? ['Kärrgården', 'Myrgården'] : []),
+      ...(g.hills ? ['Backgården', 'Bergsgården'] : []), ...(w.stones && w.stones[f.house] > 96 ? ['Stengården', 'Hällgården'] : []),
+      ...(g.woods - g.pine > 0 ? ['Lundgården'] : []), ...(g.woods ? ['Skogsgården'] : []), ...(g.open ? ['Ängsgården', 'Hagagården', 'Vallgården'] : [])];
+  }
+  // age: a farm built in play is the new one (Nygården, Nybygget); of the old ones, that of most fields is the great farm and that of
+  // fewest the little one (Storgården, Lillgården), and any may be the old farm (Gammelgården).
+  function age(ctx) {
+    if (ctx.fresh) return ['Nygården', 'Nybygget'];
+    const n = ctx.f.fields.length, others = (ctx.farms || []).filter((g) => g !== ctx.f).map((g) => g.fields.length);
+    const most = others.length && others.every((k) => k < n), least = others.length && others.every((k) => k > n);
+    return [...(most ? ['Storgården'] : []), ...(least ? ['Lillgården'] : []), 'Gammelgården'];
   }
   // landmark: by the surroundings within 2 steps: shore, woods, hills, marsh, or open land (Strand, Lunden, Backa, Myra, Ängen...). The
-  // first word is the lone farm's old name; then other words for the same ground, then each word with a prefix from the ground (Björklunden,
-  // Sandstrand, Långmyra), in an order fixed by the house tile, so farms near each other differ. Only open land draws from rand, once.
+  // first word is the lone farm's old name (on open land one of the first four, by one draw); then other words for the same ground, then
+  // each word with a prefix from the ground (Björklunden, Sandstrand, Långmyra), in an order fixed by the house tile, so farms near each
+  // other differ.
   const WORDS = {
-    coast: ['Strand', 'Viken', 'Näset', 'Udden', 'Sjöänden', 'Bryggan'],
-    woods: ['Lunden', 'Hult', 'Lid', 'Skogen', 'Rödjan', 'Bråten'],
-    hills: ['Backa', 'Åsen', 'Kullen', 'Berget', 'Höjden', 'Hällen'],
+    coast: ['Strand', 'Viken', 'Näset', 'Udden', 'Sjöänden'],
+    woods: ['Lunden', 'Dungen', 'Lid', 'Skogen', 'Rödjan', 'Svedjan'],
+    hills: ['Backa', 'Åsen', 'Kullen', 'Berget', 'Höjden', 'Hällen', 'Berga'],
     marsh: ['Myra', 'Mossen', 'Kärret', 'Sjöängen', 'Vassen'],
-    open: ['Ängen', 'Hagen', 'Berga', 'Åkern', 'Gärdet', 'Vreten', 'Tegen', 'Slätten'],
+    open: ['Ängen', 'Hagen', 'Vallen', 'Åkern', 'Gärdet', 'Vreten', 'Tegen', 'Slätten'],
   };
-  const PLAIN = ['Ängen', 'Hagen', 'Berga', 'Åkern']; // the old plain names, drawn as before
   const PREFIX = {
     broadleaf: ['Björk', 'Ek', 'Asp', 'Al', 'Lind', 'Hassel', 'Rönn'], pine: ['Gran', 'Tall', 'Fur'], water: ['Sjö', 'Vik', 'Sand'],
     stone: ['Sten', 'Häll'], marsh: ['Myr', 'Starr', 'Kärr'],
-    any: ['Ny', 'Stor', 'Lill', 'Lång', 'Norr', 'Söder', 'Öster', 'Väster', 'Mel', 'Hög', 'Bred', 'Sol', 'Ljung', 'Ros', 'Häst', 'Ox', 'Lamm', 'Vall'],
+    any: ['Ny', 'Stor', 'Lill', 'Lång', 'Norr', 'Söder', 'Öster', 'Väster', 'Mel', 'Hög', 'Bred', 'Sol', 'Ljung', 'Häst', 'Ox', 'Lamm', 'Vall'],
   };
   const lower = (s) => s[0].toLowerCase() + s.slice(1);
   function landmark(ctx, rand) {
-    const { w, f } = ctx;
-    let coast = false, woods = 0, pine = 0, hills = 0, marsh = 0, beach = 0;
-    const { dist: near } = bfs(w, f.house, 2, () => true);
-    for (const [j] of near) {
-      if (w.water[j]) coast = true; const b = w.biome[j];
-      if (b === B.FOREST) woods++; if (b === B.PINE) { woods++; pine++; } if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++; if (b === B.BEACH) beach++;
-    }
-    const kind = coast ? 'coast' : woods >= 4 ? 'woods' : hills >= 3 ? 'hills' : marsh >= 2 ? 'marsh' : 'open';
-    const first = kind === 'open' ? PLAIN[(rand() * PLAIN.length) | 0] : WORDS[kind][0];
+    const { w, f } = ctx, g = around(w, f.house, 2), kind = kindOf(g);
+    const first = WORDS[kind][kind === 'open' ? (rand() * 4) | 0 : 0];
     const words = [first, ...WORDS[kind].filter((x) => x !== first)];
-    const pre = [...(woods - pine > 0 ? PREFIX.broadleaf : []), ...(pine ? PREFIX.pine : []), ...(coast || beach ? PREFIX.water : []),
-      ...(w.stones && w.stones[f.house] > 96 ? PREFIX.stone : []), ...(marsh ? PREFIX.marsh : []), ...PREFIX.any];
+    const pre = [...(g.woods - g.pine > 0 ? PREFIX.broadleaf : []), ...(g.pine ? PREFIX.pine : []), ...(g.coast || g.beach ? PREFIX.water : []),
+      ...(w.stones && w.stones[f.house] > 96 ? PREFIX.stone : []), ...(g.marsh ? PREFIX.marsh : []), ...PREFIX.any];
     const out = [...words], n = pre.length, start = (f.house * 7919) % n;
-    for (let k = 0; k < n; k++) for (const x of words) out.push(pre[(start + k) % n] + lower(x));
-    return out;
+    for (let k = 0; k < n; k++) for (const x of words) {
+      const nm = pre[(start + k) % n] + lower(x); if (!nm.toLowerCase().startsWith(lower(x) + lower(x))) out.push(nm); }
+    return [...new Set(out)];
   }
-  // owner: the first holder's given name in the genitive (Olofsgården, Hansgården).
-  const owner = (ctx) => (ctx.owner ? [(ctx.owner.given.endsWith('s') ? ctx.owner.given : ctx.owner.given + 's') + 'gården'] : []);
-  const FARM = { compass, landmark, owner };
+  // A person's name before an ending: a man's in the genitive (an s unless it ends in s, x or z), a woman's bare, as the medieval names
+  // have it (Gunnilbo).
+  const stem = (p) => (p.sex === 'f' || /[sxz]$/.test(p.given) ? p.given : p.given + 's');
+  // owner: the first holder's given name before the farm (Olofsgården, Hansgården, Ingridgården).
+  const owner = (ctx) => (ctx.owner ? [stem(ctx.owner) + 'gården'] : []);
+  const FARM = { compass, owner, position, landmark, feature, age };
   // The order of preference every culture starts with (culture.js NAME_PREFS; c.namePrefs on each culture), also used before cultures exist.
   const DEFAULT_PREFS = VB['culture'].NAME_PREFS;
   const prefsOf = (st, villageId) => {
     const env = st && st.cenv, s = env && villageId !== null ? env.settlements[villageId] : null, c = s ? env.cultures[s.culture] : null;
     return (c && c.namePrefs) || DEFAULT_PREFS;
   };
-  // A random stream of its own for a farm named in play (mulberry32 seeded by the house tile), so naming never shifts the simulation's
-  // streams (st.rng) and so its history.
-  const tileRand = (t) => {
-    let a = Math.imul(t + 1, 0x9e3779b1) >>> 0;
+  // A random stream of its own for a farm named in play and for a village (mulberry32 seeded by the house or centre tile; `salt` keeps
+  // a village's stream apart from its farm's), so naming never shifts the layout's stream or the simulation's (st.rng), and so their history.
+  const tileRand = (t, salt = 0) => {
+    let a = (Math.imul(t + 1, 0x9e3779b1) ^ salt) >>> 0;
     return () => {
       a = (a + 0x6d2b79f5) >>> 0; let x = a;
       x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
       return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
     };
   };
-  // The name of farm f by the generators in `order`: the first name not in `taken` (a Set); if every generator fails, the first name
-  // offered with the lowest number not taken ("Norrgården 2").
-  function farmName(ctx, taken, rand, order = DEFAULT_PREFS.farm) {
+  // The generators of a preference (a culture's namePrefs.farm, the preferred first) in a random order by weight: the first of n
+  // weighs n, the last 1.
+  const farmOrder = (prefs, rand) => weighed(prefs.map((g, k) => [g, prefs.length - k]), rand);
+  // The name of farm f by the generators in `order` (by default the first preference's, drawn by weight): the first name not in
+  // `taken` (a Set); if every generator fails, the first name offered with the lowest number not taken ("Norrgården 2").
+  function farmName(ctx, taken, rand, order = farmOrder(DEFAULT_PREFS.farm, rand)) {
     let firstOffer = null;
     for (const g of order) {
       for (const nm of FARM[g](ctx, rand)) { if (firstOffer === null) firstOffer = nm; if (!taken.has(nm)) return nm; }
@@ -4205,25 +4298,196 @@ VB['sim/names'] = (() => {
     return `${base} ${n}`;
   }
   // ---- villages ----
-  // syllable: today's village names from 11 first and 8 last parts (Halby, Sandvik); a name not taken, or after 200 tries a numbered one.
-  const SYL_A = ['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'],
-    SYL_C = ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter'];
-  const syllable = (rand) => SYL_A[(rand() * SYL_A.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
-  function villageName(rand, taken = new Set()) {
-    let name = syllable(rand);
-    for (let k = 0; k < 200 && taken.has(name); k++) name = syllable(rand);
-    let n = 2; const base = name; while (taken.has(name)) name = `${base} ${n++}`;
+  // One set of generators for every village, seeded or founded in play (VB-399): a generator is (ctx, rand) => [names, best first], as for
+  // farms. ctx: {w, site (the centre tile), founder (a pawn, or null), mother (the village it left, or null)}; a village with no mother
+  // is an old one. The word stock follows the layers of Swedish place names, to a medieval ceiling (backlog/VB-399.md).
+  const VILLAGE = { reach: 5, isle: 250, head: 0.3, bay: 0.45, wood: 6, hill: 6, open: 0.5, sacred: 0.08, offers: 48, centre: 8, far: 12,
+    salt: 0x5bd1e995, prefs: { founder: 3, mother: 1 } };
+  // The ground within VILLAGE.reach steps of tile t: counts by kind, and whether t lies on an island of at most VILLAGE.isle tiles.
+  function ground(w, t) {
+    const g = { n: 0, water: 0, broadleaf: 0, pine: 0, hills: 0, marsh: 0, open: 0, stony: !!(w.stones && w.stones[t] > 96), isle: true };
+    for (const [j] of bfs(w, t, VILLAGE.reach, () => true).dist) {
+      g.n++; if (w.water[j]) { g.water++; continue; }
+      const b = w.biome[j];
+      if (b === B.FOREST) g.broadleaf++; else if (b === B.PINE) g.pine++; else if (b === B.HILLS) g.hills++; else if (b === B.MARSH) g.marsh++;
+      else if (b === B.MEADOW || b === B.HEATH) g.open++;
+    }
+    const seen = new Set([t]), q = [t];
+    for (let h = 0; h < q.length && g.isle; h++) for (let k = 0; k < 6; k++) {
+      const j = w.nb[q[h] * 6 + k]; if (j < 0 || w.water[j] || seen.has(j)) continue;
+      seen.add(j); q.push(j); if (q.length > VILLAGE.isle) { g.isle = false; break; }
+    }
+    return g;
+  }
+  // First parts by what they mean, as bare stems (the old endings take no genitive): the first six are offered only where the ground has
+  // them, and then count twice; the lie of the land, crops, beasts, size and colour are offered anywhere.
+  const FIRST = {
+    tree: ['Ek', 'Ask', 'Asp', 'Al', 'Björk', 'Lind', 'Hassel', 'Alm', 'Lönn'], pine: ['Gran', 'Furu', 'Tall'], shore: ['Sand', 'Vass', 'Ör'],
+    stone: ['Sten', 'Hall', 'Berg', 'Hammar'], marsh: ['Myr', 'Kärr'], open: ['Äng', 'Hag', 'Val', 'Hed', 'Ljung'],
+    land: ['Dal', 'Bäck', 'Ås', 'Kull', 'Lund'], crop: ['Lin', 'Korn', 'Råg', 'Ärt'],
+    beast: ['Ox', 'Häst', 'Get', 'Hjort', 'Björn', 'Varg', 'Räv', 'Örn', 'Gås', 'Svan', 'Tran', 'Säl'],
+    size: ['Stor', 'Lill', 'Lång', 'Bred', 'Hög', 'Sol'], colour: ['Svart', 'Röd', 'Grå', 'Vit'],
+  };
+  const NATURE = ['tree', 'pine', 'shore', 'stone', 'beast', 'size', 'colour'];
+  // Endings of the old layer: e the ending, n its weight, fits the ground it wants (none: anywhere), takes the kinds of first part it joins.
+  // Habitation: -by (farm, village), -sta (place), -inge (the people at). Nature: -lunda (grove), -åker (field), -berga (the heights),
+  // -vik (bay), -näs (headland), -ö (island).
+  const END = [
+    { e: 'by', n: 3, takes: ['tree', 'pine', 'shore', 'stone', 'marsh', 'open', 'land', 'size'] },
+    { e: 'sta', n: 3, takes: ['tree', 'shore', 'stone', 'open', 'land', 'size'] },
+    { e: 'inge', n: 1, takes: ['stone', 'land'] },
+    { e: 'lunda', n: 2, fits: (g) => g.broadleaf >= VILLAGE.wood, takes: ['tree', 'beast', 'size'] },
+    { e: 'åker', n: 1, fits: (g) => g.open >= VILLAGE.open * g.n, takes: ['stone', 'crop', 'size'] },
+    { e: 'berga', n: 2, fits: (g) => g.hills >= VILLAGE.hill, takes: ['tree', 'pine', 'stone', 'size'] },
+    { e: 'vik', n: 3, fits: (g) => g.water > 0 && g.water < VILLAGE.bay * g.n, takes: NATURE },
+    { e: 'näs', n: 3, fits: (g) => g.water >= VILLAGE.head * g.n, takes: NATURE },
+    { e: 'ö', n: 4, fits: (g) => g.isle, takes: NATURE },
+  ];
+  const HAS = { tree: (g) => g.broadleaf > 0, pine: (g) => g.pine > 0, shore: (g) => g.water > 0, stone: (g) => g.stony || g.hills > 0,
+    marsh: (g) => g.marsh > 0, open: (g) => g.open > 0 };
+  // Joining: these trees take a link -e- before -by and -berga (Ekeby, Askeberga); an ending that begins with a vowel wants a consonant
+  // before it; a first part is not joined to itself (Berg + berga); three of a letter become two (Hall + lunda: Hallunda).
+  const LINK = new Set(['Ek', 'Ask', 'Asp', 'Björk', 'Lind']), LINKED = new Set(['by', 'berga']), VOWEL = /[aeiouyåäö]/;
+  function join(a, e) {
+    if (VOWEL.test(e[0]) && VOWEL.test(a[a.length - 1])) return null;
+    if (e.startsWith(a.toLowerCase())) return null;
+    return (a + (LINK.has(a) && LINKED.has(e) ? 'e' : '') + e).replace(/(.)\1\1/, '$1$1');
+  }
+  // Names of gods and of holy and central places, whole: a few villages of the old layer bear a god's grove or field (VILLAGE.sacred of
+  // those the ground suits), and one village of a map, its largest if it has VILLAGE.centre farms, is the old centre (-tuna, the
+  // enclosure; -vi, the holy place).
+  const SACRED = { lunda: ['Fröslunda', 'Torslunda', 'Ullunda'], åker: ['Frösåker', 'Torsåker', 'Ulleråker'] };
+  const CENTRAL = { tuna: ['Frötuna', 'Ultuna', 'Torstuna', 'Tuna'], vi: ['Frövi', 'Ullvi', 'Torsvi', 'Odensvi'] };
+  const pick = (xs, rand) => xs[(rand() * xs.length) | 0];
+  const turned = (xs, rand) => { const k = (rand() * xs.length) | 0; return [...xs.slice(k), ...xs.slice(0, k)]; };
+  // site: a first part from the ground and an ending that fits the site, VILLAGE.offers draws by weight; where the ground suits it, now
+  // and then a god's name first.
+  function site(ctx, rand) {
+    const g = ground(ctx.w, ctx.site), ends = [], out = [];
+    for (const x of END) if (!x.fits || x.fits(g)) for (let k = 0; k < x.n; k++) ends.push(x);
+    const holy = rand() < VILLAGE.sacred, which = rand();
+    const suited = ends.filter((x, k) => SACRED[x.e] && ends.indexOf(x) === k);
+    if (holy && suited.length) out.push(...turned(SACRED[suited[(which * suited.length) | 0].e], rand));
+    for (let k = 0; k < VILLAGE.offers; k++) {
+      const x = pick(ends, rand), kinds = [];
+      for (const t of x.takes) { if (!HAS[t]) kinds.push(t); else if (HAS[t](g)) kinds.push(t, t); }
+      const nm = join(pick(FIRST[pick(kinds, rand)], rand), x.e);
+      if (nm && !out.includes(nm)) out.push(nm);
+    }
+    return out;
+  }
+  // central: the old centre of a map: on a hill the holy place first, else the enclosure.
+  function central(ctx, rand) {
+    const g = ground(ctx.w, ctx.site), tuna = turned(CENTRAL.tuna, rand), vi = turned(CENTRAL.vi, rand);
+    return g.hills >= VILLAGE.hill ? [...vi, ...tuna] : [...tuna, ...vi];
+  }
+  // Endings of the colonisation layer, for a daughter village: -torp (a daughter farm) and -böle (a new farm) anywhere, -ryd (a
+  // clearing) in wood, -boda (booths by an outlying meadow) on open land, -säter (an outland meadow) and -mark (border forest) far from
+  // the mother village, and the endings of the shore as an old village has them.
+  const woods = (g) => g.broadleaf + g.pine;
+  const shoreFit = (e) => END.find((x) => x.e === e).fits;
+  const NEW_END = [
+    { e: 'torp', n: 2 }, { e: 'böle', n: 2 }, { e: 'ryd', n: 3, fits: (g) => woods(g) >= VILLAGE.wood },
+    { e: 'boda', n: 2, fits: (g) => g.open >= VILLAGE.open * g.n }, { e: 'säter', n: 2, fits: (g, far) => far && g.open > 0 },
+    { e: 'mark', n: 2, fits: (g, far) => far && woods(g) >= VILLAGE.wood },
+    { e: 'vik', n: 2, fits: shoreFit('vik') }, { e: 'näs', n: 2, fits: shoreFit('näs') }, { e: 'ö', n: 3, fits: shoreFit('ö') },
+  ];
+  // xs ([[x, weight]...]) in a random order, the heavier sooner: drawn one by one by weight.
+  function weighed(xs, rand) {
+    const out = [];
+    for (let rest = xs; rest.length;) {
+      let r = rand() * rest.reduce((a, x) => a + x[1], 0), k = 0;
+      while (k < rest.length - 1 && r >= rest[k][1]) r -= rest[k++][1];
+      out.push(rest[k][0]); rest = rest.filter((x, j) => j !== k);
+    }
+    return out;
+  }
+  const far = (ctx) => !!ctx.mother && hexSteps(ctx.w, ctx.mother.center, ctx.site) >= VILLAGE.far;
+  // founder: the founder's given name with an ending of the colonisation layer that fits the site, the endings by weight (Erikstorp,
+  // Olofsryd, Ingridböle): a man's name in the genitive, a woman's bare, as the medieval names have it (Gunnilbo).
+  function founder(ctx, rand) {
+    const p = ctx.founder; if (!p) return [];
+    const g = ground(ctx.w, ctx.site), isFar = far(ctx), name = stem(p);
+    return weighed(NEW_END.filter((x) => !x.fits || x.fits(g, isFar)).map((x) => [x.e, x.n]), rand).map((e) => join(name, e)).filter(Boolean);
+  }
+  // mother: from the village it left: the by to its north, south, west or east (Norrby, Sörby, Väsby, Ösby), the new village (Nyby,
+  // Nytorp, Nyböle), the little one of the mother's name (Lillvalby), the village out there (Utby).
+  const DIRBY = { Norr: 'Norrby', Söder: 'Sörby', Väster: 'Väsby', Öster: 'Ösby' };
+  function mother(ctx) {
+    const m = ctx.mother; if (!m) return [];
+    const little = /^[A-ZÅÄÖ][a-zåäö]{3,8}$/.test(m.name) && !/^(Lill|Ny|Ut)/.test(m.name) ? ['Lill' + lower(m.name)] : [];
+    return [DIRBY[DIRNAME[sixth(ctx.w, m.center, ctx.site)]], 'Nyby', ...little, 'Nytorp', 'Nyböle', 'Utby'];
+  }
+  const PLACE = { site, central, founder, mother };
+  // The order of the generators for the village of ctx: a daughter's by the weights of VILLAGE.prefs, at random, then its site; an old
+  // village's by its site alone (and no draw).
+  const placeOrder = (ctx, rand) => (ctx.founder || ctx.mother ? [...weighed(Object.entries(VILLAGE.prefs), rand), 'site'] : ['site']);
+  // The name of the village of ctx by the generators in `order`: the first name not in `taken` (a Set); if all are taken, the first
+  // offered with the lowest number not taken.
+  function villageName(ctx, taken, rand, order = placeOrder(ctx, rand)) {
+    let firstOffer = null;
+    for (const gname of order) {
+      for (const nm of PLACE[gname](ctx, rand)) { if (firstOffer === null) firstOffer = nm; if (!taken.has(nm)) return nm; }
+    }
+    const base = firstOffer || 'Byn';
+    let n = 2; while (taken.has(`${base} ${n}`)) n++;
+    return `${base} ${n}`;
+  }
+  // ---- at seeding (called by sim/layout) ----
+  // The layout's stream is drawn as it was when village names came from it (VB-026: 11 first parts and 8 last, drawn again while
+  // taken), so every seed's villages stand where they stood: a village holds the drawn name while the villages are laid, and
+  // nameVillages and nameFarms replace it. A change of the name stock (sim/names) never comes here.
+  const DRAWN = [['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'], ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter']];
+  function drawnName(rand, villages) {
+    const taken = new Set(villages.map((v) => v.name)), draw = () => DRAWN[0][(rand() * 11) | 0] + DRAWN[1][(rand() * 8) | 0];
+    let name = draw(); for (let k = 0; k < 200 && taken.has(name); k++) name = draw();
     return name;
   }
-  // founder: a village founded in play takes its founder's given name in the genitive with a settlement ending (Erikstorp, Olofsboda), as
-  // many torp did; the first not taken, then a syllable name.
-  const SUFFIX = ['torp', 'ryd', 'boda', 'hult', 'mark']; // daughter (-torp), clearing (-ryd), booths (-boda), grove (-hult), outland (-mark)
-  function founderName(p, taken, rand) {
-    const base = p.given.endsWith('s') ? p.given : p.given + 's';
-    for (const s of SUFFIX) if (!taken.has(base + s)) return base + s;
-    return villageName(rand, taken);
+  // Village names at seeding (VB-399), when all are laid: each village of two farms or more by its site (sim/names), from a stream of
+  // its own by its centre tile. The largest (the lowest id among equals) is named first and, with VILLAGE.centre farms, as the map's
+  // old centre; a lone farm's village is named by nameFarms.
+  function nameVillages(w, villages) {
+    const many = villages.filter((v) => v.farmsteads.length >= 2), taken = new Set();
+    let big = null; for (const v of many) if (!big || v.farmsteads.length > big.farmsteads.length) big = v;
+    const centre = big && big.farmsteads.length >= VILLAGE.centre;
+    for (const v of villages) if (v.farmsteads.length < 2) v.name = '';
+    for (const v of big ? [big, ...many.filter((u) => u !== big)] : []) {
+      const order = centre && v === big ? ['central', 'site'] : ['site'];
+      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE.salt), order);
+      taken.add(v.name);
+    }
   }
-  return { FARM, DEFAULT_PREFS, prefsOf, farmName, tileRand, compass, landmark, owner, villageName, founderName, SUFFIX };
+  // Names at seeding (VB-026, VB-401), before any culture exists, so by the generators every culture starts with (sim/names): the farms
+  // of a village of two or more by those generators, their order drawn by weight; a lone farm (a one-farm village) by its surroundings,
+  // with a name no other village has, and its village takes that name, so the farm's map label is unique on the island. Each farm's
+  // name comes from a stream of its house tile's own; the layout's stream is drawn as it was when the names came from it (drawnFarm).
+  function nameFarms(w, villages, farmsteads, rand) {
+    const old = new Map();
+    for (const f of farmsteads) {
+      const v = villages[f.village], many = v.farmsteads.length >= 2, own = tileRand(f.house);
+      drawnFarm(w, v, f, many, old, rand);
+      if (many) {
+        const farms = v.farmsteads.map((id) => farmsteads[id]), taken = new Set(farms.filter((g) => g !== f && g.name).map((g) => g.name));
+        f.name = farmName({ w, f, village: v, owner: null, farms }, taken, own);
+      } else { f.name = loneFarmName(w, f, own, new Set(villages.filter((u) => u !== v).map((u) => u.name))); v.name = f.name; }
+    }
+  }
+  // The draws VB-026's names took from the layout's stream, taken still, so every seed's land is finished as it was: one draw for a
+  // farm named by its surroundings on open land, which a lone farm was, and a village's farm once its compass name, the middle farm
+  // and the new farm were taken (`old`: those names by village).
+  function drawnFarm(w, v, f, many, old, rand) {
+    if (many && f.house !== v.center) {
+      if (!old.has(v.id)) old.set(v.id, new Set());
+      const had = old.get(v.id), free = [compass({ w, f, village: v })[0], 'Mellangården', 'Nygården'].find((nm) => !had.has(nm));
+      if (free) { had.add(free); return; }
+    }
+    if (landKind(w, f.house) === 'open') rand();
+  }
+  // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
+  const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
+  return { FARM, PLACE, VILLAGE, FIRST, END, NEW_END, DEFAULT_PREFS, prefsOf, farmName, tileRand, farmOrder, landKind, FARMS, compass, landmark, owner,
+    position, feature, age, ground, join, site, central,
+    founder, mother, weighed, villageName, drawnName, nameVillages, nameFarms, loneFarmName };
 })();
 </script>
 <script>
@@ -4234,7 +4498,7 @@ VB['sim/routes'] = (() => {
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-396). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
   // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
@@ -4313,7 +4577,7 @@ VB['sim/routes'] = (() => {
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
     // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
-    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-396).
+    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
     const flat = !!w.hx, fx = flat ? w.hx[from] : 0, fy = flat ? w.hy[from] : 0, lx = flat ? w.hx[to] - fx : 0, ly = flat ? w.hy[to] - fy : 0;
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
     const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
@@ -4672,7 +4936,7 @@ VB['sim/forage'] = (() => {
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
-  const { farmName, villageName } = VB['sim/names'];
+  const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -4741,7 +5005,7 @@ VB['sim/layout'] = (() => {
     return out;
   }
   // Fence (gärdesgård) around an infield: hex edges between enclosed land and open land, split into stretches.
-  // open: the centre is a green, open ground that ways cross from every side (VB-396): no fence runs along it.
+  // open: the centre is a green, open ground that ways cross from every side (VB-402): no fence runs along it.
   function makeFence(w, infield, centre, owner, stretches, rand, open = false) {
     const NA = [0, -60, -120, 180, 120, 60], edges = [];
     for (const i of infield) for (let d = 0; d < 6; d++) {
@@ -4810,7 +5074,7 @@ VB['sim/layout'] = (() => {
     const beside = (a, b) => { for (let q = 0; q < 6; q++) if (w.nb[a * 6 + q] === b) return true; return false; };
     for (let a = 0; a < arms && street.size < need; a++) {
       // An arm leaves the green well away from the others: opposite the first, or between them, so at most three do, never two side by
-      // side, and the green keeps open ground between its ways (Kim, VB-396). A fourth arm, or one that finds no such side free, is a
+      // side, and the green keeps open ground between its ways (Kim, VB-402). A fourth arm, or one that finds no such side free, is a
       // side street: it leaves a tile of the street laid so far.
       const len = Math.ceil((need - street.size) / (arms - a)), side = !([0, 1, 2, 3, 4, 5].some(free));
       let at = center, dir = -1, bent = 0;
@@ -4852,7 +5116,7 @@ VB['sim/layout'] = (() => {
   // The form follows the site: where the street village comes out short of its farms (a neck of land, where the street and its row take
   // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
-    const name = villageName(rand, new Set(villages.map((v) => v.name)));
+    const name = drawnName(rand, villages); // named when all are laid (nameVillages)
     if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
     const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
     const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
@@ -4930,20 +5194,6 @@ VB['sim/layout'] = (() => {
     if (village.farmsteads.length === 1) { used.delete(center); village.center = farmsteads[village.farmsteads[0]].house; }
     return village;
   }
-  // Names at seeding (VB-026), before any culture exists, so by the generators every culture starts with (sim/names): the farms of a village
-  // of two or more by compass, then landmark; a lone farm (a one-farm village) by its surroundings, with a name no other village has, and
-  // its village takes that name, so the farm's map label is unique on the island.
-  function nameFarms(w, villages, farmsteads, rand) {
-    for (const f of farmsteads) {
-      const v = villages[f.village];
-      if (v.farmsteads.length >= 2) {
-        const taken = new Set(farmsteads.filter((g) => g !== f && g.village === f.village && g.name).map((g) => g.name));
-        f.name = farmName({ w, f, village: v, owner: null }, taken, rand);
-      } else { f.name = loneFarmName(w, f, rand, new Set(villages.filter((u) => u !== v).map((u) => u.name))); v.name = f.name; }
-    }
-  }
-  // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
-  const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
   // Up to n wooded tiles within WOOD.reach walking steps of `from`, nearest first, none a house or field (`used`) or in `taken`.
   function woodNear(w, used, from, n, taken = null) {
     const out = [];
@@ -4990,8 +5240,8 @@ VB['sim/layout'] = (() => {
   }
   // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
   function loneVillage(rand, villages, house) {
-    const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
+    return { id: villages.length, name: drawnName(rand, villages), center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [],
+      green: false, well: false };
   }
   // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
   function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
@@ -5043,7 +5293,7 @@ VB['sim/layout'] = (() => {
         return f;
       },
       finish() {
-        nameFarms(w, villages, farmsteads, rand);
+        nameVillages(w, villages); nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
         if (!bare) wearIn(w, villages, farmsteads, PATHS.wornYears); // villages that have stood a while have their paths (VB-114)
         for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
@@ -5052,7 +5302,7 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, nameVillages, makeFence, makeFarmstead,
     findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();
@@ -8274,6 +8524,37 @@ VB['sim/notable'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398); no state
+VB['sim/leanings'] = (() => {
+  const { OFF, NOPT, DIMS, P } = VB['culture'];
+  // What draws a person towards option j of custom d, each pull as the daily drift weighs it (culture, driftPerson): company (those they deal with,
+  // mixed with the settlement's mean share for it, or null; friend is the tie that weighs most among those who favour j above the custom's other ways),
+  // upbringing (what they learned young), cause (a cause argued near them; arguer is who argues it with most weight), interest (their own)
+  // and own (they argue it themselves). A view for the page (page/customs, VB-398): it writes nothing and draws no randomness.
+  function pulls(p, d, j, byId, mean = null, kind = 'village') {
+    const o = OFF[d], n = NOPT[d], k = o + j, m = DIMS[d].m, a = p.att[k], rate = P.kind[kind], ageF = p.age < 25 ? 1.5 : p.age < 50 ? 1 : 0.6;
+    let wsum = 0, t = 0, press = 0, pr = 0, friend = null, fw = 0, arguer = null, aw = 0;
+    for (const [id, w0] of p.ties) {
+      const q = byId(id); if (!q || !q.alive || q.age < 12) continue;
+      const wq = w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1);
+      t += wq * q.att[k]; wsum += wq;
+      let top = 0; for (let i = 1; i < n; i++) if (q.att[o + i] > q.att[o + top]) top = i;
+      if (top === j && wq > fw) { fw = wq; friend = q.id; }
+      if (!q.advocate || q.advocate.dim !== d) continue;
+      pr += wq;
+      if (q.advocate.opt === j) { press += wq; if (wq > aw) { aw = wq; arguer = q.id; } }
+    }
+    if (wsum > 0) { t /= wsum; press /= wsum; pr /= wsum; }
+    const tgt = mean !== null ? (wsum > 0 ? (1 - P.oblique) * t + P.oblique * mean : mean) : wsum > 0 ? t : a;
+    return { company: m * P.social * rate * ageF * (tgt - a), friend, upbringing: (P.anchor[kind] || P.anchor.village) * (p.anc[k] - a),
+      cause: P.persuasion * Math.pow(m, 0.75) * rate * ageF * (press - pr * a), arguer,
+      interest: p.interest ? m * P.selfInterest * (p.interest[k] - a) : 0,
+      own: !!p.advocate && p.advocate.dim === d && p.advocate.opt === j };
+  }
+  return { pulls };
+})();
+</script>
+<script>
 // @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
@@ -9038,7 +9319,7 @@ VB['sim/expansion'] = (() => {
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
       if (nextTo(w, h, fields)) continue;
-      // a house may not close a way, since no route crosses one, nor close the green in (VB-396)
+      // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
       if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
       let f = -1, fs = -Infinity;
       for (const [t, score] of fieldCandidates) {
@@ -12814,10 +13095,13 @@ VB['sim/cottage'] = (() => {
   const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'], { emit } = VB['sim/events'];
   const names = VB['sim/names'];
-  // A new farm's name (VB-026): by the generators the village's culture prefers (compass, landmark, owner), not one another farm of the
-  // village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
-  const farmName = (st, v, f, owner = null) => names.farmName({ w: st.w, f, village: v, owner },
-    new Set(v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id].name)), names.tileRand(f.house), names.prefsOf(st, v.id).farm);
+  // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
+  // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
+  function farmName(st, v, f, owner = null) {
+    const rand = names.tileRand(f.house), others = v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id]);
+    return names.farmName({ w: st.w, f, village: v, owner, farms: [f, ...others], fresh: true }, new Set(others.map((g) => g.name)), rand,
+      names.farmOrder(names.prefsOf(st, v.id).farm, rand));
+  }
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).
@@ -13183,7 +13467,7 @@ VB['sim/settle'] = (() => {
     let best = null, bs = -Infinity, tried = 0;
     for (const [t, d, s0] of cands) {
       if (tried >= SETTLE.candidates) break;
-      if (use.taken.has(t) || use.near.has(t) || cutsOff(w, t, shut, house)) continue; // a house may not close a way (VB-396)
+      if (use.taken.has(t) || use.near.has(t) || cutsOff(w, t, shut, house)) continue; // a house may not close a way (VB-402)
       tried++;
       const block = placeFields(w, use.taken, t, SETTLE.fields, use.near); if (!block) continue;
       // room besides the block for meadow and pasture, away from other farms (VB-154)
@@ -13195,8 +13479,10 @@ VB['sim/settle'] = (() => {
     }
     return best;
   }
-  // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
-  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), drawer(st.rng.settle));
+  // The name of a village founded on tile `site` by p of village `home` (sim/names: by its founder or its mother village, as the site
+  // has it), from a stream of the tile's own, so naming draws nothing from the simulation's streams.
+  const foundedName = (st, p, home, site) => names.villageName({ w: st.w, site, founder: p, mother: home }, new Set(st.villages.map((v) => v.name)),
+    names.tileRand(site, names.VILLAGE.salt));
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
@@ -13243,7 +13529,7 @@ VB['sim/settle'] = (() => {
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
   function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
-    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], wood: [], grain: {},
+    const v = { id: st.villages.length, name: foundedName(st, p, home, site.house), center: site.house, farmsteads: [], fence: [], wood: [], grain: {},
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     const f = settleFarm(st, v, home, party, site.house, site.field, prov);
@@ -13301,7 +13587,7 @@ VB['sim/settle'] = (() => {
       }
     }
   }
-  return { waitingByVillage, markCrowded, partyOf, provisions, landInUse, reachOf, candidates, newSite, smallVillage, founderName, settleFarm, found,
+  return { waitingByVillage, markCrowded, partyOf, provisions, landInUse, reachOf, candidates, newSite, smallVillage, foundedName, settleFarm, found,
     settleRound };
 })();
 </script>
@@ -14127,7 +14413,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.treeDirty,biomeDirty: Set of tile indexes whose tree density stage changed, or that turned to meadow; the page repaints them
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js), plain data;
     //   its lookups are hooks(st) (sim/society)
-    // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
+    // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; a culture's preference among farm names: weights, the first heaviest
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     const st = {
       t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
@@ -15463,7 +15749,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
-  // began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-396)
+  // began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402)
   const DEMO = { seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128], start: [18, 19, 29, 32, 33, 45, 93, 114, 128], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
@@ -15535,7 +15821,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
-    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureOf = 0; cultureOpen = -1; cultureStamp = ''; charterStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
@@ -15793,7 +16079,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
 
   const keys = new Set();
   const SHORTCUTS = {
-    p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
+    p: 'settlersBtn', t: 'treeBtn', c: 'cultureBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -15824,7 +16110,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (press === 'centre') centreSelection(); else $(press).click();
       return;
     }
-    if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea, summary')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
@@ -15879,10 +16165,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['customs', 'agenda', 'debug'].includes(panel);
-    drawerTab = ['customs', 'agenda', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['culture', 'agenda', 'debug'].includes(panel);
+    drawerTab = ['culture', 'agenda', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
-    $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
+    $('cultureBtn').setAttribute('aria-pressed', String(panel === 'culture'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
     $('agendaBtn').setAttribute('aria-pressed', String(panel === 'agenda'));
     if (mobileUI.matches && panel) setMinimap(false);
@@ -17732,18 +18018,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const villageChip = (v) => `<button type="button" class="chip" data-village="${v.id}">${iconImg(villageIcon(v), 'mini')}${esc(v.name)}</button>`;
   const row = (attr, img, name, note, state) => `<button type="button" class="row" ${attr}>${img}<span class="who">${esc(name)}<i>${
     esc(note)}</i></span><span class="state">${state}</span></button>`;
-  // One listener for every link: a person, a farm, a village, or a village's customs.
+  // One listener for every link: a person, a farm or a village.
   function follow(e) {
-    const b = e.target.closest('button[data-pawn], button[data-farm], button[data-village], button[data-customs]');
+    const b = e.target.closest('button[data-pawn], button[data-farm], button[data-village]');
     if (!b || !st) return;
     if (b.dataset.pawn) focusPawn(+b.dataset.pawn);
     else if (b.dataset.farm) selectFarm(+b.dataset.farm);
-    else if (b.dataset.village) selectVillage(+b.dataset.village);
-    else {
-      customVillage = +b.dataset.customs; customsStamp = '';
-      if (activePanel !== 'customs') openDrawer('customs'); else buildCustoms();
-      renderDrawer();
-    }
+    else selectVillage(+b.dataset.village);
   }
   $('settlers').addEventListener('click', follow);
   $('tile').addEventListener('click', follow);
@@ -17776,10 +18057,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
         hh ? `Held by ${Sim.fullName(st.pawns[hh.holder])}` : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
         hh ? `${hungerMark(hh)}${hh.members.length} people · ${hungerWord(hh)}` : '');
     }).join('')}`;
-    const customs = st.cenv.settlements[id] && st.cenv.settlements[id].id === id
-      ? `<button type="button" class="chip" data-customs="${id}">Customs</button>` : '';
     card(v.name, lines, '', { badge: iconImg(villageIcon(v)), kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
-      links: (mother ? villageChip(mother) : '') + customs, list });
+      links: mother ? villageChip(mother) : '', list });
   }
 
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.
@@ -17788,8 +18067,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const b = document.querySelector('#tile .sheet-expand'); b.setAttribute('aria-expanded', 'true'); nameFold(b);
   }
   // ======== history ========
-  // The card of a pawn, a farm or a village has two tabs, Details and History; the tab chosen stays as the selection changes, so a name
-  // followed in one history opens the next. The filter by kind is the page's own state too.
+  // The card of a pawn, a farm or a village has the tabs Details and History, and a village's has Customs (page/customs); the tab chosen
+  // stays as the selection changes, so a name followed in one history opens the next. The filter by kind is the page's own state too.
   let cardTab = 'facts', historyGroup = '', historyStamp = '', historyHTML = '';
   const HISTORY_ROWS = 200; // lines drawn; a filter by kind reaches the older ones
   $('historyKinds').innerHTML = [['', 'All'], ...Object.entries(Sim.CHRONICLE).map(([key, g]) => [key, g.label])].map(([key, label]) =>
@@ -17833,27 +18112,177 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (h !== historyHTML) { historyHTML = h; updatePanelHTML($('historyList'), h); }
   }
   // Called whenever the card is filled (page/words, card): the tabs show for a pinned pawn, farm or village, and the open one is drawn.
+  // The Customs tab (page/customs) is a village's: on another card Details shows in its place, and the choice is kept for the next village.
   function syncTabs() {
-    const q = st && selectionPinned ? historySubject() : null, history = !!q && cardTab === 'history';
-    $('tileTabs').hidden = !q; $('tileFacts').hidden = history; $('tileHistory').hidden = !history;
+    const q = st && selectionPinned ? historySubject() : null, village = q ? customsVillage() : -1;
+    const tab = !q || (cardTab === 'customs' && village < 0) ? 'facts' : cardTab;
+    $('tileTabs').hidden = !q; $('tabCustoms').hidden = village < 0;
+    $('tileFacts').hidden = tab !== 'facts'; $('tileHistory').hidden = tab !== 'history'; $('tileCustoms').hidden = tab !== 'customs';
     for (const b of $('tileTabs').children) {
-      const on = (b.dataset.tab === 'history') === history;
+      const on = b.dataset.tab === tab;
       b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
     }
     for (const b of $('historyKinds').children) b.setAttribute('aria-pressed', b.dataset.history === historyGroup);
-    if (history) renderHistory(q);
+    if (tab === 'history') renderHistory(q);
+    if (tab === 'customs') renderCustoms(village);
   }
   $('tile').addEventListener('click', (e) => {
     const tab = e.target.closest('[data-tab]'), kind = e.target.closest('[data-history]');
     if (tab) cardTab = tab.dataset.tab; else if (kind) historyGroup = kind.dataset.history; else return;
     syncTabs();
   });
-  // Left and right move between the tabs, as in any tab list.
+  // Left and right move between the tabs shown, as in any tab list.
   $('tileTabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    cardTab = cardTab === 'history' ? 'facts' : 'history'; syncTabs();
-    $(cardTab === 'history' ? 'tabHistory' : 'tabFacts').focus(); e.preventDefault();
+    const tabs = [...$('tileTabs').children].filter((b) => !b.hidden), at = tabs.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+    const to = tabs[(at + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    cardTab = to.dataset.tab; syncTabs(); to.focus(); e.preventDefault();
   });
+  // ======== customs ========
+  // The customs are told as sentences under four heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
+  const CHARTER = [['Land', ['claims', 'dispute', 'newLand']],
+    ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
+    ['Household', ['residence', 'kinLimit', 'feedOrder']], ['Meeting', ['voice']]];
+  const SAID = {
+    claims: ['An empty farm goes to ', { kin: 'kin of the old family first', villagers: 'villagers first', anyone: 'anyone who claims it',
+      assembly: 'whoever the meeting names' }, '.'],
+    dispute: ['Where two claim the same land, ', { first: 'the first claim stands', strongest: 'the strongest claim stands',
+      kin: 'kin of the last holder come first', meeting: 'the meeting decides' }, '.'],
+    newLand: ['Newly cleared land ', { village: 'is allotted by the village', labour: 'goes to whoever worked most',
+      intended: 'goes to whoever it was cleared for' }, '.'],
+    handover: ['A farm passes on ', { death: 'at the holder’s death', marriage: 'when the heir marries', age60: 'when the holder turns 60' }, '.'],
+    heirSex: ['', { sons: 'Only sons', sonsFirst: 'Sons before daughters', any: 'Any child', daughtersFirst: 'Daughters before sons' }, ' may inherit,'],
+    birthOrder: ['and among them ', { eldest: 'the eldest', youngest: 'the youngest', chosen: 'the one the parent chooses' }, '.'],
+    heirCount: ['', { one: 'One heir takes all', buyout: 'One heir buys out the rest', split: 'The land is split between the heirs' }, '.'],
+    daughterShare: ['A daughter’s share is ', { equal: 'equal to a son’s', half: 'half a son’s' }, '.'],
+    widow: ['A widow ', { life: 'keeps the farm for life', keep: 'keeps a right to her keep', outright: 'inherits outright' }, '.'],
+    ownHeir: ['One who is first in line for their own parents’ farm ', { behind: 'steps behind other relatives',
+      keeps: 'keeps their place' }, ' in the line of another.'],
+    residence: ['A married couple lives ', { land: 'with whoever holds land', husband: 'at the husband’s home', wife: 'at the wife’s home' }, '.'],
+    kinLimit: ['Kin may marry if they are ', { second: 'third cousins or further', first: 'second cousins or further',
+      close: 'first cousins or further', uncle: 'uncle and niece or further' }, '.'],
+    feedOrder: ['When food is short, ', { equal: 'all get equal shares', children: 'children eat first', workers: 'those who work eat first' }, '.'],
+    voice: ['', { landholders: 'Landholders', heads: 'All household heads', adults: 'All adults' }, ' speak at the meeting.'],
+  };
+  const phraseOf = (k, j) => SAID[Culture.DIMS[k].key][1][Culture.DIMS[k].opts[j][0]];
+  // A voice wavers when its first and second leanings are this close; a way that leads is contested within this of the share it must pass;
+  // a strong voice has this many times an even share of the say; and so many faces stand by one way before a count.
+  const WAVER = 0.15, NEAR = 0.1, STRONG = 1.5, FACES = 8;
+  let customOpen = -1, customVoice = -1, customsOf = -1, charterStamp = '';
+  // The village of the card, if it has customs of its own (a settlement of the culture model), else -1.
+  const customsVillage = () => (st && selPawn < 0 && selVillage >= 0 && st.cenv.settlements[selVillage]
+    && st.cenv.settlements[selVillage].id === selVillage ? selVillage : -1);
+  // A village's customs as the meeting would find them today: for each, the practice x, the culture's custom, the way with most support y,
+  // and its state: settled (the practice leads), lead (another leads, far from the share it must pass, Culture.meeting's rule), contested
+  // (within NEAR of it) or turning (past it); and those with a voice, each by the way they favour most, the strongest voices first.
+  function readCustoms(s) {
+    const members = Sim.membersOf(st, s.id), voiced = members.filter((p) => p.alive && Sim.voiceOf(st, p, s) > 0);
+    const say = (p) => Sim.voiceOf(st, p, s) * p.prestige, W = voiced.reduce((a, p) => a + say(p), 0);
+    const S = Culture.support(st.cenv, members, (p) => Sim.voiceOf(st, p, s)).S, cu = st.cenv.cultures[s.culture], few = Culture.fewVoices(voiced.length);
+    return { people: members.filter((p) => p.alive).length, voices: voiced.length, culture: cu, dims: Culture.DIMS.map((d, k) => {
+      const o = Culture.OFF[k], n = d.opts.length, x = s.practice[k], cust = cu.customs[k];
+      let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
+      const need = S[o + x] * (1 + few * Culture.margin(s, x, y, cust));
+      const state = !voiced.length || y === x ? 'settled' : S[o + y] > need ? 'turning' : S[o + y] > need - NEAR ? 'contested' : 'lead';
+      const who = voiced.map((p) => {
+        let top = 0, next = -1;
+        for (let j = 1; j < n; j++) if (p.att[o + j] > p.att[o + top]) top = j;
+        for (let j = 0; j < n; j++) if (j !== top && (next < 0 || p.att[o + j] > p.att[o + next])) next = j;
+        return { id: p.id, say: say(p) / W, top, next, lean: [p.att[o + top], p.att[o + next]], waver: p.att[o + top] - p.att[o + next] < WAVER };
+      }).sort((a, b) => b.say - a.say || a.id - b.id);
+      return { k, d, x, cust, y, state, differs: x !== cust, who };
+    }) };
+  }
+  // The charter: the customs as sentences under their heads. pick(k) is the option told of custom k and mark(k) its phrase's mark; the open
+  // custom's detail follows its paragraph. The phrases' ids take a prefix: the card's charter and the Culture pane's are in one document.
+  function charterHTML(prefix, pick, mark, open, detail) {
+    const said = (k) => `${SAID[Culture.DIMS[k].key][0]}<span role="button" tabindex="0" class="phrase ${mark(k)}" id="${prefix}${k}" data-phrase="${k}"
+      aria-expanded="${k === open}">${phraseOf(k, pick(k))}</span>${SAID[Culture.DIMS[k].key][2]}`;
+    return CHARTER.map(([head, keys]) => {
+      const ks = keys.map((key) => Culture.IDX[key]);
+      return `<h3>${head}</h3><p class="charter">${ks.map(said).join(' ')}</p>${ks.includes(open) ? detail(open) : ''}`;
+    }).join('');
+  }
+  const markOf = (c) => (c.state === 'turning' || c.state === 'contested' ? c.state : c.differs ? 'differs' : '');
+  // The note of a chosen voice (VB-398): how far they lean to their first and second way, and the strongest pull towards the first, as the
+  // daily drift weighs them (sim/leanings): their own cause, what they learned young, those they deal with, a cause argued near them, their
+  // interest.
+  function voiceNote(c, f, s) {
+    const me = played(), you = f.id === me, p = st.pawns[f.id], k = Culture.OFF[c.k] + f.top, pct = (v) => `${Math.round(v * 100)}%`;
+    const near = Sim.membersOf(st, s.id).filter((q) => q.alive && q.age >= 12);
+    const mean = near.length ? near.reduce((a, q) => a + q.att[k], 0) / near.length : null;
+    const w = VB['sim/leanings'].pulls(p, c.k, f.top, (id) => st.pawns[id], mean, s.kind), name = (id) => esc(st.pawns[id].given);
+    const best = ['upbringing', 'company', 'cause', 'interest'].reduce((x, y) => (w[y] > w[x] ? y : x));
+    const why = w.own ? (you ? 'You argue this cause.' : 'Argues this cause.') : w[best] <= 0 ? `Nothing pulls ${you ? 'you' : 'them'} further this way.`
+      : best === 'upbringing' ? 'Raised to it.' : best === 'interest' ? `It serves ${you ? 'your' : 'their'} interest.`
+        : best === 'cause' ? (w.arguer === me ? 'Swayed by your cause.' : `Swayed by ${name(w.arguer)}’s cause.`)
+          : w.friend === null ? `Those around ${you ? 'you' : 'them'} lean this way.`
+            : w.friend === me ? 'Close to you, and you favour it.' : `Close to ${name(w.friend)}, who favours it.`;
+    const who = you ? 'You lean' : `<button type="button" class="name" data-pawn="${f.id}">${esc(Sim.fullName(p))}</button> leans`;
+    return `<p class="why">${who} ${pct(f.lean[0])} to “${esc(c.d.opts[f.top][1])}” and ${pct(f.lean[1])} to “${esc(c.d.opts[f.next][1])}”. ${why}</p>`;
+  }
+  // An opened custom: each way with its verdict and the faces of those who favour it most; a face is a button that shows its note.
+  function standHTML(c, r, s) {
+    const me = played(), cn = esc(r.culture.name), tag = (cls, text) => `<em class="tag ${cls}">${text}</em>`;
+    const face = (f) => `<button type="button" class="voice${f.waver ? ' waver' : ''}" id="voice${f.id}" data-voice="${f.id}"
+      aria-pressed="${f.id === customVoice}">${faceImg(f.id)}<b>${f.id === me ? 'You' : esc(st.pawns[f.id].given)}</b><small>${
+      f.waver ? `wavering towards “${esc(c.d.opts[f.next][1])}”` : f.say > STRONG / r.voices ? 'a strong voice' : ''}</small></button>`;
+    const verdict = (j) => (j === c.x ? tag('', 'In force') : '') + (j === c.cust && c.differs ? tag('custom', `${cn} custom`) : '')
+      + (j !== c.y || c.state === 'settled' ? '' : c.state === 'lead' ? tag('gold', 'More support, but cannot win yet')
+        : c.state === 'contested' ? tag('gold', 'Close to winning') : tag('red', 'Wins at the next meeting'));
+    const chosen = c.who.find((f) => f.id === customVoice);
+    return `<div class="stand" id="customStand"><p class="of">${esc(c.d.label)}</p>${c.d.opts.map((o, j) => {
+      const w = c.who.filter((f) => f.top === j), more = w.length > FACES ? `<small class="rest">and ${w.length - FACES} more</small>` : '';
+      return `<div class="way${j === c.x ? ' in' : ''}"><p>${esc(o[1])}${verdict(j)}</p>${w.length
+        ? `<div class="faces">${w.slice(0, FACES).map(face).join('')}${more}</div>` : '<p class="none">No one stands here.</p>'}${
+        chosen && chosen.top === j ? voiceNote(c, chosen, s) : ''}</div>`;
+    }).join('')}<p class="note">${r.voices ? `${r.voices} of ${r.people} speak at the meeting, and each stands by the way they favour most. `
+      + 'Those who waver are the ones to win over. Choose a face to see how far they lean, and why.' : 'No one here speaks at the meeting yet.'}</p></div>`;
+  }
+  // From the Agenda (page/drawer): a village's card at its Customs tab, with one custom opened.
+  function openCustom(village, k) {
+    cardTab = 'customs'; customsOf = village; customOpen = k; customVoice = -1; charterStamp = '';
+    selectVillage(village);
+  }
+  // Drawn when the day, the village, a practice, the played pawn or the open phrase changes, not every frame.
+  function renderCustoms(id) {
+    const s = st.cenv.settlements[id];
+    if (customsOf !== id) { customsOf = id; customOpen = customVoice = -1; }
+    const stamp = [Math.floor(st.t / Sim.DAY), id, customOpen, customVoice, played(), s.practice, st.cenv.cultures[s.culture].customs].join(':');
+    if (stamp === charterStamp) return;
+    charterStamp = stamp;
+    const r = readCustoms(s), days = nextMeeting(), cn = esc(r.culture.name);
+    let h = `<h3 class="lead">The customs of ${esc(s.name)}</h3><p class="note">${esc(
+      s.name)} follows the <button type="button" class="name" data-culture="${r.culture.id}">${cn} culture</button>. ${r.voices} of its ${
+      r.people} people speak at the meeting, next in ${days} ${days === 1 ? 'day' : 'days'}. Choose a phrase to see who stands where.</p>`;
+    h += charterHTML('phrase', (k) => r.dims[k].x, (k) => markOf(r.dims[k]), customOpen, (k) => standHTML(r.dims[k], r, s));
+    h += `<p class="key"><span><span class="phrase differs">Differs</span> from ${cn} custom</span><span><span class="phrase contested">Contested</span></span>`
+      + '<span><span class="phrase turning">Set to change</span></span></p>';
+    updatePanelHTML($('tileCustoms'), h);
+  }
+  // A phrase opens and closes by a click, Enter or Space, and the opened custom is brought into view; a face shows and hides its note.
+  function togglePhrase(e) {
+    const p = e.target.closest('[data-phrase]'), v = e.target.closest('[data-voice]');
+    const cu = e.target.closest('[data-culture]');
+    if (cu && e.type === 'click') { openCulture(+cu.dataset.culture); return; }
+    if (v && e.type === 'click') {
+      customVoice = customVoice === +v.dataset.voice ? -1 : +v.dataset.voice;
+      renderCustoms(customsOf);
+      const again = $(`voice${v.dataset.voice}`), why = $('tileCustoms').querySelector('.why');
+      if (again) again.focus({ preventScroll: true });
+      if (why && why.scrollIntoView) why.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (!p || (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    customOpen = customOpen === +p.dataset.phrase ? -1 : +p.dataset.phrase; customVoice = -1;
+    renderCustoms(customsOf);
+    const again = $(`phrase${p.dataset.phrase}`), stand = $('customStand');
+    if (again) again.focus({ preventScroll: true });
+    if (stand && stand.scrollIntoView) stand.scrollIntoView({ block: 'nearest' });
+  }
+  $('tileCustoms').addEventListener('click', togglePhrase);
+  $('tileCustoms').addEventListener('keydown', togglePhrase);
 // action bar's, page/actbar), Follow, its map mark; after its death, whom the player may go on as (VB-213)
   // ======== playing a pawn ========
   // Which pawn is played, its queue and its switch are the run's (st.player, written only through Sim.inhabit, uninhabit, queue, unqueue and
@@ -17935,7 +18364,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
-      const need = x === a.opt ? 0 : x === cust ? Culture.P.margin + Culture.P.tieMargin * s.tie : a.opt === cust ? Culture.P.returnMargin : Culture.P.margin;
+      const voices = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).length;
+      const need = x === a.opt ? 0 : Culture.fewVoices(voices) * Culture.margin(s, x, a.opt, cust);
       h += x === a.opt ? ' It is the village practice.' : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the `
         + `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
     } else h += ' The village has not met yet.';
@@ -18842,7 +19272,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     demo = false; demoAt = null; document.body.classList.remove('demo');
     await swapWorld(a.wd, a.sim, a.painted);
     intro = null; cam.x = a.cam.x; cam.y = a.cam.y; cam.z = zt = a.cam.z; vel.x = vel.y = 0;
-    settlersHTML = ''; $('settlers').textContent = ''; customsStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureStamp = ''; charterStamp = '';
     if (choose && choose.farm >= 0) { sel = st.farmsteads[choose.farm].house; selectionPinned = true; hoverDirty = true; renderChoose(); }
   }
   // A game raised or loaded drops the start's islands and the game kept aside (page/loader, build).
@@ -19873,10 +20303,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
   });
 
-  // ======== customs and debug drawer ========
+  // ======== culture, agenda and debug drawer ========
   let drawerTab = null, skipping = false;
-  const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
-  const DRAWER = { customs: { title: 'Customs', btn: 'customsBtn' }, agenda: { title: 'Agenda', btn: 'agendaBtn' },
+  const drawer = $('drawer');
+  const DRAWER = { culture: { title: 'Culture', btn: 'cultureBtn' }, agenda: { title: 'Agenda', btn: 'agendaBtn' },
     debug: { title: 'Debug', btn: 'debugBtn' } };
   function openDrawer(tab) {
     openPanel(activePanel === tab ? null : tab);
@@ -19884,10 +20314,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('drawerClose').setAttribute('aria-label', `Close ${DRAWER[tab].title.toLowerCase()}`);
     if (drawerTab === 'debug') buildDebug();
     if (drawerTab === 'agenda') { agendaMsg = null; agendaHTML = ''; $('drawerBody').innerHTML = '<div id="agendaContent" class="play agenda"></div>'; }
-    if (drawerTab === 'customs') buildCustoms();
+    if (drawerTab === 'culture') chooseCulture();
     renderDrawer();
   }
-  $('customsBtn').addEventListener('click', () => openDrawer('customs'));
+  $('cultureBtn').addEventListener('click', () => openDrawer('culture'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('agendaBtn').addEventListener('click', () => openDrawer('agenda'));
   $('drawerClose').addEventListener('click', () => { const tab = drawerTab; openPanel(null); $(DRAWER[tab].btn).focus(); });
@@ -19895,73 +20325,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
     return days; };
-  let customVillage = 0, customsStamp = '', comparisonOpen = false;
-  function buildCustoms() {
-    const setts = st.cenv.settlements;
-    if (!setts[customVillage]) customVillage = 0;
-    $('drawerBody').innerHTML = `<label class="custom-picker">Village<select id="customVillage">${setts.map((s) =>
-      `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><div id="customContent"></div>
-      <details id="customComparison"><summary>Compare all villages</summary><div id="customTable" class="table-scroll" tabindex="0"
-      role="region" aria-label="Village customs comparison, scroll horizontally"></div></details>`;
-    $('customVillage').value = String(customVillage);
-    $('customVillage').addEventListener('change', (e) => { customVillage = +e.target.value; customsStamp = ''; renderDrawer(); });
-    $('customComparison').open = comparisonOpen;
-    $('customComparison').addEventListener('toggle', (e) => {
-      comparisonOpen = e.target.open; customsStamp = ''; renderDrawer();
-    });
-    customsStamp = '';
-  }
   function renderDrawer() {
     if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
-    if (drawerTab === 'agenda') { renderAgenda(); return; }
-    if (drawerTab !== 'customs') { updateDebug(); return; }
-    if (!$('customContent')) buildCustoms();
-    const env = st.cenv, setts = env.settlements;
-    // Rebuild the selector when villages change, not every animation tick.
-    if ($('customVillage').options.length !== setts.length) buildCustoms();
-    const stamp = `${Math.floor(st.t / Sim.DAY)}:${customVillage}:${comparisonOpen}:${setts.map((s) => s.practice.join(',')).join(';')}`;
-    if (stamp === customsStamp) return;
-    customsStamp = stamp;
-    const s = setts[customVillage], culture = env.cultures[s.culture], members = Sim.membersOf(st, s.id);
-    const voices = members.filter((p) => Sim.voiceOf(st, p, s) > 0).length;
-    const support = Culture.support(env, members, (p) => Sim.voiceOf(st, p, s)).S, days = nextMeeting();
-    let h = `<p class="dm">${members.length} people · ${voices} with a voice · ${Math.round(s.tie * 100)}% tie to the culture’s centre.</p>
-      <p class="dm"><strong>${esc(culture.name)} culture</strong>, centred on ${esc(setts[culture.centres[0]].name)}${culture.parent !== null
-        ? `, split from ${esc(env.cultures[culture.parent].name)}` : ''}.</p>
-      <p class="dm">Next village meetings in ${days} ${days === 1 ? 'day' : 'days'}. Attitudes drift daily; practice changes at the meeting after harvest.</p>`;
-    if (s.id !== culture.centres[0]) h += `<p class="dm">${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears
-      ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
-    Culture.DIMS.forEach((d, k) => {
-      const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
-      h += `<section class="custom-card" id="custom-${k}"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
-        optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
-        <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
-          `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
-          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
-            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
-    });
-    h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
-      `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
-    updatePanelHTML($('customContent'), h);
-    if (comparisonOpen) {
-      const sup = setts.map((v) => Culture.support(env, Sim.membersOf(st, v.id), (p) => Sim.voiceOf(st, p, v)).S);
-      let table = `<table class="cust"><thead><tr><th scope="col">Custom</th>${setts.map((v) =>
-        `<th scope="col">${esc(v.name)}<br>${esc(env.cultures[v.culture].name)} culture</th>`).join('')}</tr></thead><tbody>`;
-      Culture.DIMS.forEach((d, k) => {
-        table += `<tr><th scope="row">${esc(d.label)}</th>${setts.map((v, i) => {
-          const c = env.cultures[v.culture], different = v.practice[k] !== c.customs[k];
-          return `<td class="${different ? 'dev' : ''}">${esc(optLabel(k, v.practice[k]))}<br>Culture: ${esc(optLabel(k, c.customs[k]))}
-            <div class="sbar" aria-hidden="true">${d.opts.map((option, j) => `<i style="width:${(sup[i][Culture.OFF[k] + j] * 100).toFixed(1)}%;
-              background:${BAR[j]}"></i>`).join('')}</div></td>`;
-        }).join('')}</tr>`;
-      });
-      $('customTable').innerHTML = table + '</tbody></table>';
-    }
+    if (drawerTab === 'agenda') renderAgenda(); else if (drawerTab === 'culture') renderCulture(); else updateDebug();
   }
   // ---- the agenda (the played pawn's cause): what it argues and until when, when it may take up another, the causes it may take up, by
   // custom, and who else of its village argues one. A cause is taken up or laid down by a queued command, as the pawn's other acts; the
-  // village's leaning on each custom is the Customs tab's, which the links open at that custom. agendaMsg is the last click's answer. ----
+  // village's leaning on each custom is told on its card's Customs tab (page/customs), which the links open at that custom. agendaMsg is the
+  // last click's answer. ----
   let agendaMsg = null, agendaHTML = '';
   const AGENDA_OTHERS = 6;
   const yrs = (x) => `${Math.max(0, x).toFixed(1)} ${Math.max(0, x).toFixed(1) === '1.0' ? 'year' : 'years'}`;
@@ -20003,8 +20374,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function agendaClick(b) {
     const act = b.dataset.agenda;
     if (act === 'customs') {
-      customVillage = Sim.settlementIdOf(st, st.pawns[played()]); openPanel(null); openDrawer('customs');
-      const card = $(`custom-${b.dataset.dim}`); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' });
+      openCustom(Sim.settlementIdOf(st, st.pawns[played()]), +b.dataset.dim);
       return;
     }
     if (act === 'pawn') { focusPawn(+b.dataset.id); return; }
@@ -20114,6 +20484,105 @@ if (typeof module !== 'undefined') module.exports = Sim;
     settlersHTML = ''; updateDebug();
   });
 
+  // ======== culture ========
+  // The pane tells of one culture: where the island has several, chips choose. Its tabs: the villages, those with something stirring or a
+  // way of their own first; the custom, the culture's own charter (page/customs); the meetings, by year.
+  const KEEPERS = 6; // more villages than this that keep the custom throughout fold into one line
+  let cultureOf = 0, cultureWanted = -1, cultureTab = 'villages', cultureOpen = -1, cultureKept = false, cultureStamp = '';
+  const culturesLive = () => st.cenv.cultures.filter((c) => st.cenv.settlements.some((s) => s.culture === c.id));
+  // The culture the pane opens on: the one asked for by a link, else that of the village selected, else of the played pawn's village.
+  function chooseCulture() {
+    const env = st.cenv, of = (v) => (v >= 0 && env.settlements[v] && env.settlements[v].id === v ? env.settlements[v].culture : -1);
+    const me = played(), home = me >= 0 ? Sim.settlementIdOf(st, st.pawns[me]) : -1, live = culturesLive().map((c) => c.id);
+    const want = [cultureWanted, of(selVillage), of(home === null || home === undefined ? -1 : home), cultureOf].find((c) => live.includes(c));
+    cultureOf = want === undefined ? live[0] : want; cultureWanted = -1; cultureOpen = -1; cultureStamp = '';
+  }
+  // From a village's Customs tab: the pane at that village's culture.
+  function openCulture(id) { cultureWanted = id; cultureTab = 'villages'; openDrawer('culture'); }
+  function cultureVillages(cu, setts) {
+    const cn = esc(cu.name), read = setts.map((s) => {
+      const r = readCustoms(s), own = r.dims.filter((c) => c.differs), turn = r.dims.find((c) => c.state === 'turning'),
+        cont = r.dims.find((c) => c.state === 'contested');
+      return { s, own, turn, cont, rank: (turn ? 100 : 0) + (cont ? 10 : 0) + own.length };
+    }).sort((a, b) => b.rank - a.rank || a.s.id - b.s.id);
+    const row = (v) => `<button type="button" class="row" data-charter="${v.s.id}">${iconImg(villageIcon(st.villages[v.s.id]), 'mini')}<span class="who">${
+      esc(v.s.name)}<i>${v.own.length ? `Its own way: ${v.own.map((c) =>
+        `${esc(c.d.label.toLowerCase())}: ${esc(optLabel(c.k, c.x).toLowerCase())}`).join('; ')}`
+      : 'Keeps the custom throughout'}</i>${v.turn ? `<i class="stir"><span class="mark hungry"></span>${esc(v.turn.d.label)}: set to change</i>`
+      : v.cont ? `<i class="stir"><span class="mark short"></span>${esc(v.cont.d.label)}: contested</i>` : ''}</span><span class="state">›</span></button>`;
+    const quiet = read.filter((v) => !v.rank), fold = quiet.length > KEEPERS;
+    return `<p class="note">A village keeps the ${cn} custom until its own meeting decides otherwise. Open a village to read its customs.</p>${
+      read.filter((v) => v.rank || !fold).map(row).join('')}${fold ? `<details class="kept" ${cultureKept ? 'open' : ''}><summary>${quiet.length
+      } villages keep the custom throughout</summary>${quiet.map(row).join('')}</details>` : ''}`;
+  }
+  function cultureCharter(cu, setts) {
+    const split = (k) => setts.some((s) => s.practice[k] !== cu.customs[k]);
+    const ways = (k) => `<div class="stand" id="cultureStand"><p class="of">${esc(Culture.DIMS[k].label)}</p>${Culture.DIMS[k].opts.map((o, j) => {
+      const at = setts.filter((s) => s.practice[k] === j);
+      return `<div class="way${j === cu.customs[k] ? ' in' : ''}"><p>${esc(o[1])}${j === cu.customs[k] ? '<em class="tag">The custom</em>' : ''}</p>${
+        !at.length ? '<p class="none">No village.</p>' : at.length === setts.length ? `<p class="none">All ${setts.length} villages.</p>`
+          : `<div class="links">${at.map((s) => villageChip(st.villages[s.id])).join('')}</div>`}</div>`;
+    }).join('')}</div>`;
+    return `<p class="note">What the ${esc(
+      cu.name)} villages hold in common. A tinted phrase is one some village has changed; choose a phrase to see which.</p>${
+      charterHTML('custom', (k) => cu.customs[k], (k) => (split(k) ? 'differs' : ''), cultureOpen, ways)}`;
+  }
+  function cultureMeetings() {
+    const days = nextMeeting(), NONE = 'The meetings changed nothing this year.';
+    let h = `<p class="note">The villages meet after harvest: next in ${days} ${days === 1 ? 'day' : 'days'}.</p>`, year = null, quiet = [];
+    const flush = () => {
+      if (quiet.length) h += `<p class="note">${quiet.length > 1 ? `Years ${quiet[quiet.length - 1]} to ${quiet[0]}` :
+        `Year ${quiet[0]}`}: nothing changed.</p>`;
+      quiet = [];
+    };
+    for (const e of st.meetingLog) {
+      if (e.text === NONE) { quiet.push(e.year); continue; }
+      flush();
+      if (e.year !== year) { year = e.year; h += `<h3 class="lead">Year ${year}</h3>`; }
+      h += `<p class="said">${esc(e.text)}</p>`;
+    }
+    flush();
+    return h + (st.meetingLog.length ? '' : '<p class="note">No meeting held yet.</p>');
+  }
+  // Drawn when the day, the culture, the tab, the open phrase, a practice or the meeting log changes, not every frame.
+  function renderCulture() {
+    const env = st.cenv, live = culturesLive();
+    if (!live.some((c) => c.id === cultureOf)) chooseCulture();
+    const cu = env.cultures[cultureOf], setts = env.settlements.filter((s) => s.culture === cu.id);
+    const stamp = [Math.floor(st.t / Sim.DAY), cu.id, cultureTab, cultureOpen, cultureKept, played(), live.length, cu.customs, st.meetingLog.length,
+      st.meetingLog[0] && st.meetingLog[0].year, ...setts.map((s) => `${s.id}/${s.practice}`)].join(':');
+    if (stamp === cultureStamp) return;
+    cultureStamp = stamp;
+    $('drawerTitle').textContent = `${cu.name} culture`;
+    const people = setts.reduce((a, s) => a + Sim.membersOf(st, s.id).filter((p) => p.alive).length, 0),
+      tabs = [['villages', 'Villages'], ['custom', 'The custom'],
+      ['meetings', 'Meetings']];
+    const h = `<div class="culture customs">${live.length > 1 ? `<div class="links" role="group" aria-label="Culture">${live.map((c) =>
+      `<button type="button" class="chip" data-culture="${c.id}" aria-pressed="${c.id === cu.id}">${esc(c.name)}</button>`).join('')}</div>` : ''}
+      <p class="note"><strong>${setts.length} ${setts.length === 1 ? 'village' : 'villages'}</strong> · ${people} people · centred on ${
+      esc(env.settlements[cu.centres[0]].name)}${cu.parent !== null ? `, split from ${esc(env.cultures[cu.parent].name)}` : ''}</p>
+      <div class="tabs" role="tablist" aria-label="About the culture">${tabs.map(([k, t]) =>
+      `<button type="button" role="tab" data-ctab="${k}" aria-selected="${cultureTab === k}">${t}</button>`).join('')}</div>${
+      cultureTab === 'villages' ? cultureVillages(cu, setts) : cultureTab === 'custom' ? cultureCharter(cu, setts) : cultureMeetings()}</div>`;
+    updatePanelHTML($('drawerBody'), h);
+  }
+  // The pane's clicks: a tab, a culture, a village (its card, at the Customs tab), a phrase of the custom (also by Enter or Space).
+  function cultureClick(e) {
+    if (drawerTab !== 'culture') return;
+    const hit = (sel) => e.target.closest(sel), tab = hit('[data-ctab]'), cu = hit('[data-culture]'), v = hit('[data-charter], [data-village]'),
+      p = hit('[data-phrase]');
+    if (e.type === 'keydown' && (!p || (e.key !== 'Enter' && e.key !== ' '))) return;
+    if (v) { cardTab = 'customs'; selectVillage(+(v.dataset.charter || v.dataset.village)); return; }
+    if (tab) { cultureTab = tab.dataset.ctab; cultureOpen = -1; } else if (cu) { cultureOf = +cu.dataset.culture; cultureOpen = -1; }
+    else if (p) { e.preventDefault(); cultureOpen = cultureOpen === +p.dataset.phrase ? -1 : +p.dataset.phrase; } else return;
+    renderCulture();
+    const again = p ? $(`custom${p.dataset.phrase}`) : tab ? $('drawerBody').querySelector(`[data-ctab="${cultureTab}"]`) : null, stand = $('cultureStand');
+    if (again) again.focus({ preventScroll: true });
+    if (p && stand && stand.scrollIntoView) stand.scrollIntoView({ block: 'nearest' });
+  }
+  $('drawerBody').addEventListener('click', cultureClick);
+  $('drawerBody').addEventListener('keydown', cultureClick);
+  $('drawerBody').addEventListener('toggle', (e) => { if (e.target.classList.contains('kept')) { cultureKept = e.target.open; cultureStamp = ''; } }, true);
   // ---- notifications ----
   // A toast for each notable event the record gains: at the top centre, under the top bar (VB-338), for 6 s, at most 3 at once (a fourth replaces
   // the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
@@ -20215,7 +20684,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '8634fb4223', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '07f12d7a6c', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

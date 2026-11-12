@@ -66,7 +66,7 @@
 
   const keys = new Set();
   const SHORTCUTS = {
-    p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
+    p: 'settlersBtn', t: 'treeBtn', c: 'cultureBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -97,7 +97,7 @@
       if (press === 'centre') centreSelection(); else $(press).click();
       return;
     }
-    if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea, summary')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
@@ -152,10 +152,10 @@
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['customs', 'agenda', 'debug'].includes(panel);
-    drawerTab = ['customs', 'agenda', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['culture', 'agenda', 'debug'].includes(panel);
+    drawerTab = ['culture', 'agenda', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
-    $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
+    $('cultureBtn').setAttribute('aria-pressed', String(panel === 'culture'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
     $('agendaBtn').setAttribute('aria-pressed', String(panel === 'agenda'));
     if (mobileUI.matches && panel) setMinimap(false);

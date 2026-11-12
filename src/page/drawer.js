@@ -1,8 +1,8 @@
-// @sys page/drawer: the customs, agenda and debug drawer
-  // ======== customs and debug drawer ========
+// @sys page/drawer: the dock's drawer: the Culture pane (page/culture), the Agenda and Debug
+  // ======== culture, agenda and debug drawer ========
   let drawerTab = null, skipping = false;
-  const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
-  const DRAWER = { customs: { title: 'Customs', btn: 'customsBtn' }, agenda: { title: 'Agenda', btn: 'agendaBtn' },
+  const drawer = $('drawer');
+  const DRAWER = { culture: { title: 'Culture', btn: 'cultureBtn' }, agenda: { title: 'Agenda', btn: 'agendaBtn' },
     debug: { title: 'Debug', btn: 'debugBtn' } };
   function openDrawer(tab) {
     openPanel(activePanel === tab ? null : tab);
@@ -10,10 +10,10 @@
     $('drawerClose').setAttribute('aria-label', `Close ${DRAWER[tab].title.toLowerCase()}`);
     if (drawerTab === 'debug') buildDebug();
     if (drawerTab === 'agenda') { agendaMsg = null; agendaHTML = ''; $('drawerBody').innerHTML = '<div id="agendaContent" class="play agenda"></div>'; }
-    if (drawerTab === 'customs') buildCustoms();
+    if (drawerTab === 'culture') chooseCulture();
     renderDrawer();
   }
-  $('customsBtn').addEventListener('click', () => openDrawer('customs'));
+  $('cultureBtn').addEventListener('click', () => openDrawer('culture'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('agendaBtn').addEventListener('click', () => openDrawer('agenda'));
   $('drawerClose').addEventListener('click', () => { const tab = drawerTab; openPanel(null); $(DRAWER[tab].btn).focus(); });
@@ -21,73 +21,14 @@
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
     return days; };
-  let customVillage = 0, customsStamp = '', comparisonOpen = false;
-  function buildCustoms() {
-    const setts = st.cenv.settlements;
-    if (!setts[customVillage]) customVillage = 0;
-    $('drawerBody').innerHTML = `<label class="custom-picker">Village<select id="customVillage">${setts.map((s) =>
-      `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><div id="customContent"></div>
-      <details id="customComparison"><summary>Compare all villages</summary><div id="customTable" class="table-scroll" tabindex="0"
-      role="region" aria-label="Village customs comparison, scroll horizontally"></div></details>`;
-    $('customVillage').value = String(customVillage);
-    $('customVillage').addEventListener('change', (e) => { customVillage = +e.target.value; customsStamp = ''; renderDrawer(); });
-    $('customComparison').open = comparisonOpen;
-    $('customComparison').addEventListener('toggle', (e) => {
-      comparisonOpen = e.target.open; customsStamp = ''; renderDrawer();
-    });
-    customsStamp = '';
-  }
   function renderDrawer() {
     if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
-    if (drawerTab === 'agenda') { renderAgenda(); return; }
-    if (drawerTab !== 'customs') { updateDebug(); return; }
-    if (!$('customContent')) buildCustoms();
-    const env = st.cenv, setts = env.settlements;
-    // Rebuild the selector when villages change, not every animation tick.
-    if ($('customVillage').options.length !== setts.length) buildCustoms();
-    const stamp = `${Math.floor(st.t / Sim.DAY)}:${customVillage}:${comparisonOpen}:${setts.map((s) => s.practice.join(',')).join(';')}`;
-    if (stamp === customsStamp) return;
-    customsStamp = stamp;
-    const s = setts[customVillage], culture = env.cultures[s.culture], members = Sim.membersOf(st, s.id);
-    const voices = members.filter((p) => Sim.voiceOf(st, p, s) > 0).length;
-    const support = Culture.support(env, members, (p) => Sim.voiceOf(st, p, s)).S, days = nextMeeting();
-    let h = `<p class="dm">${members.length} people · ${voices} with a voice · ${Math.round(s.tie * 100)}% tie to the culture’s centre.</p>
-      <p class="dm"><strong>${esc(culture.name)} culture</strong>, centred on ${esc(setts[culture.centres[0]].name)}${culture.parent !== null
-        ? `, split from ${esc(env.cultures[culture.parent].name)}` : ''}.</p>
-      <p class="dm">Next village meetings in ${days} ${days === 1 ? 'day' : 'days'}. Attitudes drift daily; practice changes at the meeting after harvest.</p>`;
-    if (s.id !== culture.centres[0]) h += `<p class="dm">${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears
-      ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
-    Culture.DIMS.forEach((d, k) => {
-      const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
-      h += `<section class="custom-card" id="custom-${k}"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
-        optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
-        <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
-          `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
-          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
-            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
-    });
-    h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
-      `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
-    updatePanelHTML($('customContent'), h);
-    if (comparisonOpen) {
-      const sup = setts.map((v) => Culture.support(env, Sim.membersOf(st, v.id), (p) => Sim.voiceOf(st, p, v)).S);
-      let table = `<table class="cust"><thead><tr><th scope="col">Custom</th>${setts.map((v) =>
-        `<th scope="col">${esc(v.name)}<br>${esc(env.cultures[v.culture].name)} culture</th>`).join('')}</tr></thead><tbody>`;
-      Culture.DIMS.forEach((d, k) => {
-        table += `<tr><th scope="row">${esc(d.label)}</th>${setts.map((v, i) => {
-          const c = env.cultures[v.culture], different = v.practice[k] !== c.customs[k];
-          return `<td class="${different ? 'dev' : ''}">${esc(optLabel(k, v.practice[k]))}<br>Culture: ${esc(optLabel(k, c.customs[k]))}
-            <div class="sbar" aria-hidden="true">${d.opts.map((option, j) => `<i style="width:${(sup[i][Culture.OFF[k] + j] * 100).toFixed(1)}%;
-              background:${BAR[j]}"></i>`).join('')}</div></td>`;
-        }).join('')}</tr>`;
-      });
-      $('customTable').innerHTML = table + '</tbody></table>';
-    }
+    if (drawerTab === 'agenda') renderAgenda(); else if (drawerTab === 'culture') renderCulture(); else updateDebug();
   }
   // ---- the agenda (the played pawn's cause): what it argues and until when, when it may take up another, the causes it may take up, by
   // custom, and who else of its village argues one. A cause is taken up or laid down by a queued command, as the pawn's other acts; the
-  // village's leaning on each custom is the Customs tab's, which the links open at that custom. agendaMsg is the last click's answer. ----
+  // village's leaning on each custom is told on its card's Customs tab (page/customs), which the links open at that custom. agendaMsg is the
+  // last click's answer. ----
   let agendaMsg = null, agendaHTML = '';
   const AGENDA_OTHERS = 6;
   const yrs = (x) => `${Math.max(0, x).toFixed(1)} ${Math.max(0, x).toFixed(1) === '1.0' ? 'year' : 'years'}`;
@@ -129,8 +70,7 @@
   function agendaClick(b) {
     const act = b.dataset.agenda;
     if (act === 'customs') {
-      customVillage = Sim.settlementIdOf(st, st.pawns[played()]); openPanel(null); openDrawer('customs');
-      const card = $(`custom-${b.dataset.dim}`); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' });
+      openCustom(Sim.settlementIdOf(st, st.pawns[played()]), +b.dataset.dim);
       return;
     }
     if (act === 'pawn') { focusPawn(+b.dataset.id); return; }

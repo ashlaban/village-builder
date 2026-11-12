@@ -26,7 +26,7 @@
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
-  // began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-396)
+  // began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402)
   const DEMO = { seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128], start: [18, 19, 29, 32, 33, 45, 93, 114, 128], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
@@ -98,7 +98,7 @@
     dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
-    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureOf = 0; cultureOpen = -1; cultureStamp = ''; charterStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();

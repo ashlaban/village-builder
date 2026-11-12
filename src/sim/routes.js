@@ -5,7 +5,7 @@ VB['sim/routes'] = (() => {
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-396). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
   // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
@@ -84,7 +84,7 @@ VB['sim/routes'] = (() => {
     const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
     // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
-    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-396).
+    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
     const flat = !!w.hx, fx = flat ? w.hx[from] : 0, fy = flat ? w.hy[from] : 0, lx = flat ? w.hx[to] - fx : 0, ly = flat ? w.hy[to] - fy : 0;
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
     const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
