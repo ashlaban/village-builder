@@ -6,7 +6,7 @@ VB['sim/saves'] = (() => {
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
-  const { seedPlans, fillPlans } = VB['sim/plans'];
+  const { seedPlans, fillPlans } = VB['sim/plans'], Plans = VB['sim/plans'], { BREAK_HOURS } = VB['sim/fields'], { seedPer } = VB['sim/hunger'];
   const { TICKS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
   const { reckonWood } = VB['sim/territory'];
@@ -256,8 +256,12 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
+    // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
+    const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
+    if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
+    oldProjects(st); // VB-123: nor project plans
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
@@ -272,5 +276,39 @@ VB['sim/saves'] = (() => {
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }
-  return { encode, decode, save, load, FORMAT, READS };
+  // ---- saves made before project plans (VB-123; sim/plans makes them now) ----
+  // A save made before project plans held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
+  function fromFarms(st) {
+    for (const f of st.farmsteads) {
+      const p = f.project, hh = p && f.household !== null ? st.households[f.household] : null, why = p && p.stage === 'meadow' ? 'meadow' : 'field';
+      const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
+      if (hh && !hh.dissolved) Plans.makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
+        steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
+      if ('project' in f) delete f.project;
+    }
+  }
+  // A save made before plot plans (VB-123) kept every plot in village.plots: one under way becomes its village's project plan (its jobs
+  // pointed at it), one built the village's record of it (sim/expansion).
+  function fromPlots(st) {
+    const HOURS = { foundation: 30, walls: 60, roof: 30 };
+    for (const v of st.villages) {
+      if (!(v.plots || []).some((p) => 'done' in p)) continue;
+      const old = v.plots; v.plots = [];
+      for (const p of old) {
+        const { id, intended, holder, started, farmstead } = p;
+        const tiles = p.tiles.map((t) => ({ tile: t.tile, kind: t.kind }));
+        if (p.built) { v.plots.push({ id, village: v.id, intended, holder, started, farmstead, tiles }); continue; }
+        const k = p.cottage || { i: 0, done: 0 }, stage = (kind, i) => ({ kind, place: p.tiles[0].tile, hours: HOURS[kind],
+          done: i < k.i ? HOURS[kind] : i === k.i ? k.done : 0, ...kind === 'walls' ? { wood: p.wood || 0 } : {} });
+        const plan = Plans.makeProject(st, 'village', v.id, { what: 'plot', plot: p.id, intended: p.intended, to: p.done ? p.holder : null,
+          hours: p.hours, started: p.started, steps: [{ kind: 'clear', places: p.tiles }, ...['foundation', 'walls', 'roof'].map(stage)] });
+        plan.open = p.done ? Math.min(3, 1 + k.i) : 0;
+        if (k.i >= 3) plan.steps[3].done = HOURS.roof;
+        for (const j of st.jobs.values()) { if (j.plot === p) j.plot = plan; if (j.timberFor === p) j.timberFor = plan.steps[2]; }
+      }
+    }
+  }
+  // Both, at every load (a save made since has none of either).
+  const oldProjects = (st) => { fromFarms(st); fromPlots(st); };
+  return { encode, decode, save, load, FORMAT, READS, oldProjects };
 })();

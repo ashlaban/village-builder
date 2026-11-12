@@ -115,7 +115,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
     x.project = o ? { tile: o.place, stage: o.kind, hours: o.hours } : null;
   }
   delete st.plans.projects; delete st.plans.projectSeq;
-  Plans.fillPlans(st);
+  Plans.fillPlans(st); VB['sim/saves'].oldProjects(st); // as a load does
   assert.strictEqual(JSON.stringify(Plans.projectOf(st, 'household', hh.id).steps), was, 'the plan made from the farm\'s project has its steps');
   assert(st.farmsteads.every((x) => !('project' in x)), 'the farms keep no project');
   clean(st, 'loaded');
@@ -139,7 +139,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
     tiles: plan.steps[0].places, wood: plan.steps[2].wood };
   v.plots = [old];
   delete st.plans.projects; delete st.plans.projectSeq;
-  Plans.fillPlans(st);
+  Plans.fillPlans(st); VB['sim/saves'].oldProjects(st); // as a load does
   const back = X.livePlots(st, v)[0];
   assert.strictEqual(JSON.stringify({ open: back.open, to: back.to, steps: back.steps, hours: back.hours }), was, 'the plot loads as its plan');
   assert(!v.plots.length && back.plot === 0, 'and leaves no plot under way in village.plots');

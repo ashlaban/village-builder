@@ -25,7 +25,23 @@ VB['sim/projects'] = (() => {
   }
   // The holder a plan names: a household, a village or a pawn.
   const holderOf = (st, ref) => (ref.type === 'household' ? st.households : ref.type === 'village' ? st.villages : st.pawns)[ref.id];
+  // Why the plan's open step is no longer possible, or null: its holder is gone; the claim it works under is lost (contested away, lapsed;
+  // st.claims read as sim/claims keeps it); the holder's stock no longer covers what its steps will spend (the reserved good lost).
+  function impossible(st, plan) {
+    const h = holderOf(st, plan.holder), s = plan.steps[plan.open], by = plan.holder;
+    if (!h || h.dissolved || (by.type === 'pawn' && !h.alive)) return 'its holder is gone';
+    const c = s.stake && (st.claims.get(s.place) || NONE).find((x) => x.by.type === by.type && x.by.id === by.id);
+    if (s.stake && (!c || c.why !== s.stake)) return 'its claim on the land is lost';
+    for (const good in plan.reasons) if (plan.reasons[good] === 'build' && plan.reserved[good] > (h[good] || 0) + 1e-9) return `its ${good} is gone`;
+    return null;
+  }
+  // How a plan dropped for `why` is told: [text, the event's place].
+  function dropWords(st, plan, why) {
+    const h = holderOf(st, plan.holder), house = plan.holder.type === 'household', f = house ? st.farmsteads[h.farmstead] : null;
+    const text = `${house ? f.name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
+    return [text, house ? { household: h.id, farm: f.id, village: f.village } : { [plan.holder.type]: plan.holder.id }];
+  }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
-  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, emptyProjects };
+  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, impossible, dropWords, emptyProjects };
 })();

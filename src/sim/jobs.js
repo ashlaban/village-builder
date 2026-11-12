@@ -11,7 +11,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, openOf } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -118,7 +118,17 @@ VB['sim/jobs'] = (() => {
       takeDown('household', hh.id);
     }
     own = null;
-    for (const v of st.villages) if (review('village', v.id)) { ask(ASK.village, v, v); takeDown('village', v.id); }
+    // a village's review asks only the kinds of the routines its meeting chose this year (VB-257); the others post nothing
+    for (const v of st.villages) {
+      const plan = review('village', v.id);
+      if (!plan) continue;
+      VB.count.oppAsk += ASK.village.length;
+      for (let i = 0; i < ASK.village.length; i++) {
+        kind = ASK.village[i][0];
+        if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
+      }
+      takeDown('village', v.id);
+    }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
     for (const j of st.jobs.values()) if (islandJob(j)) j.live = false;

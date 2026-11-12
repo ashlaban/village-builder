@@ -2763,6 +2763,17 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
+  // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
+  // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
+  // quorum, or a tie): no village work that year, or last year's work again.
+  const PRACTICES = Object.freeze({
+    noDecision: Object.freeze({ label: 'When the meeting does not decide', opts: Object.freeze([['nothing', 'No village work that year'],
+      ['asLastYear', 'The work of last year']]), base: 'nothing' }),
+  });
+  const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
+  // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
+  const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
@@ -2771,6 +2782,7 @@ const Culture = (() => {
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
       parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
+      practices: parent !== null && env.cultures[parent] && env.cultures[parent].practices ? { ...env.cultures[parent].practices } : basePractices(),
     };
     env.cultures.push(c);
     return c;
@@ -3015,7 +3027,8 @@ const Culture = (() => {
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
-    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS } });
+    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
   return api;
 })();
 VB['culture'] = Culture;
@@ -4501,7 +4514,7 @@ VB['sim/records'] = (() => {
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
     stake: 0, stakeLapsed: 0, projectDropped: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0,
-    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0,
+    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0, meetingFailed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
@@ -4902,9 +4915,25 @@ VB['sim/projects'] = (() => {
   }
   // The holder a plan names: a household, a village or a pawn.
   const holderOf = (st, ref) => (ref.type === 'household' ? st.households : ref.type === 'village' ? st.villages : st.pawns)[ref.id];
+  // Why the plan's open step is no longer possible, or null: its holder is gone; the claim it works under is lost (contested away, lapsed;
+  // st.claims read as sim/claims keeps it); the holder's stock no longer covers what its steps will spend (the reserved good lost).
+  function impossible(st, plan) {
+    const h = holderOf(st, plan.holder), s = plan.steps[plan.open], by = plan.holder;
+    if (!h || h.dissolved || (by.type === 'pawn' && !h.alive)) return 'its holder is gone';
+    const c = s.stake && (st.claims.get(s.place) || NONE).find((x) => x.by.type === by.type && x.by.id === by.id);
+    if (s.stake && (!c || c.why !== s.stake)) return 'its claim on the land is lost';
+    for (const good in plan.reasons) if (plan.reasons[good] === 'build' && plan.reserved[good] > (h[good] || 0) + 1e-9) return `its ${good} is gone`;
+    return null;
+  }
+  // How a plan dropped for `why` is told: [text, the event's place].
+  function dropWords(st, plan, why) {
+    const h = holderOf(st, plan.holder), house = plan.holder.type === 'household', f = house ? st.farmsteads[h.farmstead] : null;
+    const text = `${house ? f.name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
+    return [text, house ? { household: h.id, farm: f.id, village: f.village } : { [plan.holder.type]: plan.holder.id }];
+  }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
-  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, emptyProjects };
+  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, impossible, dropWords, emptyProjects };
 })();
 </script>
 <script>
@@ -7049,6 +7078,7 @@ VB['sim/notable'] = (() => {
     hunger: 'Deaths from hunger',
     farm: 'Farms left empty, claimed or newly built',
     custom: 'Changes of custom',
+    meeting: 'Village meetings that did not decide',
   };
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
@@ -7075,6 +7105,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
+    if (k === 'meetingFailed') return ['meeting'];
     if (k !== 'died' && k !== 'born' && k !== 'married') return null;
     const why = [];
     if (concerns(st, ev, about)) why.push('family');
@@ -7104,7 +7135,7 @@ VB['sim/notable'] = (() => {
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
       'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
-    custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
+    custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
@@ -9260,6 +9291,14 @@ VB['sim/commands'] = (() => {
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
     },
+    // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+    // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+    routines: {
+      check: (st, c) => settlement(st, c) || (!st.plans.villages.has(c.actor.settlement) ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by)) ? `routines cannot be set by ${c.args && c.args.by}`
+          : later('sim/plans').routinesWhy(c.args.routines)),
+      run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
@@ -9728,18 +9767,18 @@ VB['sim/occasions'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252): a standing plan per live household and village, a
+// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252, VB-257): a standing plan per live household and village, a
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
-// diligence, and the due-queue that opens the time-bound kinds at their hours
+// diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
   const { KINDS } = VB['sim/kinds'];
-  const { seedNeed, seedPer } = VB['sim/hunger'];
-  const { fieldsWanted, fieldsWorkable, startProject, BREAK_HOURS } = VB['sim/fields'];
-  const Projects = VB['sim/projects'], CL = VB['sim/claims'], { on } = VB['sim/events'], { log, atHousehold } = VB['sim/records'];
+  const { seedNeed } = VB['sim/hunger'];
+  const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
+  const Projects = VB['sim/projects'], { on } = VB['sim/events'], { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
   const { buildStep } = VB['sim/building'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
@@ -9765,20 +9804,21 @@ VB['sim/plans'] = (() => {
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
+  //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
+  //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
+  //   'asLastYear'); plan.routinesYear: the year of cal they were set. Written only by setRoutines, through the meeting's verb.
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
-  // ---- project plans (VB-123; design.md section 7, Holders and plans, Reservations): a holder's plan of steps, each opening when the one
-  // before is done, reserving in the holder's store what its steps spend, reviewed at once when its open step is no longer possible. The
-  // record and its reads are sim/projects'; only this section writes it, and hears the lower modules' changes by events (target-v2 3.2) ----
-  const { projectsOf, projectOf, holderOf } = Projects;
+  // ---- project plans (VB-123; design.md section 7): their record and reads are sim/projects'; only this section writes them ----
+  const { projectsOf, projectOf, holderOf, impossible, dropWords } = Projects;
   function remove(st, plan) {
-    const map = st.plans.projects[plan.holder.type], list = map.get(plan.holder.id), i = list ? list.indexOf(plan) : -1;
+    const map = st.plans.projects[plan.holder.type], list = map.get(plan.holder.id) || [], i = list.indexOf(plan);
     if (i >= 0) list.splice(i, 1);
-    if (list && !list.length) map.delete(plan.holder.id);
+    if (!list.length) map.delete(plan.holder.id);
   }
-  // A project plan for holder {type, id}, from {what, steps, hold} (sim/fields' fieldProject, sim/meadows' meadowProject): what it makes,
-  // its steps in order (the first open now), and what it holds back for after it (the seed of a new field). What the steps spend is
-  // reserved from the holder's free stock: null, and no plan, when it is not there (another plan holds it).
+  // A project plan for holder {type, id}, from {what, steps, hold, ...its own fields} (sim/fields' fieldProject, sim/meadows', a plot): what
+  // its steps spend is reserved from the holder's free stock (null, and no plan, when another plan holds it), `hold` kept back for after it.
   function makeProject(st, type, id, { what, steps, hold = null, ...own }) {
     const holder = holderOf(st, { type, id }), P = st.plans.projects, spend = {};
     const plan = { id: ++st.plans.projectSeq, holder: { type, id }, kind: 'project', what, ...own, steps, open: 0, reserved: {}, reasons: {} };
@@ -9789,8 +9829,7 @@ VB['sim/plans'] = (() => {
     for (const good in hold || {}) Stores.reserve(st, holder, plan, good, hold[good], 'field');
     return plan;
   }
-  // The open step is done: what it spends is taken from the store, its reservation with it, and the next step opens; after the last, the
-  // plan is finished, what it held released and the plan removed.
+  // The open step done: what it spends taken from the store with its reservation, the next step open; after the last, the plan finished.
   function advance(st, plan) {
     const s = plan.steps[plan.open], holder = holderOf(st, plan.holder);
     for (const good in s.spends || {}) {
@@ -9805,34 +9844,19 @@ VB['sim/plans'] = (() => {
     Stores.releaseAll(plan); remove(st, plan);
     if (text) log(st, text, { kind: 'projectDropped', ...at });
   }
-  // Why the open step is no longer possible, or null: the holder is gone; the claim it works under is lost (contested away, lapsed); the
-  // holder's stock no longer covers what its steps will spend (the reserved good lost).
-  function impossible(st, plan) {
-    const h = holderOf(st, plan.holder), s = plan.steps[plan.open];
-    if (!h || h.dissolved || (plan.holder.type === 'pawn' && !h.alive)) return 'its holder is gone';
-    if (s.stake && CL.claimOf(st, s.place, plan.holder)?.why !== s.stake) return 'its claim on the land is lost';
-    for (const good in plan.reasons) if (plan.reasons[good] === 'build' && plan.reserved[good] > (h[good] || 0) + 1e-9) return `its ${good} is gone`;
-    return null;
-  }
-  // The plan reviewed at once, when a store or a right of its holder changed: while its step is possible it stands (its task posted again
-  // at the next review if it was taken down); else it is dropped and told, in the plan's words, or in `text` and `at` given by the change
-  // (none when `told`: the change was told already). True when it stands.
+  // The plan reviewed at once when a store or a right of its holder changed: while its step is possible it stands; else it is dropped and
+  // told, in its own words (sim/projects' dropWords), in `text` and `at` given by the change, or not at all when `told`. True when it stands.
   function review(st, plan, told = false, text = null, at = null) {
-    const why = impossible(st, plan), h = holderOf(st, plan.holder);
+    const why = impossible(st, plan);
     if (!why) return true;
-    if (!told && !text) {
-      const house = plan.holder.type === 'household';
-      text = `${house ? st.farmsteads[h.farmstead].name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
-      at = house ? atHousehold(st, h) : { [plan.holder.type]: plan.holder.id };
-    }
+    if (!told && !text) [text, at] = dropWords(st, plan, why);
     dropProject(st, plan, told ? null : text, at || {});
     return false;
   }
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
   const dropAll = (st, type, id) => { for (const plan of [...projectsOf(st, type, id)]) dropProject(st, plan); };
-  // A holder's claim lost on a tile (sim/stakes: contested away, lapsed; -1: all of them; `told`, or `text` and `at` to tell a plan
-  // dropped for it); a store fallen below what a plan's steps will spend (sim/stores); a step done (sim/fields, sim/meadows, sim/expansion:
-  // `plan` names it when the holder has several); a project begun below (a plot, sim/expansion: `project`, as makeProject takes it).
+  // A claim lost on a tile (sim/stakes; -1: all; `told`, or `text` and `at`); a store short (sim/stores); a step done (sim/fields,
+  // sim/meadows, sim/expansion, sim/cottage: `plan` names it when the holder has several); a plot begun (sim/expansion).
   on('rightLost', (st, d) => {
     for (const plan of [...projectsOf(st, d.type, d.id)]) {
       if (d.tile < 0 || plan.steps.some((s) => s.place === d.tile)) review(st, plan, !!d.told, d.text || null, d.at || null);
@@ -9840,7 +9864,7 @@ VB['sim/plans'] = (() => {
   });
   on('storeShort', (st, d) => { for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan); });
   on('stepDone', (st, d) => { const plan = d.plan || projectOf(st, d.type, d.id); if (plan) advance(st, plan); });
-  on('projectBegun', (st, d) => { makeProject(st, d.type, d.id, d.project); }); // a village's plot (sim/expansion)
+  on('projectBegun', (st, d) => { makeProject(st, d.type, d.id, d.project); });
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -9913,6 +9937,48 @@ VB['sim/plans'] = (() => {
     if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
     if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
     return day * DAY + h;
+  }
+  // ---- the village's routines (design.md section 7, Village routines; VB-257) ----
+  // The village work a meeting may choose from, in the order it is weighed: each routine names the kinds it is the source of (asked at
+  // the village's review, sim/jobs), whether the village has that work this year, and how much it weighs at the meeting (`need`, a
+  // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
+  // a common field (VB-100) and work days (VB-120) add theirs.
+  const VILLAGE_ROUTINES = Object.freeze({
+    fence: Object.freeze({ label: 'Keeping the village fence', kinds: Object.freeze(['mend']), available: (st, v) => v.fence.length > 0,
+      need: (st, v) => { let n = 0; for (const s of v.fence) n += 1 - s.cond; return n; } }),
+  });
+  const MAX_ROUTINES = 4;
+  // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
+  // MAX_ROUTINES, or null when the last place is tied with the first left out (the meeting does not decide). Pure.
+  function rankRoutines(cands) {
+    const order = Object.keys(VILLAGE_ROUTINES), sorted = [...cands].sort((a, b) => b[0] - a[0] || order.indexOf(a[1]) - order.indexOf(b[1]));
+    if (sorted.length > MAX_ROUTINES && sorted[MAX_ROUTINES - 1][0] === sorted[MAX_ROUTINES][0]) return null;
+    return sorted.slice(0, MAX_ROUTINES).map((c) => c[1]);
+  }
+  // The routines a village would choose from its work available now, or null for a tie.
+  function chooseRoutines(st, v) {
+    const cands = [];
+    for (const k of Object.keys(VILLAGE_ROUTINES)) { const R = VILLAGE_ROUTINES[k]; if (R.available(st, v)) cands.push([R.need(st, v), k]); }
+    return rankRoutines(cands);
+  }
+  // Why a list of routines may not be a village's, or null: each a known routine, once, at most MAX_ROUTINES.
+  function routinesWhy(list) {
+    if (!Array.isArray(list)) return 'the routines are not a list';
+    if (list.length > MAX_ROUTINES) return `at most ${MAX_ROUTINES} routines`;
+    for (const k of list) if (!Object.hasOwn(VILLAGE_ROUTINES, k)) return `there is no routine ${k}`;
+    return new Set(list).size === list.length ? null : 'a routine is named twice';
+  }
+  // The village's routines become `list`, set `by` ('founded', 'meeting', 'nothing', 'asLastYear'): the one writer (the meeting's verb,
+  // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
+  function setRoutines(st, vid, list, by) {
+    const plan = st.plans.villages.get(vid);
+    plan.routines = [...list]; plan.routinesBy = by; plan.routinesYear = cal(st.t).year;
+  }
+  // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
+  function routineAsks(plan, k) {
+    const list = plan.routines;
+    for (let i = 0; i < list.length; i++) if (VILLAGE_ROUTINES[list[i]].kinds.includes(k)) return true;
+    return false;
   }
   const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
   // ---- planning days (design.md section 7, Planning days; VB-249) ----
@@ -10020,13 +10086,19 @@ VB['sim/plans'] = (() => {
     plan.counted = null;
     Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
   }
+  // A village's first routines, until its first meeting: what its founders would choose from the work it has (a tie: all of it, the first
+  // MAX_ROUTINES in their order). Also at the load of a save made before routines.
+  function founded(st, plan) {
+    const v = st.villages[plan.holder.id], list = chooseRoutines(st, v);
+    setRoutines(st, v.id, list || Object.keys(VILLAGE_ROUTINES).filter((k) => VILLAGE_ROUTINES[k].available(st, v)).slice(0, MAX_ROUTINES), 'founded');
+  }
   // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load). Its first
   // review is at the next review hour, whatever its planning day.
   function makePlan(st, type, id) {
     const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(Math.floor(st.tick / TICKS) - 1), last: null, woke: null,
       looked: null, dirty: false, reserved: {}, reasons: {} };
     mapOf(st, type).set(id, plan);
-    if (type === 'household') { household(st, plan); enqueue(st, id); }
+    if (type === 'household') { household(st, plan); enqueue(st, id); } else founded(st, plan);
     return plan;
   }
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
@@ -10041,38 +10113,6 @@ VB['sim/plans'] = (() => {
     st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [], projects: Projects.emptyProjects(), projectSeq: 0 };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
-    fromFarms(st); fromPlots(st);
-  }
-  // A save made before project plans (VB-123) held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
-  function fromFarms(st) {
-    for (const f of st.farmsteads) {
-      const p = f.project, hh = p && f.household !== null ? st.households[f.household] : null, why = p && p.stage === 'meadow' ? 'meadow' : 'field';
-      const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
-      if (hh && !hh.dissolved) makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
-        steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
-      if ('project' in f) delete f.project; // lint-allow: owner a save made before project plans loses the farm's field
-    }
-  }
-  // A save made before plot plans (VB-123) kept every plot in village.plots: one under way becomes its village's project plan (its jobs
-  // pointed at it), one built the village's record of it (sim/expansion).
-  function fromPlots(st) {
-    const HOURS = { foundation: 30, walls: 60, roof: 30 };
-    for (const v of st.villages) {
-      if (!(v.plots || []).some((p) => 'done' in p)) continue;
-      const old = v.plots; v.plots = [];
-      for (const p of old) {
-        const { id, intended, holder, started, farmstead } = p;
-        const tiles = p.tiles.map((t) => ({ tile: t.tile, kind: t.kind }));
-        if (p.built) { v.plots.push({ id, village: v.id, intended, holder, started, farmstead, tiles }); continue; }
-        const k = p.cottage || { i: 0, done: 0 }, stage = (kind, i) => ({ kind, place: p.tiles[0].tile, hours: HOURS[kind],
-          done: i < k.i ? HOURS[kind] : i === k.i ? k.done : 0, ...kind === 'walls' ? { wood: p.wood || 0 } : {} });
-        const plan = makeProject(st, 'village', v.id, { what: 'plot', plot: p.id, intended: p.intended, to: p.done ? p.holder : null,
-          hours: p.hours, started: p.started, steps: [{ kind: 'clear', places: p.tiles }, ...['foundation', 'walls', 'roof'].map(stage)] });
-        plan.open = p.done ? Math.min(3, 1 + k.i) : 0;
-        if (k.i >= 3) plan.steps[3].done = HOURS.roof;
-        for (const j of st.jobs.values()) { if (j.plot === p) j.plot = plan; if (j.timberFor === p) j.timberFor = plan.steps[2]; }
-      }
-    }
   }
   // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
   // plans (VB-252): its plans get them as made now.
@@ -10085,13 +10125,13 @@ VB['sim/plans'] = (() => {
         if (plan.holder.type === 'household') household(st, plan);
       }
       if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
+      if (plan.holder.type === 'village' && !plan.routines) founded(st, plan); // VB-257: nor routines
       if (plan.last === undefined) {
         plan.last = null; plan.woke = null; plan.looked = null;
         plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
       }
     }
     if (!st.plans.due) { st.plans.due = []; for (const id of st.plans.households.keys()) enqueue(st, id); }
-    fromFarms(st); fromPlots(st);
   }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
   // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
@@ -10123,10 +10163,8 @@ VB['sim/plans'] = (() => {
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
-    dueNow, again, ROUTINES, cultureOf,
-    // the project plans, read through here by the modules above sim/projects (VB-123)
-    projectOf: Projects.projectOf, projectsOf: Projects.projectsOf, openOf: Projects.openOf,
-    makeProject, advance, drop: dropProject, review, dropAll, impossible };
+    dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks,
+    projectOf, projectsOf, openOf: Projects.openOf, makeProject, advance, drop: dropProject, review, dropAll, impossible }; // VB-123's project plans
 })();
 </script>
 <script>
@@ -10143,7 +10181,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, openOf } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -10250,7 +10288,17 @@ VB['sim/jobs'] = (() => {
       takeDown('household', hh.id);
     }
     own = null;
-    for (const v of st.villages) if (review('village', v.id)) { ask(ASK.village, v, v); takeDown('village', v.id); }
+    // a village's review asks only the kinds of the routines its meeting chose this year (VB-257); the others post nothing
+    for (const v of st.villages) {
+      const plan = review('village', v.id);
+      if (!plan) continue;
+      VB.count.oppAsk += ASK.village.length;
+      for (let i = 0; i < ASK.village.length; i++) {
+        kind = ASK.village[i][0];
+        if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
+      }
+      takeDown('village', v.id);
+    }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
     for (const j of st.jobs.values()) if (islandJob(j)) j.live = false;
@@ -11946,8 +11994,9 @@ VB['sim/lifecycle'] = (() => {
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
-      holdingOf, atHousehold, lifeEvent, spokesmanOf,
+      holdingOf, atHousehold, lifeEvent, spokesmanOf, membersOf, voiceOf,
   } = VB['sim/records'];
+  const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor, roundHeirs,
@@ -12001,6 +12050,8 @@ VB['sim/lifecycle'] = (() => {
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
     }
     const c = cal(st.t), out = [];
+    const held = new Map(); // each village's meeting on its green today (sim/occasions)
+    for (const o of st.occasions) if (o.kind === 'meeting' && o.start <= st.t && st.t < o.end) held.set(o.village, o);
     for (const s of env.settlements) {
       const ch = Culture.meeting(env, hk, s);
       for (const x of ch) {
@@ -12008,6 +12059,8 @@ VB['sim/lifecycle'] = (() => {
           txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
         log(st, txt, { kind: 'custom', village: s.id }); out.push({ year: c.year, text: txt });
       }
+      const txt = routinesMeeting(st, s, held.get(s.id));
+      if (txt) out.push({ year: c.year, text: txt });
     }
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
@@ -12019,6 +12072,31 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.unshift(...out.length ? out : [{ year: c.year, text: 'The meetings changed nothing this year.' }]);
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
+  }
+  // The village's routines for the year (VB-257; design.md section 7, Village routines), at its meeting: with a quorum, at least half of
+  // those with a voice come to the green (the meeting's occasion, sim/occasions), the meeting chooses from the village work available
+  // (sim/plans) and sets them by its verb; without one, or when the choice is tied, it does not decide, and its culture's practice says
+  // what follows: no village work this year ('nothing') or last year's again ('asLastYear'), told in the log as a notable event of the
+  // village. A village with no one living holds no meeting, and its routines stand. Returns the log's line of a failure, or null.
+  const QUORUM = 0.5;
+  function routinesMeeting(st, s, o) {
+    const v = st.villages[s.id], people = membersOf(st, s.id);
+    if (!v || !people.length) return null;
+    let voices = 0, came = 0;
+    for (const p of people) if (voiceOf(st, p, s) > 0) voices++;
+    if (o) for (const id of o.come) if (st.pawns[id].alive && st.agents[id].occasion === o.id) came++;
+    const quorum = voices > 0 && came >= voices * QUORUM, list = quorum ? chooseRoutines(st, v) : null;
+    if (list) { issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: list, by: 'meeting' }, source: 'meeting' }); return null; }
+    const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'), plan = st.plans.villages.get(s.id);
+    const kept = by === 'asLastYear' ? plan.routines : [];
+    issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
+    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum (${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there)`;
+    const work = kept.map((k) => VILLAGE_ROUTINES[k].label.toLowerCase()).join(', ');
+    const then = by === 'asLastYear' ? (kept.length ? `the village keeps last year's work: ${work}` : 'the village keeps last year\'s work, which was none')
+      : v.fence.length ? 'no village work this year, and the village fence goes unmended' : 'no village work this year';
+    const txt = `The ${s.name} meeting ${why} and did not decide: ${then}.`;
+    log(st, txt, { kind: 'meetingFailed', village: s.id, n: came, of: voices });
+    return txt;
   }
   function holdMeetings(st) { for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n); } // not the land meeting
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
@@ -12287,8 +12365,8 @@ VB['sim/lifecycle'] = (() => {
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
-    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, dailyDeaths, nightCulture,
-    NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
+    killPawn, retireHolder, holdMeetings, meetingStage, routinesMeeting, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife,
+    dailyDeaths, nightCulture, NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();
 </script>
@@ -12650,6 +12728,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js), plain data;
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
+    // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     const st = {
       t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
@@ -12949,7 +13028,7 @@ VB['sim/saves'] = (() => {
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
-  const { seedPlans, fillPlans } = VB['sim/plans'];
+  const { seedPlans, fillPlans } = VB['sim/plans'], Plans = VB['sim/plans'], { BREAK_HOURS } = VB['sim/fields'], { seedPer } = VB['sim/hunger'];
   const { TICKS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
   const { reckonWood } = VB['sim/territory'];
@@ -13199,8 +13278,12 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
+    // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
+    const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
+    if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
+    oldProjects(st); // VB-123: nor project plans
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
     if (!st.occasions) { st.occasions = []; st.occasionSeq = 0; } // VB-126: nor occasions, nor their stream
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
@@ -13215,7 +13298,41 @@ VB['sim/saves'] = (() => {
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }
-  return { encode, decode, save, load, FORMAT, READS };
+  // ---- saves made before project plans (VB-123; sim/plans makes them now) ----
+  // A save made before project plans held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
+  function fromFarms(st) {
+    for (const f of st.farmsteads) {
+      const p = f.project, hh = p && f.household !== null ? st.households[f.household] : null, why = p && p.stage === 'meadow' ? 'meadow' : 'field';
+      const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
+      if (hh && !hh.dissolved) Plans.makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
+        steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
+      if ('project' in f) delete f.project;
+    }
+  }
+  // A save made before plot plans (VB-123) kept every plot in village.plots: one under way becomes its village's project plan (its jobs
+  // pointed at it), one built the village's record of it (sim/expansion).
+  function fromPlots(st) {
+    const HOURS = { foundation: 30, walls: 60, roof: 30 };
+    for (const v of st.villages) {
+      if (!(v.plots || []).some((p) => 'done' in p)) continue;
+      const old = v.plots; v.plots = [];
+      for (const p of old) {
+        const { id, intended, holder, started, farmstead } = p;
+        const tiles = p.tiles.map((t) => ({ tile: t.tile, kind: t.kind }));
+        if (p.built) { v.plots.push({ id, village: v.id, intended, holder, started, farmstead, tiles }); continue; }
+        const k = p.cottage || { i: 0, done: 0 }, stage = (kind, i) => ({ kind, place: p.tiles[0].tile, hours: HOURS[kind],
+          done: i < k.i ? HOURS[kind] : i === k.i ? k.done : 0, ...kind === 'walls' ? { wood: p.wood || 0 } : {} });
+        const plan = Plans.makeProject(st, 'village', v.id, { what: 'plot', plot: p.id, intended: p.intended, to: p.done ? p.holder : null,
+          hours: p.hours, started: p.started, steps: [{ kind: 'clear', places: p.tiles }, ...['foundation', 'walls', 'roof'].map(stage)] });
+        plan.open = p.done ? Math.min(3, 1 + k.i) : 0;
+        if (k.i >= 3) plan.steps[3].done = HOURS.roof;
+        for (const j of st.jobs.values()) { if (j.plot === p) j.plot = plan; if (j.timberFor === p) j.timberFor = plan.steps[2]; }
+      }
+    }
+  }
+  // Both, at every load (a save made since has none of either).
+  const oldProjects = (st) => { fromFarms(st); fromPlots(st); };
+  return { encode, decode, save, load, FORMAT, READS, oldProjects };
 })();
 </script>
 <script>
@@ -13663,8 +13780,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // Village land a light tint of the village's colour, household land a stronger one with the household's own outline; borders between
   // villages' land dark; unrealised claims as a dashed ring in the claimant's colour, realised ones (a birthright) as a solid ring; tiles claimed
   // by two or more hatched; cairns (VB-157) as small stone piles; the tiles of each village's wood (VB-326) as a small tree in its colour.
-  // Redrawn whole when st.landDirty holds tiles, at most twice a second.
-  let landG = null, landOn = false, landAt = -1;
+  // Drawn a map chunk at a time (below): only the chunks in view, and only those whose tiles changed.
+  let landOn = false, landAt = -1;
   const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
   function hslHex(h, sat, l) {
     const f = (n) => { const k = (n + h / 30) % 12, a = sat * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
@@ -13685,22 +13802,48 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const [x0, y0] = corner(i, EDGE[d] - 30, s), [x1, y1] = corner(i, EDGE[d] + 30, s);
     g.moveTo(x0 + (x1 - x0) * from, y0 + (y1 - y0) * from).lineTo(x0 + (x1 - x0) * to, y0 + (y1 - y0) * to);
   }
-  function drawLand() {
-    if (!w || !st) return;
-    if (!landG) { landG = new PIXI.Graphics(); L.land.addChild(landG); }
-    const g = landG, R = w.R; g.clear();
+  // ---- drawn per map chunk (VB-045) ----
+  // One graphics object a chunk of LAND_CHUNK units, holding the tiles whose centre lies in it. A dirty tile marks its own chunk and its
+  // neighbours' stale (an edge or a border crosses into them); a stale chunk is drawn when it is in view, at once the first time and at most
+  // twice a second after a change; out of view it waits, hidden, and is drawn as it comes into view.
+  const LAND_CHUNK = LV[0].size, LAND_MS = 10; // the milliseconds of a frame a drawing of stale chunks may take (one chunk at least)
+  let landWorld = null, landTiles = null, landCols = 0, landOf = null;
+  const landChunks = new Map(), landStale = new Set(); // key -> {g, drawn}; the keys of chunks whose graphics are not current
+  function landIndex() { // the tiles of each chunk, once a world
+    if (landWorld === w) return;
+    resetLand(); landWorld = w;
+    landCols = Math.ceil(w.W / LAND_CHUNK); landOf = new Int32Array(w.N); landTiles = new Map();
     for (let i = 0; i < w.N; i++) {
+      const k = Math.floor(w.hy[i] / LAND_CHUNK) * landCols + Math.floor(w.hx[i] / LAND_CHUNK);
+      landOf[i] = k; let list = landTiles.get(k); if (!list) landTiles.set(k, list = []); list.push(i);
+    }
+  }
+  function resetLand() {
+    for (const c of landChunks.values()) c.g.destroy();
+    landChunks.clear(); landStale.clear(); landWorld = null;
+  }
+  function landMarkAll() { if (landTiles) for (const k of landTiles.keys()) landStale.add(k); for (const c of landChunks.values()) c.drawn = false; }
+  function landMarkDirty() {
+    for (const t of st.landDirty) {
+      landStale.add(landOf[t]);
+      for (let d = 0; d < 6; d++) { const j = w.nb[t * 6 + d]; if (j >= 0) landStale.add(landOf[j]); }
+    }
+    st.landDirty.clear();
+  }
+  function drawLandChunk(tiles, g, woodOf) {
+    const R = w.R; g.clear();
+    for (const i of tiles) {
       const n = st.owner[i]; if (!n) continue;
       g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: n < 0 ? 0.28 : 0.42 });
     }
     // a household's outline: edges between its tiles and any other owner's or none
-    for (let i = 0; i < w.N; i++) {
+    for (const i of tiles) {
       const n = st.owner[i]; if (n <= 0) continue;
       for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j < 0 || st.owner[j] !== n) edge(g, i, d, 0.94); }
       g.stroke({ width: R * 0.07, color: householdColour(st, n - 1), alpha: 0.9 });
     }
     // borders between villages' land, and of each village's land against the unheld
-    for (let i = 0; i < w.N; i++) {
+    for (const i of tiles) {
       const n = st.owner[i]; if (!n) continue;
       const v = ownerVillage(n);
       for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j >= 0 && st.owner[j] && ownerVillage(st.owner[j]) !== v) edge(g, i, d); }
@@ -13708,7 +13851,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     g.stroke({ width: R * 0.13, color: 0x2a1a0c, alpha: 0.85 });
     // the edge of each village's land against land nobody holds, in the village's colour
     const edges = new Map();
-    for (let i = 0; i < w.N; i++) {
+    for (const i of tiles) {
       const n = st.owner[i]; if (!n) continue;
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d]; if (j < 0 || st.owner[j] || w.water[j]) continue;
@@ -13717,7 +13860,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
     for (const [v, list] of edges) {
       for (const [i, d] of list) edge(g, i, d); g.stroke({ width: R * 0.11, color: hslHex(villageHue(v), 0.8, 0.3), alpha: 0.9 }); }
-    for (const [i, list] of st.claims) {
+    for (const i of tiles) {
+      const list = st.claims.get(i); if (!list) continue;
       if (list.length > 1) { // contested: hatched
         for (const k of [-0.4, 0, 0.4]) g.moveTo(w.hx[i] - R * 0.45 + k * R, w.hy[i] + R * 0.45).lineTo(w.hx[i] + R * 0.45 + k * R, w.hy[i] - R * 0.45);
         g.stroke({ width: R * 0.08, color: 0xb02020, alpha: 0.8 });
@@ -13730,22 +13874,42 @@ if (typeof module !== 'undefined') module.exports = Sim;
       });
     }
     // each village's wood (VB-326): a small tree in the village's colour on each of its tiles
-    for (const v of st.villages) {
-      if (!v.wood || !v.wood.length) continue;
-      for (const i of v.wood) g.poly([w.hx[i], w.hy[i] - R * 0.4, w.hx[i] + R * 0.24, w.hy[i] + R * 0.14, w.hx[i] - R * 0.24, w.hy[i] + R * 0.14]);
-      g.fill({ color: hslHex(villageHue(v.id), 0.8, 0.35), alpha: 0.9 }).stroke({ width: R * 0.05, color: 0xf6f1e2, alpha: 0.9 });
+    const wood = new Map();
+    for (const i of tiles) { const v = woodOf.get(i); if (v !== undefined) { if (!wood.has(v)) wood.set(v, []); wood.get(v).push(i); } }
+    for (const [v, list] of wood) {
+      for (const i of list) g.poly([w.hx[i], w.hy[i] - R * 0.4, w.hx[i] + R * 0.24, w.hy[i] + R * 0.14, w.hx[i] - R * 0.24, w.hy[i] + R * 0.14]);
+      g.fill({ color: hslHex(villageHue(v), 0.8, 0.35), alpha: 0.9 }).stroke({ width: R * 0.05, color: 0xf6f1e2, alpha: 0.9 });
     }
-    for (const i of (st.cairns || new Map()).keys()) {
+    if (st.cairns) for (const i of tiles) {
+      if (!st.cairns.has(i)) continue;
       for (const [dx, dy, r] of [[-0.16, 0.1, 0.13], [0.16, 0.1, 0.13], [0, -0.1, 0.14]]) g.circle(w.hx[i] + dx * R, w.hy[i] + dy * R, r * R);
       g.fill({ color: 0x9a948a }).stroke({ width: R * 0.04, color: 0x3b362f });
     }
-    st.landDirty.clear(); landAt = time;
   }
+  // Called each frame while the overlay is on (and by the toggle): names the stale chunks, draws those in view, hides the others.
   function refreshLand() {
+    if (!w || !st) return;
     if (!landOn) { st.landDirty.clear(); return; }
-    if (time - landAt >= 0.5) drawLand();
+    landIndex();
+    if (st.landDirty.size) landMarkDirty();
+    const [x0, y0, x1, y1] = viewRect(w.R * 2), cx1 = Math.min(Math.floor(x1 / LAND_CHUNK), landCols - 1);
+    const cx0 = Math.max(0, Math.floor(x0 / LAND_CHUNK)), cy0 = Math.max(0, Math.floor(y0 / LAND_CHUNK)), cy1 = Math.floor(y1 / LAND_CHUNK);
+    const inView = new Set();
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) inView.add(cy * landCols + cx);
+    let woodOf = null, drew = false; const t0 = performance.now();
+    const slow = time - landAt >= 0.5; // a drawn chunk that changed is redrawn at most twice a second; a first drawing waits for nothing
+    for (const k of inView) {
+      const tiles = landTiles.get(k); if (!tiles) continue;
+      let c = landChunks.get(k);
+      if (!c) { c = { g: new PIXI.Graphics(), drawn: false }; L.land.addChild(c.g); landChunks.set(k, c); landStale.add(k); }
+      if (!landStale.has(k) || (drew && performance.now() - t0 > LAND_MS) || (c.drawn && !slow)) continue;
+      if (!woodOf) { woodOf = new Map(); for (const v of st.villages) if (v.wood) for (const i of v.wood) woodOf.set(i, v.id); }
+      drawLandChunk(tiles, c.g, woodOf); c.drawn = true; landStale.delete(k); drew = true;
+    }
+    if (drew) landAt = time;
+    for (const [k, c] of landChunks) c.g.visible = inView.has(k);
   }
-
+  function drawLand() { landIndex(); landMarkAll(); refreshLand(); }
   // ---- the Ground overlay (gen/geology): what lies in the ground ----
   // Bedrock tints the tile; a deposit is a mark in its kind's colour: a disc for an ore, a square for clay and peat, a diamond for salt,
   // flint and amber; a ring goes round a source that does not run out.
@@ -13873,7 +14037,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     makeClouds(wd);
     drawMinimap(wd, wc, over);
     await buildSettlement(wd, sim);
-    if (landG) landG.clear();
+    resetLand();
     if (landOn) drawLand();
     resetGround();
   }
@@ -15636,7 +15800,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
-    if (st.landDirty.size) refreshLand();
+    if (landOn || st.landDirty.size) refreshLand();
     refreshGround();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);
@@ -18072,7 +18236,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '277e25b519', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '98c5ca4a88', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

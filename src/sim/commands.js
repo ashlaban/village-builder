@@ -105,6 +105,14 @@ VB['sim/commands'] = (() => {
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
     },
+    // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+    // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+    routines: {
+      check: (st, c) => settlement(st, c) || (!st.plans.villages.has(c.actor.settlement) ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by)) ? `routines cannot be set by ${c.args && c.args.by}`
+          : later('sim/plans').routinesWhy(c.args.routines)),
+      run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {

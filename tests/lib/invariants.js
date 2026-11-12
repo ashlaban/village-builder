@@ -49,7 +49,14 @@ function checkState(st) {
             bad.push(`plans: ${type} ${id} reserves ${n} ${good} for ${plan.reasons[good]}`);
           }
         }
-        if (type !== 'household') continue;
+        if (type !== 'household') {
+          // VB-257: a village's routines this year: at most MAX_ROUTINES, each a known routine, once; set by the founders, the meeting or a
+          // practice of what follows a meeting that did not decide
+          const PL = globalThis.VB['sim/plans'], R = plan.routines;
+          if (PL.routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
+            || (plan.routinesBy === 'nothing' && R.length)) bad.push(`plans: village ${id} has routines ${JSON.stringify(R)} by ${plan.routinesBy}`);
+          continue;
+        }
         const T = plan.targets;
         if (!T || T.wood.length !== 4 || !T.wood.every((x) => x > 0) || !(T.hayWinters > 0) || !(T.woodSecond >= 0) || !(T.fields >= 0) ||
           !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
@@ -303,6 +310,9 @@ function checkState(st) {
   for (const c of st.cenv.cultures) {
     const f = c.namePrefs && c.namePrefs.farm;
     if (!Array.isArray(f) || !f.length || new Set(f).size !== f.length || !f.every((g) => gens.includes(g))) bad.push(`cultures[${c.id}]: namePrefs ${JSON.stringify(c.namePrefs)}`);
+    // VB-257: the culture's practices that are not customs, each one of its options
+    const P = globalThis.VB.culture.PRACTICES;
+    for (const k of Object.keys(P)) if (!c.practices || !P[k].opts.some((o) => o[0] === c.practices[k])) bad.push(`cultures[${c.id}]: practice ${k} is ${c.practices && c.practices[k]}`);
   }
   for (const p of st.pawns) {
     if (p.alive) {

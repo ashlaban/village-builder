@@ -25,7 +25,7 @@ VB['sim/records'] = (() => {
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
     stake: 0, stakeLapsed: 0, projectDropped: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0,
-    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0,
+    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0, meetingFailed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
