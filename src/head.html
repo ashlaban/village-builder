@@ -211,6 +211,7 @@ body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events:
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
+.screen-head .stepno { margin-left: auto; } .screen-head .icon-btn { width: 44px; height: 44px; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
@@ -571,7 +572,10 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   overscroll-behavior: contain; min-width: 0; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
-.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+/* Main menu, in the corner where the game's own is; the household's card stands under it. There is no Back (Kim, 12 Nov). */
+.choose .corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
+  width: 44px; height: 44px; border-radius: 999px; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
+.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 82px); width: 340px;
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
 .choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
@@ -724,6 +728,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     0 max(8px, env(safe-area-inset-left, 0px)); }
   .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
   .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
+  .choose .corner-menu { position: fixed; width: 44px; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
   .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
   .choose::after { content: ""; flex: none; height: 1px; }
 }

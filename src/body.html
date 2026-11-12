@@ -29,6 +29,7 @@
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <!-- Whom to play (VB-339): the game itself after a new game is raised; on a narrow screen the map's strip, the household, the archetypes, the bar -->
 <div class="choose" id="choose" hidden>
+  <button id="chooseMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu"></button>
   <div class="choose-map" id="chooseMap"></div>
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
@@ -40,7 +41,7 @@
       d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
   </section>
   <div class="choose-bar panel" role="group" aria-label="Whom to play">
-    <button type="button" id="chooseBack">Back</button><button type="button" id="chooseWatch">Watch only</button>
+    <button type="button" id="chooseWatch">Watch only</button>
     <button type="button" class="primary" id="choosePlay">Play as</button>
   </div>
 </div>
@@ -199,11 +200,12 @@
 </div>
 
 <!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
-     with its callouts; who starts and the story archetypes; size, seed, Back and Raise the land in the bar -->
+     with its callouts; who starts and the story archetypes; size, seed and Raise the land in the bar; Main menu at the top right, and no Back -->
 <div class="genscreen start" id="genScreen" hidden>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">New archipelago</h1><span class="stepno">Step 1 of 2</span></div>
+      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span>
+        <button id="genMenu" type="button" class="icon-btn" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
@@ -247,7 +249,6 @@
       <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
-      <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
       </div>
     </div>
