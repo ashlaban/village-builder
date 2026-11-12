@@ -187,8 +187,8 @@
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
-    <button class="primary" id="landNew" type="button">Play<small>A story on a new archipelago</small></button>
-    <button id="landEdit" type="button">World editor<small>Shape an archipelago of your own</small></button>
+    <button class="primary" id="landNew" type="button">Play a Scenario<small>A story on a new archipelago</small></button>
+    <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -254,16 +254,25 @@
   </form>
 </div>
 
-<!-- The world editor: a world alone on the stage, with no run and none of the game's interface. Main menu at the top left; the
-     generator's parameters in the side panel, raised again on Raise the land; what the raised world holds under them (page/editor) -->
+<!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
+     at the top left, each opening its panel under them (the generator's parameters, the terrain, who settles it); Play and Main menu at
+     the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
 <div class="editor" id="editor" hidden>
   <div class="panel editor-top">
-    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
-    <div><strong id="edName">World editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
+      <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
+    </div>
   </div>
-  <form class="panel editor-side" id="edForm" autocomplete="off" aria-labelledby="edTitle">
-    <div class="screen-head"><h1 id="edTitle">World editor</h1><button type="button" id="edFold" aria-expanded="true" aria-controls="edBody">Hide</button></div>
-    <div class="editor-body" id="edBody">
+  <div class="panel editor-corner">
+    <button class="primary" id="edPlay" type="button">Play</button>
+    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
+  </div>
+  <p class="panel editor-msg err" id="edMsg" role="alert" hidden></p>
+  <form class="panel editor-side" id="edGen" autocomplete="off" aria-labelledby="edGenTitle">
+    <h2 id="edGenTitle">Generation</h2>
+    <div class="editor-body">
       <fieldset>
         <legend>Seed</legend>
         <span class="seedrow"><input id="edSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required
@@ -301,12 +310,22 @@
       </fieldset>
     </div>
     <div class="editor-foot">
-      <p class="err" id="edMsg" role="alert" hidden></p>
       <p class="hint" id="edState" aria-live="polite"></p>
       <div class="ed-bar" id="edBar" hidden><i id="edBarFill"></i></div>
-      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Raise the land</button></div>
+      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
     </div>
   </form>
+  <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
+    <h2 id="edSettleTitle">Settlement</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Settled by</legend>
+        <select id="edSettled" aria-label="Settled by"></select>
+        <p class="hint" id="edSettledNote"></p>
+        <p class="hint">The villages are placed when you press Play.</p>
+      </fieldset>
+    </div>
+  </section>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>

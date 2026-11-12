@@ -14,11 +14,13 @@
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
-  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago
+  // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
   // (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
+  // `unsaved`: the game open was started from the editor, and cannot be saved yet (page/saves).
+  let unsaved = false;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
@@ -65,15 +67,17 @@
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius} (page/editor): such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
-    choice = { seed, scenario, size };
-    $('genScreen').hidden = true; $('landing').hidden = true;
+    const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
+    if (!custom) choice = { seed, scenario, size };
+    $('genScreen').hidden = true; $('landing').hidden = true; $('editor').hidden = true;
     building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done');
     setLoad('Raising the land', 0);
     while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
-    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
+    const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
@@ -81,25 +85,26 @@
     if (!sim) {
       building = false; $('menuBtn').disabled = false;
       const msg = save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.';
-      openStart(msg); // the game kept aside, and the start's island, are as they were
+      if (custom) openEditor('This land has no room for those settlers. Change the land, or who settles it.');
+      else openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
     closeChoose(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
-    dropEditor(); $('editor').hidden = true; document.body.classList.remove('editing'); // and the world editor's world
+    dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
-    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo');
+    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo'); unsaved = !!custom;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
     const scName = (START_WORDS[scenario] || { name: scenario }).name;
-    $('meta').textContent = `${scName}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    $('meta').textContent = `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 

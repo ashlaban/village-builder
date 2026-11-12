@@ -512,22 +512,30 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
 }
-/* The world editor (page/editor): the world alone on the stage; Main menu at the top left, the parameters in a panel at the right that
-   folds to its head; on a narrow screen the panel is a sheet at the foot. */
-.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+/* The archipelago editor (page/editor): the world alone on the stage. One scene: the tools at the top left with the open tool's panel
+   under them, Play and Main menu at the top right, the menu button where the game's own is; on a narrow screen the panel is a sheet at
+   the foot. */
+.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; --ed-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  --ed-left: max(14px, env(safe-area-inset-left, 0px)); --ed-right: max(14px, env(safe-area-inset-right, 0px)); }
 .editor > * { pointer-events: auto; position: absolute; }
-.editor-top { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); display: flex; align-items: center;
-  gap: 12px; padding: 8px 16px 8px 8px; border-radius: 14px; max-width: calc(100% - 28px); }
-.editor-top .icon-btn { width: 44px; height: 44px; flex: none; }
-.editor-top strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; }
-.editor-top span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.editor-side { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
-  max-height: calc(100% - 28px - env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; border-radius: 16px; min-width: 0; }
-.editor-side .screen-head { padding: 12px 16px; flex: none; }
-.editor-side h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
+.editor-top { left: var(--ed-left); top: var(--ed-top); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 10px 8px 14px;
+  border-radius: 14px; max-width: calc(100% - 200px); min-height: 62px; }
+.ed-name { min-width: 0; }
+.ed-name strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-name span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ed-tools { display: flex; gap: 4px; }
+.ed-tools button { padding: 6px 14px; }
+.ed-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; }
+.editor-corner .icon-btn { width: 44px; height: 44px; flex: none; }
+.editor-corner .primary { padding: 6px 22px; }
+.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: 12px; }
+.editor-side { left: var(--ed-left); top: calc(var(--ed-top) + 72px); width: 340px; max-height: calc(100% - 86px - var(--ed-top)); display: flex;
+  flex-direction: column; border-radius: 16px; min-width: 0; }
+.editor-side[hidden], .editor-msg[hidden] { display: none; }
+.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 'Alegreya', Georgia, serif; flex: none; }
 .editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
-.editor-side.folded .editor-body, .editor-side.folded .editor-foot { display: none; }
 .editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .editor legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .editor p { margin: 0; font-size: 14px; line-height: 1.4; }
@@ -545,15 +553,15 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
 .ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
-.ed-facts dt.sub { padding-left: 2px; }
 .ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
 .ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 .ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
 #edState.changed { color: var(--ink); }
 @media (max-width: 899px) {
-  .editor-side { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: auto; width: auto;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 52svh; }
-  .editor-top { left: max(8px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 8px); }
+  .editor { --ed-top: calc(env(safe-area-inset-top, 0px) + 8px); --ed-left: max(8px, env(safe-area-inset-left, 0px)); --ed-right: max(8px, env(safe-area-inset-right, 0px)); }
+  .editor-top { top: calc(var(--ed-top) + 68px); max-width: calc(100% - 16px); }
+  .ed-name { display: none; }
+  .editor-side { right: var(--ed-right); top: auto; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 46svh; }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
@@ -967,8 +975,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
-    <button class="primary" id="landNew" type="button">Play<small>A story on a new archipelago</small></button>
-    <button id="landEdit" type="button">World editor<small>Shape an archipelago of your own</small></button>
+    <button class="primary" id="landNew" type="button">Play a Scenario<small>A story on a new archipelago</small></button>
+    <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -1034,16 +1042,25 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   </form>
 </div>
 
-<!-- The world editor: a world alone on the stage, with no run and none of the game's interface. Main menu at the top left; the
-     generator's parameters in the side panel, raised again on Raise the land; what the raised world holds under them (page/editor) -->
+<!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
+     at the top left, each opening its panel under them (the generator's parameters, the terrain, who settles it); Play and Main menu at
+     the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
 <div class="editor" id="editor" hidden>
   <div class="panel editor-top">
-    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
-    <div><strong id="edName">World editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
+      <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
+    </div>
   </div>
-  <form class="panel editor-side" id="edForm" autocomplete="off" aria-labelledby="edTitle">
-    <div class="screen-head"><h1 id="edTitle">World editor</h1><button type="button" id="edFold" aria-expanded="true" aria-controls="edBody">Hide</button></div>
-    <div class="editor-body" id="edBody">
+  <div class="panel editor-corner">
+    <button class="primary" id="edPlay" type="button">Play</button>
+    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
+  </div>
+  <p class="panel editor-msg err" id="edMsg" role="alert" hidden></p>
+  <form class="panel editor-side" id="edGen" autocomplete="off" aria-labelledby="edGenTitle">
+    <h2 id="edGenTitle">Generation</h2>
+    <div class="editor-body">
       <fieldset>
         <legend>Seed</legend>
         <span class="seedrow"><input id="edSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required
@@ -1081,12 +1098,22 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       </fieldset>
     </div>
     <div class="editor-foot">
-      <p class="err" id="edMsg" role="alert" hidden></p>
       <p class="hint" id="edState" aria-live="polite"></p>
       <div class="ed-bar" id="edBar" hidden><i id="edBarFill"></i></div>
-      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Raise the land</button></div>
+      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
     </div>
   </form>
+  <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
+    <h2 id="edSettleTitle">Settlement</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Settled by</legend>
+        <select id="edSettled" aria-label="Settled by"></select>
+        <p class="hint" id="edSettledNote"></p>
+        <p class="hint">The villages are placed when you press Play.</p>
+      </fieldset>
+    </div>
+  </section>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
@@ -13562,11 +13589,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
-  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago
+  // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
   // (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
+  // `unsaved`: the game open was started from the editor, and cannot be saved yet (page/saves).
+  let unsaved = false;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
@@ -13613,15 +13642,17 @@ if (typeof module !== 'undefined') module.exports = Sim;
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius} (page/editor): such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
-    choice = { seed, scenario, size };
-    $('genScreen').hidden = true; $('landing').hidden = true;
+    const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
+    if (!custom) choice = { seed, scenario, size };
+    $('genScreen').hidden = true; $('landing').hidden = true; $('editor').hidden = true;
     building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done');
     setLoad('Raising the land', 0);
     while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
-    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
+    const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
@@ -13629,25 +13660,26 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!sim) {
       building = false; $('menuBtn').disabled = false;
       const msg = save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.';
-      openStart(msg); // the game kept aside, and the start's island, are as they were
+      if (custom) openEditor('This land has no room for those settlers. Change the land, or who settles it.');
+      else openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
     closeChoose(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
-    dropEditor(); $('editor').hidden = true; document.body.classList.remove('editing'); // and the world editor's world
+    dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
-    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo');
+    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo'); unsaved = !!custom;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
     const scName = (START_WORDS[scenario] || { name: scenario }).name;
-    $('meta').textContent = `${scName}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    $('meta').textContent = `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
@@ -13891,7 +13923,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return;
     }
     // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
-    // In the world editor (page/editor) too; there Esc is its Main menu
+    // In the archipelago editor (page/editor) too; there Esc is its Main menu
     const editing = !$('editor').hidden && $('landing').hidden && $('genScreen').hidden;
     if (editing && e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) { $('edMenu').click(); return; }
     const choosing = editing || (!$('choose').hidden && $('landing').hidden && $('genScreen').hidden);
@@ -17098,9 +17130,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
       b.style.transform = `translate(${pick[0].toFixed(1)}px, ${pick[1].toFixed(1)}px)`;
     }
   }
-  // ---- world editor ----
+  // ---- archipelago editor ----
   // The parameters are the options of G.generate: the seed, the grid's columns and rows, the share of land and the regions' radius. A
-  // world is raised from the form on Raise the land, never while a control moves. `edit.p` holds the parameters of the world raised, so
+  // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
   // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
   const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
   let edit = null; // { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy }
@@ -17113,7 +17145,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // What the form asks for, or null where a field does not hold a number in its range (the form's own validity says which).
   function edRead() {
-    if (!$('edForm').checkValidity()) return null;
+    if (!$('edGen').checkValidity()) return null;
     return { seed: Number($('edSeed').value.trim()), cols: Number($('edCols').value), rows: Number($('edRows').value),
       land: Number($('edLand').value), region: Number($('edRegion').value) };
   }
@@ -17148,10 +17180,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
       ['Tiles with a deposit', num(deposit)]];
     $('edFactList').innerHTML = rows.map(([k, v, c]) => `<dt${c ? ` class="${c}"` : ''}>${k}</dt><dd>${v}</dd>`).join('');
     $('edFacts').hidden = false;
-    $('edName').textContent = wd.name; $('edMeta').textContent = `World editor · seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles`;
+    $('edName').textContent = wd.name; $('edMeta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles`;
   }
   function edBusy(on, p) {
-    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on;
+    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; $('edPlay').disabled = on || !edit.wd;
     $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
     if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); } else edEcho();
   }
@@ -17163,9 +17195,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (whole) { T = 2; cam.x = edit.wd.W / 2; cam.y = edit.wd.H / 2; cam.z = zt = zMin(); vel.x = vel.y = 0; }
     edFacts();
   }
-  function edRaise() {
-    const p = edRead();
-    if (!p || !edit || edit.busy) { $('edForm').reportValidity(); return; }
+  // `again`: the parameters of the world a game dropped, raised as it was, whatever the form says now.
+  function edRaise(again) {
+    const p = again || edRead();
+    if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
     $('edMsg').hidden = true; edBusy(true, 0);
     onStage(async () => {
       try {
@@ -17180,25 +17213,45 @@ if (typeof module !== 'undefined') module.exports = Sim;
       } catch (e) {
         console.warn('The land could not be raised', e);
         $('edMsg').hidden = false; $('edMsg').textContent = 'This land could not be raised. Try another seed or other settings.';
+        if (edit && !edit.wd) edit.p = null;
       }
       if (edit) edBusy(false);
     });
   }
-  // From the main menu. A game that is open is kept aside, as at the start (page/start), and comes back when the editor is left.
-  function openEditor() {
+  // The tools: one panel open at a time, under the tools; the open tool's button pressed again puts its panel away.
+  const ED_TOOLS = { gen: 'edGen', settle: 'edSettle' };
+  let edTool = 'gen';
+  function edOpenTool(k) {
+    edTool = k;
+    for (const b of $('edTools').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tool === k));
+    for (const t of Object.keys(ED_TOOLS)) $(ED_TOOLS[t]).hidden = t !== k;
+  }
+  // From the main menu, or from a Play that found no room (msg). A game that is open is kept aside, as at the start (page/start), and
+  // comes back when the editor is left.
+  function openEditor(msg) {
     if (building || skipping) return;
     if (w && !demo && !aside) aside = { wd: w, sim: st, painted: stagePainted, cam: { x: cam.x, y: cam.y, z: cam.z } };
     openPanel(null); closeSpeedOptions(); closeNotices();
     $('landing').hidden = true; $('genScreen').hidden = true; $('editor').hidden = false; document.body.classList.add('editing');
     loader.classList.add('done');
+    $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
     if (!edit) {
       edit = { p: null, wd: null, painted: null, busy: false };
-      if ($('edSeed').value) edEcho(); // the settings of an earlier visit, whose world a game has dropped
+      if ($('edSeed').value) edEcho(); // the settings of an earlier visit
       else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
     }
-    if (!edit.wd) edRaise();
+    $('edPlay').disabled = edit.busy || !edit.wd;
+    if (!edit.wd) edRaise(edit.p);
     else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
-    $('edGo').focus({ preventScroll: true });
+    $('edPlay').focus({ preventScroll: true });
+  }
+  // Play: a game on the world shown, settled as the Settlement tool says. The land is raised again from the parameters of the world
+  // shown (not from a form changed since), so the editor keeps its own world, to come back to from the main menu. Such a game cannot be
+  // saved yet: a save rebuilds its world from seed and size alone (page/loader, `unsaved`).
+  function edPlay() {
+    if (!edit || !edit.wd || edit.busy || building) return;
+    const p = edit.p;
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region });
   }
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
@@ -17209,13 +17262,16 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (!editorOpen() && $('genScreen').hidden && !building) showLanding();
     });
   }
-  // A game raised or loaded drops the editor's world (page/loader, build); its settings stay in the form.
-  function dropEditor() { edit = null; $('edFacts').hidden = true; $('edName').textContent = 'World editor'; $('edMeta').textContent = 'No land raised yet'; }
+  // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
+  function dropEditor() {
+    $('editor').hidden = true; document.body.classList.remove('editing');
+    if (edit) { edit.wd = null; edit.painted = null; }
+  }
 
   $('landEdit').addEventListener('click', () => openEditor());
   $('edMenu').addEventListener('click', () => closeEditor());
-  $('edForm').addEventListener('submit', (e) => { e.preventDefault(); edRaise(); });
-  $('edForm').addEventListener('input', (e) => {
+  $('edGen').addEventListener('submit', (e) => { e.preventDefault(); edRaise(); });
+  $('edGen').addEventListener('input', (e) => {
     if (e.target.id === 'edSize' && SIZES[e.target.value]) [$('edCols').value, $('edRows').value] = SIZES[e.target.value];
     if (e.target.id === 'edCols' || e.target.id === 'edRows') $('edSize').value = edSizeOf(Number($('edCols').value), Number($('edRows').value));
     edEcho();
@@ -17223,10 +17279,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('edReroll').addEventListener('click', () => { $('edSeed').value = String((Math.random() * 1e6) | 0); edEcho(); });
   $('edReset').addEventListener('click', () => {
     edFill({ seed: Number($('edSeed').value) || 0, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region }); });
-  $('edFold').addEventListener('click', () => {
-    const folded = $('edForm').classList.toggle('folded');
-    $('edFold').textContent = folded ? 'Show' : 'Hide'; $('edFold').setAttribute('aria-expanded', String(!folded));
+  $('edPlay').addEventListener('click', () => edPlay());
+  $('edTools').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tool]');
+    if (b) edOpenTool(b.dataset.tool === edTool ? null : b.dataset.tool);
   });
+  $('edSettled').innerHTML = START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
+  const edSettledEcho = () => { $('edSettledNote').textContent = START_WORDS[$('edSettled').value].line; };
+  $('edSettled').addEventListener('input', edSettledEcho); edSettledEcho();
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
@@ -17932,7 +17992,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '711631c9b5', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '8dd0658f38', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -17964,7 +18024,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const listSaves = () => saveTx('readonly', (m) => m.getAll());
   const deleteSaves = (keys) => saveTx('readwrite', (m, b) => { for (const k of keys) { m.delete(k); b.delete(k); } });
   async function storeSave(slot) {
-    if (!st || demo || building || !SAVE_SLOTS.includes(slot)) return null;
+    if (!st || demo || unsaved || building || !SAVE_SLOTS.includes(slot)) return null;
     const s = st, arch = archOf(s), key = `${arch}:${slot}`, p = await packSave(s);
     const line = { key, arch, slot, build: BUILD, savedAt: p.savedAt, label: p.label, name: s.w.name, scenario: s.scenario, seed: s.w.seed,
       size: sizeKey(s.w.COLS, s.w.ROWS), bytes: p.blob.size };
@@ -17990,7 +18050,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const loadStored = async (key) => { const rec = await saveTx('readonly', (m, b) => b.get(key)); return loadBlob(rec && rec.blob); };
   async function saveToFile() {
-    if (!st || demo || building) return;
+    if (!st || demo || unsaved || building) return;
     const s = st, p = await packSave(s), a = document.createElement('a'), url = URL.createObjectURL(p.blob);
     a.href = url; a.download = `${s.w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${s.scenario}-${s.w.seed}-year${Sim.cal(s.t).year}.json.gz`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -18013,7 +18073,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const stOpen = () => st; // the game open, which the showcase island is not
   let saveMsg = '', saveLines = [];
   async function drawSaves() {
-    const box = $('savesBody'), st = demo ? null : stOpen();
+    const box = $('savesBody'), st = demo || unsaved ? null : stOpen(), fromEditor = !demo && unsaved && stOpen();
     try { saveLines = await listSaves(); } catch (e) { box.innerHTML = '<p class="save-msg">Saves are not available in this browser.</p>'; return; }
     const archs = new Map(), open = st ? archOf(st) : null;
     for (const l of saveLines) { if (!archs.has(l.arch)) archs.set(l.arch, []); archs.get(l.arch).push(l); }
@@ -18024,6 +18084,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const others = [...archs].filter(([a]) => a !== open).sort((a, b) => newest(b[1]) - newest(a[1]));
     box.innerHTML = (st ? section(open, saveLabel(st).split('): ')[0] + '), the game open now', archs.get(open) || [], true) : '')
       + others.map(([a, ls]) => section(a, ls[0].label.split('): ')[0] + ')', ls, false)).join('')
+      + (fromEditor ? '<p class="save-msg">The game open now was started from the editor, and cannot be saved yet.</p>' : '')
       + (st || others.length ? '' : '<p class="save-msg">No saved games yet.</p>')
       + `<div class="save-acts save-files">${st ? saveBtn('file', 'save', 'Save to file') : ''}${saveBtn('file', 'load', 'Load file')}</div>`
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');

@@ -512,22 +512,30 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
 }
-/* The world editor (page/editor): the world alone on the stage; Main menu at the top left, the parameters in a panel at the right that
-   folds to its head; on a narrow screen the panel is a sheet at the foot. */
-.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+/* The archipelago editor (page/editor): the world alone on the stage. One scene: the tools at the top left with the open tool's panel
+   under them, Play and Main menu at the top right, the menu button where the game's own is; on a narrow screen the panel is a sheet at
+   the foot. */
+.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; --ed-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  --ed-left: max(14px, env(safe-area-inset-left, 0px)); --ed-right: max(14px, env(safe-area-inset-right, 0px)); }
 .editor > * { pointer-events: auto; position: absolute; }
-.editor-top { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); display: flex; align-items: center;
-  gap: 12px; padding: 8px 16px 8px 8px; border-radius: 14px; max-width: calc(100% - 28px); }
-.editor-top .icon-btn { width: 44px; height: 44px; flex: none; }
-.editor-top strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; }
-.editor-top span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.editor-side { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
-  max-height: calc(100% - 28px - env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; border-radius: 16px; min-width: 0; }
-.editor-side .screen-head { padding: 12px 16px; flex: none; }
-.editor-side h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
+.editor-top { left: var(--ed-left); top: var(--ed-top); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 10px 8px 14px;
+  border-radius: 14px; max-width: calc(100% - 200px); min-height: 62px; }
+.ed-name { min-width: 0; }
+.ed-name strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-name span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ed-tools { display: flex; gap: 4px; }
+.ed-tools button { padding: 6px 14px; }
+.ed-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; }
+.editor-corner .icon-btn { width: 44px; height: 44px; flex: none; }
+.editor-corner .primary { padding: 6px 22px; }
+.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: 12px; }
+.editor-side { left: var(--ed-left); top: calc(var(--ed-top) + 72px); width: 340px; max-height: calc(100% - 86px - var(--ed-top)); display: flex;
+  flex-direction: column; border-radius: 16px; min-width: 0; }
+.editor-side[hidden], .editor-msg[hidden] { display: none; }
+.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 'Alegreya', Georgia, serif; flex: none; }
 .editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
-.editor-side.folded .editor-body, .editor-side.folded .editor-foot { display: none; }
 .editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .editor legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .editor p { margin: 0; font-size: 14px; line-height: 1.4; }
@@ -545,15 +553,15 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
 .ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
-.ed-facts dt.sub { padding-left: 2px; }
 .ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
 .ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 .ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
 #edState.changed { color: var(--ink); }
 @media (max-width: 899px) {
-  .editor-side { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: auto; width: auto;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 52svh; }
-  .editor-top { left: max(8px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 8px); }
+  .editor { --ed-top: calc(env(safe-area-inset-top, 0px) + 8px); --ed-left: max(8px, env(safe-area-inset-left, 0px)); --ed-right: max(8px, env(safe-area-inset-right, 0px)); }
+  .editor-top { top: calc(var(--ed-top) + 68px); max-width: calc(100% - 16px); }
+  .ed-name { display: none; }
+  .editor-side { right: var(--ed-right); top: auto; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 46svh; }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */

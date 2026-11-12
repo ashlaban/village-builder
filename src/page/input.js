@@ -67,7 +67,7 @@
       return;
     }
     // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
-    // In the world editor (page/editor) too; there Esc is its Main menu
+    // In the archipelago editor (page/editor) too; there Esc is its Main menu
     const editing = !$('editor').hidden && $('landing').hidden && $('genScreen').hidden;
     if (editing && e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) { $('edMenu').click(); return; }
     const choosing = editing || (!$('choose').hidden && $('landing').hidden && $('genScreen').hidden);
