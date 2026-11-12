@@ -15,6 +15,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 - `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.
 - `REVIEW.md`: the latest review of design against code; earlier reviews are `docs/review-*.md`.
+- `docs/balance/`: the balance map (what holds the game in balance at the macro scale): `README.md` for where it stands, `cards.md` for the
+  mechanisms, `findings.md` for the experiments of 12 November; its `mocks/` are throwaway research scripts, not game code.
 
 ## Taking a task
 1. `node tools/backlog.js next`, then `show ID`: the first ready task is the one to take.
