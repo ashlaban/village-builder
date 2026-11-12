@@ -118,6 +118,8 @@
   $('landNew').addEventListener('click', () => openStart());
   // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
   $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
+  // Tutorial: the founders on one very small island, always the same, played at once as the scenario's suggested holder
+  $('landTutorial').addEventListener('click', () => { if (!building) build(TUTORIAL.seed, TUTORIAL.scenario, TUTORIAL.size, null, true); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {

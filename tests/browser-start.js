@@ -112,6 +112,15 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   const quick = await page.evaluate(() => { const s = window.__start.st; return { scenario: s.scenario, played: !!s.player, cols: s.w.COLS,
     choose: !document.getElementById('choose').hidden, start: !document.getElementById('genScreen').hidden, bar: !document.getElementById('actBar').hidden }; });
   if (quick.scenario !== 'populous' || quick.cols !== 120 || !quick.played || quick.choose || quick.start || !quick.bar) fail(`quick start: ${JSON.stringify(quick)}`);
+  // Tutorial, from the main menu: the founders on the one very small island, played at once as the suggested holder, and the same every time
+  await page.click('#menuBtn'); await page.click('#landTutorial');
+  await page.waitForFunction(() => window.__start.st.w.COLS === 40 && document.getElementById('loader').classList.contains('done')
+    && !document.getElementById('menuBtn').disabled, null, { timeout: 180000 });
+  const tut = await page.evaluate(() => { const s = window.__start.st; return { scenario: s.scenario, played: !!s.player, rows: s.w.ROWS, island: s.w.name,
+    choose: !document.getElementById('choose').hidden, bar: !document.getElementById('actBar').hidden, meta: document.getElementById('meta').textContent }; });
+  if (tut.scenario !== 'founders' || tut.rows !== 28 || tut.island !== 'Halö' || !tut.played || tut.choose || !tut.bar || !/very small map/.test(tut.meta)) {
+    fail(`tutorial: ${JSON.stringify(tut)}`);
+  }
   await browser.close();
   if (errors.length) { console.log(`browser-start: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-start: the three scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '

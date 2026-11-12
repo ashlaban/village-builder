@@ -12,7 +12,10 @@
   }
 
   let building = false;
-  const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  // `x` is the tutorial's very small island: a size like the others (it saves and loads), but not offered at the start or in the editor
+  const SIZES = { x: [40, 28], t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  const SIZE_NAMES = { x: 'very small', t: 'tiny', s: 'small', m: 'medium', l: 'large' };
+  const TUTORIAL = { seed: 30, scenario: 'founders', size: 'x' }; // one fixed island, so the tutorial can name its people and places
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
   // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
   // (the Saves overlay; page/saves). A game that is open
@@ -73,7 +76,7 @@
   // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
-    if (!custom) choice = { seed, scenario, size };
+    if (!custom && size !== TUTORIAL.size) choice = { seed, scenario, size }; // the start does not offer the tutorial's size
     $('genScreen').hidden = true; $('landing').hidden = true; $('editor').hidden = true;
     building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done');
@@ -106,9 +109,8 @@
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
-    const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
     const scName = (START_WORDS[scenario] || { name: scenario }).name;
-    $('meta').textContent = `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    $('meta').textContent = `${scName}, ${custom ? 'custom' : SIZE_NAMES[size]} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 

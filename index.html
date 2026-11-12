@@ -992,6 +992,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   <div class="panel landing">
     <h1>Skärgård</h1>
     <button class="primary" id="landNew" type="button">Play a Scenario<small>A story on a new archipelago</small></button>
+    <button id="landTutorial" type="button">Tutorial<small>Learn the game on a very small island of founders</small></button>
     <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
@@ -15260,7 +15261,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
 
   let building = false;
-  const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  // `x` is the tutorial's very small island: a size like the others (it saves and loads), but not offered at the start or in the editor
+  const SIZES = { x: [40, 28], t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
+  const SIZE_NAMES = { x: 'very small', t: 'tiny', s: 'small', m: 'medium', l: 'large' };
+  const TUTORIAL = { seed: 30, scenario: 'founders', size: 'x' }; // one fixed island, so the tutorial can name its people and places
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
   // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
   // (the Saves overlay; page/saves). A game that is open
@@ -15321,7 +15325,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
-    if (!custom) choice = { seed, scenario, size };
+    if (!custom && size !== TUTORIAL.size) choice = { seed, scenario, size }; // the start does not offer the tutorial's size
     $('genScreen').hidden = true; $('landing').hidden = true; $('editor').hidden = true;
     building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done');
@@ -15354,9 +15358,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
-    const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
     const scName = (START_WORDS[scenario] || { name: scenario }).name;
-    $('meta').textContent = `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    $('meta').textContent = `${scName}, ${custom ? 'custom' : SIZE_NAMES[size]} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
@@ -15656,6 +15659,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   $('landNew').addEventListener('click', () => openStart());
   // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
   $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
+  // Tutorial: the founders on one very small island, always the same, played at once as the scenario's suggested holder
+  $('landTutorial').addEventListener('click', () => { if (!building) build(TUTORIAL.seed, TUTORIAL.scenario, TUTORIAL.size, null, true); });
   $('landLoad').addEventListener('click', () => showSaves(true));
   $('landBack').addEventListener('click', () => { $('landing').hidden = true; $('menuBtn').focus(); });
   $('genForm').addEventListener('submit', (e) => {
@@ -20026,10 +20031,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '92b849d773', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '06b71e0b40', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
-  const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
   function saveLabel(s) {
     const c = Sim.cal(s.t), pl = s.player ? `, playing ${Sim.fullName(s.pawns[s.player.pawn])}` : '';
     return `${s.w.name} (${s.scenario}, seed ${s.w.seed}, ${SIZE_NAMES[sizeKey(s.w.COLS, s.w.ROWS)] || `${s.w.COLS} by ${s.w.ROWS}`}): `

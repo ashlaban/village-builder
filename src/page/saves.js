@@ -6,7 +6,6 @@
   const BUILD = '__BUILD_ID__', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
-  const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
   function saveLabel(s) {
     const c = Sim.cal(s.t), pl = s.player ? `, playing ${Sim.fullName(s.pawns[s.player.pawn])}` : '';
     return `${s.w.name} (${s.scenario}, seed ${s.w.seed}, ${SIZE_NAMES[sizeKey(s.w.COLS, s.w.ROWS)] || `${s.w.COLS} by ${s.w.ROWS}`}): `
