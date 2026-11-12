@@ -53,7 +53,7 @@ const counts = P.stageCounts(pw);
 // the trails on the map: every worn trail tile has segments, each from its bend to a joint at most a tile away
 let segs = 0;
 for (let i = 0; i < pw.N; i++) {
-  if (!pw.worn[i] || pw.dev[i] || pw.river[i]) continue;
+  if (!pw.worn[i] || pw.dev[i] > 1 || pw.river[i]) continue; // worn fields and meadows draw their trail too
   const g = Look.segments(pw, i);
   segs += g.length;
   check(g.length > 0 && g.every((s) => Math.hypot(s[4] - pw.hx[i], s[5] - pw.hy[i]) < 1.2 * pw.HW), `tile ${i}: trail segments ${g.length}`);

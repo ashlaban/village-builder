@@ -36,8 +36,8 @@
   const world = new PIXI.Container();
   app.stage.addChild(world);
   const L = {};
-  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'ground', 'land', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows',
-    'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
+  for (const k of ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'ways', 'fences', 'ground', 'land', 'grid', 'regions', 'objects', 'labels',
+    'hover', 'shadows', 'clouds']) { L[k] = new PIXI.Container(); world.addChild(L[k]); }
   const lodLayer = [L.lod0, L.lod1, L.lod2];
   L.regions.visible = false; L.land.visible = false; L.ground.visible = false;
 

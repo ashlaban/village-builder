@@ -1,4 +1,4 @@
-// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks
+// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['gen/paths'] = (() => {
@@ -22,8 +22,8 @@ VB['gen/paths'] = (() => {
     const h = Math.imul(i ^ 0x2c1b3c6d, 2246822519) >>> 0, a = ((h & 1023) / 1024) * 2 * Math.PI, d = (((h >>> 10) & 1023) / 1024) * 0.22 * w.R;
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
-  // A worn tile that draws its own trail: worn land that is not a house, field, green or river.
-  const trail = (w, i) => i >= 0 && w.worn[i] > 0 && !w.dev[i] && !w.water[i] && !w.river[i];
+  // A worn tile that draws its own trail: worn land, a field or a meadow (w.dev 0 and 1), not a green, a house or a river.
+  const trail = (w, i) => i >= 0 && w.worn[i] > 0 && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
   // Worn tiles lie in patches as well as in lines (round a house, where ways part), and a trail to every worn neighbour would draw a
   // mesh of triangles there. So of three worn tiles that all touch, the weakest link is not drawn: strength is the lower stage of the two
@@ -65,7 +65,7 @@ VB['gen/paths'] = (() => {
       if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
       else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
-      else if (w.dev[j] === 1) built.push(k);
+      else if (w.dev[j]) built.push(k); // a house, or a field or meadow that is not worn
     }
     while (out.length < 2 && built.length) {
       // the built neighbour most opposite the ways out so far (the first: the lowest fixed number by pair)
@@ -130,20 +130,22 @@ VB['gen/paths'] = (() => {
     }
     return out;
   }
-  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
-  function drawChunk(w, ctx, lv, cx, cy, l) {
-    if (!w.worn) return;
-    const { R, HW, AP, COLS, ROWS } = w, sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = R;
+  // The trail curves of one chunk at level l (lv: ArchGen.LV[l]), and its worn fields and meadows.
+  function chunkSegments(w, lv, cx, cy, l) {
+    const { R, HW, AP, COLS, ROWS } = w, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = R;
     const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R))), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
-    const segs = [];
+    const segs = [], sown = [];
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
       const i = row * COLS + col;
-      if ((w.worn[i] && LOOK.level[w.worn[i]] >= l) || (w.dev && w.dev[i] === 2)) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+      if (!(w.worn[i] && LOOK.level[w.worn[i]] >= l) && !(w.dev && w.dev[i] === 2)) continue;
+      if (w.dev && w.dev[i] === 1) sown.push(i);
+      for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
     }
-    if (!segs.length) return;
-    ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
+    return { segs, sown };
+  }
+  // Strokes the curves in their layers; ctx is set to map units.
+  function paint(ctx, segs, sc) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
     for (const [k, colours] of LOOK.layers) for (let s = 1; s <= 3; s++) {
@@ -159,8 +161,40 @@ VB['gen/paths'] = (() => {
         ctx.stroke();
       }
     }
+  }
+  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
+  function drawChunk(w, ctx, lv, cx, cy, l) {
+    if (!w.worn) return;
+    const { segs } = chunkSegments(w, lv, cx, cy, l);
+    if (!segs.length) return;
+    const sc = lv.scale;
+    ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
+    ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
+    paint(ctx, segs, sc);
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // The same trails where they cross fields and meadows, which the page draws over the chunks: painted on a clear canvas of the chunk's
+  // size (from make(), asked for only if a field or meadow of the chunk is worn) and kept only inside those tiles' panes (FIELD_PANE of
+  // the tile's radius, as the field art is cut), so the two paintings meet at the pane's edge with nothing painted twice. The canvas, or null.
+  const FIELD_PANE = 0.92;
+  function drawOver(w, lv, cx, cy, l, make) {
+    if (!w.worn) return null;
+    const { segs, sown } = chunkSegments(w, lv, cx, cy, l);
+    if (!sown.length || !segs.length) return null;
+    const canvas = make(), ctx = canvas.getContext('2d'), sc = lv.scale;
+    ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
+    paint(ctx, segs, sc);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath();
+    for (const i of sown) for (let k = 0; k < 6; k++) {
+      const a = (Math.PI / 180) * (30 + 60 * k), x = w.hx[i] + Math.cos(a) * w.R * FIELD_PANE, y = w.hy[i] + Math.sin(a) * w.R * FIELD_PANE;
+      if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      if (k === 5) ctx.closePath();
+    }
+    ctx.fillStyle = '#000'; ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return canvas;
   }
   // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
   function dist2(x, y, ax, ay, bx, by) {
@@ -192,5 +226,5 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, exits, segments, drawChunk, thin };
+  return { LOOK, bend, exits, segments, drawChunk, drawOver, thin };
 })();
