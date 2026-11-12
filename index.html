@@ -2925,18 +2925,22 @@ const Culture = (() => {
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
+  // The share by which a way y must pass the practice x at a village's meeting, before the factor for few voices: most where the practice
+  // is the culture's custom (more the closer the village's tie), least to return to that custom.
+  const margin = (s, x, y, cust) => (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+  // That factor: a handful of voices is noisy, and below ten of them the margin grows.
+  const fewVoices = (n) => 1 + Math.max(0, 10 - n) * 0.1;
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture], changes = [];
     const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s));
     s.lastSupport = S; s.lastVoices = W;
     if (W <= 0) return changes;
-    // a handful of voices is noisy: below ten voices the margin grows
-    const nv = hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length, small = 1 + Math.max(0, 10 - nv) * 0.1;
+    const small = fewVoices(hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length);
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d], n = NOPT[d], x = s.practice[d], cust = c.customs[d];
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
       if (y === x) continue;
-      const h = small * (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+      const h = small * margin(s, x, y, cust);
       if (!(S[o + y] > S[o + x] * (1 + h))) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
       if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
@@ -3023,7 +3027,7 @@ const Culture = (() => {
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
     WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
-    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf }, margin: { value: margin }, fewVoices: { value: fewVoices } });
   return api;
 })();
 VB['culture'] = Culture;
@@ -17252,7 +17256,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
-      const need = x === a.opt ? 0 : x === cust ? Culture.P.margin + Culture.P.tieMargin * s.tie : a.opt === cust ? Culture.P.returnMargin : Culture.P.margin;
+      const voices = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).length;
+      const need = x === a.opt ? 0 : Culture.fewVoices(voices) * Culture.margin(s, x, a.opt, cust);
       h += x === a.opt ? ' It is the village practice.' : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the `
         + `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
     } else h += ' The village has not met yet.';
@@ -19050,7 +19055,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0df443b91b', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '89d65b9229', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
