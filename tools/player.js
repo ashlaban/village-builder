@@ -5,7 +5,7 @@
 //   The scripted player of tests/lib/line.js plays the founders scenario: it inhabits the first holder, queues work from Sim.opportunities
 //   on some days, argues one cause, sets one wish at a moving round, wishes once for a match, answers the offers of marriage that wait for
 //   it (refusing the first, leaving every third to its due time), and goes on as a successor at each death. For each seed it runs the line
-//   unbroken and saved and loaded every --save-every years, and says whether the golden hashes of the two agree; it prints the pawns played
+//   unbroken and saved and loaded every --save-every years, and says whether the state hashes of the two agree; it prints the pawns played
 //   and how each followed the last, the cause and the meetings' outcomes, the offers, the commands counted by source, the jobs taken in a
 //   stepped window against the work commands that took them, one game day with the automatic behaviour off, and the line's households
 //   against the others' (hungry days a household-year, farms still held, children at each year's start a household-year).

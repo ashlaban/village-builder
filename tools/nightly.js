@@ -1,14 +1,19 @@
-// The fixtures the sources lack are made first (VB-272: a local cache, never published), then the diagnostic bench history, the
-// generated budget table and the full bands runs (VB-163, tools/bands.js, for a commit not yet run).
+// Prepare all late fixtures once, run extended correctness checks, then advisory measurements.
+// Failures to prepare or execute a check are failures; out-of-range measurements remain advisory.
 require('./help.js')(__filename);
 const F = require('../tests/lib/fixtures.js');
+const { run, stopAll } = require('../tests/lib/runner.js');
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { process.exitCode = 1; stopAll(); });
 async function nightly() {
-  console.log(F.ensure(Object.keys(F.FIXTURES)) ? 'nightly: fixture preparation complete' : 'nightly: fixtures UNAVAILABLE');
-  try { await require('./bench.js').runBench(); }
-  catch (e) { console.error('nightly: bench UNAVAILABLE ' + e.message); }
-  // the full runs of the bands (VB-163), for a commit not yet run; reported, never failing
-  try { await require('./bands.js').main(['--if-new']); }
-  catch (e) { console.error('nightly: bands UNAVAILABLE ' + e.message); }
-  console.log('nightly: include docs/bench/history.jsonl, docs/bench/budget.md and docs/bench/bands.jsonl in the nightly PR');
+  const made = await run(['node', 'tools/fixtures.js', 'make-missing', ...Object.keys(F.FIXTURES)],
+    { cwd: F.root, timeoutMs: 1800000 });
+  console.log(made.output);
+  if (!made.ok) throw new Error('fixture preparation failed');
+  const checks = await run(['node', 'tests/run.js', 'extended', '--verbose'], { cwd: F.root, timeoutMs: 3600000 });
+  console.log(checks.output);
+  if (!checks.ok) throw new Error(`extended checks failed: ${checks.error?.message || checks.signal || checks.code}`);
+  await require('./bench.js').runBench();
+  await require('./bands.js').main(['--if-new']);
+  console.log('nightly: measurements in docs/bench; targets are advisory');
 }
 nightly().catch((e) => { console.error('nightly: ' + e.message); process.exitCode = 1; });

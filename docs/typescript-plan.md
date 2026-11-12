@@ -1,5 +1,11 @@
 # TypeScript: the tasks (VB-055's plan)
 
+> Testing policy updated by VB-408 (12 November 2026): [Testing](testing.md) supersedes the golden-file,
+> suite membership and CI requirements below. There are no permanent behavior baselines to update.
+> Refactors preserve behavior through focused contracts and optional comparisons to their starting commit.
+> Late fixtures and long measurements run in the extended/nightly tier, not routine PR verification.
+
+
 Written 12 November 2026 by VB-055 (survey in `backlog/VB-055.md`; questions in `QUESTIONS.md`, "VB-055: the move to TypeScript"). Each section below is
 one task, as a complete task file's text, in the order they would run. The orchestrator creates them in the backlog (`node tools/backlog.js new`);
 `P1` to `P14` are names in this document; in the backlog they are VB-373 to VB-386, in that order (created 12 November). Arch `yardstick` throughout (outside the slices, as VB-228 to VB-232 are),

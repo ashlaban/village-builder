@@ -10,7 +10,7 @@ const { VERBS } = VB['sim/commands'], { YEAR_DAYS, DAY, YEAR } = VB['sim/rules']
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 
 const world = (seed, map) => { const it = G.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done); return r.value; };
-// The hashes of a state as tests/golden.js takes them: each key of it, the world and what only indexes other fields left out
+// Current-run state fingerprints for save/load comparisons: each key of it, the world and what only indexes other fields left out
 const DERIVED = ['w', 'jobsBy', 'living', 'liveHouseholds', 'plans'];
 const hashes = (st) => { const o = {}; for (const k of Object.keys({ ...st, wear: 0 }).sort()) if (!DERIVED.includes(k)) o[k] = sha(canon(k === 'wear' ? st.w.wear : st[k])); return o; };
 

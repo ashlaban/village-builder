@@ -35,7 +35,8 @@ const perf = JSON.parse(cp.execFileSync('node', [tool, ...pa, '--report', 'perf'
 check(perf.systems.length >= 10 && Math.abs(perf.systems.reduce((a, x) => a + x.share, 0) - 100) < 1, 'perf report: shares do not add up');
 check(perf.systems.some((x) => x.system.startsWith('agents') && x.ms > 0), 'perf report: no row for agents and walking');
 const yearly = (...a) => cp.execFileSync('node', [tool, ...pa, ...a], { encoding: 'utf8' }).split('\n').filter((l) => /^\s+1\s+\d+/.test(l)).map((l) => l.replace(/\s+[\d.]+$/, ''));
-check(yearly('--report', 'perf').join() === yearly().join() && yearly().length === 1, 'perf report: the run differs from one without it');
+const plainYear = yearly();
+check(yearly('--report', 'perf').join() === plainYear.join() && plainYear.length === 1, 'perf report: the run differs from one without it');
 // tools/balance.js (VB-048): food made by source against need, per household-year; made is the sum of the sources
 const bal = JSON.parse(cp.execFileSync('node', [path.join(__dirname, '..', 'tools', 'balance.js'), '--scenario', 'populous', '--seeds', '7', '--map', 'tiny',
   '--years', '2', '--from', '1', '--json'], { encoding: 'utf8' }));

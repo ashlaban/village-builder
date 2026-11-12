@@ -22,7 +22,7 @@ function windowOf(name) {
 async function main() {
   const names = ['small-y5', 'small-y40'], started = performance.now();
   // Only the parent makes what is missing (verify's runner has made it already); the workers load.
-  F.ensure(names);
+  if (!F.ensure(names)) throw new Error('history: required fixtures could not be prepared');
   const windows = await Promise.all(names.map(windowOf)), results = [];
   for (let i = 0; i < windows.length; i++) {
     const { notices, result, stamp } = windows[i], name = names[i];
@@ -32,7 +32,7 @@ async function main() {
     console.log(`${name}: ${result.pawnDays.toFixed(3)} living pawn-days; work ${JSON.stringify(result.work)}`);
     timing(name, result); results.push(result);
   }
-  if (results.length !== 2) console.log('history: skipped comparison; both small-y5 and small-y40 are required');
+  if (results.length !== 2) throw new Error('history: both small-y5 and small-y40 are required');
   else {
     const out = report('history', growth(...results)).filter((t) => t.status === 'out').length;
     // Kim's line (7 November) on the wall clock: reported only, since both windows run at once on a shared machine (VB-203).

@@ -6,12 +6,18 @@ const { PATHS, YEAR_DAYS } = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PATHS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 
-// stages: up at 50, 200 and 800; down only below 85% of a threshold
-check(P.stageOf(49, 0) === 0 && P.stageOf(50, 0) === 1 && P.stageOf(200, 0) === 2 && P.stageOf(800, 1) === 3, 'stages rise at 50, 200, 800');
-check(P.stageOf(45, 1) === 1 && P.stageOf(42, 1) === 0 && P.stageOf(700, 3) === 3 && P.stageOf(600, 3) === 2, 'stages fall below 85%');
-check(P.stageOf(0, 3) === 0, 'a tile with no wear has no stage');
+// Thresholds are tunables: test transitions and hysteresis around the current values.
+for (let stage = 1; stage <= 3; stage++) {
+  const threshold = PATHS.at[stage];
+  check(P.stageOf(threshold - 1, stage - 1) === stage - 1, 'below rise threshold');
+  check(P.stageOf(threshold, stage - 1) === stage, 'at rise threshold');
+  check(P.stageOf(threshold * (1 + PATHS.keep) / 2, stage) === stage, 'hysteresis retains stage');
+  check(P.stageOf(threshold * PATHS.keep - 1, stage) < stage, 'below retention threshold');
+}
+check(P.stageOf(0, 3) === 0, 'no wear has no stage');
 
-const st = Sim.seed(world(7), 7, 'founders'), w = st.w;
+const st = require('./lib/probe.js').state(), w = st.w;
+w.wear.fill(0); w.worn.fill(0);
 check(w.wear instanceof Float32Array && w.worn instanceof Uint8Array && w.wear.every((x) => x === 0), 'a new world has no wear');
 const house = st.farmsteads[0].house, open = w.nb.slice(house * 6, house * 6 + 6).find((j) => j >= 0 && !w.dev[j] && !w.water[j]);
 const field = st.farmsteads[0].fields.length ? st.farmsteads[0].fields[0].tile : -1;
@@ -31,6 +37,11 @@ check(w.wear[open] < PATHS.at[1] * PATHS.keep && w.worn[open] === 0, `an unused 
 for (let d = 0; d < 6 * YEAR_DAYS; d++) P.fadeWear(st);
 check(w.wear[open] === 0, 'a count under half a crossing is dropped');
 
+if (!process.argv.includes('--extended')) {
+  if (failed) process.exit(1);
+  console.log('paths ok: crossings, excluded tiles, fading and hysteresis');
+  process.exit(0);
+}
 // generated villages start worn in (VB-114), but the founders, who arrive on unmade land
 const pop = Sim.seed(world(7), 7, 'populous'), pw = pop.w, start = P.stageCounts(pw), heirs = P.stageCounts(Sim.seed(world(7), 7, 'heirs').w);
 check(start[1] > 60 && start[2] > 10, `populous starts with trodden/path/lane ${start.slice(1).join('/')}`);

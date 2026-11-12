@@ -5,9 +5,9 @@ A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). T
 - **Play online:** <https://ashlaban.github.io/village-builder/>
 - **Play locally:** open `index.html` in a browser.
 - **Build:** `python3 build.py` inlines `src/` into `index.html`.
-- **Test:** `npm install && npm test` (cheap headless checks, Node 20+); `npm run verify` adds long runs, golden states, saved fixtures and browser checks.
+- **Test:** `npm install && npm test` (cheap headless checks, Node 20+); `npm run verify` adds integration scenarios and browser checks. See [Testing](docs/testing.md) for coverage and runner options.
 - **Late-game fixtures:** a local cache under `tests/fixtures/<key>/`, keyed by the simulation's sources and made on demand
-  (`node tools/fixtures.js status|make|clean`; `npm run verify` makes the two small ones when missing). Nothing is published or fetched.
+  (`node tools/fixtures.js status|make|clean`; `npm run nightly` prepares them once). Nothing is published or fetched.
 - **Bench:** `node tools/bench.js` reports 30 days on each medium fixture, codec costs, systems, A* and rules;
   appends machine-labelled results to `docs/bench/history.jsonl` and regenerates `docs/bench/budget.md`.
   `node tools/bench.js --budget` regenerates the table alone. Nightly runs it after fixture preparation;

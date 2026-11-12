@@ -1,5 +1,5 @@
 // The played line, reduced (VB-078; the full runs are `node tools/player.js`): the scripted player of tests/lib/line.js plays populous on the tiny
-// map; a run saved and loaded every year ends with the same golden hashes as the unbroken one, with and without the player; every job a pawn
+// map; a run saved and loaded every year ends with the same state hashes as the unbroken one, with and without the player; every job a pawn
 // takes in a stepped window was taken by a work command; the commands are counted by source; and the played pawn, for one game day with the
 // automatic behaviour off, does only what its queue and the dark told it.
 const assert = require('assert');

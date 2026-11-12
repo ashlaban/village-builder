@@ -1,5 +1,11 @@
 # Roadmap: vertical slices, the late game and cheap measurement
 
+> Testing policy updated by VB-408 (12 November 2026): [Testing](testing.md) supersedes the golden-file,
+> suite membership and CI requirements below. There are no permanent behavior baselines to update.
+> Refactors preserve behavior through focused contracts and optional comparisons to their starting commit.
+> Late fixtures and long measurements run in the extended/nightly tier, not routine PR verification.
+
+
 Written on 3 November 2026, when Kim made `docs/architecture/target-v2.md` the project's architecture reference. Kim asked four
 things: which vertical slices to build, in what order, how to keep the game fast (above all late in a run), and how to make
 measuring that cheap. Kim also noted that target-v2 is mostly a framework, and that the concrete systems built on it still need
