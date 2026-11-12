@@ -3,7 +3,6 @@ VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
-  const { grazingDay } = VB['sim/grazing'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -161,13 +160,12 @@ VB['sim/herds'] = (() => {
       if (d.length) log(st, `${f.name} lost ${lost} over the winter.`, { kind: 'herdDeath', n: d.length, ...atFarm(f) });
     }
   }
-  // Once a game day, at its start (sim/clock): the spring round, and a new grazing spot for a herd whose old one was built on.
+  // Once a game day, at its start (sim/clock): a new grazing spot for a herd whose old one was built on. The spring round is the calendar's
+  // (sim/clock, CALENDAR: spring, on HERD.springDay).
   function herdsDay(st, c) {
     for (const herd of st.herds) {
       if (herd.household !== null && st.used.has(herd.home)) herd.home = homeTile(st, st.farmsteads[st.households[herd.household].farmstead]);
     }
-    grazingDay(st, c); // the herds back by the farm for the night, and the year's halving of the pressure (sim/grazing, VB-136)
-    if (c.doy === HERD.springDay) spring(st);
   }
 
   // ---- the herds each scenario starts with ----

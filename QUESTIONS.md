@@ -121,6 +121,29 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
+### VB-187: the gossip experiment, for the talk plan VB-186 (raised 12 November 2026)
+From the experiment of target-v2 10.2 (`docs/gossip-experiment.md`; `node tools/gossip.js`, seeds 1 to 10): stories meet the spread and
+lie bands, averaging only its own; forgetting is the weak band. None blocks a task; VB-186 takes them up.
+1. Which model for gossip. Averaging fails the forgetting, lie and counter-story bands by construction and makes strangers judge the
+   subject as harshly as the witness (-0.60 against -0.19 under stories, at a year). **P:** model B, stories, as decided; averaging
+   stays for attitudes (customs).
+2. Saturation per audience. A story from spring is stale by the winter gathering: an island joined by ice hears it in 3 of 10 seeds
+   (8 of 10 when the story is six days old), because its tellers lost zeal at home. **P:** a held story keeps two zeals, for its own
+   village and for others, so news is told afresh to people from elsewhere. (The other way: only what happens at the gathering crosses
+   the water, and other news only while fresh.)
+3. Forgetting as a cohort. A village that retold a story together forgets it within a few days; at a heard story's half-life of one
+   game year it is mostly forgotten by year 3 in 4 of 10 seeds, at 40 days in 10 of 10. **P:** a heard story's half-life of 40 game
+   days, first-hand memories three times as long, and a per-pawn factor of 0.5 to 1.5 (wits, or seeded), so forgetting is a curve.
+4. The forgetting band's measure. **P:** "mostly forgotten within three years" is held by under half of those who held it at its peak.
+5. Sharpening and the hop discount. Without a discount on what a heard story writes, 54% of held opinions reach the extremes, since each
+   hop sharpens. **P:** both: 8% sharper a hop on the told valence, 0.8 a hop on the memory it writes; the Proposed polarisation band
+   measured as extremes (|opinion| at 0.8 or more) under 0.25 of held opinions and no village with 20% on each side of 0.3, checked in
+   slice 7's wrap-up on the game (one story cannot test it).
+6. The alehouse, not the gathering, carries news to the neighbouring village (the share of goers changes nothing; halving B's alehouse
+   visits drops the fair-village band to 7 of 10). **P:** tune that band on the alehouse's draw from neighbouring villages.
+7. Belief is the parameter everything hangs on (a base of 0.3 leaves the fair's other village unaware in 7 of 10 seeds). **P:** a base of
+   0.6, moved by the tie to and opinion of the teller and by fit, as in the experiment; fitted in the wrap-up.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
@@ -143,3 +166,10 @@ Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oc
 
 ### VB-095: family tree by scope (planning)
 1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
+
+### VB-180: the next ownership boundaries (raised 12 November 2026)
+The wrap-up of the ownership arch reran the map (`docs/architecture/ownership.md`, sections 10 and 11): 76 fields have an owner; 38 fields are still written by two or more modules (189 sites); the ownership baseline holds 7 sites (`pawn.role`, written by `sim/heirs.refreshRoles`). Slice 5 will give `pawn.owed` an owner (VB-310) and `st.owner` a companion (VB-311).
+1. The baseline's last 7 sites. **P:** a small task moves `refreshRoles` into `sim/records`, as the cache's rebuild, so the baseline is empty and stays a ratchet at zero.
+2. Which of the remaining boundaries to take, and when. **P:** none as a task of its own until a slice needs it, with two exceptions. First, the land fields (7.8: `w.dev`, `w.stones`, `st.used`, `w.trees`, `st.regrow`; 18 write sites outside layout and scenarios) and the farm occupancy fields (7.7) wait for VB-311, which decides land's owners, and are done with it or just after. Second, hay, larder and manure (7.6) go to `sim/stores` with the first slice-7 or later task that touches the byre's feeding (VB-136, herding and grazing, is the next); `herd.head`, `herd.cull` and the job store (7.9) wait until a task touches them.
+3. The groups the rerun found that the map did not list: the pawn's vital fields (`pawn.alive`, `pawn.age`: `sim/society`, `sim/lifecycle`, `sim/births`) and projects and plots (`village.plots`: 18 sites in 5 modules; `farmstead.project`, `farmstead.meadows`). **P:** the vital fields are one small task (`sim/records` writes them, called by lifecycle and births: S); plots and projects wait for slice 5's land work (VB-311) and the expansion's next change, since `sim/expansion` is their main writer.
+4. The stress tests as tests. **P:** do not write them as code now; section 11 of `ownership.md` is the review. Each slice's wrap-up adds the lines of section 11 it moves (for example slice 5's wrap-up, VB-035: rent, tenancy and obligations, tests 4 and 5A and 5B) and, where a stress test can run on the simulation, one integration test then.

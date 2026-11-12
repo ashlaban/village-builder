@@ -121,18 +121,21 @@ VB['sim/meadows'] = (() => {
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
   }
-  // Once a game day, at its start: each spring the meadows are grass again; hay still lying at the autumn frost rots.
-  function meadowsDay(st, c) {
+  // At the year's start (sim/clock, CALENDAR: meadowsSpring): the meadows are grass again.
+  function meadowsSpring(st) {
+    for (const f of st.farmsteads) for (const m of f.meadows) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
+  }
+  // At the autumn frost, the season's last day (sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
+  function meadowsFrost(st) {
     for (const f of st.farmsteads) for (const m of f.meadows) {
-      if (c.doy === 0) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
-      if (c.season === 2 && c.sday === SEASON_DAYS - 1 && m.stage === 'mown') {
-        m.stage = 'aftermath'; m.held = 0;
-        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
-      }
+      if (m.stage !== 'mown') continue;
+      m.stage = 'aftermath'; m.held = 0;
+      if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+      startMeadow,
     finishMeadow, placeMeadows,
   };
 })();

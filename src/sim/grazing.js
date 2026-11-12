@@ -10,7 +10,7 @@ VB['sim/grazing'] = (() => {
   // @state w.graze: Float32Array per tile; grazing pressure (1 a cow-hour on the pasture, HERD.herding) against the year's scale: the
   //   pressure now is w.graze[i] / 2 ** ((t - y) / YEAR), y the start of the game year, so it halves each game year in closed form with no
   //   pass over the tiles (Rules for cost, 3); written against the scale, and put back on the new year's scale (halved) once a year, at the
-  //   year's first step (grazingDay). Written here only.
+  //   year's first step (halveGraze). Written here only.
   const yearScale = (st) => 2 ** ((st.t - YEAR * Math.floor(st.t / YEAR)) / YEAR);
   const grazeOf = (st, i) => st.w.graze[i] / yearScale(st);
   // n units of pressure on the tile, and HERD.herding.nb of them on each neighbour.
@@ -19,11 +19,10 @@ VB['sim/grazing'] = (() => {
     g[tile] += k;
     for (let d = 0; d < 6; d++) { const j = w.nb[tile * 6 + d]; if (j >= 0) g[j] += side; }
   }
-  // Once a game day, at its start (sim/herds herdsDay): every herd is back by its farm for the night (one whose herder went elsewhere than
-  // home), and at the year's first step the pressure is put on the new year's scale.
-  function grazingDay(st, c) {
-    for (const id of st.liveHouseholds) for (const hid of st.households[id].herds) st.herds[hid].herder = null;
-    if (c.doy !== 0) return;
+  // At midnight (sim/clock, CALENDAR): every herd is back by its farm for the night (one whose herder went elsewhere than home).
+  function herdsBack(st) { for (const id of st.liveHouseholds) for (const hid of st.households[id].herds) st.herds[hid].herder = null; }
+  // At the year's first step (sim/clock, CALENDAR): the pressure is put on the new year's scale.
+  function halveGraze(st) {
     const g = st.w.graze;
     for (let i = 0; i < g.length; i++) if (g[i] !== 0) g[i] *= 0.5;
   }
@@ -90,5 +89,5 @@ VB['sim/grazing'] = (() => {
       post(key, f.house, { farm: f });
     },
   };
-  return { yearScale, grazeOf, graze, grazingDay, heads, herdLoad, pasture, driveOut, driveHome, driven, unherded, KIND };
+  return { yearScale, grazeOf, graze, herdsBack, halveGraze, heads, herdLoad, pasture, driveOut, driveHome, driven, unherded, KIND };
 })();

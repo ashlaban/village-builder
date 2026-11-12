@@ -1,7 +1,7 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
@@ -34,8 +34,7 @@ VB['sim/kinds'] = (() => {
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents). herd is the first background kind (VB-136). held(st, j, a, c): what taking up a side task does;
-  //   a background kind's worked(st, j, dt) is called each step it is worked. minAge: the youngest a pawn may take the kind (sim/jobs).
+  //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -53,8 +52,10 @@ VB['sim/kinds'] = (() => {
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
-  // The spring sowing window, when fields are hoed and sown.
-  const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
+  // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]).
+  const sowing = (fd, c) => { const w = CROPS[fd.crop].sow; return c.season === w[0] && c.sday >= w[1] && c.sday <= w[2]; };
+  // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
+  const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
   const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
@@ -105,30 +106,30 @@ VB['sim/kinds'] = (() => {
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
     plow: {
-      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
+      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: HOURS.plow, hands: Infinity,
+        type: 'tilling',
       field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
       // a field in stubble, in the sowing window
       stages: ['stubble'], available: (st, hh, fd, c, post, f) => {
-        if (sowing(st.ECON, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
     sow: {
-      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
+      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: HOURS.sow, hands: Infinity, type: 'tending',
       field: true, pace: 9,
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
-        const E = st.ECON;
-        if (hh.grain < E.seedPerField) return;
-        Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
+        const seed = CROPS[j.field.crop].seed;
+        if (hh.grain < seed) return;
+        Stores.take(st, hh, 'grain', seed, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
-        const E = st.ECON;
-        if (sowing(E, c) && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'plowed' && hh.grain >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
     reap: {
-      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
+      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: HOURS.reap, hands: Infinity, type: 'harvest',
       field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
       done: (st, j, hh, c) => reaped(st, j.field, c),
@@ -216,7 +217,8 @@ VB['sim/kinds'] = (() => {
       },
     },
     weed: {
-      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
+      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: HOURS.weed, hands: Infinity,
+        type: 'tending',
       field: true, spot: onField, done: (st, j) => weeded(j.field),
       // a growing field whose weeding is open (sim/fields)
       stages: ['growing'], available: (st, hh, fd, c, post, f) => {
@@ -224,7 +226,7 @@ VB['sim/kinds'] = (() => {
       },
     },
     thresh: {
-      verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
+      verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: HOURS.thresh,
       hands: Infinity, type: 'threshing', inside: true, window: { from: WORK[0] - 1 }, done: (st, j, hh) => { Stores.thresh(st, hh); },
       // while the barn holds unthreshed sheaves
       available: (st, hh, f, c, post) => { if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, { farm: f }); },

@@ -199,14 +199,16 @@ VB['sim/byre'] = (() => {
     hh.hay -= lost; hh.haySpoilt = (hh.haySpoilt || 0) + lost;
   }
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
-  // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
+  // least valuable animal each day), a day without fodder is a lean day; an emergency slaughter when hay runs short. The autumn count is the
+  // calendar's (sim/clock, CALENDAR: autumnCounts, on HERD.countDay, after this).
   // ---- a herd with no herder (VB-136; docs/review-animals.md, G7) ----
   // A standing crop, sown and not yet reaped.
   const STANDING = ['sown', 'growing', 'ripe'];
-  // Yesterday the cattle stayed by the farm: where a stretch of the village's fence is broken (below HERD.stray.below) beside a standing
-  // crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses HERD.stray.loss of its yield
-  // (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps the stretch: the farm of the
-  // village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law made its keeper liable).
+  // Yesterday the cattle stayed by the farm (sim/clock, CALENDAR: strays): where a stretch of the village's fence is broken (below
+  // HERD.stray.below) beside a standing crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses
+  // HERD.stray.loss of its yield (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps
+  // the stretch: the farm of the village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law
+  // made its keeper liable).
   function stray(st, hh, herd) {
     const w = st.w, v = st.villages[st.farmsteads[hh.farmstead].village];
     let best = null;
@@ -252,8 +254,6 @@ VB['sim/byre'] = (() => {
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
-      for (const herd of herds) if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd);
-      if (c.doy === HERD.countDay) autumnCount(st, hh);
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1) for (const herd of herds) herd.lean++;
@@ -299,6 +299,21 @@ VB['sim/byre'] = (() => {
     if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
-  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs,
-    stray };
+  // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
+  function autumnCounts(st) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (!hh.dissolved && hh.herds.length) autumnCount(st, hh);
+    }
+  }
+  // Each household's cattle left by the farm yesterday may stray into a crop (sim/clock, CALENDAR: strays; VB-136).
+  function strays(st, c) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (hh.dissolved) continue;
+      for (const id of hh.herds) { const herd = st.herds[id]; if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd); }
+    }
+  }
+  return { spoilHay, stallLeft, autumnCounts, strays, stray, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone,
+    byreDay, fodderHours, byreJobs };
 })();

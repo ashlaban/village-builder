@@ -3049,8 +3049,7 @@ VB['sim/rules'] = (() => {
   // ---- economy (a ration, the unit of food, is one adult's food for one game day; FOODS below) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
-    fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
-    sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
+    dryDays: 1,
     woodPerTrip: 3, woodTarget: 30, woodWinter: 40, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
@@ -3058,6 +3057,16 @@ VB['sim/rules'] = (() => {
     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
     storeLoss: [0.05, 0.2, 0.4], villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
+  };
+  // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
+  // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
+  // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
+  // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
+  // calendar's, sim/clock FROST, until a second crop has another). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
+  // read them from here. ----
+  const CROPS = {
+    barley: { yield: 100, seed: 25, sow: [0, 0, 9], ripe: 26, wear: 0.08,
+      hours: { plow: 20, sow: 2, weed: 2, reap: 5, thresh: 6 } },
   };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
@@ -3252,7 +3261,7 @@ VB['sim/rules'] = (() => {
   // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
   // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
   // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
-  const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
+  const SOIL = { start: 1, fresh: 1.4, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
@@ -3383,7 +3392,7 @@ VB['sim/rules'] = (() => {
   const houseTerm = (st, f) => ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0))
     * houseCondition(st, f);
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS, HOUSE, houseCondition, houseTarred, houseTerm,
-    SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
@@ -4194,7 +4203,7 @@ VB['sim/layout'] = (() => {
     used.add(house); for (const j of fields) used.add(j);
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
-      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
+      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
       grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
@@ -4417,7 +4426,7 @@ VB['sim/layout'] = (() => {
     }
     if (best < 0) return false;
     used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
+    f.fields.push({ id: f.fields.length, tile: best, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
       soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }
@@ -4536,19 +4545,18 @@ VB['sim/records'] = (() => {
   // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
   // once to fold it, never once a village; it touches st.record only, never the pawns.
   const FOLD_DAYS = 4;
-  function foldHistory(st, c) {
-    const F = st.recordFold, R = st.record;
-    if (!F.pass && c.doy === 0) {
-      const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
-        for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
-        return i;
-      };
-      const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
-      if (shortEnd > F.shortAt || longEnd > F.longAt) {
-        F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
-      }
-    }
-    const P = F.pass; if (!P) return;
+  // The year's start (sim/clock's CALENDAR) begins a pass, unless one is under way; foldHistory, daily, folds a slice of it.
+  function startFold(st) {
+    const F = st.recordFold, R = st.record; if (F.pass) return;
+    const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
+      for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
+      return i;
+    };
+    const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
+    if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
+  }
+  function foldHistory(st) {
+    const F = st.recordFold, R = st.record, P = F.pass; if (!P) return;
     const fold = (from, to, short) => {
       for (let i = from; i < to; i++) {
         const e = R[i]; VB.count.recordFold++;
@@ -4885,7 +4893,7 @@ VB['sim/records'] = (() => {
   return {
     scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold,
       joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
-      record, HISTORY, foldHistory, lifeEvent, indexEvents,
+      record, HISTORY, startFold, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,
@@ -5841,7 +5849,7 @@ VB['sim/grazing'] = (() => {
   // @state w.graze: Float32Array per tile; grazing pressure (1 a cow-hour on the pasture, HERD.herding) against the year's scale: the
   //   pressure now is w.graze[i] / 2 ** ((t - y) / YEAR), y the start of the game year, so it halves each game year in closed form with no
   //   pass over the tiles (Rules for cost, 3); written against the scale, and put back on the new year's scale (halved) once a year, at the
-  //   year's first step (grazingDay). Written here only.
+  //   year's first step (halveGraze). Written here only.
   const yearScale = (st) => 2 ** ((st.t - YEAR * Math.floor(st.t / YEAR)) / YEAR);
   const grazeOf = (st, i) => st.w.graze[i] / yearScale(st);
   // n units of pressure on the tile, and HERD.herding.nb of them on each neighbour.
@@ -5850,11 +5858,10 @@ VB['sim/grazing'] = (() => {
     g[tile] += k;
     for (let d = 0; d < 6; d++) { const j = w.nb[tile * 6 + d]; if (j >= 0) g[j] += side; }
   }
-  // Once a game day, at its start (sim/herds herdsDay): every herd is back by its farm for the night (one whose herder went elsewhere than
-  // home), and at the year's first step the pressure is put on the new year's scale.
-  function grazingDay(st, c) {
-    for (const id of st.liveHouseholds) for (const hid of st.households[id].herds) st.herds[hid].herder = null;
-    if (c.doy !== 0) return;
+  // At midnight (sim/clock, CALENDAR): every herd is back by its farm for the night (one whose herder went elsewhere than home).
+  function herdsBack(st) { for (const id of st.liveHouseholds) for (const hid of st.households[id].herds) st.herds[hid].herder = null; }
+  // At the year's first step (sim/clock, CALENDAR): the pressure is put on the new year's scale.
+  function halveGraze(st) {
     const g = st.w.graze;
     for (let i = 0; i < g.length; i++) if (g[i] !== 0) g[i] *= 0.5;
   }
@@ -5921,7 +5928,7 @@ VB['sim/grazing'] = (() => {
       post(key, f.house, { farm: f });
     },
   };
-  return { yearScale, grazeOf, graze, grazingDay, heads, herdLoad, pasture, driveOut, driveHome, driven, unherded, KIND };
+  return { yearScale, grazeOf, graze, herdsBack, halveGraze, heads, herdLoad, pasture, driveOut, driveHome, driven, unherded, KIND };
 })();
 </script>
 <script>
@@ -5930,7 +5937,6 @@ VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
-  const { grazingDay } = VB['sim/grazing'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -6088,13 +6094,12 @@ VB['sim/herds'] = (() => {
       if (d.length) log(st, `${f.name} lost ${lost} over the winter.`, { kind: 'herdDeath', n: d.length, ...atFarm(f) });
     }
   }
-  // Once a game day, at its start (sim/clock): the spring round, and a new grazing spot for a herd whose old one was built on.
+  // Once a game day, at its start (sim/clock): a new grazing spot for a herd whose old one was built on. The spring round is the calendar's
+  // (sim/clock, CALENDAR: spring, on HERD.springDay).
   function herdsDay(st, c) {
     for (const herd of st.herds) {
       if (herd.household !== null && st.used.has(herd.home)) herd.home = homeTile(st, st.farmsteads[st.households[herd.household].farmstead]);
     }
-    grazingDay(st, c); // the herds back by the farm for the night, and the year's halving of the pressure (sim/grazing, VB-136)
-    if (c.doy === HERD.springDay) spring(st);
   }
 
   // ---- the herds each scenario starts with ----
@@ -6637,19 +6642,19 @@ VB['sim/dig'] = (() => {
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
   const { age, farmPractice, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
-  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
+  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedNeed(st, hh) {
     const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
     let n = f.project ? 1 : 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
+    return n * ((plan && plan.targets && plan.targets.seed) ?? CROPS.barley.seed);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;
@@ -6790,7 +6795,7 @@ VB['sim/hunger'] = (() => {
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((seedNeed(st, hh) - hh.grain) / st.ECON.seedPerField - 1e-9));
+    const short = Math.max(0, Math.ceil((seedNeed(st, hh) - hh.grain) / CROPS.barley.seed - 1e-9));
     if (short) log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
       kind: 'seedEaten', n: short, ...atFarm(f) });
   }
@@ -7268,7 +7273,7 @@ VB['sim/notable'] = (() => {
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -7294,7 +7299,7 @@ VB['sim/fields'] = (() => {
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
   const fieldsWanted = (st, hh, workable = fieldsWorkable(st, hh)) => Math.max(1, Math.min(workable,
-    Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * ECON.fieldYield))));
+    Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * CROPS.barley.yield))));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
@@ -7346,7 +7351,7 @@ VB['sim/fields'] = (() => {
   function finishBreak(st, f) {
     const w = st.w, tile = f.project.tile;
     realiseStake(st, st.households[f.household], tile);
-    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+    f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     f.project = null; st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
@@ -7354,7 +7359,7 @@ VB['sim/fields'] = (() => {
   }
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
-  const wearSoil = (fd) => { fd.soil = Math.max(SOIL.floor, fd.soil - SOIL.wear); };
+  const wearSoil = (fd) => { fd.soil = Math.max(SOIL.floor, fd.soil - CROPS[fd.crop].wear); };
   // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
   function manureWanted(f, hh, c) {
     if (c.season !== 0 || c.sday < SOIL.window[0] || c.sday > SOIL.window[1] || !(hh.manure >= 1)) return null;
@@ -7370,7 +7375,8 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n; fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
-  // @state farmstead.fields[]: crop stage, sown/reaped days, held sheaves and weeding progress; changed only here after seeding.
+  // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
+  // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   const hoed = (fd) => { fd.stage = 'plowed'; };
   function sown(fd, c) {
@@ -7382,7 +7388,7 @@ VB['sim/fields'] = (() => {
   function reaped(st, fd, c) {
     const E = st.ECON;
     fd.stage = 'stooks'; fd.reaped = c.day;
-    fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
+    fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
       * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) * (1 - HERD.stray.loss) ** (fd.trampled || 0));
     delete fd.trampled;
     wearSoil(fd); // the crop takes from the soil (VB-137)
@@ -7408,7 +7414,7 @@ VB['sim/fields'] = (() => {
     for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
       const g = day - fd.sown;
-      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
+      if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
       else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
     }
     // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
@@ -7417,11 +7423,6 @@ VB['sim/fields'] = (() => {
       if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
       if (fd.weedOpen) fd.weedMiss++;
       fd.weedOpen = true; fd.weedPosted = day;
-    }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-      }
     }
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
     for (const f of st.farmsteads) if (f.household === null && !f.claim) {
@@ -7432,8 +7433,16 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
-    builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost.
+  function fieldsFrost(st) {
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
+      }
+    }
+  }
+  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+    fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();
 </script>
@@ -7561,18 +7570,21 @@ VB['sim/meadows'] = (() => {
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
   }
-  // Once a game day, at its start: each spring the meadows are grass again; hay still lying at the autumn frost rots.
-  function meadowsDay(st, c) {
+  // At the year's start (sim/clock, CALENDAR: meadowsSpring): the meadows are grass again.
+  function meadowsSpring(st) {
+    for (const f of st.farmsteads) for (const m of f.meadows) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
+  }
+  // At the autumn frost, the season's last day (sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
+  function meadowsFrost(st) {
     for (const f of st.farmsteads) for (const m of f.meadows) {
-      if (c.doy === 0) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
-      if (c.season === 2 && c.sday === SEASON_DAYS - 1 && m.stage === 'mown') {
-        m.stage = 'aftermath'; m.held = 0;
-        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
-      }
+      if (m.stage !== 'mown') continue;
+      m.stage = 'aftermath'; m.held = 0;
+      if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+      startMeadow,
     finishMeadow, placeMeadows,
   };
 })();
@@ -7779,14 +7791,16 @@ VB['sim/byre'] = (() => {
     hh.hay -= lost; hh.haySpoilt = (hh.haySpoilt || 0) + lost;
   }
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
-  // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
+  // least valuable animal each day), a day without fodder is a lean day; an emergency slaughter when hay runs short. The autumn count is the
+  // calendar's (sim/clock, CALENDAR: autumnCounts, on HERD.countDay, after this).
   // ---- a herd with no herder (VB-136; docs/review-animals.md, G7) ----
   // A standing crop, sown and not yet reaped.
   const STANDING = ['sown', 'growing', 'ripe'];
-  // Yesterday the cattle stayed by the farm: where a stretch of the village's fence is broken (below HERD.stray.below) beside a standing
-  // crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses HERD.stray.loss of its yield
-  // (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps the stretch: the farm of the
-  // village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law made its keeper liable).
+  // Yesterday the cattle stayed by the farm (sim/clock, CALENDAR: strays): where a stretch of the village's fence is broken (below
+  // HERD.stray.below) beside a standing crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses
+  // HERD.stray.loss of its yield (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps
+  // the stretch: the farm of the village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law
+  // made its keeper liable).
   function stray(st, hh, herd) {
     const w = st.w, v = st.villages[st.farmsteads[hh.farmstead].village];
     let best = null;
@@ -7832,8 +7846,6 @@ VB['sim/byre'] = (() => {
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
-      for (const herd of herds) if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd);
-      if (c.doy === HERD.countDay) autumnCount(st, hh);
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1) for (const herd of herds) herd.lean++;
@@ -7879,8 +7891,23 @@ VB['sim/byre'] = (() => {
     if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
-  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs,
-    stray };
+  // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
+  function autumnCounts(st) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (!hh.dissolved && hh.herds.length) autumnCount(st, hh);
+    }
+  }
+  // Each household's cattle left by the farm yesterday may stray into a crop (sim/clock, CALENDAR: strays; VB-136).
+  function strays(st, c) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (hh.dissolved) continue;
+      for (const id of hh.herds) { const herd = st.herds[id]; if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd); }
+    }
+  }
+  return { spoilHay, stallLeft, autumnCounts, strays, stray, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone,
+    byreDay, fodderHours, byreJobs };
 })();
 </script>
 <script>
@@ -8099,7 +8126,7 @@ VB['sim/expansion'] = (() => {
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const { YEAR, CLAIMS } = VB['sim/rules'];
+  const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
     atHousehold, wishOf } = VB['sim/records'];
@@ -8263,7 +8290,7 @@ VB['sim/farmclaims'] = (() => {
   // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
   // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes.
   function provisions(st, f, members) {
-    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * st.ECON.seedPerField;
+    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * CROPS.barley.seed;
     let have = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(members.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
@@ -8459,7 +8486,7 @@ VB['sim/building'] = (() => {
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
@@ -8492,8 +8519,7 @@ VB['sim/kinds'] = (() => {
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents). herd is the first background kind (VB-136). held(st, j, a, c): what taking up a side task does;
-  //   a background kind's worked(st, j, dt) is called each step it is worked. minAge: the youngest a pawn may take the kind (sim/jobs).
+  //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -8511,8 +8537,10 @@ VB['sim/kinds'] = (() => {
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
-  // The spring sowing window, when fields are hoed and sown.
-  const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
+  // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]).
+  const sowing = (fd, c) => { const w = CROPS[fd.crop].sow; return c.season === w[0] && c.sday >= w[1] && c.sday <= w[2]; };
+  // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
+  const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
   const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
@@ -8563,30 +8591,30 @@ VB['sim/kinds'] = (() => {
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
     plow: {
-      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: 20, hands: Infinity, type: 'tilling',
+      verb: 'Hoeing a field', go: 'Going to hoe a field', name: 'Hoe a field', label: 'Hoeing', anim: 'hoe', hours: HOURS.plow, hands: Infinity,
+        type: 'tilling',
       field: true, spot: onField, urgency: inWindow, done: (st, j) => hoed(j.field),
       // a field in stubble, in the sowing window
       stages: ['stubble'], available: (st, hh, fd, c, post, f) => {
-        if (sowing(st.ECON, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
     sow: {
-      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: 2, hands: Infinity, type: 'tending',
+      verb: 'Sowing', go: 'Going to sow', name: 'Sow a field', label: 'Sowing', anim: 'sow', hours: HOURS.sow, hands: Infinity, type: 'tending',
       field: true, pace: 9,
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
-        const E = st.ECON;
-        if (hh.grain < E.seedPerField) return;
-        Stores.take(st, hh, 'grain', E.seedPerField, 'seed'); sown(j.field, c);
+        const seed = CROPS[j.field.crop].seed;
+        if (hh.grain < seed) return;
+        Stores.take(st, hh, 'grain', seed, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
-        const E = st.ECON;
-        if (sowing(E, c) && fd.stage === 'plowed' && hh.grain >= E.seedPerField) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'plowed' && hh.grain >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },
     },
     reap: {
-      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: 5, hands: Infinity, type: 'harvest',
+      verb: 'Reaping', go: 'Going to reap', name: 'Reap a field', label: 'Reaping', anim: 'reap', hours: HOURS.reap, hands: Infinity, type: 'harvest',
       field: true,
       spot: onField, urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
       done: (st, j, hh, c) => reaped(st, j.field, c),
@@ -8674,7 +8702,8 @@ VB['sim/kinds'] = (() => {
       },
     },
     weed: {
-      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: 2, hands: Infinity, type: 'tending',
+      verb: 'Weeding a field', go: 'Going to weed a field', name: 'Weed a field', label: 'Weed', anim: 'gather', hours: HOURS.weed, hands: Infinity,
+        type: 'tending',
       field: true, spot: onField, done: (st, j) => weeded(j.field),
       // a growing field whose weeding is open (sim/fields)
       stages: ['growing'], available: (st, hh, fd, c, post, f) => {
@@ -8682,7 +8711,7 @@ VB['sim/kinds'] = (() => {
       },
     },
     thresh: {
-      verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: 6,
+      verb: 'Threshing in the barn', go: 'Going to the barn to thresh', name: 'Thresh the grain', label: 'Threshing', anim: null, hours: HOURS.thresh,
       hands: Infinity, type: 'threshing', inside: true, window: { from: WORK[0] - 1 }, done: (st, j, hh) => { Stores.thresh(st, hh); },
       // while the barn holds unthreshed sheaves
       available: (st, hh, f, c, post) => { if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, { farm: f }); },
@@ -9792,7 +9821,7 @@ VB['sim/occasions'] = (() => {
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
@@ -9847,7 +9876,7 @@ VB['sim/plans'] = (() => {
   year('wood', (st, x) => (x.season === 1 || x.season === 2 ? st.ECON.woodWinter : st.ECON.woodTarget));
   year('woodSecond', (st) => st.ECON.woodTarget * 0.4);
   year('hayWinters', () => HAY_WINTERS);
-  year('seed', (st) => st.ECON.seedPerField);
+  year('seed', () => CROPS.barley.seed);
   year('perHand', () => FIELDS.perHand);
   // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], and of this season woodSecond,
   // hayWinters, seed, perHand, steps: the routines in order}, made at its first need in a season, so a seasonal plan copies arrays and
@@ -9929,7 +9958,7 @@ VB['sim/plans'] = (() => {
   // sowing and the day after it (its hoeing and sowing taken down), the two last days of autumn (the harvest before the frost), and the first
   // day of winter (the ice: fishing taken down, VB-117).
   function closing(st, c) {
-    const last = st.ECON.sowWindow[1];
+    const last = CROPS.barley.sow[2]; // the sowing window's end (barley alone as yet)
     return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2) || (c.season === 3 && c.sday === 0);
   }
   // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
@@ -9938,8 +9967,10 @@ VB['sim/plans'] = (() => {
     if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
     const hh = st.households[plan.holder.id], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return false;
-    const W = st.ECON.sowWindow, sow = c.season === 0 && c.sday >= W[0] && c.sday <= W[1];
-    for (const fd of f.fields) if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    for (const fd of f.fields) {
+      const W = CROPS[fd.crop].sow, sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+      if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    }
     return false;
   }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
@@ -11618,7 +11649,7 @@ VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { SETTLE, ECON, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -11684,7 +11715,7 @@ VB['sim/settle'] = (() => {
   const Stores = VB['sim/stores'];
   const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? ECON.ration.adult : ECON.ration.child), 0);
   function provisions(st, all) {
-    const need = Math.ceil(SETTLE.provisionDays * rationsOf(st, all)) + ECON.seedPerField, gifts = [];
+    const need = Math.ceil(SETTLE.provisionDays * rationsOf(st, all)) + CROPS.barley.seed, gifts = [];
     let have = all.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(all.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
@@ -11902,7 +11933,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
+  const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -12200,36 +12231,35 @@ VB['sim/lifecycle'] = (() => {
       closeOffer(st, st.offers[0]);
     }
   }
-  function dailyLife(st, c) {
-    const env = st.cenv;
+  function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) { const p = st.pawns[id]; p.age = age(st, p); }
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
-    if (c.sday === 0) fadeRelations(st);
-    if (st.naturalDeaths) {
-      VB.count.walkDaily += st.living.length;
-      // Death splices the live index; visit the original ids once, in the original order.
-      for (const id of st.living.slice()) {
-        const p = st.pawns[id];
-        if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
-      }
+  }
+  // The day's death rolls, after the season's fading of relations (sim/clock, CALENDAR: dailyDeaths, while st.naturalDeaths).
+  function dailyDeaths(st) {
+    VB.count.walkDaily += st.living.length;
+    // Death splices the live index; visit the original ids once, in the original order.
+    for (const id of st.living.slice()) {
+      const p = st.pawns[id];
+      if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
     }
   }
   // The day's drift of attitudes (VB-201) runs over the night's 6-minute steps after midnight, a settlement a step (Rules for cost, 5):
   // settlement k of the culture on step 1 + k % NIGHT_STEPS of the day, the living of no settlement on step 1. Nothing is saved: the step of
   // the day says what is due, so a run loaded between two steps does the rest.
   const NIGHT_STEPS = 40;
+  // Called on steps 1 to NIGHT_STEPS of the day only (sim/clock, CALENDAR: nightCulture).
   function nightCulture(st, step) {
-    if (step < 1 || step > NIGHT_STEPS) return;
     const env = st.cenv, hk = hooks(st), rand = drawer(st.rng.culture);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
-    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture,
+    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, dailyDeaths, nightCulture,
     NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();
@@ -12354,7 +12384,7 @@ VB['sim/people'] = (() => {
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -12385,7 +12415,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed;
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
@@ -12423,7 +12453,7 @@ VB['sim/scenarios'] = (() => {
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed;
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
@@ -12544,7 +12574,7 @@ VB['sim/scenarios'] = (() => {
     //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
     //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
     //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
+    //   fields[] {id, tile, crop (key of CROPS), stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
@@ -12636,117 +12666,225 @@ VB['sim/scenarios'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/clock: the hourly step, end of day, new year and Sim.advance
+// @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR_DAYS, YEAR, TICKS, cal, WORK, dark, SOCIAL } = VB['sim/rules'];
-  const { log, foldHistory } = VB['sim/records'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD } = VB['sim/rules'];
+  const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
-  const { fieldsDay } = VB['sim/fields'];
+  const { fieldsDay, fieldsFrost } = VB['sim/fields'];
   const { refreshRoutes, costChanged } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { reviewHour } = VB['sim/plans'];
   const { shareFood } = VB['sim/help'];
   const { placeByDoor, release, stepAgents } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
-  const { talkHour } = VB['sim/relations'];
+  const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
-  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, nightCulture, dueOffers } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_PHASES, dailyLife, dailyDeaths, nightCulture, NIGHT_STEPS, dueOffers } = VB['sim/lifecycle'];
   const { dailyBirths } = VB['sim/births'];
-  const { herdsDay } = VB['sim/herds'];
-  const { meadowsDay } = VB['sim/meadows'];
-  const { byreDay } = VB['sim/byre'];
+  const { herdsDay, spring } = VB['sim/herds'];
+  const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { byreDay, autumnCounts, strays } = VB['sim/byre'];
+  const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
-  function onHour(st, h, c) {
-    if (st.cenv && h >= SOCIAL.talk.from && h < SOCIAL.talk.to) talkHour(st, h, outdoors(st)); // talk, and the hours at home (sim/relations)
-    if (h === Math.ceil(dark(c)[1])) { // the dark ends: everyone indoors is by their door
-      for (const id of st.living) {
-        const a = st.agents[id];
-        if (a.inside && !a.job) placeByDoor(st, a);
-      }
-    }
-    if (reviewHour(h)) refreshJobs(st, c); // the review of the standing plans (sim/plans)
-    if (h >= 14 && h < WORK[1]) callCooks(st, c);
-    if (h >= WORK[0] && h < WORK[1]) lookUp(st, c); // more urgent work interrupts a job (VB-107)
-    if (h === WORK[1]) for (const liveId of st.living) {
-      const a = st.agents[liveId];
-      if (st.pawns[a.id].died) continue;
-      if (a.phase === 'back') continue; // finish the delivery first
-      if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
-      if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
-      release(st, a);
-      if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
-    }
-    if (h === 0) {
-      const short = endOfDay(st, c); herdsDay(st, c); meadowsDay(st, c); byreDay(st, c); // the animals (sim/herds, sim/meadows, sim/byre)
-      if (st.cenv) { dailyLife(st, c); dailyBirths(st); dueOffers(st); } // marriage offers due close (sim/lifecycle, VB-293)
-      if (st.cenv && short.length) takeIn(st, short); // households short of people whose ask fell short are taken in (sim/service, VB-308)
-      if (st.cenv && c.season === 2 && c.sday === 9) callMeetings(st); // the meeting's people gather on the green (sim/occasions, VB-126)
-      if (c.doy === 0) newYear(st, c);
-      foldHistory(st, c); // the record's routine events, folded over the year's first days (sim/records, VB-199)
-    }
-  }
-  function endOfDay(st, c) {
-    const E = st.ECON;
-    const short = shareFood(st); // households short of people whose ask for food fell short (sim/help, VB-308)
-    for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved) continue;
-      feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
-      Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
-    }
-    Stores.villageDay(st); // it spoils too (balance review)
-    growTrees(st);
-    const lapsed = lapseClaims(st); // unworked claims fade out after 3 years (sim/claims)
-    lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); // a lapsed stake ends its project, a lapsed claim on an empty farm the claim
-    fadeWear(st, (tile) => costChanged(st, tile)); // a path that changes stage changes the cost of walking it
-    refreshRoutes(st);
-    fieldsDay(st, c);
-    const decay = E.fenceDecay[c.season];
-    const all = [...st.villages.flatMap((v) => v.fence), ...st.farmsteads.flatMap((f) => f.fence || [])];
-    // Empty buildings lose about 8% a year; not while a claimant mends the farm (VB-033).
-    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
-      f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
-      if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
-    }
-    for (const s of all) {
-      const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
-    }
-    return short;
+
+  // ---- the calendar (VB-241) ----
+  // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
+  // entry whose cadence and place the step reached and whose guard holds. The order decides outcomes (target-v2 3.3), so it is written
+  // here and nowhere else; tests/clock.js holds it against a recorded list (an intended change of order re-records that list there).
+  // An entry: {every, at, when, owner, run, note}.
+  //   every: 'step' | 'hour' | 'day' | 'season' | 'year', how often it comes round.
+  //   at: its place within that cadence, {hour, tick, season, sday, doy}. hour is the hour of the day; tick the 6-minute step counted
+  //     from the start of that hour (of hour 0 when no hour is given), so a tick may run past its hour (the night's culture, steps 1 to 40
+  //     of the day); either may be a range [from, to), to excluded. Left out: a 'step' entry runs on every step and an 'hour' entry at
+  //     the first step of every hour; a 'day', 'season' or 'year' entry at midnight (hour 0, tick 0). The date is for the long cadences
+  //     only: a 'season' entry runs on day sday of each season (0 when left out); a 'year' entry on day doy of the year, or on day sday
+  //     of season, (day 0 of the year when neither is given).
+  //   when: (st, c) => boolean, a guard that is not a place in the calendar: st.cenv, a list that is not empty, or a time that moves
+  //     with the date (the dark's end). Left out: always.
+  //   owner: the module whose rule the entry runs (a module of src/manifest.json); note: what it is, in a few words.
+  //   run: (st, c, n): c is cal() of the step's hour (null for a 'step' entry with no date and no guard, which reads its own time), n
+  //     the step of the day (0 to DAY * TICKS - 1).
+  // It is code, never saved: compiled and frozen as this module loads (the last module before Sim, so nothing can register later).
+  // To add an entry: insert it below where it should run, then re-record the order in tests/clock.js (ORDER; its failure prints the list).
+  const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
+  const cenv = (st) => !!st.cenv;
+  // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's
+  // later in the same step, so it is never seen across a save.
+  let short = [];
+  const AUTUMN = 2, FROST = { season: AUTUMN, sday: SEASON_DAYS - 1 };
+  const CALENDAR = [
+    // ---- each hour, at its first step ----
+    { every: 'hour', at: { hour: [SOCIAL.talk.from, SOCIAL.talk.to] }, when: cenv, owner: 'sim/relations', note: 'talk, and the hours at home',
+      run: (st, c) => talkHour(st, c.hour, outdoors(st)) },
+    { every: 'hour', when: (st, c) => c.hour === Math.ceil(dark(c)[1]), owner: 'sim/agents', note: 'the dark ends: everyone indoors is by their door',
+      run: (st) => {
+        for (const id of st.living) {
+          const a = st.agents[id];
+          if (a.inside && !a.job) placeByDoor(st, a);
+        }
+      } },
+    { every: 'hour', at: { hour: [WORK[0] - 1, WORK[1] + 1] }, owner: 'sim/jobs', note: 'the review of the standing plans (sim/plans reviewHour)',
+      run: (st, c) => refreshJobs(st, c) },
+    { every: 'hour', at: { hour: [14, WORK[1]] }, owner: 'sim/jobs', note: 'cooks called for the evening meal', run: (st, c) => callCooks(st, c) },
+    { every: 'hour', at: { hour: [WORK[0], WORK[1]] }, owner: 'sim/jobs', note: 'more urgent work interrupts a job (VB-107)', run: (st, c) => lookUp(st, c) },
+    { every: 'hour', at: { hour: WORK[1] }, owner: 'sim/agents', note: 'the work day ends: everyone free goes home',
+      run: (st) => {
+        for (const liveId of st.living) {
+          const a = st.agents[liveId];
+          if (st.pawns[a.id].died) continue;
+          if (a.phase === 'back') continue; // finish the delivery first
+          if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
+          if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
+          release(st, a);
+          if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+        }
+      } },
+    // ---- each day, at midnight: the households, the land ----
+    { every: 'day', owner: 'sim/help', note: 'kin and the village give food to the short', run: (st) => { short = shareFood(st); } },
+    { every: 'day', owner: 'sim/hunger', note: 'meals, grain and ale spoil, the fire burns wood',
+      run: (st, c) => {
+        const E = st.ECON;
+        for (const liveId of st.liveHouseholds) {
+          const hh = st.households[liveId];
+          if (hh.dissolved) continue;
+          feedHousehold(st, hh); spoilGrain(st, hh); Stores.spoilAle(st, hh);
+          Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
+        }
+      } },
+    { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
+    { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },
+    { every: 'day', owner: 'sim/claims', note: 'unworked claims lapse, and the stakes and farm claims on them',
+      run: (st) => { const lapsed = lapseClaims(st); lapsedStakes(st, lapsed); lapsedFarmClaims(st, lapsed); } },
+    { every: 'day', owner: 'sim/paths', note: 'paths fade; a changed stage changes the cost of walking it',
+      run: (st) => fadeWear(st, (tile) => costChanged(st, tile)) },
+    { every: 'day', owner: 'sim/routes', note: 'cached routes refreshed', run: (st) => refreshRoutes(st) },
+    { every: 'day', owner: 'sim/fields', note: 'crops grow, weeding falls due, untended fields go wild', run: (st, c) => fieldsDay(st, c) },
+    { every: 'year', at: FROST, owner: 'sim/fields', note: 'the autumn frost takes the crops still out', run: (st) => fieldsFrost(st) },
+    { every: 'day', owner: 'sim/clock', note: 'empty farms decay, about 8% a year',
+      run: (st) => {
+        // not while a claimant mends the farm (VB-033)
+        for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+          f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
+          if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
+        }
+      } },
+    { every: 'day', owner: 'sim/clock', note: 'fences decay',
+      run: (st, c) => {
+        const decay = st.ECON.fenceDecay[c.season];
+        for (const v of st.villages) for (const s of v.fence) decayFence(st, s, decay);
+        for (const f of st.farmsteads) for (const s of f.fence || []) decayFence(st, s, decay);
+      } },
+    // ---- the animals ----
+    { every: 'day', owner: 'sim/herds', note: 'a new grazing spot for a herd whose old one was built on', run: (st, c) => herdsDay(st, c) },
+    { every: 'year', at: { doy: HERD.springDay }, owner: 'sim/herds', note: 'spring: the animals age, die, calve and lamb', run: (st) => spring(st) },
+    { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
+    { every: 'year', at: FROST, owner: 'sim/meadows', note: 'the autumn frost rots hay still lying', run: (st) => meadowsFrost(st) },
+    { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
+    { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
+    { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
+    { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
+    { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
+    // ---- the people ----
+    { every: 'day', when: cenv, owner: 'sim/lifecycle', note: 'ages, coming of age, orphans, the day\'s ties', run: (st) => dailyLife(st) },
+    { every: 'season', when: cenv, owner: 'sim/relations', note: 'faded memories forgotten, ties to the dead dropped', run: (st) => fadeRelations(st) },
+    { every: 'day', when: (st) => !!st.cenv && !!st.naturalDeaths, owner: 'sim/lifecycle', note: 'the death rolls', run: (st) => dailyDeaths(st) },
+    { every: 'day', when: cenv, owner: 'sim/births', note: 'births', run: (st) => dailyBirths(st) },
+    { every: 'day', when: cenv, owner: 'sim/lifecycle', note: 'marriage offers due close (VB-293)', run: (st) => dueOffers(st) },
+    { every: 'day', when: (st) => !!st.cenv && short.length > 0, owner: 'sim/service', note: 'the short of people taken in (VB-308)',
+      run: (st) => takeIn(st, short) },
+    { every: 'year', at: { season: AUTUMN, sday: 9 }, when: cenv, owner: 'sim/occasions', note: 'the meeting\'s people called to the green (VB-126)',
+      run: (st) => callMeetings(st) },
+    // ---- the year ----
+    { every: 'year', owner: 'sim/clock', note: 'the year begins: its weather', run: (st, c) => newYear(st, c) },
+    { every: 'year', owner: 'sim/stores', note: 'ledgers of dissolved households expire', run: (st) => Stores.prune(st) },
+    { every: 'year', owner: 'sim/records', note: 'the record\'s fold of past years begins (VB-199)', run: (st) => startFold(st) },
+    { every: 'day', owner: 'sim/records', note: 'the fold goes on, a slice a day (VB-199)', run: (st) => foldHistory(st) },
+    // ---- each step ----
+    { every: 'step', owner: 'sim/occasions', note: 'those asked set out, and occasions end (VB-126)', run: (st) => occasionsDue(st) },
+    { every: 'step', at: { tick: [1, NIGHT_STEPS + 1] }, when: cenv, owner: 'sim/lifecycle', note: 'the night\'s culture, a settlement a step (VB-201)',
+      run: (st, c, n) => nightCulture(st, n) },
+    // ---- autumn: the meetings' stages from noon of day 10 (customs, then the outland; VB-206), the moving round's from noon of day 11 (VB-201) ----
+    ...Array.from({ length: MEETING_STAGES }, (_, r) => ({ every: 'year', at: { season: AUTUMN, sday: 9, hour: 12, tick: r }, when: cenv,
+      owner: 'sim/lifecycle', note: `the meetings, stage ${r}`, run: (st) => meetingStage(st, r) })),
+    ...Array.from({ length: ROUND_PHASES }, (_, r) => ({ every: 'year', at: { season: AUTUMN, sday: 10, hour: 12, tick: r }, when: cenv,
+      owner: 'sim/lifecycle', note: `the moving round, phase ${r}`, run: (st) => roundPhase(st, r) })),
+  ];
+  function decayFence(st, s, decay) {
+    const before = s.cond; s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences))); if ((before >= 0.45) !== (s.cond >= 0.45)) s.dirty = true;
   }
   function newYear(st, c) {
     st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
     const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
     log(st, `Year ${c.year} begins. The weather ${word}.`, { kind: 'year', n: c.year });
-    // Historical ledgers of dissolved households still expire at the new year.
-    Stores.prune(st);
   }
+  // Compiled once: each entry's steps of the day as a mask, and its date. A malformed entry fails here, at load.
+  const CADENCES = ['step', 'hour', 'day', 'season', 'year'], AT = ['hour', 'tick', 'season', 'sday', 'doy'];
+  function span(x, hi, what, note) {
+    const r = Array.isArray(x) ? x : [x, x + 1];
+    if (!(r.length === 2 && Number.isInteger(r[0]) && Number.isInteger(r[1]) && r[0] >= 0 && r[0] < r[1] && r[1] <= hi)) {
+      throw new Error(`calendar: ${note}: ${what} ${JSON.stringify(x)} is not in 0 to ${hi - 1}`);
+    }
+    return r;
+  }
+  function compile(e) {
+    const at = e.at || {}, every = e.every, no = (k) => at[k] === undefined, bad = (why) => new Error(`calendar: ${e.note}: ${why}`);
+    if (!CADENCES.includes(every)) throw bad(`no cadence ${every}`);
+    if (typeof e.run !== 'function' || typeof e.owner !== 'string' || typeof e.note !== 'string') throw bad('an entry needs run, owner and note');
+    for (const k of Object.keys(at)) if (!AT.includes(k)) throw bad(`no place at.${k}`);
+    const dated = !no('season') || !no('sday') || !no('doy');
+    if (dated && every !== 'season' && every !== 'year') throw bad('a date is for a season or a year entry');
+    if (every === 'season' && (!no('season') || !no('doy'))) throw bad('a season entry takes sday only');
+    if (every === 'year' && !no('doy') && (!no('season') || !no('sday'))) throw bad('doy, or season and sday');
+    if (every === 'year' && no('season') !== no('sday')) throw bad('season and sday together');
+    const steps = new Uint8Array(STEPS_A_DAY);
+    if (every === 'step' && no('hour') && no('tick')) steps.fill(1);
+    else if (every === 'hour' && no('hour')) {
+      const [t0, t1] = span(at.tick ?? 0, TICKS, 'tick', e.note);
+      for (let n = 0; n < STEPS_A_DAY; n++) if (n % TICKS >= t0 && n % TICKS < t1) steps[n] = 1;
+    } else {
+      const [h0, h1] = span(at.hour ?? 0, DAY, 'hour', e.note);
+      const [t0, t1] = span(at.tick ?? 0, h1 - h0 > 1 ? TICKS : STEPS_A_DAY - h0 * TICKS, 'tick', e.note);
+      for (let h = h0; h < h1; h++) for (let t = t0; t < t1; t++) steps[h * TICKS + t] = 1;
+    }
+    return Object.freeze({
+      steps, run: e.run, when: e.when || null, bare: every === 'step' && !dated && !e.when,
+      doy: every === 'year' && no('season') ? at.doy ?? 0 : -1,
+      season: every === 'year' ? at.season ?? -1 : -1,
+      sday: every === 'season' ? at.sday ?? 0 : every === 'year' ? at.sday ?? -1 : -1,
+    });
+  }
+  const compiled = Object.freeze(CALENDAR.map(compile));
+  for (const e of CALENDAR) { if (e.at) Object.freeze(e.at); Object.freeze(e); }
+  Object.freeze(CALENDAR);
+  // The table as rows, in order (tools/sim.js --report calendar, tests/clock.js): cadence, place, guard, owner, note.
+  const place = (at) => Object.entries(at || {}).map(([k, v]) => `${k} ${Array.isArray(v) ? `${v[0]}-${v[1] - 1}` : v}`).join(', ');
+  const calendarRows = () => CALENDAR.map((e) => ({ every: e.every, at: place(e.at), when: e.when ? 'guarded' : '', owner: e.owner, note: e.note }));
+
   // ---- the clock (VB-235) ----
   // @state st.tick: integer >= 0; the 6-minute steps done since hour 0, the clock's source of truth: an hour begins when st.tick % TICKS
   //   is 0, and the hour, the day and the year the clock is working through are read from it (Math.floor(st.tick / TICKS) is the hour).
   // @state st.t is st.tick / TICKS, written here only.
-  const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
-  // Each 6-minute step that ends here: the hour it begins (onHour), the occasions due (VB-126), then the steps of the day (sim/lifecycle):
-  // the night's culture, a settlement a step after midnight (VB-201); from noon of autumn day 10, the meetings' stages (customs, then the
-  // outland; VB-206); from noon of day 11, the moving round's phases (VB-201). The step of the day says what is due, so a save between two of them goes on.
+  // Each 6-minute step that ends here runs the calendar's entries the step reached, in the table's order. The step of the day says what is
+  // due, so a save between two steps goes on. Nothing is allocated but the step's date, once, when an entry reads it.
   function stepEnds(st) {
-    const k = st.tick, hour = Math.floor(k / TICKS);
-    if (k % TICKS === 0) onHour(st, mod(hour, DAY), cal(hour));
-    occasionsDue(st); // those asked set out, and occasions end (sim/occasions, VB-126)
-    if (!st.cenv) return;
-    const n = mod(k, STEPS_A_DAY), r = n - 12 * TICKS;
-    nightCulture(st, n);
-    if (r >= 0 && r < Math.max(MEETING_STAGES, ROUND_PHASES)) {
-      const kc = cal(hour);
-      if (kc.season === 2 && kc.sday === 9 && r < MEETING_STAGES) meetingStage(st, r);
-      else if (kc.season === 2 && kc.sday === 10 && r < ROUND_PHASES) roundPhase(st, r);
+    const k = st.tick, hour = Math.floor(k / TICKS), n = mod(k, STEPS_A_DAY);
+    let c = null;
+    for (let i = 0; i < compiled.length; i++) {
+      const e = compiled[i];
+      if (!e.steps[n]) continue;
+      if (e.bare) { e.run(st, null, n); continue; }
+      if (c === null) c = cal(hour);
+      if ((e.doy >= 0 && c.doy !== e.doy) || (e.season >= 0 && c.season !== e.season) || (e.sday >= 0 && c.sday !== e.sday)) continue;
+      if (e.when !== null && !e.when(st, c)) continue;
+      e.run(st, c, n);
     }
   }
   // The clock's arithmetic: moves st by `hours`, which must be whole 6-minute steps, a step at a time, calling each(st) after each. The
@@ -12775,7 +12913,7 @@ VB['sim/clock'] = (() => {
     }
   }
   const advance = (st, hours) => ticking(st, hours, step);
-  return { onHour, endOfDay, newYear, advance, ticking, stepsIn };
+  return { CALENDAR, calendarRows, advance, ticking, stepsIn };
 })();
 </script>
 <script>
@@ -13050,6 +13188,7 @@ VB['sim/saves'] = (() => {
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages) if (!v.wood) { delete v.commonsWood; reckonWood(st, v); }
     for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
+    for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
   }
@@ -17906,7 +18045,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '818c3a3c91', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e06ec79347', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -58,12 +58,16 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
   `--load FILE`, so a bug report can carry the run.
+- Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
+  household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days; `tools/hours.js`);
+  `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
-- Also: `node tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies
-  and cycles), `node tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs;
-  `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js`
-  (screenshots of the page), `node tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads),
-  `node tools/bench.js` (the budget's lines at `medium-y5` and `medium-ref`).
+- Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
+  tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
+  tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
+  quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js` (screenshots of the page), `node
+  tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
+  `medium-y5` and `medium-ref`).
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
@@ -124,7 +128,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
-- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify).
+- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/invariants.js` in verify)
+  and, if it is a stored quantity, its line in `tools/stocks.js` (what happens at none; `tests/review-tools.js` checks it).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
   any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.
 - A change to behaviour reports numbers before and after (`tools/sim.js`, `tools/balance.js`, `node tests/run.js verify --verbose`)

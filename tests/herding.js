@@ -64,7 +64,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
   check(Math.abs(Z.grazeOf(s, 0) - 8) < 1e-5 && Math.abs(Z.grazeOf(s, 1) - 8 * H.nb) < 1e-5, 'the pressure and its neighbour\'s as added');
   s.t = 10 + Sim.YEAR / 2;
   check(Math.abs(Z.grazeOf(s, 0) - 8 / Math.SQRT2) < 1e-4, `half a year on: ${Z.grazeOf(s, 0)}, wanted ${8 / Math.SQRT2}`);
-  s.t = Sim.YEAR; Z.grazingDay(s, { doy: 0 });
+  s.t = Sim.YEAR; Z.halveGraze(s);
   s.t = Sim.YEAR + 10;
   check(Math.abs(Z.grazeOf(s, 0) - 4) < 1e-4, `a year on, past the new year: ${Z.grazeOf(s, 0)}, wanted 4`);
 }

@@ -28,7 +28,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
+  const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -326,36 +326,35 @@ VB['sim/lifecycle'] = (() => {
       closeOffer(st, st.offers[0]);
     }
   }
-  function dailyLife(st, c) {
-    const env = st.cenv;
+  function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) { const p = st.pawns[id]; p.age = age(st, p); }
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
-    if (c.sday === 0) fadeRelations(st);
-    if (st.naturalDeaths) {
-      VB.count.walkDaily += st.living.length;
-      // Death splices the live index; visit the original ids once, in the original order.
-      for (const id of st.living.slice()) {
-        const p = st.pawns[id];
-        if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
-      }
+  }
+  // The day's death rolls, after the season's fading of relations (sim/clock, CALENDAR: dailyDeaths, while st.naturalDeaths).
+  function dailyDeaths(st) {
+    VB.count.walkDaily += st.living.length;
+    // Death splices the live index; visit the original ids once, in the original order.
+    for (const id of st.living.slice()) {
+      const p = st.pawns[id];
+      if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
     }
   }
   // The day's drift of attitudes (VB-201) runs over the night's 6-minute steps after midnight, a settlement a step (Rules for cost, 5):
   // settlement k of the culture on step 1 + k % NIGHT_STEPS of the day, the living of no settlement on step 1. Nothing is saved: the step of
   // the day says what is due, so a run loaded between two steps does the rest.
   const NIGHT_STEPS = 40;
+  // Called on steps 1 to NIGHT_STEPS of the day only (sim/clock, CALENDAR: nightCulture).
   function nightCulture(st, step) {
-    if (step < 1 || step > NIGHT_STEPS) return;
     const env = st.cenv, hk = hooks(st), rand = drawer(st.rng.culture);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
-    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture,
+    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, dailyDeaths, nightCulture,
     NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();

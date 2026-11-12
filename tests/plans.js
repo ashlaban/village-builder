@@ -2,6 +2,7 @@
 // wanted), the land step with its seam for a tile the plan names, the year's herd count, and its reservation of seed in sim/stores.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { CROPS } = VB['sim/rules'];
 const { setClock } = require('./lib/clock.js');
 const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim/hunger'], F = VB['sim/fields'];
 const { refreshJobs } = VB['sim/jobs'], { DAY, WORK, HERD, YEAR_DAYS, cal } = VB['sim/rules'];
@@ -18,7 +19,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh), 'reserved is the seed the fields need');
   assert.strictEqual(Sim.seedReserve(st, hh), seedNeed(st, hh), 'Sim.seedReserve reads the reservation');
   for (const fd of f.fields) fd.stage = 'sown';
-  assert.strictEqual(Stores.reserved(st, hh, 'grain'), (f.project ? 1 : 0) * st.ECON.seedPerField, 'a field sown since the review counts at once');
+  assert.strictEqual(Stores.reserved(st, hh, 'grain'), (f.project ? 1 : 0) * CROPS.barley.seed, 'a field sown since the review counts at once');
   assert.strictEqual(Stores.reserved(st, st.villages[0], 'grain'), 0, 'a village reserves nothing');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'plan invariants');
 }
@@ -127,7 +128,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert(!plan.dirty && plan.nextReview === next, 'the flag cleared, the planning day kept');
   Stores.put(st, hh, 'grain', 1000, 'gift');
   assert(plan.dirty && Plans.reviewWhy(st, plan, Math.floor(st.t), c) === null, 'at most one store review a day');
-  const spring9 = cal(st.ECON.sowWindow[1] * DAY + WORK[0]);
+  const spring9 = cal(CROPS.barley.sow[2] * DAY + WORK[0]);
   assert(Plans.closing(st, spring9) && !Plans.closing(st, cal(3 * DAY)), 'the sowing window\'s last day is a closing day');
 }
 { // VB-322: fields due. A household of cadence 3 reviewed on its planning day is reviewed out of turn, at the first review hour, the day a
@@ -151,7 +152,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
     setClock(st, (D + 1) * DAY + FIRST);
     assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'nothing due: no review out of turn');
     fd.stage = stage;
-    if (stage === 'ripe') fd.sown = D + 1 - st.ECON.ripeAfterDays;
+    if (stage === 'ripe') fd.sown = D + 1 - CROPS.barley.ripe;
     setClock(st, (D + 1) * DAY + FIRST + 1);
     assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'only at the first review hour');
     setClock(st, (D + 1) * DAY + FIRST);
@@ -190,7 +191,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   for (const culture of [-1, 0, 1]) {
     assert.deepStrictEqual([0, 1, 2, 3].map((s) => at('wood', culture, s)), [st.ECON.woodTarget, st.ECON.woodWinter, st.ECON.woodWinter, st.ECON.woodTarget]);
     assert.strictEqual(at('hayWinters', culture, 0), 2);
-    assert.strictEqual(at('seed', culture, 0), st.ECON.seedPerField);
+    assert.strictEqual(at('seed', culture, 0), CROPS.barley.seed);
     assert.strictEqual(at('perHand', culture, 0), VB['sim/rules'].FIELDS.perHand);
     assert(at('order', culture, 0, 'plow') < at('order', culture, 0, 'sow'), 'hoeing before sowing');
     assert.strictEqual(at('order', culture, 3, 'plow'), -1, 'no hoeing in winter');
@@ -204,7 +205,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
     assert.strictEqual(sp.kind, 'season');
     assert.strictEqual(sp.season, c.season);
     assert.deepStrictEqual(sp.steps, Plans.ROUTINES[c.season], 'the season\'s routines in order');
-    assert.strictEqual(T.seed, st.ECON.seedPerField);
+    assert.strictEqual(T.seed, CROPS.barley.seed);
     assert.strictEqual(T.perHand, VB['sim/rules'].FIELDS.perHand);
   }
   assert.notStrictEqual(Plans.seasonOf(st, st.liveHouseholds[0]).steps, Plans.seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
