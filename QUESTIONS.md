@@ -171,6 +171,17 @@ Dried fish and the fishing boat are merged (`backlog/VB-300.md` has the numbers 
    for a quarter of the meals, a fixed share. **P:** VB-119 (mixed meals, now ready to be applied on dried fish) replaces the fixed quarter:
    dried fish is a `fish` source of the pot after fresh batches and before grain.
 
+### VB-333: the longer harvest loses crops to frost (raised 12 November 2026)
+Reaping is 15 hours a field and threshing 20, as you decided, and it is merged: reaping and threshing are each about 4.5% of the hands' year
+(1.8% before), and hunger and deaths are no worse. One thing moved the wrong way.
+1. Crops lost to frost about double at populous small over 15 years (field-years: seed 7, 60 to 113; seed 42, 46 to 72; founders 3 to 2 and
+   0 to 3), nearly all in households with 4 to 6 fields and few hands. The task's lever, the reaping's urgency against the frost
+   (`reapFrostPerDay` 5 to 2), made it no better (135 and 73) and was reverted: the limit is hands, not urgency. **P:** keep the hours and
+   treat the loss as the signal the design wants: a household sows what it can reap. Two things then follow in tasks that exist: the fields a
+   household wants (`fieldsWanted`) counts its hands at the harvest (a line in VB-254, the head's foresight), and neighbours help at the
+   reaping (VB-106) and hired hands at the peaks (VB-319) take the rest. If the loss should fall sooner, reaping could start a few days before
+   the crop is fully ripe at a small cost in yield.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)

@@ -45,7 +45,7 @@ VB['sim/rules'] = (() => {
   // read them from here. ----
   const CROPS = {
     barley: { yield: 100, seed: 25, sow: [0, 0, 9], ripe: 26, wear: 0.08,
-      hours: { plow: 20, sow: 2, weed: 2, reap: 5, thresh: 6 } },
+      hours: { plow: 20, sow: 2, weed: 2, reap: 15, thresh: 20 } },
   };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
