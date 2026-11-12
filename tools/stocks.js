@@ -74,6 +74,9 @@ const QUANTITIES = [
     none: 'gathering yields less, down to nothing, until the year\'s regrowth (sim/forage)' },
   { id: 'deposit', of: 'tile', name: 'a tile\'s deposit', unit: 'loads', fields: ['w.depositLeft'], kinds: ['dig'], covers: ['w.depositFull', 'w.dugDay'],
     none: 'nothing more is dug there; the household looks for other ground (sim/dig)' },
+  { id: 'graze', of: 'tile', name: 'a tile\'s grazing pressure', unit: 'cow-hours, halving a year', fields: ['w.graze'], kinds: ['herd'],
+    none: 'nothing until forest spread (VB-091) reads it: then ungrazed open land is not kept open and goes to scrub, and its trees are not '
+      + 'thinned; a tile with less is the better pasture, so herds move on to it (sim/grazing)' },
 ];
 
 // ---- the other fields of the @state lines, by hand: each with why it is not a stored quantity ----
@@ -84,7 +87,7 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'farmstead.project', 'farmstead.claim',
-    'farmstead.booth', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
+    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',

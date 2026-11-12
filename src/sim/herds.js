@@ -2,15 +2,16 @@
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, TICKS, HERD, SHARES } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
-  //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
-  //   dissolved household is kept with household null (sim/herds)
+  //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
+  //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
+  //   never; VB-136)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
   //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
@@ -30,8 +31,6 @@ VB['sim/herds'] = (() => {
   const herdsOf = (st, hh) => hh.herds.map((id) => st.herds[id]);
   const householdHay = (st, hh) => herdsOf(st, hh).reduce((s, hd) => s + dailyHay(hd), 0);
   const winterNeed = (st, hh) => householdHay(st, hh) * HERD.stallDays;
-  // In the byre: from autumn day 9 to spring day 5.
-  const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
   // Room the cattle take in the byre: a calf half a place.
   const byreRoom = (herd) => (herd.species === 'cattle' ? herd.head.reduce((s, h) => s + (h.kind === 'calf' ? 0.5 : 1), 0) : 0);
   const herdOf = (st, hh, species) => { for (const id of hh.herds) if (st.herds[id].species === species) return st.herds[id]; return null; };
@@ -48,7 +47,8 @@ VB['sim/herds'] = (() => {
     return best;
   }
   function makeHerd(st, hh, species) {
-    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0 };
+    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0,
+      herder: null, herded: -1 };
     if (species === 'cattle') herd.head = []; else { herd.ewes = 0; herd.rams = 0; herd.lambs = 0; }
     st.herds.push(herd); hh.herds.push(herd.id);
     return herd;

@@ -4,7 +4,7 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -176,10 +176,11 @@ VB['sim/jobs'] = (() => {
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
   const prioOf = (st, p, j) => (j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
-  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
-  // or a poor fit for a job that has not waited long enough.
+  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, younger than the
+  // kind's minAge (VB-136: herding from 8), not its work, or a poor fit for a job that has not waited long enough.
+  const tooYoung = (st, p, j) => (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
   function score(st, p, j, c) {
-    if (p.role === 'child' && age(st, p) < CHILD.from) return null;
+    if (tooYoung(st, p, j)) return null;
     const pr = prioOf(st, p, j);
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
@@ -228,7 +229,7 @@ VB['sim/jobs'] = (() => {
   function fit(st, p, j, c) {
     const pr = prioOf(st, p, j), row = { bid: null, reason: null };
     if (!isOpen(j)) row.reason = 'taken';
-    else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+    else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
     else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
       row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
     } else {
@@ -290,9 +291,12 @@ VB['sim/jobs'] = (() => {
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
     VB.count.idleStroll++;
-    const mate = st.cenv ? companyFor(st, a) : null, go = (tile, x, y) =>
+    const bg = heldAt(a, 'background'), go = (tile, x, y) =>
       issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
-    if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
+    const mate = !bg && st.cenv ? companyFor(st, a) : null;
+    // a herder waits by its herds, within reach of the pasture (VB-136)
+    if (bg) { const [x, y] = workSpot(st, a, bg); go(bg.site, x + (rnd(st.rng.work) - 0.5) * 16, y + (rnd(st.rng.work) - 0.5) * 8); }
+    else if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
     else {
       const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;

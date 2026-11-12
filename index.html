@@ -1043,6 +1043,7 @@ VB.COUNTERS = {
   forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
   digGround: 'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
+  pastureTiles: 'Tiles within reach of a house searched for its herds\' pasture, once a grazing day a household (sim/herds; VB-136)',
 };
 VB.count = {};
 VB.resetCounts = () => { for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0; };
@@ -3106,23 +3107,25 @@ VB['sim/rules'] = (() => {
   const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
-  // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
+  // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
+  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3,
-      foraging: 3 }, except: { reap: 9, cook: 1, slaughter: 8 } },
+      foraging: 3, herding: 2 }, except: { reap: 9, cook: 1, slaughter: 8 } },
     wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
       husbandry: 9, foraging: 4 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 } },
     farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4,
-      foraging: 6 }, except: { cook: 0, slaughter: 8, gather: 3 } },
+      foraging: 6, herding: 3 }, except: { cook: 0, slaughter: 8, gather: 3 } },
     maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10,
       foraging: 5 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
     son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3,
-      foraging: 7 }, except: { cook: 0, slaughter: 7, gather: 3 } },
+      foraging: 7, herding: 5 }, except: { cook: 0, slaughter: 7, gather: 3 } },
     daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
-      husbandry: 9, foraging: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
-    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3 },
+      husbandry: 9, foraging: 6, herding: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3,
+      herding: 4 },
       except: { cook: 4, slaughter: 2 } },
-    child: { title: 'Child', sv: 'barn', work: { harvest: 3, foraging: 5 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
+    child: { title: 'Child', sv: 'barn', work: { harvest: 3, foraging: 5, herding: 8 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -3177,6 +3180,8 @@ VB['sim/rules'] = (() => {
       // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
       ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
+      // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
+      crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       bubbleHours: 0.5 },
@@ -3232,7 +3237,28 @@ VB['sim/rules'] = (() => {
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+    // herding (VB-136; docs/review-animals.md, G6 and G7): each grazing day a household with a herd posts `herd` from `from` (6:00); a herder
+    // of minAge or more takes the household's herds to a pasture within `steps` steps of the house and keeps them there `hours` hours,
+    // working at the side (background attention) within `reach` steps of it, then brings them home. Unherded by `by` (10:00), the herds
+    // stay by the farm. The pasture: open land or wood, by its grass (`grass`, by biome), less its pressure over `full`, less `perStep` a
+    // step from the house. A herd's load: 1 a head of cattle, `sheep` a sheep, an hour on the pasture, `nb` of it on each neighbour; on the
+    // move it wears the tiles it crosses `move` crossings a head (sim/paths). The pressure (w.graze) halves each game year.
+    // An unherded herd's cows give `milk` of their milk.
+    // A herd keeps its pasture until it is grazed down to `downAt` (a middling herd's week on it), and at least `keepDays` days.
+    herding: { from: 6, by: 10, hours: 9, steps: 8, downAt: 300, keepDays: 7, reach: 3, rate: 1, minAge: 8, full: 100, perStep: 0.05, sheep: 0.25,
+      nb: 0.25, move: 0.25, milk: 0.5,
+      grass: { [B.MEADOW]: 1, [B.MARSH]: 0.8, [B.HEATH]: 0.6, [B.HILLS]: 0.4, [B.FOREST]: 0.4, [B.PINE]: 0.3, [B.BEACH]: 0.3 } },
+    // an unherded herd of cattle (VB-136, G7): with a stretch of its village's fence below `below` beside a growing crop of the village, it
+    // gets in with `chance` a day; the field loses `loss` of its yield
+    stray: { below: 0.45, chance: 0.2, loss: 0.1 },
   };
+  // In the byre: from autumn day 9 to spring day 5; the herds graze out of it (sim/herds, sim/grazing).
+  const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
+  // ---- grazing pressure (VB-136; read by forest spread, VB-091): a tile at or above keepsOpen stays open; at or above thins, its trees
+  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/grazing). At populous medium, seed 7, year 5, the
+  // grazed tiles' pressure runs p10 15, p50 87, p90 219, p99 385, max 628: keepsOpen is a herd's half day on the tile, or a pasture's
+  // neighbour, within about a year (87% of grazed tiles); thins is a small herd's week a year, kept up (about the 90th percentile). ----
+  const GRAZE = { keepsOpen: 20, thins: 200 };
   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
   // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
@@ -3356,6 +3382,7 @@ VB['sim/rules'] = (() => {
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
       repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
+      herd: 1.5, // herding (VB-136): the animals' daily care, as milking and the byre
       fishCalm: 0.2, fishLean: 2, fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
@@ -3383,7 +3410,8 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+    SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS, WOOD, BUILD };
 })();
 </script>
@@ -3940,8 +3968,9 @@ VB['sim/paths'] = (() => {
     // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
     w.wear = new Float32Array(w.N); w.worn = new Uint8Array(w.N);
   }
-  // A walking pawn enters tile i. Houses, fields and the green wear no path; water is not walked.
-  function tread(w, i) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += 1; }
+  // A walking pawn enters tile i, with n crossings: 1, and more for the herds it drives (VB-136). Houses, fields and the green wear no path;
+  // water is not walked.
+  function tread(w, i, n = 1) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += n; }
   // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile built on since (a field
   // broken on a path). A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
   function fadeWear(st, onStage) {
@@ -4375,6 +4404,7 @@ VB['sim/layout'] = (() => {
     for (const j of used) w.dev[j] = 1;
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w); initFish(w); initForage(w);
+    w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields and a wood
   // in reach (findSite).
@@ -4518,7 +4548,7 @@ VB['sim/records'] = (() => {
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
-    wedding: GENERATION, funeralAle: GENERATION, noWood: GENERATION,
+    wedding: GENERATION, funeralAle: GENERATION, noWood: GENERATION, cattleInCrop: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
@@ -5092,7 +5122,7 @@ VB['sim/relations'] = (() => {
   }
   on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
   on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
-  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
+  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull')); on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }
@@ -5822,19 +5852,134 @@ VB['sim/forest'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/grazing: herding and grazing pressure (VB-136): the day's pasture, the herder who takes the herds there and home, the pressure
+VB['sim/grazing'] = (() => {
+  const { DAY, YEAR, HERD, stalled, cal } = VB['sim/rules'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
+  // docs/review-animals.md, G6: a herd adds pressure only on the tile it grazes with its herder, and the pressure halves each year, as worn
+  // paths do; forest spread reads it (VB-091; GRAZE in sim/rules). A herd's herder and the day it was last taken out are the herd's
+  // (st.herds[], sim/herds), written here.
+  // ---- the pressure ----
+  // @state w.graze: Float32Array per tile; grazing pressure (1 a cow-hour on the pasture, HERD.herding) against the year's scale: the
+  //   pressure now is w.graze[i] / 2 ** ((t - y) / YEAR), y the start of the game year, so it halves each game year in closed form with no
+  //   pass over the tiles (Rules for cost, 3); written against the scale, and put back on the new year's scale (halved) once a year, at the
+  //   year's first step (halveGraze). Written here only.
+  const yearScale = (st) => 2 ** ((st.t - YEAR * Math.floor(st.t / YEAR)) / YEAR);
+  const grazeOf = (st, i) => st.w.graze[i] / yearScale(st);
+  // n units of pressure on the tile, and HERD.herding.nb of them on each neighbour.
+  function graze(st, tile, n) {
+    const w = st.w, g = w.graze, k = n * yearScale(st), side = k * HERD.herding.nb;
+    g[tile] += k;
+    for (let d = 0; d < 6; d++) { const j = w.nb[tile * 6 + d]; if (j >= 0) g[j] += side; }
+  }
+  // At midnight (sim/clock, CALENDAR): every herd is back by its farm for the night (one whose herder went elsewhere than home).
+  function herdsBack(st) { for (const id of st.liveHouseholds) for (const hid of st.households[id].herds) st.herds[hid].herder = null; }
+  // At the year's first step (sim/clock, CALENDAR): the pressure is put on the new year's scale.
+  function halveGraze(st) {
+    const g = st.w.graze;
+    for (let i = 0; i < g.length; i++) if (g[i] !== 0) g[i] *= 0.5;
+  }
+  // ---- the herds and their pasture ----
+  // The household's grazing animals: [head of cattle, sheep].
+  function heads(st, hh) {
+    let cattle = 0, sheep = 0;
+    for (const id of hh.herds) { const hd = st.herds[id]; if (hd.head) cattle += hd.head.length; else sheep += hd.ewes + hd.rams + hd.lambs; }
+    return [cattle, sheep];
+  }
+  // The pressure an hour of the household's herds on a pasture: 1 a head of cattle, HERD.herding.sheep a sheep.
+  const herdLoad = (st, hh) => { const [cattle, sheep] = heads(st, hh); return cattle + sheep * HERD.herding.sheep; };
+  // A tile the household's herds may graze: open land or wood (by its grass), not a field, a house, a green or a meadow but the farm's own
+  // mown and carried (its aftermath), not another household's. `greens`: the villages' centres, when the caller has them.
+  function grazable(st, hh, t, greens = null) {
+    const w = st.w, f = st.farmsteads[hh.farmstead];
+    if (!HERD.herding.grass[w.biome[t]] || w.water[t] || w.river[t] || (st.owner[t] > 0 && st.owner[t] !== hh.id + 1)) return false;
+    if (greens ? greens.has(t) : st.villages.some((v) => v.center === t)) return false;
+    return !st.used.has(t) || f.meadows.some((m) => m.tile === t && m.stage === 'aftermath');
+  }
+  // A new pasture: a grazable tile within HERD.herding.steps steps of the house; best grass, least grazed, nearest. -1 when there is none.
+  function pasture(st, hh) {
+    const w = st.w, H = HERD.herding, f = st.farmsteads[hh.farmstead], greens = new Set(st.villages.map((v) => v.center));
+    let best = -1, bs = -Infinity;
+    for (const [t, d] of bfs(w, f.house, H.steps, walkable(w)).dist) {
+      VB.count.pastureTiles++;
+      if (d < 1 || !grazable(st, hh, t, greens)) continue;
+      const s = H.grass[w.biome[t]] - grazeOf(st, t) / H.full - H.perStep * d;
+      if (s > bs) { bs = s; best = t; }
+    }
+    return best;
+  }
+  // @state household.pasture: absent until the household's herds first go out, then {tile, since (the game day it was chosen)}: the
+  //   pasture its herder takes them to each grazing day (sim/grazing; VB-136). A herd keeps its pasture, as herds were kept on one ground for
+  //   days or weeks and moved on when it was eaten down: a new one is chosen only when it may no longer be grazed (a field, a meadow to be
+  //   mown, another's, out of reach of the house), or when it is grazed down (HERD.herding.downAt) and HERD.herding.keepDays have passed
+  //   since it was chosen. So its routes are walked again and stay in the cache, and the search runs once in days (Rules for cost).
+  function todaysPasture(st, hh, c) {
+    const p = hh.pasture, H = HERD.herding, f = st.farmsteads[hh.farmstead];
+    if (p && hexSteps(st.w, f.house, p.tile) <= H.steps && grazable(st, hh, p.tile)
+      && (c.day - p.since < H.keepDays || grazeOf(st, p.tile) < H.downAt)) return p.tile;
+    const t = pasture(st, hh);
+    if (t >= 0) hh.pasture = { tile: t, since: c.day };
+    return t;
+  }
+  // The herds are out with the herder: taken to pasture by pawn `id` today.
+  function driveOut(st, hh, id, c) { for (const hid of hh.herds) { const hd = st.herds[hid]; hd.herder = id; hd.herded = c.day; } }
+  // The herder is home: its household's herds with it are back by the farm.
+  function driveHome(st, hh, id) { for (const hid of hh.herds) if (st.herds[hid].herder === id) st.herds[hid].herder = null; }
+  // Head the pawn drives (its household's herds out with it), 0 for none: on the move they wear the tiles it crosses (sim/agents).
+  function driven(st, id) {
+    const p = st.pawns[id], hh = p.household === null ? null : st.households[p.household];
+    if (!hh || !hh.herds.length) return 0;
+    let n = 0;
+    for (const hid of hh.herds) {
+      const hd = st.herds[hid];
+      if (hd.herder === id) n += hd.head ? hd.head.length : hd.ewes + hd.rams + hd.lambs;
+    }
+    return n;
+  }
+  // The day before c's was a grazing day on which the herd stayed by the farm (no herder took it out by HERD.herding.by): its cows give
+  // half their milk, and its cattle may stray into a crop (sim/byre).
+  const unherded = (st, herd, c) => !stalled(cal((c.day - 1) * DAY)) && herd.herded !== c.day && herd.herded !== c.day - 1;
+  // ---- the job kind (sim/kinds), the game's first background kind (VB-251): a herder takes the household's herds to the day's pasture
+  // (drawn when the job is first posted) and minds them HERD.herding.hours at the side, within reach of it, adding their pressure each
+  // step, then brings them home (sim/agents) ----
+  const KIND = {
+    verb: 'Herding the animals', go: 'Taking the animals to pasture', name: 'Herd the animals', label: 'Herding', anim: null,
+    hours: HERD.herding.hours, hands: 1, type: 'herding', minAge: HERD.herding.minAge, attention: 'background', reach: HERD.herding.reach,
+    rate: HERD.herding.rate, window: { from: HERD.herding.from },
+    spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4], urgency: (st, j, c, U) => U.herd,
+    draw: (st, j) => todaysPasture(st, st.households[j.owner.id], cal(st.t)),
+    held: (st, j, a, c) => driveOut(st, st.households[j.owner.id], a.id, c),
+    // the pressure is added by whole hours on the pasture, as each is completed (a part hour left when the herder leaves is not counted)
+    worked: (st, j, dt) => {
+      if (Math.floor(j.done + 1e-9) > Math.floor(j.done - dt * KIND.rate + 1e-9)) graze(st, j.site, herdLoad(st, st.households[j.owner.id]));
+    },
+    // each grazing day, from HERD.herding.from until HERD.herding.by, for a household with animals whose herds are not out today already
+    available: (st, hh, f, c, post) => {
+      if (stalled(c) || c.hour < HERD.herding.from || c.hour >= HERD.herding.by || !hh.herds.length || !(herdLoad(st, hh) > 0)) return;
+      const key = `herd:h${hh.id}:${c.day}`;
+      if (!st.jobs.has(key) && hh.herds.some((id) => st.herds[id].herded === c.day)) return;
+      post(key, f.house, { farm: f });
+    },
+  };
+  return { yearScale, grazeOf, graze, herdsBack, halveGraze, heads, herdLoad, grazable, pasture, todaysPasture, driveOut, driveHome, driven, unherded, KIND };
+})();
+</script>
+<script>
 // @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, the herds of each scenario, handing on
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, TICKS, HERD, SHARES } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
-  //   fodder since the count), unfed (stall days running without full hay) (sim/byre)}; id = index, never reused; a herd emptied by a
-  //   dissolved household is kept with household null (sim/herds)
+  //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
+  //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
+  //   never; VB-136)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
   //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
@@ -5854,8 +5999,6 @@ VB['sim/herds'] = (() => {
   const herdsOf = (st, hh) => hh.herds.map((id) => st.herds[id]);
   const householdHay = (st, hh) => herdsOf(st, hh).reduce((s, hd) => s + dailyHay(hd), 0);
   const winterNeed = (st, hh) => householdHay(st, hh) * HERD.stallDays;
-  // In the byre: from autumn day 9 to spring day 5.
-  const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
   // Room the cattle take in the byre: a calf half a place.
   const byreRoom = (herd) => (herd.species === 'cattle' ? herd.head.reduce((s, h) => s + (h.kind === 'calf' ? 0.5 : 1), 0) : 0);
   const herdOf = (st, hh, species) => { for (const id of hh.herds) if (st.herds[id].species === species) return st.herds[id]; return null; };
@@ -5872,7 +6015,8 @@ VB['sim/herds'] = (() => {
     return best;
   }
   function makeHerd(st, hh, species) {
-    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0 };
+    const herd = { id: st.herds.length, species, household: hh.id, home: homeTile(st, st.farmsteads[hh.farmstead]), cull: [], cullSeq: 0, lean: 0, unfed: 0,
+      herder: null, herded: -1 };
     if (species === 'cattle') herd.head = []; else { herd.ewes = 0; herd.rams = 0; herd.lambs = 0; }
     st.herds.push(herd); hh.herds.push(herd.id);
     return herd;
@@ -7165,7 +7309,7 @@ VB['sim/notable'] = (() => {
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -7269,16 +7413,20 @@ VB['sim/fields'] = (() => {
   }
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
+  //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   const hoed = (fd) => { fd.stage = 'plowed'; };
   function sown(fd, c) {
     fd.stage = 'sown'; fd.sown = c.day;
-    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0; delete fd.trampled;
   }
+  // Cattle got into the standing crop (sim/byre, VB-136).
+  const trample = (fd) => { fd.trampled = (fd.trampled || 0) + 1; };
   function reaped(st, fd, c) {
     const E = st.ECON;
     fd.stage = 'stooks'; fd.reaped = c.day;
     fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
-      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) * (1 - HERD.stray.loss) ** (fd.trampled || 0));
+    delete fd.trampled;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
   }
@@ -7329,7 +7477,7 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
     fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();
@@ -7487,7 +7635,10 @@ VB['sim/byre'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
+  const { unherded } = VB['sim/grazing'];
   const { hexSteps } = VB['sim/hex'];
+  const { trample } = VB['sim/fields'];
+  const { emit } = VB['sim/events'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
 
@@ -7644,12 +7795,15 @@ VB['sim/byre'] = (() => {
     const kind = remove(herd, entry), n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
     if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); Stores.record(st, hh, 'meat', n, 'meat'); }
   }
-  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter; part is churned to butter that keeps,
+  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter, and half after a grazing day by the
+  // farm with no herder (VB-136: milked in the morning, the cows give what yesterday's grazing made); part is churned to butter that keeps,
   // the rest is drunk fresh within the day.
   function milkDone(st, hh, c) {
     hh.milkDay = c.day;
     let cows = 0;
-    for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
+    for (const herd of herdsOf(st, hh)) {
+      cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) * (unherded(st, herd, c) ? HERD.herding.milk : 1);
+    }
     const r = cows * HERD.milk, butter = r * HERD.butter;
     if (r <= 0) return;
     addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps); addFood(st, hh, 'butter', butter, HERD.butterDays);
@@ -7675,6 +7829,43 @@ VB['sim/byre'] = (() => {
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
   // least valuable animal each day), a day without fodder is a lean day; an emergency slaughter when hay runs short. The autumn count is the
   // calendar's (sim/clock, CALENDAR: autumnCounts, on HERD.countDay, after this).
+  // ---- a herd with no herder (VB-136; docs/review-animals.md, G7) ----
+  // A standing crop, sown and not yet reaped.
+  const STANDING = ['sown', 'growing', 'ripe'];
+  // Yesterday the cattle stayed by the farm (sim/clock, CALENDAR: strays): where a stretch of the village's fence is broken (below
+  // HERD.stray.below) beside a standing crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses
+  // HERD.stray.loss of its yield (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps
+  // the stretch: the farm of the village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law
+  // made its keeper liable).
+  function stray(st, hh, herd) {
+    const w = st.w, v = st.villages[st.farmsteads[hh.farmstead].village];
+    let best = null;
+    for (const s of v.fence) {
+      if (s.cond >= HERD.stray.below) continue;
+      for (const fid of v.farmsteads) {
+        const g = st.farmsteads[fid];
+        if (g.household === null) continue;
+        for (const fd of g.fields) {
+          if (!STANDING.includes(fd.stage) || !s.edges.some((e) => hexSteps(w, e.tile, fd.tile) <= 1)) continue;
+          const d = hexSteps(w, herd.home, fd.tile);
+          if (!best || d < best.d) best = { s, g, fd, d };
+        }
+      }
+    }
+    if (!best || rnd(st.rng.herds) >= HERD.stray.chance) return;
+    const { s, g, fd } = best, f = st.farmsteads[hh.farmstead];
+    trample(fd);
+    log(st, `${f.name}'s cattle got into the crop at ${g.name} through a broken fence.`, { kind: 'cattleInCrop', ...atFarm(g) });
+    let keeper = null, kd = Infinity;
+    for (const fid of v.farmsteads) {
+      const k = st.farmsteads[fid];
+      if (k.household === null) continue;
+      const d = hexSteps(w, s.tile, k.house);
+      if (d < kd) { kd = d; keeper = k; }
+    }
+    const holder = st.households[g.household].holder, kept = keeper && st.households[keeper.household].holder;
+    if (st.cenv && holder !== null && kept !== null && kept !== undefined && holder !== kept) emit(st, 'cattleInCrop', { holder, keeper: kept });
+  }
   function byreDay(st, c) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
@@ -7743,8 +7934,16 @@ VB['sim/byre'] = (() => {
       if (!hh.dissolved && hh.herds.length) autumnCount(st, hh);
     }
   }
-  return { spoilHay, stallLeft, autumnCounts, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours,
-    byreJobs };
+  // Each household's cattle left by the farm yesterday may stray into a crop (sim/clock, CALENDAR: strays; VB-136).
+  function strays(st, c) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (hh.dissolved) continue;
+      for (const id of hh.herds) { const herd = st.herds[id]; if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd); }
+    }
+  }
+  return { spoilHay, stallLeft, autumnCounts, strays, stray, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone,
+    byreDay, fodderHours, byreJobs };
 })();
 </script>
 <script>
@@ -8356,7 +8555,7 @@ VB['sim/kinds'] = (() => {
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents). No kind of the game declares one yet.
+  //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -8696,6 +8895,7 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
+  KINDS.herd = VB['sim/grazing'].KIND; // herding (VB-136): its record is sim/grazing's
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -8708,7 +8908,7 @@ VB['sim/kinds'] = (() => {
   const rule = (k) => (typeof k === 'string' ? [k, KINDS[k].available] : [null, k]);
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
-    farm: [meadowWork, 'manure', byreWork].map(rule),
+    farm: [meadowWork, 'manure', byreWork, 'herd'].map(rule),
     farmAfterPlans: [landProject, Building.boothWork, 'wood', 'thresh', 'water', 'cook', 'brew', 'mend', 'repair', 'fish', 'gather',
       Building.stoneWork].map(rule),
     village: ['mend'].map(rule),
@@ -8751,6 +8951,7 @@ VB['sim/agents'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
+  const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
@@ -8776,6 +8977,7 @@ VB['sim/agents'] = (() => {
   }
   function stillAtDeath(st, a) {
     release(st, a); dropSides(st, a); a.path = null; a.inside = true; sleep(st, a.id);
+    const p = st.pawns[a.id]; if (p.household !== null) driveHome(st, st.households[p.household], a.id); // its herds are left by the farm
   }
   function tileAt(st, x, y) {
     const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
@@ -8826,18 +9028,22 @@ VB['sim/agents'] = (() => {
   // The held task a is within reach of from tile `at`, or beyond it (a background task only).
   const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
   // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
-  // pawn, or of its full task's site (a full task never takes a background one out of reach).
+  // pawn, or of its full task's site (a full task never takes a background one out of reach). A pawn with no task in hand may take a
+  // background task out of its reach: it sets out for it (VB-136: the herder takes the herds to their pasture).
   function sideWhy(st, a, j) {
     const att = attentionOf(j);
     if (att === 'full') return `${j.key} is not a side task`;
     if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
-    if (att === 'background' && !(inReach(st, j, tileAt(st, a.x, a.y)) && (!a.job || inReach(st, j, a.job.site)))) return `${j.key} is out of its reach`;
+    if (att === 'background' && a.job && !(inReach(st, j, tileAt(st, a.x, a.y)) && inReach(st, j, a.job.site))) return `${j.key} is out of its reach`;
     return null;
   }
-  // The pawn takes up side task j.
+  // The pawn takes up side task j; a background task out of its reach, with no task in hand, it sets out for. The kind's `held` says what
+  // taking it up does (VB-136: the herds go out with the herder).
   function hold(st, a, j) {
     if (!a.side) a.side = { partial: null, background: null };
     a.side[attentionOf(j)] = j; j.claims.push(a.id);
+    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, tileAt(st, a.x, a.y))) { const [x, y] = workSpot(st, a, j); walkTo(st, a, j.site, x, y); }
+    if (KINDS[j.kind].held) KINDS[j.kind].held(st, j, a, cal(st.t));
   }
   // The pawn lets go of side task j, which stays posted, with its progress, for others.
   function unhold(a, j) {
@@ -8846,12 +9052,12 @@ VB['sim/agents'] = (() => {
     if (!a.side.partial && !a.side.background) delete a.side;
   }
   function dropSides(st, a) { if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(a, a.side[slot]); }
-  // The matcher offers a pawn that holds a background task only partial tasks within its reach (and a full one never, until the urgency
-  // switch); null when job j may be bid for, else why not.
+  // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
+  // switch; VB-136: the herder may take other work within reach of the pasture); null when job j may be bid for, else why not.
   function offerWhy(st, a, j) {
     const att = attentionOf(j), bg = heldAt(a, 'background');
     if (att !== 'full') return sideWhy(st, a, j);
-    if (bg) return `${j.key} would take the background task ${bg.key} out of reach`;
+    if (bg && !inReach(st, bg, j.site)) return `${j.key} would take the background task ${bg.key} out of reach`;
     return null;
   }
   // The pawn takes a full task by the urgency switch (or an order): a background task the new site takes out of reach is let go.
@@ -8860,31 +9066,44 @@ VB['sim/agents'] = (() => {
     if (bg && a.job && !inReach(st, bg, a.job.site)) unhold(a, bg);
   }
   // Each step of a pawn that holds side tasks: a task finished or gone from the board is let go; a background task is done at its rate
-  // of the pawn's hours, and let go once the pawn is out of its reach.
-  function stepSide(st, a, dt) {
-    for (const slot of ['partial', 'background']) {
-      const j = heldAt(a, slot); if (!j) continue;
+  // of the pawn's hours (VB-136: hours, not work: a child minds the herd as long as a man), with its kind's `worked`, while the pawn is
+  // within its reach; on its way into reach it is kept, not worked; it is let go out of reach, and outside the working hours. Its work
+  // done, a pawn with nothing else in hand goes home (VB-136: the herder brings the herds home).
+  // A pawn standing still (no path, no work) is where it was last step, so its reach is not looked at again: every walk out of reach is
+  // seen while it has its path, as this runs before the step's walking (VB-136, cost).
+  const SLOTS = ['partial', 'background'];
+  function stepSide(st, a, dt, h) {
+    for (let k = 0; k < 2; k++) {
+      const slot = SLOTS[k], j = heldAt(a, slot); if (!j) continue;
       if (st.jobs.get(j.key) !== j) { unhold(a, j); if (!a.side) return; continue; }
       if (slot !== 'background') continue;
       const K = KINDS[j.kind];
-      if (!inReach(st, j, tileAt(st, a.x, a.y))) { unhold(a, j); if (!a.side) return; continue; }
-      j.done += dt * K.rate * rateOf(st, st.pawns[a.id]);
+      if (h < WORK[0] || h >= WORK[1]) { unhold(a, j); if (!a.side) return; continue; }
+      if ((a.path || a.phase !== null) && !inReach(st, j, tileAt(st, a.x, a.y))) {
+        const end = a.path && a.path[a.path.length - 1];
+        if (end && inReach(st, j, tileAt(st, end[0], end[1]))) continue;
+        unhold(a, j); if (!a.side) return; continue;
+      }
+      j.done += dt * K.rate;
+      if (K.worked) K.worked(st, j, dt);
       if (j.done >= (j.hours ?? K.hours)) {
         unhold(a, j);
         if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
         prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours);
         dropJob(st, j);
+        if (!a.job && !a.path && !a.inside && a.phase === null) goHome(st, a);
         if (!a.side) return;
       }
     }
   }
-  // The work is done: everyone working the job but the one who finished it stops, and looks for other work.
+  // The work is done: everyone working the job but the one who finished it stops, and looks for other work; one that held it at the side
+  // lets it go and keeps its task. (Over a copy: letting go takes the pawn out of j.claims, which skipped the next worker; VB-136.)
   function freeHands(st, j, finisher) {
-    for (const id of j.claims) {
+    for (const id of [...j.claims]) {
       if (id === finisher) continue;
       const b = st.agents[id];
+      if (b.side && (b.side.partial === j || b.side.background === j)) { unhold(b, j); continue; }
       if (b.phase === 'go') b.path = null;
-      if (b.side) unhold(b, j);
       b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
     }
     j.claims = j.claims.filter((id) => id === finisher);
@@ -8915,11 +9134,15 @@ VB['sim/agents'] = (() => {
       a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
       if (K.field) a.work = { s: -13, dir: 1, row: firstRow(a.job, a), th: rowAngle(a.job), cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] };
     } else if (a.phase === 'back') deposit(st, a);
-    else if (a.phase === 'home') { a.inside = true; a.phase = null; }
+    else if (a.phase === 'home') {
+      a.inside = true; a.phase = null;
+      driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
+    }
   }
+  // Home, letting go of its side tasks (VB-136).
   function goHome(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], [x, y] = homeSpot(st, a);
-    walkTo(st, a, f.house, x, y); a.phase = 'home';
+    dropSides(st, a); walkTo(st, a, f.house, x, y); a.phase = 'home';
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
   const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
@@ -8972,7 +9195,12 @@ VB['sim/agents'] = (() => {
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
       const m = Math.min(d, reach);
       a.stride += m / 3.4;
-      if (d <= reach) { a.x = tx; a.y = ty; a.seg++; VB.count.walkPoint++; tread(st.w, a.path[a.seg][3] ?? -1); }
+      if (d <= reach) {
+        a.x = tx; a.y = ty; a.seg++; VB.count.walkPoint++;
+        const t = a.path[a.seg][3] ?? -1;
+        // the herds it drives wear the way too (VB-136): only a herder out with them, or bringing them home, can drive any
+        if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
+      }
       else if (reach > 0) { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
       else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
       left -= m * c;
@@ -8992,7 +9220,8 @@ VB['sim/agents'] = (() => {
     VB.count.walkAwake += st.living.length;
     for (const id of st.living) {
       const a = st.agents[id];
-      if (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1)) ids.push(id);
+      // a pawn holding a side task is stepped while it holds it (VB-136: the herder minds the herds while it waits)
+      if (a.path || a.phase === 'work' || a.side || (work && a.phase === null && a.idleUntil <= hour + 1)) ids.push(id);
     }
     if (!st.awake) Object.defineProperty(st, 'awake', { value: null, writable: true });
     st.awake = { hour, ids, at: ids.length };
@@ -9022,7 +9251,7 @@ VB['sim/agents'] = (() => {
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
-      if (a.side) stepSide(st, a, dt);
+      if (a.side) stepSide(st, a, dt, c.hour);
       if (a.path) moveAgent(st, a, dt);
       else if (a.phase === 'work') stepWork(st, a, dt);
       else if (wantsWork(st, a, c)) out.push(a);
@@ -9037,6 +9266,8 @@ VB['sim/agents'] = (() => {
       if (a.phase === 'back') return K.back;
       return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }
+    const bg = heldAt(a, 'background');
+    if (bg) return a.path ? KINDS[bg.kind].go : KINDS[bg.kind].verb; // VB-136: with the herds
     if (a.phase === 'home') return 'Walking home';
     if (a.inside) return 'At home';
     return a.path ? 'Strolling' : 'Resting';
@@ -9980,7 +10211,7 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -10152,10 +10383,11 @@ VB['sim/jobs'] = (() => {
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
   const prioOf = (st, p, j) => (j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
-  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
-  // or a poor fit for a job that has not waited long enough.
+  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, younger than the
+  // kind's minAge (VB-136: herding from 8), not its work, or a poor fit for a job that has not waited long enough.
+  const tooYoung = (st, p, j) => (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
   function score(st, p, j, c) {
-    if (p.role === 'child' && age(st, p) < CHILD.from) return null;
+    if (tooYoung(st, p, j)) return null;
     const pr = prioOf(st, p, j);
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
@@ -10204,7 +10436,7 @@ VB['sim/jobs'] = (() => {
   function fit(st, p, j, c) {
     const pr = prioOf(st, p, j), row = { bid: null, reason: null };
     if (!isOpen(j)) row.reason = 'taken';
-    else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+    else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
     else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
       row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
     } else {
@@ -10266,9 +10498,12 @@ VB['sim/jobs'] = (() => {
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
     VB.count.idleStroll++;
-    const mate = st.cenv ? companyFor(st, a) : null, go = (tile, x, y) =>
+    const bg = heldAt(a, 'background'), go = (tile, x, y) =>
       issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
-    if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
+    const mate = !bg && st.cenv ? companyFor(st, a) : null;
+    // a herder waits by its herds, within reach of the pasture (VB-136)
+    if (bg) { const [x, y] = workSpot(st, a, bg); go(bg.site, x + (rnd(st.rng.work) - 0.5) * 16, y + (rnd(st.rng.work) - 0.5) * 8); }
+    else if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
     else {
       const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;
@@ -12594,7 +12829,8 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
-  const { byreDay, autumnCounts } = VB['sim/byre'];
+  const { byreDay, autumnCounts, strays } = VB['sim/byre'];
+  const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -12695,6 +12931,9 @@ VB['sim/clock'] = (() => {
     { every: 'year', at: FROST, owner: 'sim/meadows', note: 'the autumn frost rots hay still lying', run: (st) => meadowsFrost(st) },
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
+    { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
+    { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
+    { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
     // ---- the people ----
     { every: 'day', when: cenv, owner: 'sim/lifecycle', note: 'ages, coming of age, orphans, the day\'s ties', run: (st) => dailyLife(st) },
     { every: 'season', when: cenv, owner: 'sim/relations', note: 'faded memories forgotten, ties to the dead dropped', run: (st) => fadeRelations(st) },
@@ -12997,6 +13236,7 @@ VB['sim/saves'] = (() => {
   // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
   const WORLD = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'fish', 'fishDay', 'forage', 'forageYear'];
   WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
+  WORLD.push('graze'); // VB-136: grazing pressure (sim/herds); a save without it was never grazed
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -15350,8 +15590,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (fd.stage !== 'growing') return fd.stage;
     return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
   }
-  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, wandering slowly and
-  // now and then looking up; inside the byre otherwise. Sprites are made per herd and remade only when its animals change.
+  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, or its pasture when
+  // out with a herder (VB-136, page/animate), wandering slowly and now and then looking up; inside the byre otherwise. Sprites are made per
+  // herd and remade only when its animals change.
   const hash = (n) => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
   const SHEEP_TINT = [0xffffff, 0xece6da, 0xbab2a6, 0x8c7c6a, 0x5c5248];
   const COW_SCALE = { cow: 0.21, bull: 0.245, ox: 0.245, heifer: 0.19, steer: 0.195, calf: 0.135 };
@@ -15513,7 +15754,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
         }
         herdSprites.set(hd.id, e);
       }
-      const cx = w.hx[hd.home], cy = w.hy[hd.home], on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
+      // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
+      const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
+      const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
+      const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - hr.face * 16 : w.hx[hd.home], cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
+      const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
       for (const a of e.list) {
         a.s.visible = on && !teamOut.has(a.id); if (!a.s.visible) continue; // oxen at the plough are drawn with their driver
         const u = time * 0.06 + a.ph, x = cx + a.ox + Math.sin(u) * 4, y = cy + a.oy + Math.cos(u * 0.7) * 1.6;
@@ -17992,7 +18237,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '64273eb504', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'b030d9a60d', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

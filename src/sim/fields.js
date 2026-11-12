@@ -2,7 +2,7 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -106,16 +106,20 @@ VB['sim/fields'] = (() => {
   }
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
+  //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   const hoed = (fd) => { fd.stage = 'plowed'; };
   function sown(fd, c) {
     fd.stage = 'sown'; fd.sown = c.day;
-    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+    fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0; delete fd.trampled;
   }
+  // Cattle got into the standing crop (sim/byre, VB-136).
+  const trample = (fd) => { fd.trampled = (fd.trampled || 0) + 1; };
   function reaped(st, fd, c) {
     const E = st.ECON;
     fd.stage = 'stooks'; fd.reaped = c.day;
     fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
-      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
+      * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) * (1 - HERD.stray.loss) ** (fd.trampled || 0));
+    delete fd.trampled;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
   }
@@ -166,7 +170,7 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
     fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();

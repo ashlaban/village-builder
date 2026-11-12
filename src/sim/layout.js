@@ -280,6 +280,7 @@ VB['sim/layout'] = (() => {
     for (const j of used) w.dev[j] = 1;
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w); initFish(w); initForage(w);
+    w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields and a wood
   // in reach (findSite).

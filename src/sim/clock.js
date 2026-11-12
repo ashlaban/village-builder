@@ -19,7 +19,8 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
-  const { byreDay, autumnCounts } = VB['sim/byre'];
+  const { byreDay, autumnCounts, strays } = VB['sim/byre'];
+  const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -120,6 +121,9 @@ VB['sim/clock'] = (() => {
     { every: 'year', at: FROST, owner: 'sim/meadows', note: 'the autumn frost rots hay still lying', run: (st) => meadowsFrost(st) },
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
+    { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
+    { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
+    { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
     // ---- the people ----
     { every: 'day', when: cenv, owner: 'sim/lifecycle', note: 'ages, coming of age, orphans, the day\'s ties', run: (st) => dailyLife(st) },
     { every: 'season', when: cenv, owner: 'sim/relations', note: 'faded memories forgotten, ties to the dead dropped', run: (st) => fadeRelations(st) },
