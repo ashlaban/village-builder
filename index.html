@@ -554,6 +554,15 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
 .ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ed-brushes h4 { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+.ed-brushes button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; text-align: left; font-size: 14px; line-height: 1.2;
+  color: var(--ink); min-width: 0; }
+.ed-brushes button.wide { grid-column: 1 / -1; }
+.ed-brushes button i { width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes button i.ore, .ed-brushes button i.gem { border-radius: 50%; }
+.ed-brushes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--node); }
+body.brushing #stage { cursor: crosshair; }
 .ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
 .ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 .ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
@@ -1049,13 +1058,14 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 </div>
 
 <!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
-     at the top left, each opening its panel under them (the generator's parameters, the terrain, who settles it); Play and Main menu at
+     at the top left, each opening its panel under them (the generator's parameters, a brush for the terrain, who settles it); Play and Main menu at
      the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
 <div class="editor" id="editor" hidden>
   <div class="panel editor-top">
     <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
     <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
       <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="terrain" aria-pressed="false" aria-controls="edTerrain">Terrain</button>
       <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
     </div>
   </div>
@@ -1109,6 +1119,27 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
     </div>
   </form>
+  <section class="panel editor-side" id="edTerrain" aria-labelledby="edTerrainTitle" hidden>
+    <h2 id="edTerrainTitle">Terrain</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Brush</legend>
+        <div class="ed-brushes" id="edBrushes" role="group" aria-label="Brush"></div>
+        <p class="hint" id="edBrushNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Brush size</legend>
+        <label class="ed-range"><span>Across<output id="edBrushOut" for="edBrushSize"></output></span>
+          <input id="edBrushSize" type="range" min="0" max="4" step="1" value="0"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Painted</legend>
+        <p id="edPainted"></p>
+        <div class="ed-acts"><button type="button" id="edUnpaint" disabled>Clear what is painted</button></div>
+        <p class="hint">Regenerate clears it too. The sea, lakes and rivers cannot be painted yet.</p>
+      </fieldset>
+    </div>
+  </section>
   <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
     <h2 id="edSettleTitle">Settlement</h2>
     <div class="editor-body">
@@ -2221,8 +2252,12 @@ VB['gen/geology'] = (() => {
         }
       }
     }
-    // ---- the land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals) ----
-    const q = [], steps = new Uint8Array(N);
+    nearVeins({ N, nb, water, deposit, vein, veinNear });
+    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // The land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals), into w.veinNear (all 0 before).
+  function nearVeins(w) {
+    const { N, nb, water, deposit, vein, veinNear } = w, q = [], steps = new Uint8Array(N);
     for (let i = 0; i < N; i++) if (vein[i] && DEPOSITS[deposit[i]].hidden) { veinNear[i] = vein[i]; q.push(i); }
     for (let h = 0; h < q.length; h++) {
       const i = q[h]; if (steps[i] >= FIND.reach) continue;
@@ -2231,10 +2266,65 @@ VB['gen/geology'] = (() => {
         veinNear[j] = veinNear[i]; steps[j] = steps[i] + 1; q.push(j);
       }
     }
-    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // By hand (the editor; before a run is seeded on the world): a land tile's deposit, with a middling amount of its kind, or one that does
+  // not run out where the kind's veins hold nothing else (a salt spring); DEPOSIT.NONE takes the deposit away. Then reveins(w), once.
+  function setDeposit(w, i, d) {
+    if (w.water[i]) return false;
+    const v = VEINS.find((x) => x.deposit === d);
+    w.deposit[i] = d;
+    w.depositLeft[i] = !d || !v ? 0 : v.amount[1] > 0 ? Math.round((v.amount[0] + v.amount[1]) / 2) : ENDLESS;
+    return true;
+  }
+  // The veins anew from the deposits as they lie: each run of one kind joined through neighbours is a vein, numbered in tile order.
+  function reveins(w) {
+    const { N, nb, deposit, vein, veinNear } = w;
+    vein.fill(0); veinNear.fill(0); w.veinKind.length = 1;
+    for (let s = 0; s < N; s++) {
+      if (!deposit[s] || vein[s]) continue;
+      w.veinKind.push(deposit[s]);
+      const id = w.veinKind.length - 1, run = [s]; vein[s] = id;
+      for (let h = 0; h < run.length; h++) for (let d = 0; d < 6; d++) {
+        const j = nb[run[h] * 6 + d]; if (j >= 0 && deposit[j] === deposit[s] && !vein[j]) { vein[j] = id; run.push(j); }
+      }
+    }
+    nearVeins(w);
   }
 
-  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+  return { lay, setDeposit, reveins, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+})();
+</script>
+<script>
+// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand: a wood's trees, a meadow's stones
+VB['gen/cover'] = (() => {
+  // K: what this module needs of gen, which loads after it: { mulberry32, B }, or the whole of VB['gen'].
+  // A wood's trees at full cover: +-20% around 60 (broadleaf) or 80 (pine), by the seed and the tile; none on other ground.
+  const fullTrees = (K, seed, i, b) => (b !== K.B.FOREST && b !== K.B.PINE ? 0
+    : Math.round((b === K.B.PINE ? 80 : 60) * (0.8 + 0.4 * K.mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)())));
+  // A meadow tile's stones: at least 30; up to +100 more next to hills (hillDist: steps to the nearest, 9 if far), nothing beyond 2 tiles.
+  function meadowStones(K, seed, i, macroAt, hillDist) {
+    const mc = Math.max(0, Math.min(1, macroAt)), rn = K.mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
+    const near = hillDist <= 2 ? Math.round((100 * (3 - hillDist)) / 2) : 0;
+    return Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+  }
+  // A land tile given another cover by hand (the editor; before a run is seeded on the world): its biome and colour, a wood's trees at
+  // full cover and a meadow's stones, as generate lays them. Its height, rain and rivers stay; water, and a cover of water, are refused.
+  function set(G, w, i, b) {
+    if (w.water[i] || G.BIOMES[b].water) return false;
+    G.setBiome(w, i, b);
+    w.trees[i] = w.treesMax[i] = fullTrees(G, w.seed, i, b);
+    let hd = 9;
+    if (b === G.B.MEADOW) {
+      for (let d = 0; d < 6 && hd > 1; d++) {
+        const j = w.nb[i * 6 + d]; if (j < 0) continue;
+        if (w.biome[j] === G.B.HILLS) hd = 1;
+        else for (let e = 0; e < 6; e++) { const k = w.nb[j * 6 + e]; if (k >= 0 && w.biome[k] === G.B.HILLS) hd = 2; }
+      }
+    }
+    w.stones[i] = b === G.B.MEADOW ? meadowStones(G, w.seed, i, w.csample(w.macro, w.hx[i], w.hy[i]), hd) : 0;
+    return true;
+  }
+  return { fullTrees, meadowStones, set };
 })();
 </script>
 <script>
@@ -2351,6 +2441,7 @@ const ArchGen = (() => {
   const hexDist = (q1, r1, q2, r2) => { const dq = q1 - q2, dr = r1 - r2; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2; };
 
   function* generate(seed, opt = {}) {
+    const Cover = VB['gen/cover'], K = { mulberry32, B };
     const R = opt.R || 28, COLS = opt.cols || 280, ROWS = opt.rows || 200, RR = opt.regionRadius || 7;
     const HW = SQ3 * R, AP = (SQ3 / 2) * R;
     const W = Math.ceil(HW * (COLS + 0.5)), H = Math.ceil(1.5 * R * (ROWS - 1) + 2 * R);
@@ -2506,8 +2597,7 @@ const ArchGen = (() => {
     const trees = new Float32Array(N), treesMax = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
-      const k = Math.round((biome[i] === B.PINE ? 80 : 60) * (0.8 + 0.4 * mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)()));
-      trees[i] = treesMax[i] = k;
+      trees[i] = treesMax[i] = Cover.fullTrees(K, seed, i, biome[i]);
     }
 
     // ---- stones: every meadow tile has at least 30; up to +100 more next to hills, fading to nothing beyond 2 tiles ----
@@ -2519,9 +2609,7 @@ const ArchGen = (() => {
     }
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.MEADOW) continue;
-      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), rn = mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
-      const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
-      stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+      stones[i] = Cover.meadowStones(K, seed, i, csample(macro, hx[i], hy[i]), hillDist[i]);
     }
     const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 
@@ -13283,23 +13371,26 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
   // Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
-  function refreshTrees() {
+  function refreshTrees() { repaintTiles(st.treeDirty, st.biomeDirty); st.treeDirty.clear(); st.biomeDirty.clear(); }
+  // near: tiles whose close levels are painted again; far: tiles whose colour on the overview changed (the editor repaints its own).
+  function repaintTiles(near, far) {
     const reach = 36 + 2 * w.R;
     const overChunks = (tile, l) => {
       const [x0, y0, x1, y1] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
       const out = []; for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) out.push([cx, cy]);
       return out;
     };
-    for (const tile of st.treeDirty) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
-    for (const tile of st.biomeDirty) {
+    for (const tile of near) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    const done = new Set(); // each overview chunk once, however many of its tiles changed
+    for (const tile of far) {
       for (const [cx, cy] of overChunks(tile, 2)) {
         const ch = chunks.get(ckey(2, cx, cy));
-        if (!ch) continue;
+        if (!ch || done.has(ch)) continue;
+        done.add(ch);
         for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
         ch.spr.texture.source.update();
       }
     }
-    st.treeDirty.clear(); st.biomeDirty.clear();
   }
   // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
   // the frame budget; the overview shows no paths.
@@ -13648,7 +13739,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius} (page/editor): such a game is `unsaved`.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply} (page/editor), `apply(wd)` laying
+  // what was changed by hand on the land raised: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
     if (!custom) choice = { seed, scenario, size };
@@ -13659,6 +13751,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
     const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
+    if (custom && custom.apply) custom.apply(wd);
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
@@ -13864,15 +13957,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- input ----
   const pointers = new Map();
   let drag = null, pinch = null, moved = 0;
+  // A brush on the map (page/editor): while one is held, a drag of one pointer paints, by mapBrush(sx, sy, first), and does not move the
+  // map; two fingers, the wheel and the keys still do. `stroke`: such a drag is under way.
+  let mapBrush = null, stroke = false;
   stage.addEventListener('pointerdown', (e) => {
     stage.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     stopIntro(); vel.x = vel.y = 0; zt = cam.z;
-    if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
+    if (pointers.size === 1 && mapBrush && e.button === 0) { stroke = true; drag = null; pinch = null; mapBrush(e.clientX, e.clientY, true); }
+    else if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
     else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: cam.z, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
       drag = null; moved = 99;
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); } // a second finger ends the stroke
     }
   });
   stage.addEventListener('pointermove', (e) => {
@@ -13880,6 +13978,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY, false); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
+    if (stroke && mapBrush) { mapBrush(e.clientX, e.clientY, false); return; }
     if (pinch && pointers.size >= 2) {
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -13899,6 +13998,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); return; } // null: the stroke is over
       if (drag && moved < 8) pick(e.clientX, e.clientY);
       if (!drag || performance.now() - drag.t > 90) { vel.x = vel.y = 0; }
       drag = null; pinch = null; stage.classList.remove('dragging');
@@ -17141,7 +17241,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
   // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
   const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
-  let edit = null; // { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy }
+  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed }; cover and deposit: what the
+  // terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew (edApply).
+  let edit = null;
   const editorOpen = () => !$('editor').hidden;
   const edSizeOf = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows) || 'c';
   function edFill(p) {
@@ -17191,7 +17293,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function edBusy(on, p) {
     edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; $('edPlay').disabled = on || !edit.wd;
     $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
-    if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); } else edEcho();
+    if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); }
+    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); }
   }
   // The editor's world on the stage, alone: no run, so nothing of the game is drawn or advanced. `whole`: seen from above, all of it.
   async function edShow(whole) {
@@ -17205,14 +17308,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function edRaise(again) {
     const p = again || edRead();
     if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
+    if (!again && edit.cover.size + edit.deposit.size && !edit.armed) { // what was painted would be lost: asked once more
+      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted';
+      $('edState').textContent = 'Regenerating clears what you painted on this land.'; $('edState').classList.add('changed');
+      return;
+    }
     $('edMsg').hidden = true; edBusy(true, 0);
     onStage(async () => {
       try {
         await frame(); await frame();
         const opt = { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region };
         const wd = await drive(G.generate(p.seed, opt), (x) => { $('edBarFill').style.width = `${(x * 60).toFixed(1)}%`; });
+        if (!edit) return;
+        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); }
         const painted = await paintOverview(wd, (x) => { $('edBarFill').style.width = `${(60 + x * 40).toFixed(1)}%`; });
-        if (!edit) return; // a game was raised or loaded meanwhile
         const first = !edit.wd || edit.wd.COLS !== wd.COLS || edit.wd.ROWS !== wd.ROWS;
         edit.p = p; edit.wd = wd; edit.painted = painted;
         if (editorOpen()) await edShow(first);
@@ -17225,12 +17334,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
     });
   }
   // The tools: one panel open at a time, under the tools; the open tool's button pressed again puts its panel away.
-  const ED_TOOLS = { gen: 'edGen', settle: 'edSettle' };
+  const ED_TOOLS = { gen: 'edGen', terrain: 'edTerrain', settle: 'edSettle' };
   let edTool = 'gen';
   function edOpenTool(k) {
     edTool = k;
     for (const b of $('edTools').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tool === k));
     for (const t of Object.keys(ED_TOOLS)) $(ED_TOOLS[t]).hidden = t !== k;
+    edHoldBrush();
   }
   // From the main menu, or from a Play that found no room (msg). A game that is open is kept aside, as at the start (page/start), and
   // comes back when the editor is left.
@@ -17242,11 +17352,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     loader.classList.add('done');
     $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
     if (!edit) {
-      edit = { p: null, wd: null, painted: null, busy: false };
+      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false };
       if ($('edSeed').value) edEcho(); // the settings of an earlier visit
       else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
     }
-    $('edPlay').disabled = edit.busy || !edit.wd;
+    $('edPlay').disabled = edit.busy || !edit.wd; edHoldBrush(); edPaintedEcho();
     if (!edit.wd) edRaise(edit.p);
     else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
     $('edPlay').focus({ preventScroll: true });
@@ -17257,20 +17367,104 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function edPlay() {
     if (!edit || !edit.wd || edit.busy || building) return;
     const p = edit.p;
-    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region });
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply });
   }
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
     if (!editorOpen() || (edit && edit.busy)) return;
-    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true;
+    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true; edHoldBrush();
     onStage(async () => {
       if (aside && !editorOpen()) await restoreAside();
       if (!editorOpen() && $('genScreen').hidden && !building) showLanding();
     });
   }
+  // ---- the terrain brush ----
+  // A brush lays a ground cover or a deposit on the land tiles under it, as the pointer is dragged over the map (page/input, mapBrush);
+  // with no brush the map is dragged as ever. The sea, lakes and rivers are not painted: the relief stays as it was raised.
+  const ED_COVERS = G.BIOMES.map((b, k) => k).filter((k) => !G.BIOMES[k].water);
+  let edBrush = null, edAt = null, edStruck = 0; // the brush held ({cover} or {deposit}); a stroke's last point on the map; tiles it changed
+  const edFar = new Set(); // tiles a stroke recoloured while the overview was out of sight: its chunks are painted when the stroke ends
+  function edBrushList() {
+    const on = (b) => String(!!edBrush && !!b && edBrush.cover === b.cover && edBrush.deposit === b.deposit);
+    const btn = (attr, swatch, name, b, cls = '') =>
+      `<button type="button" ${attr} aria-pressed="${on(b)}"${cls ? ` class="${cls}"` : ''}>${swatch}${name}</button>`;
+    $('edBrushes').innerHTML = `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>`
+      + ED_COVERS.map((k) => btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, G.BIOMES[k].name, { cover: k })).join('')
+      + '<h4>Deposits</h4>' + btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide')
+      + Geo.DEPOSITS.map((d, k) => (k ? btn(`data-deposit="${k}"`, `<i class="${DEPOSIT_MARK[k]}" style="background:${hex6(DEPOSIT_COLOUR[k])}"></i>`,
+        d.name, { deposit: k }) : '')).join('');
+    $('edBrushNote').textContent = !edBrush ? 'Drag the map to move it. Choose a brush to paint.'
+      : edBrush.cover !== undefined ? 'Drag over the land to lay this cover. Two fingers, the wheel and the arrow keys still move the map.'
+        : edBrush.deposit && Geo.DEPOSITS[edBrush.deposit].hidden ? 'A hidden ore: a village must find it before it can be dug.'
+          : edBrush.deposit ? 'Drag over the land to lay this deposit.' : 'Drag over the land to take its deposits away.';
+    const r = Number($('edBrushSize').value);
+    $('edBrushOut').textContent = r ? `${2 * r + 1} tiles` : '1 tile';
+  }
+  // The brush takes the map's drags only while the Terrain tool is open in the editor; a deposit brush shows the ground as the Ground
+  // overlay does (page/ground), where no run means every deposit is seen.
+  function edHoldBrush() {
+    const held = editorOpen() && edTool === 'terrain' && edBrush ? edBrush : null, ground = !!held && held.deposit !== undefined;
+    mapBrush = held ? edStroke : null; document.body.classList.toggle('brushing', !!held);
+    L.ground.visible = ground || groundOn;
+    if (ground) { groundFor = null; drawGround(); }
+    edBrushList();
+  }
+  function edPaintedEcho() {
+    const c = edit ? edit.cover.size : 0, d = edit ? edit.deposit.size : 0, n = (k) => `${k.toLocaleString('en')} ${k === 1 ? 'tile' : 'tiles'}`;
+    $('edPainted').textContent = c + d ? [c ? `Ground cover on ${n(c)}` : '', d ? `${c ? 'd' : 'D'}eposits on ${n(d)}` : ''].filter(Boolean).join(', ') + '.'
+      : 'Nothing yet.';
+    $('edUnpaint').disabled = !(c + d) || !edit || edit.busy;
+  }
+  // One tile under the brush: true if it changed. What is painted is kept in the order painted, the last word on a tile last.
+  function edPaint(t) {
+    const wd = edit.wd, b = edBrush;
+    if (b.cover !== undefined) {
+      if (wd.biome[t] === b.cover || !VB['gen/cover'].set(G, wd, t, b.cover)) return false;
+      edit.cover.delete(t); edit.cover.set(t, b.cover);
+    } else {
+      if (wd.deposit[t] === b.deposit || !Geo.setDeposit(wd, t, b.deposit)) return false;
+      edit.deposit.delete(t); edit.deposit.set(t, b.deposit);
+    }
+    return true;
+  }
+  // page/input's mapBrush: a stroke's first point (first true), a later one (false), or its end (null). Between two points the brush is
+  // laid every tile's width, so a quick drag leaves no gaps.
+  function edStroke(sx, sy, first) {
+    if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edBrush) return;
+    const wd = edit.wd;
+    if (first === null) {
+      if (edStruck) { if (edBrush.deposit !== undefined) Geo.reveins(wd); repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho(); }
+      edAt = null; edStruck = 0; edFar.clear(); return;
+    }
+    const [x, y] = toWorld(sx, sy), from = first || !edAt ? [x, y] : edAt, steps = Math.max(1, Math.ceil(Math.hypot(x - from[0], y - from[1]) / wd.HW));
+    const r = Number($('edBrushSize').value), seen = new Set(), done = [];
+    for (let s = first || !edAt ? steps : 1; s <= steps; s++) {
+      const c = loc(from[0] + ((x - from[0]) * s) / steps, from[1] + ((y - from[1]) * s) / steps, [0, 0]);
+      if (c < 0 || seen.has(c)) continue;
+      let ring = [c]; seen.add(c);
+      for (let k = 0; k < r; k++) {
+        const next = [];
+        for (const i of ring) for (let d = 0; d < 6; d++) { const j = wd.nb[i * 6 + d]; if (j >= 0 && !seen.has(j)) { seen.add(j); next.push(j); } }
+        ring = next;
+      }
+    }
+    for (const t of seen) if (edPaint(t)) done.push(t);
+    edAt = [x, y];
+    if (!done.length) return;
+    edStruck += done.length; edit.armed = false; $('edGo').textContent = 'Regenerate';
+    if (edBrush.deposit !== undefined) { groundFor = null; drawGround(); }
+    else if (T === 2) repaintTiles(done, done); // the overview is what is seen: recoloured as the brush goes
+    else { repaintTiles(done, []); for (const t of done) edFar.add(t); }
+  }
+  // What was painted, laid on that land raised anew: in the editor after a game dropped its world, and under a game begun with Play.
+  function edApply(wd) {
+    for (const [t, b] of edit.cover) VB['gen/cover'].set(G, wd, t, b);
+    for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
+    if (edit.deposit.size) Geo.reveins(wd);
+  }
   // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
   function dropEditor() {
-    $('editor').hidden = true; document.body.classList.remove('editing');
+    $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush();
     if (edit) { edit.wd = null; edit.painted = null; }
   }
 
@@ -17290,6 +17484,16 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const b = e.target.closest('button[data-tool]');
     if (b) edOpenTool(b.dataset.tool === edTool ? null : b.dataset.tool);
   });
+  $('edBrushes').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edBrush = b.dataset.cover !== undefined ? { cover: Number(b.dataset.cover) } : b.dataset.deposit !== undefined ? {
+      deposit: Number(b.dataset.deposit) } : null;
+    edHoldBrush();
+  });
+  $('edBrushSize').addEventListener('input', edBrushList);
+  // the land as it was raised: the same parameters once more, with nothing laid on it
+  $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
+  edBrushList();
   $('edSettled').innerHTML = START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
   const edSettledEcho = () => { $('edSettledNote').textContent = START_WORDS[$('edSettled').value].line; };
   $('edSettled').addEventListener('input', edSettledEcho); edSettledEcho();
@@ -17998,7 +18202,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '9fefc1f6c0', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '1f3fd9d466', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

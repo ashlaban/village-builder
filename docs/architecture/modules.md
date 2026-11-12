@@ -23,6 +23,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
+  What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
+- The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
+  tools' panels in one scene, Regenerate, and Play, which calls the loader's `build` with the generation options and `apply(wd)`. The
+  terrain brush changes a world only before a run is seeded on it, through `VB['gen/cover'].set` (a land tile's cover) and the geology's
+  `setDeposit` and `reveins`; what was painted is kept as tile maps and laid again on the land raised anew. A game begun there is
+  `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
 - Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
   search, the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
   (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.

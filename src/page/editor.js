@@ -4,7 +4,9 @@
   // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
   // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
   const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
-  let edit = null; // { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy }
+  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed }; cover and deposit: what the
+  // terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew (edApply).
+  let edit = null;
   const editorOpen = () => !$('editor').hidden;
   const edSizeOf = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows) || 'c';
   function edFill(p) {
@@ -54,7 +56,8 @@
   function edBusy(on, p) {
     edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; $('edPlay').disabled = on || !edit.wd;
     $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
-    if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); } else edEcho();
+    if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); }
+    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); }
   }
   // The editor's world on the stage, alone: no run, so nothing of the game is drawn or advanced. `whole`: seen from above, all of it.
   async function edShow(whole) {
@@ -68,14 +71,20 @@
   function edRaise(again) {
     const p = again || edRead();
     if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
+    if (!again && edit.cover.size + edit.deposit.size && !edit.armed) { // what was painted would be lost: asked once more
+      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted';
+      $('edState').textContent = 'Regenerating clears what you painted on this land.'; $('edState').classList.add('changed');
+      return;
+    }
     $('edMsg').hidden = true; edBusy(true, 0);
     onStage(async () => {
       try {
         await frame(); await frame();
         const opt = { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region };
         const wd = await drive(G.generate(p.seed, opt), (x) => { $('edBarFill').style.width = `${(x * 60).toFixed(1)}%`; });
+        if (!edit) return;
+        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); }
         const painted = await paintOverview(wd, (x) => { $('edBarFill').style.width = `${(60 + x * 40).toFixed(1)}%`; });
-        if (!edit) return; // a game was raised or loaded meanwhile
         const first = !edit.wd || edit.wd.COLS !== wd.COLS || edit.wd.ROWS !== wd.ROWS;
         edit.p = p; edit.wd = wd; edit.painted = painted;
         if (editorOpen()) await edShow(first);
@@ -88,12 +97,13 @@
     });
   }
   // The tools: one panel open at a time, under the tools; the open tool's button pressed again puts its panel away.
-  const ED_TOOLS = { gen: 'edGen', settle: 'edSettle' };
+  const ED_TOOLS = { gen: 'edGen', terrain: 'edTerrain', settle: 'edSettle' };
   let edTool = 'gen';
   function edOpenTool(k) {
     edTool = k;
     for (const b of $('edTools').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tool === k));
     for (const t of Object.keys(ED_TOOLS)) $(ED_TOOLS[t]).hidden = t !== k;
+    edHoldBrush();
   }
   // From the main menu, or from a Play that found no room (msg). A game that is open is kept aside, as at the start (page/start), and
   // comes back when the editor is left.
@@ -105,11 +115,11 @@
     loader.classList.add('done');
     $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
     if (!edit) {
-      edit = { p: null, wd: null, painted: null, busy: false };
+      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false };
       if ($('edSeed').value) edEcho(); // the settings of an earlier visit
       else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
     }
-    $('edPlay').disabled = edit.busy || !edit.wd;
+    $('edPlay').disabled = edit.busy || !edit.wd; edHoldBrush(); edPaintedEcho();
     if (!edit.wd) edRaise(edit.p);
     else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
     $('edPlay').focus({ preventScroll: true });
@@ -120,20 +130,104 @@
   function edPlay() {
     if (!edit || !edit.wd || edit.busy || building) return;
     const p = edit.p;
-    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region });
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply });
   }
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
     if (!editorOpen() || (edit && edit.busy)) return;
-    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true;
+    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true; edHoldBrush();
     onStage(async () => {
       if (aside && !editorOpen()) await restoreAside();
       if (!editorOpen() && $('genScreen').hidden && !building) showLanding();
     });
   }
+  // ---- the terrain brush ----
+  // A brush lays a ground cover or a deposit on the land tiles under it, as the pointer is dragged over the map (page/input, mapBrush);
+  // with no brush the map is dragged as ever. The sea, lakes and rivers are not painted: the relief stays as it was raised.
+  const ED_COVERS = G.BIOMES.map((b, k) => k).filter((k) => !G.BIOMES[k].water);
+  let edBrush = null, edAt = null, edStruck = 0; // the brush held ({cover} or {deposit}); a stroke's last point on the map; tiles it changed
+  const edFar = new Set(); // tiles a stroke recoloured while the overview was out of sight: its chunks are painted when the stroke ends
+  function edBrushList() {
+    const on = (b) => String(!!edBrush && !!b && edBrush.cover === b.cover && edBrush.deposit === b.deposit);
+    const btn = (attr, swatch, name, b, cls = '') =>
+      `<button type="button" ${attr} aria-pressed="${on(b)}"${cls ? ` class="${cls}"` : ''}>${swatch}${name}</button>`;
+    $('edBrushes').innerHTML = `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>`
+      + ED_COVERS.map((k) => btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, G.BIOMES[k].name, { cover: k })).join('')
+      + '<h4>Deposits</h4>' + btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide')
+      + Geo.DEPOSITS.map((d, k) => (k ? btn(`data-deposit="${k}"`, `<i class="${DEPOSIT_MARK[k]}" style="background:${hex6(DEPOSIT_COLOUR[k])}"></i>`,
+        d.name, { deposit: k }) : '')).join('');
+    $('edBrushNote').textContent = !edBrush ? 'Drag the map to move it. Choose a brush to paint.'
+      : edBrush.cover !== undefined ? 'Drag over the land to lay this cover. Two fingers, the wheel and the arrow keys still move the map.'
+        : edBrush.deposit && Geo.DEPOSITS[edBrush.deposit].hidden ? 'A hidden ore: a village must find it before it can be dug.'
+          : edBrush.deposit ? 'Drag over the land to lay this deposit.' : 'Drag over the land to take its deposits away.';
+    const r = Number($('edBrushSize').value);
+    $('edBrushOut').textContent = r ? `${2 * r + 1} tiles` : '1 tile';
+  }
+  // The brush takes the map's drags only while the Terrain tool is open in the editor; a deposit brush shows the ground as the Ground
+  // overlay does (page/ground), where no run means every deposit is seen.
+  function edHoldBrush() {
+    const held = editorOpen() && edTool === 'terrain' && edBrush ? edBrush : null, ground = !!held && held.deposit !== undefined;
+    mapBrush = held ? edStroke : null; document.body.classList.toggle('brushing', !!held);
+    L.ground.visible = ground || groundOn;
+    if (ground) { groundFor = null; drawGround(); }
+    edBrushList();
+  }
+  function edPaintedEcho() {
+    const c = edit ? edit.cover.size : 0, d = edit ? edit.deposit.size : 0, n = (k) => `${k.toLocaleString('en')} ${k === 1 ? 'tile' : 'tiles'}`;
+    $('edPainted').textContent = c + d ? [c ? `Ground cover on ${n(c)}` : '', d ? `${c ? 'd' : 'D'}eposits on ${n(d)}` : ''].filter(Boolean).join(', ') + '.'
+      : 'Nothing yet.';
+    $('edUnpaint').disabled = !(c + d) || !edit || edit.busy;
+  }
+  // One tile under the brush: true if it changed. What is painted is kept in the order painted, the last word on a tile last.
+  function edPaint(t) {
+    const wd = edit.wd, b = edBrush;
+    if (b.cover !== undefined) {
+      if (wd.biome[t] === b.cover || !VB['gen/cover'].set(G, wd, t, b.cover)) return false;
+      edit.cover.delete(t); edit.cover.set(t, b.cover);
+    } else {
+      if (wd.deposit[t] === b.deposit || !Geo.setDeposit(wd, t, b.deposit)) return false;
+      edit.deposit.delete(t); edit.deposit.set(t, b.deposit);
+    }
+    return true;
+  }
+  // page/input's mapBrush: a stroke's first point (first true), a later one (false), or its end (null). Between two points the brush is
+  // laid every tile's width, so a quick drag leaves no gaps.
+  function edStroke(sx, sy, first) {
+    if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edBrush) return;
+    const wd = edit.wd;
+    if (first === null) {
+      if (edStruck) { if (edBrush.deposit !== undefined) Geo.reveins(wd); repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho(); }
+      edAt = null; edStruck = 0; edFar.clear(); return;
+    }
+    const [x, y] = toWorld(sx, sy), from = first || !edAt ? [x, y] : edAt, steps = Math.max(1, Math.ceil(Math.hypot(x - from[0], y - from[1]) / wd.HW));
+    const r = Number($('edBrushSize').value), seen = new Set(), done = [];
+    for (let s = first || !edAt ? steps : 1; s <= steps; s++) {
+      const c = loc(from[0] + ((x - from[0]) * s) / steps, from[1] + ((y - from[1]) * s) / steps, [0, 0]);
+      if (c < 0 || seen.has(c)) continue;
+      let ring = [c]; seen.add(c);
+      for (let k = 0; k < r; k++) {
+        const next = [];
+        for (const i of ring) for (let d = 0; d < 6; d++) { const j = wd.nb[i * 6 + d]; if (j >= 0 && !seen.has(j)) { seen.add(j); next.push(j); } }
+        ring = next;
+      }
+    }
+    for (const t of seen) if (edPaint(t)) done.push(t);
+    edAt = [x, y];
+    if (!done.length) return;
+    edStruck += done.length; edit.armed = false; $('edGo').textContent = 'Regenerate';
+    if (edBrush.deposit !== undefined) { groundFor = null; drawGround(); }
+    else if (T === 2) repaintTiles(done, done); // the overview is what is seen: recoloured as the brush goes
+    else { repaintTiles(done, []); for (const t of done) edFar.add(t); }
+  }
+  // What was painted, laid on that land raised anew: in the editor after a game dropped its world, and under a game begun with Play.
+  function edApply(wd) {
+    for (const [t, b] of edit.cover) VB['gen/cover'].set(G, wd, t, b);
+    for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
+    if (edit.deposit.size) Geo.reveins(wd);
+  }
   // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
   function dropEditor() {
-    $('editor').hidden = true; document.body.classList.remove('editing');
+    $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush();
     if (edit) { edit.wd = null; edit.painted = null; }
   }
 
@@ -153,6 +247,16 @@
     const b = e.target.closest('button[data-tool]');
     if (b) edOpenTool(b.dataset.tool === edTool ? null : b.dataset.tool);
   });
+  $('edBrushes').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edBrush = b.dataset.cover !== undefined ? { cover: Number(b.dataset.cover) } : b.dataset.deposit !== undefined ? {
+      deposit: Number(b.dataset.deposit) } : null;
+    edHoldBrush();
+  });
+  $('edBrushSize').addEventListener('input', edBrushList);
+  // the land as it was raised: the same parameters once more, with nothing laid on it
+  $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
+  edBrushList();
   $('edSettled').innerHTML = START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
   const edSettledEcho = () => { $('edSettledNote').textContent = START_WORDS[$('edSettled').value].line; };
   $('edSettled').addEventListener('input', edSettledEcho); edSettledEcho();

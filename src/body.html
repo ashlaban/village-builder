@@ -256,13 +256,14 @@
 </div>
 
 <!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
-     at the top left, each opening its panel under them (the generator's parameters, the terrain, who settles it); Play and Main menu at
+     at the top left, each opening its panel under them (the generator's parameters, a brush for the terrain, who settles it); Play and Main menu at
      the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
 <div class="editor" id="editor" hidden>
   <div class="panel editor-top">
     <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
     <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
       <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="terrain" aria-pressed="false" aria-controls="edTerrain">Terrain</button>
       <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
     </div>
   </div>
@@ -316,6 +317,27 @@
       <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
     </div>
   </form>
+  <section class="panel editor-side" id="edTerrain" aria-labelledby="edTerrainTitle" hidden>
+    <h2 id="edTerrainTitle">Terrain</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Brush</legend>
+        <div class="ed-brushes" id="edBrushes" role="group" aria-label="Brush"></div>
+        <p class="hint" id="edBrushNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Brush size</legend>
+        <label class="ed-range"><span>Across<output id="edBrushOut" for="edBrushSize"></output></span>
+          <input id="edBrushSize" type="range" min="0" max="4" step="1" value="0"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Painted</legend>
+        <p id="edPainted"></p>
+        <div class="ed-acts"><button type="button" id="edUnpaint" disabled>Clear what is painted</button></div>
+        <p class="hint">Regenerate clears it too. The sea, lakes and rivers cannot be painted yet.</p>
+      </fieldset>
+    </div>
+  </section>
   <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
     <h2 id="edSettleTitle">Settlement</h2>
     <div class="editor-body">

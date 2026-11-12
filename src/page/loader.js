@@ -67,7 +67,8 @@
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius} (page/editor): such a game is `unsaved`.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply} (page/editor), `apply(wd)` laying
+  // what was changed by hand on the land raised: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
     if (!custom) choice = { seed, scenario, size };
@@ -78,6 +79,7 @@
     while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
     const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
+    if (custom && custom.apply) custom.apply(wd);
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
     try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
