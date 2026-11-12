@@ -163,8 +163,8 @@
     if (fd.stage !== 'growing') return fd.stage;
     return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
   }
-  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, wandering slowly and
-  // now and then looking up; inside the byre otherwise. Sprites are made per herd and remade only when its animals change.
+  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, or its pasture when
+  // out with a herder (VB-136, page/animate), wandering slowly and now and then looking up; inside the byre otherwise. Sprites are made per herd and remade only when its animals change.
   const hash = (n) => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
   const SHEEP_TINT = [0xffffff, 0xece6da, 0xbab2a6, 0x8c7c6a, 0x5c5248];
   const COW_SCALE = { cow: 0.21, bull: 0.245, ox: 0.245, heifer: 0.19, steer: 0.195, calf: 0.135 };

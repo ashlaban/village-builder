@@ -7,7 +7,10 @@ VB['sim/byre'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
+  const { unherded } = VB['sim/grazing'];
   const { hexSteps } = VB['sim/hex'];
+  const { trample } = VB['sim/fields'];
+  const { emit } = VB['sim/events'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
 
@@ -164,12 +167,15 @@ VB['sim/byre'] = (() => {
     const kind = remove(herd, entry), n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
     if (kind) { addFood(st, hh, 'meat', n, HERD.freshDays); Stores.record(st, hh, 'meat', n, 'meat'); }
   }
-  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter; part is churned to butter that keeps,
+  // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter, and half after a grazing day by the
+  // farm with no herder (VB-136: milked in the morning, the cows give what yesterday's grazing made); part is churned to butter that keeps,
   // the rest is drunk fresh within the day.
   function milkDone(st, hh, c) {
     hh.milkDay = c.day;
     let cows = 0;
-    for (const herd of herdsOf(st, hh)) cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean));
+    for (const herd of herdsOf(st, hh)) {
+      cows += inMilk(st, herd, c).length * (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) * (unherded(st, herd, c) ? HERD.herding.milk : 1);
+    }
     const r = cows * HERD.milk, butter = r * HERD.butter;
     if (r <= 0) return;
     addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps); addFood(st, hh, 'butter', butter, HERD.butterDays);
@@ -194,6 +200,42 @@ VB['sim/byre'] = (() => {
   }
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
   // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
+  // ---- a herd with no herder (VB-136; docs/review-animals.md, G7) ----
+  // A standing crop, sown and not yet reaped.
+  const STANDING = ['sown', 'growing', 'ripe'];
+  // Yesterday the cattle stayed by the farm: where a stretch of the village's fence is broken (below HERD.stray.below) beside a standing
+  // crop of the village, they get in with HERD.stray.chance: the crop nearest their grazing spot loses HERD.stray.loss of its yield
+  // (sim/fields), and its holder remembers "Cattle in our crop" about the holder of the household that keeps the stretch: the farm of the
+  // village whose house is nearest it, as the village fence was shared out among the farms (the Westgöta law made its keeper liable).
+  function stray(st, hh, herd) {
+    const w = st.w, v = st.villages[st.farmsteads[hh.farmstead].village];
+    let best = null;
+    for (const s of v.fence) {
+      if (s.cond >= HERD.stray.below) continue;
+      for (const fid of v.farmsteads) {
+        const g = st.farmsteads[fid];
+        if (g.household === null) continue;
+        for (const fd of g.fields) {
+          if (!STANDING.includes(fd.stage) || !s.edges.some((e) => hexSteps(w, e.tile, fd.tile) <= 1)) continue;
+          const d = hexSteps(w, herd.home, fd.tile);
+          if (!best || d < best.d) best = { s, g, fd, d };
+        }
+      }
+    }
+    if (!best || rnd(st.rng.herds) >= HERD.stray.chance) return;
+    const { s, g, fd } = best, f = st.farmsteads[hh.farmstead];
+    trample(fd);
+    log(st, `${f.name}'s cattle got into the crop at ${g.name} through a broken fence.`, { kind: 'cattleInCrop', ...atFarm(g) });
+    let keeper = null, kd = Infinity;
+    for (const fid of v.farmsteads) {
+      const k = st.farmsteads[fid];
+      if (k.household === null) continue;
+      const d = hexSteps(w, s.tile, k.house);
+      if (d < kd) { kd = d; keeper = k; }
+    }
+    const holder = st.households[g.household].holder, kept = keeper && st.households[keeper.household].holder;
+    if (st.cenv && holder !== null && kept !== null && kept !== undefined && holder !== kept) emit(st, 'cattleInCrop', { holder, keeper: kept });
+  }
   function byreDay(st, c) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
@@ -210,6 +252,7 @@ VB['sim/byre'] = (() => {
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
+      for (const herd of herds) if (herd.species === 'cattle' && herd.head.length && unherded(st, herd, c)) stray(st, hh, herd);
       if (c.doy === HERD.countDay) autumnCount(st, hh);
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
@@ -256,5 +299,6 @@ VB['sim/byre'] = (() => {
     if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
-  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
+  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs,
+    stray };
 })();

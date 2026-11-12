@@ -59,23 +59,25 @@ VB['sim/rules'] = (() => {
   const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
-  // every kind its type and fills in `prio`, each role's rank of every kind. Jobs carry an owner that decides who may take them ----
+  // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
+  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: { title: 'Farmer', sv: 'bonde', work: { tilling: 10, tending: 10, harvest: 8, threshing: 8, wood: 7, upkeep: 6, household: 2, husbandry: 3,
-      foraging: 3 }, except: { reap: 9, cook: 1, slaughter: 8 } },
+      foraging: 3, herding: 2 }, except: { reap: 9, cook: 1, slaughter: 8 } },
     wife: { title: 'Mistress of the house', sv: 'husfru', work: { tilling: 2, tending: 5, harvest: 6, threshing: 2, wood: 2, upkeep: 2, household: 9,
       husbandry: 9, foraging: 4 }, except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 } },
     farmhand: { title: 'Farmhand', sv: 'dräng', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 4,
-      foraging: 6 }, except: { cook: 0, slaughter: 8, gather: 3 } },
+      foraging: 6, herding: 3 }, except: { cook: 0, slaughter: 8, gather: 3 } },
     maid: { title: 'Maid', sv: 'piga', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10, husbandry: 10,
       foraging: 5 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
     son: { title: 'Son of the house', sv: 'son', work: { tilling: 9, tending: 6, harvest: 8, threshing: 8, wood: 9, upkeep: 7, household: 3, husbandry: 3,
-      foraging: 7 }, except: { cook: 0, slaughter: 7, gather: 3 } },
+      foraging: 7, herding: 5 }, except: { cook: 0, slaughter: 7, gather: 3 } },
     daughter: { title: 'Daughter of the house', sv: 'dotter', work: { tilling: 1, tending: 4, harvest: 6, threshing: 2, wood: 2, upkeep: 1, household: 10,
-      husbandry: 9, foraging: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
-    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3 },
+      husbandry: 9, foraging: 6, herding: 6 }, except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 } },
+    retired: { title: 'Retired', sv: 'undantag', work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3,
+      herding: 4 },
       except: { cook: 4, slaughter: 2 } },
-    child: { title: 'Child', sv: 'barn', work: { harvest: 3, foraging: 5 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
+    child: { title: 'Child', sv: 'barn', work: { harvest: 3, foraging: 5, herding: 8 }, except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 } },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -130,6 +132,8 @@ VB['sim/rules'] = (() => {
       // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
       ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
+      // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
+      crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
     },
     talk: { from: 6, to: 22, chance: 0.5, minAge: 4, sample: 8, good: 0.15, cross: 0.08, kin: 0.15, young: [16, 30], youngBonus: 2,
       bubbleHours: 0.5 },
@@ -185,7 +189,24 @@ VB['sim/rules'] = (() => {
     milkHours: [0.3, 0.2], milk: 0.5, leanPer: 0.02, leanMax: 0.4, butter: 0.4, butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+    // herding (VB-136; docs/review-animals.md, G6 and G7): each grazing day a household with a herd posts `herd` from `from` (6:00); a herder
+    // of minAge or more takes the household's herds to a pasture within `steps` steps of the house and keeps them there `hours` hours,
+    // working at the side (background attention) within `reach` steps of it, then brings them home. Unherded by `by` (10:00), the herds
+    // stay by the farm. The pasture: open land or wood, by its grass (`grass`, by biome), less its pressure over `full`, less `perStep` a
+    // step from the house. A herd's load: 1 a head of cattle, `sheep` a sheep, an hour on the pasture, `nb` of it on each neighbour; on the
+    // move it wears the tiles it crosses `move` crossings a head (sim/paths). The pressure (w.graze) halves each game year.
+    // An unherded herd's cows give `milk` of their milk.
+    herding: { from: 6, by: 10, hours: 9, steps: 8, reach: 3, rate: 1, minAge: 8, full: 100, perStep: 0.05, sheep: 0.25, nb: 0.25, move: 0.25, milk: 0.5,
+      grass: { [B.MEADOW]: 1, [B.MARSH]: 0.8, [B.HEATH]: 0.6, [B.HILLS]: 0.4, [B.FOREST]: 0.4, [B.PINE]: 0.3, [B.BEACH]: 0.3 } },
+    // an unherded herd of cattle (VB-136, G7): with a stretch of its village's fence below `below` beside a growing crop of the village, it
+    // gets in with `chance` a day; the field loses `loss` of its yield
+    stray: { below: 0.45, chance: 0.2, loss: 0.1 },
   };
+  // In the byre: from autumn day 9 to spring day 5; the herds graze out of it (sim/herds, sim/grazing).
+  const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
+  // ---- grazing pressure (VB-136; read by forest spread, VB-091): a tile at or above keepsOpen stays open; at or above thins, its trees
+  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/herds). ----
+  const GRAZE = { keepsOpen: 20, thins: 150 };
   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
   // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
@@ -309,6 +330,7 @@ VB['sim/rules'] = (() => {
       milk: 1.5, milkLate: 0.8, milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
       repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
+      herd: 1.5, // herding (VB-136): the animals' daily care, as milking and the byre
       fishCalm: 0.2, fishLean: 2, fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
@@ -336,6 +358,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+    SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS, WOOD, BUILD };
 })();

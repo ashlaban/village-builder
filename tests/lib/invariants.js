@@ -393,6 +393,12 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
     if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
   }
+  // grazing pressure (sim/grazing, VB-136): one finite value, not negative, a tile
+  if (st.w.graze) {
+    let off = 0;
+    for (let i = 0; i < N; i++) if (!(st.w.graze[i] >= 0 && st.w.graze[i] < Infinity)) off++;
+    if (st.w.graze.length !== N || off) bad.push(`w.graze: ${off} tiles with a pressure out of place, of ${st.w.graze.length}`);
+  }
   // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
   if (st.w.rain) {
     let off = 0;
@@ -584,6 +590,9 @@ function checkHerds(st, bad) {
       if (hd.species === 'cattle' ? !hd.head.some((h) => h.id === e.head) : !(n[e.sheep]-- > 0)) bad.push(`${where}: cull entry ${JSON.stringify(e)} names no animal`);
     }
     if (!whole(hd.lean || 0) || !whole(hd.unfed || 0)) bad.push(`${where}: lean ${hd.lean}, unfed ${hd.unfed}`);
+    // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
+    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
+    if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);
   }
   for (const hh of st.households) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);

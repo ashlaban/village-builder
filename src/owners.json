@@ -40,6 +40,7 @@
     "w.depositLeft": "sim/dig",
     "w.depositFull": "sim/dig",
     "w.dugDay": "sim/dig",
+    "w.graze": "sim/grazing",
     "household.wood": "sim/stores",
     "household.stone": "sim/stores",
     "farmstead.grade": "sim/building",

@@ -34,7 +34,8 @@ VB['sim/kinds'] = (() => {
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents). No kind of the game declares one yet.
+  //   (VB-251; sim/agents). herd is the first background kind (VB-136). held(st, j, a, c): what taking up a side task does;
+  //   a background kind's worked(st, j, dt) is called each step it is worked. minAge: the youngest a pawn may take the kind (sim/jobs).
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -371,6 +372,7 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
+  KINDS.herd = VB['sim/grazing'].KIND; // herding (VB-136): its record is sim/grazing's
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -383,7 +385,7 @@ VB['sim/kinds'] = (() => {
   const rule = (k) => (typeof k === 'string' ? [k, KINDS[k].available] : [null, k]);
   const ASK = {
     field: ['plow', 'sow', 'weed', 'reap', 'haul', 'reclaim'].map(rule),
-    farm: [meadowWork, 'manure', byreWork].map(rule),
+    farm: [meadowWork, 'manure', byreWork, 'herd'].map(rule),
     farmAfterPlans: [landProject, Building.boothWork, 'wood', 'thresh', 'water', 'cook', 'brew', 'mend', 'repair', 'fish', 'gather',
       Building.stoneWork].map(rule),
     village: ['mend'].map(rule),
