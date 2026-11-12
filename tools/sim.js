@@ -5,7 +5,7 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar'];
+  'plans', 'calendar', 'reach'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -16,6 +16,7 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   --at Y            stop at year Y, overriding --years
   --save FILE       save the run at its end (.gz is gzipped)
   --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year
+  --report reach    the table of walking hours between villages (tools/reach.js --help)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -100,6 +101,7 @@ function plansOf(h) {
     season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
 }
 const tables = {
+  reach: () => require('./reach.js')(st), // VB-286
   counts: () => Object.keys(VB.COUNTERS).map((counter) => ({ counter, total: VB.count[counter],
     perDay: (st.t > countsFrom) ? VB.count[counter] / ((st.t - countsFrom) / Sim.DAY) : 0,
     perLivingPawnDay: pawnDays ? VB.count[counter] / pawnDays : 0 })),

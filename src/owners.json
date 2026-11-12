@@ -12,6 +12,7 @@
     "st.finds": "sim/prospect",
     "st.player": "sim/commands",
     "st.plans": "sim/plans",
+    "st.villageHours": "sim/routes",
     "plan.targets": "sim/plans",
     "plan.tiles": "sim/plans",
     "plan.counted": "sim/plans",
