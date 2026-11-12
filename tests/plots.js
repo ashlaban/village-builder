@@ -21,19 +21,19 @@ function setup(newLand) {
 }
 for (const rule of ['village', 'labour', 'intended']) {
   const s = setup(rule); if (!s) { check(false, 'no adults to set up'); continue; }
-  const { st, v, a, b, c } = s, plot = v.plots[0];
-  check(plot && plot.intended === a.id, `${rule}: a plot is started for the first in demand`);
-  check(v.plots.length === 2, `${rule}: two projects at a time (got ${v.plots.length})`);
-  for (const tr of plot.tiles) {
+  const { st, v, a, b, c } = s, live = X.livePlots(st, v), plot = live[0]; // a plot under way is its village's project plan (VB-123)
+  check(plot && plot.intended === a.id && plot.what === 'plot' && plot.plot === 0, `${rule}: a plot is started for the first in demand`);
+  check(live.length === 2 && live[1].plot === 1, `${rule}: two projects at a time (got ${live.length})`);
+  for (const tr of X.tilesOf(plot)) {
     check(Sim.ownerOf(st, tr.tile) && Sim.ownerOf(st, tr.tile).type === 'village', `${rule}: tile ${tr.tile} owned by the village`);
     check(tr.tile !== v.center && !v.wood.includes(tr.tile), `${rule}: tile ${tr.tile} is the green or the wood`);
   }
   check(X.plotJobs(st).length >= 2, `${rule}: jobs are posted`);
   plot.hours[c.id] = 30; plot.hours[b.id] = 10;
-  for (const tr of plot.tiles) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
-  check(plot.done, `${rule}: plot done`);
+  for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
+  check(plot.open === 1 && plot.steps[1].kind === 'foundation', `${rule}: plot done, its cottage's first stage open`);
   const want = rule === 'village' ? (b.born <= c.born ? b.id : c.id) : rule === 'labour' ? c.id : a.id;
-  check(plot.holder === want, `${rule}: expected ${want}, got ${plot.holder}`);
+  check(plot.to === want, `${rule}: expected ${want}, got ${plot.to}`);
   check(X.plotProgress(st, plot) === 1, `${rule}: progress is 1 when done`);
 }
 // VB-142: founders seed 7, small map, two years (96 days): no pawn holds two cleared plots.
@@ -43,7 +43,7 @@ for (const rule of ['village', 'labour', 'intended']) {
   for (let d = 0; d < 2 * 48; d++) {
     Sim.advance(st, 24);
     const held = new Map();
-    for (const v of st.villages) for (const pl of v.plots) if (pl.holder !== null && !pl.built) held.set(pl.holder, (held.get(pl.holder) || 0) + 1);
+    for (const v of st.villages) for (const pl of X.livePlots(st, v)) if (pl.open >= 1 && pl.to !== null) held.set(pl.to, (held.get(pl.to) || 0) + 1);
     for (const [id, n] of held) check(n <= 1, `founders seed 7: pawn ${id} holds ${n} cleared plots on day ${d + 1}`);
   }
 }

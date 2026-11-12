@@ -178,10 +178,10 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one' && reason !== 'claim') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
-        const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
+        const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
         Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
         const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
         const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0, owed = due - paid - animals;
@@ -343,7 +343,7 @@ VB['sim/heirs'] = (() => {
       return;
     }
     const to = st.households[home];
-    Stores.move(st, hh, to, 'grain', hh.grain, 'handingOn'); passHerds(st, hh, home);
+    Stores.move(st, hh, to, 'grain', Stores.grainOf(hh), 'handingOn'); passHerds(st, hh, home);
     extinct(st, hh, `${fullName(st.pawns[giver])} married away, and nobody would take it`);
   }
   function refreshRoles(st) {

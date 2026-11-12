@@ -1,5 +1,6 @@
 // VB-088: the same terrain strip, farm layout and family demographics repeated at two and four villages.
 const assert = require('assert'), VB = require('../src/load.js'), { tinyWorld } = require('./lib/tiny.js');
+const { CROPS } = VB['sim/rules'];
 const { measure, growth, report, NAMES } = require('./lib/cost.js');
 
 function villageWorld(n) {
@@ -35,7 +36,7 @@ function villageWorld(n) {
   VB['sim/society'].initCulture(st, null); VB['sim/heirs'].countDemand(st);
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); VB['sim/territory'].seedOutland(st, true);
   for (const hh of households) {
-    hh.grain = VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * st.ECON.seedPerField;
+    hh.grain = { barley: VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
   }
   rng.splitStreams(st, 7);
   assert.strictEqual(villages.length, n);
@@ -58,6 +59,10 @@ function main() {
     else if (name === 'takeInWeighed') continue;
     // Service where labour is short (VB-090) needs a landless adult with hands to spare at home in the round; tests/labour.js exercises it.
     else if (name === 'labourWeighed') continue;
+    // Boats are asked for only in a village by fishing water (VB-300), which these all-land villages are not; tests/drying.js exercises it.
+    else if (name === 'boatAsk') continue;
+    // The walking hours between villages are refreshed on autumn day 9 (VB-286); tests/villagehours.js exercises them.
+    else if (name === 'reachSettled') assert(early.work[name] === 0 && late.work[name] === 0, 'no autumn in 30 days');
     else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
   }
   console.log(`scaling: 2/4 villages, 30 days and one round each; ${early.living.toFixed(3)}/${late.living.toFixed(3)} mean living`);

@@ -105,6 +105,14 @@ VB['sim/commands'] = (() => {
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
     },
+    // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+    // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+    routines: {
+      check: (st, c) => settlement(st, c) || (!st.plans.villages.has(c.actor.settlement) ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by)) ? `routines cannot be set by ${c.args && c.args.by}`
+          : later('sim/plans').routinesWhy(c.args.routines)),
+      run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
@@ -136,7 +144,7 @@ VB['sim/commands'] = (() => {
     // claim(target): the actor claims the empty farm `target` and sets about restoring it
     claim: {
       check: (st, c) => living(st, c.actor) || (!st.farmsteads[c.target] ? `there is no farm ${c.target}`
-        : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
+        : !later('sim/farmclaims').claimable(st, st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
       run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
     // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first
@@ -167,16 +175,17 @@ VB['sim/commands'] = (() => {
           return 'the household must include its holder and unique members';
         }
         for (const id of a.members) { const dead = living(st, id); if (dead) return dead; }
-        return Number.isFinite(a.grain) && a.grain >= 0 ? null : 'invalid provisions';
+        return later('sim/stores').partsOk(a.grain) ? null : 'invalid provisions';
       },
       run: (st, c) => later('sim/membership').foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, { grain: c.args.grain }),
     },
     finishCottage: {
       check: (st, c) => {
-        const v = st.villages[c.args && c.args.village], plot = v && v.plots[c.target];
-        return plot && plot.cottage && plot.cottage.i >= 3 && !plot.built ? null : 'there is no finished cottage';
+        const v = st.villages[c.args && c.args.village], X = later('sim/expansion'), plot = v && X.livePlots(st, v).find((p) => p.plot === c.target);
+        return plot && X.cottageAt(plot) >= 3 ? null : 'there is no finished cottage';
       },
-      run: (st, c) => later('sim/cottage').finishCottage(st, st.villages[c.args.village].plots[c.target]),
+      run: (st, c) =>
+        later('sim/cottage').finishCottage(st, later('sim/expansion').livePlots(st, st.villages[c.args.village]).find((p) => p.plot === c.target)),
     },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },

@@ -1,5 +1,5 @@
 // Gathering (VB-118): a forest or heath tile's stock falls 0.2 a trip and is full again each spring; a trip brings home 2.5 rations times the
-// stock into the household's meals; the ground is the nearest such tile within 5 steps with at least 0.2 left; posted from summer day 6 to the
+// stock home as fresh food (VB-119); the ground is the nearest such tile within 5 steps with at least 0.2 left; posted from summer day 6 to the
 // end of autumn, a second trip under 12 days of spare food; the urgency is fishing's; ranks as foraging, gathering 3 for son and farmhand.
 // Founders at seed 7, 2 years: food is gathered, the state keeps its invariants, a save keeps the stocks.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/forage'], Stores = VB['sim/stores'];
@@ -35,16 +35,16 @@ if (f) {
   check(F.wild(w, t), 'the ground is forest or heath');
   const posts = (c) => { const out = []; K.available(st, hh, f, c, (key, site, extra) => out.push({ key, site, ...extra }), f); return out; };
   check(posts(cal(1, 4)).length === 0 && posts(cal(0, 8)).length === 0 && posts(cal(3, 4)).length === 0, 'none before summer day 6, in spring or in winter');
-  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = Stores.reserved(st, hh, 'grain') + days * need; };
+  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = { barley: Stores.reserved(st, hh, 'grain') + days * need }; };
   spare(30);
   check(posts(cal(1, 5)).length === 1 && posts(cal(2, 11)).length === 1, 'one trip from summer day 6 to the end of autumn');
   const j = { farm: f, site: t, owner: { type: 'household', id: hh.id } };
   check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), 0.2), 'urgency 0.2 at 30 days of spare food');
   spare(11); check(posts(cal(1, 6)).length === 2, 'two trips under 12 days of spare food');
   spare(0); check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), 2), 'urgency 2 at none');
-  const meals = hh.meals;
+  const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'gathered');
   K.deliver(st, j, hh, f);
-  check(near(hh.meals - meals, 2.5), `the baskets add ${hh.meals - meals} meals, not 2.5`);
+  check(near(Pot.freshHeld(st, hh, 'gathered') - held, 2.5), `the baskets add ${Pot.freshHeld(st, hh, 'gathered') - held} gathered food, not 2.5`);
   // the ground moves on when its tile is picked bare
   w.forage[t] = 0.1; w.forageYear[t] = Math.floor(st.t / DAY / YEAR_DAYS);
   check(F.ground(st, f.house) !== t, 'a tile with under 0.2 left is no ground');

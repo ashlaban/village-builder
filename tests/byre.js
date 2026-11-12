@@ -56,7 +56,7 @@ check(F.larderOf(hh, 'meat') === 0 && F.larderOf(hh, 'salt meat') === Sim.HERD.m
 
 // --- the meal eats from the larder when grain runs out
 st = fresh(); hh = st.households[3];
-hh.grain = 0; hh.meals = 0; hh.larder = []; F.addFood(st, hh, 'salt meat', 10, 40);
+hh.grain = { barley: 0 }; hh.meals = 0; hh.larder = []; F.addFood(st, hh, 'salt meat', 10, 40);
 const hungry = hh.hungryDays;
 F.feedHousehold(st, hh);
 check(hh.hungryDays === hungry && Math.abs(F.larderOf(hh) - (10 - F.dailyNeed(st, hh))) < 1e-9, `meal: larder ${F.larderOf(hh)}, hungry days ${hh.hungryDays - hungry}`);

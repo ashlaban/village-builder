@@ -20,7 +20,7 @@ module.exports = (Sim, st) => {
         const f = st.farmsteads[h.farmstead];
         at.set(h.id, { fields: f ? f.fields.length : 0, sown: f ? f.fields.filter((fd) => fd.sown !== null).length : 0 });
       }
-      if (s === 2) for (const h of live()) (at.get(h.id) || at.set(h.id, { fields: 0, sown: 0 }).get(h.id)).harvestGrain = Math.round(h.grain);
+      if (s === 2) for (const h of live()) (at.get(h.id) || at.set(h.id, { fields: 0, sown: 0 }).get(h.id)).harvestGrain = Math.round(Sim.grainOf(h));
     }
     last = { y0, days0, seasons, at };
   }
@@ -36,11 +36,11 @@ module.exports = (Sim, st) => {
       for (const m of h.members) bands[band(st.pawns[m].age)]++;
       const a = at.get(h.id) || {};
       rows.push({ id: h.id, village: Sim.settlementIdOf(st, st.pawns[h.members[0]] || st.pawns[h.holder]), members: h.members.length, ...bands,
-        fields: a.fields || 0, sown: a.sown || 0, grainAtHarvest: a.harvestGrain || 0, grainNow: Math.round(h.grain), hungryDays: days,
+        fields: a.fields || 0, sown: a.sown || 0, grainAtHarvest: a.harvestGrain || 0, grainNow: Math.round(Sim.grainOf(h)), hungryDays: days,
         spring: seasons.get(h.id)[0], summer: seasons.get(h.id)[1], autumn: seasons.get(h.id)[2], winter: seasons.get(h.id)[3],
         starved: st.pawns.filter((p) => p.household === h.id && starved(p)).length });
     }
-    const grains = live.map((h) => h.grain).sort((x, y) => x - y), q = (f) => Math.round(grains[Math.min(grains.length - 1, Math.floor(f * grains.length))] || 0);
+    const grains = live.map((h) => Sim.grainOf(h)).sort((x, y) => x - y), q = (f) => Math.round(grains[Math.min(grains.length - 1, Math.floor(f * grains.length))] || 0);
     const people = live.reduce((s, h) => s + h.members.length, 0), hungryPeople = rows.reduce((s, r) => s + r.members, 0);
     return { households: rows, summary: { year: Math.floor(y0 / Sim.YEAR) + 1, households: live.length, hungryHouseholds: rows.length,
       hungryHouseholdShare: +(rows.length / Math.max(1, live.length)).toFixed(3), people, hungryPeople, hungryPeopleShare: +(hungryPeople / Math.max(1, people)).toFixed(3),

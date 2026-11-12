@@ -87,7 +87,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   Sim.movingRound(st);
   assert.ok(!st.demand.includes(id) && st.pawns[id].household === home && !st.pawns[id].servant, 'after the round it is at home still');
   assert.ok(!X.hasPlot(st, id), 'no plot is cleared for it');
-  assert.ok(!st.farmsteads.some((f) => f.claim && f.claim.by === id) && !R.isHolder(st, id), 'it claimed nothing and holds nothing');
+  assert.ok(!st.farmsteads.some((f) => VB['sim/farmclaims'].claimOn(st, f)?.by === id) && !R.isHolder(st, id), 'it claimed nothing and holds nothing');
   sound(st, 'a round with a wish to stay');
 }
 
@@ -136,7 +136,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   Sim.wish(st, 'claim', empty.id);
   assert.ok(first() === id && claim().why === null, 'wishing for this farm, it stands where the rule puts it');
   FC.claimFarms(st);
-  assert.strictEqual(empty.claim.by, id, 'and takes it at the round');
+  assert.strictEqual(VB['sim/farmclaims'].claimOn(st, empty).by, id, 'and takes it at the round');
   // a wish for a farm does not pass the rule that the claimant wants out: an heir stays an heir
   const again = scene();
   Sim.inhabit(again.st, cast.heir); Sim.wish(again.st, 'claim', again.empty.id); H.countDemand(again.st);
@@ -181,7 +181,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const YEAR = VB['sim/rules'].YEAR;
   const world = (seed) => {
     const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
-    for (const h of st.households) h.grain += 5e4; // the homes afford a marriage
+    for (const h of st.households) h.grain.barley += 5e4; // the homes afford a marriage
     return st;
   };
   const adults = (st) => st.living.map((i) => st.pawns[i]).filter((p) => R.spouseOf(st, p.id) === null && p.age >= 20);

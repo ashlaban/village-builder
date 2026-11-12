@@ -1,4 +1,4 @@
-// @sys page/animate: animating the settlement each frame: oxen at the plough, herds, the clock and the pawns
+// @sys page/animate: animating the settlement each frame: oxen at the plough, herds by the farm or out with their herder, the clock and the pawns
   // ---- oxen at the plough (VB-138): the team walks ahead of its driver along the furrow, the ard's beam between them; and the cow being
   // milked (VB-135) stands by the milker at the byre ----
   function drawTeams(show) {
@@ -53,7 +53,11 @@
         }
         herdSprites.set(hd.id, e);
       }
-      const cx = w.hx[hd.home], cy = w.hy[hd.home], on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
+      // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
+      const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
+      const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
+      const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - hr.face * 16 : w.hx[hd.home], cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
+      const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
       for (const a of e.list) {
         a.s.visible = on && !teamOut.has(a.id); if (!a.s.visible) continue; // oxen at the plough are drawn with their driver
         const u = time * 0.06 + a.ph, x = cx + a.ox + Math.sin(u) * 4, y = cy + a.oy + Math.cos(u * 0.7) * 1.6;
@@ -104,7 +108,7 @@
     if (st.visualDirty || st.rigDirty.size) buildFarms(w);
     if (st.treeDirty.size) refreshTrees();
     if (st.pathDirty.size) refreshPaths();
-    if (st.landDirty.size) refreshLand();
+    if (landOn || st.landDirty.size) refreshLand();
     refreshGround();
     for (const o of fieldSprites) {
       const s = cropStage(o.fd);

@@ -1,23 +1,24 @@
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
-const assert = require('assert'), VB = require('../src/load.js');
+const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
+const { CROPS } = VB['sim/rules'];
 const { setClock, moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, YEAR, SEASON_DAYS, cal } = VB['sim/rules'];
-const { KINDS } = VB['sim/kinds'], { endOfDay } = VB['sim/clock'];
-const { fieldsDay } = VB['sim/fields'];
+const { KINDS } = VB['sim/kinds'];
+const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const st = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 7 });
 const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
 assert(fd, 'test farm needs a field');
 const j = { farm: f, field: fd };
 KINDS.plow.done(st, j);
-hh.grain = st.ECON.seedPerField - 1;
+hh.grain = { barley: CROPS.barley.seed - 1 };
 const before = structuredClone(fd);
 KINDS.sow.done(st, j, hh, cal(0));
 assert.deepStrictEqual(fd, before, 'insufficient seed must leave the hoed field untouched');
-hh.grain = st.ECON.seedPerField;
+hh.grain = { barley: CROPS.barley.seed };
 KINDS.sow.done(st, j, hh, cal(0));
-assert.equal(hh.grain, 0, 'sowing consumes the seed');
+assert.equal(Sim.grainOf(hh), 0, 'sowing consumes the seed');
 
 // Growth opens weeding on day 3, repeats only when due, and counts a missed round once.
 setClock(st, 3 * DAY); fieldsDay(st, cal(st.t));
@@ -37,11 +38,13 @@ setClock(st, c.day * DAY);
 KINDS.reap.done(st, j, hh, c);
 const held = fd.held;
 assert(held > 0);
-KINDS.haul.deliver(st, j, hh, f);
+const hand = { id: -1, load: 0 };
+KINDS.haul.load(st, hand, j, 1e9); // the whole field in one load
+KINDS.haul.deliver(st, j, hh, f, hand);
 const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17 };
 f.fields.push(waiting);
 const frostBefore = st.record.filter((e) => e.kind === 'frost').length;
-endOfDay(st, c);
+fieldsDay(st, c); fieldsFrost(st); // the final autumn midnight (sim/clock, CALENDAR)
 assert(hh.unthreshed.includes(held), 'delivered sheaves survive the final autumn midnight');
 assert.equal(fd.stage, 'stubble');
 assert.equal(waiting.stage, 'stubble');
@@ -49,12 +52,14 @@ assert.equal(waiting.held, 0, 'frost destroys undelivered sheaves');
 assert.equal(st.record.filter((e) => e.kind === 'frost').length, frostBefore + 1, 'only the uncollected crop records frost');
 
 // A claimant suspends overgrowth; after the claim ends, nearby woodland can reclaim the field.
-f.household = null; f.emptySince = 0; f.claim = { by: hh.holder };
+f.household = null; f.emptySince = 0; // a claimant restoring it: its project plan (VB-123)
+VB['sim/plans'].makeProject(st, 'pawn', hh.holder, {
+  what: 'restore', farm: f.id, since: st.t, steps: [{ kind: 'restore', place: f.house, hours: 10, done: 0, stake: 'farm' }] });
 fd.stage = 'stubble'; fd.sown = null;
 setClock(st, 2 * YEAR);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowth');
-f.claim = null;
+VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
 fd.tile = tileAt(w, 12, 10); w.biome[tileAt(w, 13, 10)] = VB.gen.B.FOREST;
