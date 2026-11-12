@@ -193,7 +193,8 @@ VB['sim/byre'] = (() => {
     hh.hay -= lost; hh.haySpoilt = (hh.haySpoilt || 0) + lost;
   }
   // At the start of each game day: food past its day spoils; in the byre the herds eat their hay (a herd unfed starveDays running loses its
-  // least valuable animal each day), a day without fodder is a lean day; the count on its day; an emergency slaughter when hay runs short.
+  // least valuable animal each day), a day without fodder is a lean day; an emergency slaughter when hay runs short. The autumn count is the
+  // calendar's (sim/clock, CALENDAR: autumnCounts, on HERD.countDay, after this).
   function byreDay(st, c) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
@@ -210,7 +211,6 @@ VB['sim/byre'] = (() => {
       if (!hh.herds.length) continue;
       const herds = herdsOf(st, hh);
       for (const herd of herds) tidy(herd);
-      if (c.doy === HERD.countDay) autumnCount(st, hh);
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1) for (const herd of herds) herd.lean++;
@@ -256,5 +256,13 @@ VB['sim/byre'] = (() => {
     if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
     return out;
   }
-  return { spoilHay, stallLeft, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours, byreJobs };
+  // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
+  function autumnCounts(st) {
+    for (const liveId of st.liveHouseholds) {
+      const hh = st.households[liveId];
+      if (!hh.dissolved && hh.herds.length) autumnCount(st, hh);
+    }
+  }
+  return { spoilHay, stallLeft, autumnCounts, animals, autumnCount, emergency, tidy, slaughterDone, saltDone, milkDone, fodderDone, byreDay, fodderHours,
+    byreJobs };
 })();

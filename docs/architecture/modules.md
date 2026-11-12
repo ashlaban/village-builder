@@ -27,6 +27,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   search, the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
   (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
+  What runs, and in what order, is one table in `src/sim/clock.js`, `CALENDAR` (VB-241): each entry an `every` (step, hour, day, season,
+  year), an `at` within it (hour, tick, season, sday, doy), a guard `when` that is not a date, an owner module, `run` and a note. Each step walks
+  it once, in order; a module tests no date to decide whether its daily, seasonal or yearly work runs. `node tools/sim.js --report calendar` prints it.
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
   houses along a street through the green, or close round it, each farm's fields one block beyond the yards. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, meals, sheaves and food ledgers.
@@ -115,4 +118,6 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - A new job kind is one record in `KINDS` (`src/sim/kinds.js`): numbers, type of work, labels, where to stand, urgency, and what finishing
   and delivering do. It is posted from `refreshJobs` (`src/sim/jobs.js`); roles rank types of work (`work` in `ROLES`, with `except` for
   single kinds), so a kind of an existing type needs no role numbers. Its `anim` names an animation in the page script.
+- Something that runs at a time (each step, hour, day, season or year, or on a named day or step) is one entry of `CALENDAR` in
+  `src/sim/clock.js`, inserted where it should run in the order; `tests/clock.js` holds that order (`ORDER`, re-recorded on purpose).
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

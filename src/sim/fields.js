@@ -148,11 +148,6 @@ VB['sim/fields'] = (() => {
       if (fd.weedOpen) fd.weedMiss++;
       fd.weedOpen = true; fd.weedPosted = day;
     }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-      }
-    }
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
     for (const f of st.farmsteads) if (f.household === null && !f.claim) {
       const yrs = (st.t - f.emptySince) / YEAR;
@@ -162,7 +157,15 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
-    builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost.
+  function fieldsFrost(st) {
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
+      }
+    }
+  }
+  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+    fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();

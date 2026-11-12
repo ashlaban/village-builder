@@ -41,19 +41,18 @@ VB['sim/records'] = (() => {
   // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
   // once to fold it, never once a village; it touches st.record only, never the pawns.
   const FOLD_DAYS = 4;
-  function foldHistory(st, c) {
-    const F = st.recordFold, R = st.record;
-    if (!F.pass && c.doy === 0) {
-      const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
-        for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
-        return i;
-      };
-      const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
-      if (shortEnd > F.shortAt || longEnd > F.longAt) {
-        F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
-      }
-    }
-    const P = F.pass; if (!P) return;
+  // The year's start (sim/clock's CALENDAR) begins a pass, unless one is under way; foldHistory, daily, folds a slice of it.
+  function startFold(st) {
+    const F = st.recordFold, R = st.record; if (F.pass) return;
+    const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
+      for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
+      return i;
+    };
+    const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
+    if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
+  }
+  function foldHistory(st) {
+    const F = st.recordFold, R = st.record, P = F.pass; if (!P) return;
     const fold = (from, to, short) => {
       for (let i = from; i < to; i++) {
         const e = R[i]; VB.count.recordFold++;
@@ -390,7 +389,7 @@ VB['sim/records'] = (() => {
   return {
     scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold,
       joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
-      record, HISTORY, foldHistory, lifeEvent, indexEvents,
+      record, HISTORY, startFold, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,

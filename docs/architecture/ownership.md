@@ -55,6 +55,11 @@ overgrowth; building decay stays in the clock. Harvest yield still draws from `s
 All 29 crop writes formerly allowed outside their owner were removed from `tests/ownership-baseline.json`; new violations fail.
 The tables below remain the historical pre-refactor survey.
 
+VB-241 (12 November): `sim/clock` holds one table, `CALENDAR`, of what runs each step, hour, day, season and year, in order, each entry
+naming its owner module; `endOfDay`, `onHour` and `newYear` are gone into it. The rules it still holds of its own are its entries owned by
+`sim/clock`: the year's weather, empty-farm decay and fence decay (firewood, the village store's spoilage and the ledger's pruning are
+entries owned by `sim/hunger` and `sim/stores`). The frost is `sim/fields.fieldsFrost`, its own entry after `fieldsDay`.
+
 ## 1. In short
 
 - **174 fields are written in play or at seeding, 71 of them by more than one module, at 618 writes.** Fields written only when a
@@ -69,7 +74,8 @@ The tables below remain the historical pre-refactor survey.
 - **A crop's life is written in six modules.** The job kinds set the stage when work is done. `sim/clock` ripens the crop, schedules
   weeding, applies frost and lets empty farms go to grass. `sim/heirs` resets the fields when a farm empties. The review said
   `sim/clock` "holds no rules of its own". That is not so: it also holds firewood use, the village store's spoilage, fence decay,
-  empty-farm decay and the pruning of the ledger (`clock.js:54-109`).
+  empty-farm decay and the pruning of the ledger (`clock.js:54-109`). Since VB-241 these are entries of its `CALENDAR`, each naming
+  its owner; those of `sim/clock` itself are the weather, empty-farm decay and fence decay.
 - **Four dependency cycles, all through a lookup inside a function into a module loaded later.** The review named
   farmclaims → heirs and expansion → cottage. The scan finds two more: expansion → farmclaims (`expansion.js:17`) and
   farmclaims → commands → kinds (`farmclaims.js:4`). Section 4.
