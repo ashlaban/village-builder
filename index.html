@@ -211,7 +211,7 @@ body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events:
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
-.screen-head .stepno { margin-left: auto; } .screen-head .icon-btn { width: 44px; height: 44px; }
+.screen-head .stepno { margin-left: auto; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
@@ -584,8 +584,11 @@ body.brushing #stage { cursor: crosshair; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
 /* Main menu, in the corner where the game's own is; the household's card stands under it. There is no Back (Kim, 12 Nov). */
-.choose .corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
+.corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
   width: 44px; height: 44px; border-radius: 999px; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
+/* on the start it lies at the page's corner and scrolls with the sheet, whose head row makes room for it where the two would meet */
+#genScreen .corner-menu { position: absolute; pointer-events: auto; }
+@media (max-width: 1340px) { .start-top .screen-head { padding-right: 56px; } }
 .choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 82px); width: 340px;
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
@@ -740,6 +743,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
   .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
   .choose .corner-menu { position: fixed; width: 44px; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
+  #genScreen .corner-menu { top: calc(env(safe-area-inset-top, 0px) + 20px); right: max(20px, env(safe-area-inset-right, 0px)); }
   .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
   .choose::after { content: ""; flex: none; height: 1px; }
 }
@@ -1006,10 +1010,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 <!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
      with its callouts; who starts and the story archetypes; size, seed and Raise the land in the bar; Main menu at the top right, and no Back -->
 <div class="genscreen start" id="genScreen" hidden>
+  <button id="genMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span>
-        <button id="genMenu" type="button" class="icon-btn" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button></div>
+      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
@@ -18589,7 +18593,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '99ac09f703', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e2efc36c2f', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -202,10 +202,10 @@
 <!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
      with its callouts; who starts and the story archetypes; size, seed and Raise the land in the bar; Main menu at the top right, and no Back -->
 <div class="genscreen start" id="genScreen" hidden>
+  <button id="genMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span>
-        <button id="genMenu" type="button" class="icon-btn" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button></div>
+      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
