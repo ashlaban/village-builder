@@ -29,6 +29,8 @@
   "cookFarm": 0.8,
   "forageGround": 15.672222222222222,
   "fishGround": 45.861111111111114,
+  "fishReach": 0.8466666666666667,
+  "boatAsk": 0,
   "digGround": 2.8144444444444443,
   "pastureTiles": 37.46888888888889,
   "roundRank": 0.02666666666666667

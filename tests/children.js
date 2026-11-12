@@ -5,9 +5,10 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('C
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const P = Sim.ROLES.child.prio;
 // VB-133: children also rake meadows and carry hay (4), and never mow
-// VB-117: and fish (5, foraging); VB-136: and herd (8, from 8 years)
+// VB-117: and fish (5, foraging); VB-136: and herd (8, from 8 years); VB-300: and fish for the drying rack (5, foraging)
 check(P.water === 6 && P.weed === 5 && P.haul === 4 && P.reap === 3 && P.rake === 4 && P.hay === 4 && P.fish === 5 && P.gather === 5 && !P.mow
-  && P.herd === 8 && Object.keys(P).filter((k) => P[k]).length === 9, 'child priorities are not water 6, weed 5, haul 4, rake 4, hay 4, reap 3, fish 5, herd 8');
+  && P.herd === 8 && P.rackfish === 5 && Object.keys(P).filter((k) => P[k]).length === 10,
+  'child priorities are not water 6, weed 5, haul 4, rake 4, hay 4, reap 3, fish 5, herd 8, rackfish 5');
 for (const [a, r] of [[7, 0.3], [9, 0.5], [13, 0.9]]) check(Math.abs(workRate('child', a) - r) < 1e-9, `rate at ${a} is ${workRate('child', a)}, wanted ${r}`);
 check(workRate('son', 15) === 1 && CHILD.from === 7, 'adults do not work at full rate');
 const st = Sim.seed(world(7), 7, 'founders');
