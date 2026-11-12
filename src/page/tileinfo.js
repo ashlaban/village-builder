@@ -58,6 +58,11 @@
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
     if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
+    if (!$('editor').hidden) { // the editor: no cards; the tile under the pointer is only marked
+      const [ex, ey] = toWorld(sx, sy), t = loc(ex, ey, [0, 0]);
+      if (t !== sel) { sel = t; selPawn = -1; hoverDirty = true; }
+      return;
+    }
     if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);

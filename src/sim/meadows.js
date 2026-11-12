@@ -9,6 +9,8 @@ VB['sim/meadows'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
+  const { HAND_REACH } = VB['sim/byhand'];
+  const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
   const { freeFor } = VB['sim/territory'];
@@ -81,6 +83,21 @@ VB['sim/meadows'] = (() => {
     st.visualDirty = true;
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
   }
+  // A hay meadow on this very tile, placed by hand (the archipelago editor) on a run just seeded: of the live household whose house is
+  // nearest within HAND_REACH steps, with fewer than MAX meadows. False where the tile cannot be a meadow (as for chooseMeadow) or no such
+  // farm is near enough.
+  function meadowAt(st, tile, built = builtTiles(st)) {
+    const w = st.w;
+    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) || nextTo(w, tile, built)) return false;
+    let f = null, fd = HAND_REACH + 1;
+    for (const id of st.liveHouseholds) {
+      const g = st.farmsteads[st.households[id].farmstead], d = hexSteps(w, g.house, tile);
+      if (d < fd && g.meadows.length < MAX && freeFor(st, tile, g.village)) { fd = d; f = g; }
+    }
+    if (!f) return false;
+    addMeadow(st, f, st.households[f.household], tile);
+    return true;
+  }
   // Generated farms (populous, heirs) have stood a while: each with animals has its meadows already, at most START_MAX.
   function placeMeadows(st) {
     for (const liveId of st.liveHouseholds) {
@@ -146,6 +163,6 @@ VB['sim/meadows'] = (() => {
   return {
     HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
       startMeadow,
-    meadowProject, finishMeadow, placeMeadows,
+    meadowProject, finishMeadow, placeMeadows, meadowAt,
   };
 })();

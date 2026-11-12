@@ -138,7 +138,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#settlersBtn'); await page.click('#settlers .village-block > summary'); await page.click('#settlers [data-village]');
   for (const next of [null, '#tileList [data-farm]', '#tileList [data-pawn]']) {
     if (next) { await page.click('#tabFacts'); await page.click(next); }
-    else { // the village's Customs tab (VB-389): the charter, and a phrase opened to its ways
+    else { // the village's Customs tab (VB-396): the charter, and a phrase opened to its ways
       await page.click('#tabCustoms'); await page.waitForSelector('#tileCustoms .charter [data-phrase]');
       await page.click('#tileCustoms [data-phrase]'); await page.waitForSelector('#tileCustoms .stand .way');
       if (await page.locator('#tileCustoms .voice').count()) { await page.click('#tileCustoms .voice'); await page.waitForSelector('#tileCustoms .why'); }

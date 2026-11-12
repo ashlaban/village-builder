@@ -141,7 +141,7 @@
   // second (page/animate), and Sim.opportunities is called once per rebuild, for both.
   function renderActions() {
     const id = played(), pl = st && st.player;
-    if ($('actionsBtn').hidden !== id < 0) $('actionsBtn').hidden = id < 0;
+    if ($('actionsBtn').hidden !== id < 0) { $('actionsBtn').hidden = id < 0; $('agendaBtn').hidden = id < 0; }
     if (id < 0) { if (activePanel === 'actions') openPanel(null); closeBar(); return; }
     const sheet = activePanel === 'actions', opps = sheet || barMenu || tool ? Sim.opportunities(st, id) : null;
     renderBar(id, opps);
@@ -166,7 +166,7 @@
         'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village. The cause you argue is under Agenda, in the dock.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }

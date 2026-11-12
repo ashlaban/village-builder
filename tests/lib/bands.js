@@ -2,6 +2,10 @@
 // fall in. A band's `assert` is checked on a reduced scenario in `npm run verify` (tests/bands.js) and fails outside its range; its `report`
 // is a full run, made nightly by tools/bands.js, printed as in or out and never failing. A slice's wrap-up adds its loops' bands here.
 //   {id, probe, kind, report?: {lo, hi, afterYear, scenario, map, years, seeds}, assert?: {lo, hi, afterYear, setup, years, seeds}}
+// Kinds: `balancing` is a target (reported with its residual), `watched` fails the reduced run when out, and `described` has no range:
+// its value is printed and recorded, never judged. Only island-wide numbers are judged (Kim, 12 November; design.md, Balance loops and
+// targets): hunger is an engine, so the measures of single households are described. Growth is judged over a scenario's seeds, not a
+// seed at a time (GROWTH, below).
 // `probe` names a function of PROBES, read from the yearly samples that runScenario takes during the run (sample, below); `setup` names
 // a reduced scenario of SETUPS. `afterYear` is the probe's year: the probe looks at the years after it (or, for the villages, at it).
 const VB = require('../../src/load.js'), G = VB.gen, Sim = VB.sim;
@@ -10,10 +14,11 @@ const { DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
 const MAPS = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js and the generation screen
 // Reduced scenarios: a scenario on a map, nothing else changed yet; toy setups (a tinyState of tests/lib/tiny.js) may join them.
 const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' } };
-// The full runs drafted on 2 November (the external review): populous and founders small at four seeds, heirs at two.
+// The full runs: populous small at four seeds (the late game's reference), founders small at sixteen (the early game's), heirs at two.
 const FULL = {
   populous: { scenario: 'populous', map: 'small', years: 30, seeds: [3, 7, 11, 42] },
-  founders: { scenario: 'founders', map: 'small', years: 50, seeds: [3, 7, 11, 42] },
+  // sixteen seeds: founders start at 10, so a seed shrinks by chance, and growth is judged over the seeds (GROWTH)
+  founders: { scenario: 'founders', map: 'small', years: 50, seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 42] },
   heirs: { scenario: 'heirs', map: 'small', years: 30, seeds: [7, 42] },
 };
 // The reduced run (VB-163): populous on the tiny map at four seeds for 8 years, about 11 s a seed.
@@ -28,6 +33,8 @@ const after = (samples, y) => samples.filter((s) => s.year > y);
 const PROBES = {
   // living at the end over living at the start
   populationRatio: (s) => s[s.length - 1].living / s[0].living,
+  // yearly growth over the run: (end / start)^(1 / years) - 1 (-1 when all are dead)
+  growth: (s) => Math.pow(s[s.length - 1].living / s[0].living, 1 / (s.length - 1)) - 1,
   // villages holding 3 or more households at year y that hold none at the end
   villagesEmptied: (s, y) => {
     const ref = s[Math.min(y, s.length - 1)].villages, end = s[s.length - 1].villages;
@@ -57,21 +64,36 @@ const PROBES = {
   invariantFailures: (s) => s.reduce((n, x) => n + x.invariants.length, 0),
 };
 
-// The floors against collapse (drafted 2 November; QUESTIONS.md, VB-163, 1): reported on each full run, asserted on the reduced one.
+// The bands of every full run, and of the reduced one. Growth and the population ratio are described a seed at a time and judged over the
+// seeds (GROWTH); the hunger of households is described (Kim, 12 November).
 const FLOORS = [
-  { id: 'population', probe: 'populationRatio', kind: 'balancing', lo: 1, hi: Infinity, afterYear: 0 },
+  { id: 'growth', probe: 'growth', kind: 'described', afterYear: 0 },
+  { id: 'population', probe: 'populationRatio', kind: 'described', afterYear: 0 },
   { id: 'villages', probe: 'villagesEmptied', kind: 'balancing', lo: 0, hi: 0, afterYear: 5 },
-  // The reduced run reports these at full strength as targets (VB-264; Kim, 10 November, VB-261 question 4): a seed's residual is a result.
-  { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'balancing', lo: 0, hi: 0.02, afterYear: 3 },
-  { id: 'hungry-households', probe: 'hungryHouseholdShare', kind: 'balancing', lo: 0, hi: 0.05, afterYear: 3 },
-  { id: 'worst-household', probe: 'worstHungryShare', kind: 'watched', lo: 0, hi: 1, afterYear: 3 },
+  { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'described', afterYear: 3 },
+  { id: 'hungry-households', probe: 'hungryHouseholdShare', kind: 'described', afterYear: 3 },
+  { id: 'worst-household', probe: 'worstHungryShare', kind: 'described', afterYear: 3 },
   // slice 2 (a life): matches refused by opinion, or by a played pawn, stay a small part of the matches; a household is not left unmarried by them
   { id: 'refused-matches', probe: 'refusedMatchShare', kind: 'watched', lo: 0, hi: 0.2, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
 ];
+// Growth, judged over a scenario's seeds (Kim, 12 November; AGENTS.md, Deciding without Kim, 2): the median seed grows at least `median`
+// a year, at least `growing` of the seeds end above their start, and at most `halved` end below half of it. A median below 0 is a
+// collapse. Founders and populous are held to it, and the reduced run; heirs is reported without a target.
+const GROWTH = { median: 0.01, growing: 0.75, halved: 0.125, runs: ['founders', 'populous'] };
+// The three growth targets of some seeds' population ratios (end over start) over `years`: [{id, dir, target, measured}], and whether
+// it is a collapse.
+function growthTargets(ratios, years) {
+  const g = ratios.map((r) => Math.pow(r, 1 / years) - 1).sort((a, b) => a - b), n = g.length;
+  const median = n % 2 ? g[(n - 1) / 2] : (g[n / 2 - 1] + g[n / 2]) / 2;
+  return { collapse: median < 0, targets: [
+    { id: 'growth-median', dir: 'min', target: GROWTH.median, measured: median },
+    { id: 'growing-seeds', dir: 'min', target: GROWTH.growing, measured: ratios.filter((r) => r > 1).length / n },
+    { id: 'halved-seeds', dir: 'max', target: GROWTH.halved, measured: ratios.filter((r) => r < 0.5).length / n }] };
+}
 const BANDS = [];
 for (const f of FLOORS) for (const [name, run] of Object.entries(FULL)) {
-  const range = { lo: f.lo, hi: f.hi, afterYear: f.afterYear };
+  const range = { ...(f.kind === 'described' ? {} : { lo: f.lo, hi: f.hi }), afterYear: f.afterYear };
   BANDS.push({ id: `${f.id}/${name}`, probe: f.probe, kind: f.kind, report: { ...range, ...run },
     ...(name === 'populous' ? { assert: { ...range, ...REDUCED } } : {}) });
 }
@@ -94,7 +116,8 @@ function runScenario({ scenario, map, seed, years }) {
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }
 // A year's sample: living, the live households of each village, births, marriages and deaths by cause (read from the record appended
-// this year), hungry household-days and household-days, the worst household's hungry share, the household-years judged and those over HUNGRY_SHARE, and checkState's violations.
+// this year), hungry household-days and household-days, the worst household's hungry share, the household-years judged and those over
+// HUNGRY_SHARE, and checkState's violations.
 function sample(st, year, y) {
   const villages = {};
   for (const id of st.liveHouseholds) {
@@ -125,10 +148,10 @@ function sample(st, year, y) {
   if (out.invariants.length) out.invariants.unshift(`year ${year}`);
   return out;
 }
-// A band checked on a run's samples, in mode 'assert' or 'report': {id, value, lo, hi, ok}.
+// A band checked on a run's samples, in mode 'assert' or 'report': {id, kind, value, lo, hi, ok}. A described band has no range and is ok.
 function judge(band, mode, samples) {
-  const b = band[mode], value = PROBES[band.probe](samples, b.afterYear);
-  return { id: band.id, probe: band.probe, value, lo: b.lo, hi: b.hi, ok: value >= b.lo && value <= b.hi };
+  const b = band[mode], value = PROBES[band.probe](samples, b.afterYear), described = band.kind === 'described';
+  return { id: band.id, probe: band.probe, kind: band.kind, value, lo: b.lo, hi: b.hi, ok: described || (value >= b.lo && value <= b.hi) };
 }
 // A run's summary for the reports: the population at the years asked, births, marriages, deaths by cause and the hungry share.
 function summary(samples, at = [1, 10, 20, 30, 50]) {
@@ -140,4 +163,4 @@ function summary(samples, at = [1, 10, 20, 30, 50]) {
     hungryShare: hd ? sum('hungryDays') / hd : 0 };
 }
 const fmt = (x) => (x === Infinity ? 'inf' : Number.isInteger(x) ? String(x) : x.toFixed(3));
-module.exports = { BANDS, PROBES, SETUPS, FULL, REDUCED, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };
+module.exports = { BANDS, PROBES, SETUPS, FULL, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };

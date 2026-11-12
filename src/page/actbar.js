@@ -2,7 +2,7 @@
 // the played pawn's acts by their basis, an act that needs a tile puts the map in a tool mode, and the gift is one form in the list
   // ======== the action bar ========
   // All of it is the page's own state, never saved: whether the bar is open (barOpen), the list open above it (barMenu: {g, view}, the group
-  // 'self', 'house' or 'village', and a view inside it, null, 'round', 'causes' or 'give'), its last message (barMsg: {text, bad}), the tool
+  // 'self', 'house' or 'village', and a view inside it, null, 'round' or 'give'), its last message (barMsg: {text, bad}), the tool
   // (tool: an act waiting for a tile, below) and the gift's draft (gift). It reads st and queues through Sim, as the sheet does (page/play).
   let barOpen = false, barMenu = null, barMsg = null, barHTML = '', tool = null, toolKey = '', flash = null, bannerHTML = '';
   const tapWord = coarse ? 'tap' : 'click'; // what a press on the map is called, by the pointer
@@ -53,26 +53,21 @@
   // The open list: a group's acts, or a view inside it (the moving round's wishes, the causes, the gift's form).
   function menuHTML(id, opps) {
     const p = st.pawns[id], m = barMenu, hh = p.household !== null ? st.households[p.household] : null;
-    const by = { self: [], house: [], village: [], causes: [], round: [], offers: [] };
+    const by = { self: [], house: [], village: [], round: [], offers: [] };
     for (const o of opps) {
       if (o.when === 'offer') by.offers.push(o);
       else if (o.when === 'round') by.round.push(o);
       else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
-      else if (o.verb === 'argue' || o.verb === 'dropCause') by.causes.push(o);
+      else if (o.verb === 'argue' || o.verb === 'dropCause') continue; // a cause is no act: the dock's Agenda (page/drawer)
       else by.self.push(o);
     }
-    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Your cause' : 'Argue a cause', give: 'Give grain' };
+    const TITLES = { round: 'At the moving round', give: 'Give grain' };
     let h = `<div class="mh">${m.view ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>` :
       ''}`
       + `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>`
       + `<button type="button" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
     if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
     if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
-    if (m.view === 'causes') {
-      return `${h}<div class="play">${causeNote(p)}</div>${by.causes.map((o) =>
-        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'You argue no more',
-          o.why)).join('')}`;
-    }
     if (m.view === 'give') return h + giveHTML(id);
     if (m.g === 'self') {
       const home = by.self.find((o) => o.verb === 'goHome'), idle = by.self.find((o) => o.verb === 'idle');
@@ -93,11 +88,6 @@
       return h;
     }
     h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
-    if (by.causes.length || p.advocate) {
-      const a = p.advocate;
-      h += actRow('data-bar="view" data-view="causes"', 'cause', TITLES.causes, a ? `For “${Culture.DIMS[a.dim].opts[a.opt][1]}”, `
-        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village you would change', null, true);
-    }
     return h;
   }
   // Called by renderActions (page/play), with the opportunities it read, or null while neither the list nor the tool is open.

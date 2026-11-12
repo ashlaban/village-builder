@@ -84,7 +84,7 @@ const iv = setInterval(async () => {
   console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
   if (qa('#settlers .farm h2').length === 0) fail('settlers list is empty');
-  // The Culture pane (VB-390): titled by the culture; a row a village; the culture's own charter, a phrase a custom, and a phrase opened
+  // The Culture pane (VB-397): titled by the culture; a row a village; the culture's own charter, a phrase a custom, and a phrase opened
   // to its ways; the meetings; a village's row opens its card at the Customs tab, whose culture link comes back here.
   {
     const nDims = require('../src/load.js').culture.DIMS.length, body = doc.getElementById('drawerBody'), pane = (sel) => [...body.querySelectorAll(sel)];
@@ -251,7 +251,7 @@ async function goodwillPanel() {
   }
   doc.getElementById('tabFacts').click(); tick(2);
   if (doc.getElementById('tileFacts').hidden || !doc.getElementById('tileHistory').hidden) fail('the Details tab did not come back');
-  // The Customs tab (VB-389) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
+  // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
   // voice of the meeting by exactly one of them; a pawn's card has no such tab, and shows its Details while the choice is kept.
   {
     const tabC = doc.getElementById('tabCustoms'), box = doc.getElementById('tileCustoms'), DIMS = require('../src/load.js').culture.DIMS;
@@ -270,7 +270,7 @@ async function goodwillPanel() {
     if (stand && voices <= 8 && stand.querySelectorAll('.voice').length !== voices) fail(`${stand.querySelectorAll('.voice').length} faces for ${voices} voices`);
     if (stand && stand.querySelectorAll('.tag').length < 1) fail('no way of the opened custom is marked as in force');
     if (/%/.test(box.textContent)) fail('the Customs tab shows a percentage');
-    // a face shows its note (VB-391): how far the person leans, as two percentages, and why; again, and it goes
+    // a face shows its note (VB-398): how far the person leans, as two percentages, and why; again, and it goes
     const voice = box.querySelector('.voice');
     if (voice) {
       voice.click(); tick(2);
@@ -385,7 +385,19 @@ async function actionBar() {
   if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
     fail(`Go home from the Myself list: ${said} ${queue()}`); }
   Sim.unqueue(st, 0);
-  // the gift: a household, 5 rations, Add to the queue
+  // the agenda: a cause is no act of the Village list; the dock's Agenda offers each custom's other options, queues one, and links to the customs
+  q('#actBar [data-group="village"]').click(); tick(1);
+  if ([...doc.querySelectorAll('#actMenu .act-row')].some((b) => /cause/i.test(b.textContent))) fail('the Village list still offers a cause');
+  q('#agendaBtn').click(); tick(1);
+  const offer = q('#agendaContent [data-agenda="do"]:not([aria-disabled])');
+  if (q('#drawerTitle').textContent !== 'Agenda' || !offer) { fail('the Agenda panel offers no cause'); return; }
+  offer.click(); tick(1);
+  if (!queue().includes('argue') || !/^Queued: /.test(q('#agendaContent [role="status"]').textContent)) fail(`a cause from the Agenda: ${queue()}`);
+  Sim.unqueue(st, 0);
+  q('#agendaContent [data-agenda="customs"]').click(); tick(1);
+  if (q('#tileCustoms').hidden || !q('#tileCustoms .phrase[aria-expanded="true"]') || !q('#tileCustoms .stand')) {
+    fail("the Agenda's link does not open the custom on the village's card"); }
+  q('#tabFacts').click(); q('#actionsBtn').click(); tick(1);
   q('#actBar [data-group="house"]').click(); tick(1);
   q('#actMenu [data-view="give"]').click(); tick(1);
   const to = q('#giveTo'), opt = to && to.querySelector('option:not([value=""])');

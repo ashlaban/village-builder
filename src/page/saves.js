@@ -35,7 +35,7 @@
   const listSaves = () => saveTx('readonly', (m) => m.getAll());
   const deleteSaves = (keys) => saveTx('readwrite', (m, b) => { for (const k of keys) { m.delete(k); b.delete(k); } });
   async function storeSave(slot) {
-    if (!st || demo || building || !SAVE_SLOTS.includes(slot)) return null;
+    if (!st || demo || unsaved || building || !SAVE_SLOTS.includes(slot)) return null;
     const s = st, arch = archOf(s), key = `${arch}:${slot}`, p = await packSave(s);
     const line = { key, arch, slot, build: BUILD, savedAt: p.savedAt, label: p.label, name: s.w.name, scenario: s.scenario, seed: s.w.seed,
       size: sizeKey(s.w.COLS, s.w.ROWS), bytes: p.blob.size };
@@ -61,7 +61,7 @@
   }
   const loadStored = async (key) => { const rec = await saveTx('readonly', (m, b) => b.get(key)); return loadBlob(rec && rec.blob); };
   async function saveToFile() {
-    if (!st || demo || building) return;
+    if (!st || demo || unsaved || building) return;
     const s = st, p = await packSave(s), a = document.createElement('a'), url = URL.createObjectURL(p.blob);
     a.href = url; a.download = `${s.w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${s.scenario}-${s.w.seed}-year${Sim.cal(s.t).year}.json.gz`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -84,7 +84,7 @@
   const stOpen = () => st; // the game open, which the showcase island is not
   let saveMsg = '', saveLines = [];
   async function drawSaves() {
-    const box = $('savesBody'), st = demo ? null : stOpen();
+    const box = $('savesBody'), st = demo || unsaved ? null : stOpen(), fromEditor = !demo && unsaved && stOpen();
     try { saveLines = await listSaves(); } catch (e) { box.innerHTML = '<p class="save-msg">Saves are not available in this browser.</p>'; return; }
     const archs = new Map(), open = st ? archOf(st) : null;
     for (const l of saveLines) { if (!archs.has(l.arch)) archs.set(l.arch, []); archs.get(l.arch).push(l); }
@@ -95,17 +95,18 @@
     const others = [...archs].filter(([a]) => a !== open).sort((a, b) => newest(b[1]) - newest(a[1]));
     box.innerHTML = (st ? section(open, saveLabel(st).split('): ')[0] + '), the game open now', archs.get(open) || [], true) : '')
       + others.map(([a, ls]) => section(a, ls[0].label.split('): ')[0] + ')', ls, false)).join('')
+      + (fromEditor ? '<p class="save-msg">The game open now was started from the editor, and cannot be saved yet.</p>' : '')
       + (st || others.length ? '' : '<p class="save-msg">No saved games yet.</p>')
       + `<div class="save-acts save-files">${st ? saveBtn('file', 'save', 'Save to file') : ''}${saveBtn('file', 'load', 'Load file')}</div>`
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), and closes back to it: Saves while
     // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
     if (on) {
-      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; 
       saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
     } else if (menu) $('landLoad').focus();
   }

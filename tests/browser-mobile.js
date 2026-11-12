@@ -180,7 +180,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.keyboard.press('Escape'); assert(await page.locator('#noticePop').isHidden(), 'Esc shuts the list');
     assert(await page.locator('#landing').isHidden(), 'Esc that shuts the list does not open the main menu');
     console.log('mobile: minimap'); await page.click('#minimapBtn'); assert(await onlyToggle(), 'shut, the minimap toggle alone stays');
-    await page.click('#menuBtn'); await page.click('#landNew'); await page.click('#genCancel'); await page.click('#landBack');
+    await page.click('#menuBtn'); await page.click('#landNew'); await page.click('#genMenu'); await page.click('#landBack');
     assert(await page.locator('#genScreen').isHidden(), 'new-world screen can be cancelled');
     await page.keyboard.press('Escape'); assert(await page.locator('#landing').isVisible(), 'Esc with nothing open opens the main menu');
     assert(await page.locator('#name').isVisible(), 'the main menu names the open game'); await fits('#name');

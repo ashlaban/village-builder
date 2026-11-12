@@ -1,4 +1,4 @@
-// @sys page/culture: the Culture pane of the dock: a culture's villages and what is unusual in each, its own charter, the meetings (VB-390)
+// @sys page/culture: the Culture pane of the dock: a culture's villages and what is unusual in each, its own charter, the meetings (VB-397)
   // ======== culture ========
   // The pane tells of one culture: where the island has several, chips choose. Its tabs: the villages, those with something stirring or a
   // way of their own first; the custom, the culture's own charter (page/customs); the meetings, by year.

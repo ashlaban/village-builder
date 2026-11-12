@@ -112,8 +112,8 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await savesOpen(); await shot('saves-landing.png');
   const text = await body();
   check(!text.includes('the game open now') && !(await page.locator('#savesBody [data-save]').count()), 'the showcase island can be saved: ' + text);
-  check(await page.locator('#savesTitle').innerText() === 'Load archipelago' && await page.locator('#savesClose').innerText() === 'Back',
-    'from the main menu the Saves overlay is not titled Load archipelago, with Back');
+  check(await page.locator('#savesTitle').innerText() === 'Load archipelago' && await page.locator('#savesClose').innerText() === 'Close',
+    'from the main menu the Saves overlay is not titled Load archipelago, with Close');
   check(text.includes(OTHER), 'no message for a save of another build: ' + text);
   await pause();
   await page.click(`#savesBody [data-load="${P7}:1"]`); await done(); await pause();

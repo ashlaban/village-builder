@@ -116,7 +116,7 @@
   }
 
   // ---- opening, choosing, leaving ----
-  // New archipelago, Back from whom to play, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
+  // Play a Scenario, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
   function openStart(msg) {
     $('genSeed').value = String(choice.seed); $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
@@ -147,13 +147,14 @@
       for (const o of START_ORDER) if (!start.runs.has(o)) onStage(() => (startOpen() && !building ? runOf(o).catch(() => {}) : null));
     });
   }
-  // Back: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
+  // Main menu, on the start: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
   function startBack() {
     if (!start) { showLanding(); return; }
     $('genScreen').hidden = true; $('genMsg').hidden = true;
     onStage(async () => {
       if (aside) await restoreAside();
-      else if (demo && start && start.shown) { const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
+      else if (demo && start && start.shown && st === start.shown.sim) {
+        const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
       if ($('genScreen').hidden && loader.classList.contains('done') && !building) showLanding();
     });
   }

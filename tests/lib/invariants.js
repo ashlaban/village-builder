@@ -160,6 +160,11 @@ function checkState(st) {
       if (d !== undefined && !(d >= 0 && d < 1)) bad.push(`pawn ${id}: diligence ${d}`);
     }
   } else bad.push('plans: missing');
+  // a cause is an agenda: the year it was taken up (culture), null or undefined for none yet, and never in the future
+  for (const id of st.living) {
+    const cs = st.pawns[id].causeSince;
+    if (cs !== null && cs !== undefined && !(cs <= st.t / globalThis.VB['sim/rules'].YEAR + 1e-6)) bad.push(`pawn ${id}: causeSince ${cs}`);
+  }
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }

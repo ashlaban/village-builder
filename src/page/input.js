@@ -2,15 +2,20 @@
   // ---- input ----
   const pointers = new Map();
   let drag = null, pinch = null, moved = 0;
+  // A brush on the map (page/editor): while one is held, a drag of one pointer paints, by mapBrush(sx, sy, first), and does not move the
+  // map; two fingers, the wheel and the keys still do. `stroke`: such a drag is under way.
+  let mapBrush = null, stroke = false;
   stage.addEventListener('pointerdown', (e) => {
     stage.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     stopIntro(); vel.x = vel.y = 0; zt = cam.z;
-    if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
+    if (pointers.size === 1 && mapBrush && e.button === 0) { stroke = true; drag = null; pinch = null; mapBrush(e.clientX, e.clientY, true); }
+    else if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
     else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: cam.z, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
       drag = null; moved = 99;
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); } // a second finger ends the stroke
     }
   });
   stage.addEventListener('pointermove', (e) => {
@@ -18,6 +23,7 @@
     if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY, false); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
+    if (stroke && mapBrush) { mapBrush(e.clientX, e.clientY, false); return; }
     if (pinch && pointers.size >= 2) {
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -37,6 +43,7 @@
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); return; } // null: the stroke is over
       if (drag && moved < 8) pick(e.clientX, e.clientY);
       if (!drag || performance.now() - drag.t > 90) { vel.x = vel.y = 0; }
       drag = null; pinch = null; stage.classList.remove('dragging');
@@ -67,12 +74,15 @@
       return;
     }
     // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
-    const choosing = !$('choose').hidden && $('landing').hidden && $('genScreen').hidden;
+    // In the archipelago editor (page/editor) too; there Esc is its Main menu
+    const editing = !$('editor').hidden && $('landing').hidden && $('genScreen').hidden;
+    if (editing && e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) { $('edMenu').click(); return; }
+    const choosing = editing || (!$('choose').hidden && $('landing').hidden && $('genScreen').hidden);
     if (choosing && !/^(arrow(left|right|up|down)|[wasd+=-])$/.test(e.key.toLowerCase())) return;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
-      if (!$('genScreen').hidden) { startBack(); return; } // on the start, Back
+      if (!$('genScreen').hidden) { startBack(); return; } // on the start, Main menu
       if (tool || barMenu) { if (tool) endTool(); else closeBarMenu(); renderActions(); return; } // the action bar's tool, then its list (page/actbar)
       const open = activePanel !== null || barOpen || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
       closeSpeedOptions(); closeNotices(); openPanel(null); closeBar();
@@ -104,7 +114,7 @@
 
   // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
-  $('genCancel').addEventListener('click', () => startBack());
+  $('genMenu').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
   // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
   $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
@@ -142,11 +152,12 @@
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['culture', 'debug'].includes(panel);
-    drawerTab = ['culture', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['culture', 'agenda', 'debug'].includes(panel);
+    drawerTab = ['culture', 'agenda', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('cultureBtn').setAttribute('aria-pressed', String(panel === 'culture'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
+    $('agendaBtn').setAttribute('aria-pressed', String(panel === 'agenda'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }

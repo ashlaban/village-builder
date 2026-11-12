@@ -93,10 +93,12 @@ const Culture = (() => {
     kind: { village: 1, city: 2.2 },
     oblique: 0.3,      // share of the social target taken from the settlement as a whole
     advocacyPull: 3, advocacyWeight: 3,
+    advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
+    causeEvery: 5,      // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
     margin: 0.25, tieMargin: 0.6, returnMargin: 0.12, // meeting margins
     cultureMarginBase: 0.6, cultureMarginSize: 0.4,   // culture margin = margin * (base + size * sqrt(N / 100))
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
-    entrepreneur: 0.004, entrepreneurYears: [5, 15], // chance per adult, custom and year (times malleability squared)
+    entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
     persuasion: 1.5,   // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
   };
 
@@ -153,9 +155,21 @@ const Culture = (() => {
   // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
   function initPerson(p, att) {
     p.att = att; p.anc = Float32Array.from(p.att);
-    p.prestige = 1; p.interest = null; p.advocate = null;
+    p.prestige = 1; p.interest = null; p.advocate = null; p.causeSince = null;
   }
-  function advocate(p, dim, opt, until) { p.advocate = dim === null ? null : { dim, opt, until }; } // dim null: lays the cause down
+  // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
+  // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
+  function advocate(p, dim, opt, until, t, natural) {
+    if (dim === null) { p.advocate = null; return; }
+    p.advocate = natural ? { dim, opt, until, natural: true } : { dim, opt, until };
+    if (t === undefined) return;
+    p.causeSince = t;
+    const o = OFF[dim], n = NOPT[dim];
+    for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
+    normBlock(p.att, o, n);
+  }
+  // The year from which the pawn may take up a new cause (it is free when t has reached it).
+  const causeFree = (p) => (p.causeSince === null || p.causeSince === undefined ? -Infinity : p.causeSince + P.causeEvery);
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
@@ -247,7 +261,7 @@ const Culture = (() => {
       const p = hooks.byId(id);
       if (!p.alive || p.age < 18) continue;
       if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
-      if (p.advocate) continue;
+      if (p.advocate || env.t < causeFree(p)) continue;
       for (let d = 0; d < DIMS.length; d++) {
         if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m) continue;
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
@@ -259,8 +273,7 @@ const Culture = (() => {
         }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
-        const [a, b] = P.entrepreneurYears;
-        p.advocate = { dim: d, opt, until: env.t + a + rand() * (b - a), natural: true };
+        advocate(p, d, opt, env.t + P.causeEvery, env.t, true);
         out.push(p);
         break;
       }
@@ -278,10 +291,9 @@ const Culture = (() => {
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
-  // The share by which a way y must pass the practice x at a village's meeting, before the factor for few voices: most where the practice
-  // is the culture's custom (more the closer the village's tie), least to return to that custom.
+  // The share by which a way y must pass the practice x at a village's meeting: most where the practice is the culture's custom (more the
+  // closer the village's tie), least to return to that custom; times fewVoices, as a handful of voices is noisy (below ten the margin grows).
   const margin = (s, x, y, cust) => (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
-  // That factor: a handful of voices is noisy, and below ten of them the margin grows.
   const fewVoices = (n) => 1 + Math.max(0, 10 - n) * 0.1;
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture], changes = [];
@@ -378,7 +390,7 @@ const Culture = (() => {
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
-  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
+  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, causeFree: { value: causeFree }, norm: { value: norm },
     WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
     PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf }, margin: { value: margin }, fewVoices: { value: fewVoices } });
   return api;

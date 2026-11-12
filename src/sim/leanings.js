@@ -1,10 +1,10 @@
-// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-391); no state
+// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398); no state
 VB['sim/leanings'] = (() => {
   const { OFF, NOPT, DIMS, P } = VB['culture'];
   // What draws a person towards option j of custom d, each pull as the daily drift weighs it (culture, driftPerson): company (those they deal with,
   // mixed with the settlement's mean share for it, or null; friend is the tie that weighs most among those who favour j above the custom's other ways),
   // upbringing (what they learned young), cause (a cause argued near them; arguer is who argues it with most weight), interest (their own)
-  // and own (they argue it themselves). A view for the page (page/customs, VB-391): it writes nothing and draws no randomness.
+  // and own (they argue it themselves). A view for the page (page/customs, VB-398): it writes nothing and draws no randomness.
   function pulls(p, d, j, byId, mean = null, kind = 'village') {
     const o = OFF[d], n = NOPT[d], k = o + j, m = DIMS[d].m, a = p.att[k], rate = P.kind[kind], ageF = p.age < 25 ? 1.5 : p.age < 50 ? 1 : 0.6;
     let wsum = 0, t = 0, press = 0, pr = 0, friend = null, fw = 0, arguer = null, aw = 0;

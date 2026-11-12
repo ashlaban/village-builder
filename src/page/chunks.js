@@ -44,23 +44,26 @@
   }
   // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
   // Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
-  function refreshTrees() {
+  function refreshTrees() { repaintTiles(st.treeDirty, st.biomeDirty); st.treeDirty.clear(); st.biomeDirty.clear(); }
+  // near: tiles whose close levels are painted again; far: tiles whose colour on the overview changed (the editor repaints its own).
+  function repaintTiles(near, far) {
     const reach = 36 + 2 * w.R;
     const overChunks = (tile, l) => {
       const [x0, y0, x1, y1] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
       const out = []; for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) out.push([cx, cy]);
       return out;
     };
-    for (const tile of st.treeDirty) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
-    for (const tile of st.biomeDirty) {
+    for (const tile of near) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    const done = new Set(); // each overview chunk once, however many of its tiles changed
+    for (const tile of far) {
       for (const [cx, cy] of overChunks(tile, 2)) {
         const ch = chunks.get(ckey(2, cx, cy));
-        if (!ch) continue;
+        if (!ch || done.has(ch)) continue;
+        done.add(ch);
         for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
         ch.spr.texture.source.update();
       }
     }
-    st.treeDirty.clear(); st.biomeDirty.clear();
   }
   // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
   // the frame budget; the overview shows no paths.

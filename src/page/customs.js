@@ -1,4 +1,4 @@
-// @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-389, VB-391); the charter's sentences
+// @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-396, VB-398); the charter's sentences
   // ======== customs ========
   // The customs are told as sentences under four heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
   const CHARTER = [['Land', ['claims', 'dispute', 'newLand']],
@@ -65,7 +65,7 @@
     }).join('');
   }
   const markOf = (c) => (c.state === 'turning' || c.state === 'contested' ? c.state : c.differs ? 'differs' : '');
-  // The note of a chosen voice (VB-391): how far they lean to their first and second way, and the strongest pull towards the first, as the
+  // The note of a chosen voice (VB-398): how far they lean to their first and second way, and the strongest pull towards the first, as the
   // daily drift weighs them (sim/leanings): their own cause, what they learned young, those they deal with, a cause argued near them, their
   // interest.
   function voiceNote(c, f, s) {
@@ -99,6 +99,11 @@
         chosen && chosen.top === j ? voiceNote(c, chosen, s) : ''}</div>`;
     }).join('')}<p class="note">${r.voices ? `${r.voices} of ${r.people} speak at the meeting, and each stands by the way they favour most. `
       + 'Those who waver are the ones to win over. Choose a face to see how far they lean, and why.' : 'No one here speaks at the meeting yet.'}</p></div>`;
+  }
+  // From the Agenda (page/drawer): a village's card at its Customs tab, with one custom opened.
+  function openCustom(village, k) {
+    cardTab = 'customs'; customsOf = village; customOpen = k; customVoice = -1; charterStamp = '';
+    selectVillage(village);
   }
   // Drawn when the day, the village, a practice, the played pawn or the open phrase changes, not every frame.
   function renderCustoms(id) {
