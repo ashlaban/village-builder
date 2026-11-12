@@ -186,8 +186,8 @@ tasks outside every arch last), then priority, then ID; the archive by when a ta
 **Order and statuses.** Agents take only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
 To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
 same files run one at a time).
-A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
-`needs-review` tasks list the questions Kim must answer first; [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
+A task is `ready` when its goal and acceptance criteria are stated; what it leaves open, its agent decides by `AGENTS.md`, Deciding without Kim.
+`needs-review` tasks list the questions only Kim can answer (a Decided point moved, or a new thing the player can do); [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
 in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
 A `blocked` task has a `Waits for:` line after `Status:`, naming the open tasks it waits for, or `Kim`, separated by ", " (`Waits for: VB-185, VB-009`).
 That line, not the prose of the goal or notes, is what holds it: when a task is done, the tasks that wait for it drop it, and a task left
@@ -200,9 +200,9 @@ A sentence deep in the notes is not enough. On 5 and 6 November the late fixture
 ledgers adding half to the save were written in task files, and no one acted on them until the review of 7 November.
 
 **Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
-- **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
+- **plan:** a plan task makes the design concrete, deciding by `AGENTS.md`, Deciding without Kim, and asking Kim only what that leaves; it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
 - **implement:** the tasks that build it, each small enough for one agent session (size S or M where possible).
-- **wrap-up:** a task that checks the arch as a whole against the design with long runs, reports the numbers and proposes tuning. It is `blocked` until the arch's implement tasks are done.
+- **wrap-up:** a task that checks the arch as a whole against the design with long runs and reports the numbers; it names the parameters a tuning run of Kim's would move, and tunes nothing. It is `blocked` until the arch's implement tasks are done.
 
 Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10). Each slice's plan task
 is a design pass: it makes the slice's systems concrete, proposes its sections of `design.md` v0.4, and confirms, rewrites or closes the tasks

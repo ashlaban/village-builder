@@ -88,6 +88,23 @@ slices of `docs/roadmap.md` build towards them, and the sections below say how f
 - **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
   Work, Death and the Peasant".
 
+### Principles for decisions (Kim, 12 November 2026)
+
+Decided, in a discussion of the open questions. They say how a question is answered when the sections below do not; `AGENTS.md`,
+Deciding without Kim, is their working form and says which questions still go to Kim.
+
+- **Hunger is an engine.** Shortage drives the gift and goodwill, and through them loans, land passing and the landed class. A household
+  may fail; the design does not aim for every household to be fed.
+- **The island grows without the player.** The island as a whole must grow reliably with nobody steering it: at least 1% a year in the
+  long term, over most seeds (Balance loops and targets, Growth). Only island-wide numbers are judged.
+- **Parameters, not patches.** What balance depends on is a named parameter with a meaning in the physical world or in a gameplay
+  system. Parameters are tuned together, for gameplay balance, in runs Kim starts; otherwise only to avoid a collapse.
+- **History, leaning to gameplay.** Systems, customs and their defaults are grounded in history; where history and play part, play
+  decides. Customs may be added freely for now; a later review will look for a smaller set with the same effects.
+- **Detail where it is a decision.** Quantities and logistics are grounded in history, and the kinds modelled are those that give the
+  head or the player a decision: key kinds, not every kind, as with the crops (Crops and rotations).
+- **References.** Founders is the reference for the early game, populous for the late game (many pawns).
+
 ## 2. World, climate and travel
 
 ### World and scale
@@ -213,7 +230,7 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
 
-**Growth and time conflict.** Frontier populations with open land grew close to 3% a year from births. From 10 to 1,000 takes about 150 years, 5–6 generations, or roughly 10 hours at 10×. The game is meant to be slow: 40 hours or more to reach full population is fine, with growth from births and, in a later stage, very limited immigration by boat (Decided).
+**Growth and time conflict.** Frontier populations with open land grew close to 3% a year from births. From 10 to 1,000 takes about 150 years, 5–6 generations, or roughly 10 hours at 10×. The game is meant to be slow: 40 hours or more to reach full population is fine, with growth from births and, in a later stage, very limited immigration by boat (Decided). The target is at least 1% a year in the long term (Decided, 12 Nov; Balance loops and targets, Growth); at exactly 1%, 10 to 1,000 takes about 460 years, about 29 hours at 10×, so a run of the intended length rests on growth nearer 2 to 3%, or on a scenario that starts larger.
 
 **Run length.** A single run should last 40–80 hours (Decided). At about 38 minutes a year, 150 years is about 95 hours at 1×, so a run would mostly play between 1× and 3×.
 
@@ -993,6 +1010,8 @@ are in `QUESTIONS.md`, "VB-184: debt and land".
 
 One culture holds a single set of customs with a default when generated; members' attitudes drift every game day, villages change their practice only at a yearly meeting, and remote villages can drift off into new cultures. (Decided)
 
+Customs are grounded in history, and a custom's default leans to gameplay where the two part. New customs may be added freely for now; Kim will later review them for a smaller set with the same effects. (Decided, 12 Nov)
+
 &#91;embedded content: customs cycle · daily drift, yearly round\]
 
 Daily contact moves attitudes; only the yearly round turns them into practice, customs and splits, and its moves, like marriages from courting, change who meets whom.
@@ -1167,13 +1186,16 @@ Slices 0 and 9 write this section (backlog VB-181, VB-189); the loops and their 
 | --- | --- | --- |
 | Balance points | Many systems balance themselves, and tuning the game means tuning their balance points: peasant fertility is held in check by taxation and by higher death rates in crowded towns | Decided, 3 Nov (Kim's description) |
 | Population | About 1,000 living pawns on a medium map (see Vision and scope) | Decided, 3 Nov |
+| Growth | The island grows without the player. Yearly growth of a run is `(end / start)^(1 / years) − 1`. Over a scenario's seeds: the median seed grows at least 1% a year; at least three seeds in four end above their start; at most one in eight ends below half its start. Not every seed need grow. Founders is held to it as the early reference; populous while land is free (the loops hold it after); heirs is reported without a target | Decided, 12 Nov (1%, most seeds, the references); Agreed, 12 Nov (the three numbers) |
+| What is judged | Island-wide numbers only. Hunger is an engine (Vision and scope, Principles), so measures of single households (the hungriest household, the share of households hungry, hunger's share of deaths) are reported as descriptions and have no target | Decided, 12 Nov |
+| Collapse and tuning | A collapse is a reference scenario whose median seed shrinks; it may be tuned away at once. Anything short of a target but not a collapse is reported and left: parameters are tuned together, for gameplay balance, in runs Kim starts. A formula that computes something other than it says is a fix, not tuning | Decided, 12 Nov |
 | Strata | 600 farming, 325 in towns and specialised work, 75 elite, per 1,000, at the end game; open to challenge. Proposed reading: a band for a developed island, not a quota, with strata counted by relation to production, not residence | Decided (the target), Proposed (the reading) |
 | Bands | Full-simulation bands are reported nightly and never fail; reduced scenarios (a tiny map, a few years) are asserted and may fail outside their band | Decided, 3 Nov |
 | Loops | About twenty loops, each declared with its stock, probe, setpoints and bands, calibrated fast loops first | Proposed (target-v2, section 6) |
 
 ## 14. Starting scenarios
 
-There are several starting scenarios; the base and default one is the 10 founders, and unless a scenario says otherwise it starts with as few fields and meadows already made as possible, so the first year goes to making them. (Decided)
+There are several starting scenarios; the base and default one is the 10 founders, and unless a scenario says otherwise it starts with as few fields and meadows already made as possible, so the first year goes to making them. (Decided) Founders is the reference for the early game and populous for the late game (Decided, 12 Nov).
 
 | Scenario | Start | Purpose | Status |
 | --- | --- | --- | --- |
@@ -1316,7 +1338,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [x] Births: fertility, child mortality, spacing of children. Decided: spacing by explicit pregnancy and nursing; starting targets for fertility and child mortality Agreed.
 - [x] Stats and traits, and whether children inherit them. Decided (3 Nov): twelve traits, partly inherited (see People, Traits, talk and stories).
 - [ ] A historical division of labour by sex, or free job assignment by role only.
-- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
+- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom. Decided (12 Nov): hunger is an engine of the gift, of loans and of the landed class, and a household may fail (Vision and scope, Principles). Sickness and leaving still open.
 - [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped (backlog VB-084, VB-105).
 - [ ] Cities: how they arise and how much faster they change customs.
 - [ ] Trade and money.
@@ -1441,6 +1463,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (principles) | 12 November 2026 | Kim's decisions in a discussion of the open questions: Vision and scope gains Principles for decisions (hunger as an engine; the island grows without the player; parameters, not patches; history leaning to gameplay; detail where it is a decision; founders and populous as references). Balance loops and targets gains Growth (at least 1% a year, over most seeds), What is judged (island-wide numbers only) and Collapse and tuning. Customs may be added freely, with a later review. `AGENTS.md`, Deciding without Kim, says which questions still go to Kim. |
 | 0.4 (slice 6 plan) | 11 November 2026 | Slice 6's plan (backlog VB-185), on Kim's answers in a session: Goods, production and animals gains The mill and the loom, the kiln and the quarry: two halves; skills (novice 60%, master 130%); wool to cloth and dress; who spins as a practice; the quern stone a good of place that wears out; a water mill where there is a river, with millstones and iron; iron in two steps, lifting the tools' ceiling; pots, peat, brick, tiles and lime; four grades of house, the stone house alone mortared. Tasks VB-360 to VB-371; VB-009, VB-093 and VB-121 rewritten, VB-144 confirmed |
 | 0.4 (the ground) | 11 November 2026 | Kim's decisions in a session on the terrain: World and scale gains Ground (bedrock of six kinds; finite deposits of clay, bog iron, iron, copper, lead-silver, tin and gold, and of peat, flint and amber, with salt springs; each island draws its kinds by tuned chance; a few endless sources), and Goods of place gains In the ground. Generation and views only (task VB-357); Kim's answers the same day on what is known and found, bog iron growing back, quarrying by bedrock and what each kind is for (`QUESTION_ARCHIVE.md`) |
 | 0.4 (crops, first part) | 11 November 2026 | Kim's answers in a discussion of crops, the scale of a hex, planting, yields and the weather (`QUESTION_ARCHIVE.md`, VB-345): Goods and the farming year gains Crops and rotations, with what crops are for, the head's choice by skill (on choices and timing only), seed as knowing a crop, fallow as rest, different starts a village (Decided), and a table of the first crops, barley, winter rye, peas and fallow (Proposed). World and scale gains Two readings of one grid (a site about 10 m, land about 100 m and 0.87 ha a hex; Agreed), and farmland's compression is corrected from "a few hundred times" to about 100 times in area. Second part, the same day: The rotation (at most four courses a field, a short list of rotations bounded by the household's seed, a farm's fields staggered, the village's usual rotation in the culture's year) and How the head chooses what to sow (a poor, an ordinary and a good head; a trial as a project; the player's verbs), Proposed, with a row in Work: opportunities, plans and tasks. Rye is 4:1 (Kim, 11 Nov). Third part, the same day: Kim decided that the player chooses its rotation freely (the other heads' short choice is for cost) and that the village's usual rotation is the one most farms hold, updated at the meeting. Seed (seed is the crop's own grain, held in subtypes, reserved by the plan, the last field's seed eaten last; a crop moves wherever grain moves) and The scenarios' crops (founders: the three farms barley and rye, the lone farm barley and peas; heirs and populous Proposed); Starting scenarios names the founders' two villages. Fourth part, the same day: Crops and the weather (a season's warmth and wetness and two frost days in place of the yearly factor; a draw for the archipelago a season until slice 10, then the weather itself a region; what barley, rye, peas and hay each read; Proposed). Kim: a backup household carries pea seed in founders (Decided); the order in which seed is eaten (Agreed). Last part, the same day: What crops touch, and the tasks VB-346 to VB-356 (ten to build and a wrap-up). Kim then accepted the ten points still Proposed as written (`QUESTION_ARCHIVE.md`, VB-345), which are now Agreed, and the tasks were released at priority 2. Kim: the weather is being built on a branch of its own, so it answers the crops' question if it lands first; losing the spring's forecast is fine for now. The plan task was renumbered from VB-342 to VB-345, two other branches having taken VB-342 to VB-344 |
