@@ -10,15 +10,18 @@ VB['sim/layout'] = (() => {
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
+  // What a step from the house costs a field, against its fertility (meadow 1): the fields lie close to the house (was 0.15; Kim, 12 Nov).
+  const FIELD_NEAR = 0.3;
   const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
   // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
-  // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
-  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less 0.15 per step from the house.
+  // none in `avoid` (the ground kept open: a street's tiles and the tiles round a green). A field may touch a house, its own or
+  // another's (Kim, 12 Nov: the fields lie close). Grown from each candidate tile, taking the best
+  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less FIELD_NEAR per step from the house.
   // Null when no block of n exists.
   function placeFields(w, used, house, n, avoid) {
-    const score = new Map(), own = new Set([house]);
+    const score = new Map();
     for (const [t, d] of bfs(w, house, FIELD_REACH, walkable(w)).dist) {
-      if (d >= 2 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && !nextTo(w, t, own)) score.set(t, fertility(w, t) - 0.15 * d);
+      if (d >= 1 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t))) score.set(t, fertility(w, t) - FIELD_NEAR * d);
     }
     let best = null, bs = -Infinity;
     for (const [seed, s0] of score) {
@@ -217,7 +220,7 @@ VB['sim/layout'] = (() => {
     const sites = () => {
       const out = [];
       for (const [t, d] of reach) {
-        if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || !(near.has(t) || nextTo(w, t, near))) continue;
         if (cutsOff(w, t, shut, house) || rimFull(w, center, t, house)) continue;
         let touch = 0; for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
         const b = w.biome[t];
@@ -226,7 +229,7 @@ VB['sim/layout'] = (() => {
       }
       return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
     };
-    const stand = (t) => { used.add(t); build(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) { yards.add(j); sides.add(j); } } };
+    const stand = (t) => { used.add(t); build(t); };
     // the farm of the house at t, if it finds its fields: behind the row, unless the unbuilt sites along the street give clearly
     // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
     const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
@@ -294,7 +297,7 @@ VB['sim/layout'] = (() => {
     const { dist: reach } = bfs(w, center, 40, walkable(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
-      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j) || nextTo(w, j, fieldsAt)) continue;
+      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j)) continue;
       const fields = placeFields(w, used, j, 3, yards);
       if (!fields) continue;
       const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
@@ -313,7 +316,6 @@ VB['sim/layout'] = (() => {
   function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
     const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
     v.farmsteads.push(f.id);
-    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
     for (const t of fields) fieldsAt.add(t);
     return f;
   }
@@ -324,7 +326,7 @@ VB['sim/layout'] = (() => {
     let best = -1, bs = -Infinity;
     for (const [t, d] of dist) {
       if (used.has(t) || yards.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
-      const s = fertility(w, t) - 0.15 * d;
+      const s = fertility(w, t) - FIELD_NEAR * d;
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
