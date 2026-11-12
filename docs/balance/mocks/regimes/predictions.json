@@ -1,9 +1,0 @@
-{
- "_note": "Written from the dial table alone (dial_table.csv), before running exp_dials.py. Each entry: predicted change at year 150 (mean of years 145-155) for a +20% change in the dial (child_mort: -20%), as a relative change in percent, except hungry and gini in absolute points (x100). 0 means 'no effect expected (within +-2)'.",
- "properties": ["pop", "town_share", "elite_hh", "ratio", "hungry_pts", "gini_pts"],
- "means":      {"pop": -8, "town_share": 15, "elite_hh": 0, "ratio": 8, "hungry_pts": -1, "gini_pts": 0, "_why": "B1 setpoint: the late food ratio follows means; fewer heirs marry; the waiting go to town"},
- "tithe":      {"pop": 0, "town_share": 5, "elite_hh": 20, "ratio": 0, "hungry_pts": 0, "gini_pts": 0, "_why": "office road: elite households = tithe / elite standard, a ratio; part of the extra income is spent in town"},
- "Wd1":        {"pop": 0, "town_share": 12, "elite_hh": 0, "ratio": 2, "hungry_pts": -1, "gini_pts": 0, "_why": "R2: town food is set by goods demand; more wants, more food sold to town; pull raises clearing a little"},
- "town_d":     {"pop": -3, "town_share": -15, "elite_hh": 0, "ratio": 0, "hungry_pts": 0, "gini_pts": 0, "_why": "B4: town settles near M/(d-b); d-b rises by more than 20%"},
- "child_mort": {"pop": 10, "town_share": 5, "elite_hh": 5, "ratio": -3, "hungry_pts": 1, "gini_pts": 0, "_why": "growth ceiling up ~0.3 points: about 8 years sooner to each size; more waiting adults; output follows farm population"}
-}

@@ -1,9 +1,0 @@
-pulse,sensor,base,peak,years_to_peak,half_recovery,recovery_90
-people -20%,pop,981.073,-164.75,18,49,
-famine (stores to 0),hungry,0.049,0.094,0,1,3.0
-goods habit to 0,D,141.426,-118.082,0,2,5.0
-town -50%,town,196.015,-56.917,0,5,49.0
-offices emptied,elite_hh,14.426,-11.833,0,1,1.0
-land to 5 owners (+gini),gini,0.28,0.191,0,39,
-goodwill wiped,gw,66.049,-28.325,0,4,14.0
-"debt shock (stores to 0, loans)",tenancy,0.078,0.018,30,40,67.0

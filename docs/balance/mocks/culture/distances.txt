@@ -1,2 +1,0 @@
-same within village 0.046  same island other village 0.064  across islands 0.086  (p90 within 0.075)
-different within village 0.050  same island other village 0.072  across islands 0.114  (p90 within 0.082)

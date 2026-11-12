@@ -14,9 +14,11 @@ session of 12 November 2026, so that it can be continued. The decisions are in `
   rebuild it). `drafts/reflection.html` is the reflection page written after the experiments; it expects four figures beside it under
   other names (`fig-food.png` is `figures/food-budget.png`, `fig-levers.png` `lever-ranges.png`, `fig-roads.png` `elite-roads.png`,
   `fig-culture.png` `culture-trajectory.png`).
-- `mocks/`: the experiments' scripts and small data, one folder each, and `brief.md`, the brief they all read. Throwaway research code in
-  Python and Node, not game code; no test or tool reads it. The large outputs (saves, pickled runs, 31 more figures) were not kept: each
-  folder's scripts remake them (minutes; the culture runs take about 30).
+- `mocks/`: the experiments' scripts, one folder each, and `brief.md`, the brief they all read. Throwaway research code in Python and
+  Node, not game code; no test or tool reads it. Their outputs were not kept (result tables, logs, saves, pickled runs, 24 more figures):
+  each folder's scripts remake them (minutes; the culture runs take about 30). Four documents were: `wholemap/arrows.md` (every arrow of
+  draft 3 as an equation, with what had to be invented), `estates/REPORT.md`, `measure/tables.md` (the measurements by decade) and
+  `regimes/dial_table.csv` (the dial table that was tested blind).
 
 ## How the work went
 

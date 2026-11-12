@@ -1,7 +1,7 @@
 # Balance review: findings of the eight experiments (12 November 2026)
 
 What the experiments of the balance review found, as numbers. `README.md` says what they were for and what follows from them; `cards.md` holds
-the mechanisms they tested. Each experiment's scripts and small data are in `mocks/<name>/` (`mocks/brief.md` is the brief they all read);
+the mechanisms they tested. Each experiment's scripts are in `mocks/<name>/` (`mocks/brief.md` is the brief they all read);
 key figures are in `figures/`. Every mock uses the game's own numbers where they exist and invented ones elsewhere: read directions and
 rough sizes as findings and exact percentages as illustrations. The measurements are of populous on small maps unless said.
 
