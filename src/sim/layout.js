@@ -1,4 +1,4 @@
-// @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
+// @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];

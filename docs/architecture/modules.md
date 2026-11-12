@@ -43,7 +43,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   year), an `at` within it (hour, tick, season, sday, doy), a guard `when` that is not a date, an owner module, `run` and a note. Each step walks
   it once, in order; a module tests no date to decide whether its daily, seasonal or yearly work runs. `node tools/sim.js --report calendar` prints it.
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
-  houses along a street through the green, or close round it, each farm's fields one block beyond the yards. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
+  a farm at a time round the green, each house where its land is best, its fields one block beside it and outward of it. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, meals, sheaves and food ledgers.
 - Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain; a pot of several sources goes further), moving food through `sim/stores`.
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
