@@ -198,9 +198,10 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
-  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + 10)) < 0.05, 'for ten years');
+  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + C.P.causeEvery)) < 0.05, 'for five years');
   assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
-  Sim.uninhabit(a); b.pawns[id].advocate = { dim, opt, until: b.cenv.t + 10, natural: true }; // as a natural cause, the same slot
+  assert.ok(Math.abs(a.pawns[id].causeSince - a.cenv.t) < 0.05, 'the year it was taken up');
+  Sim.uninhabit(a); C.advocate(b.pawns[id], dim, opt, b.cenv.t + C.P.causeEvery, b.cenv.t, true); // as a natural cause, the same slot and the same step
   b.pawns[id].advocate.until = a.pawns[id].advocate.until;
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
   const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
@@ -208,4 +209,13 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);
   assert.strictEqual(pa.advocate, null); assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => /^Dropped the cause/.test(e.text)));
   assert.ok(typeof issue(a, { actor: id, verb: 'dropCause', source: 'player' }) === 'string', 'refused again');
+  // an agenda: laid down at any time, but no new cause for Culture.P.causeEvery years from the last one taken up; taking one up is a step at once
+  const args = { dim, option: opt }, since = pa.causeSince;
+  assert.ok(/more before a new one/.test(issue(a, { actor: id, verb: 'argue', args, source: 'player' })), 'no new cause yet');
+  assert.ok(Sim.opportunities(a, id).filter((x) => x.verb === 'argue').every((x) => /more before a new one/.test(x.why)), 'and none is offered');
+  assert.strictEqual(pa.advocate, null); assert.strictEqual(pa.causeSince, since);
+  pa.causeSince = a.cenv.t - C.P.causeEvery; // as if the years had passed
+  const was = pa.att[o];
+  assert.strictEqual(issue(a, { actor: id, verb: 'argue', args, source: 'player' }), true, 'after the years, a new cause');
+  assert.ok(Math.abs(pa.att[o] - (was + C.P.advocacyJump * (1 - was))) < 1e-6 && pa.causeSince === a.cenv.t, 'its own attitude steps towards it at once');
 }
