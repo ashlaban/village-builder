@@ -193,9 +193,9 @@ VB['sim/stores'] = (() => {
     return got;
   }
   function sheaf(st, hh, n, seq = -1) { // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
-    amount(n); record(st, hh, 'sheaves', n, 'harvest'); if (!hh.unthreshed.length) wake(st, hh);
-    const th = hh.threshed || 0, i = seq - th; // a field's loads add to its entry
-    return i >= 0 && i < hh.unthreshed.length ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
+    const th = hh.threshed || 0, i = seq - th, old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
+    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); if (!hh.unthreshed.length) wake(st, hh); // first: its first load
+    return old ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
   }
   function thresh(st, hh) {
     type(hh); const n = hh.unthreshed.shift() || 0; hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);

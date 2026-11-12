@@ -6660,9 +6660,9 @@ VB['sim/stores'] = (() => {
     return got;
   }
   function sheaf(st, hh, n, seq = -1) { // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
-    amount(n); record(st, hh, 'sheaves', n, 'harvest'); if (!hh.unthreshed.length) wake(st, hh);
-    const th = hh.threshed || 0, i = seq - th; // a field's loads add to its entry
-    return i >= 0 && i < hh.unthreshed.length ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
+    const th = hh.threshed || 0, i = seq - th, old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
+    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); if (!hh.unthreshed.length) wake(st, hh); // first: its first load
+    return old ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
   }
   function thresh(st, hh) {
     type(hh); const n = hh.unthreshed.shift() || 0; hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
@@ -9471,7 +9471,7 @@ VB['sim/agents'] = (() => {
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
   }
   function placeAtHome(st, a) {
-    const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null; a.load = 0;
+    const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
   }
   // Dawn repositions an indoor pawn without clearing its movement or work state.
   function placeByDoor(st, a) {
@@ -18908,7 +18908,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e97d9a46b2', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '7b2a6627fe', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

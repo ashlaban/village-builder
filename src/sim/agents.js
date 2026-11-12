@@ -19,7 +19,7 @@ VB['sim/agents'] = (() => {
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
   }
   function placeAtHome(st, a) {
-    const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null; a.load = 0;
+    const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
   }
   // Dawn repositions an indoor pawn without clearing its movement or work state.
   function placeByDoor(st, a) {
