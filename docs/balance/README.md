@@ -100,9 +100,9 @@ what a change costs. Culture sits as dials on four gates and as a curve on the e
 
 ## Next steps
 
-- Kim's answers to `QUESTIONS.md`, VB-390 (where the elite comes from), VB-391 (marriage, nursing and growth), VB-393 (feasts and keeping).
-- Ready now: VB-389 (the accounts report; it also explains the 15% with no outlet) and VB-392 (the village store).
-- Draft 4 of the map in the shape above, once VB-389 gives the numbers for its flows. Until then the measured values in `cards.md` serve.
+- Kim's answers to `QUESTIONS.md`, VB-404 (where the elite comes from), VB-405 (marriage, nursing and growth), VB-407 (feasts and keeping).
+- Ready now: VB-403 (the accounts report; it also explains the 15% with no outlet) and VB-406 (the village store).
+- Draft 4 of the map in the shape above, once VB-403 gives the numbers for its flows. Until then the measured values in `cards.md` serve.
 - Cards still to write: 7 (idle hours and crafts), 8 (elite turnover), and the candidates at the end of `cards.md` (reach, disease,
   animals as stored wealth, the household's life cycle); card 6 (culture) has no task yet.
 - To verify in the game: the village store's rot; the `landed` rule; founders stalling; customs flickering; the 15%.

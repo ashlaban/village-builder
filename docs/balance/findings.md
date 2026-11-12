@@ -102,7 +102,7 @@ consumption 1.5 times a peasant's, 4 retinue a household, the town growing 15% o
 - Binding constraints: (1) the town's food: it is the residual claimant, short at a yield 2% lower and 61% short at 20% lower; (2) the full
   tenant: designed claims take 38% of its output, leaving 2.5% over need and a 12% shortfall in a one-in-four bad year; (3) the people
   stocks, knife-edged (a year later marriage, or town deaths 20% lower, breaks the split). Nearly free: land, the elite's income, walking.
-- Found only by closing the accounts: about 15% of today's gross produce has no outlet in the measured split (VB-389).
+- Found only by closing the accounts: about 15% of today's gross produce has no outlet in the measured split (VB-403).
 - Goodwill is not a budget at class level: help moves food inside the farm class and nets out.
 - What no budget shows: thresholds, the spread between households, timing, the order of claims on the harvest, whether a balance returns.
 

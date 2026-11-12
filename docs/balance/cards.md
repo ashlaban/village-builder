@@ -45,7 +45,7 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
 - **Experiments:** at the game's food ratio the debt road gives 0 to 1 elite households in 150 years and starts only when the map is full;
   hard lenders, not generous households, become landed; kin help slows concentration; rent and interest are 6 to 10% of output; the
   goodwill road moved 70 fields in 250 years; office and a tithe give 12 to 15 elite households and nothing opposes them. Tenants leaving
-  is no brake; debtors' politics is the steepest. The design's rule for `landed` miscounts. → VB-390.
+  is no brake; debtors' politics is the steepest. The design's rule for `landed` miscounts. → VB-404.
 
 ## Card 2: population growth (finished)
 
@@ -73,7 +73,7 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
 - **Experiments:** a ceiling of 2.4% a year; 10 to 1,000 in 150 years needs 3.1%; founders reach about 1%. Marriage holds the population
   already; hunger touches under 1% of households. The means test is the master setpoint. The town does not slow growth: it decides where
   people live. Every recipe for zero growth has a human cost; marriage-held balance overshoots and echoes. Lever ranges are in
-  `findings.md` and `figures/lever-ranges.png`. → VB-391.
+  `findings.md` and `figures/lever-ranges.png`. → VB-405.
 
 ## Card 3: a surplus that supports towns and an elite (finished)
 
@@ -100,7 +100,7 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
   rich household gives, and large one-sided goodwill is worked off as days on its farm and weighed in the debtor's vote.
 - **Experiments:** the surplus may already exist (1.64 to 1.86) and about a fifth of the harvest rots; the target needs 1.7 to 2.15; rot
   is the decisive dial and the town the residual claimant; rent cannot feed an elite and a tithe overfeeds it; winter hours could replace
-  about 91 of the 325; the wish for goods built the town in the model; patronage as worded is negligible. → VB-389, VB-390, VB-392, VB-393.
+  about 91 of the 325; the wish for goods built the town in the model; patronage as worded is negligible. → VB-403, VB-404, VB-406, VB-407.
 
 ## Card 4: goodwill, barter and silver (finished)
 
@@ -125,7 +125,7 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
   (feasted, sold, taken, rots) beside what is eaten; animals count in the surplus and are placed later.
 - **Experiments:** feasting mostly replaces rot; goodwill does not pile up with a few households (the top three hold 14 to 26%); goodwill
   nets out of every class account and lives in the spread between households; a silver tax is one sale counted as both taken and sold,
-  and with arrears that become debt it was the strongest concentrator of land. → VB-393.
+  and with arrears that become debt it was the strongest concentrator of land. → VB-407.
 
 ## Card 5: markets grow into towns (folded into cards 3 and 4)
 
@@ -174,7 +174,7 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
 - **Seed:** estates split, lines die out, younger sons drop a stratum; an alderman's house rises and falls.
 - **First impression:** named as a loop in target-v2 6.1 with the inheritance custom as its setpoint; no rules found. The experiments:
   fully partible inheritance cuts estates and pauperises; kin inheriting the land of households that die out concentrates land with no
-  brake; the elite sends about 1.5 people a year down to the town in the target's accounts. Belongs with VB-390.
+  brake; the elite sends about 1.5 people a year down to the town in the target's accounts. Belongs with VB-404.
 
 ## Candidates the experiments raised (no card yet)
 
@@ -183,6 +183,6 @@ What Kim tunes toward. The first three were named by Kim; the list is a draft, a
   not bind is open.
 - **Disease.** The vision's sink; undesigned. In the models it changed little and the town did not slow growth, so its job is to set the
   town's size and its human cost, not the island's growth.
-- **Animals as stored wealth.** A sixth outlet of the surplus; Kim: to be covered at an appropriate card (VB-393 places it).
-- **The village store.** The largest single place grain rots (VB-392).
+- **Animals as stored wealth.** A sixth outlet of the surplus; Kim: to be covered at an appropriate card (VB-407 places it).
+- **The village store.** The largest single place grain rots (VB-406).
 - **The household's life cycle.** The ratio of workers to mouths made as much difference to land concentration as yield did.
