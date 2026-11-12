@@ -13,7 +13,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
-| [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 2 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |
 | [VB-254](backlog/VB-254.md) | Foresight: stand-in traits, a head's horizon and its bias | year | 2 | M | A head plans from an estimate of its needs: wits, husbandry and years as head set the horizon and a persistent bias; the poorest tenth leave the template's order. |
@@ -60,6 +59,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
 | [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
 
 ## Blocked

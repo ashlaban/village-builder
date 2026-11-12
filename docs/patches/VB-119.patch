@@ -1,167 +1,139 @@
-diff --git a/backlog/VB-119.md b/backlog/VB-119.md
-index d1f8870..c9a1a6d 100644
---- a/backlog/VB-119.md
-+++ b/backlog/VB-119.md
-@@ -8,13 +8,122 @@ Design ref: Economy and jobs (Goods and the farming year: Mixed meals, Meals; Lo
- Goal: Fish and gathered food only matter if they change what a household needs. A ration is the unit and the cook makes meals from foods (Kim, 10 November; VB-259): a pot of several foods goes further, which rewards a household that fishes and gathers beside its fields; fresh food spoils, which keeps a summer's catch from feeding a winter; and a household with nothing cooked eats its grain raw, at a loss.
- Decided (Kim, 10 November; `QUESTION_ARCHIVE.md`, "VB-119"): variety is judged in the pot, at cooking; uncooked grain at a penalty.
- Acceptance criteria:
--- [ ] Foods in `FOODS` (VB-259): fish (VB-117) and gathered food (VB-118) with a shelf life of 3 days, each its own source; grain and flour one source; milk and meat as their rows say.
--- [ ] Fresh food is held in batches with the day it came in (`hh.fresh`, `@state`, invariants; at most 4 batches a food, since older ones are lost); a batch older than its shelf life is lost and noted in the ledger, through `sim/stores` with a reason. No daily pass over every household to spoil: a batch's loss is read from its day when the store is next touched, or falls due in the due-queue (Rules for cost, 3 and 4).
--- [ ] The pot: the cook makes the next day's meals from the household's foods, what spoils first going in first (oldest batch first), then grain up to the need. A food is a source of the pot when it gives at least a fifth of the pot's rations. A pot of 2 sources makes 1 / 0.9 times its rations in meals, of 3 or more 1 / 0.8 (so the day's need is met with 10% or 20% less food, as decided on 30 October).
--- [ ] People eat meals. A household with no meals eats grain uncooked at a penalty: 1.25 rations of grain for a ration of need (`ECON.rawGrain`; the number is the agent's starting value, to be confirmed in the PR). Fresh food that is marked eaten uncooked in `FOODS` (gathered food) is eaten before raw grain, at no penalty.
--- [ ] Tests: a household with grain only, and the same with grain and fish at a quarter of the pot, over 12 days: the second uses 10% less food. A household that misses its cooking for 3 days uses 25% more grain on the days it has no meals.
-+- [x] Foods in `FOODS` (VB-259): fish (VB-117) and gathered food (VB-118) with a shelf life of 3 days, each its own source; grain and flour one source; milk and meat as their rows say.
-+- [x] Fresh food is held in batches with the day it came in (`hh.fresh`, `@state`, invariants; at most 4 batches a food, since older ones are lost); a batch older than its shelf life is lost and noted in the ledger, through `sim/stores` with a reason. No daily pass over every household to spoil: a batch's loss is read from its day when the store is next touched, or falls due in the due-queue (Rules for cost, 3 and 4).
-+- [x] The pot: the cook makes the next day's meals from the household's foods, what spoils first going in first (oldest batch first), then grain up to the need. A food is a source of the pot when it gives at least a fifth of the pot's rations. A pot of 2 sources makes 1 / 0.9 times its rations in meals, of 3 or more 1 / 0.8 (so the day's need is met with 10% or 20% less food, as decided on 30 October).
-+- [x] People eat meals. A household with no meals eats grain uncooked at a penalty: 1.25 rations of grain for a ration of need (`ECON.rawGrain`; the number is the agent's starting value, to be confirmed in the PR). Fresh food that is marked eaten uncooked in `FOODS` (gathered food) is eaten before raw grain, at no penalty.
-+- [x] Tests: a household with grain only, and the same with grain and fish at a quarter of the pot, over 12 days: the second uses 10% less food. A household that misses its cooking for 3 days uses 25% more grain on the days it has no meals.
- - [ ] Populous small at seeds 3, 7, 11 and 42, 5 years, before and after: hungry household-days (the mean and the worst household), the share of pots with 2 and with 3 sources, days eaten raw, grain left at harvest, food spoiled. The penalty adds no hungry household-day at any seed in an ordinary year, or the PR names the households it does and why. Re-record the golden file and list the changed entries.
--- [ ] Milling (VB-009, slice 6) adds flour as a row of `FOODS`; nothing of it is built here.
-+- [x] Milling (VB-009, slice 6) adds flour as a row of `FOODS`; nothing of it is built here.
- - 3 Nov 2026 (`docs/roadmap.md`, section 3.3; the slices Decided by Kim): moved to slice 3, arch `year` (from `food`). `blocked` until the slice's plan (VB-164) confirms, rewrites or closes it; its questions in `QUESTIONS.md` wait for that plan, which may reframe them.
- - 10 Nov 2026 (VB-164, slice 3's plan; Kim's answers of the day): confirmed; waits for VB-117 and VB-118's foods, and for Kim on its questions in `QUESTIONS.md` (VB-117 to VB-119).
- - 10 Nov 2026 (Kim, in the session, on questions 5 and 6): rewritten. A ration is only the unit; meals are made in the pot, where variety is judged; uncooked grain at a penalty. Waits for VB-259 (the foods table and the rename) and for VB-117 and VB-118; no longer for Kim.
-+- 11 Nov 2026 (implementation, night run): the golden file, `tests/counters.json` and the anchor of `tests/record.js` are left for the orchestrator
-+  to re-record after the merge (night-run rules); the populous criterion stays open until then. Expected to move: every golden entry (from
-+  `seed`: `ECON` gains `pot`, `potShare`, `rawGrain`, and each household `fresh`; every year after), the record anchor (heirs 7 at 2.5 years:
-+  73 events on its pawns became 81, and its hash), and the counter `routeRefresh` (0.99 to 1.29 a pawn-day at the counters' probe, out against
-+  its baseline; a target: more cooks walking home, now that fish and gathered food must be cooked; the other 28 counters in).
-+
-+Implementation notes (11 Nov 2026):
-+- `FOODS` (`src/sim/rules.js`): rows `fish` (keeps 3, source `fish`, cooked) and `gathered` (keeps 3, source `gathered`, `raw`: eaten as they
-+  are on a day without meals), and a new column `held` (`grain`, `larder` or `fresh`: where a household keeps the food); `raw` now means "may
-+  be eaten uncooked at no penalty". Grain is one source (flour will be a row with source `grain`, VB-009); milk and meat stay larder foods
-+  eaten as they are, as their rows say, and are not put in the pot. Tunables in `ECON`: `pot: [1, 1, 0.9, 0.8]` (the food a pot of k sources
-+  needs), `potShare: 0.2`, `rawGrain: 1.25`.
-+- Fresh food (`src/sim/stores.js`): `hh.fresh`, batches `{food, day, qty}` by day (`@state`; owner `sim/stores` in `src/owners.json`;
-+  `fresh[]` in the household's `@state` of `sim/scenarios`); `putFresh` (a day's trips merge into one batch; past `FRESH_CAP`, 4 batches of a
-+  food, the oldest is lost), `takeFresh` (oldest first), `freshHeld` (reads only; a batch past its day does not count), `settle` (drops the
-+  batches older than their food's keeps, each noted as `spoilage` of its food in the yearly totals). No pass over households: the store is
-+  settled when it is touched (the catch, the pot, the day's meal), and `freshHeld` reads a stale batch as gone before then. The batch's
-+  amount is `qty`, not `n`: a resolved write to `fresh[].n` made `n` a state field's name to `tools/writes.js`, which then listed four older
-+  writes of `.n` on scratch records as unplaced. `tools/writes.js` gets a hint, `units` in `sim/stores` is a local (the pot's scratch).
-+- The pot (`Stores.pot`): the cook job (`src/sim/kinds.js`) cooks the meals still missing for the coming day; fresh food goes in oldest
-+  first, then grain above the seed reserve. The cook fills the smallest pot that makes the meals wanted: it tries a pot of 3 sources (0.8 of
-+  the want), then of 2 (0.9), then a full pot of any; short of food it puts in all there is. A food is a source at a fifth of the pot's
-+  rations. `cookWanted` is true with fresh food and no spare grain too. `Stores.cook` (one food, 1 to 1) is kept for its test.
-+- The meal (`src/sim/hunger.js` `feedHousehold`): larder food about to spoil, then meals, then (no meals) gathered food as it is, then
-+  grain above the seed reserve uncooked at `rawGrain` (a new routine reason `raw`, so the yearly totals count the days and the grain), then
-+  the rest of the larder, then the seed, uncooked too; on a short day all of it goes by the feed order. `foodHeld` (the need rule),
-+  `sourceHeld` (a food the pot lacks) and fishing's and gathering's `spareDays` count fresh food. The catch and the baskets go into `hh.fresh`
-+  (reasons `catch` and `gathering`).
-+- Saves: an older save's households get an empty fresh store at load (`Stores.openFresh`). Invariants (`tests/lib/invariants.js`): batches of
-+  fresh foods only, amount above 0, day an integer not after today, in day order, at most `FRESH_CAP` a food; larder lots are of `held:
-+  'larder'` foods; ledger and totals goods include `fish` and `gathered`.
-+- Tests: new `tests/pot.js` (in `npm test`): the table; grain only against grain with fish at a quarter of the pot over 12 days (12 days of
-+  need against 0.9 of it); 3 sources at 0.8; a food under a fifth is no source; batches merge by day, the oldest goes first, a batch is good on
-+  its third day, read as gone on its fourth and noted when the meal touches the store; the cap of 4; 3 days without cooking use 1.25 times
-+  the grain, and cooked again 1 to 1; gathered food eaten before raw grain, fish not eaten uncooked; a short day; 36 days of founders 7 with
-+  mixed pots and the invariants. `tests/meals.js` (a missed cook eats grain at 1.25), `tests/fish.js` and `tests/forage.js` (the catch and
-+  the baskets are fresh food) follow.
-+
-+Validation notes (11 Nov 2026): populous, small map, 5 years, seeds 3, 7, 11 and 42, ordinary weather; before (the merged base: fish and
-+gathered food straight into meals, grain eaten 1 to 1 on a day without meals) and after. "Penalty only": after, with `rawGrain` 1, to tell the
-+penalty's own hungry days from the rest. Hungry household-days: all households of the run (total; worst household; households with any).
-+Pots: the share of pots cooked with 2 and with 3 sources. Raw days: household-days on which grain was eaten uncooked (before: grain eaten
-+straight, at no penalty). Grain at harvest: the mean grain of the living households at the end of summer, years 1 to 5. Spoiled: fresh food
-+lost over the run, in rations, against what was landed.
-+| seed | hungry household-days (worst; households) | penalty only | pots of 2 / 3 sources | raw days | grain at harvest, years 1 to 5 | fish spoiled | gathered spoiled |
-+| --- | --- | --- | --- | --- | --- | --- | --- |
-+| 3 | 5 (5; 1) -> 50 (43; 3) | 50 (45; 2) | 0.220 / 0.005 | 2,453 -> 3,790 | 171 186 206 222 268 -> 168 174 167 194 240 | 5,760 of 21,731 | 1,042 of 7,207 |
-+| 7 | 0 -> 4 (4; 1) | 0 | 0.203 / 0.004 | 2,056 -> 3,843 | 155 190 240 265 258 -> 153 182 215 233 215 | 4,215 of 19,368 | 615 of 4,969 |
-+| 11 | 2 (1; 2) -> 0 | 2 (1; 2) | 0.225 / 0.006 | 2,462 -> 3,949 | 156 171 222 277 317 -> 154 162 192 233 269 | 5,329 of 22,459 | 1,044 of 7,464 |
-+| 42 | 0 -> 0 | 0 | 0.182 / 0.002 | 1,523 -> 3,770 | 171 198 294 280 317 -> 166 182 255 223 250 | 7,195 of 28,372 | 1,060 of 5,829 |
-+- Grain spoiled in store falls (19,471 -> 16,842; 18,735 -> 15,195; 25,522 -> 19,704; 19,812 -> 16,750): less grain is held.
-+- The penalty's own hungry days: seed 7, 4 days, household 68 in its fourth year: a lone man (a farmer, cook rank 1) with no grain left, who
-+  rarely cooks and so eats raw grain at 1.25 most days, ran out shortly before the harvest. Seed 3's 45 more hungry days are not the
-+  penalty's (they stay at a penalty of 1): household 57, a lone young farmer with no grain, lived on fish. Before, a summer's catch piled up
-+  as meals and fed him through the winter; now it spoils in 3 days, so he goes hungry in winter (as designed: a summer's catch does not feed
-+  a winter), and in autumn he is out fishing when the cook's hour comes and does not get home to cook before work ends.
-+- Households are not better off on these numbers, though a pot of 2 sources saves 10%: grain at harvest is 2 to 20% lower in years 2 to 5,
-+  because a quarter of the fish and a seventh of the gathered food now spoil, and raw days, which now cost 25% more grain, are common: at
-+  seed 7 (2 years) households with a wife eat uncooked on 17.6% of their days, lone men's households on 48%. The cook is missed that often
-+  (on nearly every raw day the household did not cook the day before); it was so before too (1,523 to 2,462 raw days), when it cost nothing.
-+  The 3-source pot is rare (under 1%): gathered food seldom gives a fifth of a pot beside fish. About a fifth of all pots have 2 sources.
-+- `medium-ref` and the late saves were not run (night-run rules); the change adds no loop over history (fresh batches are at most 4 a food a
-+  household, touched only with the store). The measuring script was not committed.
-+
-+Orchestrator's decisions for Kim to overturn:
-+- "Older than its shelf life": a batch that came in on day d is lost from day d + keeps + 1 (fish caught on day 0 is good through day 3); with
-+  a day's trips in one batch a food never holds more than 4 batches, and the cap of 4 only bites if a shelf life grows.
-+- Milk and meat are not put in the pot: their rows say they are eaten as they are, from the larder (VB-134), so they add no variety yet.
-+- The cook makes the meals wanted with the least food: a 3-source pot is tried first, then 2, then 1 (a full pot). Fresh food beyond the
-+  day's want stays in its batch (and may spoil); the cook does not cook it all.
-+- Gathered food is `raw` (eaten as it is on a day without meals); fish is not, so a household without meals or grain goes hungry beside its fish.
-+- The seed, eaten on a short day, is uncooked grain too, at `rawGrain`.
-+- `rawGrain` 1.25 is the starting value, to be confirmed: the penalty costs about 2,300 more rations of grain over 5 years at seed 7 (about
-+  6 a household a year) and adds 4 hungry days at one seed of four.
-+- Numbers to watch, and a follow-up worth a task: the cook is missed on about a sixth of a household's days even with a wife at home (seed 7),
-+  so the penalty bites far more often than "one missed cooking uses the buffer" (design.md, Meals) supposes. Why the cook is missed (the
-+  cook is called off work only from the `work` and `go` phases; the job lapses at the end of work hours) is not looked into here.
-+
-+Second pass (11 Nov 2026, the orchestrator's three steps; merged with the integration branch after VB-322, VB-237, VB-245 and others):
-+- Why the cook is missed (populous small, seed 7, 2 years, hour by hour, `cookdiag` script not committed). On the integration branch,
-+  before this task: 1,044 days eaten uncooked. 914 of them were (b), the job taken but not finished by the end of work, and 106 were (b), the
-+  job posted and never taken. At 15:00 on a missed day the best cook was idle (no job, phase none) 665 times, walking home to cook 258
-+  times, and at other work about 100 times. With this task (before the fix) the counts were 1,738, 1,537 and 170. So it is (b): the cook job
-+  opens at 14:00, but `callCooks` called the cook off work only from the `work` and `go` phases. An idle cook (waiting 2 to 4 hours since
-+  VB-245, or out for company) looked for work only when her wait ended, often after 16:00, and the 2-hour job was cut off at 18:00. It is
-+  not (a) nobody at home, (c) fuel or water, or (d) rank: only lone men cook at rank 1. Nor is it (e): the cause was there before this task;
-+  the penalty only made it cost.
-+- Fix, a separate commit ("the cook is called from idling too", `src/sim/jobs.js` `callCooks`): an idle best cook (no job, phase none,
-+  not bound for an occasion) is called home to cook as well. Days eaten uncooked at seed 7, 2 years: 1,738 -> 517. The rest are mostly
-+  cooks still walking home at 18:00 (from far fields). For a follow-up task: let a cook job under way finish after the end of work, or open
-+  it earlier for a cook working far from home.
-+- Re-measured, populous small, 5 years. B is the integration branch. A is this branch, with the fix. A1 is A with `rawGrain` 1 (no
-+  penalty). A1K is A1 with a shelf life of 1,000 days, so no fish or gathered food spoils by date; some is still lost to the cap of 4
-+  batches. Hungry household-days: B 0 / 0 / 0 / 0 and A 0 / 1 / 0 / 0 (seeds 3 / 7 / 11 / 42; worst household 0 and 1). No household-year
-+  is hungry on over 0.3 of its days in any run. Pots: 2 sources 0.20 to 0.23, 3 sources under 0.01. Days eaten uncooked: B 3,435 / 2,851 /
-+  3,323 / 2,000, A 2,195 / 1,966 / 2,319 / 1,734. Grain at harvest, year 5: B 265 / 272 / 321 / 328, A 244 / 232 / 279 / 281, A1 248 / 239 /
-+  282 / 287, A1K 258 / 248 / 309 / 299. Fish spoiled under A: 3,565 to 5,408 of 19,606 to 27,872 landed (about a fifth); gathered food
-+  631 to 1,114 of 4,937 to 7,351.
-+- 30 years, seeds 3 and 7, B -> A. Hungry household-days: 156 -> 330 (worst household 102 -> 169; households with any 9 of 178 -> 10 of
-+  194) and 1 -> 17 (worst 1 -> 16; 1 -> 2 households). Household-years hungry on over 0.3 of their days: 3 of 3,338 -> 9 of 3,392, and
-+  0 -> 0. Grain at harvest, years 5 / 10 / 15 / 20 / 25 / 30: seed 3, 265 267 195 199 168 213 -> 244 228 154 157 122 151; seed 7, 272 302
-+  217 212 265 253 -> 232 257 199 179 210 190. Living at year 30: 590 -> 621 and 620 -> 615. Days eaten uncooked: 30,838 -> 26,772 and 20,837
-+  -> 17,715.
-+- Households are worse off, not better. Hungry days are few at 5 years. At 30 years seed 3 has twice as many, and grain at harvest is 10 to
-+  30% lower. Of the grain lost at year 5 (summed over the four seeds, B 1,186 -> A 1,036, 150 rations a household), the raw-grain penalty
-+  accounts for 20 (A1 against A, about 13%). Spoilage accounts for 58 (A1K against A1, about 40%). The remaining 72 (about 47%) is fish beyond a
-+  day's pot: under B it piled up as meals that never spoil, and A1K still loses it to the cap of 4 batches (1,700 to 3,300 fish lost), so
-+  it is spoilage too. Missed cooking matters only through the penalty: every uncooked day is a missed cook. With the fix its share is the
-+  13%; before the fix it cost about three times as much.
+diff --git a/docs/architecture/modules.md b/docs/architecture/modules.md
+index acfa4d6..e10e216 100644
+--- a/docs/architecture/modules.md
++++ b/docs/architecture/modules.md
+@@ -34,6 +34,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
+   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
+   houses along a street through the green, or close round it, each farm's fields one block beyond the yards. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
+ - Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, meals, sheaves and food ledgers.
++- Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain; a pot of several sources goes further), moving food through `sim/stores`.
+   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
+   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes. Owed shares stay in heirs/cottage.
+ - Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form); the larder of stored food and grain spoiling in store are in `src/sim/hunger.js`; soil, manure and how many fields a household wants in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
+@@ -114,7 +115,7 @@ Each module's layer is in `src/layers.json` (a module without one fails `npm tes
+ free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
+ - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
+   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/commands`.
+-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/hunger`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/grazing`, `sim/herds`, `sim/ownership`, `sim/claims`,
++- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/grazing`, `sim/herds`, `sim/ownership`, `sim/claims`,
+   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328).
+ - Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
+   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings).
+diff --git a/src/layers.json b/src/layers.json
+index b71bd8b..ffcd405 100644
+--- a/src/layers.json
++++ b/src/layers.json
+@@ -4,7 +4,7 @@
+   "modules": {
+     "kernel": ["vb", "gen/paths", "gen/rivers", "gen/climate", "gen/marks", "gen/geology", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
+       "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/forest", "sim/people", "sim/records", "sim/prospect", "sim/commands"],
+-    "material": ["sim/stores", "sim/projects", "sim/dig", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/grazing", "sim/herds", "sim/ownership", "sim/claims",
++    "material": ["sim/stores", "sim/projects", "sim/dig", "sim/pot", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/grazing", "sim/herds", "sim/ownership", "sim/claims",
+       "sim/stakes", "sim/territory", "sim/expansion", "sim/building",
+       "sim/drying"],
+     "social": ["culture", "sim/relations", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
+diff --git a/src/manifest.json b/src/manifest.json
+index 08c2c1d..da59628 100644
+--- a/src/manifest.json
++++ b/src/manifest.json
+@@ -1 +1 @@
+-["vb.js", "gen/paths.js", "gen/rivers.js", "gen/climate.js", "gen/marks.js", "gen/geology.js", "gen.js", "culture.js", "sim/rules.js", "sim/registry.js", "sim/events.js", "sim/rng.js", "sim/hex.js", "sim/names.js", "sim/routes.js", "sim/paths.js", "sim/fish.js", "sim/forage.js", "sim/layout.js", "sim/ownership.js", "sim/records.js", "sim/projects.js", "sim/prospect.js", "sim/relations.js", "sim/claims.js", "sim/territory.js", "sim/stakes.js", "sim/forest.js", "sim/grazing.js", "sim/herds.js", "sim/stores.js", "sim/dig.js", "sim/hunger.js", "sim/exchange.js", "sim/help.js", "sim/deaths.js", "sim/notable.js", "sim/fields.js", "sim/meadows.js", "sim/byre.js", "sim/expansion.js", "sim/farmclaims.js", "sim/building.js", "sim/drying.js", "sim/kinds.js", "sim/eligibility.js", "sim/agents.js", "sim/commands.js", "sim/occasions.js", "sim/plans.js", "sim/jobs.js", "sim/heirs.js", "sim/matching.js", "sim/membership.js", "sim/service.js", "sim/opportunities.js", "sim/cottage.js", "sim/society.js", "sim/settle.js", "sim/lifecycle.js", "sim/births.js", "sim/people.js", "sim/scenarios.js", "sim/clock.js", "sim/saves.js", "sim.js"]
++["vb.js", "gen/paths.js", "gen/rivers.js", "gen/climate.js", "gen/marks.js", "gen/geology.js", "gen.js", "culture.js", "sim/rules.js", "sim/registry.js", "sim/events.js", "sim/rng.js", "sim/hex.js", "sim/names.js", "sim/routes.js", "sim/paths.js", "sim/fish.js", "sim/forage.js", "sim/layout.js", "sim/ownership.js", "sim/records.js", "sim/projects.js", "sim/prospect.js", "sim/relations.js", "sim/claims.js", "sim/territory.js", "sim/stakes.js", "sim/forest.js", "sim/grazing.js", "sim/herds.js", "sim/stores.js", "sim/dig.js", "sim/pot.js", "sim/hunger.js", "sim/exchange.js", "sim/help.js", "sim/deaths.js", "sim/notable.js", "sim/fields.js", "sim/meadows.js", "sim/byre.js", "sim/expansion.js", "sim/farmclaims.js", "sim/building.js", "sim/drying.js", "sim/kinds.js", "sim/eligibility.js", "sim/agents.js", "sim/commands.js", "sim/occasions.js", "sim/plans.js", "sim/jobs.js", "sim/heirs.js", "sim/matching.js", "sim/membership.js", "sim/service.js", "sim/opportunities.js", "sim/cottage.js", "sim/society.js", "sim/settle.js", "sim/lifecycle.js", "sim/births.js", "sim/people.js", "sim/scenarios.js", "sim/clock.js", "sim/saves.js", "sim.js"]
 diff --git a/src/owners.json b/src/owners.json
-index b8fc079..55388be 100644
+index 05cb861..dddb468 100644
 --- a/src/owners.json
 +++ b/src/owners.json
-@@ -25,6 +25,7 @@
-     "agent.occasion": "sim/occasions",
-     "household.grain": "sim/stores",
-     "household.meals": "sim/stores",
-+    "household.fresh": "sim/stores",
-     "household.unthreshed": "sim/stores",
-     "household.ledger": "sim/stores",
-     "household.totals": "sim/stores",
+@@ -42,6 +42,7 @@
+     "household.bogOre": "sim/stores",
+     "household.digAt": "sim/dig",
+     "household.rack": "sim/stores",
++    "household.fresh": "sim/pot",
+     "household.boat": "sim/drying",
+     "village.fishing": {"owner": "sim/drying", "category": "cache"},
+     "w.depositLeft": "sim/dig",
+diff --git a/src/sim/clock.js b/src/sim/clock.js
+index d98362a..bb42152 100644
+--- a/src/sim/clock.js
++++ b/src/sim/clock.js
+@@ -26,7 +26,7 @@ VB['sim/clock'] = (() => {
+   const { lapsedFarmClaims } = VB['sim/farmclaims'];
+   const { occasionsDue, callMeetings } = VB['sim/occasions'];
+   const { takeIn } = VB['sim/service'];
+-  const { boatYear } = VB['sim/drying'];
++  const { boatYear } = VB['sim/drying'], { KINDS } = VB['sim/kinds'];
+ 
+   // ---- the calendar (VB-241) ----
+   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
+@@ -76,6 +76,7 @@ VB['sim/clock'] = (() => {
+           if (a.phase === 'back') continue; // finish the delivery first
+           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
+           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
++          if (a.job && KINDS[a.job.kind].late && (a.phase === 'go' || a.phase === 'work')) continue; // a pot under way is finished (VB-119)
+           release(st, a);
+           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+         }
+diff --git a/src/sim/drying.js b/src/sim/drying.js
+index 5826741..6a089f0 100644
+--- a/src/sim/drying.js
++++ b/src/sim/drying.js
+@@ -1,6 +1,6 @@
+ // @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
+ // fishing for the drying rack and hanging the catch, a side craft of spring and early summer; the fishing boat, a household's facility on
+-// a shore built as a project plan; and the share of dried fish the cook puts in the winter's pot
++// a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
+ // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
+ // split and hung on racks in the dry winds of spring and early summer (stockfish, klippfisk), and keep a year or more: here through winter
+ // and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+@@ -16,7 +16,7 @@ VB['sim/drying'] = (() => {
+   // rack from spring day FISH.from + 1 to summer day `until` (the drying winds of spring and early summer), one catch waiting at a time;
+   // splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as salting meat: the catch does not wait),
+   // the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the household's slack). Out of the fishing season the
+-  // cook puts dried fish in for `share` of the meals it makes.
++  // cook puts dried fish in for a fifth of the pot, as a source (sim/pot, VB-119), so `share` lasts a quarter longer than the winter.
+   const DRY = { share: 0.25, lot: 10, until: 6, hours: 1, hang: 1.6, urgency: 0.5 };
+   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
+   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
+@@ -137,11 +137,5 @@ VB['sim/drying'] = (() => {
+       done: (st, j, hh) => boatBuilt(st, j, hh),
+     },
+   };
+-  // ---- the pot: dried fish for DRY.share of the meals the cook makes, out of the fishing season (when there is no fresh fish) ----
+-  // Rations of dried fish cooked into meals, of `want` meals still wanted (sim/kinds' cook, before the grain).
+-  function intoPot(st, hh, c, want) {
+-    if ((c.season !== 3 && !(c.season === 0 && c.sday < FISH.from)) || !(want > 0) || !hh.larder.length) return 0;
+-    return Stores.cookLarder(st, hh, 'dried fish', DRY.share * want);
+-  }
+-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear, intoPot };
++  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear };
+ })();
 diff --git a/src/sim/hunger.js b/src/sim/hunger.js
-index 5578afa..24e002f 100644
+index 21fccf5..18b1e76 100644
 --- a/src/sim/hunger.js
 +++ b/src/sim/hunger.js
-@@ -50,9 +50,10 @@ VB['sim/hunger'] = (() => {
+@@ -3,7 +3,7 @@
+ VB['sim/hunger'] = (() => {
+   const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
+   const { age, farmPractice, log, atFarm } = VB['sim/records'];
+-  const Stores = VB['sim/stores'];
++  const Stores = VB['sim/stores'], Pot = VB['sim/pot'];
+   const Rules = VB['sim/registry'];
+   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
+   function seedPer(st, hh) {
+@@ -56,9 +56,10 @@ VB['sim/hunger'] = (() => {
      const doy = Math.floor(t / DAY) % YEAR_DAYS, season = Math.floor(doy / SEASON_DAYS);
      return season === AUTUMN ? SEASON_DAYS : season < AUTUMN ? AUTUMN * SEASON_DAYS - doy : YEAR_DAYS - doy + AUTUMN * SEASON_DAYS;
    }
 -  // The food a household holds, in rations: its grain and its larder; and in days of its need (Infinity with nobody to feed).
--  const foodHeld = (hh) => hh.grain + larderOf(hh);
+-  const foodHeld = (hh) => grainOf(hh) + larderOf(hh);
 -  function daysOfFood(st, hh) { const need = dailyNeed(st, hh); return need > 0 ? foodHeld(hh) / need : Infinity; }
-+  // The food a household holds, in rations: its grain, its larder and its fresh food (VB-119); and in days of its need (Infinity with
-+  // nobody to feed). Fresh food is read with st, for the batches past their day.
-+  const foodHeld = (hh, st) => hh.grain + larderOf(hh) + (st && hh.fresh.length ? Stores.freshHeld(st, hh) : 0);
++  // The food a household holds, in rations: its grain, its larder and its fresh food (VB-119; read with st, for the batches past their day);
++  // and in days of its need (Infinity with nobody to feed).
++  const foodHeld = (hh, st) => grainOf(hh) + larderOf(hh) + (st && hh.fresh.length ? Pot.freshHeld(st, hh) : 0);
 +  function daysOfFood(st, hh) { const need = dailyNeed(st, hh); return need > 0 ? foodHeld(hh, st) / need : Infinity; }
    // The food a household holds of one source of the pot (FOODS' source; dried fish 'fish').
    function sourceHeld(st, hh, source) {
-     let s = source === 'grain' ? hh.grain : 0;
-@@ -60,6 +61,7 @@ VB['sim/hunger'] = (() => {
+     let s = source === 'grain' ? grainOf(hh) : 0;
+@@ -66,6 +67,7 @@ VB['sim/hunger'] = (() => {
        const f = FOODS[l.kind], src = f ? f.source : Stores.GOODS.has(l.kind) ? Stores.GOODS.get(l.kind).source : null;
        if (src === source) s += l.n;
      }
@@ -169,7 +141,7 @@ index 5578afa..24e002f 100644
      return s;
    }
    // The worth of a household's food stock from 0 to s rations: a ration is worth NEED.empty at empty stores, falling in a line to 1 at
-@@ -76,7 +78,7 @@ VB['sim/hunger'] = (() => {
+@@ -82,7 +84,7 @@ VB['sim/hunger'] = (() => {
      tunables: ['HELP.bufferDays', 'NEED.empty', 'NEED.beyond', 'NEED.lacking'], value: (st, c) => {
        const r = c.n * c.good.quantum * c.good.rations;
        if (r === 0) return 0;
@@ -178,7 +150,7 @@ index 5578afa..24e002f 100644
        if (!(need > 0)) return NEED.beyond * r;
        const days = toHarvest(st.t), buffer = hh.holder !== null ? st.pawns[hh.holder].buffer : HELP.bufferDays[1];
        const reach = reserved(st, hh, 'grain') + (days + buffer) * need, ample = Math.max(reach, NEED.beyondYears * YEAR_DAYS * need);
-@@ -113,22 +115,28 @@ VB['sim/hunger'] = (() => {
+@@ -119,22 +121,28 @@ VB['sim/hunger'] = (() => {
      const groups = feedGroups(st, hh, hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null)).filter((g) => g.length);
      return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
    }
@@ -194,264 +166,154 @@ index 5578afa..24e002f 100644
      const E = st.ECON, mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
      const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
      const eaten = new Map(mem.map((p) => [p, need.get(p)]));
-+    if (hh.fresh.length) Stores.settle(st, hh);
++    if (hh.fresh.length) Pot.settle(st, hh);
      const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
--    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
-+    const R = E.rawGrain, wild = hh.fresh.length ? Stores.freshHeld(st, hh, null, true) : 0;
-+    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), avail = hh.meals + wild + spare / R; // meals, then uncooked food
+-    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
++    const R = E.rawGrain, wild = hh.fresh.length ? Pot.freshHeld(st, hh, null, true) : 0;
++    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')), avail = hh.meals + wild + spare / R; // meals, then uncooked food
      const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
--    const seed = hh.grain - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
-+    const seed = (hh.grain - spare) / R, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
+-    const seed = grainOf(hh) - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
++    const seed = (grainOf(hh) - spare) / R, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
      if (avail + dip >= rest - late) {
        // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
 -      const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left), grain = Math.max(0, left - cooked);
 +      const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left), uncooked = Math.min(wild, left - cooked);
 +      const grain = Math.max(0, left - cooked - uncooked) * R;
        Stores.take(st, hh, 'meals', cooked, 'meal');
--      Stores.take(st, hh, 'grain', Math.min(grain, spare), 'meal'); // Math.min: the same amount as ever when no seed is eaten
-+      if (uncooked > 0) Stores.takeFresh(st, hh, uncooked, 'meal', null, true);
-+      if (grain > 0) Stores.take(st, hh, 'grain', Math.min(grain, spare), 'raw'); // Math.min: the same amount as ever when no seed is eaten
+-      Stores.takeSpare(st, hh, Math.min(grain, spare), 'meal'); // Math.min: the same amount as ever when no seed is eaten
++      if (uncooked > 0) Pot.takeFresh(st, hh, uncooked, 'meal', null, true);
++      if (grain > 0) Stores.takeSpare(st, hh, Math.min(grain, spare), 'raw'); // Math.min: the same amount as ever when no seed is eaten
        if (dip > 0) eatSeed(st, hh, grain - Math.min(grain, spare));
      }
      else {
-@@ -138,7 +146,10 @@ VB['sim/hunger'] = (() => {
+@@ -144,7 +152,10 @@ VB['sim/hunger'] = (() => {
          for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
          left -= give;
        }
--      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
+-      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.takeSpare(st, hh, spare, 'meal'); hh.hungryDays++;
 +      Stores.take(st, hh, 'meals', hh.meals, 'meal');
-+      if (wild > 0) Stores.takeFresh(st, hh, wild, 'meal', null, true);
-+      if (spare > 0) Stores.take(st, hh, 'grain', spare, 'raw');
++      if (wild > 0) Pot.takeFresh(st, hh, wild, 'meal', null, true);
++      if (spare > 0) Stores.takeSpare(st, hh, spare, 'raw');
 +      hh.hungryDays++;
      }
      let sum = 0;
      for (const p of mem) {
-diff --git a/src/sim/jobs.js b/src/sim/jobs.js
-index ee68b88..7053334 100644
---- a/src/sim/jobs.js
-+++ b/src/sim/jobs.js
-@@ -22,8 +22,9 @@ VB['sim/jobs'] = (() => {
-     j.live = true;
-     return j;
-   }
--  // From 14:00 a household short of meals calls its best cook off other work, unless that cook is idle (then matching sends them home).
--  // The job it leaves is kept as it stands, with its progress.
-+  // From 14:00 a household short of meals calls its best cook off other work, or from idling (waiting or out for company; not on its way
-+  // to an occasion): an idle cook looked for work only when its wait ended, often too late to finish the 2 hours before the end of work, and
-+  // the household ate uncooked (VB-119). The job it leaves is kept as it stands, with its progress.
-   function callCooks(st, c) {
-     VB.count.cookFarm += st.farmsteads.length;
-     for (const f of st.farmsteads) {
-@@ -35,7 +36,10 @@ VB['sim/jobs'] = (() => {
-         const p = st.pawns[id], pr = ROLES[p.role].prio.cook || 0;
-         if (p.died === null && pr > top && !unplanned(st, id)) { best = st.agents[id]; top = pr; }
-       }
--      if (best && best.job && (best.phase === 'work' || best.phase === 'go')) issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
-+      const idle = best && !best.job && best.phase === null && best.occasion === null;
-+      if (best && (idle || best.job && (best.phase === 'work' || best.phase === 'go'))) {
-+        issue(st, { actor: best.id, verb: 'work', target: j.key, source: 'planner' });
-+      }
-     }
-   }
-   // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
 diff --git a/src/sim/kinds.js b/src/sim/kinds.js
-index b288beb..1b0c0c1 100644
+index 783c01e..aba2a14 100644
 --- a/src/sim/kinds.js
 +++ b/src/sim/kinds.js
-@@ -53,8 +53,9 @@ VB['sim/kinds'] = (() => {
-   // The spring sowing window, when fields are hoed and sown.
-   const sowing = (E, c) => c.season === 0 && c.sday >= E.sowWindow[0] && c.sday <= E.sowWindow[1];
+@@ -11,7 +11,7 @@ VB['sim/kinds'] = (() => {
+   const { plotJobs } = VB['sim/expansion'];
+   const { renewClaim } = VB['sim/claims'];
+   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
+-  const Building = VB['sim/building'];
++  const Building = VB['sim/building'], Pot = VB['sim/pot'];
+   const { ground: forageGround, gather } = VB['sim/forage'], Drying = VB['sim/drying'];
+   // A kind's fields:
+   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
+@@ -35,6 +35,7 @@ VB['sim/kinds'] = (() => {
+   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
+   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
+   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
++  //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
+   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
+   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
+   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
+@@ -57,8 +58,8 @@ VB['sim/kinds'] = (() => {
+   // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
+   const HOURS = CROPS.barley.hours;
    const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
 -  // The household has fewer meals than the coming meal needs, and grain to cook it from.
--  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
+-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Stores.grainOf(hh) - reserved(st, hh, 'grain') > 0;
 +  // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
-+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh)
-+    && (hh.grain - reserved(st, hh, 'grain') > 0 || hh.fresh.length > 0 && Stores.freshHeld(st, hh) > 0);
-   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
-   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
-   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
-@@ -85,10 +86,10 @@ VB['sim/kinds'] = (() => {
++  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
+   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
+   // seed reserve): a household never brews grain it needs.
+   const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
+@@ -87,10 +88,10 @@ VB['sim/kinds'] = (() => {
    function claimWork(st, holder, at, c, post) {
      for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
    }
 -  // The household's spare food in days of its need: grain above the seed reserve and cooked meals (fish go into meals until VB-119).
-+  // The household's spare food in days of its need: grain above the seed reserve, cooked meals and fresh food (VB-119).
++  // The household's spare food in days of its need: grain above the seed reserve, cooked meals and fresh food (sim/pot, VB-119).
    const spareDays = (st, hh) => {
      const need = dailyNeed(st, hh);
--    return need > 0 ? (Math.max(0, hh.grain - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
-+    return need > 0 ? (Math.max(0, hh.grain - reserved(st, hh, 'grain')) + hh.meals + (hh.fresh.length ? Stores.freshHeld(st, hh) : 0)) / need : Infinity;
+-    return need > 0 ? (Math.max(0, Stores.grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
++    return need > 0 ? Pot.spareFood(st, hh) / need : Infinity;
    };
    // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
    const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
-@@ -190,12 +191,12 @@ VB['sim/kinds'] = (() => {
+@@ -194,16 +195,13 @@ VB['sim/kinds'] = (() => {
+     },
+     cook: {
        verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
-       inside: true, window: { from: 14 },
+-      inside: true, window: { from: 14 },
++      inside: true, window: { from: 14 }, late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
        urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
--      // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
-+      // the meals still missing for the coming day are cooked in the pot: fresh food, oldest first, then grain above the seed reserve
-+      // (sim/stores pot, VB-119)
-       done: (st, j, hh, c) => {
--        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - reserved(st, hh, 'grain')));
--        Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
-+        Stores.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals)); hh.cookDay = c.day;
-       },
+-      // the meals still missing for the coming day: in winter a share of dried fish (sim/drying), the rest grain above the seed reserve
+-      done: (st, j, hh, c) => {
+-        const want = dailyNeed(st, hh) - hh.meals, left = want - Drying.intoPot(st, hh, c, want);
+-        Stores.cook(st, hh, 'grain', Math.max(0, Math.min(left, Stores.grainOf(hh) - reserved(st, hh, 'grain')))); hh.cookDay = c.day;
+-      },
 -      // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
++      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain (sim/pot), for the day posted
++      done: (st, j, hh, c) => { Pot.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals)); hh.cookDay = j.day ?? c.day; },
 +      // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
        available: (st, hh, f, c, post) => {
-         if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
+-        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
++        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f, day: c.day });
        },
-@@ -325,8 +326,8 @@ VB['sim/kinds'] = (() => {
+     },
+     brew: {
+@@ -344,8 +342,8 @@ VB['sim/kinds'] = (() => {
        },
        // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
        urgency: (st, j, c, U) => spareUrgency(st, j, U),
--      // the catch goes straight into the household's meals until fresh food (VB-119)
--      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', landCatch(st, j.water), 'catch'); },
-+      // the catch is fresh food (VB-119), cooked in the pot
-+      deliver: (st, j, hh) => { Stores.putFresh(st, hh, 'fish', landCatch(st, j.water), 'catch'); },
-       // in the fishing season, at the house's fishing ground (sim/fish): one trip, two while spare food covers fewer than FISH.secondDays
+-      // the catch (twice the bank's from a boat, VB-300) goes straight into the household's meals until fresh food (VB-119)
+-      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', Drying.catchOf(st, j), 'catch'); },
++      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119)
++      deliver: (st, j, hh) => { Pot.putFresh(st, hh, 'fish', Drying.catchOf(st, j), 'catch'); },
+       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
        available: (st, hh, f, c, post) => {
          if (!fishing(c)) return;
-@@ -341,8 +342,8 @@ VB['sim/kinds'] = (() => {
+@@ -360,8 +358,8 @@ VB['sim/kinds'] = (() => {
        verb: 'Gathering berries, mushrooms and nuts', go: 'Going to the woods to gather', back: 'Carrying the baskets home', name: 'Gather wild food',
        label: 'Gathering', anim: 'forage', hours: 3, hands: 1, type: 'foraging', carry: 'basket', to: 'door',
        urgency: (st, j, c, U) => spareUrgency(st, j, U),
 -      // the baskets go straight into the household's meals until fresh food (VB-119)
 -      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', gather(st, j.site), 'gathering'); },
-+      // the baskets are fresh food (VB-119), cooked in the pot or eaten as they are on a day without meals
-+      deliver: (st, j, hh) => { Stores.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering'); },
++      // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
++      deliver: (st, j, hh) => { Pot.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering'); },
        // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
        available: (st, hh, f, c, post) => {
          if (!gathering(c)) return;
-diff --git a/src/sim/records.js b/src/sim/records.js
-index d54626e..8247fd1 100644
---- a/src/sim/records.js
-+++ b/src/sim/records.js
-@@ -170,7 +170,7 @@ VB['sim/records'] = (() => {
-     const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
-       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-         haySpoilt: 0,
--      larder: [], fodderDay: -1,
-+      larder: [], fresh: [], fodderDay: -1,
-       milkDay: -1, manure: 0, spoilt: 0 };
-     if (R.liveHouseholds) R.liveHouseholds.push(id);
-     f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
-diff --git a/src/sim/rules.js b/src/sim/rules.js
-index 2b0f928..2fd9e5d 100644
---- a/src/sim/rules.js
-+++ b/src/sim/rules.js
-@@ -32,6 +32,11 @@ VB['sim/rules'] = (() => {
-     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
-     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
-     storeLoss: [0.05, 0.2, 0.4], villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
-+    // the pot (VB-119; design.md, Meals; Kim, 30 Oct and 10 Nov): a food is a source of the pot when it gives at least potShare of its rations;
-+    // a pot of k sources needs pot[k] of the food a pot of one source needs for the same meals (1 / 0.9 and 1 / 0.8 times its rations in
-+    // meals for 2 and for 3 or more). A household with no meals eats its grain uncooked, rawGrain rations of grain for a ration of need
-+    // (the agent's starting value, to be confirmed by Kim)
-+    pot: [1, 1, 0.9, 0.8], potShare: 0.2, rawGrain: 1.25,
-   };
-   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
-   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
-@@ -187,15 +192,19 @@ VB['sim/rules'] = (() => {
-   };
-   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
-   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
--  // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
--  // as it is, from the larder, not cooked into meals). Grain goes into the household's grain and is cooked into meals (sim/stores cook);
--  // the rest go into the larder (sim/hunger addFood, from sim/byre). Nothing reads source yet (the pot, VB-119). ----
-+  // spoils in store by sim/hunger's share instead), source (its source in the pot, VB-119: grain and flour are one; null: not given yet),
-+  // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/hunger addFood, from sim/byre; 'fresh',
-+  // batches by the day they came in, sim/stores putFresh, cooked in the pot) and raw (it may be eaten uncooked, at no penalty: the
-+  // larder's foods always; fresh food when the household has no meals). Grain and fresh food are cooked into meals (sim/stores pot);
-+  // grain eaten uncooked costs ECON.rawGrain. Flour (milling, VB-009) will be a row with source 'grain'. ----
-   const FOODS = {
--    grain: { worth: 1, keeps: null, source: 'grain', raw: false },
--    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', raw: true }, // fresh, from the slaughter
--    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
--    milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
--    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', raw: true },
-+    grain: { worth: 1, keeps: null, source: 'grain', held: 'grain', raw: false },
-+    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
-+    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
-+    milk: { worth: 1, keeps: 1, source: 'milk', held: 'larder', raw: true }, // fresh milk keeps a day
-+    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', held: 'larder', raw: true },
-+    fish: { worth: 1, keeps: 3, source: 'fish', held: 'fresh', raw: false }, // the catch (VB-117), cooked
-+    gathered: { worth: 1, keeps: 3, source: 'gathered', held: 'fresh', raw: true }, // berries, mushrooms and nuts (VB-118)
-   };
-   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
-   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
-diff --git a/src/sim/saves.js b/src/sim/saves.js
-index 2203791..a230cc2 100644
---- a/src/sim/saves.js
-+++ b/src/sim/saves.js
-@@ -4,7 +4,7 @@ VB['sim/saves'] = (() => {
-   const { seal } = VB['sim/registry'];
-   const { trimRoutes } = VB['sim/routes'];
-   const { rebuildLiving, indexEvents } = VB['sim/records'];
--  const { close: closeLedger } = VB['sim/stores'];
-+  const { close: closeLedger, openFresh } = VB['sim/stores'];
-   const { migrateTies } = VB['sim/relations'];
-   const { seedPlans, fillPlans } = VB['sim/plans'];
-   const { TICKS } = VB['sim/rules'];
-@@ -232,6 +232,7 @@ VB['sim/saves'] = (() => {
-     st.w = w;
-     if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
-     if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
-+    for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
-     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
-     if (st.tick === undefined) { st.tick = Math.round(st.t * TICKS); }
-     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
-diff --git a/src/sim/scenarios.js b/src/sim/scenarios.js
-index 0a72d19..dbe7843 100644
---- a/src/sim/scenarios.js
-+++ b/src/sim/scenarios.js
-@@ -183,7 +183,8 @@ VB['sim/scenarios'] = (() => {
-     //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
-     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
-     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
--    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
-+    //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/stores, VB-119),
-+    //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
-     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
-     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, woodlot, line, state, condition, emptySince}
-     //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
-diff --git a/src/sim/stores.js b/src/sim/stores.js
-index b9fa90b..79173d1 100644
---- a/src/sim/stores.js
-+++ b/src/sim/stores.js
-@@ -1,12 +1,13 @@
- // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
- // the registry of goods (VB-299) and Culture's worth and proper as rules
- VB['sim/stores'] = (() => {
--  const { YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON } = VB['sim/rules'];
-+  const { YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, DAY, FOODS, HERD, ECON } = VB['sim/rules'];
-   const Rules = VB['sim/registry'], Culture = VB['culture'];
-   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
--    'catch', 'gathering'];
-+    'catch', 'gathering', 'raw'];
-   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
--  const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
-+  // 'raw' (VB-119): grain eaten uncooked, at ECON.rawGrain, on a day without meals (fresh food eaten uncooked is a 'meal').
-+  const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering', 'raw'];
-   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
-   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
-   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
-@@ -80,8 +81,107 @@ VB['sim/stores'] = (() => {
-   }
-   // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
-   const mealsFrom = (food, n) => n * FOODS[food].worth;
--  // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
-+  // The cook takes up to n of a food from the household's store and makes meals of what it got, 1 to 1 (one source; the pot below mixes).
-   function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
-+  // ---- fresh food (VB-119; FOODS held 'fresh': fish, gathered food): batches {food, day (game day it came in), n (units)}, oldest first.
-+  // A batch older than its food's keeps is lost; nothing walks the households to spoil them: a batch's loss is read from its day when
-+  // the household's fresh store is next touched (settle: the catch, the pot, the meal; Rules for cost, 3). At most FRESH_CAP batches a food
-+  // (the day merges a day's trips), so older ones are lost first. ----
+diff --git a/src/sim/pot.js b/src/sim/pot.js
+new file mode 100644
+index 0000000..7468b9f
+--- /dev/null
++++ b/src/sim/pot.js
+@@ -0,0 +1,128 @@
++// @sys sim/pot: fresh food (fish, gathered food) held in batches by the day it came in and lost past its shelf life when the store is next
++// touched; the pot, where the cook makes the coming day's meals from fresh food, dried fish and grain, and a pot of several foods goes further
++// Design: design.md, Economy and jobs (Goods and the farming year: Mixed meals, Meals); VB-119 (Kim, 30 Oct, 10 and 11 Nov). Beside sim/stores,
++// whose operations it moves food with (record, put, takeSpare, cookLarder), as sim/dig: the stores module is at the lint's size.
++VB['sim/pot'] = (() => {
++  const { DAY, FOODS, FISH, ECON, cal } = VB['sim/rules'];
++  const Stores = VB['sim/stores'], { record, put, takeSpare, cookLarder, reserved, grainOf, mealsFrom } = Stores;
++  // ---- fresh food (FOODS held 'fresh': fish, gathered food): batches {food, day (the game day it came in), qty (units)}, oldest first.
++  // A batch older than its food's keeps is lost; nothing walks the households to spoil them: a batch's loss is read from its day when the
++  // household's fresh store is next touched (settle: the catch, the pot, the meal; Rules for cost, 3), and freshHeld reads a stale batch as
++  // gone before then. At most FRESH_CAP batches a food (a day's trips merge into one batch), so older ones are lost first. ----
 +  // @state household.fresh: the household's fresh food, a list of batches by day (each a food, its day and its amount in units); written only here.
 +  const FRESH_CAP = 4;
 +  const today = (st) => Math.floor(st.t / DAY);
 +  const stale = (st, b) => today(st) - b.day > FOODS[b.food].keeps;
 +  function setFresh(hh, list) { hh.fresh = list; }
 +  const openFresh = (hh) => { setFresh(hh, []); }; // an older save's household (sim/saves)
++  function check(st, hh, n) {
++    if (!Number.isFinite(n) || n < 0) throw new Error(`pot: invalid amount ${n}`);
++    if (!hh || hh.dissolved || !('farmstead' in hh)) throw new Error('pot: fresh food is a living household\'s');
++  }
 +  // Drops the batches past their shelf life, each noted as spoilage of its food.
 +  function settle(st, hh) {
 +    if (!hh.fresh.length) return;
@@ -459,9 +321,10 @@ index b9fa90b..79173d1 100644
 +    for (const b of hh.fresh) if (stale(st, b)) { record(st, hh, b.food, -b.qty, 'spoilage'); lost = true; }
 +    if (lost) setFresh(hh, hh.fresh.filter((b) => !stale(st, b)));
 +  }
-+  function freshFood(food) { if (!FOODS[food] || FOODS[food].held !== 'fresh') throw new Error(`stores: ${food} is not fresh food`); }
 +  function putFresh(st, hh, food, n, why) {
-+    amount(n); freshFood(food); type(hh); settle(st, hh);
++    check(st, hh, n);
++    if (!FOODS[food] || FOODS[food].held !== 'fresh') throw new Error(`pot: ${food} is not fresh food`);
++    settle(st, hh);
 +    if (n <= 0) return 0;
 +    record(st, hh, food, n, why);
 +    const d = today(st), same = hh.fresh.find((b) => b.food === food && b.day === d);
@@ -473,7 +336,7 @@ index b9fa90b..79173d1 100644
 +    }
 +    return n;
 +  }
-+  // Fresh food held, of one food or (food null) all, of those eaten uncooked only when raw; batches past their day do not count. Reads only.
++  // Fresh food held, of one food or (food null) all, of the foods eaten uncooked only when raw; batches past their day do not count. Reads only.
 +  function freshHeld(st, hh, food = null, raw = false) {
 +    let s = 0;
 +    for (const b of hh.fresh) if ((food === null || b.food === food) && (!raw || FOODS[b.food].raw) && !stale(st, b)) s += b.qty;
@@ -482,7 +345,7 @@ index b9fa90b..79173d1 100644
 +  // Takes up to n units of fresh food, the oldest batches first (of one food, of any when food is null, of raw foods only when raw);
 +  // returns {food: n} taken, adding to `into` when given.
 +  function takeFresh(st, hh, n, why, food = null, raw = false, into = {}) {
-+    amount(n); type(hh); settle(st, hh);
++    check(st, hh, n); settle(st, hh);
 +    let left = n;
 +    for (const b of hh.fresh) {
 +      if (left <= 1e-12) break;
@@ -492,20 +355,25 @@ index b9fa90b..79173d1 100644
 +    if (hh.fresh.some((b) => b.qty <= 1e-9)) setFresh(hh, hh.fresh.filter((b) => b.qty > 1e-9));
 +    return into;
 +  }
-+  // ---- the pot (VB-119; design.md, Meals): the cook makes up to `want` meals from the household's fresh food, what spoils first going in
-+  // first, then grain above the seed reserve. A food is a source when it gives ECON.potShare of the pot's rations (grain and flour one
-+  // source, FOODS' source); a pot of k sources makes 1 / ECON.pot[k] times its rations in meals. The cook fills the smallest pot that makes
-+  // the meals wanted (a pot of 3 sources first, then 2, then 1), or, short of food, puts in all there is. Returns the pot's sources. ----
++  // ---- the pot (design.md, Meals): the cook makes up to `want` meals from the household's fresh food, what spoils first going in first,
++  // then dried fish (VB-300), then grain above the seed reserve. A food is a source when it gives ECON.potShare of the pot's rations (grain
++  // and flour one source; fresh and dried fish one, FOODS' source); a pot of k sources makes 1 / ECON.pot[k] times its rations in meals.
++  // The cook fills the smallest pot that makes the meals wanted (a pot of 3 sources first, then 2, then 1), or, short of food, puts in all
++  // there is. Dried fish is kept for the months without fresh fish (winter and spring before FISH.from, the fishing season's start): only
++  // then does it go in, and only as much as makes fish a source of the pot, so that the store lasts the winter. ----
 +  const POT = { units: {}, sources: new Map() }; // scratch, reused: the pot allocates little on the cook's hour
 +  function sourcesOf(units) {
 +    const S = POT.sources; S.clear(); let total = 0;
 +    for (const food in units) { const r = mealsFrom(food, units[food]); total += r; S.set(FOODS[food].source, (S.get(FOODS[food].source) || 0) + r); }
 +    let k = 0; for (const r of S.values()) if (r > 0 && r >= ECON.potShare * total - 1e-9) k++;
-+    return { k, total };
++    return k;
 +  }
 +  const potFactor = (k) => ECON.pot[Math.min(k, ECON.pot.length - 1)];
-+  // Fills `units` with a pot of `target` rations: fresh food oldest first, then grain (spare at most). Reads only.
-+  function fill(st, hh, target, spare, units) {
++  const iced = (st) => { const c = cal(st.t); return c.season === 3 || (c.season === 0 && c.sday < FISH.from); };
++  function driedHeld(hh) { let s = 0; for (const l of hh.larder) if (l.kind === 'dried fish') s += l.n; return s; }
++  // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to a fifth of the pot with the
++  // fresh fish in it), then grain (spare at most). Returns the rations it could not fill. Reads only.
++  function fill(st, hh, target, spare, dried, lean, units) {
 +    for (const k in units) delete units[k];
 +    let left = target;
 +    for (const b of hh.fresh) {
@@ -513,48 +381,198 @@ index b9fa90b..79173d1 100644
 +      if (stale(st, b)) continue;
 +      const r = Math.min(mealsFrom(b.food, b.qty), left); units[b.food] = (units[b.food] || 0) + r / FOODS[b.food].worth; left -= r;
 +    }
++    const d = Math.min(dried, left, lean ? Math.max(0, ECON.potShare * target - mealsFrom('fish', units.fish || 0)) : Infinity);
++    if (d > 0) { units['dried fish'] = d / FOODS['dried fish'].worth; left -= d; }
 +    const g = Math.min(spare, left / FOODS.grain.worth);
 +    if (g > 0) { units.grain = g; left -= mealsFrom('grain', g); }
 +    return left;
 +  }
++  // Cooks the pot; returns its number of sources (0: nothing cooked).
 +  function pot(st, hh, want) {
-+    amount(want); settle(st, hh);
-+    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), units = POT.units;
++    check(st, hh, want); settle(st, hh);
++    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')), dried = hh.larder.length && iced(st) ? driedHeld(hh) : 0, units = POT.units;
 +    let k = 0;
 +    if (want > 0) {
 +      let done = false;
-+      for (let s = ECON.pot.length - 1; s >= 1 && !done; s--) { // the factor a pot of s sources needs
-+        const left = fill(st, hh, want * potFactor(s), spare, units);
-+        k = sourcesOf(units).k;
-+        done = left <= 1e-9 && (s === 1 || Math.min(k, ECON.pot.length - 1) === s); // a full pot of any sources, last
++      for (let s = ECON.pot.length - 1; s >= 1 && !done; s--) { // the factor a pot of s sources needs; the last, a full pot of any
++        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units);
++        k = sourcesOf(units);
++        done = left <= 1e-9 && (s === 1 || Math.min(k, ECON.pot.length - 1) === s);
 +      }
-+      if (!done) { fill(st, hh, Infinity, spare, units); k = sourcesOf(units).k; } // short of food: all there is
++      if (!done) { fill(st, hh, Infinity, spare, dried, false, units); k = sourcesOf(units); } // short of food: all there is
 +    }
 +    else for (const f in units) delete units[f];
-+    let meals = 0;
++    let meals = 0, plain = 0;
 +    for (const food in units) {
 +      const n = units[food];
 +      if (!(n > 0)) continue;
-+      const got = food === 'grain' ? take(st, hh, 'grain', n, 'cooking') : (takeFresh(st, hh, n, 'cooking', food)[food] || 0);
++      let got;
++      if (food === 'grain') got = takeSpare(st, hh, n, 'cooking');
++      else if (food === 'dried fish') { got = cookLarder(st, hh, food, n); plain += mealsFrom(food, got); } // its meals put, 1 to 1
++      else got = takeFresh(st, hh, n, 'cooking', food)[food] || 0;
 +      meals += mealsFrom(food, got);
 +    }
-+    if (meals > 0) put(st, hh, 'meals', meals / potFactor(k), 'cooking');
++    if (meals > plain) put(st, hh, 'meals', meals / potFactor(k) - plain, 'cooking');
 +    return meals > 0 ? k : 0;
 +  }
-   function sheaf(st, hh, n) {
-     amount(n); record(st, hh, 'sheaves', n, 'harvest');
-     if (!hh.unthreshed.length) wake(st, hh);
-@@ -190,6 +290,7 @@ VB['sim/stores'] = (() => {
-   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
-     clamp: [0, Culture.PROPER.length - 1] });
-   return { GOODS, declareGood, goodOf, goods,
--    KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
-+    KINDS, ROUTINE, RESERVE, FRESH_CAP, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, pot, putFresh, takeFresh, openFresh,
-+    freshHeld, settle, sheaf, thresh, start, spoil, villageDay, prune,
-     follow, reserve, release, reserved };
- })();
++  // Something to cook: grain above the seed reserve, or fresh food (sim/kinds' cook is posted for it).
++  const cookable = (st, hh) => grainOf(hh) - reserved(st, hh, 'grain') > 0 || (hh.fresh.length > 0 && freshHeld(st, hh) > 0);
++  // The household's spare food, in rations: grain above the seed reserve, cooked meals and fresh food (fishing's and gathering's urgency).
++  const spareFood = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals + (hh.fresh.length ? freshHeld(st, hh) : 0);
++  return { FRESH_CAP, openFresh, settle, putFresh, freshHeld, takeFresh, pot, cookable, spareFood };
++})();
+diff --git a/src/sim/records.js b/src/sim/records.js
+index a713671..e01bcc2 100644
+--- a/src/sim/records.js
++++ b/src/sim/records.js
+@@ -169,7 +169,7 @@ VB['sim/records'] = (() => {
+     const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
+       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
+         haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, // clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
+-      larder: [], fodderDay: -1, ale: [], poured: [],
++      larder: [], fresh: [], fodderDay: -1, ale: [], poured: [],
+       milkDay: -1, manure: 0, spoilt: 0 };
+     if (R.liveHouseholds) R.liveHouseholds.push(id);
+     f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
+diff --git a/src/sim/rules.js b/src/sim/rules.js
+index c8d0879..380a33a 100644
+--- a/src/sim/rules.js
++++ b/src/sim/rules.js
+@@ -31,6 +31,11 @@ VB['sim/rules'] = (() => {
+     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
+     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
+     storeLoss: [0.05, 0.2, 0.4], villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
++    // the pot (VB-119; design.md, Meals; Kim, 30 Oct and 10 Nov): a food is a source of the pot when it gives at least potShare of its rations;
++    // a pot of k sources needs pot[k] of the food a pot of one source needs for the same meals (1 / 0.9 and 1 / 0.8 times its rations in
++    // meals for 2 and for 3 or more). A household with no meals eats its grain uncooked, rawGrain rations of grain for a ration of need
++    // (the agent's starting value; Kim, 11 Nov: it stays, once a cook job under way may finish after work ends)
++    pot: [1, 1, 0.9, 0.8], potShare: 0.2, rawGrain: 1.25,
+   };
+   // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
+   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
+@@ -222,16 +227,20 @@ VB['sim/rules'] = (() => {
+   const GRAZE = { keepsOpen: 20, thins: 200 };
+   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
+   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
+-  // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
+-  // as it is, from the larder, not cooked into meals). Grain goes into the household's grain and is cooked into meals (sim/stores cook);
+-  // the rest go into the larder (sim/hunger addFood, from sim/byre). Nothing reads source yet (the pot, VB-119). ----
++  // spoils in store by sim/hunger's share instead), source (its source in the pot, VB-119: grain and flour are one, fresh and dried fish one),
++  // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/hunger addFood, from sim/byre and sim/drying;
++  // 'fresh', batches by the day they came in, sim/pot putFresh) and raw (it may be eaten uncooked, at no penalty: the larder's foods always,
++  // fresh food on a day without meals). Grain, fresh food and dried fish are cooked into meals (sim/pot); grain eaten uncooked costs
++  // ECON.rawGrain. Flour (milling, VB-009) will be a row with source 'grain'. ----
+   const FOODS = {
+-    grain: { worth: 1, keeps: null, source: 'grain', raw: false },
+-    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', raw: true }, // fresh, from the slaughter
+-    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', raw: true },
+-    milk: { worth: 1, keeps: 1, source: 'milk', raw: true }, // fresh milk keeps a day
+-    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', raw: true },
+-    'dried fish': { worth: 1, keeps: YEAR_DAYS, source: 'fish', raw: true }, // hung on the rack (VB-300); also cooked into the winter's pot
++    grain: { worth: 1, keeps: null, source: 'grain', held: 'grain', raw: false },
++    meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
++    'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
++    milk: { worth: 1, keeps: 1, source: 'milk', held: 'larder', raw: true }, // fresh milk keeps a day
++    butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', held: 'larder', raw: true },
++    'dried fish': { worth: 1, keeps: YEAR_DAYS, source: 'fish', held: 'larder', raw: true }, // hung on the rack (VB-300); also cooked in the winter's pot
++    fish: { worth: 1, keeps: 3, source: 'fish', held: 'fresh', raw: false }, // the catch (VB-117), cooked
++    gathered: { worth: 1, keeps: 3, source: 'gathered', held: 'fresh', raw: true }, // berries, mushrooms and nuts (VB-118)
+   };
+   // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
+   // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
+diff --git a/src/sim/saves.js b/src/sim/saves.js
+index 8e1199f..da6935a 100644
+--- a/src/sim/saves.js
++++ b/src/sim/saves.js
+@@ -4,7 +4,7 @@ VB['sim/saves'] = (() => {
+   const { seal } = VB['sim/registry'];
+   const { trimRoutes, buildHours } = VB['sim/routes'];
+   const { rebuildLiving, indexEvents } = VB['sim/records'];
+-  const { close: closeLedger } = VB['sim/stores'];
++  const { close: closeLedger } = VB['sim/stores'], { openFresh } = VB['sim/pot'];
+   const { migrateTies } = VB['sim/relations'];
+   const { seedPlans, fillPlans } = VB['sim/plans'], Plans = VB['sim/plans'], { BREAK_HOURS } = VB['sim/fields'], { seedPer } = VB['sim/hunger'];
+   const { TICKS } = VB['sim/rules'];
+@@ -254,6 +254,7 @@ VB['sim/saves'] = (() => {
+     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
+     for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
+     for (const hh of st.households) if (hh.rack === undefined) { hh.rack = 0; hh.boat = null; } // VB-300: nor a drying rack nor a boat
++    for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
+     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
+     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
+     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
+diff --git a/src/sim/scenarios.js b/src/sim/scenarios.js
+index d0a0b5e..f0a3750 100644
+--- a/src/sim/scenarios.js
++++ b/src/sim/scenarios.js
+@@ -184,8 +184,9 @@ VB['sim/scenarios'] = (() => {
+     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
+     //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
+     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
+-    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
+-    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
++    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
++    //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
++    //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
+     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
+     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
+     //   tarredUntil, emptySince}
+diff --git a/src/sim/stores.js b/src/sim/stores.js
+index 39efb6b..8ac37fc 100644
+--- a/src/sim/stores.js
++++ b/src/sim/stores.js
+@@ -14,8 +14,8 @@ VB['sim/stores'] = (() => {
+   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
+   KINDS.push('build');
+-  // VB-300: a catch hung on the drying rack (sim/drying), the fish going out of the rack's store and dried fish into the larder.
+-  KINDS.push('drying'); ROUTINE.push('drying');
++  // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
++  KINDS.push('drying', 'raw'); ROUTINE.push('drying', 'raw');
+   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
+   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
+   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
+diff --git a/tests/drying.js b/tests/drying.js
+index 36fe7d8..2d6140d 100644
+--- a/tests/drying.js
++++ b/tests/drying.js
+@@ -1,7 +1,7 @@
+ // Dried fish and the fishing boat (VB-300): a village's reach to fishing water, tested again when it has a new farm; fishing for the drying
+ // rack from spring day 3 to summer day 6 while the household holds less dried fish than it wants (a quarter of its need over the 14 days
+ // without fresh fish, in whole lots of 10), one catch waiting at a time; the catch hung at the rack is dried fish in the larder, kept a
+-// year; out of the fishing season the cook puts dried fish in for a quarter of the meals; the boat: a project plan begun at spring day 3
++// year; out of the fishing season the cook puts dried fish in the pot for a fifth of it (sim/pot, VB-119); the boat: a project plan begun at spring day 3
+ // by a household by the sea or a large lake, its step waiting for 6 loads of timber felled in the village's wood, 20 hours of work,
+ // then twice the bank's catch from it. Founders at seed 7, a year and a half: dried fish made and eaten, boats built, invariants, a save.
+ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
+@@ -52,11 +52,20 @@ check(hh.totals.some((x) => x.kind === 'drying' && x.good === 'dried fish' && ne
+ hh.larder.push({ kind: 'dried fish', n: want, until: st.t + YEAR_DAYS * DAY });
+ check(posts(st, 'rackfish', hh, f, cal(0, 3)).length === 0, 'enough dried fish in store: no more trips');
+ 
+-// --- the pot: a quarter of the meals out of the fishing season
+-const held = larderOf(hh, 'dried fish'), meals = hh.meals;
+-check(D.intoPot(st, hh, cal(1, 3), 8) === 0 && D.intoPot(st, hh, cal(0, 4), 8) === 0, 'no dried fish in the pot while fresh fish is had');
+-check(near(D.intoPot(st, hh, cal(3, 4), 8), 2) && near(larderOf(hh, 'dried fish'), held - 2) && near(hh.meals, meals + 2), 'in winter: 2 of 8 meals');
+-check(near(D.intoPot(st, hh, cal(0, 1), 4), 1), 'in spring under the ice: a quarter too');
++// --- the pot (sim/pot, VB-119): dried fish out of the fishing season, a fifth of a pot of 2 sources, none while fresh fish makes a fifth
++const Pot = VB['sim/pot'], pot = (doy, want) => {
++  st.t = doy * DAY + 15; hh.meals = 0; hh.grain = { barley: 1000 }; const held = larderOf(hh, 'dried fish'), k = Pot.pot(st, hh, want);
++  return { k, dried: held - larderOf(hh, 'dried fish'), meals: hh.meals };
++};
++let r1 = pot(1 * 12 + 3, 8);
++check(r1.dried === 0 && r1.k === 1 && near(r1.meals, 8), 'no dried fish in the pot in the fishing season');
++r1 = pot(3 * 12 + 4, 8);
++check(r1.k === 2 && near(r1.dried, 0.2 * 0.9 * 8) && near(r1.meals, 8), `in winter: a fifth of a pot of 2 sources (${r1.dried}, ${r1.k})`);
++r1 = pot(0 * 12 + 1, 4);
++check(r1.k === 2 && near(r1.dried, 0.2 * 0.9 * 4), 'in spring under the ice too');
++st.t = (3 * 12 + 5) * DAY + 15; Pot.putFresh(st, hh, 'fish', 2, 'catch');
++r1 = pot(3 * 12 + 5, 8);
++check(r1.dried === 0 && r1.k === 2 && near(r1.meals, 8), 'fresh fish a fifth of the pot: no dried fish');
+ 
+ // --- the boat: begun by a household by the sea, its timber, its work, its catch
+ const st2 = Sim.seed(world(7), 7, 'founders');
 diff --git a/tests/fish.js b/tests/fish.js
-index ee4eb3b..98b1c4c 100644
+index 277a0e7..2b4e07a 100644
 --- a/tests/fish.js
 +++ b/tests/fish.js
 @@ -1,5 +1,5 @@
@@ -569,15 +587,15 @@ index ee4eb3b..98b1c4c 100644
    spare(11); check(posts(cal(1, 0)).length === 2, 'two trips under 12 days of spare food');
    spare(0); check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), 2), 'urgency 2 at none');
 -  const meals = hh.meals, s = F.stock(st, g.water);
-+  const held = Stores.freshHeld(st, hh, 'fish'), s = F.stock(st, g.water);
++  const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'fish'), s = F.stock(st, g.water);
    K.deliver(st, j, hh, f);
 -  check(near(hh.meals - meals, 4 * s), `the catch adds ${hh.meals - meals} meals, not ${4 * s}`);
-+  check(near(Stores.freshHeld(st, hh, 'fish') - held, 4 * s), `the catch adds ${Stores.freshHeld(st, hh, 'fish') - held} fresh fish, not ${4 * s}`);
++  check(near(Pot.freshHeld(st, hh, 'fish') - held, 4 * s), `the catch adds ${Pot.freshHeld(st, hh, 'fish') - held} fresh fish, not ${4 * s}`);
    // the ground moves on when its water is fished out
    w.fish[g.water] = 0; w.fishDay[g.water] = Math.floor(st.t / DAY);
    if (F.runsDown(w, g.water)) { const h = F.ground(st, f.house); check(!h || h.water !== g.water, 'a fished-out water is no ground'); }
 diff --git a/tests/forage.js b/tests/forage.js
-index 6be9d98..9805560 100644
+index 7d5e87a..1f2618b 100644
 --- a/tests/forage.js
 +++ b/tests/forage.js
 @@ -1,5 +1,5 @@
@@ -592,24 +610,1000 @@ index 6be9d98..9805560 100644
    spare(11); check(posts(cal(1, 6)).length === 2, 'two trips under 12 days of spare food');
    spare(0); check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), 2), 'urgency 2 at none');
 -  const meals = hh.meals;
-+  const held = Stores.freshHeld(st, hh, 'gathered');
++  const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'gathered');
    K.deliver(st, j, hh, f);
 -  check(near(hh.meals - meals, 2.5), `the baskets add ${hh.meals - meals} meals, not 2.5`);
-+  check(near(Stores.freshHeld(st, hh, 'gathered') - held, 2.5), `the baskets add ${Stores.freshHeld(st, hh, 'gathered') - held} gathered food, not 2.5`);
++  check(near(Pot.freshHeld(st, hh, 'gathered') - held, 2.5), `the baskets add ${Pot.freshHeld(st, hh, 'gathered') - held} gathered food, not 2.5`);
    // the ground moves on when its tile is picked bare
    w.forage[t] = 0.1; w.forageYear[t] = Math.floor(st.t / DAY / YEAR_DAYS);
    check(F.ground(st, f.house) !== t, 'a tile with under 0.2 left is no ground');
+diff --git a/tests/golden.json b/tests/golden.json
+index 3e8ac39..c04cc83 100644
+--- a/tests/golden.json
++++ b/tests/golden.json
+@@ -53,7 +53,7 @@
+   "wind": "3402d8a4c157f336"
+  },
+  "founders/7/seed": {
+-  "ECON": "dd132e4c6e8c59c1",
++  "ECON": "db46aac3a619b470",
+   "agents": "9c75dd9d834bb04b",
+   "biomeDirty": "394d240533a4978d",
+   "cairns": "33459b07fd3d8db9",
+@@ -66,7 +66,7 @@
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "6b9f56a7bc78240f",
+   "herds": "c44e36bac58f0584",
+-  "households": "da4dc02d5db93c82",
++  "households": "2cfa9fff6e3068e8",
+   "jobSeq": "e3102e9f921e9d46",
+   "jobs": "33459b07fd3d8db9",
+   "landDirty": "0400ce2247a0997d",
+@@ -104,23 +104,23 @@
+   "weather": "6e9ed8e7c9e6cba5"
+  },
+  "founders/7/year1": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "aa8ced3a919ca65e",
+-  "biomeDirty": "7c99b19868e7a44e",
++  "ECON": "db46aac3a619b470",
++  "agents": "4c6cd1a286837674",
++  "biomeDirty": "0ba787a1f3cabb4d",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "871a370b93089516",
++  "cenv": "79222df369b1cda5",
+   "claimSeq": "ed0f435ed4cb56ae",
+   "claims": "33459b07fd3d8db9",
+   "demand": "8e87797a01a97240",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "99bb4af269426113",
++  "farmsteads": "50ba8baf5b4e42b4",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4137b6435a4ca2ed",
+-  "herds": "0f0bc45d93cb848d",
+-  "households": "b58ea03ec72091a4",
+-  "idlers": "c2937f691d047a81",
+-  "jobSeq": "f8612cd69fff5cde",
+-  "jobs": "9c1d35c15b61c414",
++  "herds": "f94ea7d8d4e76322",
++  "households": "d135e8fdb2ca0914",
++  "idlers": "6a262c6d7e32ae7c",
++  "jobSeq": "d2328f86a38f3482",
++  "jobs": "698a360498f9c1d5",
+   "landDirty": "86959b6ecd1a8ea2",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -131,103 +131,103 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "3c3b9594632126d5",
+-  "pathCache": "814dd2eaa9d08768",
+-  "pathDirty": "b38b3b0080414e85",
+-  "pawns": "dc1c266d80799bd5",
++  "pathCache": "440ec6c811e72e46",
++  "pathDirty": "66ca9a40fbf712df",
++  "pawns": "d5defd9d3b25c7c5",
+   "player": "2be88ca4242c76e8",
+-  "record": "241c0740f3a49093",
++  "record": "5533d21a52baf5c6",
+   "recordFold": "0ce436eee1690078",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "b722861b69d80b75",
++  "regrow": "4b261a4afe22b84f",
+   "rigDirty": "86683ef77653a2e7",
+-  "rng": "a58283185ddaed22",
++  "rng": "d5f59bf5fd476ac4",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "58d1c709d362099c",
+-  "talks": "a62034a1f30da392",
++  "talks": "bb1bff45564126f8",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "c9ba0a16c615ff2d",
+-  "used": "6403b87fe51f1430",
++  "used": "a109035277674126",
+   "villageHours": "afec550f50516b4c",
+-  "villages": "028937a39e44ec68",
++  "villages": "066b882f67afbe47",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "31976c6035a8155f",
++  "wear": "c41c1eeed308dd41",
+   "weather": "cb14b83d635b0c89"
+  },
+  "founders/7/year2": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "e8b732aa24cb2e9c",
+-  "biomeDirty": "6652a07411233fcb",
++  "ECON": "db46aac3a619b470",
++  "agents": "fa4c564cb8aac490",
++  "biomeDirty": "797ecdb1b0d69969",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "5c1cba67456e4958",
+-  "claimSeq": "3dea8aa487090d40",
+-  "claims": "822a4b3d6d4c5bf3",
++  "cenv": "37630d3c6eed375d",
++  "claimSeq": "19a6cd811a5f92a9",
++  "claims": "55aea260e3cef9a1",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "14cd209397524405",
++  "farmsteads": "7f163a86bbe692e9",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4137b6435a4ca2ed",
+-  "herds": "b57c7c708f045c4b",
+-  "households": "db24feff4f9a6ca7",
+-  "idlers": "2777ff0e7232394c",
+-  "jobSeq": "33495b908732becc",
+-  "jobs": "ddcd91a6282385ee",
+-  "landDirty": "6f81d1b160d3a3d9",
++  "herds": "78c5c4a3a14c47b0",
++  "households": "90cc8b770b916a23",
++  "idlers": "7707387186cb9860",
++  "jobSeq": "143e82cd5ce9835b",
++  "jobs": "156be25e7cf5eece",
++  "landDirty": "f70adf246e384262",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "38bf57911378809a",
+   "naturalDeaths": "5ffe533b830f08a0",
+-  "occasionSeq": "1eefb94f4589f8ff",
++  "occasionSeq": "87d3a77c46f0f4b6",
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "deb0b5de78789637",
+-  "pathCache": "2b4a63b9ee97e15c",
+-  "pathDirty": "ed7b39fa2050a64d",
+-  "pawns": "d6fc4d4e7089d768",
++  "owner": "3c3b9594632126d5",
++  "pathCache": "861ddedfbf27cf84",
++  "pathDirty": "5da64b5e91147917",
++  "pawns": "35fa070fc8dd1147",
+   "player": "2be88ca4242c76e8",
+-  "record": "0d71bd28743489bc",
++  "record": "2ad3b346e1f9ddb2",
+   "recordFold": "913937e1a5c569ce",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "6c87a51c389bfa26",
++  "regrow": "09ed1dfe6ed2dfac",
+   "rigDirty": "86683ef77653a2e7",
+-  "rng": "96af4bfa0dc47a48",
++  "rng": "e1728858bda45deb",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "6035b33a34db52e8",
+-  "talks": "32d1a163471490ab",
++  "talks": "55db86ff6aa21e8b",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+-  "unions": "b188c75d5bc0ea48",
+-  "used": "064eae58921e6c37",
++  "unions": "c9ba0a16c615ff2d",
++  "used": "a109035277674126",
+   "villageHours": "2b16793ec215705e",
+-  "villages": "4fa566e62a4c4648",
++  "villages": "46c7db0e84f334e8",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "5dea0920c33241ae",
++  "wear": "84979891fe35916a",
+   "weather": "2082e34f34ff26f0"
+  },
+  "founders/7/year3": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "05026e54a32aa3d8",
+-  "biomeDirty": "6652a07411233fcb",
++  "ECON": "db46aac3a619b470",
++  "agents": "cd39989f8de5428d",
++  "biomeDirty": "a318521c716ad2f3",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "bf98bb483ae89406",
+-  "claimSeq": "3dea8aa487090d40",
+-  "claims": "5ace5810a9179c88",
++  "cenv": "de6e713d89ab5b67",
++  "claimSeq": "2925bffb38029b8f",
++  "claims": "f5b0980beac079c9",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "a5013a80d09b6690",
++  "farmsteads": "dfc2e720e9f83133",
+   "finds": "33459b07fd3d8db9",
+-  "headSeq": "a9532cedac3b2b5d",
+-  "herds": "008bd5e3041af46e",
+-  "households": "461899b16262123f",
+-  "idlers": "19a3a4677d413259",
+-  "jobSeq": "ae4378d480313043",
+-  "jobs": "d2acd418239b4a35",
+-  "landDirty": "6f81d1b160d3a3d9",
++  "headSeq": "512fb2bf6712ae7c",
++  "herds": "4cce666efaf34f64",
++  "households": "ebb9dfd8e1b2fcbc",
++  "idlers": "ed9d64a563bb072c",
++  "jobSeq": "04538098cccc01c2",
++  "jobs": "ac8c42ea4feb05de",
++  "landDirty": "c78a47db244a0cf7",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "ed3de8594e3a0399",
+@@ -236,34 +236,34 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "c51f89ed2477e793",
+-  "pathCache": "779de2fbf4b22608",
+-  "pathDirty": "bbdb0fa6b0e1190b",
+-  "pawns": "ae37d457825f2c38",
++  "owner": "36184aba31bec0ac",
++  "pathCache": "65cfc428110c8eec",
++  "pathDirty": "6b942355372705f1",
++  "pawns": "7c57f60919d73a59",
+   "player": "2be88ca4242c76e8",
+-  "record": "23160d451d121d91",
+-  "recordFold": "df9f48626921aa95",
++  "record": "6ebc121741ef86a7",
++  "recordFold": "26c3c6a91d1ddc73",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "fe6d785b63509730",
+-  "rigDirty": "018e763fa63b0372",
+-  "rng": "8565ec79ac16d452",
++  "regrow": "aab22c4d021055ff",
++  "rigDirty": "67ba474b0df5752c",
++  "rng": "8650f840fd1a0a80",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "01dc1080b53870c0",
+-  "talks": "87e423bfd39a875a",
++  "talks": "37a51a47573922be",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+-  "unions": "b188c75d5bc0ea48",
+-  "used": "064eae58921e6c37",
++  "unions": "5a50f57446ff87f0",
++  "used": "90237141e4f99880",
+   "villageHours": "363e621f32f5afa4",
+-  "villages": "51df3c2e8030fdd1",
++  "villages": "446e4f2fbe4fc243",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "3d2db5627807096c",
++  "wear": "efce7ad36631786a",
+   "weather": "0beca0c052604825"
+  },
+  "heirs/7/seed": {
+-  "ECON": "dd132e4c6e8c59c1",
++  "ECON": "db46aac3a619b470",
+   "agents": "489bfde70b4f6a1f",
+   "biomeDirty": "7616939414d3cfe5",
+   "cairns": "33459b07fd3d8db9",
+@@ -276,7 +276,7 @@
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+   "herds": "86af90c7f687879d",
+-  "households": "5a36dedcc74dabb2",
++  "households": "bb7a6229a3bef357",
+   "jobSeq": "e3102e9f921e9d46",
+   "jobs": "33459b07fd3d8db9",
+   "landDirty": "fdf670cf9685ff53",
+@@ -314,24 +314,24 @@
+   "weather": "5436363ed1d1d33d"
+  },
+  "heirs/7/year1": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "631ad355b7056bf2",
+-  "biomeDirty": "bc488307f953ce05",
++  "ECON": "db46aac3a619b470",
++  "agents": "68b664ceeb13b9ba",
++  "biomeDirty": "c1e3b33e107a46e0",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "d18eb8c9922bf8d7",
+-  "claimSeq": "c4613abe24a5e276",
++  "cenv": "2153d05bfc029cc4",
++  "claimSeq": "37ea9e2cb2b49e9c",
+   "claims": "df64565feaefcd5a",
+   "demand": "fdee4c806d5a7c5c",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "d10e494ac7dd7512",
++  "farmsteads": "463bea52dcfb77bb",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "67ee009d5deedae7",
+-  "herds": "951227309ddc24ab",
+-  "households": "c79869f48ea3489c",
+-  "idlers": "422b677847e14436",
+-  "jobSeq": "774d530db3674ea7",
+-  "jobs": "28dc922dd4e70ede",
+-  "landDirty": "d709cb4f9482b49e",
++  "herds": "6eeb94290f3dab9b",
++  "households": "f31ead4dca6a0a2a",
++  "idlers": "bcc9b35c977ff19f",
++  "jobSeq": "ef7ace2f71279a0e",
++  "jobs": "af07d517487e5cb8",
++  "landDirty": "9534b07ee01f6ee9",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "425c1aeaed241861",
+@@ -340,51 +340,51 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "becfebc14b813c4f",
+-  "pathCache": "a3693811f68908df",
+-  "pathDirty": "5c814c6537a3e9be",
+-  "pawns": "28c736d6d051717f",
++  "owner": "9d02035b4cb9582d",
++  "pathCache": "d55ff1a618fd6b7d",
++  "pathDirty": "22e024043cb06fb4",
++  "pawns": "721b2cc135743450",
+   "player": "2be88ca4242c76e8",
+-  "record": "53c0e397302560ae",
++  "record": "6a391a920091fd49",
+   "recordFold": "9aebda34f218e5fd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "59636464b748f656",
++  "regrow": "137a3050753f82fa",
+   "rigDirty": "c1f077c7e424e325",
+-  "rng": "ef8050fadf2230f0",
++  "rng": "38d1d041e59ae72f",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "58d1c709d362099c",
+-  "talks": "75b70435257690a8",
++  "talks": "87635a2877a24769",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "d9f5601f5fff88ac",
+-  "used": "57121670a98b29a2",
++  "used": "bfd2ec00e53b213e",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "53ad22d04933cb8f",
++  "villages": "5c2dcaf51ea836e6",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "47aeb58c683d8182",
++  "wear": "41b4b84980dfa86b",
+   "weather": "cb14b83d635b0c89"
+  },
+  "heirs/7/year2": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "9ce23ad735c75394",
+-  "biomeDirty": "e0f57958b70020ca",
++  "ECON": "db46aac3a619b470",
++  "agents": "6414ab9dbfbf3923",
++  "biomeDirty": "c4651e0e4d67a359",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "0c1b74f26674cf70",
+-  "claimSeq": "7ad13aea39dd0b2f",
+-  "claims": "2eedf3efbb7fdc5e",
++  "cenv": "d28aa7c7c5f6fe23",
++  "claimSeq": "01f2ba51f21d2978",
++  "claims": "25613fd82dba6a92",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "21b475e05a400d53",
++  "farmsteads": "2a459aee8a3a1015",
+   "finds": "33459b07fd3d8db9",
+-  "headSeq": "a77e81ef29c10014",
+-  "herds": "0990d929f68121f5",
+-  "households": "472a984ff64c62e0",
+-  "idlers": "d58f279d8eedfaf5",
+-  "jobSeq": "1461f1002e2cfe1d",
+-  "jobs": "c69d4ad3836344d3",
+-  "landDirty": "3c7d619507fc3110",
++  "headSeq": "e43ba1ea5da8f63d",
++  "herds": "b0c3ef93e98737cf",
++  "households": "e49da8525ce72fd8",
++  "idlers": "0c8bcc6b534b911c",
++  "jobSeq": "1c796fbae1b91b0e",
++  "jobs": "8ae40ba0ca21c3db",
++  "landDirty": "93433ed9a167a01b",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "27148ec43479e0e9",
+@@ -393,51 +393,51 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "b246cff4f301e42a",
+-  "pathCache": "ce3d96961ba1c1e7",
+-  "pathDirty": "f5091543de337cc5",
+-  "pawns": "562b822533b13411",
++  "owner": "906b69ebc3fbab4c",
++  "pathCache": "9f22f28d18afad76",
++  "pathDirty": "e99dee009ff60723",
++  "pawns": "de94ec0c8480c399",
+   "player": "2be88ca4242c76e8",
+-  "record": "77f8c4bf480ea1f6",
++  "record": "6c63615bb53ed03c",
+   "recordFold": "75d785df9591bbfd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "57d92fa6189abf1e",
++  "regrow": "025dfb7c511b30c3",
+   "rigDirty": "c1f077c7e424e325",
+-  "rng": "7f114ee58ba03d1c",
++  "rng": "9fbe694e409cba8c",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "6035b33a34db52e8",
+-  "talks": "ead5ac8f682d32e0",
++  "talks": "0dc1f299424b1f02",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "d9f5601f5fff88ac",
+-  "used": "fd7adae64203bdea",
++  "used": "09704cbf8ad008cd",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "8e25f1c516a15690",
++  "villages": "15a5398b8a47c6ca",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "03bd6c55f06aedf7",
++  "wear": "381262390fe369fb",
+   "weather": "2082e34f34ff26f0"
+  },
+  "heirs/7/year3": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "6859df83dda42cc6",
+-  "biomeDirty": "f00037bc8c8e268a",
++  "ECON": "db46aac3a619b470",
++  "agents": "fcf737a2539048b0",
++  "biomeDirty": "993d9806542661f2",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "04346acbb4128944",
+-  "claimSeq": "19a6cd811a5f92a9",
++  "cenv": "ff546a8e892b47f4",
++  "claimSeq": "68350811dd0c0f29",
+   "claims": "df64565feaefcd5a",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "ddedb107419250f1",
++  "farmsteads": "dc2238423842a3ea",
+   "finds": "33459b07fd3d8db9",
+-  "headSeq": "600f5cfe136a0449",
+-  "herds": "cc59179492d5ff9c",
+-  "households": "5bb55de556b72a38",
+-  "idlers": "a636d1b8a2dc2bcf",
+-  "jobSeq": "9355f435d93172b0",
+-  "jobs": "0b72183e8f744e52",
+-  "landDirty": "7076b5567379ebef",
++  "headSeq": "2d157e7cc13fb04a",
++  "herds": "6b9093cab7b49671",
++  "households": "c037e42afc4745b2",
++  "idlers": "71d8e585c9b609aa",
++  "jobSeq": "e95252cd809a2791",
++  "jobs": "b901e84b631210d5",
++  "landDirty": "03610aeb5d86a2c9",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "dd38e8cbb9a88534",
+@@ -446,30 +446,30 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "9ea1e3c66ed974ca",
+-  "pathCache": "7bd869d9528b120c",
+-  "pathDirty": "4d6d0df3e1d2ab0c",
+-  "pawns": "9687c452d78fff11",
++  "owner": "c6f2b7c8179a494d",
++  "pathCache": "3f36f36e85861ece",
++  "pathDirty": "fb62a69c588c5c3c",
++  "pawns": "4206bf08eb905fea",
+   "player": "2be88ca4242c76e8",
+-  "record": "808508438d2da846",
+-  "recordFold": "31a4f4cf953a57d8",
++  "record": "839c13bebceaedc3",
++  "recordFold": "681ed6108f9c35cb",
+   "recordYears": "c523693fae308b35",
+-  "regrow": "bd373ed0e67d758c",
++  "regrow": "9a1bf2005a17df81",
+   "rigDirty": "41d50eb2d3d74df0",
+-  "rng": "0ada3f63f754e244",
++  "rng": "43728f6fc481b5ad",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "01dc1080b53870c0",
+-  "talks": "4ce5e30697249026",
++  "talks": "7e530961d9be89fd",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "a78700785743ea71",
+-  "used": "391d3c5bcf8e5f89",
++  "used": "ec90967529c0dfc6",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "4344cb44848e5475",
++  "villages": "e3f932344ad45d34",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "a0f145a7ecb2753a",
++  "wear": "62e11d1627de6335",
+   "weather": "0beca0c052604825"
+  },
+  "world/42": {
+@@ -526,7 +526,7 @@
+   "wind": "669506eb3ee7f695"
+  },
+  "founders/42/seed": {
+-  "ECON": "dd132e4c6e8c59c1",
++  "ECON": "db46aac3a619b470",
+   "agents": "ae2c75f237371ff9",
+   "biomeDirty": "394d240533a4978d",
+   "cairns": "33459b07fd3d8db9",
+@@ -539,7 +539,7 @@
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "6b9f56a7bc78240f",
+   "herds": "6d1811ecdf140fdf",
+-  "households": "8b7e89220911bad0",
++  "households": "777059364e47074b",
+   "jobSeq": "e3102e9f921e9d46",
+   "jobs": "33459b07fd3d8db9",
+   "landDirty": "95ce7797da8a0e72",
+@@ -577,24 +577,24 @@
+   "weather": "5fd292c863c1dcb8"
+  },
+  "founders/42/year1": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "59d057fb057e4cce",
+-  "biomeDirty": "e671b4ab9d1c5855",
++  "ECON": "db46aac3a619b470",
++  "agents": "3a3100a8af08b998",
++  "biomeDirty": "f294c33b00b66966",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "790671df6fa7eda6",
++  "cenv": "591e395f8c667f1d",
+   "claimSeq": "70d497adae296416",
+   "claims": "33459b07fd3d8db9",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "25ca1358d9af5e29",
++  "farmsteads": "f30ac210d3c50fd5",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "fff1ec2c249fada0",
+   "herds": "c7ae47242e143a40",
+-  "households": "3c8e7210d62c546c",
+-  "idlers": "368208ca4ba88a39",
+-  "jobSeq": "d4a4330546432c80",
+-  "jobs": "03636e413b7c75a5",
+-  "landDirty": "643841883ea638f1",
++  "households": "44e5a79eec0914b5",
++  "idlers": "bae39fb2d15d64a3",
++  "jobSeq": "c9ebe87bd8968629",
++  "jobs": "5d5d0ee79548c10b",
++  "landDirty": "9f02cb4c25e3e18d",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "d0722b6fc50a748b",
+@@ -603,51 +603,51 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "7ecd8ec1d0392b0f",
+-  "pathCache": "cf1b1a52996d4a15",
+-  "pathDirty": "ab65b5f4e3635bdf",
+-  "pawns": "79b7ed59347855d1",
++  "owner": "36aaa65cb5868c4f",
++  "pathCache": "540b6cfe10e9ab88",
++  "pathDirty": "6494b857cc81767e",
++  "pawns": "e4fac0e355d5f7ef",
+   "player": "2be88ca4242c76e8",
+-  "record": "30d81c1b1847c6f1",
++  "record": "5c1e58bdc570ee83",
+   "recordFold": "924e7aaab384d81b",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "b9ab44009ce9ed6a",
++  "regrow": "1846a9e40e873f32",
+   "rigDirty": "394d240533a4978d",
+-  "rng": "0e1e481c68670364",
++  "rng": "a0be969cecc74c0c",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "58d1c709d362099c",
+-  "talks": "baa9e642dd8567cb",
++  "talks": "13078aaece11da4f",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+-  "used": "c30e50097e20a7e3",
+-  "villageHours": "325e26f6693fd8ad",
+-  "villages": "15e44c85fe0d4bff",
++  "used": "b556f3d25de5ac11",
++  "villageHours": "970e9bf76521b03d",
++  "villages": "3097001f506c0432",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "c966b97ef2275981",
++  "wear": "813eddafa69392fe",
+   "weather": "059dda42eee64e8a"
+  },
+  "founders/42/year2": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "7de752cbf444323d",
+-  "biomeDirty": "ce996ab5153f2894",
++  "ECON": "db46aac3a619b470",
++  "agents": "8f9f065169401d29",
++  "biomeDirty": "12c7de494627dfd2",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "5607ce23692b40fc",
++  "cenv": "c73e2098a140814f",
+   "claimSeq": "2d873257cb7d5e3d",
+   "claims": "33459b07fd3d8db9",
+   "demand": "8e87797a01a97240",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "25e1c4b75250c2e1",
++  "farmsteads": "3c45b2537401c2d7",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+-  "herds": "41c97277cb93ec50",
+-  "households": "874974b9c8209f37",
+-  "idlers": "2777ff0e7232394c",
+-  "jobSeq": "d9ad0be1b512bddb",
+-  "jobs": "1e9d7b81341fc3e0",
+-  "landDirty": "233a285eeffe577f",
++  "herds": "a437b6d2604374d9",
++  "households": "35f905ff37c26455",
++  "idlers": "b4c071ea7e8b39ca",
++  "jobSeq": "3e1f21b20b34dadc",
++  "jobs": "859c1f0fb69dd539",
++  "landDirty": "8116da798cf5017c",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "38bf57911378809a",
+@@ -656,51 +656,51 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "93c2030624fe9cb2",
+-  "pathCache": "afd9d56bfb75e248",
+-  "pathDirty": "8e3a377a45cd333a",
+-  "pawns": "d4256e84af4d0a57",
++  "owner": "1aa6e7ec6fe2785b",
++  "pathCache": "5c1d32188dd4d301",
++  "pathDirty": "5f0f98a96ecfc402",
++  "pawns": "c062c64281afef01",
+   "player": "2be88ca4242c76e8",
+-  "record": "d871fa010ebce852",
++  "record": "e223b9caf2de30ec",
+   "recordFold": "3768b7ae64691543",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "ab95bfbaaf7fd215",
++  "regrow": "a611338da5a09673",
+   "rigDirty": "67fadaf8093c7fba",
+-  "rng": "41e5471822d895d7",
++  "rng": "c2b108486c63f058",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "6035b33a34db52e8",
+-  "talks": "9370c7f7e07a5b8e",
++  "talks": "de89ccf9babe3d97",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+-  "used": "3c54642e5584ed4f",
++  "used": "58faca0cf3798eb9",
+   "villageHours": "19313c043ba89905",
+-  "villages": "aa1b3da137387b7e",
++  "villages": "9965df05b25f2650",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "164b6ae7856e73ff",
++  "wear": "bb88fcc043d8bd60",
+   "weather": "25cb2e7c7829da18"
+  },
+  "founders/42/year3": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "7a5cee6914c51daf",
+-  "biomeDirty": "7578603a872184ea",
++  "ECON": "db46aac3a619b470",
++  "agents": "bb7349ca68156feb",
++  "biomeDirty": "6000e9624f0c4f3e",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "208093b64b5498bc",
++  "cenv": "b4d8428683dc6c12",
+   "claimSeq": "2925bffb38029b8f",
+   "claims": "dba3e06404a81395",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "cc1da917ff4ef608",
++  "farmsteads": "c149533f60e7627f",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+-  "herds": "e267e588a514d1c9",
+-  "households": "896344572da531eb",
+-  "idlers": "702fc73b2de980f4",
+-  "jobSeq": "47728417e3d30bad",
+-  "jobs": "641ab69d085694c4",
+-  "landDirty": "01f41bde176307ef",
++  "herds": "fff4205084d7a2bc",
++  "households": "0dd251dfabe5552a",
++  "idlers": "a636d1b8a2dc2bcf",
++  "jobSeq": "f033ce97a7368922",
++  "jobs": "112bddb27af08718",
++  "landDirty": "42bf75ff02b4f645",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+   "meetingLog": "ed3de8594e3a0399",
+@@ -709,34 +709,34 @@
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+-  "owner": "bbe178d07fb04fce",
+-  "pathCache": "d3e078b6237affe8",
+-  "pathDirty": "905f06586c1e7162",
+-  "pawns": "f00c786c478191fc",
++  "owner": "d11e9161875be1cc",
++  "pathCache": "65512ab606ff91a6",
++  "pathDirty": "8b2c91d14150c643",
++  "pawns": "6662dcc85e401c0e",
+   "player": "2be88ca4242c76e8",
+-  "record": "6cc6fb0de542c7f7",
+-  "recordFold": "94750a2f1ab70fae",
++  "record": "878208ff9ce7be07",
++  "recordFold": "51161c89febc1bb6",
+   "recordYears": "fc880d3591c068f7",
+-  "regrow": "0a2846452b934e8a",
++  "regrow": "b466632343650a63",
+   "rigDirty": "d94408880cf4092b",
+-  "rng": "074c29db7b6afb86",
++  "rng": "c12fabe8a1791909",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "01dc1080b53870c0",
+-  "talks": "4fc4702ff535ea79",
++  "talks": "7a917fccff88c91a",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+-  "used": "be895f9b869f1f51",
++  "used": "207ccd0abdd10d7a",
+   "villageHours": "19313c043ba89905",
+-  "villages": "2d40f01de9116d13",
++  "villages": "6947adf38b065020",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "602b076af50eccc7",
++  "wear": "0e675ff2a346851b",
+   "weather": "1d25ddc2077d0449"
+  },
+  "heirs/42/seed": {
+-  "ECON": "dd132e4c6e8c59c1",
++  "ECON": "db46aac3a619b470",
+   "agents": "6115d914b9a1d96e",
+   "biomeDirty": "4fa4aafb96356d63",
+   "cairns": "33459b07fd3d8db9",
+@@ -749,7 +749,7 @@
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+   "herds": "8f0d2406ab5f461d",
+-  "households": "5a36dedcc74dabb2",
++  "households": "bb7a6229a3bef357",
+   "jobSeq": "e3102e9f921e9d46",
+   "jobs": "33459b07fd3d8db9",
+   "landDirty": "5876fd26966c7024",
+@@ -787,23 +787,23 @@
+   "weather": "69f38bb93082df9d"
+  },
+  "heirs/42/year1": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "aeb05849b3fb68bc",
+-  "biomeDirty": "4959b542fb5a5543",
++  "ECON": "db46aac3a619b470",
++  "agents": "359dd04003339ed0",
++  "biomeDirty": "036825ecfe556dc2",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "c017f4e71c63d687",
++  "cenv": "07c158233b793213",
+   "claimSeq": "e95ffb4a00a1cc01",
+   "claims": "8546ab016dedc4d4",
+   "demand": "fdee4c806d5a7c5c",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "3759f2b4d75365bf",
++  "farmsteads": "d0b683f5090719cf",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4e503578180d9f27",
+-  "herds": "ea4469bd7792ab03",
+-  "households": "91adfa49ffd676e9",
++  "herds": "56a106b6585d802c",
++  "households": "e7d031ee06f68b11",
+   "idlers": "6a262c6d7e32ae7c",
+-  "jobSeq": "77cc49ce0dc47723",
+-  "jobs": "19d546f52acba205",
++  "jobSeq": "8032eda6c71fd60e",
++  "jobs": "b48fb833080cf3d7",
+   "landDirty": "549a93f1b15c8172",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -814,49 +814,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "4a36afb81145ecb9",
+-  "pathCache": "34bc21b995f4afb2",
+-  "pathDirty": "bb09b4ce4f6846fa",
+-  "pawns": "a7a0d62990c3ae8d",
++  "pathCache": "6b92bf1e1c2cb0bd",
++  "pathDirty": "5812a496e1be95e7",
++  "pawns": "367b76852e65e252",
+   "player": "2be88ca4242c76e8",
+-  "record": "a876274de8646c43",
++  "record": "809e8cdb39312ab4",
+   "recordFold": "9aebda34f218e5fd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "4683ac5b4b9dc4e9",
++  "regrow": "fa27e62522fac028",
+   "rigDirty": "407a1562a05d23a0",
+-  "rng": "e7964af5e0168979",
++  "rng": "fac65e34c525b32e",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "58d1c709d362099c",
+-  "talks": "aff44ce3c663b7a9",
++  "talks": "4dcb7135dc0c7c1c",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+-  "used": "32cf12dab88b9be7",
++  "used": "92fc1a22a24af53c",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "f181f3d95d27d8ce",
++  "villages": "18080929a4b900fa",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "6de2aa35718de273",
++  "wear": "89a017c47a54e930",
+   "weather": "059dda42eee64e8a"
+  },
+  "heirs/42/year2": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "9fb16824436fd978",
+-  "biomeDirty": "2fcd8b6856e2b9bb",
++  "ECON": "db46aac3a619b470",
++  "agents": "f0c8a281be63be46",
++  "biomeDirty": "20e54bf6f4810d47",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "16103b44c32fe96f",
++  "cenv": "c448a16b936af3f7",
+   "claimSeq": "7ad13aea39dd0b2f",
+   "claims": "4a934662e7aeab09",
+   "demand": "6202f32d75b2a76f",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "d515f178d13193bb",
++  "farmsteads": "2da11e01eaab0c10",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "e43ba1ea5da8f63d",
+-  "herds": "d25ea829703e3db2",
+-  "households": "3a32a10b3709f5e3",
++  "herds": "55f097a6faecc300",
++  "households": "0699a273f82235ac",
+   "idlers": "2777ff0e7232394c",
+-  "jobSeq": "bcd50e5493388439",
+-  "jobs": "6bd396efa4aa62f6",
++  "jobSeq": "6955d6a0d481e555",
++  "jobs": "743075c489fdcfde",
+   "landDirty": "42ec9271a656d036",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+@@ -867,49 +867,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "2a07f982c5f25874",
+-  "pathCache": "bee958e50c7394b2",
+-  "pathDirty": "51896012753fdd63",
+-  "pawns": "287f6beb290267fa",
++  "pathCache": "2ce496322d8bf4f1",
++  "pathDirty": "9af7b355d75a21bf",
++  "pawns": "7b9d201475909eba",
+   "player": "2be88ca4242c76e8",
+-  "record": "2897f5c908826bac",
++  "record": "3004c5c527a67308",
+   "recordFold": "75d785df9591bbfd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "0c0a79c83e54fa7e",
++  "regrow": "04766a89edbb0e31",
+   "rigDirty": "c835859d9e7dd00f",
+-  "rng": "239312f3cbde4fd3",
++  "rng": "14a52b20d2d718a4",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "6035b33a34db52e8",
+-  "talks": "702ec87fe6574cf7",
++  "talks": "059828bdef3c3cac",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+-  "used": "4b4283b4fd19cfe4",
++  "used": "8ab0a11fb45c37ba",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "ec6e476e87af3983",
++  "villages": "2456cfb82a34528d",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "b26c8755a87f76ea",
++  "wear": "de9b403242704ee1",
+   "weather": "25cb2e7c7829da18"
+  },
+  "heirs/42/year3": {
+-  "ECON": "dd132e4c6e8c59c1",
+-  "agents": "10f24cad889addf0",
+-  "biomeDirty": "0d1569053dbe56e1",
++  "ECON": "db46aac3a619b470",
++  "agents": "3a59d892aecb861a",
++  "biomeDirty": "f93376f70cc4cee0",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "eb1e8001d80497a3",
++  "cenv": "34131528fdbc16e1",
+   "claimSeq": "2ef3a15e02086f86",
+   "claims": "83b8401f5eaa0378",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "93319fcf73cb00dd",
++  "farmsteads": "d5a442e904848551",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "20b62d5f6143a891",
+-  "herds": "4c782f25f38a1932",
+-  "households": "64b2bd9269d15649",
++  "herds": "ce973a36556746e2",
++  "households": "2abe8ba168099059",
+   "idlers": "a636d1b8a2dc2bcf",
+-  "jobSeq": "51ffd9568ef04f4e",
+-  "jobs": "7fe77438aa1bf5e1",
++  "jobSeq": "c661a88f9b026a67",
++  "jobs": "d7403f9eed16cf93",
+   "landDirty": "fda3fa2740d549f1",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+@@ -920,29 +920,29 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "602e4ab5757578c9",
+-  "pathCache": "780287373cca172f",
+-  "pathDirty": "b8d89ebce4be953b",
+-  "pawns": "9a5c4f0f1c4d620e",
++  "pathCache": "403cfb632ca39135",
++  "pathDirty": "2559cde897cfb0c6",
++  "pawns": "406bd27f3bc63086",
+   "player": "2be88ca4242c76e8",
+-  "record": "deb0af7224b264c9",
+-  "recordFold": "f29f6eb03c757bc8",
+-  "recordYears": "638ac5b102084b87",
+-  "regrow": "75c71dcb68412820",
++  "record": "d8d8462185d04cd1",
++  "recordFold": "5298d24760a0fb0f",
++  "recordYears": "a22fda565e86620c",
++  "regrow": "18cd10403214d8c7",
+   "rigDirty": "c835859d9e7dd00f",
+-  "rng": "ecea24e24fd6f59d",
++  "rng": "eace093c25f47be1",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "01dc1080b53870c0",
+-  "talks": "ed2b929d0591f6ba",
++  "talks": "341daa5e04c0c385",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+-  "used": "da81b3f11558ef40",
++  "used": "b7c81c31c345d972",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "519f03d7730950b5",
++  "villages": "5b48488cf988fd17",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "cbdcf457c405d972",
++  "wear": "8aba72dd4cfdba29",
+   "weather": "1d25ddc2077d0449"
+  },
+  "calibrate": "8926a1da1f5dba1c",
 diff --git a/tests/lib/invariants.js b/tests/lib/invariants.js
-index 0fc9b43..31503d6 100644
+index 8ca304f..01f60d1 100644
 --- a/tests/lib/invariants.js
 +++ b/tests/lib/invariants.js
-@@ -190,7 +190,19 @@ function checkState(st) {
-     for (const k of ['grain', 'wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+@@ -277,8 +277,21 @@ function checkState(st) {
+     if (b !== undefined && b !== null && typeof b !== 'object') bad.push(`households[${h.id}]: boat ${b}`);
      // the larder holds foods eaten as they are (rules FOODS, VB-259)
      const FOODS = globalThis.VB['sim/rules'].FOODS;
--    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
-+    for (const l of h.larder || []) if (!FOODS[l.kind] || FOODS[l.kind].held !== 'larder' || !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
-+    // fresh food (VB-119): batches of fresh foods, by day, none from a later day, at most FRESH_CAP of a food
+-    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw ||
++    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || FOODS[l.kind].held !== 'larder' ||
+       !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
++    // fresh food (sim/pot, VB-119): batches of fresh foods above 0, in day order, none from a later day, at most FRESH_CAP of a food (a batch
++    // past its shelf life is held until the store is next touched, and read as gone)
 +    if (!Array.isArray(h.fresh)) bad.push(`households[${h.id}]: no fresh store`);
 +    else {
 +      const today = Math.floor(st.t / globalThis.VB['sim/rules'].DAY), per = {};
@@ -619,31 +1613,22 @@ index 0fc9b43..31503d6 100644
 +            || i && h.fresh[i - 1].day > b.day) bad.push(`households[${h.id}]: fresh batch ${JSON.stringify(b)}`);
 +        per[b.food] = (per[b.food] || 0) + 1;
 +      }
-+      for (const k in per) if (per[k] > globalThis.VB['sim/stores'].FRESH_CAP) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
++      for (const k in per) if (per[k] > globalThis.VB['sim/pot'].FRESH_CAP) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
 +    }
      // help's seasonal ask (sim/help, VB-222): the season of the last ask, no later than this one
-     if (h.askedIn !== undefined && !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
-       bad.push(`households[${h.id}]: askedIn is ${h.askedIn}`);
-@@ -205,7 +217,7 @@ function checkState(st) {
+     if (h.askedIn !== undefined &&
+       !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
+@@ -306,7 +319,7 @@ function checkState(st) {
+   }
+   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
+   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
+-  const FISHES = ['fish', 'dried fish']; // the catch by the drying rack and the fish hung on it (VB-300)
++  const FISHES = ['fish', 'dried fish', 'gathered']; // the catch by the drying rack and the fish hung on it (VB-300), fresh food (VB-119)
    for (const holder of [...st.households, ...st.villages]) {
      if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
      for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
--        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter'].includes(e.good)
-+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'fish', 'gathered'].includes(e.good)
-         || e.stake && !st.pawns[e.pawn]) {
-       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
-     }
-@@ -215,7 +227,7 @@ function checkState(st) {
-     for (let i = 0; i < holder.totals.length; i++) {
-       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
-       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
--          || !Number.isInteger(x.count) || x.count < 1 || !['grain', 'meals', 'sheaves', 'milk', 'butter'].includes(x.good) || seen.has(key)
-+          || !Number.isInteger(x.count) || x.count < 1 || !['grain', 'meals', 'sheaves', 'milk', 'butter', 'fish', 'gathered'].includes(x.good) || seen.has(key)
-           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
-       seen.add(key);
-     }
 diff --git a/tests/meals.js b/tests/meals.js
-index e845652..a1b2057 100644
+index 2970add..496f236 100644
 --- a/tests/meals.js
 +++ b/tests/meals.js
 @@ -1,4 +1,4 @@
@@ -653,26 +1638,26 @@ index e845652..a1b2057 100644
  const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
  const { setClock } = require('./lib/clock.js');
 @@ -20,7 +20,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
-   hh.meals = need; hh.grain = 50; feedHousehold(st, hh);
-   assert(Math.abs(hh.meals) < 1e-9 && hh.grain === 50 && hh.hungryDays === 0, 'meals first');
+   hh.meals = need; hh.grain = { barley: 50 }; feedHousehold(st, hh);
+   assert(Math.abs(hh.meals) < 1e-9 && Sim.grainOf(hh) === 50 && hh.hungryDays === 0, 'meals first');
    hh.meals = 0; hh.cookDay = -1; feedHousehold(st, hh);
--  assert(Math.abs(hh.grain - (50 - need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten, nobody is hungry');
-+  assert(Math.abs(hh.grain - (50 - 1.25 * need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten uncooked (VB-119), nobody is hungry');
-   hh.grain = 0; feedHousehold(st, hh);
+-  assert(Math.abs(Sim.grainOf(hh) - (50 - need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten, nobody is hungry');
++  assert(Math.abs(Sim.grainOf(hh) - (50 - 1.25 * need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten uncooked (VB-119), nobody is hungry');
+   hh.grain = { barley: 0 }; feedHousehold(st, hh);
    assert.strictEqual(hh.hungryDays, 1, 'no grain and no meals: short');
  }
 diff --git a/tests/milk.js b/tests/milk.js
-index 5e17cc5..7a40de4 100644
+index 70a582f..4ee7a82 100644
 --- a/tests/milk.js
 +++ b/tests/milk.js
-@@ -57,11 +57,13 @@ Sim.advance(s2, 15 * Sim.DAY + 20 - s2.t); // day 15 (summer), 20:00
+@@ -66,11 +66,13 @@ Sim.advance(s2, 15 * Sim.DAY + 20 - s2.t); // day 15 (summer), 20:00
  const h2 = s2.households.find((h) => F.larderOf(h, 'milk') > 0);
  check(h2, 'no household with milk in the larder on a summer evening');
  if (h2) {
--  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0;
-+  const m0 = F.larderOf(h2, 'milk'), g0 = h2.grain + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0, meals0 = h2.meals;
+-  const m0 = F.larderOf(h2, 'milk'), g0 = Sim.grainOf(h2) + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0;
++  const m0 = F.larderOf(h2, 'milk'), g0 = Sim.grainOf(h2) + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0, meals0 = h2.meals;
    Sim.advance(s2, 4.5);
-   const used = g0 - (h2.grain + h2.meals) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
+   const used = g0 - (Sim.grainOf(h2) + h2.meals) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
    check(F.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
 -  check(Math.abs(used - (need - m0)) < 1e-6, `the meal took ${used.toFixed(2)} grain and meals, wanted ${(need - m0).toFixed(2)} (need less milk)`);
 +  // what meals do not cover is grain eaten uncooked, at ECON.rawGrain (VB-119)
@@ -683,45 +1668,49 @@ index 5e17cc5..7a40de4 100644
  const bad = checkState(st); check(!bad.length, bad.slice(0, 3).join('; '));
 diff --git a/tests/pot.js b/tests/pot.js
 new file mode 100644
-index 0000000..17bc393
+index 0000000..49d962f
 --- /dev/null
 +++ b/tests/pot.js
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,139 @@
 +// The pot and fresh food (VB-119; design.md, Meals and Mixed meals): fish and gathered food are fresh, held in batches by day and lost past
 +// their 3 days, read when the store is next touched; the cook makes the next day's meals from fresh food, oldest first, then grain; a pot
 +// of 2 sources (each at least a fifth) goes 10% further, of 3 or more 20%; with no meals a household eats gathered food as it is and then
-+// grain uncooked, 1.25 rations of grain for a ration of need.
-+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Stores = VB['sim/stores'];
-+const { FOODS, ECON, DAY } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'];
++// grain uncooked, 1.25 rations of grain for a ration of need; a cook at work at the end of work finishes the pot.
++const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Pot = VB['sim/pot'];
++const { FOODS, ECON, DAY, WORK } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'];
 +const { moveClock } = require('./lib/clock.js'), { checkState } = require('./lib/invariants.js');
 +let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('POT FAIL:', m); } };
 +const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
 +const it = G.generate(7); let r; while (!(r = it.next()).done);
-+// a household with no larder, fields growing (no seed held back), and a known store
++// a household with no larder, fields growing (no seed held back), no project plan, and a known store
 +function home(grain = 1000) {
 +  const st = Sim.seed(r.value, 7, 'founders'), hh = st.households[0], f = st.farmsteads[hh.farmstead];
 +  for (const fd of f.fields) fd.stage = 'growing';
-+  f.project = null; hh.larder = []; hh.meals = 0; hh.grain = grain; hh.hungryDays = 0;
++  VB['sim/plans'].dropAll(st, 'household', hh.id);
++  hh.larder = []; hh.meals = 0; hh.grain = { barley: grain }; hh.hungryDays = 0;
 +  return { st, hh };
 +}
++const grain = (hh) => Sim.grainOf(hh);
 +const spoiled = (hh, food) => hh.totals.filter((x) => x.kind === 'spoilage' && x.good === food).reduce((s, x) => s - x.n, 0);
 +
 +// --- the table
 +check(FOODS.fish.keeps === 3 && FOODS.fish.source === 'fish' && FOODS.fish.held === 'fresh' && !FOODS.fish.raw, 'fish: fresh, 3 days, cooked');
 +check(FOODS.gathered.keeps === 3 && FOODS.gathered.source === 'gathered' && FOODS.gathered.held === 'fresh' && FOODS.gathered.raw,
 +  'gathered food: fresh, 3 days, may be eaten as it is');
-+check(FOODS.grain.source === 'grain' && FOODS.meat.held === 'larder' && FOODS.milk.held === 'larder', 'grain one source; milk and meat in the larder');
++check(FOODS.grain.source === 'grain' && FOODS.meat.held === 'larder' && FOODS.milk.held === 'larder' && FOODS['dried fish'].source === 'fish',
++  'grain one source; milk and meat in the larder; dried fish the source fish');
++check(ECON.pot[2] === 0.9 && ECON.pot[3] === 0.8 && ECON.potShare === 0.2, 'pots of 2 and 3 sources: 0.9 and 0.8 of the food; a source at a fifth');
 +
 +// --- grain only, and grain with fish at a quarter of the pot, 12 days: the second uses 10% less food
 +function run(fishShare) {
-+  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = hh.grain;
++  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
 +  let fish = 0, sources = 0;
 +  for (let d = 0; d < 12; d++) {
-+    if (fishShare) { const n = fishShare * 0.9 * need; Stores.putFresh(st, hh, 'fish', n, 'catch'); fish += n; }
-+    sources = Stores.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY);
++    if (fishShare) { const n = fishShare * 0.9 * need; Pot.putFresh(st, hh, 'fish', n, 'catch'); fish += n; }
++    sources = Pot.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY);
 +  }
 +  check(hh.hungryDays === 0 && near(hh.meals, 0, 1e-6), `${fishShare}: fed every day from meals`);
-+  return { food: g0 - hh.grain + fish - Stores.freshHeld(st, hh), need, sources };
++  return { food: g0 - grain(hh) + fish - Pot.freshHeld(st, hh), need, sources };
 +}
 +const plain = run(0), mixed = run(0.25);
 +check(plain.sources === 1 && near(plain.food, 12 * plain.need), `grain only: 12 days of need (${plain.food} for ${12 * plain.need})`);
@@ -730,106 +1719,162 @@ index 0000000..17bc393
 +// --- three sources go 20% further; a food under a fifth of the pot is not a source
 +{
 +  const { st, hh } = home(), need = dailyNeed(st, hh);
-+  Stores.putFresh(st, hh, 'fish', 0.3 * 0.8 * need, 'catch'); Stores.putFresh(st, hh, 'gathered', 0.3 * 0.8 * need, 'gathering');
-+  const g0 = hh.grain, k = Stores.pot(st, hh, need);
-+  check(k === 3 && near(hh.meals, need) && near(g0 - hh.grain, 0.4 * 0.8 * need) && near(Stores.freshHeld(st, hh), 0), `3 sources: ${k}, a fifth less food`);
++  Pot.putFresh(st, hh, 'fish', 0.3 * 0.8 * need, 'catch'); Pot.putFresh(st, hh, 'gathered', 0.3 * 0.8 * need, 'gathering');
++  const g0 = grain(hh), k = Pot.pot(st, hh, need);
++  check(k === 3 && near(hh.meals, need) && near(g0 - grain(hh), 0.4 * 0.8 * need) && near(Pot.freshHeld(st, hh), 0), `3 sources: ${k}, a fifth less food`);
 +}
 +{
 +  const { st, hh } = home(), need = dailyNeed(st, hh);
-+  Stores.putFresh(st, hh, 'fish', 0.1 * need, 'catch');
-+  const g0 = hh.grain, k = Stores.pot(st, hh, need);
-+  check(k === 1 && near(hh.meals, need) && near(g0 - hh.grain, 0.9 * need), `fish at a tenth is not a source (${k})`);
++  Pot.putFresh(st, hh, 'fish', 0.1 * need, 'catch');
++  const g0 = grain(hh), k = Pot.pot(st, hh, need);
++  check(k === 1 && near(hh.meals, need) && near(g0 - grain(hh), 0.9 * need), `fish at a tenth is not a source (${k})`);
 +}
 +
 +// --- the oldest batch goes in first; past its 3 days a batch is lost when the store is next touched, and the loss is in the ledger
 +{
-+  const { st, hh } = home(), need = dailyNeed(st, hh);
-+  Stores.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); Stores.putFresh(st, hh, 'fish', 2, 'catch');
-+  Stores.putFresh(st, hh, 'fish', 1, 'catch');
++  const { st, hh } = home();
++  Pot.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); Pot.putFresh(st, hh, 'fish', 2, 'catch');
++  Pot.putFresh(st, hh, 'fish', 1, 'catch');
 +  check(hh.fresh.length === 2 && hh.fresh[1].qty === 3, 'a day\'s catches are one batch');
-+  Stores.pot(st, hh, 0); // nothing wanted: nothing cooked
-+  check(near(Stores.freshHeld(st, hh), 4) && hh.meals === 0, 'a pot of nothing takes nothing');
-+  Stores.takeFresh(st, hh, 1.5, 'cooking');
++  Pot.pot(st, hh, 0); // nothing wanted: nothing cooked
++  check(near(Pot.freshHeld(st, hh), 4) && hh.meals === 0, 'a pot of nothing takes nothing');
++  Pot.takeFresh(st, hh, 1.5, 'cooking');
 +  check(hh.fresh.length === 1 && near(hh.fresh[0].qty, 2.5), 'the oldest batch first');
 +  moveClock(st, 3 * DAY);
-+  check(near(Stores.freshHeld(st, hh), 2.5) && spoiled(hh, 'fish') === 0, 'good on its third day');
++  check(near(Pot.freshHeld(st, hh), 2.5) && spoiled(hh, 'fish') === 0, 'good on its third day');
 +  moveClock(st, DAY);
-+  check(near(Stores.freshHeld(st, hh), 0) && hh.fresh.length === 1, 'read as lost on its fourth day, before anything touches it');
++  check(near(Pot.freshHeld(st, hh), 0) && hh.fresh.length === 1, 'read as lost on its fourth day, before anything touches it');
 +  feedHousehold(st, hh);
 +  check(hh.fresh.length === 0 && near(spoiled(hh, 'fish'), 2.5), `lost and noted when the meal touches the store (${spoiled(hh, 'fish')})`);
-+  check(need > 0, 'a household to feed');
 +}
 +{ // at most FRESH_CAP batches of a food: with a longer shelf life, the oldest is lost
 +  const { st, hh } = home(), keeps = FOODS.fish.keeps;
 +  try {
 +    FOODS.fish.keeps = 20;
-+    for (let d = 0; d < Stores.FRESH_CAP + 2; d++) { Stores.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); }
++    for (let d = 0; d < Pot.FRESH_CAP + 2; d++) { Pot.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); }
 +  } finally { FOODS.fish.keeps = keeps; }
-+  check(hh.fresh.length === Stores.FRESH_CAP && near(spoiled(hh, 'fish'), 2), `${hh.fresh.length} batches, 2 lost`);
++  check(hh.fresh.length === Pot.FRESH_CAP && near(spoiled(hh, 'fish'), 2), `${hh.fresh.length} batches, 2 lost`);
 +}
 +
 +// --- no meals: gathered food is eaten as it is, then grain uncooked at ECON.rawGrain; a household that misses its cooking for 3 days uses
 +// 25% more grain on those days
 +check(ECON.rawGrain === 1.25, 'raw grain: 1.25 rations for a ration of need');
 +{
-+  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = hh.grain;
++  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
 +  for (let d = 0; d < 3; d++) { feedHousehold(st, hh); moveClock(st, DAY); }
-+  check(hh.hungryDays === 0 && near(g0 - hh.grain, 3 * 1.25 * need), `3 days uncooked: ${g0 - hh.grain} grain for ${3 * need} of need`);
++  check(hh.hungryDays === 0 && near(g0 - grain(hh), 3 * 1.25 * need), `3 days uncooked: ${g0 - grain(hh)} grain for ${3 * need} of need`);
 +  const raw = hh.totals.find((x) => x.kind === 'raw' && x.good === 'grain');
 +  check(raw && raw.count === 3, 'each day eaten raw is counted');
-+  const g1 = hh.grain;
-+  for (let d = 0; d < 3; d++) { Stores.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY); }
-+  check(near(g1 - hh.grain, 3 * need), 'cooked again: a ration of grain a ration of need');
++  const g1 = grain(hh);
++  for (let d = 0; d < 3; d++) { Pot.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY); }
++  check(near(g1 - grain(hh), 3 * need), 'cooked again: a ration of grain a ration of need');
 +}
 +{
-+  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = hh.grain;
-+  Stores.putFresh(st, hh, 'gathered', need / 2, 'gathering'); Stores.putFresh(st, hh, 'fish', need, 'catch');
++  const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
++  Pot.putFresh(st, hh, 'gathered', need / 2, 'gathering'); Pot.putFresh(st, hh, 'fish', need, 'catch');
 +  feedHousehold(st, hh);
-+  check(near(Stores.freshHeld(st, hh, 'gathered'), 0) && near(Stores.freshHeld(st, hh, 'fish'), need) && near(g0 - hh.grain, 1.25 * need / 2),
++  check(near(Pot.freshHeld(st, hh, 'gathered'), 0) && near(Pot.freshHeld(st, hh, 'fish'), need) && near(g0 - grain(hh), 1.25 * need / 2),
 +    'gathered food eaten as it is, at no penalty, before raw grain; fish is not eaten uncooked');
 +}
 +{ // short of everything: the meal takes what there is, grain at its raw rate, and the day is hungry
 +  const { st, hh } = home(0), need = dailyNeed(st, hh);
-+  hh.grain = need / 2; Stores.putFresh(st, hh, 'gathered', need / 4, 'gathering');
++  hh.grain = { barley: need / 2 }; Pot.putFresh(st, hh, 'gathered', need / 4, 'gathering');
 +  feedHousehold(st, hh);
-+  check(hh.hungryDays === 1 && hh.grain === 0 && near(Stores.freshHeld(st, hh), 0), 'short: all eaten, a hungry day');
++  check(hh.hungryDays === 1 && grain(hh) === 0 && near(Pot.freshHeld(st, hh), 0), 'short: all eaten, a hungry day');
 +}
 +
-+// --- a run: fish and gathered food go into pots, the state keeps its invariants
++// --- a run: fish and gathered food go into pots, a cook at work at the end of work finishes, the state keeps its invariants
++check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of work');
 +{
 +  const st = Sim.seed(r.value, 7, 'founders');
-+  const pots = [0, 0, 0, 0], pot = Stores.pot;
-+  Stores.pot = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
-+  try { Sim.advance(st, 36 * DAY); } finally { Stores.pot = pot; }
++  const pots = [0, 0, 0, 0], pot = Pot.pot;
++  let late = 0, finished = 0;
++  Pot.pot = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
++  try {
++    for (let d = 0; d < 36; d++) {
++      Sim.advance(st, d * DAY + WORK[1] - 0.1 - st.t);
++      const busy = [];
++      for (const id of st.living) {
++        const a = st.agents[id];
++        if (a.job && a.job.kind === 'cook' && a.phase === 'work') busy.push({ a, hh: st.households[st.pawns[id].household] });
++      }
++      Sim.advance(st, 0.2);
++      for (const b of busy) if (b.a.job && b.a.job.kind === 'cook') late++;
++      Sim.advance(st, 2.5);
++      for (const b of busy) if (b.hh.cookDay === d) finished++;
++    }
++  } finally { Pot.pot = pot; }
 +  const bad = checkState(st);
 +  check(!bad.length, 'invariants: ' + bad.slice(0, 3).join('; '));
 +  check(pots[2] + pots[3] > 0, `mixed pots by the autumn: ${pots.join(', ')}`);
++  check(late > 0 && finished >= late, `cooks at work at the end of work go on (${late}) and finish (${finished})`);
 +}
 +if (failed) { console.error(`pot: ${failed} failed`); process.exit(1); }
 +console.log('pot ok');
+diff --git a/tests/record.js b/tests/record.js
+index 44869f9..f9ebf25 100644
+--- a/tests/record.js
++++ b/tests/record.js
+@@ -43,7 +43,8 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
+ // seed (VB-282), and for planning days (VB-249) with occasions (VB-126, weddings and funeral ales in the lives), and for digging (VB-359),
+ // the village's wood (VB-326), timber (VB-328) and stone (VB-332), and when the weather began to place the
+ // biomes, so every island changed (VB-342), and for herding (VB-136: fewer gifts and close friends, the same births, deaths and marriages),
+-// and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55):
++// and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55), and for fresh food and
++// the pot (VB-119: 55 events, other ones):
+ // the lives changed, not how they are read.
+ {
+   const st = Sim.seed(world(), 7, 'heirs');
+@@ -51,7 +52,7 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
+   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
+   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
+   assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 55, 'heirs 7 at 2.5 years: 55 events on its pawns');
+-  assert.strictEqual(hash, 'ea9542eabb8befc6', 'a pawn\'s life reads as it did with copies');
++  assert.strictEqual(hash, '85731d04df25939c', 'a pawn\'s life reads as it did with copies');
+ }
+ const st = Sim.seed(world(), 7, 'founders');
+ Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
 diff --git a/tests/run.js b/tests/run.js
-index 204df97..65b754a 100644
+index 9ed70cf..60f2d8f 100644
 --- a/tests/run.js
 +++ b/tests/run.js
 @@ -16,7 +16,7 @@ const TEST = [
    ['node', 'tests/ownership.js'], ['node', 'tests/ownershiprules.js'],
    ['node', 'tests/cacheowners.js'], ['node', 'tests/living.js'],
    ['python3', 'build.py', '--check'], ['node', 'tests/lint.js'], ['node', 'tests/lintrules.js'], ['node', 'tests/deaths.js'], ['node', 'tests/notable.js'], ['node', 'tests/counters.js'], ['node', 'tests/rng.js'], ['node', 'tests/plaindata.js'], ['node', 'tests/codec.js'], ['node', 'tests/record.js'], ['node', 'tests/commands.js'], ['node', 'tests/player.js'], ['node', 'tests/wishes.js'], ['node', 'tests/succession.js'], ['node', 'tests/skip.js'], ['node', 'tests/chronicle.js'], ['node', 'tests/opportunities.js'], ['node', 'tests/backlog.js'], ['node', 'tests/backlog-tool.js'], ['node', 'tests/targets-tool.js'], ['node', 'tests/doc-tool.js'], ['node', 'tests/questions-tool.js'], ['node', 'tests/agent-usage.js'], ['node', 'tests/regress.js'], ['node', 'tests/names.js'], ['node', 'tests/guardians.js'], ['node', 'tests/takenin.js'], ['node', 'tests/labour.js'], ['node', 'tests/marriage.js'], ['node', 'tests/spacing.js'],
--  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plans.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fish.js'], ['node', 'tests/forage.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'], ['node', 'tests/offers.js'], ['node', 'tests/occasions.js'], ['node', 'tests/attention.js'],
-+  ['node', 'tests/trees.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plans.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fish.js'], ['node', 'tests/forage.js'], ['node', 'tests/pot.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'], ['node', 'tests/offers.js'], ['node', 'tests/occasions.js'], ['node', 'tests/attention.js'],
+-  ['node', 'tests/trees.js'], ['node', 'tests/wood.js'], ['node', 'tests/timber.js'], ['node', 'tests/stone.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/climate.js'], ['node', 'tests/geology.js'], ['node', 'tests/prospect.js'], ['node', 'tests/dig.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/villagehours.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plans.js'], ['node', 'tests/projects.js'], ['node', 'tests/routines.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fish.js'], ['node', 'tests/drying.js'], ['node', 'tests/house.js'], ['node', 'tests/forage.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'], ['node', 'tests/offers.js'], ['node', 'tests/occasions.js'], ['node', 'tests/ale.js'], ['node', 'tests/attention.js'], ['node', 'tests/herding.js'], ['node', 'tests/start.js'], ['node', 'tests/gossip.js'],
++  ['node', 'tests/trees.js'], ['node', 'tests/wood.js'], ['node', 'tests/timber.js'], ['node', 'tests/stone.js'], ['node', 'tests/stones.js'], ['node', 'tests/rivers.js'], ['node', 'tests/climate.js'], ['node', 'tests/geology.js'], ['node', 'tests/prospect.js'], ['node', 'tests/dig.js'], ['node', 'tests/newfields.js'], ['node', 'tests/weeding.js'], ['node', 'tests/crops.js'], ['node', 'tests/children.js'], ['node', 'tests/kinds.js'], ['node', 'tests/hands.js'], ['node', 'tests/interrupts.js'], ['node', 'tests/heirs.js'], ['node', 'tests/guardian.js'], ['node', 'tests/ownheir.js'], ['node', 'tests/owners.js'], ['node', 'tests/kinlimit.js'], ['node', 'tests/kinship.js'], ['node', 'tests/daylight.js'], ['node', 'tests/service.js'], ['node', 'tests/routes.js'], ['node', 'tests/villagehours.js'], ['node', 'tests/paths.js'], ['node', 'tests/layout.js'], ['node', 'tests/tools.js'], ['node', 'tests/indexes.js'], ['node', 'tests/meals.js'], ['node', 'tests/plans.js'], ['node', 'tests/projects.js'], ['node', 'tests/routines.js'], ['node', 'tests/plots.js'], ['node', 'tests/cottage.js'], ['node', 'tests/settle.js'], ['node', 'tests/relations.js'], ['node', 'tests/help.js'], ['node', 'tests/exchange.js'], ['node', 'tests/goodwill.js'], ['node', 'tests/herds.js'], ['node', 'tests/meadows.js'], ['node', 'tests/hay.js'], ['node', 'tests/byre.js'], ['node', 'tests/milk.js'], ['node', 'tests/soil.js'], ['node', 'tests/fish.js'], ['node', 'tests/drying.js'], ['node', 'tests/house.js'], ['node', 'tests/forage.js'], ['node', 'tests/pot.js'], ['node', 'tests/fresh.js'], ['node', 'tests/oxen.js'], ['node', 'tests/tiny.js'], ['node', 'tests/claims.js'], ['node', 'tests/territory.js'], ['node', 'tests/borders.js'], ['node', 'tests/stakes.js'], ['node', 'tests/farmclaims.js'], ['node', 'tests/offers.js'], ['node', 'tests/occasions.js'], ['node', 'tests/ale.js'], ['node', 'tests/attention.js'], ['node', 'tests/herding.js'], ['node', 'tests/start.js'], ['node', 'tests/gossip.js'],
  ];
  const VERIFY = [
    ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
+diff --git a/tools/stocks.js b/tools/stocks.js
+index 16303c4..6eba61f 100644
+--- a/tools/stocks.js
++++ b/tools/stocks.js
+@@ -28,9 +28,11 @@ const QUANTITIES = [
+     none: 'meals and the larder feed the household; then the seed is eaten and fields go unsown; then its members go hungry, slow and lose '
+       + 'health (sim/hunger), and it asks kin and the village for food (sim/help)' },
+   { id: 'meals', of: 'household', name: 'meals', unit: 'rations', fields: ['household.meals'], good: 'meals', holder: 'household',
+-    kinds: ['cook', 'fish', 'gather'],
++    kinds: ['cook'],
+     covers: ['household.cookDay'],
+-    none: 'the household eats its grain uncooked, at the same ration (sim/hunger): nothing is lost by not cooking' },
++    none: 'the household eats its gathered food as it is, then its grain uncooked at ECON.rawGrain, a quarter more (sim/hunger, VB-119)' },
++  { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
++    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, and fishing and gathering are more urgent (sim/pot, VB-119)' },
+   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
+     kinds: ['haul'], none: 'nothing to thresh: the threshing job is not posted' },
+   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
 diff --git a/tools/writes.js b/tools/writes.js
-index 23ce7d3..10fdbcc 100644
+index 0b3d456..66bc8b0 100644
 --- a/tools/writes.js
 +++ b/tools/writes.js
-@@ -57,7 +57,7 @@ const HINTS = {
+@@ -56,7 +56,7 @@ const HINTS = {
+   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
    'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
    'sim/claims': { c: 'claim', r: 'local' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-   'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' },
--  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/plans': { T: 'plan.targets' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
-+  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/plans': { T: 'plan.targets' }, 'sim/settle': { use: 'local' }, 'sim/stores': { units: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
+-  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' },
++  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' }, 'sim/pot': { units: 'local' },
+   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/plans': { T: 'plan.targets' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
      R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
  };
- const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'case', 'delete', 'void', 'throw', 'await', 'yield', 'if', 'while',
