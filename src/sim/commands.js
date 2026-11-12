@@ -173,10 +173,11 @@ VB['sim/commands'] = (() => {
     },
     finishCottage: {
       check: (st, c) => {
-        const v = st.villages[c.args && c.args.village], plot = v && v.plots[c.target];
-        return plot && plot.cottage && plot.cottage.i >= 3 && !plot.built ? null : 'there is no finished cottage';
+        const v = st.villages[c.args && c.args.village], X = later('sim/expansion'), plot = v && X.livePlots(st, v).find((p) => p.plot === c.target);
+        return plot && X.cottageAt(plot) >= 3 ? null : 'there is no finished cottage';
       },
-      run: (st, c) => later('sim/cottage').finishCottage(st, st.villages[c.args.village].plots[c.target]),
+      run: (st, c) =>
+        later('sim/cottage').finishCottage(st, later('sim/expansion').livePlots(st, st.villages[c.args.village]).find((p) => p.plot === c.target)),
     },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },

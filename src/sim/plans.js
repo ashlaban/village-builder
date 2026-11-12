@@ -49,9 +49,9 @@ VB['sim/plans'] = (() => {
   // A project plan for holder {type, id}, from {what, steps, hold} (sim/fields' fieldProject, sim/meadows' meadowProject): what it makes,
   // its steps in order (the first open now), and what it holds back for after it (the seed of a new field). What the steps spend is
   // reserved from the holder's free stock: null, and no plan, when it is not there (another plan holds it).
-  function makeProject(st, type, id, { what, steps, hold = null }) {
+  function makeProject(st, type, id, { what, steps, hold = null, ...own }) {
     const holder = holderOf(st, { type, id }), P = st.plans.projects, spend = {};
-    const plan = { id: ++st.plans.projectSeq, holder: { type, id }, kind: 'project', what, steps, open: 0, reserved: {}, reasons: {} };
+    const plan = { id: ++st.plans.projectSeq, holder: { type, id }, kind: 'project', what, ...own, steps, open: 0, reserved: {}, reasons: {} };
     if (!P[type].has(id)) P[type].set(id, []);
     P[type].get(id).push(plan);
     for (const s of steps) for (const good in s.spends || {}) spend[good] = (spend[good] || 0) + s.spends[good];
@@ -101,14 +101,16 @@ VB['sim/plans'] = (() => {
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
   const dropAll = (st, type, id) => { for (const plan of [...projectsOf(st, type, id)]) dropProject(st, plan); };
   // A holder's claim lost on a tile (sim/stakes: contested away, lapsed; -1: all of them; `told`, or `text` and `at` to tell a plan
-  // dropped for it); a store fallen below what a plan's steps will spend (sim/stores); a step done (sim/fields, sim/meadows).
+  // dropped for it); a store fallen below what a plan's steps will spend (sim/stores); a step done (sim/fields, sim/meadows, sim/expansion:
+  // `plan` names it when the holder has several); a project begun below (a plot, sim/expansion: `project`, as makeProject takes it).
   on('rightLost', (st, d) => {
     for (const plan of [...projectsOf(st, d.type, d.id)]) {
       if (d.tile < 0 || plan.steps.some((s) => s.place === d.tile)) review(st, plan, !!d.told, d.text || null, d.at || null);
     }
   });
   on('storeShort', (st, d) => { for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan); });
-  on('stepDone', (st, d) => { const plan = projectOf(st, d.type, d.id); if (plan) advance(st, plan); });
+  on('stepDone', (st, d) => { const plan = d.plan || projectOf(st, d.type, d.id); if (plan) advance(st, plan); });
+  on('projectBegun', (st, d) => { makeProject(st, d.type, d.id, d.project); }); // a village's plot (sim/expansion)
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -309,7 +311,7 @@ VB['sim/plans'] = (() => {
     st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [], projects: Projects.emptyProjects(), projectSeq: 0 };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
-    fromFarms(st);
+    fromFarms(st); fromPlots(st);
   }
   // A save made before project plans (VB-123) held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
   function fromFarms(st) {
@@ -319,6 +321,27 @@ VB['sim/plans'] = (() => {
       if (hh && !hh.dissolved) makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
         steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
       if ('project' in f) delete f.project; // lint-allow: owner a save made before project plans loses the farm's field
+    }
+  }
+  // A save made before plot plans (VB-123) kept every plot in village.plots: one under way becomes its village's project plan (its jobs
+  // pointed at it), one built the village's record of it (sim/expansion).
+  function fromPlots(st) {
+    const HOURS = { foundation: 30, walls: 60, roof: 30 };
+    for (const v of st.villages) {
+      if (!(v.plots || []).some((p) => 'done' in p)) continue;
+      const old = v.plots; v.plots = [];
+      for (const p of old) {
+        const { id, intended, holder, started, farmstead } = p;
+        const tiles = p.tiles.map((t) => ({ tile: t.tile, kind: t.kind }));
+        if (p.built) { v.plots.push({ id, village: v.id, intended, holder, started, farmstead, tiles }); continue; }
+        const k = p.cottage || { i: 0, done: 0 }, stage = (kind, i) => ({ kind, place: p.tiles[0].tile, hours: HOURS[kind],
+          done: i < k.i ? HOURS[kind] : i === k.i ? k.done : 0, ...kind === 'walls' ? { wood: p.wood || 0 } : {} });
+        const plan = makeProject(st, 'village', v.id, { what: 'plot', plot: p.id, intended: p.intended, to: p.done ? p.holder : null,
+          hours: p.hours, started: p.started, steps: [{ kind: 'clear', places: p.tiles }, ...['foundation', 'walls', 'roof'].map(stage)] });
+        plan.open = p.done ? Math.min(3, 1 + k.i) : 0;
+        if (k.i >= 3) plan.steps[3].done = HOURS.roof;
+        for (const j of st.jobs.values()) { if (j.plot === p) j.plot = plan; if (j.timberFor === p) j.timberFor = plan.steps[2]; }
+      }
     }
   }
   // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
@@ -338,7 +361,7 @@ VB['sim/plans'] = (() => {
       }
     }
     if (!st.plans.due) { st.plans.due = []; for (const id of st.plans.households.keys()) enqueue(st, id); }
-    fromFarms(st);
+    fromFarms(st); fromPlots(st);
   }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
   // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review

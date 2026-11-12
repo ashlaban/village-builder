@@ -12,7 +12,8 @@ for (const name of Object.keys(F.FIXTURES)) {
   const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fields'].builtTiles(st);
   for (let t = 0; t < st.w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) expected.taken.add(t);
   for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); const s = f.household !== null && VB['sim/plans'].openOf(st, 'household', f.household); if (s) marks.add(s.place); }
-  for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+  const X = VB['sim/expansion'];
+  for (const v of st.villages) for (const p of [...v.plots, ...X.livePlots(st, v)]) for (const tr of X.tilesOf(p)) marks.add(tr.tile);
   for (const t of marks) {
     expected.taken.add(t);
     for (const [j] of bfs(st.w, t, SETTLE.apart - 1, () => true).dist) expected.near.add(j);

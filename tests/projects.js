@@ -121,4 +121,29 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   clean(st, 'loaded');
   out.push('a save before project plans loads');
 }
+{ // a plot: one project plan of its village, its tiles cleared side by side in its first step, then the cottage's stages; and a save made
+  // before plot plans kept it in village.plots, as it loads
+  const X = VB['sim/expansion'], st = Sim.seed(r.value, 7, 'heirs'), v = st.villages[0];
+  st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
+  for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
+  X.startPlots(st);
+  const plan = X.livePlots(st, v)[0];
+  assert(plan && plan.what === 'plot' && plan.steps.map((s) => s.kind).join() === 'clear,foundation,walls,roof' && plan.steps[0].places.length === 2,
+    'a plot: its tiles\' clearing, then the cottage');
+  assert.strictEqual(X.plotJobs(st).filter((j) => j[3].plot === plan).length, 2, 'one task a place, side by side');
+  const tr = plan.steps[0].places[0]; X.finishStep(st, { plot: plan, tr });
+  clean(st, 'plot under way');
+  const was = JSON.stringify({ open: plan.open, to: plan.to, steps: plan.steps, hours: plan.hours });
+  // as such a save had it
+  const old = { id: plan.plot, village: v.id, intended: plan.intended, hours: plan.hours, done: false, holder: null, started: plan.started,
+    tiles: plan.steps[0].places, wood: plan.steps[2].wood };
+  v.plots = [old];
+  delete st.plans.projects; delete st.plans.projectSeq;
+  Plans.fillPlans(st);
+  const back = X.livePlots(st, v)[0];
+  assert.strictEqual(JSON.stringify({ open: back.open, to: back.to, steps: back.steps, hours: back.hours }), was, 'the plot loads as its plan');
+  assert(!v.plots.length && back.plot === 0, 'and leaves no plot under way in village.plots');
+  clean(st, 'plot loaded');
+  out.push('a plot is one plan of its village, its tiles cleared side by side; a save before plot plans loads');
+}
 console.log(`projects ok: ${out.join('; ')}`);

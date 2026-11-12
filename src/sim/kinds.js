@@ -81,7 +81,7 @@ VB['sim/kinds'] = (() => {
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
   function plotWork(st, holder, at, c, post) {
-    for (const [key, kind, site, extra] of plotJobs(st)) post(key, site, extra, kind, { type: 'village', id: extra.plot.village });
+    for (const [key, kind, site, extra] of plotJobs(st)) post(key, site, extra, kind, extra.plot.holder);
   }
   // Asked once for the island: empty farms being restored, each by its claimant's household while the claim holds (sim/farmclaims).
   function claimWork(st, holder, at, c, post) {

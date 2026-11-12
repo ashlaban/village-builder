@@ -12,7 +12,7 @@ VB['sim/settle'] = (() => {
   const names = VB['sim/names'];
   const { builtTiles, fieldProject } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
-  const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
+  const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
@@ -91,7 +91,7 @@ VB['sim/settle'] = (() => {
       for (const fd of f.fields) marks.add(fd.tile);
       const s = f.household !== null && openOf(st, 'household', f.household); if (s) marks.add(s.place); // its project (sim/plans)
     }
-    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+    for (const v of st.villages) for (const p of [...v.plots, ...livePlots(st, v)]) for (const tr of tilesOf(p)) marks.add(tr.tile);
     // A multi-source search computes the union of the same radius searches. Each tile is visited once,
     // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
     const queue = [...marks], depth = new Map(queue.map((t) => [t, 0]));
@@ -170,7 +170,7 @@ VB['sim/settle'] = (() => {
     const rank = (u) => (kin.has(u.id) ? 0 : 1);
     near.sort((a, b) => rank(a) - rank(b) || reach.get(a.center) - reach.get(b.center) || a.id - b.id);
     for (const u of near) {
-      const under = activePlots(u).length + u.plots.filter(building).length + u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
+      const under = activePlots(st, u).length + livePlots(st, u).filter(building).length + u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
       if (under >= MAX_PLOTS) continue;
       const site = findSite(st, u);
       if (site) return { village: u, house: site.house, field: site.field, steps: reach.get(u.center) };

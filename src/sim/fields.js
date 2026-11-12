@@ -37,7 +37,10 @@ VB['sim/fields'] = (() => {
   function builtTiles(st) {
     const out = new Set(st.villages.map((v) => v.center));
     for (const f of st.farmsteads) out.add(f.house);
-    for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+    for (const v of st.villages) { // plots built, and under way (their village's project plans, VB-123)
+      for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+      for (const p of Projects.projectsOf(st, 'village', v.id)) for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
+    }
     return out;
   }
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),

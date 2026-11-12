@@ -184,7 +184,7 @@ const P = (id) => ({ type: 'pawn', id });
   const { st, who } = scene('kin');
   st.demand = [who.olof, who.cecilia];
   X.startPlots(st, (id) => FC.claimableFarm(st, id) === null);
-  check(!st.villages[1].plots.length, 'nobody who may claim an empty farm gets a plot');
+  check(!X.livePlots(st, st.villages[1]).length, 'nobody who may claim an empty farm gets a plot');
 }
 // ---- in play: the moving round gives the farm to a claimant, who mends it and moves in within days ----
 {

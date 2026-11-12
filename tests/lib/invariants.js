@@ -117,7 +117,9 @@ function checkState(st) {
         if (!Array.isArray(pl.steps) || !pl.steps.length || !Number.isInteger(pl.open) || pl.open < 0 || pl.open >= pl.steps.length) {
           bad.push(`${where}: open step ${pl.open} of ${pl.steps && pl.steps.length}`); continue;
         }
-        for (const s of pl.steps) if (!KINDS[s.kind] || !tileOk(s.place) || !(s.hours >= 0)) bad.push(`${where}: step ${JSON.stringify(s)}`);
+        for (const s of pl.steps) { // a step at one place, or at several (a plot's tiles, each with its own steps; VB-123)
+          if (!KINDS[s.kind] || (s.places ? !s.places.every((q) => tileOk(q.tile)) : !tileOk(s.place) || !(s.hours >= 0))) bad.push(`${where}: step ${JSON.stringify(s)}`);
+        }
         if (!h || h.dissolved) continue;
         for (const good of Object.keys(pl.reserved)) {
           const n = pl.reserved[good], why = pl.reasons[good];
@@ -418,12 +420,19 @@ function checkState(st) {
   }
   for (const v of st.villages) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
-    for (const pl of v.plots || []) {
-      if (pl.cottage && !(Number.isInteger(pl.cottage.i) && pl.cottage.i >= 0 && pl.cottage.i <= 3)) bad.push(`villages[${v.id}]: plot ${pl.id} cottage stage ${pl.cottage.i}`);
-      if (pl.wood !== undefined && !within(pl.wood, 0, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.id} wood ${pl.wood}`); // VB-328
-      if (pl.built && !st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
+    // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
+    // site within range (VB-328); a built one's farmstead exists
+    const live = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [];
+    const nums = [...(v.plots || []).map((pl) => pl.id), ...live.map((pl) => pl.plot)].sort((a, b) => a - b);
+    if (!nums.every((n, i) => n === i)) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
+    for (const pl of live) {
+      if (pl.what !== 'plot' || pl.steps.length !== 4 || !pl.steps[0].places || !within(pl.steps[2].wood, -1e5, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.plot} shape`);
+      if (pl.to !== null && !st.pawns[pl.to]) bad.push(`villages[${v.id}]: plot ${pl.plot} allotted to nobody`);
     }
-    for (const pl of v.plots || []) for (const tr of pl.tiles) if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id} on river tile ${tr.tile}`);
+    for (const pl of v.plots || []) if (!st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
+    for (const pl of [...v.plots || [], ...live]) for (const tr of pl.tiles || pl.steps[0].places) {
+      if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id ?? pl.plot} on river tile ${tr.tile}`);
+    }
   }
   // worn paths (VB-094): counts finite and not negative, none on water; a stage from 0 to 3 that its count supports
   const { wear, worn } = st.w;

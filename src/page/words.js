@@ -136,10 +136,13 @@
           if (daughters.length) commons += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
           if (v.crowded > 0) commons += `<p>Crowded: ${v.crowded} adults wait for land, and there is no room to clear.</p>`;
           commons += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}.</p>`;
-          for (const plot of v.plots) {
-            commons += !plot.done ? `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done.</p>`
-              : `<p>Plot cleared${plot.holder !== null ? `, for ${nm(plot.holder)}` : ''}; ${plot.cottage && !plot.built
-                ? `the cottage: ${['foundation', 'walls', 'roof'][plot.cottage.i]} is next` : 'the cottage is built'}.</p>`;
+          // the plots built (v.plots) and under way (the village's project plans, VB-123), in the order begun
+          const X = VB['sim/expansion'], plots = [...v.plots, ...X.livePlots(st, v)].sort((a, b) => (a.plot ?? a.id) - (b.plot ?? b.id));
+          for (const plot of plots) {
+            commons += !plot.steps ? `<p>Plot cleared, for ${nm(plot.holder)}; the cottage is built.</p>`
+              : plot.open < 1 ? `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done.</p>`
+                : `<p>Plot cleared${plot.to !== null ? `, for ${nm(plot.to)}` : ''}; ${X.cottageAt(plot) < 3
+                  ? `the cottage: ${['foundation', 'walls', 'roof'][X.cottageAt(plot)]} is next` : 'the cottage stands empty'}.</p>`;
           }
           for (const f of empties) commons += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at
             ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;

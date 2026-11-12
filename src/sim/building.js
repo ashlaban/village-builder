@@ -9,7 +9,7 @@ VB['sim/building'] = (() => {
   const { walkable, findRoute } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
-  const { building, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
+  const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
@@ -25,8 +25,8 @@ VB['sim/building'] = (() => {
     };
     for (const v of st.villages) {
       if (!v.wood.length) continue;
-      for (const plot of v.plots) {
-        if (building(plot)) ask(`timber:v${v.id}.${plot.id}`, v, plot, plot.cottage.i, plot.tiles[0].tile, { type: 'village', id: v.id });
+      for (const plot of livePlots(st, v)) { // the site's timber is the walls step's (sim/expansion)
+        if (building(plot)) ask(`timber:v${v.id}.${plot.plot}`, v, plot.steps[2], plot.open - 1, plot.steps[1].place, { type: 'village', id: v.id });
       }
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
@@ -142,7 +142,7 @@ VB['sim/building'] = (() => {
       const n = Math.min(left, Math.max(0, ECON.woodWinter - hh.wood));
       if (n > 0) { Stores.put(st, hh, 'wood', n, 'plot'); left -= n; }
     }
-    plot.wood = 0;
+    plot.steps[2].wood = 0;
     return left;
   }
   return { KINDS, boothWork, timberWork, shareWood, stoneWork, buildStep, stoneSource };
