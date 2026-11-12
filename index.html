@@ -3083,7 +3083,7 @@ VB['sim/rules'] = (() => {
   // read them from here. ----
   const CROPS = {
     barley: { yield: 100, seed: 25, sow: [0, 0, 9], ripe: 26, wear: 0.08,
-      hours: { plow: 20, sow: 2, weed: 2, reap: 5, thresh: 6 } },
+      hours: { plow: 20, sow: 2, weed: 2, reap: 15, thresh: 20 } },
   };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
@@ -18886,7 +18886,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '1465066a13', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'f8e17cd2e3', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
