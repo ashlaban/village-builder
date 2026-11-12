@@ -109,7 +109,7 @@
       chooseFarm(farmOf(st.pawns[id]).id, id);
       if ($('chooseMap').offsetHeight) $('choose').scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }); // on a phone, back to the map
     } else if (b.dataset.p !== undefined) { choose.pawn = +b.dataset.p; choose.msg = ''; renderChoose(); }
-    else if (b.id === 'chooseBack') openStart(); // the game is kept aside, in this mode, while the start shows its island
+    else if (b.id === 'chooseMenu') { if (!building && !skipping) showLanding(); } // the game waits, in this mode, behind the main menu
     else if (b.id === 'chooseWatch') closeChoose();
     else if (b.id === 'choosePlay' && choose.pawn >= 0) {
       const id = choose.pawn, r = playAs(id);

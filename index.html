@@ -173,6 +173,10 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 /* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
+/* and in the world editor, which has an interface of its own (page/editor) and is put away under a menu screen too */
+body.editing .hud, body.editing .navigation, body.editing .sheet, body.editing .toasts, body.editing .play-offer, body.editing .map-tools,
+body.editing .act-bar, body.editing .act-menu, body.editing .act-banner, body.editing .choose, body.editing .tile,
+body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events: none; }
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
@@ -189,10 +193,12 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
+.screen-head .stepno { margin-left: auto; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: var(--bad); font-size: 14px !important; }
-#landQuick small { display: block; color: var(--muted); font-size: 13px; }
+.landing button small { display: block; color: var(--muted); font-size: 13px; }
+.landing button.primary small { color: inherit; opacity: 0.85; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
@@ -500,6 +506,68 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   /* every button answers the pointer: a faint wash of its own colour, over whatever fills it (rows and choice cards have their own) */
   button:not(:disabled, .row, .act-row, .story, .person, .scard):hover { box-shadow: inset 0 0 0 99px color-mix(in srgb, currentColor 9%, transparent); }
 }
+/* The archipelago editor (page/editor): the world alone on the stage. One scene: the tools at the top left with the open tool's panel
+   under them, Play and Main menu at the top right, the menu button where the game's own is; on a narrow screen the panel is a sheet at
+   the foot. */
+.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; --ed-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  --ed-left: max(14px, env(safe-area-inset-left, 0px)); --ed-right: max(14px, env(safe-area-inset-right, 0px)); }
+.editor > * { pointer-events: auto; position: absolute; }
+.editor-top { left: var(--ed-left); top: var(--ed-top); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 10px 8px 14px;
+  border-radius: 14px; max-width: calc(100% - 200px); min-height: 62px; }
+.ed-name { min-width: 0; }
+.ed-name strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-name span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ed-tools { display: flex; gap: 4px; }
+.ed-tools button { padding: 6px 14px; }
+.ed-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; }
+.editor-corner .icon-btn { width: 44px; height: 44px; flex: none; }
+.editor-corner .primary { padding: 6px 22px; }
+.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: 12px; }
+.editor-side { left: var(--ed-left); top: calc(var(--ed-top) + 72px); width: 340px; max-height: calc(100% - 86px - var(--ed-top)); display: flex;
+  flex-direction: column; border-radius: 16px; min-width: 0; }
+.editor-side[hidden], .editor-msg[hidden] { display: none; }
+.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 'Alegreya', Georgia, serif; flex: none; }
+.editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
+.editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.editor legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.editor p { margin: 0; font-size: 14px; line-height: 1.4; }
+.editor .hint { color: var(--muted); font-size: 13px; }
+.editor .err { max-width: none; color: var(--bad); font-size: 14px !important; }
+.editor label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; min-width: 0; }
+.editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
+  border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
+.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ed-pair .ed-wide { grid-column: 1 / -1; }
+.editor [hidden] { display: none !important; }
+.ed-range span { display: flex; justify-content: space-between; gap: 8px; }
+.ed-range output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ed-biomes { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--edge); }
+.ed-biomes i { display: block; min-width: 0; }
+.ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
+.ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ed-brushes h4 { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+.ed-brushes button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; text-align: left; font-size: 14px; line-height: 1.2;
+  color: var(--ink); min-width: 0; }
+.ed-brushes button.wide { grid-column: 1 / -1; }
+.ed-brushes button i { width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes button svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
+.ed-brushes button i.ore, .ed-brushes button i.gem { border-radius: 50%; }
+.ed-brushes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--node); }
+body.brushing #stage { cursor: crosshair; }
+.ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
+#edState.changed { color: var(--ink); }
+@media (max-width: 899px) {
+  .editor { --ed-top: calc(env(safe-area-inset-top, 0px) + 8px); --ed-left: max(8px, env(safe-area-inset-left, 0px)); --ed-right: max(8px, env(safe-area-inset-right, 0px)); }
+  .editor-top { top: calc(var(--ed-top) + 68px); max-width: calc(100% - 16px); }
+  .ed-name { display: none; }
+  .editor-side { right: var(--ed-right); top: auto; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 46svh; }
+}
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
 .choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
@@ -508,7 +576,13 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   overscroll-behavior: contain; min-width: 0; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
-.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+/* Main menu, in the corner where the game's own is; the household's card stands under it. There is no Back (Kim, 12 Nov). */
+.corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
+  width: 44px; height: 44px; border-radius: 999px; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
+/* on the start it lies at the page's corner and scrolls with the sheet, whose head row makes room for it where the two would meet */
+#genScreen .corner-menu { position: absolute; pointer-events: auto; }
+@media (max-width: 1340px) { .start-top .screen-head { padding-right: 56px; } }
+.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 82px); width: 340px;
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
 .choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
@@ -661,6 +735,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     0 max(8px, env(safe-area-inset-left, 0px)); }
   .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
   .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
+  .choose .corner-menu { position: fixed; width: 44px; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
+  #genScreen .corner-menu { top: calc(env(safe-area-inset-top, 0px) + 20px); right: max(20px, env(safe-area-inset-right, 0px)); }
   .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
   .choose::after { content: ""; flex: none; height: 1px; }
 }
@@ -754,6 +830,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <!-- Whom to play (VB-339): the game itself after a new game is raised; on a narrow screen the map's strip, the household, the archetypes, the bar -->
 <div class="choose" id="choose" hidden>
+  <button id="chooseMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu"></button>
   <div class="choose-map" id="chooseMap"></div>
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
@@ -765,7 +842,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
   </section>
   <div class="choose-bar panel" role="group" aria-label="Whom to play">
-    <button type="button" id="chooseBack">Back</button><button type="button" id="chooseWatch">Watch only</button>
+    <button type="button" id="chooseWatch">Watch only</button>
     <button type="button" class="primary" id="choosePlay">Play as</button>
   </div>
 </div>
@@ -914,7 +991,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
-    <button class="primary" id="landNew" type="button">New archipelago</button>
+    <button class="primary" id="landNew" type="button">Play a Scenario<small>A story on a new archipelago</small></button>
+    <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -925,11 +1003,12 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 </div>
 
 <!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
-     with its callouts; who starts and the story archetypes; size, seed, Back and Raise the land in the bar -->
+     with its callouts; who starts and the story archetypes; size, seed and Raise the land in the bar; Main menu at the top right, and no Back -->
 <div class="genscreen start" id="genScreen" hidden>
+  <button id="genMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">New archipelago</h1><span class="stepno">Step 1 of 2</span></div>
+      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
@@ -973,11 +1052,139 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
-      <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
       </div>
     </div>
   </form>
+</div>
+
+<!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
+     at the top left, each opening its panel under them (the generator's parameters, a brush for the terrain, who settles it); Play and Main menu at
+     the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
+<div class="editor" id="editor" hidden>
+  <div class="panel editor-top">
+    <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
+      <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="terrain" aria-pressed="false" aria-controls="edTerrain">Terrain</button>
+      <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
+    </div>
+  </div>
+  <div class="panel editor-corner">
+    <button class="primary" id="edPlay" type="button">Play</button>
+    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
+  </div>
+  <p class="panel editor-msg err" id="edMsg" role="alert" hidden></p>
+  <form class="panel editor-side" id="edGen" autocomplete="off" aria-labelledby="edGenTitle">
+    <h2 id="edGenTitle">Generation</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Seed</legend>
+        <span class="seedrow"><input id="edSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required
+          aria-label="Seed"><button type="button" id="edReroll">Another</button></span>
+        <p class="hint">The same seed and settings always raise the same land.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Map size</legend>
+        <select id="edSize" aria-label="Map size">
+          <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+          <option value="m">Medium (280 × 200)</option><option value="l">Large (380 × 270)</option><option value="c">Custom</option>
+        </select>
+        <div class="ed-pair">
+          <label>Columns<input id="edCols" type="number" min="40" max="400" step="1" required></label>
+          <label>Rows<input id="edRows" type="number" min="30" max="300" step="1" required></label>
+        </div>
+        <p class="hint" id="edSizeNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Land and sea</legend>
+        <label class="ed-range"><span>Land<output id="edLandOut" for="edLand"></output></span>
+          <input id="edLand" type="range" min="15" max="60" step="1"></label>
+        <p class="hint">The share of the map that stands above the sea: little gives scattered skerries, much gives a few great islands.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Regions</legend>
+        <label class="ed-range"><span>Region radius<output id="edRegionOut" for="edRegion"></output></span>
+          <input id="edRegion" type="range" min="4" max="12" step="1"></label>
+        <p class="hint">The hexagonal patches the land is divided into: few and wide, or many and small.</p>
+      </fieldset>
+      <fieldset class="ed-facts" id="edFacts" hidden>
+        <legend>This world</legend>
+        <div class="ed-biomes" id="edBiomes" role="img"></div>
+        <dl id="edFactList"></dl>
+      </fieldset>
+    </div>
+    <div class="editor-foot">
+      <p class="hint" id="edState" aria-live="polite"></p>
+      <div class="ed-bar" id="edBar" hidden><i id="edBarFill"></i></div>
+      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
+    </div>
+  </form>
+  <section class="panel editor-side" id="edTerrain" aria-labelledby="edTerrainTitle" hidden>
+    <h2 id="edTerrainTitle">Terrain</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Brush</legend>
+        <div class="ed-brushes" id="edBrushes" role="group" aria-label="Brush"></div>
+        <p class="hint" id="edBrushNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Brush size</legend>
+        <label class="ed-range"><span>Across<output id="edBrushOut" for="edBrushSize"></output></span>
+          <input id="edBrushSize" type="range" min="0" max="4" step="1" value="0"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Painted</legend>
+        <p id="edPainted"></p>
+        <div class="ed-acts"><button type="button" id="edUnpaint" disabled>Clear what is painted</button></div>
+        <p class="hint">Regenerate clears it too. The sea, lakes and rivers cannot be painted yet.</p>
+      </fieldset>
+    </div>
+  </section>
+  <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
+    <h2 id="edSettleTitle">Settlement</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Settled by</legend>
+        <select id="edSettled" aria-label="Settled by"></select>
+        <p class="hint" id="edSettledNote"></p>
+      </fieldset>
+      <fieldset id="edPlacing" hidden>
+        <legend>Place</legend>
+        <div class="ed-brushes" id="edPlaces" role="group" aria-label="Place">
+          <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
+          <button type="button" data-place="village" data-ico="village" aria-pressed="false">A village</button>
+          <button type="button" data-place="farm" data-ico="home" aria-pressed="false">A household</button>
+          <button type="button" data-place="pawn" data-ico="me" aria-pressed="false">A person</button>
+          <button type="button" data-place="green" data-ico="green" aria-pressed="false">A green and well</button>
+          <button type="button" data-place="empty" data-ico="emptyfarm" aria-pressed="false">An empty farm</button>
+          <button type="button" data-place="ruin" data-ico="ruin" aria-pressed="false">A ruin</button>
+          <button type="button" data-place="field" data-ico="sow" aria-pressed="false">A field</button>
+          <button type="button" data-place="meadow" data-ico="hay" aria-pressed="false">A meadow</button>
+          <button type="button" data-place="way" data-ico="road" aria-pressed="false">A road, drawn</button>
+          <button type="button" data-place="route" data-ico="road" aria-pressed="false">A road, found</button>
+          <button type="button" data-place="remove" data-ico="minus" aria-pressed="false" class="wide">Take one away</button>
+        </div>
+        <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
+          <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <label id="edFillRow">Who lives there
+          <select id="edFill"><option value="full">A family, with children</option><option value="couple">A young couple</option></select></label>
+        <div class="ed-pair" id="edPawnRow">
+          <label>Sex<select id="edPawnSex"><option value="f">Woman</option><option value="m">Man</option></select></label>
+          <label>Age<input id="edPawnAge" type="number" min="0" max="80" step="1" value="25"></label>
+          <label class="ed-wide">Place in the house<select id="edPawnRole"><option value="kin">One of the household</option>
+            <option value="servant">A servant</option></select></label>
+        </div>
+        <p class="hint" id="edPlaceNote"></p>
+        <p class="err" id="edPlaceMsg" role="alert" hidden></p>
+      </fieldset>
+      <fieldset id="edPlacedBox" hidden>
+        <legend>Placed</legend>
+        <p id="edPlaced"></p>
+        <div class="ed-acts"><button type="button" id="edUnplace" disabled>Take all away</button></div>
+      </fieldset>
+    </div>
+  </section>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
@@ -2084,8 +2291,12 @@ VB['gen/geology'] = (() => {
         }
       }
     }
-    // ---- the land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals) ----
-    const q = [], steps = new Uint8Array(N);
+    nearVeins({ N, nb, water, deposit, vein, veinNear });
+    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // The land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals), into w.veinNear (all 0 before).
+  function nearVeins(w) {
+    const { N, nb, water, deposit, vein, veinNear } = w, q = [], steps = new Uint8Array(N);
     for (let i = 0; i < N; i++) if (vein[i] && DEPOSITS[deposit[i]].hidden) { veinNear[i] = vein[i]; q.push(i); }
     for (let h = 0; h < q.length; h++) {
       const i = q[h]; if (steps[i] >= FIND.reach) continue;
@@ -2094,10 +2305,78 @@ VB['gen/geology'] = (() => {
         veinNear[j] = veinNear[i]; steps[j] = steps[i] + 1; q.push(j);
       }
     }
-    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // By hand (the editor; before a run is seeded on the world): a land tile's deposit, with a middling amount of its kind, or one that does
+  // not run out where the kind's veins hold nothing else (a salt spring); DEPOSIT.NONE takes the deposit away. Then reveins(w), once.
+  function setDeposit(w, i, d) {
+    if (w.water[i]) return false;
+    const v = VEINS.find((x) => x.deposit === d);
+    w.deposit[i] = d;
+    w.depositLeft[i] = !d || !v ? 0 : v.amount[1] > 0 ? Math.round((v.amount[0] + v.amount[1]) / 2) : ENDLESS;
+    return true;
+  }
+  // The veins anew from the deposits as they lie: each run of one kind joined through neighbours is a vein, numbered in tile order.
+  function reveins(w) {
+    const { N, nb, deposit, vein, veinNear } = w;
+    vein.fill(0); veinNear.fill(0); w.veinKind.length = 1;
+    for (let s = 0; s < N; s++) {
+      if (!deposit[s] || vein[s]) continue;
+      w.veinKind.push(deposit[s]);
+      const id = w.veinKind.length - 1, run = [s]; vein[s] = id;
+      for (let h = 0; h < run.length; h++) for (let d = 0; d < 6; d++) {
+        const j = nb[run[h] * 6 + d]; if (j >= 0 && deposit[j] === deposit[s] && !vein[j]) { vein[j] = id; run.push(j); }
+      }
+    }
+    nearVeins(w);
   }
 
-  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+  return { lay, setDeposit, reveins, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+})();
+</script>
+<script>
+// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
+VB['gen/cover'] = (() => {
+  // K: what this module needs of gen, which loads after it: { mulberry32, B }, or the whole of VB['gen'].
+  // A wood's trees at full cover: +-20% around 60 (broadleaf) or 80 (pine), by the seed and the tile; none on other ground.
+  const fullTrees = (K, seed, i, b) => (b !== K.B.FOREST && b !== K.B.PINE ? 0
+    : Math.round((b === K.B.PINE ? 80 : 60) * (0.8 + 0.4 * K.mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)())));
+  // A meadow tile's stones: at least 30; up to +100 more next to hills (hillDist: steps to the nearest, 9 if far), nothing beyond 2 tiles.
+  function meadowStones(K, seed, i, macroAt, hillDist) {
+    const mc = Math.max(0, Math.min(1, macroAt)), rn = K.mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
+    const near = hillDist <= 2 ? Math.round((100 * (3 - hillDist)) / 2) : 0;
+    return Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+  }
+  // A land tile given another cover by hand (the editor; before a run is seeded on the world): its biome and colour, a wood's trees at
+  // full cover and a meadow's stones, as generate lays them. Its height, rain and rivers stay; water, and a cover of water, are refused.
+  function set(G, w, i, b) {
+    if (w.water[i] || G.BIOMES[b].water) return false;
+    G.setBiome(w, i, b);
+    w.trees[i] = w.treesMax[i] = fullTrees(G, w.seed, i, b);
+    let hd = 9;
+    if (b === G.B.MEADOW) {
+      for (let d = 0; d < 6 && hd > 1; d++) {
+        const j = w.nb[i * 6 + d]; if (j < 0) continue;
+        if (w.biome[j] === G.B.HILLS) hd = 1;
+        else for (let e = 0; e < 6; e++) { const k = w.nb[j * 6 + e]; if (k >= 0 && w.biome[k] === G.B.HILLS) hd = 2; }
+      }
+    }
+    w.stones[i] = b === G.B.MEADOW ? meadowStones(G, w.seed, i, w.csample(w.macro, w.hx[i], w.hy[i]), hd) : 0;
+    return true;
+  }
+  // A world's tile and cell arrays as they are now, and the same world put back to them: the editor seeds a run on its world to show what is
+  // placed, and takes the run away again before anything on the land changes. What a run adds to the world of its own (w.dev, the wear of
+  // paths, fish, forage) is made anew by each seeding and is not kept.
+  function keep(w) {
+    const kept = {};
+    for (const k of Object.keys(w)) if (ArrayBuffer.isView(w[k])) kept[k] = w[k].slice();
+    return { arrays: kept, veinKind: w.veinKind.slice(), keys: new Set(Object.keys(w)) };
+  }
+  function restore(w, kept) {
+    for (const k of Object.keys(w)) if (!kept.keys.has(k)) delete w[k]; // what a run added: its wear, its caches
+    for (const k of Object.keys(kept.arrays)) w[k].set(kept.arrays[k]);
+    w.veinKind.length = 0; w.veinKind.push(...kept.veinKind);
+  }
+  return { fullTrees, meadowStones, set, keep, restore };
 })();
 </script>
 <script>
@@ -2214,6 +2493,7 @@ const ArchGen = (() => {
   const hexDist = (q1, r1, q2, r2) => { const dq = q1 - q2, dr = r1 - r2; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2; };
 
   function* generate(seed, opt = {}) {
+    const Cover = VB['gen/cover'], K = { mulberry32, B };
     const R = opt.R || 28, COLS = opt.cols || 280, ROWS = opt.rows || 200, RR = opt.regionRadius || 7;
     const HW = SQ3 * R, AP = (SQ3 / 2) * R;
     const W = Math.ceil(HW * (COLS + 0.5)), H = Math.ceil(1.5 * R * (ROWS - 1) + 2 * R);
@@ -2369,8 +2649,7 @@ const ArchGen = (() => {
     const trees = new Float32Array(N), treesMax = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
-      const k = Math.round((biome[i] === B.PINE ? 80 : 60) * (0.8 + 0.4 * mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)()));
-      trees[i] = treesMax[i] = k;
+      trees[i] = treesMax[i] = Cover.fullTrees(K, seed, i, biome[i]);
     }
 
     // ---- stones: every meadow tile has at least 30; up to +100 more next to hills, fading to nothing beyond 2 tiles ----
@@ -2382,9 +2661,7 @@ const ArchGen = (() => {
     }
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.MEADOW) continue;
-      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), rn = mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
-      const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
-      stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+      stones[i] = Cover.meadowStones(K, seed, i, csample(macro, hx[i], hy[i]), hillDist[i]);
     }
     const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 
@@ -4072,6 +4349,16 @@ VB['sim/paths'] = (() => {
     // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
     w.wear = new Float32Array(w.N); w.worn = new Uint8Array(w.N);
   }
+  // A way laid by hand (the archipelago editor) on a run just seeded: each of its tiles worn to `stage` at the least, as if walked so for
+  // years; it fades as any wear does where no one walks. Built tiles and water take none. The number of tiles worn.
+  function layWay(w, tiles, stage) {
+    let n = 0;
+    for (const i of tiles) {
+      if (i < 0 || i >= w.N || w.dev[i] || w.water[i]) continue;
+      w.wear[i] = Math.max(w.wear[i], PATHS.at[stage]); w.worn[i] = Math.max(w.worn[i], stage); n++;
+    }
+    return n;
+  }
   // A walking pawn enters tile i, with n crossings: 1, and more for the herds it drives (VB-136). Houses, fields and the green wear no path;
   // water is not walked.
   function tread(w, i, n = 1) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += n; }
@@ -4120,7 +4407,7 @@ VB['sim/paths'] = (() => {
     for (let i = 0; i < w.N; i++) if (!w.water[i] && !w.dev[i]) n[w.worn[i]]++;
     return n;
   }
-  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts };
+  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts, layWay };
 })();
 </script>
 <script>
@@ -4523,14 +4810,20 @@ VB['sim/layout'] = (() => {
       if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
-    // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
+    const village = loneVillage(rand, villages, lone.house); villages.push(village);
+    return farmIn(w, used, village, lone.house, lone.fields, farmsteads, fieldsAt, yards);
+  }
+  // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
+  function loneVillage(rand, villages, house) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
-    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
-    village.farmsteads.push(f.id); villages.push(village);
-    for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
-    for (const t of lone.fields) fieldsAt.add(t);
+    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
+  }
+  // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
+  function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
+    const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
+    v.farmsteads.push(f.id);
+    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
+    for (const t of fields) fieldsAt.add(t);
     return f;
   }
   // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
@@ -4544,10 +4837,13 @@ VB['sim/layout'] = (() => {
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
-    used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
-      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
+    fieldOn(w, used, f, best);
     return true;
+  }
+  function fieldOn(w, used, f, tile) {
+    used.add(tile);
+    f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
@@ -4556,7 +4852,7 @@ VB['sim/layout'] = (() => {
   function settlementGenerator(w, rand, bare = false) {
     const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
-      used, farmsteads, villages,
+      used, farmsteads, villages, rand, fieldsAt, yards, // rand and the two sets: for what is placed by hand (sim/byhand)
       addVillage(center, nFarms) {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
@@ -4581,9 +4877,58 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
+})();
+</script>
+<script>
+// @sys sim/byhand: what the archipelago editor places by hand on a settlement generator: a farm, a field or a green on a very tile
+VB['sim/byhand'] = (() => {
+  const { SETTLE, farmable } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { nextTo, placeFields, loneVillage, farmIn, fieldOn } = VB['sim/layout'];
+  // A field or a meadow placed by hand is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
+  const HAND_REACH = 6;
+  // gen: a settlementGenerator of sim/layout, before its finish(). Each is false (null) where the tile cannot take what is placed.
+  // A farm on this very tile, with three fields: it joins the village whose centre is the nearest within SETTLE.centreApart steps, as
+  // close farms are one village in play, or is a village of its own, as a lone farm is. Null where the tile cannot bear a house (not
+  // farmable, taken, a yard, beside a field) or finds no fields.
+  function farmAt(w, gen, house) {
+    const { used, farmsteads, villages, fieldsAt, yards } = gen;
+    if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+    const fields = placeFields(w, used, house, 3, yards);
+    if (!fields) return null;
+    let v = null, vd = SETTLE.centreApart + 1;
+    for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
+    if (!v) { v = loneVillage(gen.rand, villages, house); villages.push(v); }
+    const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
+    farmsteads.push(f);
+    return f;
+  }
+  // A green with a well on this very tile: of the village with no green whose centre is the nearest within SETTLE.centreApart steps; the
+  // green is its centre from then on. False where the tile is taken or water, or no such village is near.
+  function greenAt(w, gen, tile) {
+    const { used, villages, yards } = gen;
+    if (w.water[tile] || w.river[tile] || used.has(tile)) return false;
+    let v = null, vd = SETTLE.centreApart + 1;
+    for (const u of villages) { const d = hexSteps(w, u.center, tile); if (!u.green && d < vd) { vd = d; v = u; } }
+    if (!v) return false;
+    v.center = tile; v.green = v.well = true; used.add(tile);
+    for (let k = 0; k < 6; k++) { const j = w.nb[tile * 6 + k]; if (j >= 0) yards.add(j); }
+    return true;
+  }
+  // A field on this very tile: of the farm whose house is nearest, within HAND_REACH steps. False where the tile cannot be a field (not
+  // farmable, taken, a yard) or no farm is near enough.
+  function fieldAt(w, gen, tile) {
+    if (!farmable(w, tile) || gen.used.has(tile) || gen.yards.has(tile)) return false;
+    let f = null, fd = HAND_REACH + 1;
+    for (const g of gen.farmsteads) { const d = hexSteps(w, g.house, tile); if (d < fd) { fd = d; f = g; } }
+    if (!f) return false;
+    fieldOn(w, gen.used, f, tile); gen.fieldsAt.add(tile);
+    return true;
+  }
+  return { HAND_REACH, farmAt, greenAt, fieldAt };
 })();
 </script>
 <script>
@@ -7962,6 +8307,8 @@ VB['sim/meadows'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo } = VB['sim/layout'];
+  const { HAND_REACH } = VB['sim/byhand'];
+  const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
   const { freeFor } = VB['sim/territory'];
@@ -8034,6 +8381,21 @@ VB['sim/meadows'] = (() => {
     st.visualDirty = true;
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
   }
+  // A hay meadow on this very tile, placed by hand (the archipelago editor) on a run just seeded: of the live household whose house is
+  // nearest within HAND_REACH steps, with fewer than MAX meadows. False where the tile cannot be a meadow (as for chooseMeadow) or no such
+  // farm is near enough.
+  function meadowAt(st, tile, built = builtTiles(st)) {
+    const w = st.w;
+    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) || nextTo(w, tile, built)) return false;
+    let f = null, fd = HAND_REACH + 1;
+    for (const id of st.liveHouseholds) {
+      const g = st.farmsteads[st.households[id].farmstead], d = hexSteps(w, g.house, tile);
+      if (d < fd && g.meadows.length < MAX && freeFor(st, tile, g.village)) { fd = d; f = g; }
+    }
+    if (!f) return false;
+    addMeadow(st, f, st.households[f.household], tile);
+    return true;
+  }
   // Generated farms (populous, heirs) have stood a while: each with animals has its meadows already, at most START_MAX.
   function placeMeadows(st) {
     for (const liveId of st.liveHouseholds) {
@@ -8099,7 +8461,7 @@ VB['sim/meadows'] = (() => {
   return {
     HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
       startMeadow,
-    meadowProject, finishMeadow, placeMeadows,
+    meadowProject, finishMeadow, placeMeadows, meadowAt,
   };
 })();
 </script>
@@ -13267,7 +13629,30 @@ VB['sim/people'] = (() => {
     }
     return households;
   }
-  return { foundersHouseholds, drawSize, populousHouseholds };
+  // Placed by hand (the archipelago editor; sim/scenarios, seedManual). fill: by farm id, how its house is peopled: 'couple', a young couple
+  // as the founders are; 'empty' or 'ruin', no one; any other farm a family as in Populous, of sizes[id]. people: those placed one by one,
+  // in order, each {farm, sex, age, servant}: they join the farm's household, and on an empty farm the first of them, an adult, founds it
+  // and holds it. Returns the households, and `refused`, the index in `people` of the first who could not be placed (-1: none).
+  function handHouseholds(R, farmsteads, sizes, fill, people) {
+    const rand = R.rand, households = populousHouseholds(R, farmsteads.filter((f) => !fill[f.id]), sizes);
+    for (const f of farmsteads) {
+      if (fill[f.id] !== 'couple') continue;
+      const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      households.push(makeHousehold(R, households.length, f, [man, wife], man));
+      marry(R, man, wife, 1 + ((rand() * 4) | 0));
+    }
+    let refused = -1;
+    people.forEach((p, k) => {
+      const f = farmsteads[p.farm];
+      if (refused >= 0 || !f || fill[f.id] === 'ruin' || (f.household === null && p.age < 18)) { if (refused < 0) refused = k; return; }
+      const id = person(R, { sex: p.sex === 'f' ? 'f' : 'm', age: p.age, servant: !!p.servant && f.household !== null });
+      if (f.household === null) households.push(makeHousehold(R, households.length, f, [id], id));
+      else joinHousehold(R, households[f.household], id);
+    });
+    return { households, refused };
+  }
+  return { foundersHouseholds, drawSize, populousHouseholds, handHouseholds };
 })();
 </script>
 <script>
@@ -13280,7 +13665,8 @@ VB['sim/scenarios'] = (() => {
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable, buildHours } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
-  const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
+  const ByHand = VB['sim/byhand'];
+  const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans } = VB['sim/plans'];
@@ -13290,7 +13676,8 @@ VB['sim/scenarios'] = (() => {
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
-  const { placeMeadows } = VB['sim/meadows'];
+  const { placeMeadows, meadowAt } = VB['sim/meadows'];
+  const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   function seedFounders(w, seedNum) {
@@ -13338,14 +13725,60 @@ VB['sim/scenarios'] = (() => {
       }
     }
     if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
+    return standing(w, S, rand, gen, sizes, 'populous', seedNum);
+  }
+  // Placed by hand (the archipelago editor): `places`, each {village: tile, farms}, a village laid by the generator about that tile;
+  // {farm: tile, fill}, a house on that very tile (sim/byhand, farmAt) with a family as in Populous Villages, or by `fill` a 'couple',
+  // or no one, an 'empty' farm or a 'ruin'; {green: tile}, a green and well for a village without (greenAt); {pawn: tile, sex, age,
+  // servant}, one more of the house on that tile (sim/people, handHouseholds); {field: tile} and {meadow: tile}, of the farm nearest
+  // (fieldAt; sim/meadows, meadowAt); or {way: tiles, stage}, a worn way (sim/paths, layWay). Villages and farms are laid first, in their
+  // order, then the greens, the fields, the people, the meadows and the ways. Where a place finds no room the error's `place` is its index.
+  const EMPTY = { empty: [3, 'derelict', 'fallow'], ruin: [15, 'ruin', 'scrub'] }; // years empty, the farm's state, its fields' stage
+  function seedManual(w, seedNum, places) {
+    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [], fill = [];
+    const list = places || [], no = (k) => { throw Object.assign(new Error('No room for what was placed there'), { place: k }); };
+    const each = (key, fn) => list.forEach((p, k) => { if (p[key] !== undefined && !fn(p, k)) no(k); });
+    list.forEach((p, k) => { // villages and farms in the one order, as each takes its room from those after it
+      if (p.village === undefined && p.farm === undefined) return;
+      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? ByHand.farmAt(w, gen, at) : null;
+      const made = p.farm !== undefined ? (f ? [f.id] : []) : w.water[at] || gen.used.has(at) ? [] : gen.addVillage(at, p.farms).farmsteads;
+      if (!made.length) no(k);
+      if (f && p.fill && p.fill !== 'full') { fill[f.id] = p.fill; return; }
+      for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); }
+    });
+    if (!gen.farmsteads.length) throw new Error('Nothing is placed to live in');
+    each('green', (p) => ByHand.greenAt(w, gen, p.green));
+    each('field', (p) => ByHand.fieldAt(w, gen, p.field));
+    const pawns = list.map((p, k) => (p.pawn === undefined ? null : { k, sex: p.sex, age: p.age | 0, servant: p.servant,
+      farm: gen.farmsteads.findIndex((f) => f.house === p.pawn) })).filter(Boolean);
+    const people = (R, farmsteads) => {
+      const made = handHouseholds(R, farmsteads, sizes, fill, pawns);
+      if (made.refused >= 0) no(pawns[made.refused].k);
+      for (const f of farmsteads) { // a farm left with no one stands empty, as one of the old farms does (seedHeirs)
+        if (f.household !== null) continue;
+        const [years, state, stage] = EMPTY[fill[f.id]] || EMPTY.empty;
+        f.state = state; f.emptySince = -years * YEAR; f.line = null; f.condition = Math.max(0.08, 1 - years * 0.075);
+        for (const fd of f.fields) fd.stage = stage;
+      }
+      return made.households;
+    };
+    const st = standing(w, S, rand, gen, sizes, 'manual', seedNum, (run) => each('meadow', (p) => meadowAt(run, p.meadow)), people);
+    each('way', (p) => layWay(w, p.way, p.stage || 3) > 0);
+    return st;
+  }
+  // Villages that have stood a while, as the generator laid them: their households of the sizes drawn, a year's grain, herds and meadows.
+  // byHand(st), if given: what is placed on the run before its farms take the meadows they still want. people(R, farmsteads), if given,
+  // makes the households in place of a family on every farm.
+  function standing(w, S, rand, gen, sizes, scenario, seedNum, byHand = null, people = null) {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
-    const households = populousHouseholds(R, farmsteads, sizes);
-    const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
+    const households = people ? people(R, farmsteads) : populousHouseholds(R, farmsteads, sizes);
+    const st = makeState(w, S, R, households, farmsteads, villages, used, scenario);
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
-    populousHerds(st); placeMeadows(st);
+    populousHerds(st); if (byHand) byHand(st);
+    placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
     splitStreams(st, seedNum); return st;
@@ -13436,7 +13869,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // @state st.scenario: string; 'founders', 'heirs', 'populous', or 'manual' (placed by hand in the editor)
+    // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
@@ -13553,7 +13987,9 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  function seed(w, seedNum, scenario = 'founders') {
+  // places: what was placed by hand, for the 'manual' scenario (seedManual).
+  function seed(w, seedNum, scenario = 'founders', places = null) {
+    if (scenario === 'manual') return seedManual(w, seedNum, places);
     return scenario === 'heirs' ? seedHeirs(w, seedNum) : scenario === 'populous' ? seedPopulous(w, seedNum) : seedFounders(w, seedNum);
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
@@ -14404,6 +14840,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     pot: '<path d="M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3"/>',
     pail: '<path d="M6 9h12l-1.5 11h-9zM6 9c0-3.5 3-6 6-6s6 2.5 6 6"/>',
     back: '<path d="M14 6l-6 6 6 6"/>', next: '<path d="M10 6l6 6-6 6"/>', no: '<path d="M6 6l12 12M18 6L6 18"/>',
+    emptyfarm: '<path d="M4 11l8-7 8 7M6 10v9h12v-9"/>', // a house with no door: no one lives there
+    ruin: '<path d="M3 20h18M6 20v-9l3 2.5V9l3 3M18 20v-5l-3-2v7"/>', // broken walls
+    green: '<path d="M6 20v-8h12v8M4 12h16M8 12V6h8v6M12 6V3"/>', // the well on the green
+    road: '<path d="M8 21l2-18M16 21L14 3M12 5v2.5M12 10.5v3M12 16.5v3"/>', // a way running off: its two edges and a broken middle line
     plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
   };
   const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
@@ -14460,23 +14900,26 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
   // Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
-  function refreshTrees() {
+  function refreshTrees() { repaintTiles(st.treeDirty, st.biomeDirty); st.treeDirty.clear(); st.biomeDirty.clear(); }
+  // near: tiles whose close levels are painted again; far: tiles whose colour on the overview changed (the editor repaints its own).
+  function repaintTiles(near, far) {
     const reach = 36 + 2 * w.R;
     const overChunks = (tile, l) => {
       const [x0, y0, x1, y1] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
       const out = []; for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) out.push([cx, cy]);
       return out;
     };
-    for (const tile of st.treeDirty) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
-    for (const tile of st.biomeDirty) {
+    for (const tile of near) for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    const done = new Set(); // each overview chunk once, however many of its tiles changed
+    for (const tile of far) {
       for (const [cx, cy] of overChunks(tile, 2)) {
         const ch = chunks.get(ckey(2, cx, cy));
-        if (!ch) continue;
+        if (!ch || done.has(ch)) continue;
+        done.add(ch);
         for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
         ch.spr.texture.source.update();
       }
     }
-    st.treeDirty.clear(); st.biomeDirty.clear();
   }
   // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
   // the frame budget; the overview shows no paths.
@@ -14819,10 +15262,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
-  // The landing page: New archipelago (the generation screen) and Load archipelago (the Saves overlay; page/saves). A game that is open
+  // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
+  // (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
+  // `unsaved`: the game open was started from the editor, and cannot be saved yet (page/saves).
+  let unsaved = false;
+  // `still`: the run on the stage is the editor's picture of what is placed there, which never advances (page/editor, page/speed).
+  let still = false;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
@@ -14847,7 +15295,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // Swaps a painted world and its run onto the stage, in place of the one there.
   async function swapWorld(wd, sim, { wc, over }) {
-    job = null;
+    job = null; still = false;
     for (const k of [...chunks.keys()]) dropChunk(k);
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
@@ -14869,40 +15317,46 @@ if (typeof module !== 'undefined') module.exports = Sim;
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
+  // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
-    choice = { seed, scenario, size };
-    $('genScreen').hidden = true; $('landing').hidden = true;
+    const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
+    if (!custom) choice = { seed, scenario, size };
+    $('genScreen').hidden = true; $('landing').hidden = true; $('editor').hidden = true;
     building = true; $('menuBtn').disabled = true;
     loader.classList.remove('done');
     setLoad('Raising the land', 0);
     while (demoJob) await demoJob; // a showcase island is still being raised: it is swapped in first, and out again below
     await frame(); await frame();
-    const wd = await drive(G.generate(seed, { cols: SIZES[size][0], rows: SIZES[size][1] }), (p) => setLoad(null, p * 0.5));
+    const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
+    if (custom && custom.apply) custom.apply(wd);
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('menuBtn').disabled = false;
       const msg = save ? 'That save could not be loaded.' : 'This map has no room for that scenario. Pick another seed, size or scenario.';
-      openStart(msg); // the game kept aside, and the start's island, are as they were
+      if (custom) openEditor('This land has no room for those settlers. Change the land, or who settles it.');
+      else openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
     closeChoose(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
+    dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
     settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
-    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo');
+    demo = false; demoAt = null; demoRun = null; document.body.classList.remove('demo'); unsaved = !!custom;
     await swapWorld(wd, sim, painted);
     const landRegions = wd.regions.filter((r) => r.land > 0).length;
     $('name').textContent = wd.name;
     const named = (sel, v) => { const o = [...$(sel).options].find((x) => x.value === v); return o ? o.textContent : v; };
     const scName = (START_WORDS[scenario] || { name: scenario }).name;
-    $('meta').textContent = `${scName}, ${named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
+    $('meta').textContent = `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: `
       + `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
     document.title = `${wd.name}, a hex archipelago`;
 
@@ -15059,6 +15513,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
     if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
+    if (!$('editor').hidden) { // the editor: no cards; the tile under the pointer is only marked
+      const [ex, ey] = toWorld(sx, sy), t = loc(ex, ey, [0, 0]);
+      if (t !== sel) { sel = t; selPawn = -1; hoverDirty = true; }
+      return;
+    }
     if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
@@ -15081,15 +15540,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ---- input ----
   const pointers = new Map();
   let drag = null, pinch = null, moved = 0;
+  // A brush on the map (page/editor): while one is held, a drag of one pointer paints, by mapBrush(sx, sy, first), and does not move the
+  // map; two fingers, the wheel and the keys still do. `stroke`: such a drag is under way.
+  let mapBrush = null, stroke = false;
   stage.addEventListener('pointerdown', (e) => {
     stage.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     stopIntro(); vel.x = vel.y = 0; zt = cam.z;
-    if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
+    if (pointers.size === 1 && mapBrush && e.button === 0) { stroke = true; drag = null; pinch = null; mapBrush(e.clientX, e.clientY, true); }
+    else if (pointers.size === 1) { drag = { t: performance.now() }; moved = 0; pinch = null; stage.classList.add('dragging'); }
     else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: cam.z, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
       drag = null; moved = 99;
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); } // a second finger ends the stroke
     }
   });
   stage.addEventListener('pointermove', (e) => {
@@ -15097,6 +15561,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!p) { if (e.pointerType === 'mouse') pick(e.clientX, e.clientY, false); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
+    if (stroke && mapBrush) { mapBrush(e.clientX, e.clientY, false); return; }
     if (pinch && pointers.size >= 2) {
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -15116,6 +15581,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
+      if (stroke) { stroke = false; if (mapBrush) mapBrush(e.clientX, e.clientY, null); return; } // null: the stroke is over
       if (drag && moved < 8) pick(e.clientX, e.clientY);
       if (!drag || performance.now() - drag.t > 90) { vel.x = vel.y = 0; }
       drag = null; pinch = null; stage.classList.remove('dragging');
@@ -15146,12 +15612,15 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return;
     }
     // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
-    const choosing = !$('choose').hidden && $('landing').hidden && $('genScreen').hidden;
+    // In the archipelago editor (page/editor) too; there Esc is its Main menu
+    const editing = !$('editor').hidden && $('landing').hidden && $('genScreen').hidden;
+    if (editing && e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) { $('edMenu').click(); return; }
+    const choosing = editing || (!$('choose').hidden && $('landing').hidden && $('genScreen').hidden);
     if (choosing && !/^(arrow(left|right|up|down)|[wasd+=-])$/.test(e.key.toLowerCase())) return;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
       if (!$('landing').hidden) { if (!$('landBack').hidden) $('landBack').click(); return; }
-      if (!$('genScreen').hidden) { startBack(); return; } // on the start, Back
+      if (!$('genScreen').hidden) { startBack(); return; } // on the start, Main menu
       if (tool || barMenu) { if (tool) endTool(); else closeBarMenu(); renderActions(); return; } // the action bar's tool, then its list (page/actbar)
       const open = activePanel !== null || barOpen || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
       closeSpeedOptions(); closeNotices(); openPanel(null); closeBar();
@@ -15183,7 +15652,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
 
   // Main menu, at the top bar's end (VB-338): the main menu, over the paused game; it has Back to game, so the button is put away with the bar
   $('menuBtn').addEventListener('click', () => { if (!building && !skipping) { openPanel(null); showLanding(); } });
-  $('genCancel').addEventListener('click', () => startBack());
+  $('genMenu').addEventListener('click', () => startBack());
   $('landNew').addEventListener('click', () => openStart());
   // Quick start: a tiny populous island at one of the seeds that hold its villages, with no start screen and no choice of whom to play
   $('landQuick').addEventListener('click', () => { if (!building) build(DEMO.seeds[(Math.random() * DEMO.seeds.length) | 0], 'populous', 't', null, true); });
@@ -16474,7 +16943,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function advanceSimulation(dt) {
     // behind the menu a game waits, paused; the showcase island (page/loader) goes on at its own speed, unless motion is to be reduced
     if (demo) {
-      if (st && !building && !reduceMotion) {
+      if (st && !still && !building && !reduceMotion) { // `still`: the editor's picture of what is placed (page/editor)
         syncSteps(); stepShare += (dt * DEMO.speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
         const n = Math.floor(stepShare); stepShare -= n; runSteps(n);
       }
@@ -18012,7 +18481,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       chooseFarm(farmOf(st.pawns[id]).id, id);
       if ($('chooseMap').offsetHeight) $('choose').scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }); // on a phone, back to the map
     } else if (b.dataset.p !== undefined) { choose.pawn = +b.dataset.p; choose.msg = ''; renderChoose(); }
-    else if (b.id === 'chooseBack') openStart(); // the game is kept aside, in this mode, while the start shows its island
+    else if (b.id === 'chooseMenu') { if (!building && !skipping) showLanding(); } // the game waits, in this mode, behind the main menu
     else if (b.id === 'chooseWatch') closeChoose();
     else if (b.id === 'choosePlay' && choose.pawn >= 0) {
       const id = choose.pawn, r = playAs(id);
@@ -18137,7 +18606,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
 
   // ---- opening, choosing, leaving ----
-  // New archipelago, Back from whom to play, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
+  // Play a Scenario, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
   function openStart(msg) {
     $('genSeed').value = String(choice.seed); $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
@@ -18168,13 +18637,14 @@ if (typeof module !== 'undefined') module.exports = Sim;
       for (const o of START_ORDER) if (!start.runs.has(o)) onStage(() => (startOpen() && !building ? runOf(o).catch(() => {}) : null));
     });
   }
-  // Back: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
+  // Main menu, on the start: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
   function startBack() {
     if (!start) { showLanding(); return; }
     $('genScreen').hidden = true; $('genMsg').hidden = true;
     onStage(async () => {
       if (aside) await restoreAside();
-      else if (demo && start && start.shown) { const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
+      else if (demo && start && start.shown && st === start.shown.sim) {
+        const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
       if ($('genScreen').hidden && loader.classList.contains('done') && !building) showLanding();
     });
   }
@@ -18360,6 +18830,436 @@ if (typeof module !== 'undefined') module.exports = Sim;
       b.style.transform = `translate(${pick[0].toFixed(1)}px, ${pick[1].toFixed(1)}px)`;
     }
   }
+  // ---- archipelago editor ----
+  // The parameters are the options of G.generate: the seed, the grid's columns and rows, the share of land and the regions' radius. A
+  // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
+  // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
+  const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
+  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed, places, kept, sim }; cover and
+  // deposit: what the terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew
+  // (edApply). places: what the Settlement tool placed, in order, each {village: tile, farms} or {farm: tile} (Sim.seed's manual scenario).
+  // kept: the world's arrays as raised and painted, with no run (gen/cover, keep); sim: the run seeded on it from the places, the picture
+  // of what is placed, which never advances (`still`). The world is put back to `kept` before it is painted or seeded again.
+  let edit = null;
+  const editorOpen = () => !$('editor').hidden;
+  const edSizeOf = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows) || 'c';
+  function edFill(p) {
+    $('edSeed').value = String(p.seed); $('edCols').value = p.cols; $('edRows').value = p.rows; $('edSize').value = edSizeOf(p.cols, p.rows);
+    $('edLand').value = p.land; $('edRegion').value = p.region;
+    edEcho();
+  }
+  // What the form asks for, or null where a field does not hold a number in its range (the form's own validity says which).
+  function edRead() {
+    if (!$('edGen').checkValidity()) return null;
+    return { seed: Number($('edSeed').value.trim()), cols: Number($('edCols').value), rows: Number($('edRows').value),
+      land: Number($('edLand').value), region: Number($('edRegion').value) };
+  }
+  const edSame = (a, b) => !!a && !!b && ['seed', 'cols', 'rows', 'land', 'region'].every((k) => a[k] === b[k]);
+  // The read-outs beside the controls, and whether the form still shows the world on the stage.
+  function edEcho() {
+    const rr = Number($('edRegion').value), cols = Number($('edCols').value), rows = Number($('edRows').value);
+    $('edLandOut').textContent = `${$('edLand').value}%`;
+    $('edRegionOut').textContent = `${rr} tiles, ${3 * rr * (rr + 1) + 1} a region`;
+    $('edSizeNote').textContent = cols > 0 && rows > 0 ? `${(cols * rows).toLocaleString('en')} tiles` : '';
+    if (!edit || edit.busy) return;
+    const p = edRead(), changed = edit.p && !edSame(p, edit.p);
+    $('edState').textContent = !edit.p ? '' : changed ? 'Changed since this land was raised.' : 'The land shown is raised from these settings.';
+    $('edState').classList.toggle('changed', !!changed);
+  }
+  // What the raised world holds: the land's biomes as one bar, and counts.
+  function edFacts() {
+    const wd = edit.wd, n = new Array(G.BIOMES.length).fill(0);
+    let land = 0, river = 0, lake = 0, deposit = 0;
+    for (let i = 0; i < wd.N; i++) {
+      n[wd.biome[i]]++;
+      if (!wd.water[i]) { land++; if (wd.river[i]) river++; if (wd.deposit[i]) deposit++; } else if (!wd.ocean[i]) lake++;
+    }
+    const pct = (k, of) => (of ? `${(100 * k / of).toFixed(k / of < 0.1 ? 1 : 0)}%` : '0%'), num = (k) => k.toLocaleString('en');
+    const kinds = G.BIOMES.map((b, k) => ({ b, k: n[k] })).filter((x) => !x.b.water && x.k > 0).sort((a, b) => b.k - a.k);
+    const col = (b) => `rgb(${b.c.join(',')})`;
+    $('edBiomes').innerHTML = kinds.map((x) => `<i style="flex:${x.k} 0 0;background:${col(x.b)}"></i>`).join('');
+    $('edBiomes').setAttribute('aria-label', `The land by kind: ${kinds.map((x) => `${x.b.name} ${pct(x.k, land)}`).join(', ')}`);
+    const rows = [['Tiles', num(wd.N)], ['Land', `${num(land)} (${pct(land, wd.N)})`],
+      ...kinds.map((x) => [`<i style="background:${col(x.b)}"></i>${x.b.name}`, pct(x.k, land), 'sub']),
+      ['Regions with land', num(wd.regions.filter((r) => r.land > 0).length)], ['Lake tiles', num(lake)], ['River tiles', num(river)],
+      ['Tiles with a deposit', num(deposit)]];
+    $('edFactList').innerHTML = rows.map(([k, v, c]) => `<dt${c ? ` class="${c}"` : ''}>${k}</dt><dd>${v}</dd>`).join('');
+    $('edFacts').hidden = false;
+    $('edName').textContent = wd.name; $('edMeta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles`;
+  }
+  function edBusy(on, p) {
+    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; edSettleEcho();
+    $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
+    if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); }
+    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); edSettleEcho(); }
+  }
+  // The editor's world on the stage, alone, with the picture of what is placed on it, which stands still: nothing of the game is advanced.
+  // `whole`: seen from above, all of it.
+  async function edShow(whole) {
+    demo = true; demoAt = null; demoRun = null; document.body.classList.add('demo');
+    await swapWorld(edit.wd, edit.sim, edit.painted);
+    still = true; intro = null; edWays();
+    if (whole) { T = 2; cam.x = edit.wd.W / 2; cam.y = edit.wd.H / 2; cam.z = zt = zMin(); vel.x = vel.y = 0; }
+    edFacts();
+  }
+  // `again`: the parameters of the world a game dropped, raised as it was, whatever the form says now.
+  function edRaise(again) {
+    const p = again || edRead();
+    if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
+    if (!again && edit.cover.size + edit.deposit.size + edit.places.length && !edit.armed) { // what was made by hand would be lost: asked once more
+      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted and placed';
+      $('edState').textContent = 'Regenerating clears what you painted and placed on this land.'; $('edState').classList.add('changed');
+      return;
+    }
+    $('edMsg').hidden = true; edBusy(true, 0);
+    onStage(async () => {
+      try {
+        await frame(); await frame();
+        const opt = { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region };
+        const wd = await drive(G.generate(p.seed, opt), (x) => { $('edBarFill').style.width = `${(x * 60).toFixed(1)}%`; });
+        if (!edit) return;
+        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); edit.places = []; }
+        const kept = VB['gen/cover'].keep(wd), sim = edLay(wd, kept, p.seed);
+        const painted = await paintOverview(wd, (x) => { $('edBarFill').style.width = `${(60 + x * 40).toFixed(1)}%`; });
+        const first = !edit.wd || edit.wd.COLS !== wd.COLS || edit.wd.ROWS !== wd.ROWS;
+        edit.p = p; edit.wd = wd; edit.painted = painted; edit.kept = kept; edit.sim = sim; edStale.clear();
+        if (editorOpen()) await edShow(first);
+      } catch (e) {
+        console.warn('The land could not be raised', e);
+        $('edMsg').hidden = false; $('edMsg').textContent = 'This land could not be raised. Try another seed or other settings.';
+        if (edit && !edit.wd) edit.p = null;
+      }
+      if (edit) edBusy(false);
+    });
+  }
+  // The tools: one panel open at a time, under the tools; the open tool's button pressed again puts its panel away.
+  const ED_TOOLS = { gen: 'edGen', terrain: 'edTerrain', settle: 'edSettle' };
+  let edTool = 'gen';
+  function edOpenTool(k) {
+    edTool = k;
+    for (const b of $('edTools').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tool === k));
+    for (const t of Object.keys(ED_TOOLS)) $(ED_TOOLS[t]).hidden = t !== k;
+    edHoldBrush();
+  }
+  // From the main menu, or from a Play that found no room (msg). A game that is open is kept aside, as at the start (page/start), and
+  // comes back when the editor is left.
+  function openEditor(msg) {
+    if (building || skipping) return;
+    if (w && !demo && !aside) aside = { wd: w, sim: st, painted: stagePainted, cam: { x: cam.x, y: cam.y, z: cam.z } };
+    openPanel(null); closeSpeedOptions(); closeNotices();
+    $('landing').hidden = true; $('genScreen').hidden = true; $('editor').hidden = false; document.body.classList.add('editing');
+    loader.classList.add('done');
+    $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
+    if (!edit) {
+      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false, places: [], kept: null, sim: null };
+      if ($('edSeed').value) edEcho(); // the settings of an earlier visit
+      else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
+    }
+    edHoldBrush(); edPaintedEcho(); edSettleEcho();
+    if (!edit.wd) edRaise(edit.p);
+    else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
+    $('edPlay').focus({ preventScroll: true });
+  }
+  // Play: a game on the world shown, settled as the Settlement tool says. The land is raised again from the parameters of the world
+  // shown (not from a form changed since), so the editor keeps its own world, to come back to from the main menu. Such a game cannot be
+  // saved yet: a save rebuilds its world from seed and size alone (page/loader, `unsaved`).
+  function edPlay() {
+    if (!edit || !edit.wd || edit.busy || building || $('edPlay').disabled) return;
+    const p = edit.p;
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply,
+      places: edManual() ? edit.places.map((x) => ({ ...x })) : null });
+  }
+  // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
+  function closeEditor() {
+    if (!editorOpen() || (edit && edit.busy)) return;
+    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true; edHoldBrush(); edWays();
+    onStage(async () => {
+      if (aside && !editorOpen()) await restoreAside();
+      if (!editorOpen() && $('genScreen').hidden && !building) showLanding();
+    });
+  }
+  // ---- the terrain brush ----
+  // A brush lays a ground cover or a deposit on the land tiles under it, as the pointer is dragged over the map (page/input, mapBrush);
+  // with no brush the map is dragged as ever. The sea, lakes and rivers are not painted: the relief stays as it was raised.
+  const ED_COVERS = G.BIOMES.map((b, k) => k).filter((k) => !G.BIOMES[k].water);
+  let edBrush = null, edAt = null, edStruck = 0; // the brush held ({cover} or {deposit}); a stroke's last point on the map; tiles it changed
+  const edFar = new Set(); // tiles a stroke recoloured while the overview was out of sight: its chunks are painted when the stroke ends
+  function edBrushList() {
+    const on = (b) => String(!!edBrush && !!b && edBrush.cover === b.cover && edBrush.deposit === b.deposit);
+    const btn = (attr, swatch, name, b, cls = '') =>
+      `<button type="button" ${attr} aria-pressed="${on(b)}"${cls ? ` class="${cls}"` : ''}>${swatch}${name}</button>`;
+    $('edBrushes').innerHTML = `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>`
+      + ED_COVERS.map((k) => btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, G.BIOMES[k].name, { cover: k })).join('')
+      + '<h4>Deposits</h4>' + btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide')
+      + Geo.DEPOSITS.map((d, k) => (k ? btn(`data-deposit="${k}"`, `<i class="${DEPOSIT_MARK[k]}" style="background:${hex6(DEPOSIT_COLOUR[k])}"></i>`,
+        d.name, { deposit: k }) : '')).join('');
+    $('edBrushNote').textContent = !edBrush ? 'Drag the map to move it. Choose a brush to paint.'
+      : edBrush.cover !== undefined ? 'Drag over the land to lay this cover. Two fingers, the wheel and the arrow keys still move the map.'
+        : edBrush.deposit && Geo.DEPOSITS[edBrush.deposit].hidden ? 'A hidden ore: a village must find it before it can be dug.'
+          : edBrush.deposit ? 'Drag over the land to lay this deposit.' : 'Drag over the land to take its deposits away.';
+    const r = Number($('edBrushSize').value);
+    $('edBrushOut').textContent = r ? `${2 * r + 1} tiles` : '1 tile';
+  }
+  // The brush takes the map's drags only while the Terrain tool is open in the editor; a deposit brush shows the ground as the Ground
+  // overlay does (page/ground), where no run means every deposit is seen.
+  function edHoldBrush() {
+    const held = editorOpen() && edTool === 'terrain' && edBrush ? edBrush : null, ground = !!held && held.deposit !== undefined;
+    const placing = editorOpen() && edTool === 'settle' && edManual() && edPlace;
+    mapBrush = held ? edStroke : placing ? edPlaceAt : null; document.body.classList.toggle('brushing', !!held || !!placing);
+    L.ground.visible = ground || groundOn;
+    if (ground) { groundFor = null; drawGround(); }
+    edBrushList();
+  }
+  function edPaintedEcho() {
+    const c = edit ? edit.cover.size : 0, d = edit ? edit.deposit.size : 0, n = (k) => `${k.toLocaleString('en')} ${k === 1 ? 'tile' : 'tiles'}`;
+    $('edPainted').textContent = c + d ? [c ? `Ground cover on ${n(c)}` : '', d ? `${c ? 'd' : 'D'}eposits on ${n(d)}` : ''].filter(Boolean).join(', ') + '.'
+      : 'Nothing yet.';
+    $('edUnpaint').disabled = !(c + d) || !edit || edit.busy;
+  }
+  // One tile under the brush: true if it changed. What is painted is kept in the order painted, the last word on a tile last.
+  function edPaint(t) {
+    const wd = edit.wd, b = edBrush;
+    if (b.cover !== undefined) {
+      if (wd.biome[t] === b.cover || !VB['gen/cover'].set(G, wd, t, b.cover)) return false;
+      edit.cover.delete(t); edit.cover.set(t, b.cover);
+    } else {
+      if (wd.deposit[t] === b.deposit || !Geo.setDeposit(wd, t, b.deposit)) return false;
+      edit.deposit.delete(t); edit.deposit.set(t, b.deposit);
+    }
+    return true;
+  }
+  // page/input's mapBrush: a stroke's first point (first true), a later one (false), or its end (null). Between two points the brush is
+  // laid every tile's width, so a quick drag leaves no gaps.
+  function edStroke(sx, sy, first) {
+    if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edBrush) return;
+    const wd = edit.wd;
+    if (first === null) {
+      if (edStruck) {
+        if (edBrush.deposit !== undefined) Geo.reveins(wd);
+        edit.kept = VB['gen/cover'].keep(wd); // the land as painted, still with no run on it
+        repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho();
+      }
+      edAt = null; edStruck = 0; edFar.clear();
+      const had = edit.places.length; // what is placed stands again, on the land as it is now; a place left with no room is gone
+      if (edManual() && had) {
+        edRelay().then(() => {
+          if (edit && edit.places.length < had) $('edBrushNote').textContent = 'What was placed there no longer had room, and was taken away.'; });
+      }
+      return;
+    }
+    if (first && edit.sim) edUnseat(); // the land is painted with no run on it
+    const [x, y] = toWorld(sx, sy), from = first || !edAt ? [x, y] : edAt, steps = Math.max(1, Math.ceil(Math.hypot(x - from[0], y - from[1]) / wd.HW));
+    const r = Number($('edBrushSize').value), seen = new Set(), done = [];
+    for (let s = first || !edAt ? steps : 1; s <= steps; s++) {
+      const c = loc(from[0] + ((x - from[0]) * s) / steps, from[1] + ((y - from[1]) * s) / steps, [0, 0]);
+      if (c < 0 || seen.has(c)) continue;
+      let ring = [c]; seen.add(c);
+      for (let k = 0; k < r; k++) {
+        const next = [];
+        for (const i of ring) for (let d = 0; d < 6; d++) { const j = wd.nb[i * 6 + d]; if (j >= 0 && !seen.has(j)) { seen.add(j); next.push(j); } }
+        ring = next;
+      }
+    }
+    for (const t of seen) if (edPaint(t)) done.push(t);
+    edAt = [x, y];
+    if (!done.length) return;
+    edStruck += done.length; edit.armed = false; $('edGo').textContent = 'Regenerate';
+    if (edBrush.deposit !== undefined) { groundFor = null; drawGround(); }
+    else if (T === 2) repaintTiles(done, done); // the overview is what is seen: recoloured as the brush goes
+    else { repaintTiles(done, []); for (const t of done) edFar.add(t); }
+  }
+  // What was painted, laid on that land raised anew: in the editor after a game dropped its world, and under a game begun with Play.
+  function edApply(wd) {
+    for (const [t, b] of edit.cover) VB['gen/cover'].set(G, wd, t, b);
+    for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
+    if (edit.deposit.size) Geo.reveins(wd);
+  }
+  // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
+  function dropEditor() {
+    $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush(); edWayG.clear();
+    if (edit) { edit.wd = null; edit.painted = null; edit.kept = null; edit.sim = null; }
+  }
+
+  $('landEdit').addEventListener('click', () => openEditor());
+  $('edMenu').addEventListener('click', () => closeEditor());
+  $('edGen').addEventListener('submit', (e) => { e.preventDefault(); edRaise(); });
+  $('edGen').addEventListener('input', (e) => {
+    if (e.target.id === 'edSize' && SIZES[e.target.value]) [$('edCols').value, $('edRows').value] = SIZES[e.target.value];
+    if (e.target.id === 'edCols' || e.target.id === 'edRows') $('edSize').value = edSizeOf(Number($('edCols').value), Number($('edRows').value));
+    edEcho();
+  });
+  $('edReroll').addEventListener('click', () => { $('edSeed').value = String((Math.random() * 1e6) | 0); edEcho(); });
+  $('edReset').addEventListener('click', () => {
+    edFill({ seed: Number($('edSeed').value) || 0, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region }); });
+  $('edPlay').addEventListener('click', () => edPlay());
+  $('edTools').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tool]');
+    if (b) edOpenTool(b.dataset.tool === edTool ? null : b.dataset.tool);
+  });
+  $('edBrushes').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edBrush = b.dataset.cover !== undefined ? { cover: Number(b.dataset.cover) } : b.dataset.deposit !== undefined ? {
+      deposit: Number(b.dataset.deposit) } : null;
+    edHoldBrush();
+  });
+  $('edBrushSize').addEventListener('input', edBrushList);
+  // the land as it was raised: the same parameters once more, with nothing laid on it
+  $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
+  edBrushList();
+  // ---- what is placed ----
+  // Settled by a scenario, the land is settled when Play is pressed. Placed by hand (Sim.seed's manual scenario), each place is laid at
+  // once by the game's own generator, and what stands there is that run, which Play begins on a land raised the same.
+  const edManual = () => $('edSettled').value === 'manual';
+  let edPlace = null; // the place tool held: 'village', 'farm', 'remove', or null
+  const edStale = new Set(); // tiles whose look a run taken away or laid has changed, to paint again
+  const edMark = (wd, sim) => {
+    if (sim) for (const t of sim.used) edStale.add(t); if (wd.worn) for (let i = 0; i < wd.N; i++) if (wd.worn[i]) edStale.add(i); };
+  // The run of the places on a world as kept, or null with none. A place that finds no room is taken out of the list, and the rest laid.
+  function edLay(wd, kept, seed) {
+    const lived = () => edit.places.some((p) => p.village !== undefined || p.farm !== undefined);
+    if (!lived()) edit.places = edit.places.filter((p) => p.way); // with no farm left, its fields and meadows go; roads wait for a run
+    while (edManual() && lived()) {
+      try { return Sim.seed(wd, seed, 'manual', edit.places); } catch (e) {
+        VB['gen/cover'].restore(wd, kept);
+        if (e.place === undefined) { console.warn('What is placed could not be laid', e); return null; }
+        edit.places.splice(e.place, 1);
+      }
+    }
+    return null;
+  }
+  // The run taken off the editor's world, which is as kept again.
+  function edUnseat() {
+    edMark(edit.wd, edit.sim); VB['gen/cover'].restore(edit.wd, edit.kept); edit.sim = null;
+    buildSettlement(edit.wd, null);
+  }
+  // The places laid anew on the world as kept, and shown.
+  async function edRelay() {
+    if (!edit || !edit.wd || w !== edit.wd) return;
+    const wd = edit.wd;
+    edMark(wd, edit.sim); VB['gen/cover'].restore(wd, edit.kept);
+    edit.sim = edLay(wd, edit.kept, edit.p.seed);
+    edMark(wd, edit.sim);
+    const tiles = [...edStale]; edStale.clear();
+    await buildSettlement(wd, edit.sim); still = true;
+    repaintTiles(tiles, tiles); edWays(); edSettleEcho();
+  }
+  // page/input's mapBrush, for a place tool. A press on the map places a village about the tile, or a household, a field or a meadow on
+  // it, or takes away the place nearest the tile; a road is drawn by a drag over its tiles, or found by the walkers' own route search
+  // between two presses. A place that finds no room is not kept, and the panel says so.
+  const ED_NO_ROOM = { village: 'A village finds no room there.', farm: 'A house cannot stand there, or finds no fields about it.',
+    field: 'No field can lie there: the ground must be free and fit to till, within six tiles of a house.',
+    meadow: 'No meadow can lie there: it takes free meadow, marsh or heath within six tiles of a house.',
+    pawn: 'Press on a house. A child cannot live alone in an empty one, and no one lives in a ruin.',
+    green: 'No green can lie there: it takes a free tile near a village that has none.',
+    empty: 'A house cannot stand there, or finds no fields about it.', ruin: 'A house cannot stand there, or finds no fields about it.',
+    way: 'No road can run there.', route: 'No way on foot was found between the two.' };
+  const edWayG = new PIXI.Graphics(); L.hover.addChild(edWayG);
+  let edWay = null, edFrom = -1; // a road being drawn (its tiles in order); the first press of a road to be found
+  const edAnchors = (p) => (p.way ? p.way : [[p.farm, p.field, p.meadow, p.village, p.pawn, p.green].find((t) => t !== undefined)]);
+  // The roads that the land does not show: one being drawn, the start of one to be found, and all of them while no run stands to wear them.
+  function edWays() {
+    edWayG.clear();
+    if (!edit || !edit.wd || w !== edit.wd || !editorOpen()) return;
+    const wd = edit.wd, line = (tiles, alpha) => {
+      if (tiles.length < 2) return;
+      edWayG.moveTo(wd.hx[tiles[0]], wd.hy[tiles[0]]);
+      for (let k = 1; k < tiles.length; k++) edWayG.lineTo(wd.hx[tiles[k]], wd.hy[tiles[k]]);
+      edWayG.stroke({ width: wd.R * 0.5, color: 0x8a6a3c, alpha, cap: 'round', join: 'round' });
+    };
+    if (!edit.sim && edManual()) for (const p of edit.places) if (p.way) line(p.way, 0.75);
+    if (edWay) line(edWay, 0.9);
+    if (edFrom >= 0) edWayG.circle(wd.hx[edFrom], wd.hy[edFrom], wd.R * 0.5).fill({ color: 0x8a6a3c, alpha: 0.9 }).stroke({ width: 2, color: 0xfff4e2 });
+  }
+  async function edPlaceAt(sx, sy, first) {
+    if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edPlace) return;
+    const wd = edit.wd, [x, y] = toWorld(sx, sy), t = loc(x, y, [0, 0]), n = edit.places.length, steps = VB['sim/hex'].hexSteps;
+    if (edPlace === 'way') { // drawn: the tiles the drag passes, each a neighbour of the last
+      if (first === true) edWay = [];
+      if (!edWay) return;
+      const last = edWay.length ? edWay[edWay.length - 1] : -1;
+      if (first !== null && t >= 0 && t !== last && !wd.water[t]) {
+        const gap = last >= 0 && steps(wd, last, t) > 1 ? VB['sim/routes'].findRoute(wd, last, t, 1e9) : null;
+        edWay.push(...(gap ? gap.slice(1) : [t]));
+      }
+      edWays();
+      if (first !== null) return;
+      const way = edWay; edWay = null;
+      if (way.length < 2) { edWays(); return; }
+      edit.places.push({ way, stage: 3 });
+    } else if (first !== true || t < 0) return;
+    else if (edPlace === 'route') { // found: from the first press to the second
+      if (edFrom < 0 || edFrom === t) { edFrom = wd.water[t] ? -1 : t; edWays(); edSettleEcho(); return; }
+      const way = wd.water[t] ? null : VB['sim/routes'].findRoute(wd, edFrom, t, 1e9);
+      edFrom = -1;
+      if (way && way.length > 1) edit.places.push({ way, stage: 3 });
+    } else if (edPlace === 'remove') {
+      let k = -1, kd = 2; // the nearest; of those on one tile, the last placed (a person before the house)
+      edit.places.forEach((p, j) => { for (const a of edAnchors(p)) { const d = steps(wd, t, a); if (d <= kd) { kd = d; k = j; } } });
+      if (k < 0) return;
+      edit.places.splice(k, 1);
+    } else if (edPlace === 'pawn') { // a person, of the house pressed on or beside
+      const f = edit.sim ? edit.sim.farmsteads.find((g) => steps(wd, g.house, t) <= 1) : null,
+        age = clamp(Math.round(Number($('edPawnAge').value) || 0), 0, 80);
+      edit.places.push({ pawn: f ? f.house : t, sex: $('edPawnSex').value, age, servant: $('edPawnRole').value === 'servant' });
+    } else {
+      edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) }
+        : edPlace === 'farm' ? { farm: t, fill: $('edFill').value } : edPlace === 'empty' || edPlace === 'ruin' ? { farm: t, fill: edPlace } : {
+          [edPlace]: t });
+    }
+    const was = edPlace;
+    await edRelay();
+    const msg = was !== 'remove' && edit.places.length <= n ? ED_NO_ROOM[was] : '';
+    $('edPlaceMsg').hidden = !msg; $('edPlaceMsg').textContent = msg;
+  }
+  // The Settlement panel as things stand, and whether Play can begin: placed by hand, only once something is placed.
+  function edSettleEcho() {
+    const manual = edManual(), sim = edit && edit.sim;
+    $('edSettledNote').textContent = manual ? 'Place villages and households yourself. Close households are one village, as they are in play.'
+      : `${START_WORDS[$('edSettled').value].line} They are placed when you press Play.`;
+    $('edPlacing').hidden = $('edPlacedBox').hidden = !manual;
+    for (const b of $('edPlaces').querySelectorAll('button')) b.setAttribute('aria-pressed',
+      String((b.dataset.place === 'none' ? null : b.dataset.place) === edPlace));
+    $('edFarmsOut').textContent = $('edFarms').value; $('edFarmsRow').hidden = edPlace !== 'village';
+    $('edFillRow').hidden = edPlace !== 'farm'; $('edPawnRow').hidden = edPlace !== 'pawn';
+    $('edPlaceNote').textContent = { village: 'Press on the land: the village is laid about that tile, with the farms that find room.',
+      farm: 'Press on the land: the house stands on that tile, its fields beside it.',
+      pawn: 'Press on a house: the person joins its household. On an empty farm the first adult founds the household and holds the farm.',
+      green: 'Press on a free tile by households you placed: their village takes it as its green, with a well.',
+      empty: 'Press on the land: a house and fields with no one, for an heir or a settler to take.',
+      ruin: 'Press on the land: a farm long empty, its house fallen in and its fields grown over.',
+      field: 'Press on free ground near a house: the field is of the nearest farm.',
+      meadow: 'Press on free meadow, marsh or heath near a house: the hay meadow is of the nearest farm.',
+      way: 'Drag over the land to draw the road. Where no one walks it, it fades with the years.',
+      route: edFrom >= 0 ? 'Now press where the road ends.' : 'Press where the road begins, then where it ends: the way is found as people would walk it.',
+      remove: 'Press on a village\u2019s green, or on a house, field, meadow or road you placed. On a house, those added to it go first.' }[edPlace] ||
+        'Drag the map to move it. Choose what to place.';
+    const farms = sim ? sim.households.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
+    const bare = sim ? sim.farmsteads.filter((f) => f.household === null).length : 0;
+    const roads = edit ? edit.places.filter((p) => p.way).length : 0,
+      lived = !!sim && sim.households.length > 0; // someone to play
+    $('edPlaced').textContent = (sim &&
+      farms ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people`
+      : roads || bare ? 'No one lives here yet' : 'Nothing yet') + (bare ? `, ${bare} empty ${bare === 1 ? 'farm' : 'farms'}` : '')
+      + (roads ? `, ${roads} ${roads === 1 ? 'road' : 'roads'}.` : '.')
+      + (lived ? '' : ' Play begins once someone lives here.');
+    $('edUnplace').disabled = !edit || edit.busy || !edit.places.length;
+    $('edPlay').disabled = !edit || edit.busy || !edit.wd || (manual && !lived);
+  }
+  $('edSettled').innerHTML = '<option value="manual">Placed by hand</option>'
+    + START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
+  $('edSettled').value = 'founders';
+  // by hand or by a scenario: the picture of what is placed stands only while it is what Play would begin on
+  $('edSettled').addEventListener('input', () => {
+    edHoldBrush(); edSettleEcho(); if (edit && edit.wd && !edit.busy && (edit.sim || edit.places.length)) edRelay(); });
+  $('edPlaces').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edPlace = b.dataset.place === 'none' ? null : b.dataset.place; edFrom = -1; edWay = null; $('edPlaceMsg').hidden = true;
+    edHoldBrush(); edWays(); edSettleEcho();
+  });
+  for (const b of $('edPlaces').querySelectorAll('[data-ico]')) b.insertAdjacentHTML('afterbegin', actIcon(b.dataset.ico));
+  $('edFarms').addEventListener('input', edSettleEcho);
+  $('edUnplace').addEventListener('click', () => { if (edit && !edit.busy && edit.places.length) { edit.places = []; edRelay(); } });
+  edSettleEcho();
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
@@ -19126,7 +20026,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'd112819c64', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '92b849d773', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
@@ -19158,7 +20058,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const listSaves = () => saveTx('readonly', (m) => m.getAll());
   const deleteSaves = (keys) => saveTx('readwrite', (m, b) => { for (const k of keys) { m.delete(k); b.delete(k); } });
   async function storeSave(slot) {
-    if (!st || demo || building || !SAVE_SLOTS.includes(slot)) return null;
+    if (!st || demo || unsaved || building || !SAVE_SLOTS.includes(slot)) return null;
     const s = st, arch = archOf(s), key = `${arch}:${slot}`, p = await packSave(s);
     const line = { key, arch, slot, build: BUILD, savedAt: p.savedAt, label: p.label, name: s.w.name, scenario: s.scenario, seed: s.w.seed,
       size: sizeKey(s.w.COLS, s.w.ROWS), bytes: p.blob.size };
@@ -19184,7 +20084,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const loadStored = async (key) => { const rec = await saveTx('readonly', (m, b) => b.get(key)); return loadBlob(rec && rec.blob); };
   async function saveToFile() {
-    if (!st || demo || building) return;
+    if (!st || demo || unsaved || building) return;
     const s = st, p = await packSave(s), a = document.createElement('a'), url = URL.createObjectURL(p.blob);
     a.href = url; a.download = `${s.w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${s.scenario}-${s.w.seed}-year${Sim.cal(s.t).year}.json.gz`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -19207,7 +20107,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const stOpen = () => st; // the game open, which the showcase island is not
   let saveMsg = '', saveLines = [];
   async function drawSaves() {
-    const box = $('savesBody'), st = demo ? null : stOpen();
+    const box = $('savesBody'), st = demo || unsaved ? null : stOpen(), fromEditor = !demo && unsaved && stOpen();
     try { saveLines = await listSaves(); } catch (e) { box.innerHTML = '<p class="save-msg">Saves are not available in this browser.</p>'; return; }
     const archs = new Map(), open = st ? archOf(st) : null;
     for (const l of saveLines) { if (!archs.has(l.arch)) archs.set(l.arch, []); archs.get(l.arch).push(l); }
@@ -19218,17 +20118,18 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const others = [...archs].filter(([a]) => a !== open).sort((a, b) => newest(b[1]) - newest(a[1]));
     box.innerHTML = (st ? section(open, saveLabel(st).split('): ')[0] + '), the game open now', archs.get(open) || [], true) : '')
       + others.map(([a, ls]) => section(a, ls[0].label.split('): ')[0] + ')', ls, false)).join('')
+      + (fromEditor ? '<p class="save-msg">The game open now was started from the editor, and cannot be saved yet.</p>' : '')
       + (st || others.length ? '' : '<p class="save-msg">No saved games yet.</p>')
       + `<div class="save-acts save-files">${st ? saveBtn('file', 'save', 'Save to file') : ''}${saveBtn('file', 'load', 'Load file')}</div>`
       + (saveMsg ? `<p class="save-msg" role="status">${esc(saveMsg)}</p>` : '');
   }
   function showSaves(on) {
-    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), with Back to the menu: Saves while
+    // It opens from the main menu (VB-307; the game's own Saves button went with its menu panel, VB-338), and closes back to it: Saves while
     // a game is open, which can be saved there; Load archipelago over the showcase island.
     const menu = !$('landing').hidden;
     $('savesScreen').hidden = !on;
     if (on) {
-      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; $('savesClose').textContent = menu ? 'Back' : 'Close';
+      $('savesTitle').textContent = st && !demo ? 'Saves' : 'Load archipelago'; 
       saveMsg = ''; openPanel(null); drawSaves(); $('savesClose').focus();
     } else if (menu) $('landLoad').focus();
   }

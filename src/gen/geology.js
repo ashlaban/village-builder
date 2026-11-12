@@ -155,8 +155,12 @@ VB['gen/geology'] = (() => {
         }
       }
     }
-    // ---- the land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals) ----
-    const q = [], steps = new Uint8Array(N);
+    nearVeins({ N, nb, water, deposit, vein, veinNear });
+    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // The land within reach of each hidden vein, the nearest vein's id (the lower tile first among equals), into w.veinNear (all 0 before).
+  function nearVeins(w) {
+    const { N, nb, water, deposit, vein, veinNear } = w, q = [], steps = new Uint8Array(N);
     for (let i = 0; i < N; i++) if (vein[i] && DEPOSITS[deposit[i]].hidden) { veinNear[i] = vein[i]; q.push(i); }
     for (let h = 0; h < q.length; h++) {
       const i = q[h]; if (steps[i] >= FIND.reach) continue;
@@ -165,8 +169,30 @@ VB['gen/geology'] = (() => {
         veinNear[j] = veinNear[i]; steps[j] = steps[i] + 1; q.push(j);
       }
     }
-    return { rock, deposit, depositLeft, vein, veinKind, veinNear };
+  }
+  // By hand (the editor; before a run is seeded on the world): a land tile's deposit, with a middling amount of its kind, or one that does
+  // not run out where the kind's veins hold nothing else (a salt spring); DEPOSIT.NONE takes the deposit away. Then reveins(w), once.
+  function setDeposit(w, i, d) {
+    if (w.water[i]) return false;
+    const v = VEINS.find((x) => x.deposit === d);
+    w.deposit[i] = d;
+    w.depositLeft[i] = !d || !v ? 0 : v.amount[1] > 0 ? Math.round((v.amount[0] + v.amount[1]) / 2) : ENDLESS;
+    return true;
+  }
+  // The veins anew from the deposits as they lie: each run of one kind joined through neighbours is a vein, numbered in tile order.
+  function reveins(w) {
+    const { N, nb, deposit, vein, veinNear } = w;
+    vein.fill(0); veinNear.fill(0); w.veinKind.length = 1;
+    for (let s = 0; s < N; s++) {
+      if (!deposit[s] || vein[s]) continue;
+      w.veinKind.push(deposit[s]);
+      const id = w.veinKind.length - 1, run = [s]; vein[s] = id;
+      for (let h = 0; h < run.length; h++) for (let d = 0; d < 6; d++) {
+        const j = nb[run[h] * 6 + d]; if (j >= 0 && deposit[j] === deposit[s] && !vein[j]) { vein[j] = id; run.push(j); }
+      }
+    }
+    nearVeins(w);
   }
 
-  return { lay, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+  return { lay, setDeposit, reveins, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
 })();

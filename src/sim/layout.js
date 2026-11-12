@@ -295,14 +295,20 @@ VB['sim/layout'] = (() => {
       if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
-    // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
+    const village = loneVillage(rand, villages, lone.house); villages.push(village);
+    return farmIn(w, used, village, lone.house, lone.fields, farmsteads, fieldsAt, yards);
+  }
+  // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
+  function loneVillage(rand, villages, house) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
-    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
-    village.farmsteads.push(f.id); villages.push(village);
-    for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
-    for (const t of lone.fields) fieldsAt.add(t);
+    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
+  }
+  // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
+  function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
+    const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
+    v.farmsteads.push(f.id);
+    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
+    for (const t of fields) fieldsAt.add(t);
     return f;
   }
   // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
@@ -316,10 +322,13 @@ VB['sim/layout'] = (() => {
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
-    used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
-      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
+    fieldOn(w, used, f, best);
     return true;
+  }
+  function fieldOn(w, used, f, tile) {
+    used.add(tile);
+    f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
@@ -328,7 +337,7 @@ VB['sim/layout'] = (() => {
   function settlementGenerator(w, rand, bare = false) {
     const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
-      used, farmsteads, villages,
+      used, farmsteads, villages, rand, fieldsAt, yards, // rand and the two sets: for what is placed by hand (sim/byhand)
       addVillage(center, nFarms) {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
@@ -353,7 +362,7 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();
