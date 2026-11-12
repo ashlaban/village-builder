@@ -15,7 +15,7 @@
   // `x` is the tutorial's very small island: a size like the others (it saves and loads), but not offered at the start or in the editor
   const SIZES = { x: [40, 28], t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   const SIZE_NAMES = { x: 'very small', t: 'tiny', s: 'small', m: 'medium', l: 'large' };
-  const TUTORIAL = { seed: 30, scenario: 'founders', size: 'x' }; // one fixed island, so the tutorial can name its people and places
+  const TUTORIAL = { seed: 68, scenario: 'founders', size: 'x' }; // one fixed island, so the tutorial can name its people and places
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
   // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
   // (the Saves overlay; page/saves). A game that is open
@@ -96,7 +96,7 @@
       else openStart(msg); // the game kept aside, and the start's island, are as they were
       return;
     }
-    closeChoose(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
+    closeChoose(); endTutorial(); followPlayed = false; endTool(); playMsg = null; skipCursor = null; dropSkipNote();
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
     dropEditor(); // and the editor's world
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
@@ -135,7 +135,7 @@
     zt = cam.z; vel.x = vel.y = 0;
     loader.classList.add('done');
     // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
-    if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
+    if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) { openBar(); if (size === TUTORIAL.size) startTutorial(); }
     else if (!save && !sim.player) openChoose();
     else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
     building = false; $('menuBtn').disabled = false;

@@ -67,6 +67,7 @@
     L.regions.alpha = clamp(1.25 - cam.z, 0.35, 1);
     if (hoverDirty || sel >= 0) { drawHover(); hoverDirty = false; }
     drawMinimapView();
+    if (tutorial) tutorialFrame();
   };
   // Pixi stops its ticker for good when a frame throws; catch it, say so, and keep the game running.
   app.ticker.add((tk) => {

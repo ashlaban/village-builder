@@ -570,6 +570,19 @@ body.brushing #stage { cursor: crosshair; }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
+/* The tutorial (VB-396): the spotlight dims all but what it points at, or is a ring only while a tool has the map */
+.tut-hole { position: fixed; z-index: 9; border-radius: var(--r-panel); pointer-events: none; box-shadow: 0 0 0 200vmax rgba(6, 18, 26, 0.42), 0 0 0 3px var(--gold); }
+.tut-hole.ring { box-shadow: 0 0 0 3px var(--gold); }
+.tut-card { position: fixed; z-index: 9; width: min(340px, calc(100vw - 20px)); display: grid; gap: 8px; padding: 14px 16px; border-radius: var(--r-panel); }
+.tut-card h2 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 21px; line-height: 1.15; }
+.tut-card p { margin: 0; }
+.tut-card .todo { font-weight: 700; color: var(--accent); }
+.tut-card .todo::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: var(--gold); }
+.tut-row { display: flex; align-items: center; gap: 8px; }
+.tut-row .pips { display: flex; gap: 5px; margin-right: auto; }
+.tut-row .pips i { width: 8px; height: 8px; border-radius: 50%; background: var(--edge); }
+.tut-row .pips i.on { background: var(--accent); }
+.tut-card button.quiet { border-color: transparent; background: none; color: var(--muted); padding-inline: 6px; }
 .choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
 .choose > * { pointer-events: auto; }
 .choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-panel); overflow-y: auto;

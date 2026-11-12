@@ -118,9 +118,29 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
     && !document.getElementById('menuBtn').disabled, null, { timeout: 180000 });
   const tut = await page.evaluate(() => { const s = window.__start.st; return { scenario: s.scenario, played: !!s.player, rows: s.w.ROWS, island: s.w.name,
     choose: !document.getElementById('choose').hidden, bar: !document.getElementById('actBar').hidden, meta: document.getElementById('meta').textContent }; });
-  if (tut.scenario !== 'founders' || tut.rows !== 28 || tut.island !== 'Halö' || !tut.played || tut.choose || !tut.bar || !/very small map/.test(tut.meta)) {
+  if (tut.scenario !== 'founders' || tut.rows !== 28 || tut.island !== 'Lunliö' || !tut.played || tut.choose || !tut.bar || !/very small map/.test(tut.meta)) {
     fail(`tutorial: ${JSON.stringify(tut)}`);
   }
+  // its coach marks, each advanced by doing what it names: paused on the played pawn, Next, start time, open Household, take work; a list
+  // closed sends the player a step back; the last card ends it
+  const card = (title) => page.waitForFunction((t) => { const c = document.getElementById('tutCard'), h = c.querySelector('h2');
+    return !c.hidden && h && h.textContent === t; }, title, { timeout: 60000 });
+  await card('This is you');
+  const first = await page.evaluate(() => ({ paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'),
+    text: document.getElementById('tutCard').textContent, hole: !document.getElementById('tutHole').hidden }));
+  if (first.paused !== 'true' || !/Jon Ragnarsson, 30, holder of Norrgården in Bredberga/.test(first.text) || !first.hole) fail(`tutorial, first card: ${JSON.stringify(first)}`);
+  await page.click('#tutCard [data-tut="next"]'); await card('Time');
+  await page.keyboard.press('Space'); await card('What you can do');
+  await page.click('#actBar [data-group="house"]'); await card('Take some work');
+  await page.click('#actMenu [data-bar="close"]'); await card('What you can do');
+  await page.click('#actBar [data-group="house"]'); await card('Take some work');
+  await page.click('#actMenu button[data-bar="work"]:not([data-why])');
+  if (await page.evaluate(() => !document.getElementById('actBanner').hidden)) await page.keyboard.press('Escape'); // work at several places asks for a tile
+  else await card('That is how you play');
+  if (await page.evaluate(() => 'tutorial' in window.__start.st)) fail('the tutorial wrote to the state');
+  const leave = await page.$('#tutCard [data-tut="leave"]') || await page.$('#tutCard [data-tut="next"]');
+  await leave.click();
+  if (!(await page.evaluate(() => document.getElementById('tutCard').hidden && document.getElementById('tutHole').hidden))) fail('the tutorial did not end');
   await browser.close();
   if (errors.length) { console.log(`browser-start: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-start: the three scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '
