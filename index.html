@@ -19,6 +19,7 @@
   --node: #fbfdfc;
   --good: #2f7a4b;
   --bad: #a8432f;
+  --gold: #b3862c; /* heirs, the scenario's suggestion, a short larder */
   --r-panel: 16px; /* panels and cards */
   --r-small: 12px; /* small floating pieces: toasts, banners, popups, the minimap */
   --r-field: 10px; /* inputs and selects */
@@ -28,7 +29,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root {
     --panel: rgba(11, 27, 34, 0.86);
     --ink: #e1ebe7;
     --muted: #93adae;
@@ -38,18 +39,9 @@
     --node: #17323b;
     --good: #8fd0a2;
     --bad: #f0a08c;
+    --gold: #d9b45a;
     color-scheme: dark;
   }
-}
-:root[data-theme="dark"] {
-  --panel: rgba(11, 27, 34, 0.86);
-  --ink: #e1ebe7;
-  --muted: #93adae;
-  --edge: rgba(225, 235, 231, 0.14);
-  --accent: #84c9b5;
-  --on-accent: #0c1f25;
-  --node: #17323b;
-  color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: inherit; }
 html { height: 100%; background: var(--sea); scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -71,7 +63,6 @@ body {
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .hud.top { flex-wrap: wrap; }
 .clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
@@ -96,7 +87,7 @@ body {
 .settlers .doing { font-size: 13px; font-style: italic; }
 .tree { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(6, 18, 26, 0.55); padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
 .tree[hidden] { display: none; }
-.tree-card { width: min(1120px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-panel); overflow: hidden; }
+.tree-card { width: min(1120px, 100%); height: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-panel); overflow: hidden; }
 .tree-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 14px 18px; border-bottom: 1px solid var(--edge); }
 .tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; line-height: 1.1; margin: 0; }
 .tree-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; min-width: 12ch; }
@@ -131,12 +122,10 @@ body {
 #treeSvg .marriage.ended { stroke-dasharray: 4 3; }
 #treeSvg .tn.dead rect { opacity: 0.55; }
 #treeSvg .tn.dead text { opacity: 0.7; }
-#treeSvg .heir { fill: #c9a24a; }
+#treeSvg .heir { fill: var(--gold); }
 .tree-info .evs { margin: 0 0 14px; padding-left: 18px; font-size: 14px; line-height: 1.45; color: var(--muted); }
-.actions select { font: inherit; font-size: 15px; color: var(--ink); background: var(--node); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 10px; max-width: 100%; }
 .drawer { position: fixed; right: 14px; top: calc(env(safe-area-inset-top, 0px) + 86px); width: min(420px, calc(100vw - 28px)); max-height: calc(100vh - 230px); overflow: auto; border-radius: var(--r-panel); padding: 12px 14px 16px; z-index: 6; }
 .drawer[hidden] { display: none; }
-.drawer .dclose { position: sticky; top: 0; float: right; }
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
@@ -144,7 +133,7 @@ body {
 .cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
 .cust thead th { font-weight: 600; border-top: 0; }
 .cust tbody th { font-weight: 500; }
-.cust td.dev { background: rgba(201, 162, 74, 0.16); }
+.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
 .sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
 .sbar i { display: block; height: 100%; }
 .sw-item { white-space: nowrap; }
@@ -192,7 +181,6 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
-/* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
@@ -211,7 +199,7 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
-.genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
+.genscreen .err { margin: 0; color: var(--bad); font-size: 14px !important; }
 #landQuick small { display: block; color: var(--muted); font-size: 13px; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
@@ -224,7 +212,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-slot { display: grid; grid-template-columns: 3.2em 1fr; gap: 3px 8px; align-items: start; }
 .save-slot b { font-weight: 600; }
 .save-slot small { display: block; color: var(--muted); font-size: 13px; }
-.save-slot small.save-other { color: #b4382c; }
+.save-slot small.save-other { color: var(--bad); }
 .save-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .save-slot .save-acts { grid-column: 2; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
@@ -472,7 +460,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .row .who i { display: block; font-style: normal; font-size: 13px; color: var(--muted); }
 .tile .row .state { max-width: 46%; font-size: 13px; text-align: right; }
 .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
-.mark.short { background: #c9a24a; }
+.mark.short { background: var(--gold); }
 .mark.hungry { background: var(--bad); }
 .tabs { display: flex; gap: 6px; margin: 6px 0 8px; }
 .tabs button, .history .kinds button { min-height: 36px; padding: 5px 12px; font-size: 14px; }
@@ -543,7 +531,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .choose .hint { color: var(--muted); }
 .choose .refused { color: var(--bad); }
 .choose .ico { width: 18px; height: 18px; flex: none; }
-.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .sug-note { display: flex; gap: 6px; align-items: center; }
 .stories { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px;
@@ -555,8 +543,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .story .few { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; font-size: 12.5px; color: var(--muted); min-height: 22px; }
 .story .few img { width: 22px; height: 22px; margin-right: -3px; }
 .story .few span { margin-left: 8px; }
-.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: rgba(35, 104, 90, 0.12); }
-@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: rgba(35, 104, 90, 0.10); } }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); } }
 .hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
 .hhead img { width: 44px; height: 44px; grid-row: 1 / span 2; }
 .hhead span { color: var(--muted); font-size: 14px; }
@@ -568,13 +556,13 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .person span { overflow-wrap: anywhere; }
 .person small { font-size: 11.5px; color: var(--muted); }
 .person:disabled { cursor: default; }
-.person[aria-pressed="true"] { border-color: var(--accent); background: rgba(35, 104, 90, 0.12); }
-.person.hit img { filter: drop-shadow(0 0 2px #c9a24a); }
+.person[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.person.hit img { filter: drop-shadow(0 0 2px var(--gold)); }
 .detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
 .posline { display: flex; gap: 8px; align-items: flex-start; }
 .posline .ico { color: var(--accent); margin-top: 1px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: rgba(35, 104, 90, 0.10); font-size: 14px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; }
 .pchip .ico { width: 16px; height: 16px; color: var(--accent); }
 /* The start (VB-340; docs/mocks/setup.html, step 1): pieces of the menu's family over the stage, which shows through the frame of the
    picture. The callouts follow the camera (page/start). Nothing changes size under the pointer: a lit person, bar or card only colours. */
@@ -587,7 +575,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .start p { margin: 0; font-size: 14px; line-height: 1.4; }
 .start .hint { color: var(--muted); }
 .start .ico { width: 18px; height: 18px; flex: none; }
-.start .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.start .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .stepno { font-size: 14px; color: var(--muted); }
 .scards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .scard { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start;
@@ -596,7 +584,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .scard > *:not(.cpic) { margin: 0 10px; }
 .scard b { font-size: 16px; } .scard small { font-size: 13px; line-height: 1.3; color: var(--muted); }
 .scard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-@media (hover: hover) { .scard:hover { background: rgba(35, 104, 90, 0.08); } }
+@media (hover: hover) { .scard:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); } }
 .cpic { display: flex; align-items: flex-end; justify-content: center; gap: 0; height: 64px; padding: 0 8px 4px; overflow: hidden;
   background: linear-gradient(#bcd3e0 0 46%, #a9c48a 46% 100%); }
 .cpic.founders { background: linear-gradient(#bcd3e0 0 46%, #b9c97e 46% 100%); }
@@ -17713,7 +17701,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0e4c352809', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'c927c3f1f5', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
