@@ -74,7 +74,9 @@ for (const grain of [0, 5000]) {
     c = st.households.find((o) => {
       const r = H.heirRanking(st, o)[0], p = r !== undefined ? st.pawns[r] : null;
       return o !== h && p && p.sex === 'm' && p.age >= 20 && p.household === o.id && R.spouseOf(st, p.id) === null
-        && VB['sim/lifecycle'].kinOk(st, p.id, w.id, cu) && vOf(p) === vOf(w); // the same village, so the match scores above MARRIAGE.minScore
+        // the same village and within twelve years of each other, so the match scores above MARRIAGE.minScore (it loses
+        // MARRIAGE.gapWeight a year off the preferred gap; the first such woman at this seed was 25 years the elder, VB-402)
+        && VB['sim/lifecycle'].kinOk(st, p.id, w.id, cu) && vOf(p) === vOf(w) && Math.abs(p.age - w.age) <= 12;
     });
     if (c) { b = h; man = st.pawns[H.heirRanking(st, c)[0]]; break; }
   }

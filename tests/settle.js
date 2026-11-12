@@ -97,14 +97,17 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
-// 4. Founders at seed 7: a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
+// 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
+// The founders' two unmarried young are 16 to 19 and live on either farm by the seed's draw, so the first seed is taken where one of age
+// lives in the village (seed 7 had one until the villages were laid out anew, VB-402).
+const grown = (st) => st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
+  && Sim.spouseOf(st, p.id) === null);
+const foundersSeed = [7, 1, 5, 6, 42].find((seed) => grown(Sim.seed(world(seed), seed, 'founders')));
 const founders = () => {
-  const st = Sim.seed(world(7), 7, 'founders'); st.naturalDeaths = false;
-  const v = st.villages[0], lone = st.villages[1];
-  const m = st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
-    && Sim.spouseOf(st, p.id) === null);
+  const st = Sim.seed(world(foundersSeed), foundersSeed, 'founders'); st.naturalDeaths = false;
+  const v = st.villages[0], lone = st.villages[1], m = grown(st);
   fill(st, v); st.demand = [m.id]; m.landWait = 3; m.stake = 300;
   return { st, v, lone, m };
 };

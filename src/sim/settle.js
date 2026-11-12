@@ -5,8 +5,8 @@ VB['sim/settle'] = (() => {
   const { B } = VB['gen'];
   const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable, villageAdded } = VB['sim/routes'];
+  const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
+  const { walkable, villageAdded, costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -137,10 +137,11 @@ VB['sim/settle'] = (() => {
   // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps}, or null.
   function newSite(st, v, use, cands) {
     const w = st.w, minFert = SETTLE.fertility * meanFertility(st, v);
+    const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity, tried = 0;
     for (const [t, d, s0] of cands) {
       if (tried >= SETTLE.candidates) break;
-      if (use.taken.has(t) || use.near.has(t)) continue;
+      if (use.taken.has(t) || use.near.has(t) || cutsOff(w, t, shut, house)) continue; // a house may not close a way (VB-402)
       tried++;
       const block = placeFields(w, use.taken, t, SETTLE.fields, use.near); if (!block) continue;
       // room besides the block for meadow and pasture, away from other farms (VB-154)
@@ -186,7 +187,7 @@ VB['sim/settle'] = (() => {
     const w = st.w, settler = st.pawns[party.all[0]];
     const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
     f.condition = 1; f.condAt = st.t; f.emptySince = null; f.booth = { i: 0, done: 0 };
-    st.farmsteads.push(f); v.farmsteads.push(f.id);
+    st.farmsteads.push(f); v.farmsteads.push(f.id); costChanged(st, house); // routes go round the house from now on
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
     const grain = {}; // by crop (VB-347), as the stakes and the gifts are taken

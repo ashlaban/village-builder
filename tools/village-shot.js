@@ -33,7 +33,7 @@ const HOOKS = [
     + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; }, '
     + 'clearSky() { for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); } clouds = []; } };'],
   ['const SIZES = { t: [120, 85],', `const SIZES = { x: [${cols}, ${rows}], t: [120, 85],`],
-  ['sim = Sim.seed(wd, seed, scenario);', 'sim = window.__seedVillage(wd, seed);'],
+  ['Sim.seed(wd, seed, scenario, custom ? custom.places : null)', 'window.__seedVillage(wd, seed)'],
 ];
 let html = fs.readFileSync(htmlPath, 'utf8');
 for (const [from, to] of HOOKS) {
@@ -80,21 +80,22 @@ async function shootSeed(browser, seed) {
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
   if (await page.evaluate(() => !window.__vb.st)) {
     console.error(`${tag}: no village fits this island; try another seed or a larger one`); await page.close(); return false; }
-  await page.click('[data-speed="0"]').catch(() => {});
+  await page.evaluate(() => { const b = document.getElementById('chooseWatch'); if (b) b.click(); }); // leave the choice of whom to play
+  await page.evaluate(() => { const b = document.querySelector('[data-speed="0"]'); if (b) b.click(); });
   await page.evaluate(async (n) => {
     const st = window.__vb.st, Sim = window.__vb.Sim();
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
   }, years);
-  if (has('land')) await page.click('#landBtn');
+  if (has('land')) await page.evaluate(() => document.getElementById('landBtn').click());
   if (!has('clouds')) await page.evaluate(() => window.__vb.clearSky());
-  if (!has('ui')) { await page.click('#uiToggle'); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }
+  if (!has('ui')) { await page.evaluate(() => document.getElementById('uiToggle').click()); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }
   const info = await page.evaluate(() => {
     const st = window.__vb.st, w = st.w, v = st.villages[0], fs = v.farmsteads.map((id) => st.farmsteads[id]);
     const tiles = [v.center, ...fs.flatMap((f) => [f.house, ...f.fields.map((fd) => fd.tile)])];
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const t of tiles) { x0 = Math.min(x0, w.hx[t]); x1 = Math.max(x1, w.hx[t]); y0 = Math.min(y0, w.hy[t]); y1 = Math.max(y1, w.hy[t]); }
-    const worn = [0, 0, 0, 0]; for (let i = 0; i < w.N; i++) if (!w.water[i] && !w.dev[i]) worn[w.worn[i]]++;
+    const worn = [0, 0, 0, 0]; for (let i = 0; i < w.N; i++) if (!w.water[i] && w.dev[i] < 2) worn[w.worn[i]]++;
     return { W: w.W, H: w.H, R: w.R, cols: w.COLS, rows: w.ROWS, name: v.name, centre: v.center, pop: st.pawns.filter((p) => p.alive).length,
       box: [x0, y0, x1, y1], worn: { trodden: worn[1], path: worn[2], lane: worn[3] },
       farms: fs.map((f) => ({ id: f.id, name: f.name, house: f.house, fields: f.fields.map((fd) => fd.tile) })) };

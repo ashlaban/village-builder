@@ -19,27 +19,32 @@
     if (cur === 2 && l === 1 && z < TH1 * HY) l = 2;
     return l;
   }
-  function* chunkJob(wd, l, cx, cy, canvas) {
+  // out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (gen/paths drawOver), or null.
+  function* chunkJob(wd, l, cx, cy, canvas, out) {
     const ctx = canvas.getContext('2d'), img = ctx.createImageData(TEX, TEX);
     yield* G.bakeChunk(wd, l, cx, cy, img);
     ctx.putImageData(img, 0, 0);
     yield 1;
     Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
     Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
+    if (out) out.way = Paths.drawOver(wd, LV[l], cx, cy, l, () => makeCanvas(TEX, TEX));
     yield 1;
     G.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
   }
-  function addChunk(l, cx, cy, canvas) {
-    const s = LV[l].size;
-    const spr = new PIXI.Sprite(texFrom(canvas, { autoGenerateMipmaps: true, mipmapFilter: 'linear' }));
-    spr.position.set(cx * s, cy * s); spr.scale.set(s / TEX); spr.visible = false;
-    lodLayer[l].addChild(spr);
-    chunks.set(ckey(l, cx, cy), { l, cx, cy, spr, canvas, seen: frameNo });
+  function addChunk(l, cx, cy, canvas, wayCanvas) {
+    const s = LV[l].size, mk = (c, layer) => {
+      const sp = new PIXI.Sprite(texFrom(c, { autoGenerateMipmaps: true, mipmapFilter: 'linear' }));
+      sp.position.set(cx * s, cy * s); sp.scale.set(s / TEX); sp.visible = false; layer.addChild(sp);
+      return sp;
+    };
+    // way: the chunk's ways over fields and meadows, drawn above them (L.ways), shown and hidden with the chunk
+    chunks.set(ckey(l, cx, cy), { l, cx, cy, spr: mk(canvas, lodLayer[l]), way: wayCanvas ? mk(wayCanvas, L.ways) : null, canvas, seen: frameNo });
   }
   function dropChunk(k) {
     const ch = chunks.get(k);
     if (!ch) return;
     ch.spr.destroy({ texture: true, textureSource: true });
+    if (ch.way) ch.way.destroy({ texture: true, textureSource: true });
     chunks.delete(k);
   }
   // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
@@ -111,11 +116,12 @@
         const nx = want.shift();
         if (!nx) break;
         const canvas = makeCanvas(TEX, TEX);
-        job = { ...nx, canvas, wd: w, rows: 0, gen: chunkJob(w, nx.l, nx.cx, nx.cy, canvas) };
+        const out = { way: null };
+        job = { ...nx, canvas, out, wd: w, rows: 0, gen: chunkJob(w, nx.l, nx.cx, nx.cy, canvas, out) };
       }
       const r = job.gen.next();
       if (r.done) {
-        if (job.wd === w) addChunk(job.l, job.cx, job.cy, job.canvas);
+        if (job.wd === w) addChunk(job.l, job.cx, job.cy, job.canvas, job.out.way);
         job = null;
       } else job.rows = r.value;
     }
@@ -136,6 +142,7 @@
     for (const ch of chunks.values()) ch.spr.visible = false;
     const view = viewRect(0), [a, b, c, d] = rangeIn(2, view);
     for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) visit(2, cx, cy, view);
+    for (const ch of chunks.values()) if (ch.way) ch.way.visible = ch.spr.visible;
     // keep memory bounded: evict the least recently seen chunks of levels 0 and 1
     for (const l of [0, 1]) {
       const [a2, b2, c2, d2] = rangeIn(l, viewRect(LV[l].size * 0.25));
