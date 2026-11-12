@@ -152,11 +152,12 @@
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['customs', 'debug'].includes(panel);
-    drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['customs', 'agenda', 'debug'].includes(panel);
+    drawerTab = ['customs', 'agenda', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
+    $('agendaBtn').setAttribute('aria-pressed', String(panel === 'agenda'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }

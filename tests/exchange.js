@@ -14,12 +14,12 @@ const ctx = (from, to) => ({ giver: from.holder, receiver: to.holder, from, to }
 let checks = 0;
 { // within the floor and the allowance: settled, both ledgers, the tie between the holders
   const { st, a, b } = fresh();
-  b.grain = floorOf(st, b) + (st.pawns[b.holder].buffer - HELP.floorDays) * dailyNeed(st, b) + 100;
+  b.grain = { barley: floorOf(st, b) + (st.pawns[b.holder].buffer - HELP.floorDays) * dailyNeed(st, b) + 100 };
   const allowance = Rules.value(st, 'allowance', ctx(b, a));
   assert(Math.abs(allowance - surplus(st, b)) < 1e-9 && Math.abs(allowance - 100) < 1e-6, `allowance ${allowance}, surplus ${surplus(st, b)}`);
-  const a0 = a.grain, b0 = b.grain, tie0 = st.pawns[b.holder].ties.get(a.holder) || 0;
+  const a0 = Sim.grainOf(a), b0 = Sim.grainOf(b), tie0 = st.pawns[b.holder].ties.get(a.holder) || 0;
   assert.strictEqual(give(st, b, a, 60), true);
-  assert(Math.abs(a.grain - a0 - 60) < 1e-9 && Math.abs(b0 - b.grain - 60) < 1e-9, 'what one gives the other gets');
+  assert(Math.abs(Sim.grainOf(a) - a0 - 60) < 1e-9 && Math.abs(b0 - Sim.grainOf(b) - 60) < 1e-9, 'what one gives the other gets');
   assert(a.ledger.some((e) => e.kind === 'gift' && e.n === 60) && b.ledger.some((e) => e.kind === 'gift' && e.n === -60), 'gift in both ledgers');
   assert(Math.abs((st.pawns[b.holder].ties.get(a.holder) || 0) - tie0 - HELP.tieGain) < 1e-9, 'the gift raises the tie');
   checks++;
@@ -28,24 +28,24 @@ let checks = 0;
   const { st, a, b } = fresh();
   st.pawns[b.holder].buffer = HELP.bufferDays[1]; // room between the allowance and the floor: the reserve
   const reserve = (HELP.bufferDays[1] - HELP.floorDays) * dailyNeed(st, b);
-  b.grain = floorOf(st, b) + reserve + 100;
-  const a0 = a.grain, b0 = b.grain, l0 = a.ledger.length;
+  b.grain = { barley: floorOf(st, b) + reserve + 100 };
+  const a0 = Sim.grainOf(a), b0 = Sim.grainOf(b), l0 = a.ledger.length;
   const over = give(st, b, a, 100 + reserve / 2);
   assert(typeof over === 'string' && /would give at most 100 rations/.test(over), `beyond the allowance: ${over}`);
-  b.grain = floorOf(st, b) + 10;
+  b.grain = { barley: floorOf(st, b) + 10 };
   const under = give(st, b, a, 20);
   assert(typeof under === 'string' && /below its floor/.test(under), `below the floor: ${under}`);
-  b.grain = b0;
-  assert(a.grain === a0 && b.grain === b0 && a.ledger.length === l0, 'a refused gift changes nothing');
-  b.grain = floorOf(st, b) + 10;
+  b.grain = { barley: b0 };
+  assert(Sim.grainOf(a) === a0 && Sim.grainOf(b) === b0 && a.ledger.length === l0, 'a refused gift changes nothing');
+  b.grain = { barley: floorOf(st, b) + 10 };
   assert.strictEqual(give(st, b, a, 20, 'player'), true, "the player's pawn may give below the floor");
-  assert(Math.abs(b.grain - (floorOf(st, b) - 10)) < 1e-9, 'it gave below the floor');
+  assert(Math.abs(Sim.grainOf(b) - (floorOf(st, b) - 10)) < 1e-9, 'it gave below the floor');
   checks++;
 }
 { // the player's gift (VB-221): beyond the allowance and below the floor it settles; the warning names the feed order's last group
   const { giftWarning } = VB['sim/exchange'], { feedGroups, servedLast } = VB['sim/hunger'];
   const { st, a, b } = fresh();
-  b.grain = floorOf(st, b) + 10;
+  b.grain = { barley: floorOf(st, b) + 10 };
   assert.strictEqual(giftWarning(st, b, 10), null, 'a gift down to the floor has no warning');
   const w = giftWarning(st, b, 30), before = JSON.stringify(Sim.save(st));
   assert(w && Math.abs(w.below - 20) < 1e-9 && w.days === HELP.floorDays, `the warning says how far below the floor: ${JSON.stringify(w)}`);
@@ -60,20 +60,20 @@ let checks = 0;
   }
   giftWarning(st, b, 30);
   assert.strictEqual(JSON.stringify(Sim.save(st)), before, 'the warning writes nothing');
-  const a0 = a.grain;
+  const a0 = Sim.grainOf(a);
   assert.strictEqual(give(st, b, a, 30, 'player'), true, "the player's gift below the floor settles");
-  assert(Math.abs(a.grain - a0 - 30) < 1e-9 && Math.abs(b.grain - (floorOf(st, b) - 20)) < 1e-9, 'and moves the grain');
+  assert(Math.abs(Sim.grainOf(a) - a0 - 30) < 1e-9 && Math.abs(Sim.grainOf(b) - (floorOf(st, b) - 20)) < 1e-9, 'and moves the grain');
   checks++;
 }
 { // the village store gives what it holds and takes the yearly filling; malformed gifts are refused
   const { st, a, b } = fresh(), v = st.villages[st.farmsteads[a.farmstead].village];
-  v.grain = 30;
+  v.grain = { barley: 30 };
   const vgive = (n) => issue(st, { actor: { village: v.id }, verb: 'give', target: a.id, args: { good: 'grain', n }, source: 'help' });
   assert(typeof vgive(40) === 'string', 'the store gives no more than it holds');
-  assert.strictEqual(vgive(30), true); assert(v.grain === 0 && v.ledger.some((e) => e.kind === 'gift' && e.n === -30), 'the store gave');
-  b.grain = floorOf(st, b) + 1000;
+  assert.strictEqual(vgive(30), true); assert(Sim.grainOf(v) === 0 && v.ledger.some((e) => e.kind === 'gift' && e.n === -30), 'the store gave');
+  b.grain = { barley: floorOf(st, b) + 1000 };
   assert.strictEqual(issue(st, { actor: b.holder, verb: 'give', target: { village: v.id }, args: { good: 'grain', n: 5 }, source: 'help' }), true);
-  assert(v.grain === 5, 'the filling reached the store');
+  assert(Sim.grainOf(v) === 5, 'the filling reached the store');
   const bad = [
     { actor: b.holder, verb: 'give', target: a.id, args: { good: 'meals', n: 5 } },
     { actor: b.holder, verb: 'give', target: a.id, args: { good: 'grain', n: -5 } },

@@ -4,6 +4,7 @@
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
+const { CROPS } = VB['sim/rules'];
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',').map(Number), map = opt('map', 'small');
@@ -19,7 +20,7 @@ function run(seed) {
   for (let y = 1; y <= years; y++) {
     const t0 = (y - 1) * Sim.YEAR + 1, t1 = y * Sim.YEAR + 1;
     if (st.t < t0) Sim.advance(st, t0 - st.t);
-    const weather = st.weather, before = new Map(st.households.map((h) => [h.id, { hungry: h.hungryDays, grain: h.grain + h.meals,
+    const weather = st.weather, before = new Map(st.households.map((h) => [h.id, { hungry: h.hungryDays, grain: Stores.grainOf(h) + h.meals,
       cattle: cattleOf(st, h), sheep: sheepOf(st, h) }]));
     Sim.advance(st, t1 - st.t);
     if (y < from) continue;
@@ -29,7 +30,7 @@ function run(seed) {
       let gifts = 0;
       for (const e of hh.ledger) {
         if (e.t < t0 || e.t >= t1) continue;
-        if (e.kind === 'harvest') made.grain += e.n - E.seedPerField; // the seed for that crop was sown from the store
+        if (e.kind === 'harvest') made.grain += e.n - (e.first ? CROPS.barley.seed : 0); // a field's loads are entries; the seed was sown from the store
         else if (e.kind in made) made[e.kind] += e.n;
         else if (e.kind === 'gift') gifts += e.n;
       }
@@ -40,7 +41,7 @@ function run(seed) {
       rows.push({ seed, year: y, household: hh.id, weather: +weather.toFixed(3), size, members: hh.members.length, fields: f.fields.length,
         meadows: f.meadows.length, cattle: b.cattle, sheep: b.sheep, soil: soil === null ? null : +soil.toFixed(3),
         ...Object.fromEntries(SOURCES.map((k) => [k, +made[k].toFixed(1)])), total: +total.toFixed(1), need, gifts: +gifts.toFixed(1),
-        hungryDays: hh.hungryDays - b.hungry, store: Math.round(hh.grain + hh.meals), storeChange: Math.round(hh.grain + hh.meals - b.grain) });
+        hungryDays: hh.hungryDays - b.hungry, store: Math.round(Stores.grainOf(hh) + hh.meals), storeChange: Math.round(Stores.grainOf(hh) + hh.meals - b.grain) });
     }
   }
   return st;

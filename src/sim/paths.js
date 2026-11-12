@@ -26,8 +26,9 @@ VB['sim/paths'] = (() => {
     }
     return n;
   }
-  // A walking pawn enters tile i. Houses, fields and the green wear no path; water is not walked.
-  function tread(w, i) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += 1; }
+  // A walking pawn enters tile i, with n crossings: 1, and more for the herds it drives (VB-136). Houses, fields and the green wear no path;
+  // water is not walked.
+  function tread(w, i, n = 1) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += n; }
   // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile built on since (a field
   // broken on a path). A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
   function fadeWear(st, onStage) {

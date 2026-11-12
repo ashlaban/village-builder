@@ -18,7 +18,7 @@ const tryPlaces = (places) => { Cover.restore(w, kept); try { return Sim.seed(w,
 let st = tryPlaces([{ village: centre, farms: 5 }]);
 assert(!(st instanceof Error), `a village on a village site: ${st.message}`);
 assert.strictEqual(st.scenario, 'manual'); assert.strictEqual(st.villages.length, 1); const laid = st.villages[0].farmsteads.length; assert(laid >= 3 && laid <= 5, `the generator lays the farms that fit: ${laid}`);
-assert(st.villages[0].green && st.pawns.length >= 10 && st.households.every((h) => h.grain > 0));
+assert(st.villages[0].green && st.pawns.length >= 10 && st.households.every((h) => h.grain.barley > 0));
 assert.deepStrictEqual(checkState(st), []);
 
 // households on chosen tiles: one near the village joins it; two far ones, close to each other, are one village of their own

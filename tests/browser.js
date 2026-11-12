@@ -177,7 +177,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.evaluate(() => window.__play.look(0)); // the map's corner, open sea
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
     const said = await page.locator('#actBanner').textContent();
-    if (!/tap a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
+    if (!/(tap|click) a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
     await page.evaluate((i) => window.__play.look(i), inTool.sites[0]);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
     target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
@@ -307,7 +307,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       // each state on a world fresh from the generator, as tests/offers.js makes them: a run writes its world (stones picked, trees felled)
       const fresh = () => { const it = VB.gen.generate(7, { cols: w0.COLS, rows: w0.ROWS }); let r; while (!(r = it.next()).done); return r.value; };
       let people = 7; // the seed of the island's people: the first at which a man of the round, when played, is asked (VB-342)
-      const make = () => { const s = Sim.seed(fresh(), people, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain += 5000; return s; };
+      const make = () => { const s = Sim.seed(fresh(), people, 'populous'); s.naturalDeaths = false; for (const h of s.households) h.grain.barley += 5000; return s; };
       const round = (s) => {
         const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
         try { Sim.movingRound(s); } finally { rs.forEach((r) => { delete r.fix; }); } };

@@ -292,7 +292,7 @@ async function actionBar() {
   const Sim = win.Sim, st = simSt, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
   q('[data-speed="0"]').click();
   const holder = st.pawns.find((p) => p.alive && p.age >= 18 && Sim.isHolder(st, p.id) && Sim.holdingOf(st, p.id)
-    && Sim.holdingOf(st, p.id).grain - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
+    && Sim.grainOf(Sim.holdingOf(st, p.id)) - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
   if (!holder || Sim.inhabit(st, holder.id) !== true) { fail('no holder with grain to spare to play'); return; }
   tick(20);
   if (q('#actionsBtn').hidden) { fail('no Actions in the dock for the played pawn'); return; }
@@ -315,7 +315,18 @@ async function actionBar() {
   if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
     fail(`Go home from the Myself list: ${said} ${queue()}`); }
   Sim.unqueue(st, 0);
-  // the gift: a household, 5 rations, Add to the queue
+  // the agenda: a cause is no act of the Village list; the dock's Agenda offers each custom's other options, queues one, and links to the customs
+  q('#actBar [data-group="village"]').click(); tick(1);
+  if ([...doc.querySelectorAll('#actMenu .act-row')].some((b) => /cause/i.test(b.textContent))) fail('the Village list still offers a cause');
+  q('#agendaBtn').click(); tick(1);
+  const offer = q('#agendaContent [data-agenda="do"]:not([aria-disabled])');
+  if (q('#drawerTitle').textContent !== 'Agenda' || !offer) { fail('the Agenda panel offers no cause'); return; }
+  offer.click(); tick(1);
+  if (!queue().includes('argue') || !/^Queued: /.test(q('#agendaContent [role="status"]').textContent)) fail(`a cause from the Agenda: ${queue()}`);
+  Sim.unqueue(st, 0);
+  q('#agendaContent [data-agenda="customs"]').click(); tick(1);
+  if (q('#drawerTitle').textContent !== 'Customs' || !q('#customContent .custom-card')) fail('the Agenda\'s link does not open the customs');
+  q('#drawerClose').click(); q('#actionsBtn').click(); tick(1);
   q('#actBar [data-group="house"]').click(); tick(1);
   q('#actMenu [data-view="give"]').click(); tick(1);
   const to = q('#giveTo'), opt = to && to.querySelector('option:not([value=""])');
@@ -331,7 +342,7 @@ async function actionBar() {
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(5);
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);
-  if (q('#actBanner').hidden || !/^Walk here: tap an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
+  if (q('#actBanner').hidden || !/^Walk here: (tap|click) an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
     fail('Walk here\'s tool is not shown'); }
   win.HTMLElement.prototype.setPointerCapture = () => {};
   const tap = (type) => {

@@ -93,10 +93,12 @@ const Culture = (() => {
     kind: { village: 1, city: 2.2 },
     oblique: 0.3,      // share of the social target taken from the settlement as a whole
     advocacyPull: 3, advocacyWeight: 3,
+    advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
+    causeEvery: 5,      // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
     margin: 0.25, tieMargin: 0.6, returnMargin: 0.12, // meeting margins
     cultureMarginBase: 0.6, cultureMarginSize: 0.4,   // culture margin = margin * (base + size * sqrt(N / 100))
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
-    entrepreneur: 0.004, entrepreneurYears: [5, 15], // chance per adult, custom and year (times malleability squared)
+    entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
     persuasion: 1.5,   // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
   };
 
@@ -111,6 +113,17 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
+  // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
+  // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
+  // quorum, or a tie): no village work that year, or last year's work again.
+  const PRACTICES = Object.freeze({
+    noDecision: Object.freeze({ label: 'When the meeting does not decide', opts: Object.freeze([['nothing', 'No village work that year'],
+      ['asLastYear', 'The work of last year']]), base: 'nothing' }),
+  });
+  const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
+  // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
+  const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
@@ -119,6 +132,7 @@ const Culture = (() => {
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
       parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
+      practices: parent !== null && env.cultures[parent] && env.cultures[parent].practices ? { ...env.cultures[parent].practices } : basePractices(),
     };
     env.cultures.push(c);
     return c;
@@ -141,9 +155,21 @@ const Culture = (() => {
   // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
   function initPerson(p, att) {
     p.att = att; p.anc = Float32Array.from(p.att);
-    p.prestige = 1; p.interest = null; p.advocate = null;
+    p.prestige = 1; p.interest = null; p.advocate = null; p.causeSince = null;
   }
-  function advocate(p, dim, opt, until) { p.advocate = dim === null ? null : { dim, opt, until }; } // dim null: lays the cause down
+  // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
+  // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
+  function advocate(p, dim, opt, until, t, natural) {
+    if (dim === null) { p.advocate = null; return; }
+    p.advocate = natural ? { dim, opt, until, natural: true } : { dim, opt, until };
+    if (t === undefined) return;
+    p.causeSince = t;
+    const o = OFF[dim], n = NOPT[dim];
+    for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
+    normBlock(p.att, o, n);
+  }
+  // The year from which the pawn may take up a new cause (it is free when t has reached it).
+  const causeFree = (p) => (p.causeSince === null || p.causeSince === undefined ? -Infinity : p.causeSince + P.causeEvery);
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
@@ -235,7 +261,7 @@ const Culture = (() => {
       const p = hooks.byId(id);
       if (!p.alive || p.age < 18) continue;
       if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
-      if (p.advocate) continue;
+      if (p.advocate || env.t < causeFree(p)) continue;
       for (let d = 0; d < DIMS.length; d++) {
         if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m) continue;
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
@@ -247,8 +273,7 @@ const Culture = (() => {
         }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
-        const [a, b] = P.entrepreneurYears;
-        p.advocate = { dim: d, opt, until: env.t + a + rand() * (b - a), natural: true };
+        advocate(p, d, opt, env.t + P.causeEvery, env.t, true);
         out.push(p);
         break;
       }
@@ -362,8 +387,9 @@ const Culture = (() => {
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
-  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
-    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS } });
+  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, causeFree: { value: causeFree }, norm: { value: norm },
+    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
   return api;
 })();
 VB['culture'] = Culture;

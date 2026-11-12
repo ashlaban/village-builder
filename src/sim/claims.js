@@ -4,6 +4,7 @@ VB['sim/claims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
   const { kinship, membersOf, voiceOf, tieOf } = VB['sim/records'];
+  const Projects = VB['sim/projects'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
   // @state st.claims: Map of tile to its claims [{by: {type 'pawn'|'household'|'village', id}, state 'unrealised'|'realised', why ('outland',
@@ -119,7 +120,7 @@ VB['sim/claims'] = (() => {
       for (const fd of f.fields) kind.set(fd.tile, 'fields');
       for (const m of f.meadows || []) kind.set(m.tile, 'meadows');
     }
-    for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (!p.built) kind.set(tr.tile, 'plots');
+    for (const v of st.villages) for (const p of Projects.projectsOf(st, 'village', v.id)) for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
     const greens = new Set(st.villages.map((v) => v.center));
     const households = new Map(), villages = new Map();
     const row = (m, id, keys) => { if (!m.has(id)) m.set(id, Object.fromEntries([...keys, 'claims'].map((k) => [k, 0]))); return m.get(id); };

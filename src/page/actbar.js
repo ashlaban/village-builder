@@ -2,9 +2,10 @@
 // the played pawn's acts by their basis, an act that needs a tile puts the map in a tool mode, and the gift is one form in the list
   // ======== the action bar ========
   // All of it is the page's own state, never saved: whether the bar is open (barOpen), the list open above it (barMenu: {g, view}, the group
-  // 'self', 'house' or 'village', and a view inside it, null, 'round', 'causes' or 'give'), its last message (barMsg: {text, bad}), the tool
+  // 'self', 'house' or 'village', and a view inside it, null, 'round' or 'give'), its last message (barMsg: {text, bad}), the tool
   // (tool: an act waiting for a tile, below) and the gift's draft (gift). It reads st and queues through Sim, as the sheet does (page/play).
   let barOpen = false, barMenu = null, barMsg = null, barHTML = '', tool = null, toolKey = '', flash = null, bannerHTML = '';
+  const tapWord = coarse ? 'tap' : 'click'; // what a press on the map is called, by the pointer
   const GROUPS = { self: 'Myself', house: 'Household', village: 'Village' };
   const toolG = new PIXI.Graphics();
   L.hover.addChild(toolG);
@@ -43,7 +44,7 @@
     let h = '';
     for (const [k, items] of kinds) {
       const open = items.filter((o) => o.why === null), o = open[0], whom = (x) => `for ${holderName(x.holder)}, ${BASIS[x.basis]}`;
-      const note = open.length > 1 ? `${open.length} places ${whom(o)}: tap one on the map` : o ? `${whom(o)}` : null;
+      const note = open.length > 1 ? `${open.length} places ${whom(o)}: ${tapWord} one on the map` : o ? `${whom(o)}` : null;
       h += actRow(`data-bar="work" data-kind="${k}" data-holder="${o ? o.holder.type : ''}"`, KIND_ICON[k] || 'hoe', Sim.KINDS[k].name, note,
         o ? null : items[0].why, open.length > 1);
     }
@@ -52,51 +53,41 @@
   // The open list: a group's acts, or a view inside it (the moving round's wishes, the causes, the gift's form).
   function menuHTML(id, opps) {
     const p = st.pawns[id], m = barMenu, hh = p.household !== null ? st.households[p.household] : null;
-    const by = { self: [], house: [], village: [], causes: [], round: [], offers: [] };
+    const by = { self: [], house: [], village: [], round: [], offers: [] };
     for (const o of opps) {
       if (o.when === 'offer') by.offers.push(o);
       else if (o.when === 'round') by.round.push(o);
       else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
-      else if (o.verb === 'argue' || o.verb === 'dropCause') by.causes.push(o);
+      else if (o.verb === 'argue' || o.verb === 'dropCause') continue; // a cause is no act: the dock's Agenda (page/drawer)
       else by.self.push(o);
     }
-    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Its cause' : 'Argue a cause', give: 'Give grain' };
+    const TITLES = { round: 'At the moving round', give: 'Give grain' };
     let h = `<div class="mh">${m.view ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>` :
       ''}`
       + `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>`
       + `<button type="button" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
     if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
     if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
-    if (m.view === 'causes') {
-      return `${h}<div class="play">${causeNote(p)}</div>${by.causes.map((o) =>
-        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'It argues no more',
-          o.why)).join('')}`;
-    }
     if (m.view === 'give') return h + giveHTML(id);
     if (m.g === 'self') {
       const home = by.self.find((o) => o.verb === 'goHome'), idle = by.self.find((o) => o.verb === 'idle');
-      h += actRow('data-bar="walk"', 'walk', 'Walk here', 'Then tap an open tile on the map');
-      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for itself', home.why);
-      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'It waits where it is', idle.why);
-      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for its answer`, null, true);
-      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Its wishes: moving out, a farm, service, a match',
+      h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
+      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
+      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for your answer`, null, true);
+      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Your wishes: moving out, a farm, service, a match',
         null, true);
       return h;
     }
     if (m.g === 'house') {
-      if (!hh) return `${h}<p class="act-empty">It belongs to no household.</p>`;
-      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of its household it may take now.</p>';
+      if (!hh) return `${h}<p class="act-empty">You belong to no household.</p>`;
+      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of your household you may take now.</p>';
       const own = givesFor(id);
       h += actRow('data-bar="view" data-view="give"', 'gift', 'Give grain', own ? `To kin or a neighbour; ${giftMax(own)} rations above the seed` : '',
         own ? null : "only the household's holder gives its grain", true);
       return h;
     }
-    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work it may take now.</p>';
-    if (by.causes.length || p.advocate) {
-      const a = p.advocate;
-      h += actRow('data-bar="view" data-view="causes"', 'cause', TITLES.causes, a ? `For “${Culture.DIMS[a.dim].opts[a.opt][1]}”, `
-        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village it would change', null, true);
-    }
+    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
     return h;
   }
   // Called by renderActions (page/play), with the opportunities it read, or null while neither the list nor the tool is open.
@@ -148,7 +139,7 @@
       startTool({ kind: 'work', work: kind, holder, icon: KIND_ICON[kind] || 'hoe', title: Sim.KINDS[kind].name, needs: 'a marked tile', keep: true });
       return;
     }
-    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none it may take now.`, bad: true }; return; }
+    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none you may take now.`, bad: true }; return; }
     const r = Sim.queue(st, { actor: id, verb: 'work', target: open[0].target });
     barMsg = r === true ? { text: `Queued: ${commandWords(open[0])}.` } : { text: r, bad: true };
   }
@@ -177,11 +168,11 @@
     tool.msg = null;
     if (tool.kind === 'walk') {
       const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
-      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: tap an open tile`, bad: true };
+      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: ${tapWord} an open tile`, bad: true };
       else done(Sim.queue(st, { actor: id, verb: 'walkTo', target: i }), 'Queued: walk to the tile.');
     } else if (tool.kind === 'work') {
       const o = Sim.opportunities(st, id).find((x) => x.verb === 'work' && x.kind === tool.work && x.holder.type === tool.holder && x.site === i);
-      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: tap a marked tile`, bad: true };
+      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: ${tapWord} a marked tile`, bad: true };
       else if (o.why) tool.msg = { text: o.why, bad: true };
       else { const r = Sim.queue(st, { actor: id, verb: 'work', target: o.target });
         tool.msg = r === true ? { text: `Queued: ${commandWords(o)}.` } : { text: r, bad: true }; }
@@ -198,8 +189,8 @@
     const el = $('actBanner');
     let h = '';
     if (tool) {
-      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: tap ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
-        ? '<span class="bad">None is open to it now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
+      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
+        ? '<span class="bad">None is open to you now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
         + `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;
     } else if (flash && performance.now() < flash.until) h = `<div class="txt">${esc(flash.text)}</div>`;
     else flash = null;

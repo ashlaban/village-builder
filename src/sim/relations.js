@@ -156,7 +156,7 @@ VB['sim/relations'] = (() => {
   }
   on('claimTaken', (st, e) => remember(st, e.loser, e.taker, 'claim'));
   on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
-  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
+  on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull')); on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) { const mem = {}; let n = 0; for (const k in r.mem) if (keep(k)) { mem[k] = r.mem[k]; n++; } r.mem = mem; return n > 0; }

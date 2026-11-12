@@ -2,6 +2,60 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 12 November 2026 (VB-335)
+
+## VB-335: sheaves by the load, built and held back (raised 12 November 2026)
+Built as you decided (30 rations on the back, 90 on a cart) and NOT merged: on top of VB-333's longer harvest it leaves the short-handed
+households clearly worse off. The work is `docs/patches/VB-335.patch` (against `942ec05`); the numbers are in `backlog/VB-335.md`.
+1. Populous small, 15 years, against the branch with VB-333: hauling goes from 14 to about 40 hours a household-year and the barn is reached
+   1 to 2 days later; crops lost to frost rise again (field-years: seed 7, 113 to 118; seed 42, 72 to 95; nearly all in households of 5 or 6
+   fields); hungry household-days 1 to 31 (seed 7), 6 to 10 (seed 42), founders 5 to 18; deaths 147 to 161 at seed 7; and by
+   `tools/balance.js` households of nine fall from 1.02 to 0.73 of their need made, the lone holder from 1.61 to 1.51. **P:** merge it
+   together with what lets a household match its fields to its hands, not before: the fields a household wants counting its hands at the
+   harvest (VB-254), and neighbours helping at the harvest (VB-106). Or, sooner and smaller: stooks do not rot at the first frost but lose a
+   share a day after it (the frost kills a standing crop; sheaves in stooks stand some weather), which takes the cliff out of a late haul.
+   **A (Kim, 12 Nov):** Merge VB-335 as built.
+
+# Archived 12 November 2026 (VB-119)
+
+## VB-119: fresh fish on dried fish (raised 12 November 2026)
+VB-119 was rebuilt on dried fish (VB-300) as you decided on 11 November, with a cook job under way finishing after 18:00, and measured by the
+same runs (populous small, 30 years, seeds 3, 7, 11, 42; `backlog/VB-119.md`, third pass). Households are still hungrier: household-years
+hungry on over 0.3 of their days 0 / 0 / 0 / 0 -> 6 / 0 / 5 / 2, hungry days 30 / 19 / 17 / 14 -> 261 / 33 / 170 / 40, grain at harvest 3 to
+30% lower from year 5. Households dry 35,000 to 56,000 rations of fish over 30 years, as before, while 120,000 to 200,000 rations of fresh
+fish spoil (40 to 46% of the fish landed for food): a boat's trip lands about two days of a household's need, and the summer's surplus that
+fed the winter as meals is lost. The hungry households are the poorest (1 or 2 fields, many children, fished-out water) after a poor
+harvest, and they eat their seed uncooked, at 1.25. The branch is committed, not merged.
+1. How the summer's surplus is kept. **P:** a catch the household cannot eat before it spoils is dried, not lost: the drying want grows
+   from a quarter of the winter's need to the winter's fish share of the pot and its season runs to the end of autumn (VB-300's `DRY`),
+   and fishing for the pot waits while the fresh fish held covers the next 2 days of the pot (its urgency counts grain today, so a
+   household with grain fishes daily and the catch spoils). Measured by the same runs before merging.
+   **A (Kim, 12 Nov):** Merge VB-119 as rebuilt; drying the catch a household cannot eat is a separate task (VB-388), as proposed.
+2. The seed a short household eats. **P:** it is cooked like other grain: the cook cooks from the seed what the coming day's meal would take
+   from it (as `feedHousehold` does), so `rawGrain` falls only on days the cook is missed (seed 3 with `rawGrain` 1: 6 -> 1 hungry
+   household-years).
+   **A (Kim, 12 Nov):** In the same separate task (VB-388): the cook cooks the seed a short household would eat, as proposed.
+
+# Archived 11 November 2026 (VB-119)
+
+## VB-119 and VB-023: two tasks built and held back (raised 11 November 2026)
+Both were built in the night's run and left out of its PR, because their own numbers show households no better or worse off. Each is kept as a
+patch (`docs/patches/`) with its notes in the task file; the tasks are `needs-review`.
+1. VB-119, fresh food spoils. With a 3-day shelf life, the cooking order and the cap of 4 batches, about a fifth of the fish landed spoils, and
+   over 30 years (populous small) seed 3 goes from 3 to 9 household-years hungry on over 0.3 of their days and grain at harvest falls 10 to 30%;
+   a mixed pot (a tenth saved) is in a fifth of the pots. Spoilage is 87% of the loss. **P:** merge it only with a way to keep fish (dried fish,
+   VB-300, which the fair needs anyway): build VB-300 first, then VB-119 on it, measured by the same runs.
+   **A (Kim, 11 Nov):** Accepted as proposed: dried fish (VB-300) is built first, then VB-119 is merged on it from its patch and measured by the same runs.
+2. VB-119, grain eaten raw costs a quarter more (`ECON.rawGrain` 1.25, the agent's value; the design gives none). It is 13% of the loss, and less
+   since the cook is called from idling (applied in the night's PR: days eaten uncooked 1,738 to 517 at seed 7, 2 years). **P:** 1.25, once a
+   cook job under way may finish after work ends (most of the days still uncooked are cooks walking home at 18:00).
+   **A (Kim, 11 Nov):** Accepted as proposed: raw grain stays at 1.25, once a cook job under way may finish after work ends.
+3. VB-023, sowing first. Hoeing waits while a hoed field is unsown, so sowing comes 0.2 to 0.4 days earlier on every seed, but crops brought in
+   over years 4 to 15 fall on two seeds of four (seed 3: 3,430 to 3,280; 42: 3,242 to 3,189; 7 and 11 rise by 10 and 64), within what runs
+   diverge by, and `routeRefresh` triples for a reason not found. VB-322 already brought frost losses back to 3.6 to 5.7%. **P:** close VB-023
+   as not needed after VB-322, and keep only its spring order of the template (sow before plow) if a head's plan should read so (VB-253).
+   **A (Kim, 11 Nov):** Accepted as proposed: VB-023 is closed as not needed after VB-322; the template's spring order (sow before plow) is VB-253's to take up if a head's plan should read so.
+
 # Archived 11 November 2026 (VB-185)
 
 ## VB-185: slice 6, the mill and the loom, the kiln and the quarry (raised 11 November 2026)

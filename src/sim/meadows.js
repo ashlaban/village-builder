@@ -1,4 +1,5 @@
-// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project, and the meadows of generated farms
+// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project (a project plan of
+// sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
@@ -15,6 +16,8 @@ VB['sim/meadows'] = (() => {
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const Stores = VB['sim/stores'];
+  const Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { seedPer } = VB['sim/hunger'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -52,23 +55,30 @@ VB['sim/meadows'] = (() => {
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
   // with no free tile within reach, it may contest a stake another household of its village left unworked.
   // The land step of its standing plan (sim/plans, VB-248), after the field's: `given` a tile the plan names in place of chooseMeadow's (-1: none).
+  // The project plan of a new meadow on `tile`, as sim/plans makes it (makeProject; VB-123): one step of clearing, under the household's
+  // stake. It holds back a field's seed, as the seed reserve counted any land project before project plans (kept so the run is the same;
+  // VB-123's notes).
+  function meadowProject(st, hh, tile) {
+    const hours = CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES);
+    return { what: 'meadow', steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }], hold: { [Stores.grainGood('barley')]: seedPer(st, hh) } };
+  }
   function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
-    if (f.project || !wantsMeadow(st, f, hh)) return;
+    if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;
     let tile = given >= 0 ? given : chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
     }
     stake(st, hh, tile, 'meadow');
-    f.project = { tile, stage: 'meadow', hours: CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) };
+    return meadowProject(st, hh, tile);
   }
-  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on.
+  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on; the project is finished.
   function finishMeadow(st, f, hh) {
-    const w = st.w, tile = f.project.tile, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
     realiseStake(st, hh, tile);
     const loads = Math.round(gone / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] -= gone;
-    f.project = null;
+    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
@@ -138,18 +148,21 @@ VB['sim/meadows'] = (() => {
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
   }
-  // Once a game day, at its start: each spring the meadows are grass again; hay still lying at the autumn frost rots.
-  function meadowsDay(st, c) {
+  // At the year's start (sim/clock, CALENDAR: meadowsSpring): the meadows are grass again.
+  function meadowsSpring(st) {
+    for (const f of st.farmsteads) for (const m of f.meadows) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
+  }
+  // At the autumn frost, the season's last day (sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
+  function meadowsFrost(st) {
     for (const f of st.farmsteads) for (const m of f.meadows) {
-      if (c.doy === 0) { m.stage = 'grass'; m.raked = false; m.mown = null; m.held = 0; }
-      if (c.season === 2 && c.sday === SEASON_DAYS - 1 && m.stage === 'mown') {
-        m.stage = 'aftermath'; m.held = 0;
-        if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
-      }
+      if (m.stage !== 'mown') continue;
+      m.stage = 'aftermath'; m.held = 0;
+      if (f.household !== null) log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
-    finishMeadow, placeMeadows, meadowAt,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+      startMeadow,
+    meadowProject, finishMeadow, placeMeadows, meadowAt,
   };
 })();

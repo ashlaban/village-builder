@@ -2,8 +2,21 @@
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
+// Grain by crop (VB-347): an object of crops of CROPS, none negative, and the sum the readers see (Stores.grainOf) is their sum.
+const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
+function grainBad(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
+  let sum = 0;
+  for (const c of Object.keys(g)) {
+    if (!CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
+    sum += g[c];
+  }
+  return Math.abs(LOADED['sim/stores'].grainOf({ grain: g }) - sum) > 1e-9 * Math.max(1, sum);
+}
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
+  // the open step of a household's project plan (VB-123), or null
+  const projectStep = (id) => { const l = st.plans && st.plans.projects && st.plans.projects.household.get(id); return l && l.length ? l[0].steps[l[0].open] : null; };
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
@@ -32,7 +45,8 @@ function checkState(st) {
           bad.push(`plans: ${type} ${id} has no standing plan of its own`);
         }
       }
-      if (type === 'household') for (const id of map.keys()) if (!st.households[id] || st.households[id].dissolved) bad.push(`plans: dissolved household ${id} keeps a plan`);
+      if (type === 'household') for (const id of map.keys()) if (!st.households[id] ||
+        st.households[id].dissolved) bad.push(`plans: dissolved household ${id} keeps a plan`);
       // VB-248: reservations live on a live plan (so none names a plan that is gone), one reason and a count >= 0 for each good the
       // holder can hold; a household's plan has its targets and tiles. (That a reservation never exceeds its holder's stock does not hold
       // for seed yet: the seed reservation is the fields' need, and a household short of grain reserves more than it holds; VB-252.)
@@ -43,14 +57,23 @@ function checkState(st) {
         if (goods.length !== Object.keys(plan.reasons).length) bad.push(`plans: ${type} ${id} reservations and reasons disagree`);
         for (const good of goods) {
           const n = plan.reserved[good];
-          if (!(n >= 0) || !Number.isFinite(n) || !STORES.RESERVE.includes(plan.reasons[good]) || (type === 'household' && good !== 'grain' && good !== 'meals')) {
+          if (!(n >= 0) || !Number.isFinite(n) || !STORES.RESERVE.includes(plan.reasons[good]) ||
+            (type === 'household' && !STORES.CROP_LIST.some((c) => good === STORES.grainGood(c)) && good !== 'meals')) {
             bad.push(`plans: ${type} ${id} reserves ${n} ${good} for ${plan.reasons[good]}`);
           }
         }
-        if (type !== 'household') continue;
+        if (type !== 'household') {
+          // VB-257: a village's routines this year: at most MAX_ROUTINES, each a known routine, once; set by the founders, the meeting or a
+          // practice of what follows a meeting that did not decide
+          const PL = globalThis.VB['sim/plans'], R = plan.routines;
+          if (PL.routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
+            || (plan.routinesBy === 'nothing' && R.length)) bad.push(`plans: village ${id} has routines ${JSON.stringify(R)} by ${plan.routinesBy}`);
+          continue;
+        }
         const T = plan.targets;
         if (!T || T.wood.length !== 4 || !T.wood.every((x) => x > 0) || !(T.hayWinters > 0) || !(T.woodSecond >= 0) || !(T.fields >= 0) ||
-          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
+          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) ||
+          plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
         if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
@@ -86,7 +109,8 @@ function checkState(st) {
         if (!Array.isArray(e) || e.length !== 3 || !Number.isInteger(e[0]) || !Number.isInteger(e[2]) || e[2] < 0 || e[2] >= W.length) {
           bad.push(`plans: due entry ${JSON.stringify(e)} is malformed`); continue;
         }
-        if (prev && (prev[0] > e[0] || (prev[0] === e[0] && (prev[1] > e[1] || (prev[1] === e[1] && prev[2] >= e[2]))))) bad.push(`plans: due-queue unsorted at ${i}`);
+        if (prev && (prev[0] > e[0] ||
+          (prev[0] === e[0] && (prev[1] > e[1] || (prev[1] === e[1] && prev[2] >= e[2]))))) bad.push(`plans: due-queue unsorted at ${i}`);
         if (!st.households[e[1]] || st.households[e[1]].dissolved) bad.push(`plans: due entry for dissolved household ${e[1]}`);
         seen.add(`${e[1]}:${e[2]}`);
       }
@@ -97,13 +121,67 @@ function checkState(st) {
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
     }
+    // VB-123: project plans: each holder exists (a live household or village, a living pawn), keyed by it; its open step within its steps,
+    // each step a kind of sim/kinds on a tile; ids distinct; a finished or dropped plan is gone (no list kept empty); a household has at most
+    // one; its reservations are its own (reasons field or build), and what its steps will spend is held in its holder's stock; the store's
+    // count (sim/stores, reserved) is the sum of its plans'.
+    const P = st.plans.projects, STORES = globalThis.VB['sim/stores'], ids = new Set();
+    if (!P || !(P.household instanceof Map) || !(P.village instanceof Map) || !(P.pawn instanceof Map) || !(st.plans.projectSeq >= 0)) bad.push('plans: no project plans record');
+    else for (const type of ['household', 'village', 'pawn']) for (const [id, list] of P[type]) {
+      const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
+      if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
+      if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
+      if (type === 'household' && list.length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      for (const pl of list) {
+        const where = `plans: project ${pl.id} of ${type} ${id}`;
+        if (pl.kind !== 'project' || pl.holder.type !== type || pl.holder.id !== id || ids.has(pl.id) || !(pl.id > 0 && pl.id <= st.plans.projectSeq)) bad.push(`${where} is misfiled`);
+        ids.add(pl.id);
+        if (!Array.isArray(pl.steps) || !pl.steps.length || !Number.isInteger(pl.open) || pl.open < 0 || pl.open >= pl.steps.length) {
+          bad.push(`${where}: open step ${pl.open} of ${pl.steps && pl.steps.length}`); continue;
+        }
+        for (const s of pl.steps) { // a step at one place, or at several (a plot's tiles, each with its own steps; VB-123)
+          if (!KINDS[s.kind] || (s.places ? !s.places.every((q) => tileOk(q.tile)) : !tileOk(s.place) || !(s.hours >= 0))) bad.push(`${where}: step ${JSON.stringify(s)}`);
+        }
+        if (!h || h.dissolved) continue;
+        for (const good of Object.keys(pl.reserved)) {
+          const n = pl.reserved[good], why = pl.reasons[good];
+          if (!(n >= 0) || !['field', 'build'].includes(why)) bad.push(`${where} reserves ${n} ${good} for ${why}`);
+          if (why === 'build' && n > (h[good] || 0) + 1e-6) bad.push(`${where} reserves ${n} ${good}, more than its holder's ${h[good] || 0}`);
+          const sp = type === 'pawn' ? null : (type === 'household' ? st.plans.households : st.plans.villages).get(id), why0 = sp && sp.reasons[good];
+          const own = !why0 ? 0 : why0 === 'seed' ? globalThis.VB['sim/hunger'].seedNeed(st, h) : sp.reserved[good];
+          const projects = list.reduce((x, q) => x + (q.reasons[good] ? q.reserved[good] : 0), 0);
+          if (Math.abs(STORES.reserved(st, h, good) - own - projects) > 1e-6) bad.push(`${where}: the store's count of ${good} is not its plans'`);
+        }
+        if (Object.keys(pl.reserved).length !== Object.keys(pl.reasons).length) bad.push(`${where}: reservations and reasons disagree`);
+      }
+    }
     for (const id of st.living) {
       const d = st.pawns[id].diligence;
       if (d !== undefined && !(d >= 0 && d < 1)) bad.push(`pawn ${id}: diligence ${d}`);
     }
   } else bad.push('plans: missing');
+  // a cause is an agenda: the year it was taken up (culture), null or undefined for none yet, and never in the future
+  for (const id of st.living) {
+    const cs = st.pawns[id].causeSince;
+    if (cs !== null && cs !== undefined && !(cs <= st.t / globalThis.VB['sim/rules'].YEAR + 1e-6)) bad.push(`pawn ${id}: causeSince ${cs}`);
+  }
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
+  }
+  // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
+  // every other entry null or a number in (0, ROUTE.reach / SPEED]
+  {
+    const T = st.villageHours, n = st.villages.length, top = globalThis.VB['sim/rules'].ROUTE.reach / globalThis.VB['sim/rules'].SPEED;
+    if (!Array.isArray(T) || T.length !== n) bad.push(`villageHours: ${Array.isArray(T) ? T.length : T} rows for ${n} villages`);
+    else for (let v = 0; v < n; v++) {
+      if (!Array.isArray(T[v]) || T[v].length !== n) { bad.push(`villageHours[${v}]: not a row of ${n}`); continue; }
+      for (let u = 0; u < n; u++) {
+        const h = T[v][u];
+        if (u === v ? h !== 0 : !(h === null || (typeof h === 'number' && h > 0 && h <= top + 1e-9))) bad.push(`villageHours[${v}][${u}]: ${h}`);
+        else if (u > v && Array.isArray(T[u]) &&
+          ((h === null) !== (T[u][v] === null) || (h !== null && Math.abs(h - T[u][v]) > 1e-9))) bad.push(`villageHours[${v}][${u}]: not symmetric`);
+      }
+    }
   }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
@@ -113,7 +191,8 @@ function checkState(st) {
     if (typeof e === 'number') { if (!(Number.isInteger(e) && e >= 0 && e < Y.length)) bad.push(`record[${i}]: folded into no count, ${e}`); continue; }
     if (typeof e.kind !== 'string' || !e.kind || !(e.t <= st.t)) bad.push(`record[${i}]: ${JSON.stringify(e)}`);
     if ('self' in e && (e.self !== true || !('pawn' in e))) bad.push(`record[${i}].self: ${JSON.stringify(e)}`);
-    for (const [k, list] of Object.entries(ids)) if (k in e && !(Number.isInteger(e[k]) && e[k] >= 0 && e[k] < list.length)) bad.push(`record[${i}].${k}: ${e[k]}`);
+    for (const [k, list] of Object.entries(ids)) if (k in e &&
+      !(Number.isInteger(e[k]) && e[k] >= 0 && e[k] < list.length)) bad.push(`record[${i}].${k}: ${e[k]}`);
   }
   if (st.record) checked.set(st.record, st.record.length);
   // the folded counts (VB-199), those made since the last check: a routine kind, a whole year at least two before now, a village that exists
@@ -132,7 +211,8 @@ function checkState(st) {
     checked.set(Y, seen);
     const F = st.recordFold, P = F && F.pass, pos = (x) => Number.isInteger(x) && x >= 0 && x <= st.record.length;
     if (!F || !pos(F.shortAt) || !pos(F.longAt) || (P && !(pos(P.shortEnd) && pos(P.longEnd) && P.shortEnd >= F.shortAt && P.longEnd >= F.longAt
-      && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt && P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
+      && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
+        P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {
@@ -187,15 +267,39 @@ function checkState(st) {
     }
     if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
-    for (const k of ['grain', 'wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
+    for (const k of ['wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
-    for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 || h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
-    if (h.digAt !== undefined && !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+    for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||
+      h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (h.digAt !== undefined &&
+      !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+    // the catch waiting by the drying rack, and the household's boat: a shore tile next to water of the sea or a large lake (VB-300)
+    if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
+    const b = h.boat;
+    if (b && !(tileOk(b.tile) && tileOk(b.house) && st.w.water[b.water] === 1 && Array.from({ length: 6 }, (_, k) => st.w.nb[b.tile * 6 + k]).includes(b.water)
+      && b.built <= st.t)) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
+    if (b !== undefined && b !== null && typeof b !== 'object') bad.push(`households[${h.id}]: boat ${b}`);
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
-    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
+    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || FOODS[l.kind].held !== 'larder' ||
+      !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
+    // fresh food (sim/pot, VB-119): batches of fresh foods above 0, in day order, none from a later day, at most FRESH_CAP of a food (a batch
+    // past its shelf life is held until the store is next touched, and read as gone)
+    if (!Array.isArray(h.fresh)) bad.push(`households[${h.id}]: no fresh store`);
+    else {
+      const today = Math.floor(st.t / globalThis.VB['sim/rules'].DAY), per = {};
+      for (let i = 0; i < h.fresh.length; i++) {
+        const b = h.fresh[i];
+        if (!FOODS[b.food] || FOODS[b.food].held !== 'fresh' || !(b.qty > 0) || !within(b.qty, 0, 1e6) || !Number.isInteger(b.day) || b.day > today
+            || i && h.fresh[i - 1].day > b.day) bad.push(`households[${h.id}]: fresh batch ${JSON.stringify(b)}`);
+        per[b.food] = (per[b.food] || 0) + 1;
+      }
+      for (const k in per) if (per[k] > globalThis.VB['sim/pot'].FRESH_CAP) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
+    }
     // help's seasonal ask (sim/help, VB-222): the season of the last ask, no later than this one
-    if (h.askedIn !== undefined && !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
+    if (h.askedIn !== undefined &&
+      !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
       bad.push(`households[${h.id}]: askedIn is ${h.askedIn}`);
     // ale (VB-305): lots in order of their season's end, whole barrels, none kept past a season; the pours, the last BREW.maxBarrels in order of time
     {
@@ -203,7 +307,8 @@ function checkState(st) {
       if (!Array.isArray(h.ale) || !Array.isArray(h.poured)) bad.push(`households[${h.id}]: no ale or poured`);
       else {
         h.ale.forEach((l, i) => {
-          if (!(Number.isInteger(l.n) && l.n > 0) || !(l.until <= st.t + keeps) || i && h.ale[i - 1].until > l.until) bad.push(`households[${h.id}]: invalid ale lot ${JSON.stringify(l)}`);
+          if (!(Number.isInteger(l.n) && l.n > 0) || !(l.until <= st.t + keeps) || i &&
+            h.ale[i - 1].until > l.until) bad.push(`households[${h.id}]: invalid ale lot ${JSON.stringify(l)}`);
         });
         if (h.poured.length > B.maxBarrels || h.poured.some((t, i) => !(t <= st.t) || i && h.poured[i - 1] > t))
           bad.push(`households[${h.id}]: invalid pours ${JSON.stringify(h.poured)}`);
@@ -219,10 +324,11 @@ function checkState(st) {
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
+  const FISHES = ['fish', 'dried fish', 'gathered']; // the catch by the drying rack and the fish hung on it (VB-300), fresh food (VB-119)
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -232,14 +338,18 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...WOODS].includes(x.good) || seen.has(key)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
     }
     if (holder.dissolved && (holder.ledger.length || holder.totals.length)) bad.push(`households[${holder.id}]: dissolved with a ledger`);
   }
   for (const v of st.villages) {
-    if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
+    if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
+    // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has
+    if (v.fishing !== undefined && !(v.fishing && Number.isInteger(v.fishing.farms) && v.fishing.farms <= v.farmsteads.length
+      && typeof v.fishing.near === 'boolean')) bad.push(`villages[${v.id}]: fishing ${JSON.stringify(v.fishing)}`);
     // every village has the Culture settlement of the same id (sim/society, addSettlement); moving to new land (sim/settle)
     const s = st.cenv.settlements[v.id];
     if (!s || s.id !== v.id) bad.push(`villages[${v.id}]: no Culture settlement with its id`);
@@ -266,7 +376,12 @@ function checkState(st) {
   const gens = Object.keys(VB['sim/names'].FARM);
   for (const c of st.cenv.cultures) {
     const f = c.namePrefs && c.namePrefs.farm;
-    if (!Array.isArray(f) || !f.length || new Set(f).size !== f.length || !f.every((g) => gens.includes(g))) bad.push(`cultures[${c.id}]: namePrefs ${JSON.stringify(c.namePrefs)}`);
+    if (!Array.isArray(f) || !f.length || new Set(f).size !== f.length ||
+      !f.every((g) => gens.includes(g))) bad.push(`cultures[${c.id}]: namePrefs ${JSON.stringify(c.namePrefs)}`);
+    // VB-257: the culture's practices that are not customs, each one of its options
+    const P = globalThis.VB.culture.PRACTICES;
+    for (const k of Object.keys(P)) if (!c.practices ||
+      !P[k].opts.some((o) => o[0] === c.practices[k])) bad.push(`cultures[${c.id}]: practice ${k} is ${c.practices && c.practices[k]}`);
   }
   for (const p of st.pawns) {
     if (p.alive) {
@@ -283,7 +398,8 @@ function checkState(st) {
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
-    if (p.kinPush !== null && !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
+    if (p.kinPush !== null &&
+      !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
     if (p.landWait !== undefined && !(Number.isInteger(p.landWait) && p.landWait >= 0)) bad.push(`pawns[${p.id}]: landWait is ${p.landWait}`);
   }
   const open = new Map();
@@ -300,10 +416,13 @@ function checkState(st) {
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);
-    if (f.tarredUntil !== undefined && !(f.tarredUntil <= st.t + globalThis.VB['sim/rules'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(`farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
+    if (f.tarredUntil !== undefined &&
+      !(f.tarredUntil <= st.t + globalThis.VB['sim/rules'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
+      `farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
     const b = f.booth; // settlers' booth: cottage stages done (0..2) and hours on the open one (sim/settle)
-    if (b !== null && !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
+    if (b !== null &&
+      !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
     if (b !== null && b.wood !== undefined && !within(b.wood, 0, 1e4)) bad.push(`farmsteads[${f.id}]: booth timber ${b.wood}`); // VB-328
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
@@ -315,23 +434,30 @@ function checkState(st) {
       for (const m of f.meadows || []) if (!st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unused`);
     }
     // a claim on an empty farm (VB-033): only on an empty, derelict farm, its hours in range, and the claimant's claim on its house
-    if (f.claim) {
-      const c = st.claims && VB['sim/claims'].claimOf(st, f.house, { type: 'pawn', id: f.claim.by });
-      if (f.household !== null || f.state !== 'derelict' || !st.pawns[f.claim.by]) bad.push(`farmsteads[${f.id}]: claim by ${f.claim.by} on a farm ${f.state}, held by ${f.household}`);
-      if (!within(f.claim.done, 0, f.claim.hours + 1e-6) || !within(f.claim.hours, 0, 120)) bad.push(`farmsteads[${f.id}]: claim hours ${f.claim.done} of ${f.claim.hours}`);
-      if (st.claims && (!c || c.why !== 'farm' || c.state !== 'unrealised')) bad.push(`farmsteads[${f.id}]: claim by ${f.claim.by} without its claim on the house`);
+    // (its claimant's project plan, VB-123)
+    const fc = VB['sim/farmclaims'].claimOn(st, f);
+    if ('claim' in f) bad.push(`farmsteads[${f.id}]: a claim kept on the farm`);
+    if (fc) {
+      const c = st.claims && VB['sim/claims'].claimOf(st, f.house, { type: 'pawn', id: fc.by });
+      if (f.household !== null || f.state !== 'derelict' || !st.pawns[fc.by]) bad.push(`farmsteads[${f.id}]: claim by ${fc.by} on a farm ${f.state}, held by ${f.household}`);
+      if (!within(fc.done, 0, fc.hours + 1e-6) || !within(fc.hours, 0, 120)) bad.push(`farmsteads[${f.id}]: claim hours ${fc.done} of ${fc.hours}`);
+      if (st.claims && (!c || c.why !== 'farm' || c.state !== 'unrealised')) bad.push(`farmsteads[${f.id}]: claim by ${fc.by} without its claim on the house`);
     }
-    // a field or meadow in the making is staked by its household, not owned by it (VB-158); an empty farm has no project
-    if (f.project && st.claims) {
-      const c = f.household === null ? null : VB['sim/claims'].claimOf(st, f.project.tile, { type: 'household', id: f.household });
-      if (!c || c.state !== 'unrealised' || c.why !== (f.project.stage === 'meadow' ? 'meadow' : 'field')) bad.push(`farmsteads[${f.id}]: project on ${f.project.tile} not staked by its household`);
-      if (f.household !== null && st.owner[f.project.tile] === f.household + 1) bad.push(`farmsteads[${f.id}]: project tile ${f.project.tile} owned before it is made`);
+    // a field or meadow in the making (its household's project plan, VB-123) is staked by its household, not owned by it (VB-158); the
+    // farm holds no project of its own
+    if ('project' in f) bad.push(`farmsteads[${f.id}]: a project kept on the farm`);
+    const pj = f.household === null ? null : projectStep(f.household);
+    if (pj && pj.stake && st.claims) {
+      const c = VB['sim/claims'].claimOf(st, pj.place, { type: 'household', id: f.household });
+      if (!c || c.state !== 'unrealised' || c.why !== pj.stake) bad.push(`farmsteads[${f.id}]: project on ${pj.place} not staked by its household`);
+      if (st.owner[pj.place] === f.household + 1) bad.push(`farmsteads[${f.id}]: project tile ${pj.place} owned before it is made`);
     }
   }
   // claims on tiles (sim/claims, VB-042): valid tiles and claimants, no claimant twice on a tile, strengths in 0..1, no empty lists
   if (st.claims) {
     const CL = VB['sim/claims'], WHY = ['outland', 'field', 'meadow', 'farm', 'birthright'];
-    const exists = (by) => by.type === 'pawn' ? !!st.pawns[by.id] : by.type === 'household' ? !!st.households[by.id] : by.type === 'village' && !!st.villages[by.id];
+    const exists = (by) => by.type === 'pawn' ? !!st.pawns[by.id] : by.type === 'household' ? !!st.households[by.id] : by.type === 'village' &&
+      !!st.villages[by.id];
     for (const [tile, list] of st.claims) {
       if (!tileOk(tile)) bad.push(`claims: tile ${tile} out of range`);
       if (!list.length) bad.push(`claims[${tile}]: empty list kept`);
@@ -343,19 +469,22 @@ function checkState(st) {
         if (!exists(c.by)) bad.push(`claims[${tile}]: claimant ${k} does not exist`);
         if (!['unrealised', 'realised'].includes(c.state) || !WHY.includes(c.why)) bad.push(`claims[${tile}]: ${k} is ${c.state}, ${c.why}`);
         if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq)) bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
-        if (c.by.type === 'household' && st.households[c.by.id] && st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
+        if (c.by.type === 'household' && st.households[c.by.id] &&
+          st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
         if ((c.why === 'outland') !== (c.by.type === 'village')) bad.push(`claims[${tile}]: ${k} claims ${c.why}`); // only villages claim outland (VB-156)
         if (c.why === 'birthright') { // the old family's claim on the house of its empty farm, for a while (VB-033)
           const f = st.farmsteads.find((x) => x.house === tile);
-          if (c.by.type !== 'pawn' || c.state !== 'realised' || c.until === null || !f || f.household !== null) bad.push(`claims[${tile}]: ${k} birthright is ${c.state} on ${f ? `a farm held by ${f.household}` : 'no farm'}`);
+          if (c.by.type !== 'pawn' || c.state !== 'realised' || c.until === null || !f ||
+            f.household !== null) bad.push(`claims[${tile}]: ${k} birthright is ${c.state} on ${f ? `a farm held by ${f.household}` : 'no farm'}`);
         }
         if (c.why === 'farm') { // a pawn's claim on the house of the empty farm it is restoring (VB-033)
           const f = st.farmsteads.find((x) => x.house === tile);
-          if (c.by.type !== 'pawn' || !f || !f.claim || f.claim.by !== c.by.id) bad.push(`claims[${tile}]: ${k} claims a farm with no claim under way`);
+          if (c.by.type !== 'pawn' || !f || VB['sim/farmclaims'].claimOn(st, f)?.by !== c.by.id) bad.push(`claims[${tile}]: ${k} claims a farm with no claim under way`);
         }
         if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
-          if (!f || !f.project || f.project.tile !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
+          const s = f && projectStep(f.household);
+          if (!s || s.place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
         }
       }
     }
@@ -374,17 +503,25 @@ function checkState(st) {
   for (const f of st.farmsteads) {
     if (onRiver(f.house)) bad.push(`farmsteads[${f.id}]: house on river tile ${f.house}`);
     for (const fd of f.fields) if (onRiver(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} on river tile ${fd.tile}`);
-    if (f.project && onRiver(f.project.tile)) bad.push(`farmsteads[${f.id}]: new field on river tile ${f.project.tile}`);
+    const pj = f.household === null ? null : projectStep(f.household);
+    if (pj && onRiver(pj.place)) bad.push(`farmsteads[${f.id}]: new field on river tile ${pj.place}`);
     for (const m of f.meadows || []) if (onRiver(m.tile) || st.w.water[m.tile]) bad.push(`farmsteads[${f.id}]: meadow ${m.id} on river or water tile ${m.tile}`);
   }
   for (const v of st.villages) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
-    for (const pl of v.plots || []) {
-      if (pl.cottage && !(Number.isInteger(pl.cottage.i) && pl.cottage.i >= 0 && pl.cottage.i <= 3)) bad.push(`villages[${v.id}]: plot ${pl.id} cottage stage ${pl.cottage.i}`);
-      if (pl.wood !== undefined && !within(pl.wood, 0, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.id} wood ${pl.wood}`); // VB-328
-      if (pl.built && !st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
+    // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
+    // site within range (VB-328); a built one's farmstead exists
+    const live = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [];
+    const nums = [...(v.plots || []).map((pl) => pl.id), ...live.map((pl) => pl.plot)].sort((a, b) => a - b);
+    if (!nums.every((n, i) => n === i)) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
+    for (const pl of live) {
+      if (pl.what !== 'plot' || pl.steps.length !== 4 || !pl.steps[0].places || !within(pl.steps[2].wood, -1e5, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.plot} shape`);
+      if (pl.to !== null && !st.pawns[pl.to]) bad.push(`villages[${v.id}]: plot ${pl.plot} allotted to nobody`);
     }
-    for (const pl of v.plots || []) for (const tr of pl.tiles) if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id} on river tile ${tr.tile}`);
+    for (const pl of v.plots || []) if (!st.farmsteads[pl.farmstead]) bad.push(`villages[${v.id}]: plot ${pl.id} built without a farmstead`);
+    for (const pl of [...v.plots || [], ...live]) for (const tr of pl.tiles || pl.steps[0].places) {
+      if (onRiver(tr.tile)) bad.push(`villages[${v.id}]: plot ${pl.id ?? pl.plot} on river tile ${tr.tile}`);
+    }
   }
   // worn paths (VB-094): counts finite and not negative, none on water; a stage from 0 to 3 that its count supports
   const { wear, worn } = st.w;
@@ -393,11 +530,18 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(wear[i] >= 0) || worn[i] > 3 || (wear[i] > 0 && st.w.water[i]) || (worn[i] && !(wear[i] > 0))) off++;
     if (off) bad.push(`w.wear: ${off} tiles with a count or stage out of place`);
   }
+  // grazing pressure (sim/grazing, VB-136): one finite value, not negative, a tile
+  if (st.w.graze) {
+    let off = 0;
+    for (let i = 0; i < N; i++) if (!(st.w.graze[i] >= 0 && st.w.graze[i] < Infinity)) off++;
+    if (st.w.graze.length !== N || off) bad.push(`w.graze: ${off} tiles with a pressure out of place, of ${st.w.graze.length}`);
+  }
   // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
   if (st.w.rain) {
     let off = 0;
     for (let i = 0; i < N; i++) if (!(st.w.rain[i] >= 0 && st.w.rain[i] <= 1) || (st.w.water[i] && st.w.rain[i] !== 0)) off++;
-    if (off || !st.w.wind || Math.abs(Math.hypot(st.w.wind[0], st.w.wind[1]) - 1) > 1e-9) bad.push(`w.rain, w.wind: ${off} tiles out of range, or no unit wind`);
+    if (off || !st.w.wind ||
+      Math.abs(Math.hypot(st.w.wind[0], st.w.wind[1]) - 1) > 1e-9) bad.push(`w.rain, w.wind: ${off} tiles out of range, or no unit wind`);
   }
   // fish stocks (VB-117): from 0 to 1, set on a day not after today; below 1 or set only on a river or small lake tile, whose stock runs down
   const { fish, fishDay } = st.w;
@@ -448,6 +592,9 @@ function checkState(st) {
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
+  // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
+  for (const a of st.agents) if (a.load && !(a.load > 0 && a.phase === 'back')) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  for (const h of st.households) if (h.threshed !== undefined && !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {
@@ -486,7 +633,8 @@ function checkState(st) {
     // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
     const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
     if (Object.keys(ws).sort().join() !== 'claim,match,out,serve' || !tri(ws.out) || !tri(ws.serve)
-      || !(ws.claim === null || ws.claim === false || (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
+      || !(ws.claim === null || ws.claim === false ||
+        (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
     // a wish for a match: null, false or a living pawn of the other sex than the played pawn's, while the played pawn lives
     const mw = ws.match;
     if (!(mw === null || mw === false || (Number.isInteger(mw) && !!st.pawns[mw] && st.pawns[mw].alive && st.pawns[mw].sex !== st.pawns[pl.pawn].sex
@@ -506,7 +654,8 @@ function checkState(st) {
       if (!(o.made <= st.t && o.due > o.made && o.due <= o.made + MR.offerDays * D)) bad.push(`${at}: made ${o.made}, due ${o.due}`);
       if (!Number.isInteger(o.id) || o.id < 0 || o.id >= st.offerSeq || ids.has(o.id)) bad.push(`${at}: id against offerSeq ${st.offerSeq}`);
       ids.add(o.id);
-      if (!st.pawns[o.man] || !st.pawns[o.woman] || st.pawns[o.man].sex !== 'm' || st.pawns[o.woman].sex !== 'f') bad.push(`${at}: man ${o.man}, woman ${o.woman}`);
+      if (!st.pawns[o.man] || !st.pawns[o.woman] || st.pawns[o.man].sex !== 'm' ||
+        st.pawns[o.woman].sex !== 'f') bad.push(`${at}: man ${o.man}, woman ${o.woman}`);
       for (const id of [o.man, o.woman]) { if (seen.has(id)) bad.push(`${at}: pawn ${id} is in two open offers`); seen.add(id); }
       if (!st.households[o.home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${o.home}, village ${o.village}`);
       const keys = (o.answers || []).map((x) => x.key);
@@ -581,24 +730,34 @@ function checkHerds(st, bad) {
     // cull lists (sim/byre, VB-134) name animals that are there: a head of the herd, or no more sheep of a kind than the flock has
     const n = { ewe: hd.ewes, ram: hd.rams, lamb: hd.lambs };
     for (const e of hd.cull || []) {
-      if (hd.species === 'cattle' ? !hd.head.some((h) => h.id === e.head) : !(n[e.sheep]-- > 0)) bad.push(`${where}: cull entry ${JSON.stringify(e)} names no animal`);
+      if (hd.species === 'cattle' ? !hd.head.some((h) =>
+        h.id === e.head) : !(n[e.sheep]-- > 0)) bad.push(`${where}: cull entry ${JSON.stringify(e)} names no animal`);
     }
     if (!whole(hd.lean || 0) || !whole(hd.unfed || 0)) bad.push(`${where}: lean ${hd.lean}, unfed ${hd.unfed}`);
+    // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
+    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
+    if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);
+    // the household's kept pasture (sim/grazing, VB-136): absent, or a tile of the map chosen on a past day
+    const pa = hh && hh.pasture;
+    if (pa !== undefined && !(pa && Number.isInteger(pa.tile) && pa.tile >= 0 && pa.tile < st.w.N && Number.isInteger(pa.since)
+      && pa.since <= Math.floor(st.t / 24))) bad.push(`households[${hd.household}]: pasture ${JSON.stringify(pa)}`);
   }
   for (const hh of st.households) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);
     if (!(Number.isFinite(hh.haySpoilt) && hh.haySpoilt >= 0)) bad.push(`households[${hh.id}]: haySpoilt is ${hh.haySpoilt}`);
     if (!(hh.hay >= 0)) bad.push(`households[${hh.id}]: hay is ${hh.hay}`);
-    const KINDS = ['meat', 'salt meat', 'milk', 'butter'];
-    for (const l of hh.larder || []) if (!(l.n > 0 && KINDS.includes(l.kind) && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
-    if (hh.milkDay !== undefined && !(Number.isInteger(hh.milkDay) && hh.milkDay >= -1 && hh.milkDay <= st.t / 24)) bad.push(`households[${hh.id}]: milkDay ${hh.milkDay}`);
+    const KINDS = ['meat', 'salt meat', 'milk', 'butter', 'dried fish'];
+    for (const l of hh.larder ||
+      []) if (!(l.n > 0 && KINDS.includes(l.kind) && Number.isFinite(l.until))) bad.push(`households[${hh.id}]: larder lot ${JSON.stringify(l)}`);
+    if (hh.milkDay !== undefined &&
+      !(Number.isInteger(hh.milkDay) && hh.milkDay >= -1 && hh.milkDay <= st.t / 24)) bad.push(`households[${hh.id}]: milkDay ${hh.milkDay}`);
     if (hh.manure !== undefined && !(hh.manure >= 0)) bad.push(`households[${hh.id}]: manure ${hh.manure}`); // VB-137
     if (hh.spoilt !== undefined && !(hh.spoilt >= 0)) bad.push(`households[${hh.id}]: spoilt ${hh.spoilt}`); // grain lost in store (balance review)
-    if (!(hh.grain >= -1e-6)) bad.push(`households[${hh.id}]: grain ${hh.grain}`);
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
-  const { SOIL } = VB['sim/rules'];
+  const { SOIL, CROPS } = VB['sim/rules'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
+    if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
   }
 }

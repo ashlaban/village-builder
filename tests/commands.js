@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift'], calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'setRoutines'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -136,11 +136,11 @@ const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isH
 const master = st3.households.find((h) => !h.dissolved && h.id !== servant.household);
 assert.strictEqual(issue(st3, { actor: servant.id, verb: 'serve', target: master.id, source: 'round' }), true);
 assert.strictEqual(servant.household, master.id); assert.strictEqual(servant.servant, true);
-const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(f));
+const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(st3, f));
 if (empty) {
   const claimant = st3.pawns.find((p) => p.died === null && p.age >= 18 && p.id !== groom.id && p.id !== bride.id);
   assert.strictEqual(issue(st3, { actor: claimant.id, verb: 'claim', target: empty.id, source: 'round' }), true);
-  assert.strictEqual(empty.claim.by, claimant.id);
+  assert.strictEqual(VB['sim/farmclaims'].claimOn(st3, empty).by, claimant.id);
   R3.push([{ actor: claimant.id, verb: 'claim', target: empty.id }, /cannot be claimed/]);
 }
 const before4 = snap3();
@@ -153,7 +153,7 @@ for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
 // leave: a settler founds a village on a site the round would choose
 const S3 = VB['sim/settle'], settler = st3.pawns.find((p) => p.died === null && p.age >= 18 && !Sim.isHolder(st3, p.id) && p.household !== null);
-st3.households[settler.household].grain += 2000; // a family that can spare the provisions
+st3.households[settler.household].grain.barley += 2000; // a family that can spare the provisions
 assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
 const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
 if (site3) {
@@ -198,9 +198,10 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
-  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + 10)) < 0.05, 'for ten years');
+  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + C.P.causeEvery)) < 0.05, 'for five years');
   assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
-  Sim.uninhabit(a); b.pawns[id].advocate = { dim, opt, until: b.cenv.t + 10, natural: true }; // as a natural cause, the same slot
+  assert.ok(Math.abs(a.pawns[id].causeSince - a.cenv.t) < 0.05, 'the year it was taken up');
+  Sim.uninhabit(a); C.advocate(b.pawns[id], dim, opt, b.cenv.t + C.P.causeEvery, b.cenv.t, true); // as a natural cause, the same slot and the same step
   b.pawns[id].advocate.until = a.pawns[id].advocate.until;
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
   const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
@@ -208,4 +209,13 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);
   assert.strictEqual(pa.advocate, null); assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => /^Dropped the cause/.test(e.text)));
   assert.ok(typeof issue(a, { actor: id, verb: 'dropCause', source: 'player' }) === 'string', 'refused again');
+  // an agenda: laid down at any time, but no new cause for Culture.P.causeEvery years from the last one taken up; taking one up is a step at once
+  const args = { dim, option: opt }, since = pa.causeSince;
+  assert.ok(/more before a new one/.test(issue(a, { actor: id, verb: 'argue', args, source: 'player' })), 'no new cause yet');
+  assert.ok(Sim.opportunities(a, id).filter((x) => x.verb === 'argue').every((x) => /more before a new one/.test(x.why)), 'and none is offered');
+  assert.strictEqual(pa.advocate, null); assert.strictEqual(pa.causeSince, since);
+  pa.causeSince = a.cenv.t - C.P.causeEvery; // as if the years had passed
+  const was = pa.att[o];
+  assert.strictEqual(issue(a, { actor: id, verb: 'argue', args, source: 'player' }), true, 'after the years, a new cause');
+  assert.ok(Math.abs(pa.att[o] - (was + C.P.advocacyJump * (1 - was))) < 1e-6 && pa.causeSince === a.cenv.t, 'its own attitude steps towards it at once');
 }

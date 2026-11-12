@@ -134,7 +134,8 @@
     for (const v of st.villages) {
       if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
       for (const s2 of v.fence) addFence(s2);
-      for (const plot of v.plots.filter((q) => !q.built)) for (const tr of plot.tiles) {
+      const X = VB['sim/expansion'];
+      for (const plot of X.livePlots(st, v)) for (const tr of X.tilesOf(plot)) { // the plots under way: their village's project plans (VB-123)
         // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
         const g = new PIXI.Graphics(), x = wd.hx[tr.tile], y = wd.hy[tr.tile], step = tr.steps[tr.i];
         if (step === 'grub') for (const [dx, dy] of [[-7, 2], [0, -5], [6, 4], [-2, 8]]) {
@@ -142,8 +143,8 @@
             g.ellipse(x + dx, y + dy, 0.9, 0.7).stroke({ width: 0.4, color: 0x96462f }); }
         if (tr.kind === 'field' && tr.i >= tr.steps.length) g.ellipse(x, y + 2, 14, 8).fill({ color: 0x986846, alpha: 0.9 }).stroke({
           width: 0.8, color: INK, alpha: 0.6 });
-        if (tr.kind === 'house' && plot.cottage) cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, plot.cottage.i);
-        if (!plot.done || (plot.cottage && !plot.built)) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
+        if (tr.kind === 'house' && plot.open >= 1) cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, X.cottageAt(plot));
+        g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
         L.fences.addChild(g);
       }
     }
@@ -163,8 +164,9 @@
     if (fd.stage !== 'growing') return fd.stage;
     return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
   }
-  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, wandering slowly and
-  // now and then looking up; inside the byre otherwise. Sprites are made per herd and remade only when its animals change.
+  // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, or its pasture when
+  // out with a herder (VB-136, page/animate), wandering slowly and now and then looking up; inside the byre otherwise. Sprites are made per
+  // herd and remade only when its animals change.
   const hash = (n) => { n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d); n = Math.imul(n ^ (n >>> 12), 0x297a2d39); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
   const SHEEP_TINT = [0xffffff, 0xece6da, 0xbab2a6, 0x8c7c6a, 0x5c5248];
   const COW_SCALE = { cow: 0.21, bull: 0.245, ox: 0.245, heifer: 0.19, steer: 0.195, calf: 0.135 };

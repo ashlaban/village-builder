@@ -50,7 +50,8 @@ const heirs = Sim.seed(world(7), 7, 'heirs');
 fieldRules(heirs, 'heirs seed 7');
 Sim.advance(heirs, 3 * Sim.YEAR);
 fieldRules(heirs, 'heirs seed 7 after 3 years', true);
-for (const v of heirs.villages) for (const p of v.plots) for (const tr of p.tiles) if (tr.kind === 'field') {
+const X = VB['sim/expansion'];
+for (const v of heirs.villages) for (const p of [...v.plots, ...X.livePlots(heirs, v)]) for (const tr of X.tilesOf(p)) if (tr.kind === 'field') {
   check(!nbs(heirs.w, tr.tile).some((j) => built(heirs).has(j)), `heirs: plot field ${tr.tile} touches a house or green`);
 }
 const founders = Sim.seed(world(7), 7, 'founders');

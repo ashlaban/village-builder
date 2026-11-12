@@ -27,21 +27,6 @@ Slice 5's plan (`backlog/VB-184.md`), written while Kim was away: `design.md`, H
 9. Hired hands' wage. **P (decided in Kim's place):** 3 rations a day of 8 work hours, the worth table's day's work, paid at the day's end; hired at sowing, haymaking and harvest when a field task has waited 2 hours, from the landless adults of the village with no task of their own; a landed household hires first, and none hires below its floor.
 10. Who owes. **P (decided in Kim's place):** a loan, rent or wage binds the household (or village) its agent dealt for, so a holder's death leaves it standing, and there is no personal estate until personal goods exist (silver, slice 8); a dissolved debtor's obligations pass to the household that takes its farm, else to the one its last holder's heir lives in, else they lapse and the creditor remembers it.
 
-### VB-119 and VB-023: two tasks built and held back (raised 11 November 2026)
-Both were built in the night's run and left out of its PR, because their own numbers show households no better or worse off. Each is kept as a
-patch (`docs/patches/`) with its notes in the task file; the tasks are `needs-review`.
-1. VB-119, fresh food spoils. With a 3-day shelf life, the cooking order and the cap of 4 batches, about a fifth of the fish landed spoils, and
-   over 30 years (populous small) seed 3 goes from 3 to 9 household-years hungry on over 0.3 of their days and grain at harvest falls 10 to 30%;
-   a mixed pot (a tenth saved) is in a fifth of the pots. Spoilage is 87% of the loss. **P:** merge it only with a way to keep fish (dried fish,
-   VB-300, which the fair needs anyway): build VB-300 first, then VB-119 on it, measured by the same runs.
-2. VB-119, grain eaten raw costs a quarter more (`ECON.rawGrain` 1.25, the agent's value; the design gives none). It is 13% of the loss, and less
-   since the cook is called from idling (applied in the night's PR: days eaten uncooked 1,738 to 517 at seed 7, 2 years). **P:** 1.25, once a
-   cook job under way may finish after work ends (most of the days still uncooked are cooks walking home at 18:00).
-3. VB-023, sowing first. Hoeing waits while a hoed field is unsown, so sowing comes 0.2 to 0.4 days earlier on every seed, but crops brought in
-   over years 4 to 15 fall on two seeds of four (seed 3: 3,430 to 3,280; 42: 3,242 to 3,189; 7 and 11 rise by 10 and 64), within what runs
-   diverge by, and `routeRefresh` triples for a reason not found. VB-322 already brought frost losses back to 3.6 to 5.7%. **P:** close VB-023
-   as not needed after VB-322, and keep only its spring order of the template (sow before plow) if a head's plan should read so (VB-253).
-
 ### VB-284: tuning the food balance (raised 11 November 2026)
 VB-284 measured where rations fall short (`docs/bench/food-balance.md`; populous small, seeds 3, 7, 11, 42, 15 and 30 years, after VB-282). Nobody is short
 before year 16; in years 16 to 30, 196 household-years are hungry over 0.3 of their days: households of about 4 (2.3 adults, 1.6 children) on 2.9 fields,
@@ -136,6 +121,76 @@ code. None blocks a task.
    the holder's (a household without a holder keeps 60 days), as The gift's Allowance says. **P:** reword the row: "the holder keeps a
    reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60".
 
+### VB-187: the gossip experiment, for the talk plan VB-186 (raised 12 November 2026)
+From the experiment of target-v2 10.2 (`docs/gossip-experiment.md`; `node tools/gossip.js`, seeds 1 to 10): stories meet the spread and
+lie bands, averaging only its own; forgetting is the weak band. None blocks a task; VB-186 takes them up.
+1. Which model for gossip. Averaging fails the forgetting, lie and counter-story bands by construction and makes strangers judge the
+   subject as harshly as the witness (-0.60 against -0.19 under stories, at a year). **P:** model B, stories, as decided; averaging
+   stays for attitudes (customs).
+2. Saturation per audience. A story from spring is stale by the winter gathering: an island joined by ice hears it in 3 of 10 seeds
+   (8 of 10 when the story is six days old), because its tellers lost zeal at home. **P:** a held story keeps two zeals, for its own
+   village and for others, so news is told afresh to people from elsewhere. (The other way: only what happens at the gathering crosses
+   the water, and other news only while fresh.)
+3. Forgetting as a cohort. A village that retold a story together forgets it within a few days; at a heard story's half-life of one
+   game year it is mostly forgotten by year 3 in 4 of 10 seeds, at 40 days in 10 of 10. **P:** a heard story's half-life of 40 game
+   days, first-hand memories three times as long, and a per-pawn factor of 0.5 to 1.5 (wits, or seeded), so forgetting is a curve.
+4. The forgetting band's measure. **P:** "mostly forgotten within three years" is held by under half of those who held it at its peak.
+5. Sharpening and the hop discount. Without a discount on what a heard story writes, 54% of held opinions reach the extremes, since each
+   hop sharpens. **P:** both: 8% sharper a hop on the told valence, 0.8 a hop on the memory it writes; the Proposed polarisation band
+   measured as extremes (|opinion| at 0.8 or more) under 0.25 of held opinions and no village with 20% on each side of 0.3, checked in
+   slice 7's wrap-up on the game (one story cannot test it).
+6. The alehouse, not the gathering, carries news to the neighbouring village (the share of goers changes nothing; halving B's alehouse
+   visits drops the fair-village band to 7 of 10). **P:** tune that band on the alehouse's draw from neighbouring villages.
+7. Belief is the parameter everything hangs on (a base of 0.3 leaves the fair's other village unaware in 7 of 10 seeds). **P:** a base of
+   0.6, moved by the tie to and opinion of the teller and by fit, as in the experiment; fitted in the wrap-up.
+
+### VB-136: herding, as built (raised 12 November 2026)
+Herding is merged (children do 69% of it; the numbers are in `backlog/VB-136.md`). Three things it showed that are yours to judge; none blocks a task.
+1. A household without a child of 8 seldom herds: founders herd 0 to 22 of 54 grazing days (the mistress and the maid have herding priority 0, the
+   farmer 2 and he is at the wood, the hay or the fishing), so their cows give about half their milk (7.3 rations a cow a year against 13.5).
+   Nobody went hungrier for it in the runs (founders small, seeds 7 and 42: hungry household-days 4 to 0 and 0 to 0). **P:** leave it for now, as
+   the real cost of a household without children; if it should not be, the lever is a village herd (one herder for the village's cattle, a
+   routine of VB-257's kind, which is how it was done), not the women's priority.
+2. Cattle never got into a crop in any run: fences are mended at 0.65 and break in at 0.45, so the rule is exercised only by `tests/herding.js`,
+   and VB-257's "an unmended fence lets the cattle in" has shown no consequence yet (two failed meetings in 30 years at seed 11, no crop lost).
+   **P:** leave the numbers; the consequence comes when a village's routines can leave the fence out (VB-058, VB-100 and VB-120 add routines
+   that compete for the four places).
+3. With herding, gifts and close friendships fall in the heirs run of `tests/record.js` (seed 7, 3 years: gifts 21 to 7, close friends 7 to 4;
+   births, deaths and marriages the same): the herders are away from the houses by day. **P:** accept it for now and let the talk plan
+   (VB-186) say whether herders meet each other on the pasture, which would give some of it back.
+
+### VB-300: dried fish and the boat, as built (raised 12 November 2026)
+Dried fish and the fishing boat are merged (`backlog/VB-300.md` has the numbers and the builder's decisions). Two things for you; none blocks a task.
+1. Every eligible shore household builds a boat (about 64 and 71 households at populous small, seeds 7 and 42, in 15 years), and a boat doubles
+   the catch, so those households fish less and summer idle rises (28.1 to 32.7% and 32.7 to 36.9%) where the task hoped the craft would fill
+   slack hours. Hunger barely moves (shore villages 19 to 18 hungry household-days at seed 7; 0 to 2 at seed 42). **P:** make the boat rarer
+   and dearer rather than change the catch: it is a holder's project chosen by its values (VB-255), needs tar to keep (VB-301), and until
+   then only a household with a surplus and two free hands builds one; and let the extra catch go to the rack for the fair (VB-255's target
+   in rations), which is where the hours should go.
+2. After the first year most dried fish is eaten from the larder before it would spoil, not through the pot; in winter the cook takes it
+   for a quarter of the meals, a fixed share. **P:** VB-119 (mixed meals, now ready to be applied on dried fish) replaces the fixed quarter:
+   dried fish is a `fish` source of the pot after fresh batches and before grain.
+
+### VB-333: the longer harvest loses crops to frost (raised 12 November 2026)
+Reaping is 15 hours a field and threshing 20, as you decided, and it is merged: reaping and threshing are each about 4.5% of the hands' year
+(1.8% before), and hunger and deaths are no worse. One thing moved the wrong way.
+1. Crops lost to frost about double at populous small over 15 years (field-years: seed 7, 60 to 113; seed 42, 46 to 72; founders 3 to 2 and
+   0 to 3), nearly all in households with 4 to 6 fields and few hands. The task's lever, the reaping's urgency against the frost
+   (`reapFrostPerDay` 5 to 2), made it no better (135 and 73) and was reverted: the limit is hands, not urgency. **P:** keep the hours and
+   treat the loss as the signal the design wants: a household sows what it can reap. Two things then follow in tasks that exist: the fields a
+   household wants (`fieldsWanted`) counts its hands at the harvest (a line in VB-254, the head's foresight), and neighbours help at the
+   reaping (VB-106) and hired hands at the peaks (VB-319) take the rest. If the loss should fall sooner, reaping could start a few days before
+   the crop is fully ripe at a small cost in yield.
+
+### VB-335: what a load of hay is (raised 12 November 2026)
+Sheaves now come home by the load, 30 rations on the back and 90 on a cart with two oxen (`TRAVEL.load`, `TRAVEL.cart`). Hay is the same
+question and is not changed: `KINDS.hay` still brings a meadow's 30 units (`HAY` in `src/sim/meadows.js`) home in one job of 4 hours and one
+carry. A unit of hay is a cow's stall day (`HERD.hay`: cow 1, calf 0.4, ewe 0.2), so 30 units is 30 cow-days, a bulky load for one back.
+1. What is a load of hay? **P:** by weight rather than by ration: a load is a third of a meadow, 10 units on the back and 60 on a cart (two
+   oxen draw twice what a sheaf cart takes, for hay is light), so a meadow of 30 is three trips on the back or one cart; the job keeps its
+   hours a load (4 hours for the whole meadow becomes 1.5 a load), and the household's hands come in as they do at the sheaves. The cost is
+   the same walks as VB-335's (rule 9).
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
@@ -158,3 +213,20 @@ Rivers are crossed only at fords (VB-112); bridges need construction (Kim, 30 Oc
 
 ### VB-095: family tree by scope (planning)
 1. What does the tree open on? **P:** the selected pawn's village: its living members, 2 generations up and 1 down from them, the rest folded behind "+ n more" nodes; a control switches to household, village, culture and the selected pawn's line.
+
+### VB-180: the next ownership boundaries (raised 12 November 2026)
+The wrap-up of the ownership arch reran the map (`docs/architecture/ownership.md`, sections 10 and 11): 76 fields have an owner; 38 fields are still written by two or more modules (189 sites); the ownership baseline holds 7 sites (`pawn.role`, written by `sim/heirs.refreshRoles`). Slice 5 will give `pawn.owed` an owner (VB-310) and `st.owner` a companion (VB-311).
+1. The baseline's last 7 sites. **P:** a small task moves `refreshRoles` into `sim/records`, as the cache's rebuild, so the baseline is empty and stays a ratchet at zero.
+2. Which of the remaining boundaries to take, and when. **P:** none as a task of its own until a slice needs it, with two exceptions. First, the land fields (7.8: `w.dev`, `w.stones`, `st.used`, `w.trees`, `st.regrow`; 18 write sites outside layout and scenarios) and the farm occupancy fields (7.7) wait for VB-311, which decides land's owners, and are done with it or just after. Second, hay, larder and manure (7.6) go to `sim/stores` with the first slice-7 or later task that touches the byre's feeding (VB-136, herding and grazing, is the next); `herd.head`, `herd.cull` and the job store (7.9) wait until a task touches them.
+3. The groups the rerun found that the map did not list: the pawn's vital fields (`pawn.alive`, `pawn.age`: `sim/society`, `sim/lifecycle`, `sim/births`) and projects and plots (`village.plots`: 18 sites in 5 modules; `farmstead.project`, `farmstead.meadows`). **P:** the vital fields are one small task (`sim/records` writes them, called by lifecycle and births: S); plots and projects wait for slice 5's land work (VB-311) and the expansion's next change, since `sim/expansion` is their main writer.
+4. The stress tests as tests. **P:** do not write them as code now; section 11 of `ownership.md` is the review. Each slice's wrap-up adds the lines of section 11 it moves (for example slice 5's wrap-up, VB-035: rent, tenancy and obligations, tests 4 and 5A and 5B) and, where a stress test can run on the simulation, one integration test then.
+
+### VB-055: the move to TypeScript (raised 12 November 2026)
+The survey and the fourteen tasks are in `backlog/VB-055.md` and `docs/typescript-plan.md`. Behaviour, `tests/golden.json` and `tests/counters.json` do not move in any of them.
+1. The formatter. **P:** Prettier at an exact version, print width 120, single quotes; one sweep in P8 over `src/` (modules and the page script), then `tests/` and `tools/`, each in a commit of its own listed in `.git-blame-ignore-revs`, with `prettier --check` in `npm test`. Measured: `src/sim`, `src/gen` and the root modules go from 11,917 lines to 19,722; 26 functions pass 60 lines, against 11 now.
+2. The bundler. **P:** esbuild, one dev dependency at an exact version, in place of `build.py` (P2); `index.html` stays one self-contained file. It also strips types for the page, so nothing else is built: Node runs the `.ts` of the modules, tests and tools as they are (Node 22.23 does, with explicit `.ts` extensions in imports and erasable syntax only).
+3. The hook for timing and replacing functions (ten files, P3). **P:** the build's own instrumenting (an esbuild plugin that wraps named exports in a bundle made for the tool), because `tools/perf.js` adds nothing to `src/` and production pays nothing; the fallback is a `probe(key, name, fn)` registry in the source, an identity unless a hook is installed.
+4. The width measures at the start. **P:** the baseline holds today's offenders at today's numbers (18 modules over 15 exports; 26 functions over 60 formatted lines) and only falls; the `src/sim.js` facade (106 exports, which only gathers the others) is in the baseline too, not exempt, so that no one is told it is allowed to grow. The other choice: exempt it as an aggregator.
+5. When. **P:** P1 to P3 and P7 now, beside anything; P4 to P6 (every module is rewritten) in one window at a slice boundary, with no other task that edits `src/` open or merged between them, and P8 (the formatter and the rename) in a second window right after; P9 to P14 beside other work. The slice boundary: after slice 3's wrap-up (VB-108) if it comes soon, or at any night when the orchestrator holds the other tasks back (about three agent sessions for the first window, one for the second). A window costs the tasks held back about a day each.
+6. The page script and the tests. **P:** the page script (`src/page/*.js`, one closure of 623 top-level names) stays a script and is formatted but not typed; the tests and tools stay `.js` and keep reaching modules through `VB` from `src/load.js`; the follow-up (the page as modules, the tests as `.ts`) is a note at the end of P14, not part of this plan.
+7. `strict`. **P:** not switched on for the project; a second `tsconfig.strict.json` with a ratchet of errors by file (P12) falls to zero over P13 and P14, and only then `strict` goes into the main config. Types are written for the state first (P10) and for commands and holders (P11), which are what the code review found.

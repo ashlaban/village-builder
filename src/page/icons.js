@@ -32,6 +32,7 @@
     menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
     pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
       ICON_STROKE),
+    agenda: svgIcon(20, 20, '<path d="M3.5 8.5v3.5h2.5l6.5 3.2V5.3L6 8.5zM15 8a3 3 0 0 1 0 4.5M6 12l.8 4h2l-.8-3.6"/>', ICON_STROKE),
     bug: svgIcon(20, 20, '<path d="M7 7.5a3 3 0 0 1 6 0"/><rect x="6" y="7.5" width="8" height="9.5" rx="4"/>'
       + '<path d="M10 9.5v7M6 10.5H3M14 10.5h3M6 14H3.5M14 14h2.5M7.5 5L6 3M12.5 5L14 3"/>', ICON_STROKE),
     // the map's bar under the minimap (11 Nov): the grid, the regions, the land held (a claim's flag), which notifications show, the minimap

@@ -11,8 +11,9 @@ for (const name of Object.keys(F.FIXTURES)) {
   const st = fixture.st, { bfs } = VB['sim/hex'], { SETTLE } = VB['sim/rules'];
   const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fields'].builtTiles(st);
   for (let t = 0; t < st.w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) expected.taken.add(t);
-  for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.project) marks.add(f.project.tile); }
-  for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+  for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); const s = f.household !== null && VB['sim/plans'].openOf(st, 'household', f.household); if (s) marks.add(s.place); }
+  const X = VB['sim/expansion'];
+  for (const v of st.villages) for (const p of [...v.plots, ...X.livePlots(st, v)]) for (const tr of X.tilesOf(p)) marks.add(tr.tile);
   for (const t of marks) {
     expected.taken.add(t);
     for (const [j] of bfs(st.w, t, SETTLE.apart - 1, () => true).dist) expected.near.add(j);
@@ -22,11 +23,13 @@ for (const name of Object.keys(F.FIXTURES)) {
   const ranks = compareRankings(VB, st);
   assert.deepStrictEqual(ranks.bad, [], `${name}: ${ranks.bad.slice(0, 4).join('; ')}`);
   assert(ranks.claimed > 0, `${name}: no ranking depended on another farm's claim`);
+  // VB-286: the walking hours between villages agree with the route search on every pair of greens
+  const reach = require('./lib/reach.js')(VB, st, name);
   Sim.advance(st, Sim.DAY);
   const bad = checkState(fixture.st);
   assert.deepStrictEqual(bad, [], `${name}: ${bad.slice(0, 8).join('; ')}`);
   console.log(`${name}: loaded (key ${fixture.stamp.key}); ${ranks.checked} rankings by line match the full list (a claim mattered in`
-    + ` ${ranks.claimed}); advanced one day; invariants pass`); loaded++;
+    + ` ${ranks.claimed}); advanced one day; invariants pass; ${reach.routed} of ${reach.pairs} pairs of greens by land agree with the route search`); loaded++;
 }
 const total = Object.keys(F.FIXTURES).length;
 console.log(`fixtures: ${loaded}/${total} saves checked; ${total - loaded} not made (node tools/fixtures.js make)`);

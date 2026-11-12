@@ -42,13 +42,14 @@ try {
   A.unhold(a, bg); assert.strictEqual(a.side.background, null);
   assert.match(go(farBg), /out of its reach/);
   assert.strictEqual(go(bg), true);
-  // the matcher offers a pawn with a background task only partial tasks within reach
+  // the matcher offers a pawn with a background task only tasks within reach (VB-136: a full one too, so the herder works by the pasture)
   const c = Sim.cal(st.t);
   A.unhold(a, pt); A.release(st, a);
   assert.strictEqual(A.offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
-  assert.ok(A.offerWhy(st, a, full), 'a full task is not');
+  assert.strictEqual(A.offerWhy(st, a, full), null, 'a full task in reach is offered');
+  assert.ok(A.offerWhy(st, a, farFull), 'a full task out of reach is not');
   assert.ok(A.offerWhy(st, a, bg2), 'a second background task is not');
-  assert.strictEqual(bid(st, a, full, c), -1);
+  assert.strictEqual(bid(st, a, farFull, c), -1);
   // taking full work out of reach (the urgency switch) drops the background task, and reopens it
   assert.strictEqual(go(farFull), true);
   assert.strictEqual(a.side, undefined, 'the background task is dropped');
@@ -62,6 +63,13 @@ try {
   a.x = st.w.hx[far]; a.y = st.w.hy[far];
   A.stepAgents(st, c);
   assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(bg));
+  // with no task in hand, a background task out of reach is taken up and set out for; walking into reach it is kept, unworked
+  A.release(st, a); a.x = st.w.hx[here]; a.y = st.w.hy[here]; a.path = null;
+  assert.strictEqual(go(farBg), true); assert.strictEqual(a.side.background, farBg); assert.ok(a.path, 'it sets out');
+  const before = farBg.done;
+  A.stepAgents(st, Sim.cal(st.t));
+  assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(farBg.done, before, 'not worked on the way');
+  A.unhold(a, farBg); a.path = null;
   // a death lets go all
   a.x = st.w.hx[near]; a.y = st.w.hy[near];
   assert.strictEqual(go(bg), true); assert.strictEqual(go(pt), true);

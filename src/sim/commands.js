@@ -20,6 +20,10 @@ VB['sim/commands'] = (() => {
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting', 'round' (VB-168 to VB-171) or 'occasion' (VB-126). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
+  const causeWait = (st, p) => { // why the pawn may not take up a new cause yet, or null
+    const left = Culture.causeFree(p) - st.cenv.t;
+    return left > 0 ? `took up a cause ${(Culture.P.causeEvery - left).toFixed(1)} years ago: ${left.toFixed(1)} more before a new one` : null;
+  };
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
   // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
@@ -105,6 +109,14 @@ VB['sim/commands'] = (() => {
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
     },
+    // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+    // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+    routines: {
+      check: (st, c) => settlement(st, c) || (!st.plans.villages.has(c.actor.settlement) ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by)) ? `routines cannot be set by ${c.args && c.args.by}`
+          : later('sim/plans').routinesWhy(c.args.routines)),
+      run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
@@ -136,7 +148,7 @@ VB['sim/commands'] = (() => {
     // claim(target): the actor claims the empty farm `target` and sets about restoring it
     claim: {
       check: (st, c) => living(st, c.actor) || (!st.farmsteads[c.target] ? `there is no farm ${c.target}`
-        : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
+        : !later('sim/farmclaims').claimable(st, st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
       run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
     // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first
@@ -167,16 +179,17 @@ VB['sim/commands'] = (() => {
           return 'the household must include its holder and unique members';
         }
         for (const id of a.members) { const dead = living(st, id); if (dead) return dead; }
-        return Number.isFinite(a.grain) && a.grain >= 0 ? null : 'invalid provisions';
+        return later('sim/stores').partsOk(a.grain) ? null : 'invalid provisions';
       },
       run: (st, c) => later('sim/membership').foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, { grain: c.args.grain }),
     },
     finishCottage: {
       check: (st, c) => {
-        const v = st.villages[c.args && c.args.village], plot = v && v.plots[c.target];
-        return plot && plot.cottage && plot.cottage.i >= 3 && !plot.built ? null : 'there is no finished cottage';
+        const v = st.villages[c.args && c.args.village], X = later('sim/expansion'), plot = v && X.livePlots(st, v).find((p) => p.plot === c.target);
+        return plot && X.cottageAt(plot) >= 3 ? null : 'there is no finished cottage';
       },
-      run: (st, c) => later('sim/cottage').finishCottage(st, st.villages[c.args.village].plots[c.target]),
+      run: (st, c) =>
+        later('sim/cottage').finishCottage(st, later('sim/expansion').livePlots(st, st.villages[c.args.village]).find((p) => p.plot === c.target)),
     },
     // ---- debug actions (source 'debug') ----
     kill: { check: (st, c) => living(st, c.actor), run: (st, c) => later('sim/lifecycle').killPawn(st, c.actor, 'killed') },
@@ -189,12 +202,13 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
     },
-    // argue({dim, option}): the pawn takes up the cause for ten years (the debug's, and the player's for its pawn: VB-211); it replaces any cause held
+    // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it
+    // replaces any cause held. A cause is a long agenda: no new one within those years of the last one taken up (the debug's is not held to that).
     argue: {
-      check: (st, c) => living(st, c.actor) || option(c),
+      check: (st, c) => living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
       run: (st, c) => {
         const d = Culture.DIMS[c.args.dim];
-        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10);
+        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
         personEvent(st, c.actor, 'cause', `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`);
       },
     },
@@ -214,7 +228,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
-        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
+        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
       },
     },
     // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)

@@ -64,7 +64,7 @@
     makeClouds(wd);
     drawMinimap(wd, wc, over);
     await buildSettlement(wd, sim);
-    if (landG) landG.clear();
+    resetLand();
     if (landOn) drawLand();
     resetGround();
   }

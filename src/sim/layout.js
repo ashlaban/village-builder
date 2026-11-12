@@ -94,9 +94,9 @@ VB['sim/layout'] = (() => {
     used.add(house); for (const j of fields) used.add(j);
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
-      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
+      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
+      village: village ? village.id : null, household: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
       grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
     };
   }
@@ -183,7 +183,7 @@ VB['sim/layout'] = (() => {
     return row;
   }
   function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
-    const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: true, well: true };
     used.add(center);
     const taken = new Set([...fieldsAt, ...homes]);
     const street = !withStreet ? new Set()
@@ -280,6 +280,7 @@ VB['sim/layout'] = (() => {
     for (const j of used) w.dev[j] = 1;
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w); initFish(w); initForage(w);
+    w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)
   }
   // The lone farm, as a village of one farm: the best meadow house site 12 to 40 steps from a village centre, with three fields and a wood
   // in reach (findSite).
@@ -300,7 +301,7 @@ VB['sim/layout'] = (() => {
   // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
   function loneVillage(rand, villages, house) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
+    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
   }
   // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
   function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
@@ -326,7 +327,7 @@ VB['sim/layout'] = (() => {
   }
   function fieldOn(w, used, f, tile) {
     used.add(tile);
-    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+    f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
