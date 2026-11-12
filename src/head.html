@@ -189,6 +189,10 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 /* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
+/* and in the world editor, which has an interface of its own (page/editor) and is put away under a menu screen too */
+body.editing .hud, body.editing .navigation, body.editing .sheet, body.editing .toasts, body.editing .play-offer, body.editing .map-tools,
+body.editing .act-bar, body.editing .act-menu, body.editing .act-banner, body.editing .choose, body.editing .tile,
+body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events: none; }
 .genscreen[hidden] { display: none; }
 /* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
@@ -210,7 +214,8 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
-#landQuick small { display: block; color: var(--muted); font-size: 13px; }
+.landing button small { display: block; color: var(--muted); font-size: 13px; }
+.landing button.primary small { color: inherit; opacity: 0.85; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
@@ -506,6 +511,49 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .row:hover, .tile .rel button:hover { background: var(--edge); }
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
+}
+/* The world editor (page/editor): the world alone on the stage; Main menu at the top left, the parameters in a panel at the right that
+   folds to its head; on a narrow screen the panel is a sheet at the foot. */
+.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+.editor > * { pointer-events: auto; position: absolute; }
+.editor-top { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); display: flex; align-items: center;
+  gap: 12px; padding: 8px 16px 8px 8px; border-radius: 14px; max-width: calc(100% - 28px); }
+.editor-top .icon-btn { width: 44px; height: 44px; flex: none; }
+.editor-top strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; }
+.editor-top span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.editor-side { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+  max-height: calc(100% - 28px - env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; border-radius: 16px; min-width: 0; }
+.editor-side .screen-head { padding: 12px 16px; flex: none; }
+.editor-side h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
+.editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
+.editor-side.folded .editor-body, .editor-side.folded .editor-foot { display: none; }
+.editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.editor legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.editor p { margin: 0; font-size: 14px; line-height: 1.4; }
+.editor .hint { color: var(--muted); font-size: 13px; }
+.editor .err { max-width: none; color: var(--bad); font-size: 14px !important; }
+.editor label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; min-width: 0; }
+.editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
+  border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
+.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ed-range span { display: flex; justify-content: space-between; gap: 8px; }
+.ed-range output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ed-biomes { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--edge); }
+.ed-biomes i { display: block; min-width: 0; }
+.ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
+.ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
+.ed-facts dt.sub { padding-left: 2px; }
+.ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
+#edState.changed { color: var(--ink); }
+@media (max-width: 899px) {
+  .editor-side { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: auto; width: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 52svh; }
+  .editor-top { left: max(8px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 8px); }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */

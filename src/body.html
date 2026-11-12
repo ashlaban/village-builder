@@ -187,7 +187,8 @@
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
-    <button class="primary" id="landNew" type="button">New archipelago</button>
+    <button class="primary" id="landNew" type="button">Play<small>A story on a new archipelago</small></button>
+    <button id="landEdit" type="button">World editor<small>Shape an archipelago of your own</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -249,6 +250,61 @@
       <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
       </div>
+    </div>
+  </form>
+</div>
+
+<!-- The world editor: a world alone on the stage, with no run and none of the game's interface. Main menu at the top left; the
+     generator's parameters in the side panel, raised again on Raise the land; what the raised world holds under them (page/editor) -->
+<div class="editor" id="editor" hidden>
+  <div class="panel editor-top">
+    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
+    <div><strong id="edName">World editor</strong><span id="edMeta">No land raised yet</span></div>
+  </div>
+  <form class="panel editor-side" id="edForm" autocomplete="off" aria-labelledby="edTitle">
+    <div class="screen-head"><h1 id="edTitle">World editor</h1><button type="button" id="edFold" aria-expanded="true" aria-controls="edBody">Hide</button></div>
+    <div class="editor-body" id="edBody">
+      <fieldset>
+        <legend>Seed</legend>
+        <span class="seedrow"><input id="edSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required
+          aria-label="Seed"><button type="button" id="edReroll">Another</button></span>
+        <p class="hint">The same seed and settings always raise the same land.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Map size</legend>
+        <select id="edSize" aria-label="Map size">
+          <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+          <option value="m">Medium (280 × 200)</option><option value="l">Large (380 × 270)</option><option value="c">Custom</option>
+        </select>
+        <div class="ed-pair">
+          <label>Columns<input id="edCols" type="number" min="40" max="400" step="1" required></label>
+          <label>Rows<input id="edRows" type="number" min="30" max="300" step="1" required></label>
+        </div>
+        <p class="hint" id="edSizeNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Land and sea</legend>
+        <label class="ed-range"><span>Land<output id="edLandOut" for="edLand"></output></span>
+          <input id="edLand" type="range" min="15" max="60" step="1"></label>
+        <p class="hint">The share of the map that stands above the sea: little gives scattered skerries, much gives a few great islands.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Regions</legend>
+        <label class="ed-range"><span>Region radius<output id="edRegionOut" for="edRegion"></output></span>
+          <input id="edRegion" type="range" min="4" max="12" step="1"></label>
+        <p class="hint">The hexagonal patches the land is divided into: few and wide, or many and small.</p>
+      </fieldset>
+      <fieldset class="ed-facts" id="edFacts" hidden>
+        <legend>This world</legend>
+        <div class="ed-biomes" id="edBiomes" role="img"></div>
+        <dl id="edFactList"></dl>
+      </fieldset>
+    </div>
+    <div class="editor-foot">
+      <p class="err" id="edMsg" role="alert" hidden></p>
+      <p class="hint" id="edState" aria-live="polite"></p>
+      <div class="ed-bar" id="edBar" hidden><i id="edBarFill"></i></div>
+      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Raise the land</button></div>
     </div>
   </form>
 </div>

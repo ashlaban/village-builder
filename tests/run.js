@@ -20,7 +20,7 @@ const TEST = [
 ];
 const VERIFY = [
   ...TEST, ['node', 'tests/golden.js'], ['node', 'tests/populous.js'], ['node', 'tests/births.js'], ['node', 'tests/hunger.js'], ['node', 'tests/health.js'], ['node', 'tests/invariants.js'], ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'], ['node', 'tests/browser-saves.js'], ['node', 'tests/browser-start.js'],
+  ['node', 'tests/smoke.js'], ['node', 'tests/browser.js'], ['node', 'tests/browser-speed.js'], ['node', 'tests/browser-mobile.js'], ['node', 'tests/browser-saves.js'], ['node', 'tests/browser-start.js'], ['node', 'tests/browser-editor.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
   ['node', 'tests/bands.js'], ['node', 'tests/line.js'], ['node', 'tests/start.js', '--people'],

@@ -153,7 +153,8 @@
     $('genScreen').hidden = true; $('genMsg').hidden = true;
     onStage(async () => {
       if (aside) await restoreAside();
-      else if (demo && start && start.shown) { const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
+      else if (demo && start && start.shown && st === start.shown.sim) {
+        const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
       if ($('genScreen').hidden && loader.classList.contains('done') && !building) showLanding();
     });
   }

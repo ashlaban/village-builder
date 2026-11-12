@@ -67,7 +67,10 @@
       return;
     }
     // While choosing whom to play (page/choose) the map moves and zooms by its keys, and the rest of the interface's keys wait
-    const choosing = !$('choose').hidden && $('landing').hidden && $('genScreen').hidden;
+    // In the world editor (page/editor) too; there Esc is its Main menu
+    const editing = !$('editor').hidden && $('landing').hidden && $('genScreen').hidden;
+    if (editing && e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) { $('edMenu').click(); return; }
+    const choosing = editing || (!$('choose').hidden && $('landing').hidden && $('genScreen').hidden);
     if (choosing && !/^(arrow(left|right|up|down)|[wasd+=-])$/.test(e.key.toLowerCase())) return;
     // Esc closes what is open; with nothing open it opens the main menu, and on the main menu it goes back to the game (VB-338)
     if (e.key === 'Escape' && !(e.target.closest && e.target.closest('input, select, textarea'))) {
