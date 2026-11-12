@@ -4951,11 +4951,11 @@ VB['sim/layout'] = (() => {
   // none in `avoid` (the ground kept open: a street's tiles and the tiles round a green). A field may touch a house, its own or
   // another's (Kim, 12 Nov: the fields lie close). Grown from each candidate tile, taking the best
   // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less FIELD_NEAR per step from the house.
-  // Null when no block of n exists.
-  function placeFields(w, used, house, n, avoid) {
+  // Null when no block of n exists. ok (optional): a test every tile of the block passes (a village's fields lie outward of their house).
+  function placeFields(w, used, house, n, avoid, ok = null) {
     const score = new Map();
     for (const [t, d] of bfs(w, house, FIELD_REACH, walkable(w)).dist) {
-      if (d >= 1 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t))) score.set(t, fertility(w, t) - FIELD_NEAR * d);
+      if (d >= 1 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && (!ok || ok(t))) score.set(t, fertility(w, t) - FIELD_NEAR * d);
     }
     let best = null, bs = -Infinity;
     for (const [seed, s0] of score) {
@@ -5148,6 +5148,9 @@ VB['sim/layout'] = (() => {
     for (const t of street) { yards.add(t); sides.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) sides.add(j); } }
     for (const t of near) { yards.add(t); sides.add(t); }
     const front = new Set([center, ...street]), reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    // the green is the village's centre (Kim, 12 Nov): a house's fields lie no nearer the green than the house, so the houses
+    // stand round the green and along the street, and the fields beyond them
+    const fromGreen = bfs(w, center, HOUSE.reach + FIELD_REACH, walkable(w)).dist, outward = (h) => (t) => (fromGreen.get(t) ?? Infinity) >= fromGreen.get(h);
     // no route crosses a house: this village's so far (mine, but its green) and the other villages' (homes)
     const walk = walkable(w), house = (j) => j !== center && (mine.has(j) || homes.has(j)), shut = (j) => j < 0 || !walk(j) || house(j);
     // the house sites still open, best first
@@ -5168,7 +5171,7 @@ VB['sim/layout'] = (() => {
     // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
     const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
     const farm = (t) => {
-      const behind = placeFields(w, used, t, 3, sides), any = placeFields(w, used, t, 3, yards);
+      const behind = placeFields(w, used, t, 3, sides, outward(t)), any = placeFields(w, used, t, 3, yards, outward(t));
       const fields = worth(any) > worth(behind) + HOUSE.better ? any : behind;
       if (!fields || worth(fields) < HOUSE.land) return false; // ground too poor to feed a household is no room for a farm
       const f = makeFarmstead(w, farmsteads.length, t, fields, village, used);
@@ -20686,7 +20689,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '2df103899a', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '6990284ec0', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
