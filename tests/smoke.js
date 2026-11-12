@@ -315,7 +315,18 @@ async function actionBar() {
   if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
     fail(`Go home from the Myself list: ${said} ${queue()}`); }
   Sim.unqueue(st, 0);
-  // the gift: a household, 5 rations, Add to the queue
+  // the agenda: a cause is no act of the Village list; the dock's Agenda offers each custom's other options, queues one, and links to the customs
+  q('#actBar [data-group="village"]').click(); tick(1);
+  if ([...doc.querySelectorAll('#actMenu .act-row')].some((b) => /cause/i.test(b.textContent))) fail('the Village list still offers a cause');
+  q('#agendaBtn').click(); tick(1);
+  const offer = q('#agendaContent [data-agenda="do"]:not([aria-disabled])');
+  if (q('#drawerTitle').textContent !== 'Agenda' || !offer) { fail('the Agenda panel offers no cause'); return; }
+  offer.click(); tick(1);
+  if (!queue().includes('argue') || !/^Queued: /.test(q('#agendaContent [role="status"]').textContent)) fail(`a cause from the Agenda: ${queue()}`);
+  Sim.unqueue(st, 0);
+  q('#agendaContent [data-agenda="customs"]').click(); tick(1);
+  if (q('#drawerTitle').textContent !== 'Customs' || !q('#customContent .custom-card')) fail('the Agenda\'s link does not open the customs');
+  q('#drawerClose').click(); q('#actionsBtn').click(); tick(1);
   q('#actBar [data-group="house"]').click(); tick(1);
   q('#actMenu [data-view="give"]').click(); tick(1);
   const to = q('#giveTo'), opt = to && to.querySelector('option:not([value=""])');

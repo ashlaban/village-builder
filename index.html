@@ -330,6 +330,9 @@ body:not(.minimap-open) .ground-key { display: none; }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }
+.drawer .agenda .linkish { border: 0; border-radius: 0; background: none; min-height: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.agenda button[aria-disabled="true"] { opacity: 0.55; }
+.agenda h4 span { font-size: 13px; }
 .play .refused { color: var(--bad); }
 .play .offer { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
 .play-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
@@ -776,6 +779,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     class="nav-label">Family</span></button>
   <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Customs</span></button>
+  <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
+    hidden><span class="nav-label">Agenda</span></button>
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Debug</span></button>
 </nav>
@@ -2740,10 +2745,12 @@ const Culture = (() => {
     kind: { village: 1, city: 2.2 },
     oblique: 0.3,      // share of the social target taken from the settlement as a whole
     advocacyPull: 3, advocacyWeight: 3,
+    advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
+    causeEvery: 5,      // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
     margin: 0.25, tieMargin: 0.6, returnMargin: 0.12, // meeting margins
     cultureMarginBase: 0.6, cultureMarginSize: 0.4,   // culture margin = margin * (base + size * sqrt(N / 100))
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
-    entrepreneur: 0.004, entrepreneurYears: [5, 15], // chance per adult, custom and year (times malleability squared)
+    entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
     persuasion: 1.5,   // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
   };
 
@@ -2800,9 +2807,21 @@ const Culture = (() => {
   // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
   function initPerson(p, att) {
     p.att = att; p.anc = Float32Array.from(p.att);
-    p.prestige = 1; p.interest = null; p.advocate = null;
+    p.prestige = 1; p.interest = null; p.advocate = null; p.causeSince = null;
   }
-  function advocate(p, dim, opt, until) { p.advocate = dim === null ? null : { dim, opt, until }; } // dim null: lays the cause down
+  // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
+  // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
+  function advocate(p, dim, opt, until, t, natural) {
+    if (dim === null) { p.advocate = null; return; }
+    p.advocate = natural ? { dim, opt, until, natural: true } : { dim, opt, until };
+    if (t === undefined) return;
+    p.causeSince = t;
+    const o = OFF[dim], n = NOPT[dim];
+    for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
+    normBlock(p.att, o, n);
+  }
+  // The year from which the pawn may take up a new cause (it is free when t has reached it).
+  const causeFree = (p) => (p.causeSince === null || p.causeSince === undefined ? -Infinity : p.causeSince + P.causeEvery);
 
   // ---- the daily step ----
   // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
@@ -2894,7 +2913,7 @@ const Culture = (() => {
       const p = hooks.byId(id);
       if (!p.alive || p.age < 18) continue;
       if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
-      if (p.advocate) continue;
+      if (p.advocate || env.t < causeFree(p)) continue;
       for (let d = 0; d < DIMS.length; d++) {
         if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m) continue;
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
@@ -2906,8 +2925,7 @@ const Culture = (() => {
         }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
-        const [a, b] = P.entrepreneurYears;
-        p.advocate = { dim: d, opt, until: env.t + a + rand() * (b - a), natural: true };
+        advocate(p, d, opt, env.t + P.causeEvery, env.t, true);
         out.push(p);
         break;
       }
@@ -3021,7 +3039,7 @@ const Culture = (() => {
     entrepreneurs, meeting, cultureYear, split, support, normBlock,
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
-  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
+  Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, causeFree: { value: causeFree }, norm: { value: norm },
     WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
     PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
   return api;
@@ -9960,6 +9978,10 @@ VB['sim/commands'] = (() => {
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting', 'round' (VB-168 to VB-171) or 'occasion' (VB-126). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
+  const causeWait = (st, p) => { // why the pawn may not take up a new cause yet, or null
+    const left = Culture.causeFree(p) - st.cenv.t;
+    return left > 0 ? `took up a cause ${(Culture.P.causeEvery - left).toFixed(1)} years ago: ${left.toFixed(1)} more before a new one` : null;
+  };
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
   // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
@@ -10138,12 +10160,13 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
     },
-    // argue({dim, option}): the pawn takes up the cause for ten years (the debug's, and the player's for its pawn: VB-211); it replaces any cause held
+    // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it
+    // replaces any cause held. A cause is a long agenda: no new one within those years of the last one taken up (the debug's is not held to that).
     argue: {
-      check: (st, c) => living(st, c.actor) || option(c),
+      check: (st, c) => living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
       run: (st, c) => {
         const d = Culture.DIMS[c.args.dim];
-        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10);
+        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
         personEvent(st, c.actor, 'cause', `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`);
       },
     },
@@ -10163,7 +10186,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
-        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
+        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
       },
     },
     // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
@@ -14341,6 +14364,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
     pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
       ICON_STROKE),
+    agenda: svgIcon(20, 20, '<path d="M3.5 8.5v3.5h2.5l6.5 3.2V5.3L6 8.5zM15 8a3 3 0 0 1 0 4.5M6 12l.8 4h2l-.8-3.6"/>', ICON_STROKE),
     bug: svgIcon(20, 20, '<path d="M7 7.5a3 3 0 0 1 6 0"/><rect x="6" y="7.5" width="8" height="9.5" rx="4"/>'
       + '<path d="M10 9.5v7M6 10.5H3M14 10.5h3M6 14H3.5M14 14h2.5M7.5 5L6 3M12.5 5L14 3"/>', ICON_STROKE),
     // the map's bar under the minimap (11 Nov): the grid, the regions, the land held (a claim's flag), which notifications show, the minimap
@@ -15197,11 +15221,12 @@ if (typeof module !== 'undefined') module.exports = Sim;
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['customs', 'debug'].includes(panel);
-    drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['customs', 'agenda', 'debug'].includes(panel);
+    drawerTab = ['customs', 'agenda', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
     $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
+    $('agendaBtn').setAttribute('aria-pressed', String(panel === 'agenda'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
     if (panel === 'people' && st) { settlersHTML = ''; renderSettlers(); }
@@ -17312,7 +17337,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // second (page/animate), and Sim.opportunities is called once per rebuild, for both.
   function renderActions() {
     const id = played(), pl = st && st.player;
-    if ($('actionsBtn').hidden !== id < 0) $('actionsBtn').hidden = id < 0;
+    if ($('actionsBtn').hidden !== id < 0) { $('actionsBtn').hidden = id < 0; $('agendaBtn').hidden = id < 0; }
     if (id < 0) { if (activePanel === 'actions') openPanel(null); closeBar(); return; }
     const sheet = activePanel === 'actions', opps = sheet || barMenu || tool ? Sim.opportunities(st, id) : null;
     renderBar(id, opps);
@@ -17337,7 +17362,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village. The cause you argue is under Agenda, in the dock.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }
@@ -17444,7 +17469,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
 // the played pawn's acts by their basis, an act that needs a tile puts the map in a tool mode, and the gift is one form in the list
   // ======== the action bar ========
   // All of it is the page's own state, never saved: whether the bar is open (barOpen), the list open above it (barMenu: {g, view}, the group
-  // 'self', 'house' or 'village', and a view inside it, null, 'round', 'causes' or 'give'), its last message (barMsg: {text, bad}), the tool
+  // 'self', 'house' or 'village', and a view inside it, null, 'round' or 'give'), its last message (barMsg: {text, bad}), the tool
   // (tool: an act waiting for a tile, below) and the gift's draft (gift). It reads st and queues through Sim, as the sheet does (page/play).
   let barOpen = false, barMenu = null, barMsg = null, barHTML = '', tool = null, toolKey = '', flash = null, bannerHTML = '';
   const tapWord = coarse ? 'tap' : 'click'; // what a press on the map is called, by the pointer
@@ -17495,26 +17520,21 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The open list: a group's acts, or a view inside it (the moving round's wishes, the causes, the gift's form).
   function menuHTML(id, opps) {
     const p = st.pawns[id], m = barMenu, hh = p.household !== null ? st.households[p.household] : null;
-    const by = { self: [], house: [], village: [], causes: [], round: [], offers: [] };
+    const by = { self: [], house: [], village: [], round: [], offers: [] };
     for (const o of opps) {
       if (o.when === 'offer') by.offers.push(o);
       else if (o.when === 'round') by.round.push(o);
       else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
-      else if (o.verb === 'argue' || o.verb === 'dropCause') by.causes.push(o);
+      else if (o.verb === 'argue' || o.verb === 'dropCause') continue; // a cause is no act: the dock's Agenda (page/drawer)
       else by.self.push(o);
     }
-    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Your cause' : 'Argue a cause', give: 'Give grain' };
+    const TITLES = { round: 'At the moving round', give: 'Give grain' };
     let h = `<div class="mh">${m.view ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>` :
       ''}`
       + `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>`
       + `<button type="button" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
     if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
     if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
-    if (m.view === 'causes') {
-      return `${h}<div class="play">${causeNote(p)}</div>${by.causes.map((o) =>
-        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'You argue no more',
-          o.why)).join('')}`;
-    }
     if (m.view === 'give') return h + giveHTML(id);
     if (m.g === 'self') {
       const home = by.self.find((o) => o.verb === 'goHome'), idle = by.self.find((o) => o.verb === 'idle');
@@ -17535,11 +17555,6 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return h;
     }
     h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
-    if (by.causes.length || p.advocate) {
-      const a = p.advocate;
-      h += actRow('data-bar="view" data-view="causes"', 'cause', TITLES.causes, a ? `For “${Culture.DIMS[a.dim].opts[a.opt][1]}”, `
-        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village you would change', null, true);
-    }
     return h;
   }
   // Called by renderActions (page/play), with the opportunities it read, or null while neither the list nor the tool is open.
@@ -18772,18 +18787,21 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // ======== customs and debug drawer ========
   let drawerTab = null, skipping = false;
   const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
+  const DRAWER = { customs: { title: 'Customs', btn: 'customsBtn' }, agenda: { title: 'Agenda', btn: 'agendaBtn' },
+    debug: { title: 'Debug', btn: 'debugBtn' } };
   function openDrawer(tab) {
     openPanel(activePanel === tab ? null : tab);
-    $('drawerTitle').textContent = tab === 'debug' ? 'Debug' : 'Customs';
+    $('drawerTitle').textContent = DRAWER[tab].title;
+    $('drawerClose').setAttribute('aria-label', `Close ${DRAWER[tab].title.toLowerCase()}`);
     if (drawerTab === 'debug') buildDebug();
+    if (drawerTab === 'agenda') { agendaMsg = null; agendaHTML = ''; $('drawerBody').innerHTML = '<div id="agendaContent" class="play agenda"></div>'; }
     if (drawerTab === 'customs') buildCustoms();
     renderDrawer();
   }
   $('customsBtn').addEventListener('click', () => openDrawer('customs'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
-  $('drawerClose').addEventListener('click', () => {
-    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
-  });
+  $('agendaBtn').addEventListener('click', () => openDrawer('agenda'));
+  $('drawerClose').addEventListener('click', () => { const tab = drawerTab; openPanel(null); $(DRAWER[tab].btn).focus(); });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
@@ -18806,6 +18824,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   function renderDrawer() {
     if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
+    if (drawerTab === 'agenda') { renderAgenda(); return; }
     if (drawerTab !== 'customs') { updateDebug(); return; }
     if (!$('customContent')) buildCustoms();
     const env = st.cenv, setts = env.settlements;
@@ -18825,7 +18844,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
     Culture.DIMS.forEach((d, k) => {
       const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
-      h += `<section class="custom-card"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
+      h += `<section class="custom-card" id="custom-${k}"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
         optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
         <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
           `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
@@ -18850,6 +18869,62 @@ if (typeof module !== 'undefined') module.exports = Sim;
       });
       $('customTable').innerHTML = table + '</tbody></table>';
     }
+  }
+  // ---- the agenda (the played pawn's cause): what it argues and until when, when it may take up another, the causes it may take up, by
+  // custom, and who else of its village argues one. A cause is taken up or laid down by a queued command, as the pawn's other acts; the
+  // village's leaning on each custom is the Customs tab's, which the links open at that custom. agendaMsg is the last click's answer. ----
+  let agendaMsg = null, agendaHTML = '';
+  const AGENDA_OTHERS = 6;
+  const yrs = (x) => `${Math.max(0, x).toFixed(1)} ${Math.max(0, x).toFixed(1) === '1.0' ? 'year' : 'years'}`;
+  function renderAgenda() {
+    const id = played();
+    if (id < 0) { openPanel(null); return; }
+    const p = st.pawns[id], a = p.advocate, t = st.cenv.t, s = st.cenv.settlements[Sim.settlementIdOf(st, p)], wait = Culture.causeFree(p) - t;
+    const link = (dim, text) => `<button type="button" class="linkish" data-agenda="customs" data-dim="${dim}">${esc(text)}</button>`;
+    let h = agendaMsg ? `<p class="${agendaMsg.bad ? 'refused' : 'hint'}" role="status">${esc(agendaMsg.text)}</p>` : '';
+    h += `<h3>Your agenda</h3>${causeNote(p)}`;
+    if (a) {
+      h += `<p class="hint">Taken up ${yrs(t - p.causeSince)} ago. ${wait > 0 ? `You may take up another in ${yrs(wait)}` : 'You may take up another now'}`
+        + `; laying this one down does not shorten the wait.</p><div class="dbg-row"><button type="button" data-agenda="do" data-cmd="${
+          esc(JSON.stringify({ verb: 'dropCause' }))}">Lay it down</button>${s ? link(a.dim, `${Culture.DIMS[a.dim].label} in ${s.name}`) : ''}</div>`;
+    } else if (wait > 0) h += `<p class="hint">You may take up a cause in ${yrs(wait)}.</p>`;
+    h += `<p class="hint">A cause is argued for ${Culture.P.causeEvery} years: it moves your own mind at once, and day by day the minds of those you have `
+      + 'ties to, by your standing. The village decides at its yearly meeting.</p>';
+    if (s) {
+      const opps = Sim.opportunities(st, id).filter((o) => o.verb === 'argue');
+      h += `<h3>Take up a cause${wait > 0 ? ` (in ${yrs(wait)})` : ''}</h3>`;
+      Culture.DIMS.forEach((d, k) => {
+        const mine = opps.filter((o) => o.args.dim === k);
+        if (!mine.length) return;
+        h += `<h4>${esc(d.label)}<span>now: ${link(k, d.opts[s.practice[k]][1])}</span></h4><div class="dbg-row">${mine.map((o) =>
+          `<button type="button" data-agenda="do" data-cmd="${esc(JSON.stringify({ verb: 'argue', args: o.args }))}"${o.why
+            ? ` aria-disabled="true" data-why="${esc(o.why)}" title="${esc(o.why)}"` : ''}${a && a.dim === k && a.opt === o.args.option
+            ? ' aria-pressed="true"' : ''}>${esc(d.opts[o.args.option][1])}</button>`).join('')}</div>`;
+      });
+      const others = Sim.membersOf(st, s.id).filter((q) => q.alive && q.advocate && q.id !== id).sort((x, y) => y.prestige - x.prestige);
+      h += `<h3>Also arguing in ${esc(s.name)}</h3>` + (others.length ? others.slice(0, AGENDA_OTHERS).map((q) =>
+        `<p><button type="button" class="linkish" data-agenda="pawn" data-id="${q.id}">${esc(Sim.fullName(q))}</button>: ${
+          esc(Culture.DIMS[q.advocate.dim].label.toLowerCase())}, ${esc(optLabel(q.advocate.dim, q.advocate.opt).toLowerCase())} (${
+          yrs(q.advocate.until - t)} more)</p>`).join('') + (others.length > AGENDA_OTHERS ? `<p class="hint">And ${others.length
+          - AGENDA_OTHERS} more of less standing.</p>` : '') : '<p class="hint">No one else argues a cause now.</p>');
+    }
+    if (h === agendaHTML) return;
+    agendaHTML = h; updatePanelHTML($('agendaContent'), h);
+  }
+  function agendaClick(b) {
+    const act = b.dataset.agenda;
+    if (act === 'customs') {
+      customVillage = Sim.settlementIdOf(st, st.pawns[played()]); openPanel(null); openDrawer('customs');
+      const card = $(`custom-${b.dataset.dim}`); if (card && card.scrollIntoView) card.scrollIntoView({ block: 'start' });
+      return;
+    }
+    if (act === 'pawn') { focusPawn(+b.dataset.id); return; }
+    if (b.dataset.why) agendaMsg = { text: `${b.textContent}: ${b.dataset.why}.`, bad: true };
+    else {
+      const c = JSON.parse(b.dataset.cmd), r = Sim.queue(st, { actor: played(), verb: c.verb, args: c.args || null });
+      agendaMsg = r === true ? { text: `Queued: ${commandWords(c)}. It is done when your pawn comes to it.` } : { text: r, bad: true };
+    }
+    renderAgenda();
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
@@ -18903,6 +18978,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   drawer.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b || !st || skipping) return;
+    if (b.dataset.agenda) { if (played() >= 0) agendaClick(b); return; }
     const id = selected(), p = id >= 0 ? st.pawns[id] : null;
     if (b.dataset.drift) {
       st.driftMul = +b.dataset.drift;
@@ -19050,7 +19126,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '0df443b91b', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'd112819c64', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

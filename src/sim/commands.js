@@ -20,6 +20,10 @@ VB['sim/commands'] = (() => {
   // A command names its actor (a pawn id), a verb from VERBS, its target and arguments, and its source: 'planner' (the job matcher),
   // later 'player', 'debug', 'meeting', 'round' (VB-168 to VB-171) or 'occasion' (VB-126). Each verb checks the command and returns why it is refused, or null;
   // then carries it out. The systems below a verb are unchanged: a command decides nothing, it only puts a name between choosing and doing.
+  const causeWait = (st, p) => { // why the pawn may not take up a new cause yet, or null
+    const left = Culture.causeFree(p) - st.cenv.t;
+    return left > 0 ? `took up a cause ${(Culture.P.causeEvery - left).toFixed(1)} years ago: ${left.toFixed(1)} more before a new one` : null;
+  };
   const living = (st, id) => (st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
   // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
@@ -198,12 +202,13 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
     },
-    // argue({dim, option}): the pawn takes up the cause for ten years (the debug's, and the player's for its pawn: VB-211); it replaces any cause held
+    // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it
+    // replaces any cause held. A cause is a long agenda: no new one within those years of the last one taken up (the debug's is not held to that).
     argue: {
-      check: (st, c) => living(st, c.actor) || option(c),
+      check: (st, c) => living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
       run: (st, c) => {
         const d = Culture.DIMS[c.args.dim];
-        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10);
+        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
         personEvent(st, c.actor, 'cause', `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`);
       },
     },
@@ -223,7 +228,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
-        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10);
+        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
       },
     },
     // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
