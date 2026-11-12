@@ -53,6 +53,8 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
+  // The grain a household or a village holds (VB-347): the one reader of the store's grain.
+  function grainOf(holder) { return holder.grain; }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
@@ -288,7 +290,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
-    dug,
+    dug, grainOf,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();

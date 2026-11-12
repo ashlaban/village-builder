@@ -37,10 +37,10 @@ VB['sim/exchange'] = (() => {
   function assessGift(st, o) {
     let floorOk, allowance = Infinity;
     if (isHousehold(o.from)) {
-      floorOk = o.from.grain - o.n >= floorOf(st, o.from) - TOLERANCE;
+      floorOk = Stores.grainOf(o.from) - o.n >= floorOf(st, o.from) - TOLERANCE;
       ctx.giver = o.from.holder; ctx.receiver = isHousehold(o.to) ? o.to.holder : null; ctx.from = o.from; ctx.to = o.to;
       allowance = Rules.value(st, 'allowance', ctx);
-    } else floorOk = o.n <= o.from.grain + TOLERANCE;
+    } else floorOk = o.n <= Stores.grainOf(o.from) + TOLERANCE;
     const player = o.source === 'player', within = o.n <= allowance + TOLERANCE;
     const why = !floorOk && (!player || !isHousehold(o.from)) ? `it would take ${nameOf(st, o.from)} below its floor`
       : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
@@ -51,7 +51,7 @@ VB['sim/exchange'] = (() => {
   // its feed order serves last, as pawn ids)}. Reads only; the gift itself is the verb's.
   function giftWarning(st, from, n) {
     if (!isHousehold(from)) return null;
-    const below = floorOf(st, from) - (from.grain - n);
+    const below = floorOf(st, from) - (Stores.grainOf(from) - n);
     return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
   }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,

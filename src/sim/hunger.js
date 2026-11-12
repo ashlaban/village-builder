@@ -21,7 +21,7 @@ VB['sim/hunger'] = (() => {
     return n * seedPer(st, hh);
   }
   Stores.follow('seed', seedNeed);
-  const { reserved } = Stores;
+  const { reserved, grainOf } = Stores;
   // The grain held back as seed, as the Sim API has read it (the page); the simulation reads reserved(st, hh, 'grain').
   const seedReserve = (st, hh) => reserved(st, hh, 'grain');
   // What the household's living members eat in a day, in rations.
@@ -42,7 +42,7 @@ VB['sim/hunger'] = (() => {
     value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
   Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', 
-    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
+    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, grainOf(c.from) - floorOf(st, c.from)) });
   // ---- need (VB-299; design.md, The fair: Need; target-v2 5.1): what a quantity of a good is worth to the household taking it now, in rations of
   // its welfare; the sum of each good's term, by the module that knows the need (food here, animals sim/byre, tar and ale sim/exchange). The
   // context is {hh, good (a good of sim/stores), n (quanta; below 0, what giving them up costs), kept (rations' worth of keeping goods it
@@ -56,11 +56,11 @@ VB['sim/hunger'] = (() => {
     return season === AUTUMN ? SEASON_DAYS : season < AUTUMN ? AUTUMN * SEASON_DAYS - doy : YEAR_DAYS - doy + AUTUMN * SEASON_DAYS;
   }
   // The food a household holds, in rations: its grain and its larder; and in days of its need (Infinity with nobody to feed).
-  const foodHeld = (hh) => hh.grain + larderOf(hh);
+  const foodHeld = (hh) => grainOf(hh) + larderOf(hh);
   function daysOfFood(st, hh) { const need = dailyNeed(st, hh); return need > 0 ? foodHeld(hh) / need : Infinity; }
   // The food a household holds of one source of the pot (FOODS' source; dried fish 'fish').
   function sourceHeld(st, hh, source) {
-    let s = source === 'grain' ? hh.grain : 0;
+    let s = source === 'grain' ? grainOf(hh) : 0;
     for (const l of hh.larder) {
       const f = FOODS[l.kind], src = f ? f.source : Stores.GOODS.has(l.kind) ? Stores.GOODS.get(l.kind).source : null;
       if (src === source) s += l.n;
@@ -126,9 +126,9 @@ VB['sim/hunger'] = (() => {
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
-    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
+    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
-    const seed = hh.grain - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
+    const seed = grainOf(hh) - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
     if (avail + dip >= rest - late) {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
       const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left), grain = Math.max(0, left - cooked);
@@ -159,7 +159,7 @@ VB['sim/hunger'] = (() => {
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - hh.grain) / CROPS.barley.seed - 1e-9));
+    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - grainOf(hh)) / CROPS.barley.seed - 1e-9));
     if (short) log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
       kind: 'seedEaten', n: short, ...atFarm(f) });
   }
@@ -173,7 +173,7 @@ VB['sim/hunger'] = (() => {
   // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
   // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
-    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = hh.grain;
+    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = grainOf(hh);
     if (!(g > 0)) return;
     const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);

@@ -6510,6 +6510,8 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
+  // The grain a household or a village holds (VB-347): the one reader of the store's grain.
+  function grainOf(holder) { return holder.grain; }
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setVillage = (v, n) => { v.grain = n; };
@@ -6745,7 +6747,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
-    dug,
+    dug, grainOf,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
@@ -6864,7 +6866,7 @@ VB['sim/hunger'] = (() => {
     return n * seedPer(st, hh);
   }
   Stores.follow('seed', seedNeed);
-  const { reserved } = Stores;
+  const { reserved, grainOf } = Stores;
   // The grain held back as seed, as the Sim API has read it (the page); the simulation reads reserved(st, hh, 'grain').
   const seedReserve = (st, hh) => reserved(st, hh, 'grain');
   // What the household's living members eat in a day, in rations.
@@ -6885,7 +6887,7 @@ VB['sim/hunger'] = (() => {
     value: (st, p) => p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1 });
   // allowance's first term: the giving household's grain above its floor (sim/relations, VB-216)
   Rules.contribute({ rule: 'allowance', source: 'sim/hunger', key: 'slack', label: 'Grain above the floor', 
-    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, c.from.grain - floorOf(st, c.from)) });
+    tunables: ['HELP.floorDays'], value: (st, c) => Math.max(0, grainOf(c.from) - floorOf(st, c.from)) });
   // ---- need (VB-299; design.md, The fair: Need; target-v2 5.1): what a quantity of a good is worth to the household taking it now, in rations of
   // its welfare; the sum of each good's term, by the module that knows the need (food here, animals sim/byre, tar and ale sim/exchange). The
   // context is {hh, good (a good of sim/stores), n (quanta; below 0, what giving them up costs), kept (rations' worth of keeping goods it
@@ -6899,11 +6901,11 @@ VB['sim/hunger'] = (() => {
     return season === AUTUMN ? SEASON_DAYS : season < AUTUMN ? AUTUMN * SEASON_DAYS - doy : YEAR_DAYS - doy + AUTUMN * SEASON_DAYS;
   }
   // The food a household holds, in rations: its grain and its larder; and in days of its need (Infinity with nobody to feed).
-  const foodHeld = (hh) => hh.grain + larderOf(hh);
+  const foodHeld = (hh) => grainOf(hh) + larderOf(hh);
   function daysOfFood(st, hh) { const need = dailyNeed(st, hh); return need > 0 ? foodHeld(hh) / need : Infinity; }
   // The food a household holds of one source of the pot (FOODS' source; dried fish 'fish').
   function sourceHeld(st, hh, source) {
-    let s = source === 'grain' ? hh.grain : 0;
+    let s = source === 'grain' ? grainOf(hh) : 0;
     for (const l of hh.larder) {
       const f = FOODS[l.kind], src = f ? f.source : Stores.GOODS.has(l.kind) ? Stores.GOODS.get(l.kind).source : null;
       if (src === source) s += l.n;
@@ -6969,9 +6971,9 @@ VB['sim/hunger'] = (() => {
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])), total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0, rest = total - early;
-    const spare = Math.max(0, hh.grain - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
+    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')), avail = hh.meals + spare; // meals first, then grain
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
-    const seed = hh.grain - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
+    const seed = grainOf(hh) - spare, lack = rest - late - avail, dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
     if (avail + dip >= rest - late) {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
       const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left), grain = Math.max(0, left - cooked);
@@ -7002,7 +7004,7 @@ VB['sim/hunger'] = (() => {
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - hh.grain) / CROPS.barley.seed - 1e-9));
+    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - grainOf(hh)) / CROPS.barley.seed - 1e-9));
     if (short) log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
       kind: 'seedEaten', n: short, ...atFarm(f) });
   }
@@ -7016,7 +7018,7 @@ VB['sim/hunger'] = (() => {
   // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
   // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
-    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = hh.grain;
+    const year = dailyNeed(st, hh) * YEAR_DAYS, L = st.ECON.storeLoss, g = grainOf(hh);
     if (!(g > 0)) return;
     const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
@@ -7066,10 +7068,10 @@ VB['sim/exchange'] = (() => {
   function assessGift(st, o) {
     let floorOk, allowance = Infinity;
     if (isHousehold(o.from)) {
-      floorOk = o.from.grain - o.n >= floorOf(st, o.from) - TOLERANCE;
+      floorOk = Stores.grainOf(o.from) - o.n >= floorOf(st, o.from) - TOLERANCE;
       ctx.giver = o.from.holder; ctx.receiver = isHousehold(o.to) ? o.to.holder : null; ctx.from = o.from; ctx.to = o.to;
       allowance = Rules.value(st, 'allowance', ctx);
-    } else floorOk = o.n <= o.from.grain + TOLERANCE;
+    } else floorOk = o.n <= Stores.grainOf(o.from) + TOLERANCE;
     const player = o.source === 'player', within = o.n <= allowance + TOLERANCE;
     const why = !floorOk && (!player || !isHousehold(o.from)) ? `it would take ${nameOf(st, o.from)} below its floor`
       : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
@@ -7080,7 +7082,7 @@ VB['sim/exchange'] = (() => {
   // its feed order serves last, as pawn ids)}. Reads only; the gift itself is the verb's.
   function giftWarning(st, from, n) {
     if (!isHousehold(from)) return null;
-    const below = floorOf(st, from) - (from.grain - n);
+    const below = floorOf(st, from) - (Stores.grainOf(from) - n);
     return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
   }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,
@@ -7152,7 +7154,7 @@ VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
   const { childrenOf, siblingsOf } = VB['sim/records'];
-  const { dailyNeed } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
+  const { dailyNeed } = VB['sim/hunger'], { reserved, grainOf } = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
   // generosity until traits; a household without a holder keeps the most, as surplus does
@@ -7162,9 +7164,9 @@ VB['sim/help'] = (() => {
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
     const holder = hh.holder !== null ? st.pawns[hh.holder] : null, buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
-    return Math.max(0, hh.grain - reserved(st, hh, 'grain') - buffer);
+    return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
-  const spare = (st, hh) => Math.max(0, hh.grain - reserved(st, hh, 'grain'));
+  const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
   // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
   function kinHouseholds(st, hh) {
     const rank = new Map();
@@ -7219,7 +7221,7 @@ VB['sim/help'] = (() => {
         if (give(st, st.households[k], hh, n)) want -= n;
         if (want <= 1e-9) break;
       }
-      const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, v.grain);
+      const v = st.villages[st.farmsteads[hh.farmstead].village], n = Math.min(want, grainOf(v));
       if (n > 1e-9 && give(st, v, hh, n)) want -= n;
       if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
@@ -8560,7 +8562,7 @@ VB['sim/farmclaims'] = (() => {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
       const keep = reserved(st, hh, 'grain') + st.pawns[hh.holder].buffer * rationsOf(st, stay);
-      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) { Stores.take(st, hh, 'grain', give, 'provisions'); have += give; }
     }
     for (const id of members) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');
@@ -8809,10 +8811,10 @@ VB['sim/kinds'] = (() => {
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Stores.grainOf(hh) - reserved(st, hh, 'grain') > 0;
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
-  const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && hh.grain - floorOf(st, hh) >= BREW.grain;
+  const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -8841,7 +8843,7 @@ VB['sim/kinds'] = (() => {
   // The household's spare food in days of its need: grain above the seed reserve and cooked meals (fish go into meals until VB-119).
   const spareDays = (st, hh) => {
     const need = dailyNeed(st, hh);
-    return need > 0 ? (Math.max(0, hh.grain - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
+    return need > 0 ? (Math.max(0, Stores.grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
   };
   // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
   const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
@@ -8869,13 +8871,13 @@ VB['sim/kinds'] = (() => {
       field: true, pace: 9,
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
-        const seed = CROPS[j.field.crop].seed;
-        if (hh.grain < seed) return;
+        const seed = CROPS[j.field.crop].seed; if (Stores.grainOf(hh, j.field.crop) < seed) return;
         Stores.take(st, hh, 'grain', seed, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'plowed' && hh.grain >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'plowed' && Stores.grainOf(hh, fd.crop) >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, {
+          field: fd, farm: f });
       },
     },
     reap: {
@@ -8949,7 +8951,7 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // grain above the seed reserve is cooked into the meals still missing for the coming day (sim/stores cook, by FOODS)
       done: (st, j, hh, c) => {
-        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, hh.grain - reserved(st, hh, 'grain')));
+        const make = Math.max(0, Math.min(dailyNeed(st, hh) - hh.meals, Stores.grainOf(hh) - reserved(st, hh, 'grain')));
         Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
@@ -8961,7 +8963,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Brewing ale', go: 'Going home to brew', name: 'Brew ale', label: 'Brewing', anim: null, hours: BREW.hours, hands: 1, type: 'household',
       inside: true, urgency: (st, j, c, U) => U.brew,
       // a barrel from the grain, if it is still surplus when the work is done
-      done: (st, j, hh) => { if (hh.grain - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh); },
+      done: (st, j, hh) => { if (Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh); },
       // in autumn and winter, once the harvest is in, while ale is wanted (brewWanted)
       available: (st, hh, f, c, post) => {
         if ((c.season === 2 || c.season === 3) && brewWanted(st, hh)) post(`brew:h${hh.id}:${c.day}`, f.house, { farm: f });
@@ -10987,10 +10989,10 @@ VB['sim/heirs'] = (() => {
     if (cu.heirCount !== 'one' && reason !== 'claim') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
       const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * SHARES.perField + hh.grain * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      const value = f.fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain, total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
-        const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(hh.grain - reserve)));
+        const due = Math.round((value * wt(q)) / total), paid = Math.min(due, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
         Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
         const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
         const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0, owed = due - paid - animals;
@@ -11152,7 +11154,7 @@ VB['sim/heirs'] = (() => {
       return;
     }
     const to = st.households[home];
-    Stores.move(st, hh, to, 'grain', hh.grain, 'handingOn'); passHerds(st, hh, home);
+    Stores.move(st, hh, to, 'grain', Stores.grainOf(hh), 'handingOn'); passHerds(st, hh, home);
     extinct(st, hh, `${fullName(st.pawns[giver])} married away, and nobody would take it`);
   }
   function refreshRoles(st) {
@@ -11213,7 +11215,7 @@ VB['sim/heirs'] = (() => {
 // player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, YEAR_DAYS, HUNGER } = VB['sim/rules'];
-  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
+  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
   const { roundHeirs, heirFor } = VB['sim/heirs'];
   const { opinionOf } = VB['sim/relations'];
@@ -11270,7 +11272,7 @@ VB['sim/matching'] = (() => {
     };
     const affords = (h) => {
       if (!means.has(h)) {
-        const hh = st.households[h], store = hh.grain + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+        const hh = st.households[h], store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
         const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
         means.set(h, grown < 2 || store - reserved(st, hh, 'grain') >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }
@@ -11875,7 +11877,7 @@ VB['sim/cottage'] = (() => {
       if (!p.alive || !(p.owed > 0) || p.owedFrom === undefined || p.owedFrom === null) continue;
       const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
-      const pay = Math.min(p.owed, Math.max(0, Math.floor(hh.grain - reserve)));
+      const pay = Math.min(p.owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
       const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
       // grain first; what grain cannot cover is paid in animals to the pawn's household, when it has another (VB-140)
       const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;
@@ -12128,7 +12130,7 @@ VB['sim/settle'] = (() => {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !all.includes(m)), holder = st.pawns[hh.holder];
       const keep = reserved(st, hh, 'grain') + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
-      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) { gifts.push([h, give]); have += give; }
     }
     return have >= need ? { grain: have, gifts } : null;
@@ -13705,7 +13707,7 @@ const Sim = (() => {
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
-  const { seedReserve } = VB['sim/hunger'];
+  const { seedReserve } = VB['sim/hunger'], { grainOf } = VB['sim/stores'];
   const { fieldsWanted } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
@@ -13741,7 +13743,7 @@ const Sim = (() => {
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
     isHolder, holdingOf, prestigeParts, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner,
-      seedReserve, fieldsWanted,
+      seedReserve, grainOf, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, knowsDeposit, depositKnown, goodwillOf, explainAllowance,
@@ -16335,7 +16337,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         }).join('')}</ul>`;
         const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
         body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
-          `<p>Grain ${Math.round(hh.grain)} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
+          `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
           <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
@@ -16526,7 +16528,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
         return [f.name,
           [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
           heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
-          `${hungerWord(hh)}: ${Math.round(hh.grain)} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
+          `${hungerWord(hh)}: ${Math.round(Sim.grainOf(hh))} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
       }
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {
@@ -16809,7 +16811,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function foodDays(hh) {
     let need = 0;
     for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
-    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
+    const food = Math.max(0, Sim.grainOf(hh) - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
   // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
@@ -17223,7 +17225,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   };
   // The household the played pawn gives for, or null: the one it holds.
   const givesFor = (id) => (st.player && st.player.pawn === id && st.pawns[id].died === null ? Sim.holdingOf(st, id) : null);
-  const giftMax = (hh) => Math.max(0, Math.floor(hh.grain - Sim.seedReserve(st, hh)));
+  const giftMax = (hh) => Math.max(0, Math.floor(Sim.grainOf(hh) - Sim.seedReserve(st, hh)));
   // whom it may give to from the list: its kin's households, then the others of its village
   function giftChoices(hh) {
     const f = st.farmsteads[hh.farmstead], kin = Sim.kinHouseholds(st, hh);
@@ -18596,7 +18598,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'a71f82aa18', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'c70157a40d', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

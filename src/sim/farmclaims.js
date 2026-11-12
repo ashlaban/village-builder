@@ -182,7 +182,7 @@ VB['sim/farmclaims'] = (() => {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !members.includes(m));
       const keep = reserved(st, hh, 'grain') + st.pawns[hh.holder].buffer * rationsOf(st, stay);
-      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) { Stores.take(st, hh, 'grain', give, 'provisions'); have += give; }
     }
     for (const id of members) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions');

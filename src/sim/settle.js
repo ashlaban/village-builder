@@ -75,7 +75,7 @@ VB['sim/settle'] = (() => {
       if (have >= need) break;
       const hh = st.households[h], stay = hh.members.filter((m) => !all.includes(m)), holder = st.pawns[hh.holder];
       const keep = reserved(st, hh, 'grain') + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
-      const give = Math.min(need - have, Math.max(0, Math.floor(hh.grain - keep)));
+      const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) { gifts.push([h, give]); have += give; }
     }
     return have >= need ? { grain: have, gifts } : null;
