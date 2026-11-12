@@ -2,7 +2,7 @@
 
 Written 12 November 2026 by VB-055 (survey in `backlog/VB-055.md`; questions in `QUESTIONS.md`, "VB-055: the move to TypeScript"). Each section below is
 one task, as a complete task file's text, in the order they would run. The orchestrator creates them in the backlog (`node tools/backlog.js new`);
-`P1` to `P14` are names in this document, to be replaced by the ids. Arch `yardstick` throughout (outside the slices, as VB-228 to VB-232 are),
+`P1` to `P14` are names in this document; in the backlog they are VB-373 to VB-386, in that order (created 12 November). Arch `yardstick` throughout (outside the slices, as VB-228 to VB-232 are),
 phase `implement`, design ref "none (code structure); `docs/architecture/target-v2.md`, section 2". Every task is behaviour-preserving: `tests/golden.json`
 and `tests/counters.json` do not change, and a PR that must change them is wrong.
 
