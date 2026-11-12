@@ -205,8 +205,10 @@ VB['sim/rules'] = (() => {
   // In the byre: from autumn day 9 to spring day 5; the herds graze out of it (sim/herds, sim/grazing).
   const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
   // ---- grazing pressure (VB-136; read by forest spread, VB-091): a tile at or above keepsOpen stays open; at or above thins, its trees
-  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/herds). ----
-  const GRAZE = { keepsOpen: 20, thins: 150 };
+  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/grazing). At populous medium, seed 7, year 5, the
+  // grazed tiles' pressure runs p10 15, p50 87, p90 219, p99 385, max 628: keepsOpen is a herd's half day on the tile, or a pasture's
+  // neighbour, within about a year (87% of grazed tiles); thins is a small herd's week a year, kept up (about the 90th percentile). ----
+  const GRAZE = { keepsOpen: 20, thins: 200 };
   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
   // spoils in store by sim/hunger's share instead), source (for a meal's variety; grain and flour are one; null: not given yet) and raw (eaten
