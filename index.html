@@ -13562,7 +13562,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
-  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago (the Saves overlay; page/saves). A game that is open
+  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago
+  // (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
@@ -17931,7 +17932,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '940c58a626', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '711631c9b5', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -14,7 +14,8 @@
   let building = false;
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
-  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago (the Saves overlay; page/saves). A game that is open
+  // The landing page: Play (New archipelago, the start; page/start), World editor (page/editor) and Load archipelago
+  // (the Saves overlay; page/saves). A game that is open
   // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
   // With no game open, a tiny island of its own plays behind the menu screens (VB-307): `demo` says the world and the run on the stage are
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
