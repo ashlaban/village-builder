@@ -28,7 +28,7 @@ function loneCase(st) {
   return null;
 }
 // Empty larders everywhere and an empty village store, so the ask falls short.
-const starve = (st) => { for (const hh of st.households) { hh.grain = hh.dissolved ? hh.grain : seedReserve(st, hh); hh.meals = 0; } for (const v of st.villages) v.grain = 0; };
+const starve = (st) => { for (const hh of st.households) { if (!hh.dissolved) hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; } for (const v of st.villages) v.grain = {}; };
 let report = '';
 // 1. Kin first: after the first short ask, the sister lives on the farm, as a member; holder, fields and owner unchanged.
 {

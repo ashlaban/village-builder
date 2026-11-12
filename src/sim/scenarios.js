@@ -33,7 +33,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed;
+    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed }; // by crop (VB-347)
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
@@ -71,7 +71,7 @@ VB['sim/scenarios'] = (() => {
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed;
+    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
@@ -174,7 +174,7 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), meals (rations of cooked food, ready to eat; sim/hunger),
+    // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
     //   wood (loads), stone (loads), rack (rations of fish waiting by the drying rack; sim/stores) and boat (null or the household's fishing
@@ -201,7 +201,7 @@ VB['sim/scenarios'] = (() => {
     //   or null: settlers live in a booth until their cottage is built (sim/settle, sim/expansion, sim/building)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
-    //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
+    //   grain: the village store, {crop: rations} (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage), wood (loads: its felled trees and the timber carried to it, less the walls'; VB-328),

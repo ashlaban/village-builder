@@ -58,10 +58,10 @@ VB['sim/kinds'] = (() => {
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
   // The household has fewer meals than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && hh.grain - reserved(st, hh, 'grain') > 0;
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Stores.grainOf(hh) - reserved(st, hh, 'grain') > 0;
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
-  const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && hh.grain - floorOf(st, hh) >= BREW.grain;
+  const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -90,7 +90,7 @@ VB['sim/kinds'] = (() => {
   // The household's spare food in days of its need: grain above the seed reserve and cooked meals (fish go into meals until VB-119).
   const spareDays = (st, hh) => {
     const need = dailyNeed(st, hh);
-    return need > 0 ? (Math.max(0, hh.grain - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
+    return need > 0 ? (Math.max(0, Stores.grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
   };
   // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
   const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
@@ -118,13 +118,13 @@ VB['sim/kinds'] = (() => {
       field: true, pace: 9,
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
-        const seed = CROPS[j.field.crop].seed;
-        if (hh.grain < seed) return;
-        Stores.take(st, hh, 'grain', seed, 'seed'); sown(j.field, c);
+        const seed = CROPS[j.field.crop].seed; if (Stores.grainOf(hh, j.field.crop) < seed) return;
+        Stores.take(st, hh, Stores.grainGood(j.field.crop), seed, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'plowed' && hh.grain >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'plowed' && Stores.grainOf(hh, fd.crop) >= CROPS[fd.crop].seed) post('sow:' + fieldKey(f, fd), fd.tile, {
+          field: fd, farm: f });
       },
     },
     reap: {
@@ -198,8 +198,8 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // the meals still missing for the coming day: in winter a share of dried fish (sim/drying), the rest grain above the seed reserve
       done: (st, j, hh, c) => {
-        const want = dailyNeed(st, hh) - hh.meals, make = Math.max(0, Math.min(want - Drying.intoPot(st, hh, c, want), hh.grain - reserved(st, hh, 'grain')));
-        Stores.cook(st, hh, 'grain', make); hh.cookDay = c.day;
+        const want = dailyNeed(st, hh) - hh.meals, left = want - Drying.intoPot(st, hh, c, want);
+        Stores.cook(st, hh, 'grain', Math.max(0, Math.min(left, Stores.grainOf(hh) - reserved(st, hh, 'grain')))); hh.cookDay = c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
       available: (st, hh, f, c, post) => {
@@ -210,7 +210,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Brewing ale', go: 'Going home to brew', name: 'Brew ale', label: 'Brewing', anim: null, hours: BREW.hours, hands: 1, type: 'household',
       inside: true, urgency: (st, j, c, U) => U.brew,
       // a barrel from the grain, if it is still surplus when the work is done
-      done: (st, j, hh) => { if (hh.grain - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh); },
+      done: (st, j, hh) => { if (Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh); },
       // in autumn and winter, once the harvest is in, while ale is wanted (brewWanted)
       available: (st, hh, f, c, post) => {
         if ((c.season === 2 || c.season === 3) && brewWanted(st, hh)) post(`brew:h${hh.id}:${c.day}`, f.house, { farm: f });

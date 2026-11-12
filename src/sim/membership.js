@@ -9,7 +9,7 @@ VB['sim/membership'] = (() => {
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   // Its first wood (VB-328): `wood` loads from its plot (a cottage's), then from the piles of the homes its members leave, up to ECON.startWood
   // in all and never leaving a pile under MATCH.urgency.woodLow; settlers (`carry` false) bring none and cut on arrival.
-  function foundHousehold(st, f, members, holder, { grain = 0, stakes = false, text = null, followers = [], unhomed = false, wood = 0, carry = true } = {}) {
+  function foundHousehold(st, f, members, holder, { grain = {}, stakes = false, text = null, followers = [], unhomed = false, wood = 0, carry = true } = {}) {
     const hh = makeHousehold(st, st.households.length, f, [], holder);
     Stores.start(st, hh, grain);
     if (wood > 0) Stores.put(st, hh, 'wood', wood, 'plot');

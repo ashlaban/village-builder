@@ -36,7 +36,7 @@ function villageWorld(n) {
   VB['sim/society'].initCulture(st, null); VB['sim/heirs'].countDemand(st);
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); VB['sim/territory'].seedOutland(st, true);
   for (const hh of households) {
-    hh.grain = VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * CROPS.barley.seed;
+    hh.grain = { barley: VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
   }
   rng.splitStreams(st, 7);
   assert.strictEqual(villages.length, n);

@@ -35,7 +35,7 @@ if (f) {
   check(F.wild(w, t), 'the ground is forest or heath');
   const posts = (c) => { const out = []; K.available(st, hh, f, c, (key, site, extra) => out.push({ key, site, ...extra }), f); return out; };
   check(posts(cal(1, 4)).length === 0 && posts(cal(0, 8)).length === 0 && posts(cal(3, 4)).length === 0, 'none before summer day 6, in spring or in winter');
-  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = Stores.reserved(st, hh, 'grain') + days * need; };
+  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = { barley: Stores.reserved(st, hh, 'grain') + days * need }; };
   spare(30);
   check(posts(cal(1, 5)).length === 1 && posts(cal(2, 11)).length === 1, 'one trip from summer day 6 to the end of autumn');
   const j = { farm: f, site: t, owner: { type: 'household', id: hh.id } };

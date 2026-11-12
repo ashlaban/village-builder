@@ -12,7 +12,7 @@ const Sim = (() => {
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
-  const { seedReserve } = VB['sim/hunger'];
+  const { seedReserve } = VB['sim/hunger'], { grainOf } = VB['sim/stores'];
   const { fieldsWanted } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
@@ -48,7 +48,7 @@ const Sim = (() => {
       YEAR_DAYS,
     SEASON_DAYS, ECON, ROLES, KINDS, WORK, dark, killPawn, retireHolder, holdMeetings, movingRound, heirRanking, practice, farmPractice, wantsOut, countDemand,
     isHolder, holdingOf, prestigeParts, settlementIdOf, membersOf, voiceOf, hooks, refreshInterests, updateTies, refreshRoles, Culture, ownerOf, setOwner,
-      seedReserve, fieldsWanted,
+      seedReserve, grainOf, fieldsWanted,
     plotProgress, explainIdle, idleLine, RIVER, byRiver, compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf,
     HERD, SOIL, herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, larderOf, team, withOxen, inMilk,
     claimsOn, claimStrength: strength, holdings, CLAIMS, knowsDeposit, depositKnown, goodwillOf, explainAllowance,

@@ -292,7 +292,7 @@ async function actionBar() {
   const Sim = win.Sim, st = simSt, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
   q('[data-speed="0"]').click();
   const holder = st.pawns.find((p) => p.alive && p.age >= 18 && Sim.isHolder(st, p.id) && Sim.holdingOf(st, p.id)
-    && Sim.holdingOf(st, p.id).grain - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
+    && Sim.grainOf(Sim.holdingOf(st, p.id)) - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
   if (!holder || Sim.inhabit(st, holder.id) !== true) { fail('no holder with grain to spare to play'); return; }
   tick(20);
   if (q('#actionsBtn').hidden) { fail('no Actions in the dock for the played pawn'); return; }

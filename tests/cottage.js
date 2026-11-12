@@ -37,15 +37,15 @@ const left = Math.max(felled, TIMBER + 6) - TIMBER, want = Math.min(left, VB['si
 check(plot.steps[2].wood === 0 && hh.wood >= want && hh.wood <= Math.max(want, 16), `the new household's first wood: ${hh.wood} (${left} left by the walls)`);
 check(hh && hh.holder === m.id && hh.members.includes(m.id) && hh.members.includes(f.id), 'holder and spouse live in the new household');
 check(m.household === hh.id && f.household === hh.id, 'both moved in');
-check(hh.grain === 400 && !m.stake && !f.stake, `stake became grain (${hh.grain})`);
+check(Sim.grainOf(hh) === 400 && !m.stake && !f.stake, `stake became grain (${Sim.grainOf(hh)})`);
 check(fm.fields.length === 1 && fm.village === v.id && st.farmsteads[fm.id] === fm, 'farmstead has the plot field');
 check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => /Moved/.test(e.text || '')), 'a moved event');
 check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no more cottage jobs');
 // owed shares are paid from grain above the debtor farm's reserve
 const other = st.households.find((h) => !h.dissolved && h.id !== hh.id), p = st.pawns.find((q) => q.alive && q.household === hh.id && q.id === f.id);
-p.owed = 50; p.owedFrom = other.id; other.grain = 1000;
+p.owed = 50; p.owedFrom = other.id; other.grain = { barley: 1000 };
 VB['sim/cottage'].payOwed(st);
-check(p.owed === 0 && hh.grain === 450 && other.grain === 950, `owed share paid (owed ${p.owed}, grain ${hh.grain}/${other.grain})`);
+check(p.owed === 0 && Sim.grainOf(hh) === 450 && Sim.grainOf(other) === 950, `owed share paid (owed ${p.owed}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
 // the next spring: the household sows its field
 let sown = false;
 for (let d = 0; d < 400 * 24 && !sown; d += 24) { Sim.advance(st, 24); sown = fm.fields[0].stage !== 'stubble'; if (hh.dissolved) break; }

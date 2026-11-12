@@ -59,7 +59,7 @@ VB['sim/cottage'] = (() => {
       if (!p.alive || !(p.owed > 0) || p.owedFrom === undefined || p.owedFrom === null) continue;
       const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
-      const pay = Math.min(p.owed, Math.max(0, Math.floor(hh.grain - reserve)));
+      const pay = Math.min(p.owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
       const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
       // grain first; what grain cannot cover is paid in animals to the pawn's household, when it has another (VB-140)
       const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;

@@ -183,7 +183,7 @@ VB['sim/layout'] = (() => {
     return row;
   }
   function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
-    const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: true, well: true };
+    const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: true, well: true };
     used.add(center);
     const taken = new Set([...fieldsAt, ...homes]);
     const street = !withStreet ? new Set()
@@ -298,7 +298,7 @@ VB['sim/layout'] = (() => {
     // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
     const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
+      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
     const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
     village.farmsteads.push(f.id); villages.push(village);
     for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }

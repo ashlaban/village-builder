@@ -58,7 +58,7 @@ VB['sim/meadows'] = (() => {
   // VB-123's notes).
   function meadowProject(st, hh, tile) {
     const hours = CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES);
-    return { what: 'meadow', steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }], hold: { grain: seedPer(st, hh) } };
+    return { what: 'meadow', steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }], hold: { [Stores.grainGood('barley')]: seedPer(st, hh) } };
   }
   function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
     if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;

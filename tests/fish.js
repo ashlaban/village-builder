@@ -42,7 +42,7 @@ if (f) {
   check(!w.water[g.shore] && !w.river[g.shore] && F.isWater(w, g.water) && w.nb.slice(g.shore * 6, g.shore * 6 + 6).includes(g.water), 'the ground is a bank by its water');
   const posts = (c) => { const out = []; K.available(st, hh, f, c, (key, site, extra) => out.push({ key, site, ...extra }), f); return out; };
   check(posts(cal(0, 1)).length === 0 && posts(cal(3, 4)).length === 0, 'no fishing before spring day 3, nor in winter');
-  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = Stores.reserved(st, hh, 'grain') + days * need; };
+  const need = dailyNeed(st, hh), spare = (days) => { hh.meals = 0; hh.grain = { barley: Stores.reserved(st, hh, 'grain') + days * need }; };
   spare(30);
   check(posts(cal(0, 2)).length === 1 && posts(cal(2, 11)).length === 1, 'one trip from spring day 3 to the end of autumn');
   const j = { farm: f, water: g.water, owner: { type: 'household', id: hh.id } };

@@ -74,7 +74,7 @@ for (let y = start + 1; y <= last; y++) {
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
   const marriages = st.unions.filter((u) => u.start >= (y - 1) * Sim.YEAR && u.start < y * Sim.YEAR).length;
-  const grain = live.length ? live.reduce((s, h) => s + h.grain, 0) / live.length : 0;
+  const grain = live.length ? live.reduce((s, h) => s + Sim.grainOf(h), 0) / live.length : 0;
   const d = Object.entries(deaths).map(([k, n]) => `${k} ${n}`).join(', ') || '-';
   say(`${String(y).padStart(4)} ${String(st.pawns.filter((p) => p.alive).length).padStart(4)} ${String(births).padStart(7)}  ${d.padEnd(16)} ${String(marriages).padStart(9)} ${String(st.households.reduce((s, h) => s + h.hungryDays, 0) - hungry0).padStart(12)} ${grain.toFixed(1).padStart(11)} ${String(st.demand.length).padStart(7)} ${ms.toFixed(1).padStart(7)}`);
 }
@@ -86,7 +86,7 @@ if (saveTo) {
 
 const pawnDays = report === 'counts' ? require('./counts.js').livingPawnDays(st, countsFrom, st.t, Sim.DAY) : 0;
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
-const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(h.grain), wood: Math.round(h.wood),
+const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(Sim.grainOf(h)), wood: Math.round(h.wood),
   hungryDays: h.hungryDays, dissolved: h.dissolved });
 // A household's plans (sim/plans): the standing plan's targets, reservations and next review; the seasonal plan's season and steps.
 const when = (hour) => {

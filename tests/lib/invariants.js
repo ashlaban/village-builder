@@ -2,6 +2,17 @@
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
+// Grain by crop (VB-347): an object of crops of CROPS, none negative, and the sum the readers see (Stores.grainOf) is their sum.
+const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
+function grainBad(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
+  let sum = 0;
+  for (const c of Object.keys(g)) {
+    if (!CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
+    sum += g[c];
+  }
+  return Math.abs(LOADED['sim/stores'].grainOf({ grain: g }) - sum) > 1e-9 * Math.max(1, sum);
+}
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
   // the open step of a household's project plan (VB-123), or null
@@ -47,7 +58,7 @@ function checkState(st) {
         for (const good of goods) {
           const n = plan.reserved[good];
           if (!(n >= 0) || !Number.isFinite(n) || !STORES.RESERVE.includes(plan.reasons[good]) ||
-            (type === 'household' && good !== 'grain' && good !== 'meals')) {
+            (type === 'household' && !STORES.CROP_LIST.some((c) => good === STORES.grainGood(c)) && good !== 'meals')) {
             bad.push(`plans: ${type} ${id} reserves ${n} ${good} for ${plan.reasons[good]}`);
           }
         }
@@ -61,7 +72,8 @@ function checkState(st) {
         }
         const T = plan.targets;
         if (!T || T.wood.length !== 4 || !T.wood.every((x) => x > 0) || !(T.hayWinters > 0) || !(T.woodSecond >= 0) || !(T.fields >= 0) ||
-          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) || plan.reasons.grain !== 'seed') {
+          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) ||
+          plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
         if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
@@ -250,7 +262,8 @@ function checkState(st) {
     }
     if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
-    for (const k of ['grain', 'wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
+    for (const k of ['wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
@@ -315,7 +328,7 @@ function checkState(st) {
     if (holder.dissolved && (holder.ledger.length || holder.totals.length)) bad.push(`households[${holder.id}]: dissolved with a ledger`);
   }
   for (const v of st.villages) {
-    if (!within(v.grain, 0, 1e6)) bad.push(`villages[${v.id}]: grain is ${v.grain}`);
+    if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
     // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has
     if (v.fishing !== undefined && !(v.fishing && Number.isInteger(v.fishing.farms) && v.fishing.farms <= v.farmsteads.length
       && typeof v.fishing.near === 'boolean')) bad.push(`villages[${v.id}]: fishing ${JSON.stringify(v.fishing)}`);
@@ -719,7 +732,6 @@ function checkHerds(st, bad) {
       !(Number.isInteger(hh.milkDay) && hh.milkDay >= -1 && hh.milkDay <= st.t / 24)) bad.push(`households[${hh.id}]: milkDay ${hh.milkDay}`);
     if (hh.manure !== undefined && !(hh.manure >= 0)) bad.push(`households[${hh.id}]: manure ${hh.manure}`); // VB-137
     if (hh.spoilt !== undefined && !(hh.spoilt >= 0)) bad.push(`households[${hh.id}]: spoilt ${hh.spoilt}`); // grain lost in store (balance review)
-    if (!(hh.grain >= -1e-6)) bad.push(`households[${hh.id}]: grain ${hh.grain}`);
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
   const { SOIL, CROPS } = VB['sim/rules'];

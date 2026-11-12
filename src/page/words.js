@@ -88,7 +88,7 @@
         }).join('')}</ul>`;
         const suppliesKey = `supplies-${hh.id}`, fieldsKey = `fields-${hh.id}`, animalsKey = `animals-${hh.id}`;
         body += fold(suppliesKey, 'Supplies & health', foldOpen(suppliesKey) ?
-          `<p>Grain ${Math.round(hh.grain)} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
+          `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
           <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
@@ -281,7 +281,7 @@
         return [f.name,
           [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
           heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
-          `${hungerWord(hh)}: ${Math.round(hh.grain)} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
+          `${hungerWord(hh)}: ${Math.round(Sim.grainOf(hh))} rations of grain, ${Math.round(hh.wood)} loads of firewood`], { farm: f.id, house: true }];
       }
       const fd = f.fields.find((q) => q.tile === i);
       if (fd) {

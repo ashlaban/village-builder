@@ -181,7 +181,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const YEAR = VB['sim/rules'].YEAR;
   const world = (seed) => {
     const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
-    for (const h of st.households) h.grain += 5e4; // the homes afford a marriage
+    for (const h of st.households) h.grain.barley += 5e4; // the homes afford a marriage
     return st;
   };
   const adults = (st) => st.living.map((i) => st.pawns[i]).filter((p) => R.spouseOf(st, p.id) === null && p.age >= 20);

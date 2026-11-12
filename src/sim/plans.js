@@ -5,7 +5,7 @@ VB['sim/plans'] = (() => {
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], SEED_CROP = 'barley', SEED = Stores.grainGood(SEED_CROP); // the seed reserved: barley's until rotations (VB-350)
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
@@ -315,7 +315,7 @@ VB['sim/plans'] = (() => {
     if (hh.farmstead !== null) { T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable); }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
-    Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
+    Stores.reserve(st, hh, plan, SEED, hh.farmstead !== null ? seedNeed(st, hh, SEED_CROP) : 0, 'seed');
   }
   // A village's first routines, until its first meeting: what its founders would choose from the work it has (a tie: all of it, the first
   // MAX_ROUTINES in their order). Also at the load of a save made before routines.
@@ -380,7 +380,7 @@ VB['sim/plans'] = (() => {
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
     T.workable = fieldsWorkable(st, hh, T.perHand); T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
-    Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed');
+    Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
@@ -391,7 +391,7 @@ VB['sim/plans'] = (() => {
     if (p) makeProject(st, 'household', hh.id, p);
     p = startMeadow(st, f, hh, built, plan.tiles.meadow);
     if (p) makeProject(st, 'household', hh.id, p);
-    Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
+    Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
     dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks,
