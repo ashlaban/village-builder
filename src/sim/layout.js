@@ -186,7 +186,7 @@ VB['sim/layout'] = (() => {
   // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
     const name = drawnName(rand, villages); // named when all are laid (nameVillages)
-    if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
+    if (nFarms < STREET.from || globalThis.VB_BYLAND) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
     const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
     const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
     const before = keep(), row = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, true);
@@ -220,7 +220,7 @@ VB['sim/layout'] = (() => {
     // no route crosses a house: this village's so far (mine, but its green) and the other villages' (homes)
     const walk = walkable(w), house = (j) => j !== center && (mine.has(j) || homes.has(j)), shut = (j) => j < 0 || !walk(j) || house(j);
     // the house sites still open, best first
-    const sites = () => {
+    const sites = (scored = false) => {
       const out = [];
       for (const [t, d] of reach) {
         if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || !(near.has(t) || nextTo(w, t, near))) continue;
@@ -230,16 +230,20 @@ VB['sim/layout'] = (() => {
         out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (nextTo(w, t, front) ? 0 : HOUSE.offStreet) - (1.5 * w.stones[t]) / 255
           - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * HOUSE.wander]);
       }
-      return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
+      return scored ? out.sort((x, y) => y[1] - x[1] || x[0] - y[0]) : out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
     };
     const stand = (t) => { used.add(t); build(t); };
     // the farm of the house at t, if it finds its fields: behind the row, unless the unbuilt sites along the street give clearly
     // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
     const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
-    const farm = (t) => {
+    const fieldsFor = (t) => {
       const behind = placeFields(w, used, t, 3, sides, outward(t)), any = placeFields(w, used, t, 3, yards, outward(t));
       const fields = worth(any) > worth(behind) + HOUSE.better ? any : behind;
-      if (!fields || worth(fields) < HOUSE.land) return false; // ground too poor to feed a household is no room for a farm
+      return !fields || worth(fields) < HOUSE.land ? null : fields; // ground too poor to feed a household is no room for a farm
+    };
+    const farm = (t, got = null) => {
+      const fields = got || fieldsFor(t);
+      if (!fields) return false;
       const f = makeFarmstead(w, farmsteads.length, t, fields, village, used);
       farmsteads.push(f); village.farmsteads.push(f.id); homes.add(t);
       for (const j of fields) fieldsAt.add(j);
@@ -248,9 +252,24 @@ VB['sim/layout'] = (() => {
     // first the houses, so that no field takes a house's place; then each house's fields, the first house first; then, for the houses
     // that found none, other sites one at a time, each kept only if its fields find room
     const houses = [];
+    // EXPLORE (by land): a farm at a time, the house where the land round it is best: its site's score, more for the worth of the fields
+    // it would take (HOUSE.byLand) and less for the house tile's own fertility (HOUSE.spare: a house stands on the poorer ground)
+    if (globalThis.VB_BYLAND) {
+      for (let n = 0; n < nFarms; n++) {
+        let best = null, bs = -Infinity;
+        for (const [t, base] of sites(true).slice(0, 16)) {
+          used.add(t); const fields = fieldsFor(t); used.delete(t);
+          if (!fields) continue;
+          const sc = base + 1.5 * worth(fields) - 1 * fertility(w, t);
+          if (sc > bs) { bs = sc; best = [t, fields]; }
+        }
+        if (!best) break;
+        used.add(best[0]); farm(best[0], best[1]); stand(best[0]);
+      }
+    } else
     for (let n = 0; n < nFarms; n++) { const t = sites()[0]; if (t === undefined) break; houses.push(t); stand(t); }
     // a house is kept if it still hangs together with the houses kept before it, and finds its fields
-    mine.clear(); near.clear(); build(center);
+    if (!globalThis.VB_BYLAND) { mine.clear(); near.clear(); build(center); }
     for (const t of houses) { if ((near.has(t) || nextTo(w, t, near)) && farm(t)) build(t); else used.delete(t); }
     while (village.farmsteads.length < nFarms) {
       let done = false;
