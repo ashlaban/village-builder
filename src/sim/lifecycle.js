@@ -109,7 +109,7 @@ VB['sim/lifecycle'] = (() => {
     const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'), plan = st.plans.villages.get(s.id);
     const kept = by === 'asLastYear' ? plan.routines : [];
     issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
-    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum, ${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there`;
+    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum (${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there)`;
     const work = kept.map((k) => VILLAGE_ROUTINES[k].label.toLowerCase()).join(', ');
     const then = by === 'asLastYear' ? (kept.length ? `the village keeps last year's work: ${work}` : 'the village keeps last year\'s work, which was none')
       : v.fence.length ? 'no village work this year, and the village fence goes unmended' : 'no village work this year';

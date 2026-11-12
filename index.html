@@ -11875,7 +11875,7 @@ VB['sim/lifecycle'] = (() => {
     const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'), plan = st.plans.villages.get(s.id);
     const kept = by === 'asLastYear' ? plan.routines : [];
     issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
-    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum, ${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there`;
+    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum (${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there)`;
     const work = kept.map((k) => VILLAGE_ROUTINES[k].label.toLowerCase()).join(', ');
     const then = by === 'asLastYear' ? (kept.length ? `the village keeps last year's work: ${work}` : 'the village keeps last year\'s work, which was none')
       : v.fence.length ? 'no village work this year, and the village fence goes unmended' : 'no village work this year';
@@ -17929,7 +17929,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '256ff6a3d6', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '52f4690cff', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
