@@ -1,5 +1,6 @@
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js');
+const { CROPS } = VB['sim/rules'];
 const { setClock, moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, YEAR, SEASON_DAYS, cal } = VB['sim/rules'];
@@ -11,11 +12,11 @@ const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
 assert(fd, 'test farm needs a field');
 const j = { farm: f, field: fd };
 KINDS.plow.done(st, j);
-hh.grain = st.ECON.seedPerField - 1;
+hh.grain = CROPS.barley.seed - 1;
 const before = structuredClone(fd);
 KINDS.sow.done(st, j, hh, cal(0));
 assert.deepStrictEqual(fd, before, 'insufficient seed must leave the hoed field untouched');
-hh.grain = st.ECON.seedPerField;
+hh.grain = CROPS.barley.seed;
 KINDS.sow.done(st, j, hh, cal(0));
 assert.equal(hh.grain, 0, 'sowing consumes the seed');
 

@@ -94,7 +94,7 @@ VB['sim/layout'] = (() => {
     used.add(house); for (const j of fields) used.add(j);
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
-      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
+      id, house, fields: fields.map((t, k) => ({ id: k, tile: t, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
       village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
       grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
@@ -316,7 +316,7 @@ VB['sim/layout'] = (() => {
     }
     if (best < 0) return false;
     used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
+    f.fields.push({ id: f.fields.length, tile: best, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
       soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
     return true;
   }

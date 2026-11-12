@@ -125,4 +125,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `src/sim/clock.js`, inserted where it should run in the order; `tests/clock.js` holds that order (`ORDER`, re-recorded on purpose).
 - A new stored quantity (a household's, a farm's, a village's or a tile's) adds its line to `QUANTITIES` in `tools/stocks.js`, with
   what happens when there is none; `tests/review-tools.js` fails for a field of the `@state` lines in neither its lines nor `NOT_STOCKS`.
+- A new crop is one row of `CROPS` in `src/sim/rules.js` (VB-346): `yield`, `seed`, `sow` ([season, first day, last day]), `ripe` (days from
+  sowing), `wear` (the soil a harvest takes) and `hours` (plow, sow, weed, reap, thresh). A field holds
+  the key as `fd.crop`; `sim/fields` and the kinds read the field's row, never a constant. Today the KINDS take their hours from `CROPS.barley.hours`
+  (the stage's hours live there, not in the kind); a second crop makes them per field. The table is a plain constant, never in saved state.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

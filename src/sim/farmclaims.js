@@ -2,7 +2,7 @@
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const { YEAR, CLAIMS } = VB['sim/rules'];
+  const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { spouseOf, childrenOf, isHolder, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm,
     atHousehold, wishOf } = VB['sim/records'];
@@ -166,7 +166,7 @@ VB['sim/farmclaims'] = (() => {
   // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
   // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes.
   function provisions(st, f, members) {
-    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * st.ECON.seedPerField;
+    const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * CROPS.barley.seed;
     let have = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(members.map((id) => st.pawns[id].household))) {
       if (have >= need) break;

@@ -1,19 +1,19 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
   const { age, farmPractice, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
   // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
   // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
-  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
+  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedNeed(st, hh) {
     const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
     let n = f.project ? 1 : 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
+    return n * ((plan && plan.targets && plan.targets.seed) ?? CROPS.barley.seed);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;
@@ -154,7 +154,7 @@ VB['sim/hunger'] = (() => {
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((seedNeed(st, hh) - hh.grain) / st.ECON.seedPerField - 1e-9));
+    const short = Math.max(0, Math.ceil((seedNeed(st, hh) - hh.grain) / CROPS.barley.seed - 1e-9));
     if (short) log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
       kind: 'seedEaten', n: short, ...atFarm(f) });
   }

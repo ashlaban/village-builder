@@ -1,6 +1,7 @@
 // Claims on empty farms (VB-033, sim/farmclaims) on a tiny world: the hours to restore a farm by its condition; the old family's birthright
 // when a farm empties, and its lapse; who may claim an empty farm, and in what order, under each option of the "Claims on empty farms" custom.
 const VB = require('../src/load.js'), Sim = VB.sim, FC = VB['sim/farmclaims'], CL = VB['sim/claims'], H = VB['sim/heirs'];
+const { CROPS } = VB['sim/rules'];
 const { setClock, moveClock } = require('./lib/clock.js');
 const { CLAIMS, YEAR } = VB['sim/rules'], { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -140,7 +141,7 @@ const P = (id) => ({ type: 'pawn', id });
     `moved in: a new household (${hh && hh.members})`);
   check([f.house, ...f.fields.map((fd) => fd.tile)].every((t) => st.owner[t] === hh.id + 1) && !CL.claimsOn(st, f.house).length,
     'house and fields are theirs; the claim and the birthright are spent');
-  const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * st.ECON.seedPerField;
+  const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * CROPS.barley.seed;
   check(hh.grain === need && hh.meals > 0 && hh.wood === st.ECON.startWood && st.households[A0].wood === 40 - st.ECON.startWood,
     `stores: ${hh.grain} grain of ${need}, ${hh.meals} meals, ${hh.wood} wood`);
   // the fields gone to grass and scrub are cleared again by the new household
