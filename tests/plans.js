@@ -15,10 +15,11 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   assert.strictEqual(plan.targets.hayWinters, 2, 'hay for two winters');
   assert.strictEqual(plan.targets.fields, F.fieldsWanted(st, hh), 'the fields wanted');
   assert.strictEqual(plan.reasons.grain, 'seed', 'the standing plan reserves seed');
-  assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh), 'reserved is the seed the fields need');
-  assert.strictEqual(Sim.seedReserve(st, hh), seedNeed(st, hh), 'Sim.seedReserve reads the reservation');
+  const held = () => (Plans.projectOf(st, 'household', hh.id) ? st.ECON.seedPerField : 0); // a land project holds its field's seed (VB-123)
+  assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh) + held(), 'reserved is the seed the fields need');
+  assert.strictEqual(Sim.seedReserve(st, hh), seedNeed(st, hh) + held(), 'Sim.seedReserve reads the reservation');
   for (const fd of f.fields) fd.stage = 'sown';
-  assert.strictEqual(Stores.reserved(st, hh, 'grain'), (f.project ? 1 : 0) * st.ECON.seedPerField, 'a field sown since the review counts at once');
+  assert.strictEqual(Stores.reserved(st, hh, 'grain'), held(), 'a field sown since the review counts at once');
   assert.strictEqual(Stores.reserved(st, st.villages[0], 'grain'), 0, 'a village reserves nothing');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'plan invariants');
 }
@@ -34,7 +35,8 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
     'a reservation on another holder\'s plan');
   assert.throws(() => Stores.reserve(st, hh, plan, 'grain', -1, 'seed'), /invalid amount/, 'a negative count');
   Stores.release(st, hh, plan, 'grain', 'seed');
-  assert.strictEqual(Stores.reserved(st, hh, 'grain'), 0, 'released');
+  assert.strictEqual(Stores.reserved(st, hh, 'grain'), Plans.projectOf(st, 'household', hh.id) ? st.ECON.seedPerField : 0,
+    'released (a land project begun at the review holds its own)');
   assert.throws(() => Stores.release(st, hh, plan, 'grain', 'seed'), /no such reservation/, 'released twice');
 }
 { // the plan's targets are what the rules read: a higher woodpile goal posts wood, more winters of hay want more
@@ -49,17 +51,18 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
 }
 { // the land step: the plan's target of fields, and a tile the plan names in place of the holder's choice
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
-  f.project = null; plan.targets.fields = f.fields.length;
+  const drop = () => Plans.dropAll(st, 'household', hh.id), open = () => Plans.openOf(st, 'household', hh.id);
+  drop(); plan.targets.fields = f.fields.length;
   Plans.landStep(st, plan, f, hh, F.builtTiles(st));
-  assert(!f.project || f.project.stage === 'meadow', 'no new field when the plan has enough');
-  f.project = null; plan.targets.fields = f.fields.length + 1;
+  assert(!open() || open().kind === 'meadow', 'no new field when the plan has enough');
+  drop(); plan.targets.fields = f.fields.length + 1;
   const chosen = F.chooseTile(st, f);
   assert(chosen >= 0, 'a tile to choose');
   const other = F.chooseTile(st, f, (t) => t !== chosen && VB['sim/territory'].freeFor(st, t, f.village));
   plan.tiles.field = other;
   Plans.landStep(st, plan, f, hh, F.builtTiles(st));
-  assert(f.project && f.project.stage === 'clear' && f.project.tile === other, 'the plan\'s tile, not the holder\'s choice');
-  assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh), 'the project counts in the seed reserved');
+  assert(open() && open().kind === 'clear' && open().place === other, 'the plan\'s tile, not the holder\'s choice');
+  assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh) + st.ECON.seedPerField, 'the project holds its field\'s seed besides the fields\' need');
 }
 { // the plan records the year's herd count
   const st = fresh('heirs'), hh = st.households.find((h) => h.herds.length), plan = Plans.planOf(st, 'household', hh.id);

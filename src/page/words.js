@@ -24,6 +24,11 @@
   }
   const hungerWord = (hh) => (hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving');
   const hungerMark = (hh) => `<i class="mark ${hh.hunger <= 0 ? 'fed' : hh.hunger < .25 ? 'short' : 'hungry'}"></i>`;
+  // The household's project plan (sim/plans, VB-123): what it makes, and its open step.
+  const landWork = (hh) => {
+    const pj = VB['sim/plans'].projectOf(st, 'household', hh.id);
+    return pj ? `<p>New ${pj.what === 'meadow' ? 'hay meadow' : esc(pj.what)} in progress: ${esc(pj.steps[pj.open].kind)}.</p>` : '';
+  };
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
   let settlersHTML = '', peopleQuery = '';
   const peopleFolds = new Set();
@@ -91,7 +96,7 @@
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
         body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
           `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
-          ${f.project ? `<p>New ${f.project.stage === 'meadow' ? 'hay meadow' : 'field'} in progress: ${esc(f.project.stage)}.</p>` : ''}
+          ${landWork(hh)}
           <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
         let animals = '';
         if (foldOpen(animalsKey)) {

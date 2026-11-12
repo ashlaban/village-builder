@@ -3,7 +3,7 @@ VB['sim/expansion'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
@@ -39,7 +39,10 @@ VB['sim/expansion'] = (() => {
   }
   function findSite(st, v) {
     const w = st.w, vreg = w.region[v.center], cand = [], built = builtTiles(st), fields = new Set();
-    for (const f of st.farmsteads) { for (const fd of f.fields) fields.add(fd.tile); if (f.project) fields.add(f.project.tile); }
+    for (const f of st.farmsteads) {
+      for (const fd of f.fields) fields.add(fd.tile);
+      const s = f.household !== null && Projects.openOf(st, 'household', f.household); if (s) fields.add(s.place); // its project (sim/projects)
+    }
     for (const u of st.villages) for (const p of u.plots || []) for (const tr of p.tiles) if (tr.kind === 'field') fields.add(tr.tile);
     const near = (t) => {
       if (w.region[t] === vreg) return true;

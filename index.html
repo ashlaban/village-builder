@@ -4169,7 +4169,7 @@ VB['sim/layout'] = (() => {
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
         soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 })),
-      village: village ? village.id : null, household: null, project: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
+      village: village ? village.id : null, household: null, claim: null, name: '', rowAngle: a, fence: null, meadows: [], booth: null,
       grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
     };
   }
@@ -4491,8 +4491,8 @@ VB['sim/records'] = (() => {
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
-    stake: 0, stakeLapsed: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
-    matchRefused: 0, offerLapsed: 0,
+    stake: 0, stakeLapsed: 0, projectDropped: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0,
+    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
@@ -5671,7 +5671,8 @@ VB['sim/territory'] = (() => {
 </script>
 <script>
 // @sys sim/stakes: a household's stake on the tile of its new field or meadow (VB-158): staked when the project starts, renewed by its work,
-// the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom
+// the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom;
+// a stake lost is told to the project plans (sim/projects) by the event rightLost
 VB['sim/stakes'] = (() => {
   const { CLAIMS } = VB['sim/rules'];
   const CL = VB['sim/claims'];
@@ -5716,27 +5717,27 @@ VB['sim/stakes'] = (() => {
     const loser = st.households[old.by.id], lf = st.farmsteads[loser.farmstead];
     CL.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
-    if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
+    // the loser's project on the tile is reviewed at once and dropped (sim/projects; told below); its job goes at the next posting (sim/jobs)
+    emit(st, 'rightLost', { type: 'household', id: loser.id, tile, told: true });
     if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
     log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
       kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
     return true;
   }
-  // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project, and the log tells it.
+  // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project on the tile (sim/projects
+  // reviews it at once), and the log tells it.
   function lapsedStakes(st, dropped) {
     for (const [tile, c] of dropped) {
       if (c.by.type !== 'household' || !STAKE.has(c.why)) continue;
       const f = st.farmsteads[st.households[c.by.id].farmstead];
-      if (!f.project || f.project.tile !== tile) continue;
-      f.project = null;
-      log(st, `${f.name} gives up its stake: the new ${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, {
-        kind: 'stakeLapsed', ...atFarm(f) });
+      emit(st, 'rightLost', { type: 'household', id: c.by.id, tile, text: `${f.name} gives up its stake: the new `
+        + `${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, at: { kind: 'stakeLapsed', ...atFarm(f) } });
     }
   }
-  // A household that dissolves drops its stakes, and every other claim it holds; its farm's project ends.
+  // A household that dissolves drops its stakes, and every other claim it holds; its projects end with it (sim/plans drops them first).
   function dropStakes(st, hh) {
     CL.dropAllOf(st, HH(hh.id));
-    st.farmsteads[hh.farmstead].project = null;
+    emit(st, 'rightLost', { type: 'household', id: hh.id, tile: -1, told: true });
   }
   return { STAKE, stake, realiseStake, contestable, contest, lapsedStakes, dropStakes };
 })();
@@ -6153,11 +6154,44 @@ VB['sim/herds'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/projects: the project plans' record and its reads (VB-123; design.md section 7, Holders and plans), for every module: a holder's
+// plans of steps, each opening when the one before is done; sim/plans writes them
+VB['sim/projects'] = (() => {
+  // @state st.plans.projects (VB-123): {household, village, pawn: Map of a holder's id to its project plans, in the order made}; a project
+  //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow': what it makes), steps: [{kind (an opportunity kind of
+  //   sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent), spends ({[good]: n}
+  //   taken from the holder's store when the step is done, or absent)}], open (the index of the open step), reserved, reasons (sim/stores)}.
+  //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
+  //   Written only by sim/plans (which hears the lower modules' changes by events: a step done, a right lost, a store short); read here.
+  // The plans a holder has (an empty list for none; never written to).
+  const NONE = [];
+  function projectsOf(st, type, id) {
+    const P = st.plans && st.plans.projects, list = P && P[type].get(id);
+    return list || NONE;
+  }
+  // The holder's first project plan, or null: a household has at most one (design.md section 7, Holders and plans).
+  const projectOf = (st, type, id) => { const list = projectsOf(st, type, id); return list.length ? list[0] : null; };
+  const openStep = (plan) => plan.steps[plan.open];
+  // The open step of a holder's first project plan, or null. Allocates nothing (the review and the kinds read it hourly).
+  const openOf = (st, type, id) => { const plan = projectOf(st, type, id); return plan ? plan.steps[plan.open] : null; };
+  // Every live project plan, in the order of holders' types and ids (a few per village at most).
+  function forEach(st, fn) {
+    if (!st.plans || !st.plans.projects) return;
+    for (const type of ['household', 'village', 'pawn']) for (const list of st.plans.projects[type].values()) for (const plan of list) fn(plan);
+  }
+  // The holder a plan names: a household, a village or a pawn.
+  const holderOf = (st, ref) => (ref.type === 'household' ? st.households : ref.type === 'village' ? st.villages : st.pawns)[ref.id];
+  // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
+  const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
+  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, emptyProjects };
+})();
+</script>
+<script>
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW } = VB['sim/rules'];
-  const Rules = VB['sim/registry'], Culture = VB['culture'];
+  const Rules = VB['sim/registry'], Culture = VB['culture'], { emit } = VB['sim/events'], Projects = VB['sim/projects'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
@@ -6167,6 +6201,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start'); ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+  // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
+  KINDS.push('build');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -6238,7 +6274,9 @@ VB['sim/stores'] = (() => {
   }
   function take(st, holder, good, n, why) {
     amount(n); const kind = type(holder), k = field(holder, good, kind), before = holder[k] || 0, got = Math.min(before, n);
-    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind); crossed(st, holder, kind, good, before); return got;
+    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind); crossed(st, holder, kind, good, before);
+    if (got > 0) short(st, holder, kind, good, holder[k]);
+    return got;
   }
   function move(st, from, to, good, n, why) {
     amount(n); field(from, good); field(to, good);
@@ -6351,30 +6389,57 @@ VB['sim/stores'] = (() => {
   // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
   // @state plan.reserved: {[good]: n}: the plan's reservation of a good, as counted at its last reserve (the plan's review); plan.reasons:
   //   {[good]: why}, one of RESERVE. A reservation whose reason follows the plan's needs between reviews (FOLLOWS) is counted at read by its rule.
-  const RESERVE = ['seed'];
+  //   A project plan's (VB-123, sim/projects) is one of two: `field`, the seed held back for the new field it makes (as the seed of the
+  //   standing plan, it may exceed the stock: a hungry household eats its seed), and `build`, what its steps will spend, which is made only
+  //   from the holder's free stock (its stock less what its plans hold back) and is reviewed at once when the stock falls below it.
+  const RESERVE = ['seed', 'field', 'build'], CHECKED = 'build';
   // Rules that count a following reservation at read, by reason, given before the first seed (like sim/registry's): seed follows the
   // fields as they are sown (sim/hunger). Stored counts lag a sowing or a stage change by up to an hour, and the readers of the seed
   // (the cook, the meal, help, deals, provisions, the means to marry) read it within the hour, so the count is read where it is wanted.
   const FOLLOWS = {};
   function follow(why, count) { if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`); FOLLOWS[why] = count; }
   function reason(why) { if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`); }
-  // The plan of a holder's that a reservation is kept on: today its standing plan (sim/plans), the only plan a holder has.
-  const planFor = (st, holder) => (type(holder) === 'household' ? st.plans.households : st.plans.villages).get(holder.id);
+  // The plans of a holder's that a reservation is kept on: its standing plan (sim/plans; a pawn has none) and its project plans (sim/projects,
+  // st.plans.projects: a list per holder, none for most).
+  const planFor = (st, holder, kind = type(holder)) => (kind === 'household' ? st.plans.households.get(holder.id)
+    : kind === 'village' ? st.plans.villages.get(holder.id) : undefined);
+  const projectsFor = (st, holder, kind = type(holder)) => Projects.projectsOf(st, kind, holder.id);
+  const isPlanOf = (st, holder, plan) => plan === planFor(st, holder) || projectsFor(st, holder).includes(plan);
+  // A plan holds back n of a good. A `build` reservation is refused (false) beyond the holder's free stock, so that two plans do not count
+  // on the same timber; the others are not checked. True when made.
   function reserve(st, holder, plan, good, n, why) {
-    amount(n); reason(why); field(holder, good);
-    if (plan !== planFor(st, holder)) throw new Error('stores: a reservation names its holder\'s plan');
+    amount(n); reason(why); const k = field(holder, good);
+    if (!isPlanOf(st, holder, plan)) throw new Error('stores: a reservation names its holder\'s plan');
+    if (why === CHECKED && n > (holder[k] || 0) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9) return false;
     plan.reserved[good] = n; plan.reasons[good] = why;
+    return true;
   }
   function release(st, holder, plan, good, why) {
     reason(why);
-    if (plan !== planFor(st, holder) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
+    if (!isPlanOf(st, holder, plan) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
     delete plan.reserved[good]; delete plan.reasons[good];
+  }
+  // Every reservation of a plan that ends (sim/projects: done, or dropped; its holder may be gone, so it is not asked).
+  function releaseAll(plan) {
+    for (const good of Object.keys(plan.reasons)) { delete plan.reserved[good]; delete plan.reasons[good]; }
   }
   // What the holder's plans hold back of a good; a following reservation counted now. Allocates nothing (the review reads it hourly).
   function reserved(st, holder, good) {
-    const plan = st.plans && planFor(st, holder), why = plan && plan.reasons[good];
-    if (!why) return 0;
-    return FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+    if (!st.plans) return 0;
+    const kind = type(holder), plan = planFor(st, holder, kind), why = plan && plan.reasons[good];
+    let n = !why ? 0 : FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+    const list = projectsFor(st, holder, kind);
+    for (let i = 0; i < list.length; i++) if (list[i].reasons[good]) n += list[i].reserved[good];
+    return n;
+  }
+  // After a take: a holder whose stock of a good fell below what its project plans' steps will spend has those plans reviewed at once
+  // (design.md section 7, Reservations): sim/plans hears it. The one call from the stores to the project plans is this event.
+  function short(st, holder, kind, good, left) {
+    const list = projectsFor(st, holder, kind);
+    if (!list.length) return;
+    let n = 0;
+    for (let i = 0; i < list.length; i++) if (list[i].reasons[good] === CHECKED) n += list[i].reserved[good];
+    if (left < n - 1e-9) emit(st, 'storeShort', { type: kind, id: holder.id, good });
   }
   // ---- goods (VB-299; target-v2 4.3; design.md, The fair): a registry of the goods that change hands, declared at load like a rule and
   // closed when the rules registry seals; code, never saved state. A good: id ('grain', 'cattle/cow'), kind and subtype, class (Culture.CLASSES:
@@ -6414,7 +6479,7 @@ VB['sim/stores'] = (() => {
   return { GOODS, declareGood, goodOf, goods,
     dug,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
-    follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
+    follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
 </script>
 <script>
@@ -6515,15 +6580,20 @@ VB['sim/hunger'] = (() => {
   const { age, farmPractice, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  // The seed the household's fields not yet sown this year and its land project need: the standing plan's reservation of grain (sim/plans
-  // reserves it at each review; sim/stores counts it with this rule when it is read, so a field sown since counts at once). Only the day's meal
-  // reaches below it, and only when the day would otherwise fall short (feedHousehold; Kim, 10 November: the hungry household eats its seed).
-  // The seed kept for a field is the plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
+  // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), ECON.seedPerField before it has one.
+  function seedPer(st, hh) {
+    const plan = st.plans && st.plans.households.get(hh.id);
+    return (plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField;
+  }
+  // The seed the household's fields not yet sown this year need: the standing plan's reservation of grain (sim/plans reserves it at each
+  // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new
+  // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
+  // (feedHousehold; Kim, 10 November: the hungry household eats its seed).
   function seedNeed(st, hh) {
-    const f = st.farmsteads[hh.farmstead], plan = st.plans && st.plans.households.get(hh.id);
-    let n = f.project ? 1 : 0;
+    const f = st.farmsteads[hh.farmstead];
+    let n = 0;
     for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
-    return n * ((plan && plan.targets && plan.targets.seed) ?? st.ECON.seedPerField);
+    return n * seedPer(st, hh);
   }
   Stores.follow('seed', seedNeed);
   const { reserved } = Stores;
@@ -6664,7 +6734,7 @@ VB['sim/hunger'] = (() => {
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((seedNeed(st, hh) - hh.grain) / st.ECON.seedPerField - 1e-9));
+    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - hh.grain) / st.ECON.seedPerField - 1e-9));
     if (short) log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
       kind: 'seedEaten', n: short, ...atFarm(f) });
   }
@@ -6685,7 +6755,7 @@ VB['sim/hunger'] = (() => {
     Stores.spoil(st, hh, lost);
   }
   return { NEED, toHarvest, foodHeld, daysOfFood, stockWorth,
-    feedHousehold, feedGroups, servedLast, dailyNeed, seedNeed, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
+    feedHousehold, feedGroups, servedLast, dailyNeed, seedNeed, seedPer, seedReserve, floorOf, updateHealth, addFood, larderOf, takeFood, spoilGrain };
 })();
 </script>
 <script>
@@ -7138,7 +7208,7 @@ VB['sim/notable'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/fields: new fields, crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
+// @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
@@ -7151,6 +7221,8 @@ VB['sim/fields'] = (() => {
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
+  const Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { seedPer } = VB['sim/hunger'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
@@ -7194,35 +7266,41 @@ VB['sim/fields'] = (() => {
     }
     return best;
   }
+  // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): clearing, then breaking, both under the
+  // household's stake; it holds back the seed the field will want (released when the field is made, when the standing plan's seed counts it).
+  const fieldProject = (st, hh, tile) => ({ what: 'field', steps: [{ kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
+    { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' }], hold: { grain: seedPer(st, hh) } });
   // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
   // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
   // The land step of its standing plan (sim/plans, VB-248): `wanted` is the plan's target of fields, `given` a tile the plan names in place
-  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first).
+  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first). Returns the project plan for sim/plans to
+  // make (fieldProject), or undefined.
   function startProject(st, f, hh, built = builtTiles(st), wanted = fieldsWanted(st, hh), given = -1) {
-    if (f.project || f.fields.length >= wanted) return;
+    if (Projects.projectOf(st, 'household', hh.id) || f.fields.length >= wanted) return;
     let tile = given >= 0 ? given : chooseTile(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
     }
     stake(st, hh, tile, 'field');
-    f.project = { tile, stage: 'clear', hours: clearHours(st, tile) };
+    return fieldProject(st, hh, tile);
   }
-  // Clearing done: the stones go to the household's store, the tile is bare ground.
+  // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   function finishClear(st, f, hh) {
-    const w = st.w, tile = f.project.tile;
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place;
     const loads = Math.round(w.stones[tile] / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
-    w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
+    w.stones[tile] = 0; emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
     st.biomeDirty.add(tile);
   }
   // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
-  // (SOIL.fresh, VB-149).
+  // (SOIL.fresh, VB-149). The project is finished.
   function finishBreak(st, f) {
-    const w = st.w, tile = f.project.tile;
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
     f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
-    f.project = null; st.used.add(tile); w.dev[tile] = 1;
+    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
@@ -7303,12 +7381,13 @@ VB['sim/fields'] = (() => {
     }
   }
   return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
-    builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+    builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();
 </script>
 <script>
-// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project, and the meadows of generated farms
+// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project (a project plan of
+// sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
@@ -7323,6 +7402,8 @@ VB['sim/meadows'] = (() => {
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const Stores = VB['sim/stores'];
+  const Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { seedPer } = VB['sim/hunger'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -7360,23 +7441,30 @@ VB['sim/meadows'] = (() => {
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
   // with no free tile within reach, it may contest a stake another household of its village left unworked.
   // The land step of its standing plan (sim/plans, VB-248), after the field's: `given` a tile the plan names in place of chooseMeadow's (-1: none).
+  // The project plan of a new meadow on `tile`, as sim/plans makes it (makeProject; VB-123): one step of clearing, under the household's
+  // stake. It holds back a field's seed, as the seed reserve counted any land project before project plans (kept so the run is the same;
+  // VB-123's notes).
+  function meadowProject(st, hh, tile) {
+    const hours = CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES);
+    return { what: 'meadow', steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }], hold: { grain: seedPer(st, hh) } };
+  }
   function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
-    if (f.project || !wantsMeadow(st, f, hh)) return;
+    if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;
     let tile = given >= 0 ? given : chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
     }
     stake(st, hh, tile, 'meadow');
-    f.project = { tile, stage: 'meadow', hours: CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) };
+    return meadowProject(st, hh, tile);
   }
-  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on.
+  // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on; the project is finished.
   function finishMeadow(st, f, hh) {
-    const w = st.w, tile = f.project.tile, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
     realiseStake(st, hh, tile);
     const loads = Math.round(gone / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] -= gone;
-    f.project = null;
+    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
@@ -7443,7 +7531,7 @@ VB['sim/meadows'] = (() => {
   }
   return {
     HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsDay, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow, startMeadow,
-    finishMeadow, placeMeadows,
+    meadowProject, finishMeadow, placeMeadows,
   };
 })();
 </script>
@@ -7715,7 +7803,7 @@ VB['sim/expansion'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
@@ -7751,7 +7839,10 @@ VB['sim/expansion'] = (() => {
   }
   function findSite(st, v) {
     const w = st.w, vreg = w.region[v.center], cand = [], built = builtTiles(st), fields = new Set();
-    for (const f of st.farmsteads) { for (const fd of f.fields) fields.add(fd.tile); if (f.project) fields.add(f.project.tile); }
+    for (const f of st.farmsteads) {
+      for (const fd of f.fields) fields.add(fd.tile);
+      const s = f.household !== null && Projects.openOf(st, 'household', f.household); if (s) fields.add(s.place); // its project (sim/projects)
+    }
     for (const u of st.villages) for (const p of u.plots || []) for (const tr of p.tiles) if (tr.kind === 'field') fields.add(tr.tile);
     const near = (t) => {
       if (w.region[t] === vreg) return true;
@@ -8135,7 +8226,7 @@ VB['sim/farmclaims'] = (() => {
 // a cottage's or a booth's site whose felled tiles gave too little for its walls, and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332)
 VB['sim/building'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
@@ -8199,7 +8290,7 @@ VB['sim/building'] = (() => {
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null, old = plan.build || null;
-    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && f.project)) return null;
+    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && Projects.projectOf(st, 'household', hh.id))) return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f);
   }
@@ -8284,7 +8375,7 @@ VB['sim/building'] = (() => {
 <script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
@@ -8329,8 +8420,9 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
-  // The job's project still stands at this stage on its tile (it was not given up or contested away meanwhile, sim/stakes).
-  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // The job's project still stands at this step on its tile (it was not given up or contested away meanwhile, sim/stakes): the open step of
+  // its household's project plan (sim/projects).
+  const onProject = (st, j) => { const s = Projects.openOf(st, 'household', j.owner.id); return !!s && s.place === j.site && s.kind === j.kind; };
   // Work on a land project renews the household's stake on its tile (sim/stakes).
   const workStake = (st, j) => { renewClaim(st, j.site, j.owner); };
   // By the byre door, left of the cottage (the page draws the byre there).
@@ -8357,9 +8449,11 @@ VB['sim/kinds'] = (() => {
   function byreWork(st, hh, f, c, post) {
     if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
-  // The farm's land project, a new field or meadow, at its present stage (clear, break, meadow) on its tile (sim/fields, sim/meadows).
+  // The household's project plan, a new field or meadow, at its open step (clear, break, meadow) on its tile (sim/projects; made by
+  // sim/fields, sim/meadows): the step's task is made once the step before is done.
   function landProject(st, hh, f, c, post) {
-    if (f.project) post(`${f.project.stage}:f${f.id}`, f.project.tile, { farm: f, hours: f.project.hours }, f.project.stage);
+    const s = Projects.openOf(st, 'household', hh.id);
+    if (s) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
   }
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
@@ -8514,17 +8608,17 @@ VB['sim/kinds'] = (() => {
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishClear(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(st, j) && finishClear(st, j.farm, hh),
       available: landProject, // also a plot's step (plotWork)
     },
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(j) && finishBreak(st, j.farm),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(st, j) && finishBreak(st, j.farm),
       available: landProject, // also a plot's step (plotWork)
     },
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(st, j) && finishMeadow(st, j.farm, hh),
       available: landProject,
     },
     reclaim: {
@@ -9594,12 +9688,13 @@ VB['sim/plans'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
   const { KINDS } = VB['sim/kinds'];
-  const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
+  const { seedNeed, seedPer } = VB['sim/hunger'];
+  const { fieldsWanted, fieldsWorkable, startProject, BREAK_HOURS } = VB['sim/fields'];
+  const Projects = VB['sim/projects'], CL = VB['sim/claims'], { on } = VB['sim/events'], { log, atHousehold } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
   const { buildStep } = VB['sim/building'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
-  //   seasonal plan, due: the due-queue}; a standing plan is
+  //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
@@ -9623,6 +9718,78 @@ VB['sim/plans'] = (() => {
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
+  // ---- project plans (VB-123; design.md section 7, Holders and plans, Reservations): a holder's plan of steps, each opening when the one
+  // before is done, reserving in the holder's store what its steps spend, reviewed at once when its open step is no longer possible. The
+  // record and its reads are sim/projects'; only this section writes it, and hears the lower modules' changes by events (target-v2 3.2) ----
+  const { projectsOf, projectOf, holderOf } = Projects;
+  function remove(st, plan) {
+    const map = st.plans.projects[plan.holder.type], list = map.get(plan.holder.id), i = list ? list.indexOf(plan) : -1;
+    if (i >= 0) list.splice(i, 1);
+    if (list && !list.length) map.delete(plan.holder.id);
+  }
+  // A project plan for holder {type, id}, from {what, steps, hold} (sim/fields' fieldProject, sim/meadows' meadowProject): what it makes,
+  // its steps in order (the first open now), and what it holds back for after it (the seed of a new field). What the steps spend is
+  // reserved from the holder's free stock: null, and no plan, when it is not there (another plan holds it).
+  function makeProject(st, type, id, { what, steps, hold = null }) {
+    const holder = holderOf(st, { type, id }), P = st.plans.projects, spend = {};
+    const plan = { id: ++st.plans.projectSeq, holder: { type, id }, kind: 'project', what, steps, open: 0, reserved: {}, reasons: {} };
+    if (!P[type].has(id)) P[type].set(id, []);
+    P[type].get(id).push(plan);
+    for (const s of steps) for (const good in s.spends || {}) spend[good] = (spend[good] || 0) + s.spends[good];
+    for (const good in spend) if (!Stores.reserve(st, holder, plan, good, spend[good], 'build')) { dropProject(st, plan); return null; }
+    for (const good in hold || {}) Stores.reserve(st, holder, plan, good, hold[good], 'field');
+    return plan;
+  }
+  // The open step is done: what it spends is taken from the store, its reservation with it, and the next step opens; after the last, the
+  // plan is finished, what it held released and the plan removed.
+  function advance(st, plan) {
+    const s = plan.steps[plan.open], holder = holderOf(st, plan.holder);
+    for (const good in s.spends || {}) {
+      const left = plan.reserved[good] - s.spends[good];
+      if (left > 1e-9) Stores.reserve(st, holder, plan, good, left, 'build'); else Stores.release(st, holder, plan, good, 'build');
+      Stores.take(st, holder, good, s.spends[good], 'build');
+    }
+    if (++plan.open >= plan.steps.length) { Stores.releaseAll(plan); remove(st, plan); }
+  }
+  // The plan is given up: its reservations released, the plan removed, and `text` told as a notable event when given.
+  function dropProject(st, plan, text = null, at = {}) {
+    Stores.releaseAll(plan); remove(st, plan);
+    if (text) log(st, text, { kind: 'projectDropped', ...at });
+  }
+  // Why the open step is no longer possible, or null: the holder is gone; the claim it works under is lost (contested away, lapsed); the
+  // holder's stock no longer covers what its steps will spend (the reserved good lost).
+  function impossible(st, plan) {
+    const h = holderOf(st, plan.holder), s = plan.steps[plan.open];
+    if (!h || h.dissolved || (plan.holder.type === 'pawn' && !h.alive)) return 'its holder is gone';
+    if (s.stake && CL.claimOf(st, s.place, plan.holder)?.why !== s.stake) return 'its claim on the land is lost';
+    for (const good in plan.reasons) if (plan.reasons[good] === 'build' && plan.reserved[good] > (h[good] || 0) + 1e-9) return `its ${good} is gone`;
+    return null;
+  }
+  // The plan reviewed at once, when a store or a right of its holder changed: while its step is possible it stands (its task posted again
+  // at the next review if it was taken down); else it is dropped and told, in the plan's words, or in `text` and `at` given by the change
+  // (none when `told`: the change was told already). True when it stands.
+  function review(st, plan, told = false, text = null, at = null) {
+    const why = impossible(st, plan), h = holderOf(st, plan.holder);
+    if (!why) return true;
+    if (!told && !text) {
+      const house = plan.holder.type === 'household';
+      text = `${house ? st.farmsteads[h.farmstead].name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
+      at = house ? atHousehold(st, h) : { [plan.holder.type]: plan.holder.id };
+    }
+    dropProject(st, plan, told ? null : text, at || {});
+    return false;
+  }
+  // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
+  const dropAll = (st, type, id) => { for (const plan of [...projectsOf(st, type, id)]) dropProject(st, plan); };
+  // A holder's claim lost on a tile (sim/stakes: contested away, lapsed; -1: all of them; `told`, or `text` and `at` to tell a plan
+  // dropped for it); a store fallen below what a plan's steps will spend (sim/stores); a step done (sim/fields, sim/meadows).
+  on('rightLost', (st, d) => {
+    for (const plan of [...projectsOf(st, d.type, d.id)]) {
+      if (d.tile < 0 || plan.steps.some((s) => s.place === d.tile)) review(st, plan, !!d.told, d.text || null, d.at || null);
+    }
+  });
+  on('storeShort', (st, d) => { for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan); });
+  on('stepDone', (st, d) => { const plan = projectOf(st, d.type, d.id); if (plan) advance(st, plan); });
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -9812,19 +9979,32 @@ VB['sim/plans'] = (() => {
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
+    dropAll(st, type, id); // its project plans with it
     if (type === 'household') { st.plans.seasons.delete(id); st.plans.due = st.plans.due.filter((e) => e[1] !== id); }
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
   function seedPlans(st) {
-    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [] };
+    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [], projects: Projects.emptyProjects(), projectSeq: 0 };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
+    fromFarms(st);
+  }
+  // A save made before project plans (VB-123) held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
+  function fromFarms(st) {
+    for (const f of st.farmsteads) {
+      const p = f.project, hh = p && f.household !== null ? st.households[f.household] : null, why = p && p.stage === 'meadow' ? 'meadow' : 'field';
+      const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
+      if (hh && !hh.dissolved) makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
+        steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
+      if ('project' in f) delete f.project; // lint-allow: owner a save made before project plans loses the farm's field
+    }
   }
   // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
   // plans (VB-252): its plans get them as made now.
   function fillPlans(st) {
     if (!st.plans.seasons) st.plans.seasons = new Map();
+    if (!st.plans.projects) { st.plans.projects = Projects.emptyProjects(); st.plans.projectSeq = 0; } // VB-123: project plans
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
         plan.reserved = {}; plan.reasons = {}; // lint-allow: owner a save made before reservations gets empty ones (sim/stores writes them)
@@ -9837,6 +10017,7 @@ VB['sim/plans'] = (() => {
       }
     }
     if (!st.plans.due) { st.plans.due = []; for (const id of st.plans.households.keys()) enqueue(st, id); }
+    fromFarms(st);
   }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
   // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
@@ -9861,12 +10042,17 @@ VB['sim/plans'] = (() => {
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.
   // `built`: the houses and greens, once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
-    startProject(st, f, hh, built, plan.targets.fields, plan.tiles.field);
-    startMeadow(st, f, hh, built, plan.tiles.meadow);
+    let p = startProject(st, f, hh, built, plan.targets.fields, plan.tiles.field);
+    if (p) makeProject(st, 'household', hh.id, p);
+    p = startMeadow(st, f, hh, built, plan.tiles.meadow);
+    if (p) makeProject(st, 'household', hh.id, p);
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
-    dueNow, again, ROUTINES, cultureOf };
+    dueNow, again, ROUTINES, cultureOf,
+    // the project plans, read through here by the modules above sim/projects (VB-123)
+    projectOf: Projects.projectOf, projectsOf: Projects.projectsOf, openOf: Projects.openOf,
+    makeProject, advance, drop: dropProject, review, dropAll, impossible };
 })();
 </script>
 <script>
@@ -9883,7 +10069,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, openOf } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -9997,11 +10183,11 @@ VB['sim/jobs'] = (() => {
     ask(ASK.island, null, null);
     for (const j of st.jobs.values()) {
       if (islandJob(j)) sweep(st, j);
-      else if (KINDS[j.kind].project && j.farm && !onProject(j)) { j.live = false; sweep(st, j); }
+      else if (KINDS[j.kind].project && j.farm && !onProject(st, j)) { j.live = false; sweep(st, j); }
     }
   }
-  // A land project's task whose project still stands at its stage on its tile.
-  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // A land project's task whose project plan still stands at this step on its tile (sim/plans, projectOf).
+  const onProject = (st, j) => { const s = openOf(st, 'household', j.owner.id); return !!s && s.place === j.site && s.kind === j.kind; };
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
   // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
   // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household
@@ -11418,13 +11604,13 @@ VB['sim/settle'] = (() => {
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
-  const { builtTiles, clearHours } = VB['sim/fields'];
+  const { builtTiles, fieldProject } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
-  const { makePlan } = VB['sim/plans'];
+  const { makePlan, openOf, makeProject } = VB['sim/plans'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -11495,7 +11681,10 @@ VB['sim/settle'] = (() => {
   function landInUse(st) {
     const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = builtTiles(st);
     for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) use.taken.add(t);
-    for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.project) marks.add(f.project.tile); }
+    for (const f of st.farmsteads) {
+      for (const fd of f.fields) marks.add(fd.tile);
+      const s = f.household !== null && openOf(st, 'household', f.household); if (s) marks.add(s.place); // its project (sim/plans)
+    }
     for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
     // A multi-source search computes the union of the same radius searches. Each tile is visited once,
     // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
@@ -11598,7 +11787,7 @@ VB['sim/settle'] = (() => {
     const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers, carry: false }); // no wood (VB-328)
     woodTaken(st, house); reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
+    makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plan (sim/plans, VB-123)
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
@@ -12333,8 +12522,8 @@ VB['sim/scenarios'] = (() => {
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
     //   tarredUntil, emptySince}
-    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
-    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
+    //   house is a tile index (the field or meadow in the making is its household's project plan, st.plans.projects; VB-123); claim (an
+    //   empty farm being restored by its claimant;
     //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
     //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
     //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
@@ -15376,6 +15565,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   const hungerWord = (hh) => (hh.hunger <= 0 ? 'Fed' : hh.hunger < .25 ? 'Short of food' : hh.hunger < .6 ? 'Hungry' : 'Starving');
   const hungerMark = (hh) => `<i class="mark ${hh.hunger <= 0 ? 'fed' : hh.hunger < .25 ? 'short' : 'hungry'}"></i>`;
+  // The household's project plan (sim/plans, VB-123): what it makes, and its open step.
+  const landWork = (hh) => {
+    const pj = VB['sim/plans'].projectOf(st, 'household', hh.id);
+    return pj ? `<p>New ${pj.what === 'meadow' ? 'hay meadow' : esc(pj.what)} in progress: ${esc(pj.steps[pj.open].kind)}.</p>` : '';
+  };
   const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
   let settlersHTML = '', peopleQuery = '';
   const peopleFolds = new Set();
@@ -15443,7 +15637,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
         body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
           `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
-          ${f.project ? `<p>New ${f.project.stage === 'meadow' ? 'hay meadow' : 'field'} in progress: ${esc(f.project.stage)}.</p>` : ''}
+          ${landWork(hh)}
           <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
         let animals = '';
         if (foldOpen(animalsKey)) {
@@ -17693,7 +17887,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '7986c4f5d8', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '84f6732180', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -11,6 +11,10 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('S
 // Fixtures jump time and call low-level acts directly; finish the coordinator's role refresh before checking a completed state.
 const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
 const H = (id) => ({ type: 'household', id });
+// The land step's field (sim/fields' choice, made a project plan by sim/plans, as the review does).
+const start = (st, f, hh) => { const p = F.startProject(st, f, hh); if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p); };
+// A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
+const pj = (st, f) => { const s = f.household === null ? null : VB['sim/plans'].openOf(st, 'household', f.household); return s ? { tile: s.place, stage: s.kind } : null; };
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms at 10:00 on the first day: household 0 (8 people) and 2 (6) want a fourth field, household 1 (3) does not.
 function scene(dispute = 'first') {
@@ -27,15 +31,15 @@ const out = [];
   const { st, hh, f } = scene();
   check(F.fieldsWanted(st, hh[0]) > f[0].fields.length, 'household 0 wants another field');
   const owner0 = (t) => st.owner[t];
-  F.startProject(st, f[0], hh[0]);
-  const t = f[0].project && f[0].project.tile, c = CL.claimOf(st, t, H(0)), was = owner0(t);
+  start(st, f[0], hh[0]);
+  const t = pj(st, f[0]) && pj(st, f[0]).tile, c = CL.claimOf(st, t, H(0)), was = owner0(t);
   check(c && c.state === 'unrealised' && c.why === 'field', `the project stakes its tile (${c && c.state}, ${c && c.why})`);
   check(st.owner[t] !== 1, 'the staked tile is not the household\'s yet');
   check(!T.freeFor(st, t, f[0].village), 'a staked tile is free for nobody else');
   for (let k = 0; k < 40 && f[2].fields.length < 8; k++) { // household 2 makes fields until it would want the staked one: it never takes it
-    F.startProject(st, f[2], hh[2]);
-    check(!f[2].project || f[2].project.tile !== t, 'another household does not take in the staked tile');
-    if (!f[2].project) break;
+    start(st, f[2], hh[2]);
+    check(!pj(st, f[2]) || pj(st, f[2]).tile !== t, 'another household does not take in the staked tile');
+    if (!pj(st, f[2])) break;
     F.finishClear(st, f[2], hh[2]); F.finishBreak(st, f[2]);
   }
   ok(st, 'staked');
@@ -53,14 +57,14 @@ const out = [];
 // ---- lapse: three years unworked, the stake lapses and the project ends ----
 {
   const { st, hh, f } = scene();
-  F.startProject(st, f[0], hh[0]);
-  const t = f[0].project.tile, n = Sim.villageLog(st, Infinity).length;
+  start(st, f[0], hh[0]);
+  const t = pj(st, f[0]).tile, n = Sim.villageLog(st, Infinity).length;
   moveClock(st, CLAIMS.years * YEAR - DAY);
   S.lapsedStakes(st, CL.lapseClaims(st));
-  check(f[0].project && CL.claimOf(st, t, H(0)), 'still staked a day before 3 years');
+  check(pj(st, f[0]) && CL.claimOf(st, t, H(0)), 'still staked a day before 3 years');
   moveClock(st, DAY);
   S.lapsedStakes(st, CL.lapseClaims(st));
-  check(!f[0].project && !st.claims.has(t), 'lapsed after 3 years unworked: the project ends');
+  check(!pj(st, f[0]) && !st.claims.has(t), 'lapsed after 3 years unworked: the project ends');
   check(events(st, n, /gives up its stake/).length === 1, 'the log tells it');
   check(T.freeFor(st, t, f[0].village), 'the tile is free again');
   ok(st, 'lapsed');
@@ -70,10 +74,11 @@ const out = [];
 // ---- dissolution: a household that dies out drops its stakes ----
 {
   const { st, hh, f } = scene();
-  F.startProject(st, f[0], hh[0]);
-  const t = f[0].project.tile, was = st.owner[t];
+  start(st, f[0], hh[0]);
+  const t = pj(st, f[0]).tile, was = st.owner[t];
   VB['sim/heirs'].extinct(st, hh[0]);
-  check(!f[0].project && !CL.claimsOn(st, t).some((c) => c.by.type === 'household'), 'a dissolved household\'s stake is dropped');
+  check(!VB['sim/plans'].projectOf(st, 'household', hh[0].id) && !CL.claimsOn(st, t).some((c) => c.by.type === 'household'),
+    'a dissolved household\'s stake is dropped, and its project plan');
   check(st.owner[t] === was, `the staked tile keeps its owner (${was}), not passing with the farm (${st.owner[t]})`);
   ok(st, 'dissolved');
 }
@@ -84,7 +89,7 @@ const out = [];
 function contest(dispute, idle = 2, ties = 'contestor') {
   const { st, hh, f } = scene(dispute);
   const t = F.chooseTile(st, f[2]);
-  S.stake(st, hh[0], t, 'field'); f[0].project = { tile: t, stage: 'clear', hours: F.clearHours(st, t) };
+  S.stake(st, hh[0], t, 'field'); VB['sim/plans'].makeProject(st, 'household', hh[0].id, F.fieldProject(st, hh[0], t));
   CL.claimOf(st, t, H(0)).renewed = st.t - idle * YEAR;
   for (let u = 0; u < st.w.N; u++) {
     if (u !== t && !st.used.has(u) && u !== st.villages[0].center && (st.owner[u] === 0 || T.isOutland(st, u, 0))) setOwner(st, u, H(1));
@@ -100,17 +105,17 @@ function contest(dispute, idle = 2, ties = 'contestor') {
     if (p.id !== a && p.id !== b) p.ties.set(ties === 'contestor' ? a : b, 1);
   }
   const before = R.opinionOf(st, b, a), n = Sim.villageLog(st, Infinity).length;
-  F.startProject(st, f[2], hh[2]);
-  const taken = !!f[2].project && f[2].project.tile === t;
+  start(st, f[2], hh[2]);
+  const taken = !!pj(st, f[2]) && pj(st, f[2]).tile === t;
   if (taken) {
-    check(CL.claimOf(st, t, H(2)) && !CL.claimOf(st, t, H(0)) && !f[0].project, `${dispute}: household 2 stakes the tile, household 0's project ends`);
+    check(CL.claimOf(st, t, H(2)) && !CL.claimOf(st, t, H(0)) && !pj(st, f[0]), `${dispute}: household 2 stakes the tile, household 0's project ends`);
     check(Math.abs(R.opinionOf(st, b, a) - (before + SOCIAL.memories.claim.v)) < 1e-9, `${dispute}: the loser's holder remembers it (${R.opinionOf(st, b, a) - before})`);
     check(hh[0].grievance && hh[0].grievance.rules.includes('first'), `${dispute}: the loser leans to the rules that would have kept it (${hh[0].grievance && hh[0].grievance.rules})`);
     check(events(st, n, /takes the field .* staked and left unworked/).length === 1, `${dispute}: the log tells it`);
     J.refreshJobs(st, cal(st.t + 1));
     check(!st.jobs.has(`clear:f${f[0].id}`) && worker.job === null, `${dispute}: the loser's job is dropped, its worker freed`);
   } else {
-    check(!f[2].project && f[0].project && CL.claimOf(st, t, H(0)) && !CL.claimOf(st, t, H(2)), `${dispute}: the stake stands`);
+    check(!pj(st, f[2]) && pj(st, f[0]) && CL.claimOf(st, t, H(0)) && !CL.claimOf(st, t, H(2)), `${dispute}: the stake stands`);
     check(R.opinionOf(st, b, a) === before && !events(st, n, /staked and left unworked/).length, `${dispute}: nothing to remember or tell`);
     check(st.jobs.get(`clear:f${f[0].id}`) === job && worker.job === job, `${dispute}: the staker's job stands`);
   }
@@ -130,7 +135,7 @@ out.push('contests: first and kin keep the stake, strongest and the meeting take
   const fields0 = f.map((x) => x.fields.length);
   for (let d = 0; d < 40; d++) {
     Sim.advance(st, DAY);
-    for (const x of f) if (x.project) staked++;
+    for (const x of f) if (pj(st, x)) staked++;
     if (d % 5 === 4) ok(st, `day ${d + 1}`);
   }
   const made = f.reduce((s, x, k) => s + x.fields.length - fields0[k], 0);

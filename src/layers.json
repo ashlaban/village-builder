@@ -4,7 +4,7 @@
   "modules": {
     "kernel": ["vb", "gen/paths", "gen/rivers", "gen/climate", "gen/marks", "gen/geology", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
       "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/forest", "sim/people", "sim/records", "sim/prospect", "sim/commands"],
-    "material": ["sim/stores", "sim/dig", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/herds", "sim/ownership", "sim/claims",
+    "material": ["sim/stores", "sim/projects", "sim/dig", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/herds", "sim/ownership", "sim/claims",
       "sim/stakes", "sim/territory", "sim/expansion", "sim/building"],
     "social": ["culture", "sim/relations", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
       "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/occasions"],

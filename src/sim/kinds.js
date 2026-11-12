@@ -1,6 +1,6 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { ROLES, WORK, FISH, FORAGE, BREW, cal, HOUSE, houseCondition } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
@@ -45,8 +45,9 @@ VB['sim/kinds'] = (() => {
     const w = st.w, th = rowAngle(j), row = firstRow(j, a);
     return [w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row, w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row];
   }
-  // The job's project still stands at this stage on its tile (it was not given up or contested away meanwhile, sim/stakes).
-  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // The job's project still stands at this step on its tile (it was not given up or contested away meanwhile, sim/stakes): the open step of
+  // its household's project plan (sim/projects).
+  const onProject = (st, j) => { const s = Projects.openOf(st, 'household', j.owner.id); return !!s && s.place === j.site && s.kind === j.kind; };
   // Work on a land project renews the household's stake on its tile (sim/stakes).
   const workStake = (st, j) => { renewClaim(st, j.site, j.owner); };
   // By the byre door, left of the cottage (the page draws the byre there).
@@ -73,9 +74,11 @@ VB['sim/kinds'] = (() => {
   function byreWork(st, hh, f, c, post) {
     if (hh.herds.length || hh.larder.length) for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
-  // The farm's land project, a new field or meadow, at its present stage (clear, break, meadow) on its tile (sim/fields, sim/meadows).
+  // The household's project plan, a new field or meadow, at its open step (clear, break, meadow) on its tile (sim/projects; made by
+  // sim/fields, sim/meadows): the step's task is made once the step before is done.
   function landProject(st, hh, f, c, post) {
-    if (f.project) post(`${f.project.stage}:f${f.id}`, f.project.tile, { farm: f, hours: f.project.hours }, f.project.stage);
+    const s = Projects.openOf(st, 'household', hh.id);
+    if (s) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
   }
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
@@ -230,17 +233,17 @@ VB['sim/kinds'] = (() => {
     },
     clear: {
       verb: 'Clearing scrub and stones', go: 'Going to clear land', name: 'Clear a new field', label: 'Clear', anim: 'hoe', hours: 10, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishClear(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(st, j) && finishClear(st, j.farm, hh),
       available: landProject, // also a plot's step (plotWork)
     },
     break: {
       verb: 'Breaking new ground', go: 'Going to break new ground', name: 'Break new ground', label: 'Break', anim: 'hoe', hours: 30, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(j) && finishBreak(st, j.farm),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j) => onProject(st, j) && finishBreak(st, j.farm),
       available: landProject, // also a plot's step (plotWork)
     },
     meadow: {
       verb: 'Clearing a hay meadow', go: 'Going to clear a meadow', name: 'Clear a hay meadow', label: 'Meadow', anim: 'hoe', hours: 4, hands: Infinity,
-      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(j) && finishMeadow(st, j.farm, hh),
+      type: 'tilling', field: true, spot: onField, project: true, worked: workStake, done: (st, j, hh) => onProject(st, j) && finishMeadow(st, j.farm, hh),
       available: landProject,
     },
     reclaim: {

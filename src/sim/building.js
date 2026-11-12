@@ -2,7 +2,7 @@
 // a cottage's or a booth's site whose felled tiles gave too little for its walls, and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332)
 VB['sim/building'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
@@ -66,7 +66,7 @@ VB['sim/building'] = (() => {
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null, old = plan.build || null;
-    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && f.project)) return null;
+    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && Projects.projectOf(st, 'household', hh.id))) return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f);
   }

@@ -13,7 +13,7 @@ const st = tinyState(tinyWorld(rows, { stones: 40 }), [{ at: [8, 7], farms: 2, s
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
 check(f.grade === 'ground' && st.farmsteads.every((x) => x.grade === 'ground'), 'generated farms stand on the ground');
 // the building step: no stony tile and no hills within reach of the house but those beyond: quarrying, then picking once a tile is stony
-f.project = null; plan.build = null;
+VB['sim/plans'].dropAll(st, 'household', hh.id); plan.build = null;
 let step = Bld.buildStep(st, plan, hh);
 check(step && (step.kind === 'quarry' || step.kind === null), `with no stony meadow the stone is quarried, if hills are in reach (${JSON.stringify(step)})`);
 const stony = VB['sim/territory'].outlandOf(st, v).find((t) => w.biome[t] === VB.gen.B.MEADOW);

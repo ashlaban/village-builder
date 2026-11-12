@@ -2,7 +2,7 @@
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW } = VB['sim/rules'];
-  const Rules = VB['sim/registry'], Culture = VB['culture'];
+  const Rules = VB['sim/registry'], Culture = VB['culture'], { emit } = VB['sim/events'], Projects = VB['sim/projects'];
   const KINDS = ['harvest', 'gift', 'meat', 'milk', 'butter', 'seed', 'meal', 'seedMeal', 'cooking', 'spoilage', 'share', 'handingOn', 'provisions', 'thresh',
     'catch', 'gathering', 'brew', 'pour'];
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
@@ -12,6 +12,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start'); ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+  // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
+  KINDS.push('build');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -83,7 +85,9 @@ VB['sim/stores'] = (() => {
   }
   function take(st, holder, good, n, why) {
     amount(n); const kind = type(holder), k = field(holder, good, kind), before = holder[k] || 0, got = Math.min(before, n);
-    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind); crossed(st, holder, kind, good, before); return got;
+    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind); crossed(st, holder, kind, good, before);
+    if (got > 0) short(st, holder, kind, good, holder[k]);
+    return got;
   }
   function move(st, from, to, good, n, why) {
     amount(n); field(from, good); field(to, good);
@@ -196,30 +200,57 @@ VB['sim/stores'] = (() => {
   // whose records sim/plans makes and drops: a reservation goes with its plan); only these operations write it.
   // @state plan.reserved: {[good]: n}: the plan's reservation of a good, as counted at its last reserve (the plan's review); plan.reasons:
   //   {[good]: why}, one of RESERVE. A reservation whose reason follows the plan's needs between reviews (FOLLOWS) is counted at read by its rule.
-  const RESERVE = ['seed'];
+  //   A project plan's (VB-123, sim/projects) is one of two: `field`, the seed held back for the new field it makes (as the seed of the
+  //   standing plan, it may exceed the stock: a hungry household eats its seed), and `build`, what its steps will spend, which is made only
+  //   from the holder's free stock (its stock less what its plans hold back) and is reviewed at once when the stock falls below it.
+  const RESERVE = ['seed', 'field', 'build'], CHECKED = 'build';
   // Rules that count a following reservation at read, by reason, given before the first seed (like sim/registry's): seed follows the
   // fields as they are sown (sim/hunger). Stored counts lag a sowing or a stage change by up to an hour, and the readers of the seed
   // (the cook, the meal, help, deals, provisions, the means to marry) read it within the hour, so the count is read where it is wanted.
   const FOLLOWS = {};
   function follow(why, count) { if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`); FOLLOWS[why] = count; }
   function reason(why) { if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`); }
-  // The plan of a holder's that a reservation is kept on: today its standing plan (sim/plans), the only plan a holder has.
-  const planFor = (st, holder) => (type(holder) === 'household' ? st.plans.households : st.plans.villages).get(holder.id);
+  // The plans of a holder's that a reservation is kept on: its standing plan (sim/plans; a pawn has none) and its project plans (sim/projects,
+  // st.plans.projects: a list per holder, none for most).
+  const planFor = (st, holder, kind = type(holder)) => (kind === 'household' ? st.plans.households.get(holder.id)
+    : kind === 'village' ? st.plans.villages.get(holder.id) : undefined);
+  const projectsFor = (st, holder, kind = type(holder)) => Projects.projectsOf(st, kind, holder.id);
+  const isPlanOf = (st, holder, plan) => plan === planFor(st, holder) || projectsFor(st, holder).includes(plan);
+  // A plan holds back n of a good. A `build` reservation is refused (false) beyond the holder's free stock, so that two plans do not count
+  // on the same timber; the others are not checked. True when made.
   function reserve(st, holder, plan, good, n, why) {
-    amount(n); reason(why); field(holder, good);
-    if (plan !== planFor(st, holder)) throw new Error('stores: a reservation names its holder\'s plan');
+    amount(n); reason(why); const k = field(holder, good);
+    if (!isPlanOf(st, holder, plan)) throw new Error('stores: a reservation names its holder\'s plan');
+    if (why === CHECKED && n > (holder[k] || 0) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9) return false;
     plan.reserved[good] = n; plan.reasons[good] = why;
+    return true;
   }
   function release(st, holder, plan, good, why) {
     reason(why);
-    if (plan !== planFor(st, holder) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
+    if (!isPlanOf(st, holder, plan) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
     delete plan.reserved[good]; delete plan.reasons[good];
+  }
+  // Every reservation of a plan that ends (sim/projects: done, or dropped; its holder may be gone, so it is not asked).
+  function releaseAll(plan) {
+    for (const good of Object.keys(plan.reasons)) { delete plan.reserved[good]; delete plan.reasons[good]; }
   }
   // What the holder's plans hold back of a good; a following reservation counted now. Allocates nothing (the review reads it hourly).
   function reserved(st, holder, good) {
-    const plan = st.plans && planFor(st, holder), why = plan && plan.reasons[good];
-    if (!why) return 0;
-    return FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+    if (!st.plans) return 0;
+    const kind = type(holder), plan = planFor(st, holder, kind), why = plan && plan.reasons[good];
+    let n = !why ? 0 : FOLLOWS[why] ? FOLLOWS[why](st, holder) : plan.reserved[good];
+    const list = projectsFor(st, holder, kind);
+    for (let i = 0; i < list.length; i++) if (list[i].reasons[good]) n += list[i].reserved[good];
+    return n;
+  }
+  // After a take: a holder whose stock of a good fell below what its project plans' steps will spend has those plans reviewed at once
+  // (design.md section 7, Reservations): sim/plans hears it. The one call from the stores to the project plans is this event.
+  function short(st, holder, kind, good, left) {
+    const list = projectsFor(st, holder, kind);
+    if (!list.length) return;
+    let n = 0;
+    for (let i = 0; i < list.length; i++) if (list[i].reasons[good] === CHECKED) n += list[i].reserved[good];
+    if (left < n - 1e-9) emit(st, 'storeShort', { type: kind, id: holder.id, good });
   }
   // ---- goods (VB-299; target-v2 4.3; design.md, The fair): a registry of the goods that change hands, declared at load like a rule and
   // closed when the rules registry seals; code, never saved state. A good: id ('grain', 'cattle/cow'), kind and subtype, class (Culture.CLASSES:
@@ -259,5 +290,5 @@ VB['sim/stores'] = (() => {
   return { GOODS, declareGood, goodOf, goods,
     dug,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
-    follow, reserve, release, reserved, aleOf, brew, spoilAle, pour, aleStanding };
+    follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
