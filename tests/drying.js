@@ -1,7 +1,7 @@
 // Dried fish and the fishing boat (VB-300): a village's reach to fishing water, tested again when it has a new farm; fishing for the drying
 // rack from spring day 3 to summer day 6 while the household holds less dried fish than it wants (a quarter of its need over the 14 days
 // without fresh fish, in whole lots of 10), one catch waiting at a time; the catch hung at the rack is dried fish in the larder, kept a
-// year; out of the fishing season the cook puts dried fish in for a quarter of the meals; the boat: a project plan begun at spring day 3
+// year; out of the fishing season the cook puts dried fish in the pot for a fifth of it (sim/pot, VB-119); the boat: a project plan begun at spring day 3
 // by a household by the sea or a large lake, its step waiting for 6 loads of timber felled in the village's wood, 20 hours of work,
 // then twice the bank's catch from it. Founders at seed 7, a year and a half: dried fish made and eaten, boats built, invariants, a save.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
@@ -52,11 +52,20 @@ check(hh.totals.some((x) => x.kind === 'drying' && x.good === 'dried fish' && ne
 hh.larder.push({ kind: 'dried fish', n: want, until: st.t + YEAR_DAYS * DAY });
 check(posts(st, 'rackfish', hh, f, cal(0, 3)).length === 0, 'enough dried fish in store: no more trips');
 
-// --- the pot: a quarter of the meals out of the fishing season
-const held = larderOf(hh, 'dried fish'), meals = hh.meals;
-check(D.intoPot(st, hh, cal(1, 3), 8) === 0 && D.intoPot(st, hh, cal(0, 4), 8) === 0, 'no dried fish in the pot while fresh fish is had');
-check(near(D.intoPot(st, hh, cal(3, 4), 8), 2) && near(larderOf(hh, 'dried fish'), held - 2) && near(hh.meals, meals + 2), 'in winter: 2 of 8 meals');
-check(near(D.intoPot(st, hh, cal(0, 1), 4), 1), 'in spring under the ice: a quarter too');
+// --- the pot (sim/pot, VB-119): dried fish out of the fishing season, a fifth of a pot of 2 sources, none while fresh fish makes a fifth
+const Pot = VB['sim/pot'], pot = (doy, want) => {
+  st.t = doy * DAY + 15; hh.meals = 0; hh.grain = { barley: 1000 }; const held = larderOf(hh, 'dried fish'), k = Pot.pot(st, hh, want);
+  return { k, dried: held - larderOf(hh, 'dried fish'), meals: hh.meals };
+};
+let r1 = pot(1 * 12 + 3, 8);
+check(r1.dried === 0 && r1.k === 1 && near(r1.meals, 8), 'no dried fish in the pot in the fishing season');
+r1 = pot(3 * 12 + 4, 8);
+check(r1.k === 2 && near(r1.dried, 0.2 * 0.9 * 8) && near(r1.meals, 8), `in winter: a fifth of a pot of 2 sources (${r1.dried}, ${r1.k})`);
+r1 = pot(0 * 12 + 1, 4);
+check(r1.k === 2 && near(r1.dried, 0.2 * 0.9 * 4), 'in spring under the ice too');
+st.t = (3 * 12 + 5) * DAY + 15; Pot.putFresh(st, hh, 'fish', 2, 'catch');
+r1 = pot(3 * 12 + 5, 8);
+check(r1.dried === 0 && r1.k === 2 && near(r1.meals, 8), 'fresh fish a fifth of the pot: no dried fish');
 
 // --- the boat: begun by a household by the sea, its timber, its work, its catch
 const st2 = Sim.seed(world(7), 7, 'founders');

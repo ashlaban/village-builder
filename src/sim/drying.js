@@ -1,6 +1,6 @@
 // @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
 // fishing for the drying rack and hanging the catch, a side craft of spring and early summer; the fishing boat, a household's facility on
-// a shore built as a project plan; and the share of dried fish the cook puts in the winter's pot
+// a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
 // split and hung on racks in the dry winds of spring and early summer (stockfish, klippfisk), and keep a year or more: here through winter
 // and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
@@ -16,7 +16,7 @@ VB['sim/drying'] = (() => {
   // rack from spring day FISH.from + 1 to summer day `until` (the drying winds of spring and early summer), one catch waiting at a time;
   // splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as salting meat: the catch does not wait),
   // the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the household's slack). Out of the fishing season the
-  // cook puts dried fish in for `share` of the meals it makes.
+  // cook puts dried fish in for a fifth of the pot, as a source (sim/pot, VB-119), so `share` lasts a quarter longer than the winter.
   const DRY = { share: 0.25, lot: 10, until: 6, hours: 1, hang: 1.6, urgency: 0.5 };
   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
@@ -137,11 +137,5 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
-  // ---- the pot: dried fish for DRY.share of the meals the cook makes, out of the fishing season (when there is no fresh fish) ----
-  // Rations of dried fish cooked into meals, of `want` meals still wanted (sim/kinds' cook, before the grain).
-  function intoPot(st, hh, c, want) {
-    if ((c.season !== 3 && !(c.season === 0 && c.sday < FISH.from)) || !(want > 0) || !hh.larder.length) return 0;
-    return Stores.cookLarder(st, hh, 'dried fish', DRY.share * want);
-  }
-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear, intoPot };
+  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear };
 })();

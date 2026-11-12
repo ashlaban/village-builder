@@ -28,9 +28,11 @@ const QUANTITIES = [
     none: 'meals and the larder feed the household; then the seed is eaten and fields go unsown; then its members go hungry, slow and lose '
       + 'health (sim/hunger), and it asks kin and the village for food (sim/help)' },
   { id: 'meals', of: 'household', name: 'meals', unit: 'rations', fields: ['household.meals'], good: 'meals', holder: 'household',
-    kinds: ['cook', 'fish', 'gather'],
+    kinds: ['cook'],
     covers: ['household.cookDay'],
-    none: 'the household eats its grain uncooked, at the same ration (sim/hunger): nothing is lost by not cooking' },
+    none: 'the household eats its gathered food as it is, then its grain uncooked at ECON.rawGrain, a quarter more (sim/hunger, VB-119)' },
+  { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
+    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, and fishing and gathering are more urgent (sim/pot, VB-119)' },
   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
     kinds: ['haul'], none: 'nothing to thresh: the threshing job is not posted' },
   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
