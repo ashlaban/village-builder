@@ -3,7 +3,7 @@
 // node tools/stocks.js            a table a quantity, then the quantities read by nothing and those only shown
 // node tools/stocks.js --json     the same as JSON
 // Built on the writes map (tools/writes.js): its fields' write sites and read sites, by module and line, and the calls of sim/stores' operations
-// (put, take, move, cook, sheaf, thresh, spoil, dug, start, brew, pour, spoilAle, villageDay) with their good and reason, found in the
+// (put, take, takeSpare, move, cook, sheaf, thresh, spoil, dug, start, brew, pour, spoilAle, villageDay) with their good and reason, found in the
 // modules' syntax (acorn). A line is placed in its function (the innermost named one; a job kind's property as `kind.property`).
 // - adds and takes: a store operation (by its good; a grain call is the village's when its holder or reason names a village), or a direct
 //   write: `+=`, `++` and push add; `-=`, `--`, filter, splice, shift and pop take; `=` and `*=` set. A take is a use unless its reason
@@ -87,7 +87,8 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows',
-    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
+    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded',
+      'village.founded'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
@@ -133,7 +134,8 @@ function stateFields(known = null) {
 }
 
 // ---- the scan ----
-const OPS = { put: 'add', take: 'take', move: 'move', cook: 'cook', sheaf: 'add', thresh: 'thresh', spoil: 'take', dug: 'add', start: 'start', brew: 'brew',
+const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: 'cook', sheaf: 'add', thresh: 'thresh', spoil: 'take', dug: 'add',
+  start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take' };
 const OP_GOODS = { dug: ['clay', 'bogOre'] };
 const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'handingOn', 'provisions', 'start']);
@@ -171,10 +173,15 @@ function storeCalls(mod, src, fns) {
         ? lit((n.properties.find((p) => p.key && p.key.name === 'kind') || {}).value) : src.slice(n.start, n.end)); // a name: its text
       const text = src.slice(node.start, node.end), village = /vill|\bv\b/.test(text), line = node.loc.start.line, fn = fns.at(line);
       const g = (good, sign, why) => ({ good, goods: good === null ? OP_GOODS[op] || [] : [good], sign, why }); // a good by name: those the op may move
+      // a crop's grain ('grain/barley', or Stores.grainGood(crop); VB-347) is grain
+      const good = (n) => {
+        const l = lit(n); return typeof l === 'string' && l.startsWith('grain/') || l === null && n &&
+        /grainGood/.test(src.slice(n.start, n.end)) ? 'grain' : l; };
       let goods = [];
-      if (op === 'put') goods = [g(lit(a[2]), +1, reason(a[4]))];
-      else if (op === 'take') goods = [g(lit(a[2]), -1, reason(a[4]))];
-      else if (op === 'move') goods = [g(lit(a[3]), 0, reason(a[5]))];
+      if (op === 'put') goods = [g(good(a[2]), +1, reason(a[4]))];
+      else if (op === 'take') goods = [g(good(a[2]), -1, reason(a[4]))];
+      else if (op === 'takeSpare') goods = [g('grain', -1, reason(a[3]))];
+      else if (op === 'move') goods = [g(good(a[3]), 0, reason(a[5]))];
       else if (op === 'cook') goods = [g(lit(a[2]), -1, 'cooking'), g('meals', +1, 'cooking')];
       else if (op === 'sheaf') goods = [g('sheaves', +1, 'harvest')];
       else if (op === 'thresh') goods = [g('sheaves', -1, 'thresh'), g('grain', +1, 'thresh')];
@@ -192,6 +199,22 @@ function storeCalls(mod, src, fns) {
   })(fns.ast);
   return calls;
 }
+// Reads of grain through Stores.grainOf (VB-347: the one reader of a store's grain): a village's when its argument names a village.
+function grainReads(ast, src) {
+  const out = [];
+  (function walk(node) {
+    if (!node || typeof node.type !== 'string') return;
+    const c = node.callee;
+    if (node.type === 'CallExpression' && c && (c.name === 'grainOf' || c.type === 'MemberExpression' && c.property.name === 'grainOf') && node.arguments[0]) {
+      const a = node.arguments[0], text = src.slice(a.start, a.end);
+      out.push({ field: /vill|^v$|^o\.from$/.test(text) && !/hh|household/.test(text) ? 'village.grain' : 'household.grain', line: node.loc.start.line });
+      if (text === 'o.from') out.push({ field: 'household.grain', line: node.loc.start.line }); // a gift's giver: either
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'loc') continue; if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') walk(v); }
+  })(ast);
+  return out;
+}
 const ADD = new Set(['+=', '++', 'push', 'unshift']), TAKE = new Set(['-=', '--', 'filter', 'splice', 'shift', 'pop']);
 function build() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
@@ -204,7 +227,9 @@ function build() {
   for (const s of sources) {
     if (s.mod === 'gen' || s.mod.startsWith('gen/')) continue;
     const fns = functionsOf(s.src), scan = Writes.scan('src/' + s.f, s.mod, returns);
-    mods.set(s.mod, { ...s, fns, reads: scan.reads.map((r) => ({ field: Writes.fieldOf(r.path), line: r.line })), calls: storeCalls(s.mod, s.src, fns) });
+    mods.set(s.mod, {
+      ...s, fns, reads: [...scan.reads.map((r) => ({ field: Writes.fieldOf(r.path), line: r.line })), ...grainReads(fns.ast, s.src)],
+      calls: storeCalls(s.mod, s.src, fns) });
   }
   const rows = [];
   for (const q of QUANTITIES) {

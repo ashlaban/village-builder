@@ -136,7 +136,7 @@ const P = (id) => ({ type: 'pawn', id });
   moveClock(st, YEAR); KINDS.restore.worked(st, job2);
   check(CL.strength(st, CL.claimOf(st, f.house, P(who.gunhild))) === 1, 'work on the farm renews the claim');
   // the roof mended: they move in, their old household able to spare their start
-  st.households[A0].grain = 2000; st.households[A0].wood = 40; // and its first wood (VB-328)
+  st.households[A0].grain = { barley: 2000 }; st.households[A0].wood = 40; // and its first wood (VB-328)
   const before = st.households.length;
   KINDS.restore.done(st, job2);
   const hh = st.households[f.household];
@@ -145,8 +145,8 @@ const P = (id) => ({ type: 'pawn', id });
   check([f.house, ...f.fields.map((fd) => fd.tile)].every((t) => st.owner[t] === hh.id + 1) && !CL.claimsOn(st, f.house).length,
     'house and fields are theirs; the claim and the birthright are spent');
   const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * CROPS.barley.seed;
-  check(hh.grain === need && hh.meals > 0 && hh.wood === st.ECON.startWood && st.households[A0].wood === 40 - st.ECON.startWood,
-    `stores: ${hh.grain} grain of ${need}, ${hh.meals} meals, ${hh.wood} wood`);
+  check(Sim.grainOf(hh) === need && hh.meals > 0 && hh.wood === st.ECON.startWood && st.households[A0].wood === 40 - st.ECON.startWood,
+    `stores: ${Sim.grainOf(hh)} grain of ${need}, ${hh.meals} meals, ${hh.wood} wood`);
   // the fields gone to grass and scrub are cleared again by the new household
   J.refreshJobs(st, cal(st.t));
   const r0 = st.jobs.get(`reclaim:f${f.id}.${f.fields[0].id}`), r1 = st.jobs.get(`reclaim:f${f.id}.${f.fields[1].id}`);
@@ -154,7 +154,7 @@ const P = (id) => ({ type: 'pawn', id });
   KINDS.reclaim.done(st, r0);
   check(f.fields[0].stage === 'stubble', 'a cleared field is in stubble again');
   ok(st, 'moved in');
-  out.push(`claimed and mended: ${hh.grain} rations to start`);
+  out.push(`claimed and mended: ${Sim.grainOf(hh)} rations to start`);
 }
 // ---- a claim ends: the claimant dies; or nobody works it for 3 years ----
 {

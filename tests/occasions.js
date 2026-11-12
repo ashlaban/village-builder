@@ -19,7 +19,7 @@ const near = (st, a, o) => Math.abs(a.x - o.x) < 16 && Math.abs(a.y - o.y) < 10;
 // Populous at seed 7, natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
 function scene() {
   const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
-  for (const h of st.households) h.grain += 5000;
+  for (const h of st.households) h.grain.barley += 5000;
   const mark = st.record.length;
   roll(st, () => Sim.movingRound(st));
   return { st, mark };

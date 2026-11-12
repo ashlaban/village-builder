@@ -175,7 +175,7 @@ VB['sim/commands'] = (() => {
           return 'the household must include its holder and unique members';
         }
         for (const id of a.members) { const dead = living(st, id); if (dead) return dead; }
-        return Number.isFinite(a.grain) && a.grain >= 0 ? null : 'invalid provisions';
+        return later('sim/stores').partsOk(a.grain) ? null : 'invalid provisions';
       },
       run: (st, c) => later('sim/membership').foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, { grain: c.args.grain }),
     },

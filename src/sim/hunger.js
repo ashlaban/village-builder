@@ -13,11 +13,12 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year need: the standing plan's reservation of grain (sim/plans reserves it at each
   // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
-  // (feedHousehold; Kim, 10 November: the hungry household eats its seed).
-  function seedNeed(st, hh) {
+  // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
+  // next crop, until rotations choose it, VB-350); every field without one.
+  function seedNeed(st, hh, crop) {
     const f = st.farmsteads[hh.farmstead];
     let n = 0;
-    for (const fd of f.fields) if (fd.stage === 'stubble' || fd.stage === 'plowed') n++;
+    for (const fd of f.fields) if ((fd.stage === 'stubble' || fd.stage === 'plowed') && (crop === undefined || fd.crop === crop)) n++;
     return n * seedPer(st, hh);
   }
   Stores.follow('seed', seedNeed);
@@ -133,7 +134,7 @@ VB['sim/hunger'] = (() => {
       // the larder's pieces may sum past what was asked by a rounding error, so what is left to eat is never below 0 (populous 3, year 15)
       const left = Math.max(0, rest - late), cooked = Math.min(hh.meals, left), grain = Math.max(0, left - cooked);
       Stores.take(st, hh, 'meals', cooked, 'meal');
-      Stores.take(st, hh, 'grain', Math.min(grain, spare), 'meal'); // Math.min: the same amount as ever when no seed is eaten
+      Stores.takeSpare(st, hh, Math.min(grain, spare), 'meal'); // Math.min: the same amount as ever when no seed is eaten
       if (dip > 0) eatSeed(st, hh, grain - Math.min(grain, spare));
     }
     else {
@@ -143,7 +144,7 @@ VB['sim/hunger'] = (() => {
         for (const p of group) eaten.set(p, gneed > 0 ? need.get(p) * give / gneed : 0);
         left -= give;
       }
-      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.take(st, hh, 'grain', spare, 'meal'); hh.hungryDays++;
+      Stores.take(st, hh, 'meals', hh.meals, 'meal'); Stores.takeSpare(st, hh, spare, 'meal'); hh.hungryDays++;
     }
     let sum = 0;
     for (const p of mem) {
@@ -155,7 +156,7 @@ VB['sim/hunger'] = (() => {
   }
   // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most.
   function eatSeed(st, hh, n) {
-    Stores.take(st, hh, 'grain', n, 'seedMeal');
+    Stores.take(st, hh, 'grain', n, 'seedMeal'); // of each crop as it is held (VB-352 orders it)
     const season = Math.floor(st.t / (SEASON_DAYS * DAY)), f = st.farmsteads[hh.farmstead];
     if (hh.seedSeason === season) return;
     hh.seedSeason = season;

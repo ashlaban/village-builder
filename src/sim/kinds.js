@@ -119,7 +119,7 @@ VB['sim/kinds'] = (() => {
       spot: onField, urgency: inWindow,
       done: (st, j, hh, c) => {
         const seed = CROPS[j.field.crop].seed; if (Stores.grainOf(hh, j.field.crop) < seed) return;
-        Stores.take(st, hh, 'grain', seed, 'seed'); sown(j.field, c);
+        Stores.take(st, hh, Stores.grainGood(j.field.crop), seed, 'seed'); sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it
       stages: ['plowed'], available: (st, hh, fd, c, post, f) => {

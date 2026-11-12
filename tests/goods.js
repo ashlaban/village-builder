@@ -49,7 +49,7 @@ const hh = st.households.find((h) => !h.dissolved && h.holder !== null);
 const need = dailyNeed(st, hh), days = toHarvest(st.t), buffer = st.pawns[hh.holder].buffer;
 const reach = Stores.reserved(st, hh, 'grain') + (days + buffer) * need, ample = Math.max(reach, 2 * YEAR_DAYS * need);
 hh.larder = [{ kind: 'meat', n: 1e-9, until: st.t + DAY }]; // no butter, salt meat or dried fish: those sources the pot lacks
-const stock = (g) => { hh.grain = g; };
+const stock = (g) => { hh.grain = { barley: g }; };
 // food: 1 a ration at the reach; 3 at empty stores; 0.5 beyond two years' need
 stock(reach); near(needValue(st, hh, 'grain', 1), 10, 'a sack at the reach');
 stock(ample + 100); near(needValue(st, hh, 'grain', 1), 5, 'a sack beyond two years');
@@ -63,7 +63,7 @@ const fifth = NEED.lackingShare * days * need;
 assert(fifth > 10, `a fifth of the need ${fifth} holds a lot`);
 stock(reach); near(Rules.value(st, 'need', { hh, good: Stores.goodOf('salt meat'), n: 1, kept: 0 }), 12, 'salt meat the pot lacks');
 hh.larder.push({ kind: 'salt meat', n: fifth, until: st.t + 40 * DAY });
-const held = hh.grain + hh.larder.reduce((s, l) => s + l.n, 0);
+const held = Sim.grainOf(hh) + hh.larder.reduce((s, l) => s + l.n, 0);
 assert(held > reach); stock(reach - fifth - 1e-9); // stores at the reach again
 near(Rules.value(st, 'need', { hh, good: Stores.goodOf('salt meat'), n: 1, kept: 0 }), 10, 'salt meat the pot has');
 hh.larder = [];

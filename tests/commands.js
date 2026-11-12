@@ -153,7 +153,7 @@ for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
 // leave: a settler founds a village on a site the round would choose
 const S3 = VB['sim/settle'], settler = st3.pawns.find((p) => p.died === null && p.age >= 18 && !Sim.isHolder(st3, p.id) && p.household !== null);
-st3.households[settler.household].grain += 2000; // a family that can spare the provisions
+st3.households[settler.household].grain.barley += 2000; // a family that can spare the provisions
 assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
 const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
 if (site3) {

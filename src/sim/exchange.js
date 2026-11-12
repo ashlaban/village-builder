@@ -54,15 +54,14 @@ VB['sim/exchange'] = (() => {
     const below = floorOf(st, from) - (Stores.grainOf(from) - n);
     return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
   }
-  // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain and its holder's event, then the giver's,
-  // the tie between the two holders, and the goodwill booked between them.
-  function receive(st, from, to, n, fromName) {
-    Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName });
+  // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain (in the crops the giver's take gave, `parts`)
+  // and its holder's event, then the giver's, the tie between the two holders, and the goodwill booked between them.
+  function receive(st, from, to, n, fromName, parts) {
+    Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName }, parts);
     const ht = to.holder !== null ? st.pawns[to.holder] : null;
     if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
       n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
     if (from) {
-      Stores.take(st, from, 'grain', n, { kind: 'gift', to: st.farmsteads[to.farmstead].name });
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
       if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
         n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
@@ -73,9 +72,11 @@ VB['sim/exchange'] = (() => {
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
   function settleGift(st, o) {
     if (!isHousehold(o.to)) Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
-    else if (!isHousehold(o.from)) { // the village store's gift
-      Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }); receive(st, null, o.to, o.n, o.from.name);
-    } else receive(st, o.from, o.to, o.n, st.farmsteads[o.from.farmstead].name);
+    else { // the giver's grain goes in the proportion it holds its crops (VB-347): taken first, then received
+      const parts = {}, fromName = isHousehold(o.from) ? st.farmsteads[o.from.farmstead].name : o.from.name;
+      Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
+      receive(st, isHousehold(o.from) ? o.from : null, o.to, o.n, fromName, parts);
+    }
   }
   // For the panel (VB-218): what giver would give up to receiver (pawn ids) in one deal toward receiver's household, and its parts, as
   // Rules.explain returns them; null unless giver holds a household and receiver lives in another. Reads only; its own context.

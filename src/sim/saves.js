@@ -261,6 +261,7 @@ VB['sim/saves'] = (() => {
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
+    oldGrain(st); // VB-347: nor grain by crop
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     oldProjects(st); // VB-123: nor project plans
@@ -284,7 +285,7 @@ VB['sim/saves'] = (() => {
     for (const f of st.farmsteads) {
       const p = f.project, hh = p && f.household !== null ? st.households[f.household] : null, why = p && p.stage === 'meadow' ? 'meadow' : 'field';
       const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
-      if (hh && !hh.dissolved) Plans.makeProject(st, 'household', hh.id, { what: why, hold: { grain: seedPer(st, hh) },
+      if (hh && !hh.dissolved) Plans.makeProject(st, 'household', hh.id, { what: why, hold: { [VB['sim/stores'].grainGood('barley')]: seedPer(st, hh) },
         steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)] });
       if ('project' in f) delete f.project;
     }
@@ -321,5 +322,18 @@ VB['sim/saves'] = (() => {
     }
   }
   const oldProjects = (st) => { fromFarms(st); fromPlots(st); fromClaims(st); };
+  // ---- saves made before grain was held by crop (VB-347): a household's and a village's grain was one number, and a plan reserved it as
+  // 'grain'; it was all barley, the one crop there was ----
+  function oldGrain(st) {
+    for (const h of [...st.households, ...st.villages]) if (typeof h.grain === 'number') h.grain = { barley: h.grain };
+    if (!st.plans) return;
+    const plans = [...st.plans.households.values(), ...st.plans.villages.values(),
+      ...Object.values(st.plans.projects || {}).flatMap((map) => [...map.values()].flat())];
+    const to = VB['sim/stores'].grainGood('barley');
+    for (const plan of plans) if (plan.reasons && 'grain' in plan.reasons) {
+      plan.reserved[to] = plan.reserved.grain; plan.reasons[to] = plan.reasons.grain;
+      delete plan.reserved.grain; delete plan.reasons.grain;
+    }
+  }
   return { encode, decode, save, load, FORMAT, READS, oldProjects };
 })();

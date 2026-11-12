@@ -65,7 +65,7 @@ check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${n
 check(f.fields.length === 0 && VB['sim/plans'].openOf(st, 'household', hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
-check(hh.grain >= 300 && !m.stake, `the stake is the household's grain (${hh.grain})`);
+check(Sim.grainOf(hh) >= 300 && !m.stake, `the stake is the household's grain (${Sim.grainOf(hh)})`);
 check(!st.households[oldHh].members.includes(m.id), 'the settler left the old household');
 check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling still wants land, the settler does not');
 const s = st.cenv.settlements[nv.id];
@@ -89,7 +89,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
 {
   const t = setUp(); fill(t.st, t.v);
   t.st.demand = [t.m.id]; t.m.landWait = 3; t.m.stake = 0;
-  for (const h of t.st.households) h.grain = 0;
+  for (const h of t.st.households) h.grain = { barley: 0 };
   const n = t.st.villages.length;
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
