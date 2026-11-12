@@ -94,11 +94,11 @@ const Culture = (() => {
     oblique: 0.3,      // share of the social target taken from the settlement as a whole
     advocacyPull: 3, advocacyWeight: 3,
     advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
-    causeEvery: 5,      // years from taking up a cause before one may take up another (it may be laid down at any time)
+    causeEvery: 5,      // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
     margin: 0.25, tieMargin: 0.6, returnMargin: 0.12, // meeting margins
     cultureMarginBase: 0.6, cultureMarginSize: 0.4,   // culture margin = margin * (base + size * sqrt(N / 100))
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
-    entrepreneur: 0.004, entrepreneurYears: [5, 15], // chance per adult, custom and year (times malleability squared)
+    entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
     persuasion: 1.5,   // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
   };
 
@@ -273,8 +273,7 @@ const Culture = (() => {
         }
         let r = rand() * tot, opt = 0; while (opt < n - 1 && (r -= wts[opt]) > 0) opt++;
         if (opt === cur) continue;
-        const [a, b] = P.entrepreneurYears;
-        advocate(p, d, opt, env.t + a + rand() * (b - a), env.t, true);
+        advocate(p, d, opt, env.t + P.causeEvery, env.t, true);
         out.push(p);
         break;
       }

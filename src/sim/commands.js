@@ -202,13 +202,13 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => later('sim/lifecycle').retireHolder(st, holdingOf(st, c.actor).id),
     },
-    // argue({dim, option}): the pawn takes up the cause for ten years (the debug's, and the player's for its pawn: VB-211); it replaces any cause
-    // held. A cause is a long agenda: no new one within Culture.P.causeEvery years of the last one taken up (the debug's is not held to that).
+    // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it
+    // replaces any cause held. A cause is a long agenda: no new one within those years of the last one taken up (the debug's is not held to that).
     argue: {
       check: (st, c) => living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
       run: (st, c) => {
         const d = Culture.DIMS[c.args.dim];
-        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + 10, st.cenv.t);
+        Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
         personEvent(st, c.actor, 'cause', `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`);
       },
     },
@@ -228,7 +228,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id).filter((q) => voiceOf(st, q, s) > 0).sort((x, y) => y.prestige - x.prestige);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
-        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + 10, st.cenv.t);
+        for (const q of voiced.slice(0, want)) Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
       },
     },
     // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)

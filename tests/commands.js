@@ -198,10 +198,10 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
-  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + 10)) < 0.05, 'for ten years');
+  assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + C.P.causeEvery)) < 0.05, 'for five years');
   assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => e.kind === 'cause' && /^Took up the cause/.test(e.text)), 'a record event');
   assert.ok(Math.abs(a.pawns[id].causeSince - a.cenv.t) < 0.05, 'the year it was taken up');
-  Sim.uninhabit(a); C.advocate(b.pawns[id], dim, opt, b.cenv.t + 10, b.cenv.t, true); // as a natural cause, the same slot and the same step
+  Sim.uninhabit(a); C.advocate(b.pawns[id], dim, opt, b.cenv.t + C.P.causeEvery, b.cenv.t, true); // as a natural cause, the same slot and the same step
   b.pawns[id].advocate.until = a.pawns[id].advocate.until;
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
   const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
