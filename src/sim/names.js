@@ -5,55 +5,92 @@ VB['sim/names'] = (() => {
   const { bfs, hexSteps } = VB['sim/hex'];
   // ---- farms ----
   // A generator is (ctx, rand) => [names, best first]; the caller takes the first not already taken. ctx: {w, f (the farmstead),
-  // village (its centre for compass names), owner (the first holder, a pawn, or null)}. A generator offers nothing ([]) when it has no name.
-  // compass: by direction from the village centre (Norrgården, Södergården), then the middle farm and the new farm.
+  // village (its centre for the names that need one), owner (the first holder, a pawn, or null), farms (the village's farmsteads, for
+  // the largest and the smallest, or none), fresh (a farm built in play)}. A generator offers nothing ([]) when it has no name.
+  const FARMS = { near: 1, out: 3, rise: 0.08 };
   // The sixth of the compass tile `to` lies in, seen from `from`: an index of DIRNAME.
   function sixth(w, from, to) {
     const a = (Math.atan2(w.hy[from] - w.hy[to], w.hx[to] - w.hx[from]) + Math.PI * 2) % (Math.PI * 2);
     return Math.round(a / (Math.PI / 3)) % 6;
   }
+  // compass: by direction from the village centre (Norrgården, Södergården).
   function compass(ctx) {
     const { w, f, village: v } = ctx;
+    return !v || f.house === v.center ? [] : [DIRNAME[sixth(w, v.center, f.house)] + 'gården'];
+  }
+  // position: by where the farm lies in the village: above or below its centre by FARMS.rise of height (Övergården, Uppgården;
+  // Nedergården), within FARMS.near steps of it (Mellangården, Hemgården, Innergården) or FARMS.out steps and more from it (Yttergården,
+  // Bortgården); height first or distance first, by one draw.
+  function position(ctx, rand) {
+    const { w, f, village: v } = ctx, first = rand() < 0.5;
     if (!v || f.house === v.center) return [];
-    return [DIRNAME[sixth(w, v.center, f.house)] + 'gården', 'Mellangården', 'Nygården'];
+    const dh = w.he[f.house] - w.he[v.center], d = hexSteps(w, v.center, f.house);
+    const height = dh >= FARMS.rise ? ['Övergården', 'Uppgården'] : dh <= -FARMS.rise ? ['Nedergården'] : [];
+    const dist = d <= FARMS.near ? ['Mellangården', 'Hemgården', 'Innergården'] : d >= FARMS.out ? ['Yttergården', 'Bortgården'] : [];
+    return first ? [...height, ...dist] : [...dist, ...height];
+  }
+  // The ground of the house tile and its six neighbours, for feature; and the kind of ground within 2 steps, for landmark.
+  function around(w, t, steps) {
+    const g = { coast: false, woods: 0, pine: 0, hills: 0, marsh: 0, beach: 0, open: 0 };
+    for (const [j] of bfs(w, t, steps, () => true).dist) {
+      if (w.water[j]) g.coast = true; const b = w.biome[j];
+      if (b === B.FOREST) g.woods++; if (b === B.PINE) { g.woods++; g.pine++; } if (b === B.HILLS) g.hills++; if (b === B.MARSH) g.marsh++;
+      if (b === B.BEACH) g.beach++; if (b === B.MEADOW || b === B.HEATH) g.open++;
+    }
+    return g;
+  }
+  const kindOf = (g) => (g.coast ? 'coast' : g.woods >= 4 ? 'woods' : g.hills >= 3 ? 'hills' : g.marsh >= 2 ? 'marsh' : 'open');
+  const landKind = (w, t) => kindOf(around(w, t, 2));
+  // feature: by what lies at the house, the rarer first: water, marsh, a hill, stony ground, wood, open land (Strandgården, Kärrgården,
+  // Backgården, Stengården, Lundgården, Ängsgården).
+  function feature(ctx) {
+    const { w, f } = ctx, g = around(w, f.house, 1);
+    return [...(g.coast ? ['Strandgården', 'Sjögården'] : []), ...(g.marsh ? ['Kärrgården', 'Myrgården'] : []),
+      ...(g.hills ? ['Backgården', 'Bergsgården'] : []), ...(w.stones && w.stones[f.house] > 96 ? ['Stengården', 'Hällgården'] : []),
+      ...(g.woods - g.pine > 0 ? ['Lundgården'] : []), ...(g.woods ? ['Skogsgården'] : []), ...(g.open ? ['Ängsgården', 'Hagagården', 'Vallgården'] : [])];
+  }
+  // age: a farm built in play is the new one (Nygården, Nybygget); of the old ones, that of most fields is the great farm and that of
+  // fewest the little one (Storgården, Lillgården), and any may be the old farm (Gammelgården).
+  function age(ctx) {
+    if (ctx.fresh) return ['Nygården', 'Nybygget'];
+    const n = ctx.f.fields.length, others = (ctx.farms || []).filter((g) => g !== ctx.f).map((g) => g.fields.length);
+    const most = others.length && others.every((k) => k < n), least = others.length && others.every((k) => k > n);
+    return [...(most ? ['Storgården'] : []), ...(least ? ['Lillgården'] : []), 'Gammelgården'];
   }
   // landmark: by the surroundings within 2 steps: shore, woods, hills, marsh, or open land (Strand, Lunden, Backa, Myra, Ängen...). The
-  // first word is the lone farm's old name; then other words for the same ground, then each word with a prefix from the ground (Björklunden,
-  // Sandstrand, Långmyra), in an order fixed by the house tile, so farms near each other differ. Only open land draws from rand, once.
+  // first word is the lone farm's old name (on open land one of the first four, by one draw); then other words for the same ground, then
+  // each word with a prefix from the ground (Björklunden, Sandstrand, Långmyra), in an order fixed by the house tile, so farms near each
+  // other differ.
   const WORDS = {
-    coast: ['Strand', 'Viken', 'Näset', 'Udden', 'Sjöänden', 'Bryggan'],
-    woods: ['Lunden', 'Hult', 'Lid', 'Skogen', 'Rödjan', 'Bråten'],
-    hills: ['Backa', 'Åsen', 'Kullen', 'Berget', 'Höjden', 'Hällen'],
+    coast: ['Strand', 'Viken', 'Näset', 'Udden', 'Sjöänden'],
+    woods: ['Lunden', 'Dungen', 'Lid', 'Skogen', 'Rödjan', 'Svedjan'],
+    hills: ['Backa', 'Åsen', 'Kullen', 'Berget', 'Höjden', 'Hällen', 'Berga'],
     marsh: ['Myra', 'Mossen', 'Kärret', 'Sjöängen', 'Vassen'],
-    open: ['Ängen', 'Hagen', 'Berga', 'Åkern', 'Gärdet', 'Vreten', 'Tegen', 'Slätten'],
+    open: ['Ängen', 'Hagen', 'Vallen', 'Åkern', 'Gärdet', 'Vreten', 'Tegen', 'Slätten'],
   };
-  const PLAIN = ['Ängen', 'Hagen', 'Berga', 'Åkern']; // the old plain names, drawn as before
   const PREFIX = {
     broadleaf: ['Björk', 'Ek', 'Asp', 'Al', 'Lind', 'Hassel', 'Rönn'], pine: ['Gran', 'Tall', 'Fur'], water: ['Sjö', 'Vik', 'Sand'],
     stone: ['Sten', 'Häll'], marsh: ['Myr', 'Starr', 'Kärr'],
-    any: ['Ny', 'Stor', 'Lill', 'Lång', 'Norr', 'Söder', 'Öster', 'Väster', 'Mel', 'Hög', 'Bred', 'Sol', 'Ljung', 'Ros', 'Häst', 'Ox', 'Lamm', 'Vall'],
+    any: ['Ny', 'Stor', 'Lill', 'Lång', 'Norr', 'Söder', 'Öster', 'Väster', 'Mel', 'Hög', 'Bred', 'Sol', 'Ljung', 'Häst', 'Ox', 'Lamm', 'Vall'],
   };
   const lower = (s) => s[0].toLowerCase() + s.slice(1);
   function landmark(ctx, rand) {
-    const { w, f } = ctx;
-    let coast = false, woods = 0, pine = 0, hills = 0, marsh = 0, beach = 0;
-    const { dist: near } = bfs(w, f.house, 2, () => true);
-    for (const [j] of near) {
-      if (w.water[j]) coast = true; const b = w.biome[j];
-      if (b === B.FOREST) woods++; if (b === B.PINE) { woods++; pine++; } if (b === B.HILLS) hills++; if (b === B.MARSH) marsh++; if (b === B.BEACH) beach++;
-    }
-    const kind = coast ? 'coast' : woods >= 4 ? 'woods' : hills >= 3 ? 'hills' : marsh >= 2 ? 'marsh' : 'open';
-    const first = kind === 'open' ? PLAIN[(rand() * PLAIN.length) | 0] : WORDS[kind][0];
+    const { w, f } = ctx, g = around(w, f.house, 2), kind = kindOf(g);
+    const first = WORDS[kind][kind === 'open' ? (rand() * 4) | 0 : 0];
     const words = [first, ...WORDS[kind].filter((x) => x !== first)];
-    const pre = [...(woods - pine > 0 ? PREFIX.broadleaf : []), ...(pine ? PREFIX.pine : []), ...(coast || beach ? PREFIX.water : []),
-      ...(w.stones && w.stones[f.house] > 96 ? PREFIX.stone : []), ...(marsh ? PREFIX.marsh : []), ...PREFIX.any];
+    const pre = [...(g.woods - g.pine > 0 ? PREFIX.broadleaf : []), ...(g.pine ? PREFIX.pine : []), ...(g.coast || g.beach ? PREFIX.water : []),
+      ...(w.stones && w.stones[f.house] > 96 ? PREFIX.stone : []), ...(g.marsh ? PREFIX.marsh : []), ...PREFIX.any];
     const out = [...words], n = pre.length, start = (f.house * 7919) % n;
-    for (let k = 0; k < n; k++) for (const x of words) out.push(pre[(start + k) % n] + lower(x));
-    return out;
+    for (let k = 0; k < n; k++) for (const x of words) {
+      const nm = pre[(start + k) % n] + lower(x); if (!nm.toLowerCase().startsWith(lower(x) + lower(x))) out.push(nm); }
+    return [...new Set(out)];
   }
-  // owner: the first holder's given name in the genitive (Olofsgården, Hansgården).
-  const owner = (ctx) => (ctx.owner ? [(ctx.owner.given.endsWith('s') ? ctx.owner.given : ctx.owner.given + 's') + 'gården'] : []);
-  const FARM = { compass, landmark, owner };
+  // A person's name before an ending: a man's in the genitive (an s unless it ends in s, x or z), a woman's bare, as the medieval names
+  // have it (Gunnilbo).
+  const stem = (p) => (p.sex === 'f' || /[sxz]$/.test(p.given) ? p.given : p.given + 's');
+  // owner: the first holder's given name before the farm (Olofsgården, Hansgården, Ingridgården).
+  const owner = (ctx) => (ctx.owner ? [stem(ctx.owner) + 'gården'] : []);
+  const FARM = { compass, owner, position, landmark, feature, age };
   // The order of preference every culture starts with (culture.js NAME_PREFS; c.namePrefs on each culture), also used before cultures exist.
   const DEFAULT_PREFS = VB['culture'].NAME_PREFS;
   const prefsOf = (st, villageId) => {
@@ -70,9 +107,12 @@ VB['sim/names'] = (() => {
       return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
     };
   };
-  // The name of farm f by the generators in `order`: the first name not in `taken` (a Set); if every generator fails, the first name
-  // offered with the lowest number not taken ("Norrgården 2").
-  function farmName(ctx, taken, rand, order = DEFAULT_PREFS.farm) {
+  // The generators of a preference (a culture's namePrefs.farm, the preferred first) in a random order by weight: the first of n
+  // weighs n, the last 1.
+  const farmOrder = (prefs, rand) => weighed(prefs.map((g, k) => [g, prefs.length - k]), rand);
+  // The name of farm f by the generators in `order` (by default the first preference's, drawn by weight): the first name not in
+  // `taken` (a Set); if every generator fails, the first name offered with the lowest number not taken ("Norrgården 2").
+  function farmName(ctx, taken, rand, order = farmOrder(DEFAULT_PREFS.farm, rand)) {
     let firstOffer = null;
     for (const g of order) {
       for (const nm of FARM[g](ctx, rand)) { if (firstOffer === null) firstOffer = nm; if (!taken.has(nm)) return nm; }
@@ -191,8 +231,8 @@ VB['sim/names'] = (() => {
   // Olofsryd, Ingridböle): a man's name in the genitive, a woman's bare, as the medieval names have it (Gunnilbo).
   function founder(ctx, rand) {
     const p = ctx.founder; if (!p) return [];
-    const g = ground(ctx.w, ctx.site), isFar = far(ctx), stem = p.sex === 'f' || /[sxz]$/.test(p.given) ? p.given : p.given + 's';
-    return weighed(NEW_END.filter((x) => !x.fits || x.fits(g, isFar)).map((x) => [x.e, x.n]), rand).map((e) => join(stem, e)).filter(Boolean);
+    const g = ground(ctx.w, ctx.site), isFar = far(ctx), name = stem(p);
+    return weighed(NEW_END.filter((x) => !x.fits || x.fits(g, isFar)).map((x) => [x.e, x.n]), rand).map((e) => join(name, e)).filter(Boolean);
   }
   // mother: from the village it left: the by to its north, south, west or east (Norrby, Sörby, Väsby, Ösby), the new village (Nyby,
   // Nytorp, Nyböle), the little one of the mother's name (Lillvalby), the village out there (Utby).
@@ -217,6 +257,59 @@ VB['sim/names'] = (() => {
     let n = 2; while (taken.has(`${base} ${n}`)) n++;
     return `${base} ${n}`;
   }
-  return { FARM, PLACE, VILLAGE, FIRST, END, NEW_END, DEFAULT_PREFS, prefsOf, farmName, tileRand, compass, landmark, owner, ground, join, site, central,
-    founder, mother, weighed, villageName };
+  // ---- at seeding (called by sim/layout) ----
+  // The layout's stream is drawn as it was when village names came from it (VB-026: 11 first parts and 8 last, drawn again while
+  // taken), so every seed's villages stand where they stood: a village holds the drawn name while the villages are laid, and
+  // nameVillages and nameFarms replace it. A change of the name stock (sim/names) never comes here.
+  const DRAWN = [['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'], ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter']];
+  function drawnName(rand, villages) {
+    const taken = new Set(villages.map((v) => v.name)), draw = () => DRAWN[0][(rand() * 11) | 0] + DRAWN[1][(rand() * 8) | 0];
+    let name = draw(); for (let k = 0; k < 200 && taken.has(name); k++) name = draw();
+    return name;
+  }
+  // Village names at seeding (VB-399), when all are laid: each village of two farms or more by its site (sim/names), from a stream of
+  // its own by its centre tile. The largest (the lowest id among equals) is named first and, with VILLAGE.centre farms, as the map's
+  // old centre; a lone farm's village is named by nameFarms.
+  function nameVillages(w, villages) {
+    const many = villages.filter((v) => v.farmsteads.length >= 2), taken = new Set();
+    let big = null; for (const v of many) if (!big || v.farmsteads.length > big.farmsteads.length) big = v;
+    const centre = big && big.farmsteads.length >= VILLAGE.centre;
+    for (const v of villages) if (v.farmsteads.length < 2) v.name = '';
+    for (const v of big ? [big, ...many.filter((u) => u !== big)] : []) {
+      const order = centre && v === big ? ['central', 'site'] : ['site'];
+      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE.salt), order);
+      taken.add(v.name);
+    }
+  }
+  // Names at seeding (VB-026, VB-401), before any culture exists, so by the generators every culture starts with (sim/names): the farms
+  // of a village of two or more by those generators, their order drawn by weight; a lone farm (a one-farm village) by its surroundings,
+  // with a name no other village has, and its village takes that name, so the farm's map label is unique on the island. Each farm's
+  // name comes from a stream of its house tile's own; the layout's stream is drawn as it was when the names came from it (drawnFarm).
+  function nameFarms(w, villages, farmsteads, rand) {
+    const old = new Map();
+    for (const f of farmsteads) {
+      const v = villages[f.village], many = v.farmsteads.length >= 2, own = tileRand(f.house);
+      drawnFarm(w, v, f, many, old, rand);
+      if (many) {
+        const farms = v.farmsteads.map((id) => farmsteads[id]), taken = new Set(farms.filter((g) => g !== f && g.name).map((g) => g.name));
+        f.name = farmName({ w, f, village: v, owner: null, farms }, taken, own);
+      } else { f.name = loneFarmName(w, f, own, new Set(villages.filter((u) => u !== v).map((u) => u.name))); v.name = f.name; }
+    }
+  }
+  // The draws VB-026's names took from the layout's stream, taken still, so every seed's land is finished as it was: one draw for a
+  // farm named by its surroundings on open land, which a lone farm was, and a village's farm once its compass name, the middle farm
+  // and the new farm were taken (`old`: those names by village).
+  function drawnFarm(w, v, f, many, old, rand) {
+    if (many && f.house !== v.center) {
+      if (!old.has(v.id)) old.set(v.id, new Set());
+      const had = old.get(v.id), free = [compass({ w, f, village: v })[0], 'Mellangården', 'Nygården'].find((nm) => !had.has(nm));
+      if (free) { had.add(free); return; }
+    }
+    if (landKind(w, f.house) === 'open') rand();
+  }
+  // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
+  const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
+  return { FARM, PLACE, VILLAGE, FIRST, END, NEW_END, DEFAULT_PREFS, prefsOf, farmName, tileRand, farmOrder, landKind, FARMS, compass, landmark, owner,
+    position, feature, age, ground, join, site, central,
+    founder, mother, weighed, villageName, drawnName, nameVillages, nameFarms, loneFarmName };
 })();

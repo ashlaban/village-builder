@@ -1,5 +1,5 @@
 // Names (VB-026, VB-399, VB-400): a village by its site, the largest of a map as its old centre, a daughter by its founder or its mother;
-// farms of a village by compass, then landmark, then owner, numbered only when every generator fails; a lone farm's village
+// farms of a village by six generators in an order drawn by weight, numbered only when every generator fails; a lone farm's village
 // bears its farm's name, unique on the island, so the map's labels (a village of two or more farms by its name, a lone farm by its
 // farm's) repeat no name; each culture keeps its order of preference and a split culture inherits it.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, N = VB['sim/names'], Culture = VB['culture'];
@@ -30,21 +30,57 @@ for (const seed of [7, 42]) {
   const nc = Culture.split(st.cenv, Sim.hooks(st), [s.id], 'test');
   check(nc.namePrefs.farm.join() === 'owner,compass,landmark' && nc.namePrefs.farm !== parent.namePrefs.farm, `${tag}: a split culture's preference`);
 }
-// 2. The generators in order: compass, landmark, owner, then a number; the farm's own stream (tileRand) gives the same name every time
+// 2. The farm generators (VB-026, VB-401): each by itself, a given order, and the order drawn by weight; the farm's own stream (tileRand)
+// gives the same name every time
 {
   const st = Sim.seed(world(7, 120, 85), 7, 'populous'), v = st.villages.find((u) => u.farmsteads.length >= 3);
-  const f = st.farmsteads[v.farmsteads[1]], olof = { given: 'Olof' }, hans = { given: 'Hans' };
-  const ctx = { w: st.w, f, village: v, owner: olof }, rand = () => N.tileRand(f.house);
+  const farms = v.farmsteads.map((id) => st.farmsteads[id]), f = farms[1], olof = { given: 'Olof', sex: 'm' }, hans = { given: 'Hans', sex: 'm' };
+  const ctx = { w: st.w, f, village: v, owner: olof, farms }, rand = () => N.tileRand(f.house), strict = ['compass', 'landmark', 'owner'];
   const compass = N.compass(ctx), land = N.landmark(ctx, rand());
-  check(compass.length === 3 && /gården$/.test(compass[0]), `compass names (${compass.join(', ')})`);
+  check(compass.length === 1 && /^(Norr|Söder|Öster|Väster)gården$/.test(compass[0]), `compass names (${compass.join(', ')})`);
   check(land.length > 60 && !dupes(land).length, `landmark offers ${land.length} names, ${dupes(land).length} repeated`);
-  check(N.farmName(ctx, new Set(), rand()) === compass[0], 'compass first');
-  check(N.farmName(ctx, new Set(compass), rand()) === land[0], 'landmark when compass names are taken');
+  check(!land.some((nm) => /Bråten|Bryggan|Hult$|^Ros/.test(nm)) && (N.landKind(st.w, f.house) === 'hills') === land.includes('Berga'), 'the landmark words');
+  check(N.farmName(ctx, new Set(), rand(), strict) === compass[0], 'compass first, in that order');
+  check(N.farmName(ctx, new Set(compass), rand(), strict) === land[0], 'landmark when compass names are taken');
   const all = new Set([...compass, ...land]);
-  check(N.farmName(ctx, all, rand()) === 'Olofsgården', `the owner's name (${N.farmName(ctx, all, rand())})`);
-  check(N.farmName({ ...ctx, owner: hans }, all, rand()) === 'Hansgården', 'a given name ending in s takes no other');
-  check(N.farmName(ctx, new Set([...all, 'Olofsgården']), rand()) === `${compass[0]} 2`, 'a number only when all fail');
+  check(N.farmName(ctx, all, rand(), strict) === 'Olofsgården', `the owner's name (${N.farmName(ctx, all, rand(), strict)})`);
+  check(N.farmName({ ...ctx, owner: hans }, all, rand(), strict) === 'Hansgården', 'a given name ending in s takes no other');
+  check(N.owner({ ...ctx, owner: { given: 'Ingrid', sex: 'f' } })[0] === 'Ingridgården', 'a woman\'s name is bare');
+  check(N.farmName(ctx, new Set([...all, 'Olofsgården']), rand(), strict) === `${compass[0]} 2`, 'a number only when all fail');
   check(N.farmName(ctx, new Set(compass), rand()) === N.farmName(ctx, new Set(compass), rand()), 'the same stream gives the same name');
+  // position, feature, age
+  const POS = { height: ['Övergården', 'Uppgården', 'Nedergården'], near: ['Mellangården', 'Hemgården', 'Innergården'], out: ['Yttergården', 'Bortgården'] };
+  for (const g of farms) {
+    const c = { ...ctx, f: g }, pos = N.position(c, N.tileRand(g.house)), d = VB['sim/hex'].hexSteps(st.w, v.center, g.house);
+    const dh = st.w.he[g.house] - st.w.he[v.center];
+    check(pos.every((nm) => Object.values(POS).flat().includes(nm)) && !dupes(pos).length, `${g.name}: position names (${pos})`);
+    check(pos.includes('Mellangården') === (d >= 1 && d <= N.FARMS.near) && pos.includes('Yttergården') === (d >= N.FARMS.out),
+      `${g.name}: ${d} steps out (${pos})`);
+    check(pos.includes('Övergården') === (d >= 1 && dh >= N.FARMS.rise) && pos.includes('Nedergården') === (d >= 1 && dh <= -N.FARMS.rise),
+      `${g.name}: height (${pos})`);
+    const feat = N.feature(c);
+    check(feat.length >= 1 && feat.every((nm) => /gården$/.test(nm)) && !dupes(feat).length, `${g.name}: feature names (${feat})`);
+    check(feat.includes('Strandgården') === [0, 1, 2, 3, 4, 5].some((k) => st.w.water[st.w.nb[g.house * 6 + k]]), `${g.name}: the shore at the house`);
+  }
+  check(N.age({ ...ctx, fresh: true })[0] === 'Nygården', 'a farm built in play is the new farm');
+  const big = { fields: [1, 2, 3, 4, 5, 6, 7, 8, 9] }, small = { fields: [] }, mid = { fields: [1, 2] };
+  check(N.age({ f: big, farms: [big, small, mid] }).join() === 'Storgården,Gammelgården', 'the farm of most fields');
+  check(N.age({ f: small, farms: [big, small, mid] }).join() === 'Lillgården,Gammelgården' &&
+    N.age({ f: mid, farms: [big, small, mid] }).join() === 'Gammelgården',
+    'the farm of fewest fields, and one between');
+  // the order by weight: every culture's preference names every generator, and the first of six leads 6 times in 21
+  check(Culture.NAME_PREFS.farm.slice().sort().join() === Object.keys(N.FARM).sort().join(), 'the preference names every farm generator');
+  let lead = 0, last = 0; const prefs = Culture.NAME_PREFS.farm;
+  for (let k = 0; k < 2100; k++) { const o = N.farmOrder(prefs, N.tileRand(k, 7)); if (o[0] === prefs[0]) lead++; if (o[0] === prefs[5]) last++; }
+  check(lead > 520 && lead < 680 && last > 60 && last < 140, `of 2100 orders the first preference leads ${lead} (600) and the last ${last} (100)`);
+  // a village's farms mix the kinds: no village of 6 farms or more is named by one generator alone
+  const kindOf = (nm) => (compass[0] && /^(Norr|Söder|Öster|Väster)gården$/.test(nm) ? 'compass' : Object.values(POS).flat().includes(nm) ? 'position'
+    : /gården$/.test(nm) ? 'other' : 'landmark');
+  for (const u of st.villages) {
+    const nm = u.farmsteads.map((id) => st.farmsteads[id].name);
+    if (nm.length >= 6) check(new Set(nm.map(kindOf)).size >= 2, `${u.name}: farms of one kind of name (${nm})`);
+  }
+  out.push(`farms of ${v.name}: ${farms.map((g) => g.name).join(', ')}`);
 }
 // 3. Village names (VB-399): one function by the site, from a stream of the centre tile's own
 {

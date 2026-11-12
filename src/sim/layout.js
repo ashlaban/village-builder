@@ -2,7 +2,7 @@
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
-  const { farmName, villageName, tileRand, VILLAGE } = VB['sim/names'];
+  const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -241,43 +241,6 @@ VB['sim/layout'] = (() => {
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
   }
-  // The layout's stream is drawn as it was when village names came from it (VB-026: 11 first parts and 8 last, drawn again while
-  // taken), so every seed's villages stand where they stood: a village holds the drawn name while the villages are laid, and
-  // nameVillages and nameFarms replace it. A change of the name stock (sim/names) never comes here.
-  const DRAWN = [['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'], ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter']];
-  function drawnName(rand, villages) {
-    const taken = new Set(villages.map((v) => v.name)), draw = () => DRAWN[0][(rand() * 11) | 0] + DRAWN[1][(rand() * 8) | 0];
-    let name = draw(); for (let k = 0; k < 200 && taken.has(name); k++) name = draw();
-    return name;
-  }
-  // Village names at seeding (VB-399), when all are laid: each village of two farms or more by its site (sim/names), from a stream of
-  // its own by its centre tile. The largest (the lowest id among equals) is named first and, with VILLAGE.centre farms, as the map's
-  // old centre; a lone farm's village is named by nameFarms.
-  function nameVillages(w, villages) {
-    const many = villages.filter((v) => v.farmsteads.length >= 2), taken = new Set();
-    let big = null; for (const v of many) if (!big || v.farmsteads.length > big.farmsteads.length) big = v;
-    const centre = big && big.farmsteads.length >= VILLAGE.centre;
-    for (const v of villages) if (v.farmsteads.length < 2) v.name = '';
-    for (const v of big ? [big, ...many.filter((u) => u !== big)] : []) {
-      const order = centre && v === big ? ['central', 'site'] : ['site'];
-      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE.salt), order);
-      taken.add(v.name);
-    }
-  }
-  // Names at seeding (VB-026), before any culture exists, so by the generators every culture starts with (sim/names): the farms of a village
-  // of two or more by compass, then landmark; a lone farm (a one-farm village) by its surroundings, with a name no other village has, and
-  // its village takes that name, so the farm's map label is unique on the island.
-  function nameFarms(w, villages, farmsteads, rand) {
-    for (const f of farmsteads) {
-      const v = villages[f.village];
-      if (v.farmsteads.length >= 2) {
-        const taken = new Set(farmsteads.filter((g) => g !== f && g.village === f.village && g.name).map((g) => g.name));
-        f.name = farmName({ w, f, village: v, owner: null }, taken, rand);
-      } else { f.name = loneFarmName(w, f, rand, new Set(villages.filter((u) => u !== v).map((u) => u.name))); v.name = f.name; }
-    }
-  }
-  // The name of a lone farm (a one-farm village) by its surroundings within 2 steps (sim/names landmark), not one in `taken`.
-  const loneFarmName = (w, f, rand, taken = new Set()) => farmName({ w, f, village: null, owner: null }, taken, rand, ['landmark']);
   // Up to n wooded tiles within WOOD.reach walking steps of `from`, nearest first, none a house or field (`used`) or in `taken`.
   function woodNear(w, used, from, n, taken = null) {
     const out = [];
