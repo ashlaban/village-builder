@@ -90,7 +90,7 @@
   function foodDays(hh) {
     let need = 0;
     for (const m of hh.members) { const q = st.pawns[m]; if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child; }
-    const food = Math.max(0, hh.grain - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
+    const food = Math.max(0, Sim.grainOf(hh) - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
     return need > 0 ? Math.floor(food / need) : null;
   }
   // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug

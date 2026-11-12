@@ -4,14 +4,14 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot } = VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -118,18 +118,28 @@ VB['sim/jobs'] = (() => {
       takeDown('household', hh.id);
     }
     own = null;
-    for (const v of st.villages) if (review('village', v.id)) { ask(ASK.village, v, v); takeDown('village', v.id); }
+    // a village's review asks only the kinds of the routines its meeting chose this year (VB-257); the others post nothing
+    for (const v of st.villages) {
+      const plan = review('village', v.id);
+      if (!plan) continue;
+      VB.count.oppAsk += ASK.village.length;
+      for (let i = 0; i < ASK.village.length; i++) {
+        kind = ASK.village[i][0];
+        if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
+      }
+      takeDown('village', v.id);
+    }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
     for (const j of st.jobs.values()) if (islandJob(j)) j.live = false;
     ask(ASK.island, null, null);
     for (const j of st.jobs.values()) {
       if (islandJob(j)) sweep(st, j);
-      else if (KINDS[j.kind].project && j.farm && !onProject(j)) { j.live = false; sweep(st, j); }
+      else if (KINDS[j.kind].project && j.farm && !onProject(st, j)) { j.live = false; sweep(st, j); }
     }
   }
-  // A land project's task whose project still stands at its stage on its tile.
-  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // A land project's task whose project plan still stands at this step on its tile (sim/plans, projectOf).
+  const onProject = (st, j) => { const s = openOf(st, 'household', j.owner.id); return !!s && s.place === j.site && s.kind === j.kind; };
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
   // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
   // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household
@@ -166,10 +176,11 @@ VB['sim/jobs'] = (() => {
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
   const prioOf = (st, p, j) => (j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
-  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, not its work,
-  // or a poor fit for a job that has not waited long enough.
+  // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, younger than the
+  // kind's minAge (VB-136: herding from 8), not its work, or a poor fit for a job that has not waited long enough.
+  const tooYoung = (st, p, j) => (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
   function score(st, p, j, c) {
-    if (p.role === 'child' && age(st, p) < CHILD.from) return null;
+    if (tooYoung(st, p, j)) return null;
     const pr = prioOf(st, p, j);
     if (pr <= 0 || (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours)) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
@@ -218,7 +229,7 @@ VB['sim/jobs'] = (() => {
   function fit(st, p, j, c) {
     const pr = prioOf(st, p, j), row = { bid: null, reason: null };
     if (!isOpen(j)) row.reason = 'taken';
-    else if (pr <= 0 || (p.role === 'child' && age(st, p) < CHILD.from)) row.reason = 'not their work';
+    else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
     else if (pr <= MATCH.poorFit && st.t - j.posted < MATCH.poorFitWaitHours) {
       row.reason = `poor fit, waits until ${clockText(j.posted + MATCH.poorFitWaitHours)}`;
     } else {
@@ -280,9 +291,12 @@ VB['sim/jobs'] = (() => {
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
     VB.count.idleStroll++;
-    const mate = st.cenv ? companyFor(st, a) : null, go = (tile, x, y) =>
+    const bg = heldAt(a, 'background'), go = (tile, x, y) =>
       issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
-    if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
+    const mate = !bg && st.cenv ? companyFor(st, a) : null;
+    // a herder waits by its herds, within reach of the pasture (VB-136)
+    if (bg) { const [x, y] = workSpot(st, a, bg); go(bg.site, x + (rnd(st.rng.work) - 0.5) * 16, y + (rnd(st.rng.work) - 0.5) * 8); }
+    else if (mate) go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
     else {
       const p = st.pawns[a.id], f = st.farmsteads[st.households[p.household].farmstead];
       const v = st.villages[f.village], spot = v.green && rnd(st.rng.work) < 0.5 ? v.center : f.house;

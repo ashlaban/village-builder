@@ -24,12 +24,12 @@ VB['sim/records'] = (() => {
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
-    stake: 0, stakeLapsed: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
-    matchRefused: 0, offerLapsed: 0,
+    stake: 0, stakeLapsed: 0, projectDropped: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0,
+    hayRotted: 0, offered: 0, matchRefused: 0, offerLapsed: 0, meetingFailed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
-    wedding: GENERATION, funeralAle: GENERATION, noWood: GENERATION,
+    wedding: GENERATION, funeralAle: GENERATION, noWood: GENERATION, cattleInCrop: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
@@ -41,19 +41,18 @@ VB['sim/records'] = (() => {
   // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
   // once to fold it, never once a village; it touches st.record only, never the pawns.
   const FOLD_DAYS = 4;
-  function foldHistory(st, c) {
-    const F = st.recordFold, R = st.record;
-    if (!F.pass && c.doy === 0) {
-      const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
-        for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
-        return i;
-      };
-      const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
-      if (shortEnd > F.shortAt || longEnd > F.longAt) {
-        F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
-      }
-    }
-    const P = F.pass; if (!P) return;
+  // The year's start (sim/clock's CALENDAR) begins a pass, unless one is under way; foldHistory, daily, folds a slice of it.
+  function startFold(st) {
+    const F = st.recordFold, R = st.record; if (F.pass) return;
+    const start = Math.floor(st.t / YEAR) * YEAR, upTo = (i, limit) => {
+      for (; i < R.length; i++) { VB.count.recordFold++; if (typeof R[i] === 'object' && R[i].t >= limit) break; }
+      return i;
+    };
+    const shortEnd = upTo(F.shortAt, start - SHORT * YEAR), longEnd = upTo(F.longAt, start - GENERATION * YEAR);
+    if (shortEnd > F.shortAt || longEnd > F.longAt) F.pass = { shortEnd, longEnd, shortNext: F.shortAt, longNext: F.longAt, made: {} };
+  }
+  function foldHistory(st) {
+    const F = st.recordFold, R = st.record, P = F.pass; if (!P) return;
     const fold = (from, to, short) => {
       for (let i = from; i < to; i++) {
         const e = R[i]; VB.count.recordFold++;
@@ -167,10 +166,10 @@ VB['sim/records'] = (() => {
     return { rand, pickGiven: (sex) => take(sex === 'm' ? MALE : FEMALE, sex === 'm' ? usedM : usedF), pickFather: () => take(MALE, usedFather) };
   }
   function makeHousehold(R, id, f, members, holder) {
-    const hh = { id, farmstead: f.id, members: [...members], holder, grain: ECON.startGrain, meals: 0, wood: ECON.startWood, stone: 0,
+    const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, // clay, bogOre: loads dug (VB-359; sim/stores dug)
-      larder: [], fodderDay: -1, ale: [], poured: [],
+        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, // clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
+      larder: [], fresh: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
     f.household = id; f.line = holder; f.state = 'occupied'; noteLine(R, f);
@@ -390,7 +389,7 @@ VB['sim/records'] = (() => {
   return {
     scaleOf, tieOf, rebuildLiving, notePeopleCheck, takePeopleCheck, noteDeath, noteDissolved, person, marry, nameKit, makeHousehold,
       joinHousehold, leaveHousehold, clearMembers, setServant, personEvent, log,
-      record, HISTORY, foldHistory, lifeEvent, indexEvents,
+      record, HISTORY, startFold, foldHistory, lifeEvent, indexEvents,
       atHousehold, atFarm, age,
       birthYear, fullName, spouseOf,
       childrenOf, siblingsOf, kinship, kinDegree,

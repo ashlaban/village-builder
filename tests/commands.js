@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift'], calls = [];
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'setRoutines'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -136,11 +136,11 @@ const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isH
 const master = st3.households.find((h) => !h.dissolved && h.id !== servant.household);
 assert.strictEqual(issue(st3, { actor: servant.id, verb: 'serve', target: master.id, source: 'round' }), true);
 assert.strictEqual(servant.household, master.id); assert.strictEqual(servant.servant, true);
-const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(f));
+const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(st3, f));
 if (empty) {
   const claimant = st3.pawns.find((p) => p.died === null && p.age >= 18 && p.id !== groom.id && p.id !== bride.id);
   assert.strictEqual(issue(st3, { actor: claimant.id, verb: 'claim', target: empty.id, source: 'round' }), true);
-  assert.strictEqual(empty.claim.by, claimant.id);
+  assert.strictEqual(VB['sim/farmclaims'].claimOn(st3, empty).by, claimant.id);
   R3.push([{ actor: claimant.id, verb: 'claim', target: empty.id }, /cannot be claimed/]);
 }
 const before4 = snap3();
@@ -153,7 +153,7 @@ for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
 // leave: a settler founds a village on a site the round would choose
 const S3 = VB['sim/settle'], settler = st3.pawns.find((p) => p.died === null && p.age >= 18 && !Sim.isHolder(st3, p.id) && p.household !== null);
-st3.households[settler.household].grain += 2000; // a family that can spare the provisions
+st3.households[settler.household].grain.barley += 2000; // a family that can spare the provisions
 assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
 const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
 if (site3) {

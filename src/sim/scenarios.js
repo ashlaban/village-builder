@@ -2,10 +2,10 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, buildHours } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
@@ -33,7 +33,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed }; // by crop (VB-347)
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
@@ -71,7 +71,7 @@ VB['sim/scenarios'] = (() => {
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
@@ -174,25 +174,26 @@ VB['sim/scenarios'] = (() => {
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties, tieT, homeHours; rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
-    // @state st.households[]: {id, farmstead, members[], holder, grain (rations), meals (rations of cooked food, ready to eat; sim/hunger),
+    // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
     //   sim/heirs) and ward (the minor's id),
-    //   wood (loads), stone (loads),
+    //   wood (loads), stone (loads), rack (rations of fish waiting by the drying rack; sim/stores) and boat (null or the household's fishing
+    //   boat; sim/drying; VB-300),
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
     //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
-    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter' (rules FOODS), n (rations), until}: stored food lots;
-    //   sim/hunger), fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
+    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
+    //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
+    //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
     //   tarredUntil, emptySince}
-    //   house is a tile index; project {tile, stage 'clear'|'break'|'meadow', hours} or null (the field or meadow in the making, its tile
-    //   staked by the household until it is made; sim/fields, sim/meadows, sim/stakes); claim (an empty farm being restored by its claimant;
-    //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
+    //   house is a tile index (the field or meadow in the making is its household's project plan, st.plans.projects, and an empty farm's
+    //   restoration its claimant's; VB-123); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
     //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
+    //   fields[] {id, tile, crop (key of CROPS), stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
@@ -201,7 +202,7 @@ VB['sim/scenarios'] = (() => {
     //   or null: settlers live in a booth until their cottage is built (sim/settle, sim/expansion, sim/building)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
-    //   grain: the village store, in rations (sim/help); green, well: booleans; a one-farm village has neither
+    //   grain: the village store, {crop: rations} (sim/help); green, well: booleans; a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage), wood (loads: its felled trees and the timber carried to it, less the walls'; VB-328),
@@ -240,6 +241,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js), plain data;
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
+    // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     const st = {
       t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
@@ -259,6 +261,7 @@ VB['sim/scenarios'] = (() => {
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
+    buildHours(st); // VB-286: the walking hours between the villages' greens
     for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order

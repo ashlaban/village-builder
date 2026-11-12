@@ -56,7 +56,7 @@ function seedVillage(w, seed, farms) {
   const R = { rand, pawns: [], unions: [], ...VB['sim/records'].nameKit(rand) };
   const st = VB['sim/scenarios'].makeState(w, S, R, populousHouseholds(R, farmsteads, sizes), farmsteads, villages, used, 'populous');
   VB['sim/society'].initCulture(st, null); VB['sim/heirs'].countDemand(st);
-  for (const hh of st.households) hh.grain = 400; // enough for the years of a shot; nobody's balance is judged here
+  for (const hh of st.households) hh.grain = { barley: 400 }; // enough for the years of a shot; nobody's balance is judged here
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st);
   VB['sim/territory'].seedOutland(st, true);
   splitStreams(st, seed);

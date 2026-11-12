@@ -15,7 +15,7 @@ const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e ==
 // Populous tiny at seed 51, natural deaths off, every household given the means to marry; `before(st)` runs before the round (to play a pawn).
 function scene(before = () => {}) {
   const st = Sim.seed(world(51), 51, 'populous'); st.naturalDeaths = false;
-  for (const h of st.households) h.grain += 5000;
+  for (const h of st.households) h.grain.barley += 5000;
   before(st);
   const mark = st.record.length;
   roll(st, () => Sim.movingRound(st));
@@ -142,7 +142,7 @@ const offered = () => {
 // 9. A skip stops on an offer that waits for the played pawn's answer, but not on one open when it began.
 {
   const st = Sim.seed(world(51), 51, 'populous'); st.naturalDeaths = false;
-  for (const h of st.households) h.grain += 5000;
+  for (const h of st.households) h.grain.barley += 5000;
   Sim.inhabit(st, man);
   const from = Sim.skipFrom(st);
   assert.strictEqual(from.offer, st.offerSeq);

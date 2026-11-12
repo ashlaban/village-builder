@@ -13,8 +13,9 @@ VB['sim/lifecycle'] = (() => {
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
-      holdingOf, atHousehold, lifeEvent, spokesmanOf,
+      holdingOf, atHousehold, lifeEvent, spokesmanOf, membersOf, voiceOf,
   } = VB['sim/records'];
+  const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor, roundHeirs,
@@ -28,7 +29,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
-  const { fadeRelations, forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
+  const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id]; if (!p.alive) return;
@@ -68,6 +69,8 @@ VB['sim/lifecycle'] = (() => {
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
     }
     const c = cal(st.t), out = [];
+    const held = new Map(); // each village's meeting on its green today (sim/occasions)
+    for (const o of st.occasions) if (o.kind === 'meeting' && o.start <= st.t && st.t < o.end) held.set(o.village, o);
     for (const s of env.settlements) {
       const ch = Culture.meeting(env, hk, s);
       for (const x of ch) {
@@ -75,6 +78,8 @@ VB['sim/lifecycle'] = (() => {
           txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
         log(st, txt, { kind: 'custom', village: s.id }); out.push({ year: c.year, text: txt });
       }
+      const txt = routinesMeeting(st, s, held.get(s.id));
+      if (txt) out.push({ year: c.year, text: txt });
     }
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
@@ -86,6 +91,31 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.unshift(...out.length ? out : [{ year: c.year, text: 'The meetings changed nothing this year.' }]);
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
+  }
+  // The village's routines for the year (VB-257; design.md section 7, Village routines), at its meeting: with a quorum, at least half of
+  // those with a voice come to the green (the meeting's occasion, sim/occasions), the meeting chooses from the village work available
+  // (sim/plans) and sets them by its verb; without one, or when the choice is tied, it does not decide, and its culture's practice says
+  // what follows: no village work this year ('nothing') or last year's again ('asLastYear'), told in the log as a notable event of the
+  // village. A village with no one living holds no meeting, and its routines stand. Returns the log's line of a failure, or null.
+  const QUORUM = 0.5;
+  function routinesMeeting(st, s, o) {
+    const v = st.villages[s.id], people = membersOf(st, s.id);
+    if (!v || !people.length) return null;
+    let voices = 0, came = 0;
+    for (const p of people) if (voiceOf(st, p, s) > 0) voices++;
+    if (o) for (const id of o.come) if (st.pawns[id].alive && st.agents[id].occasion === o.id) came++;
+    const quorum = voices > 0 && came >= voices * QUORUM, list = quorum ? chooseRoutines(st, v) : null;
+    if (list) { issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: list, by: 'meeting' }, source: 'meeting' }); return null; }
+    const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'), plan = st.plans.villages.get(s.id);
+    const kept = by === 'asLastYear' ? plan.routines : [];
+    issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
+    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum (${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there)`;
+    const work = kept.map((k) => VILLAGE_ROUTINES[k].label.toLowerCase()).join(', ');
+    const then = by === 'asLastYear' ? (kept.length ? `the village keeps last year's work: ${work}` : 'the village keeps last year\'s work, which was none')
+      : v.fence.length ? 'no village work this year, and the village fence goes unmended' : 'no village work this year';
+    const txt = `The ${s.name} meeting ${why} and did not decide: ${then}.`;
+    log(st, txt, { kind: 'meetingFailed', village: s.id, n: came, of: voices });
+    return txt;
   }
   function holdMeetings(st) { for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n); } // not the land meeting
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
@@ -326,36 +356,35 @@ VB['sim/lifecycle'] = (() => {
       closeOffer(st, st.offers[0]);
     }
   }
-  function dailyLife(st, c) {
-    const env = st.cenv;
+  function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     for (const id of st.living) { const p = st.pawns[id]; p.age = age(st, p); }
     comeOfAge(st);
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
-    if (c.sday === 0) fadeRelations(st);
-    if (st.naturalDeaths) {
-      VB.count.walkDaily += st.living.length;
-      // Death splices the live index; visit the original ids once, in the original order.
-      for (const id of st.living.slice()) {
-        const p = st.pawns[id];
-        if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
-      }
+  }
+  // The day's death rolls, after the season's fading of relations (sim/clock, CALENDAR: dailyDeaths, while st.naturalDeaths).
+  function dailyDeaths(st) {
+    VB.count.walkDaily += st.living.length;
+    // Death splices the live index; visit the original ids once, in the original order.
+    for (const id of st.living.slice()) {
+      const p = st.pawns[id];
+      if (p.alive) { const cause = deathRoll(st, p); if (cause) killPawn(st, p.id, cause); }
     }
   }
   // The day's drift of attitudes (VB-201) runs over the night's 6-minute steps after midnight, a settlement a step (Rules for cost, 5):
   // settlement k of the culture on step 1 + k % NIGHT_STEPS of the day, the living of no settlement on step 1. Nothing is saved: the step of
   // the day says what is due, so a run loaded between two steps does the rest.
   const NIGHT_STEPS = 40;
+  // Called on steps 1 to NIGHT_STEPS of the day only (sim/clock, CALENDAR: nightCulture).
   function nightCulture(st, step) {
-    if (step < 1 || step > NIGHT_STEPS) return;
     const env = st.cenv, hk = hooks(st), rand = drawer(st.rng.culture);
     env.t = st.t / YEAR; env.driftMul = st.driftMul;
     if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
-    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, nightCulture,
-    NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
+    killPawn, retireHolder, holdMeetings, meetingStage, routinesMeeting, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife,
+    dailyDeaths, nightCulture, NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();

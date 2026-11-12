@@ -2,7 +2,7 @@
 // player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, YEAR_DAYS, HUNGER } = VB['sim/rules'];
-  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved } = VB['sim/stores'];
+  const { dailyNeed, larderOf } = VB['sim/hunger'], { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
   const { roundHeirs, heirFor } = VB['sim/heirs'];
   const { opinionOf } = VB['sim/relations'];
@@ -59,7 +59,7 @@ VB['sim/matching'] = (() => {
     };
     const affords = (h) => {
       if (!means.has(h)) {
-        const hh = st.households[h], store = hh.grain + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+        const hh = st.households[h], store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
         const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
         means.set(h, grown < 2 || store - reserved(st, hh, 'grain') >= MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult));
       }

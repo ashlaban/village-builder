@@ -22,7 +22,7 @@ const starve = (p, age, days) => { // hunger 1 every day; the day on which the p
   p.health = 50; p.hunger = 0; updateHealth(st, p, true); assert.strictEqual(p.health, 53, 'a full meal restores 3');
   p.health = 99; updateHealth(st, p, true); assert.strictEqual(p.health, 100, 'health stops at 100');
   // meals feed it: a fed household restores health
-  const hh = st.households[0], q = st.pawns[hh.members[0]]; q.health = 60; q.hunger = 0; q.hungerLog = []; hh.grain = 1e6;
+  const hh = st.households[0], q = st.pawns[hh.members[0]]; q.health = 60; q.hunger = 0; q.hungerLog = []; hh.grain = { barley: 1e6 };
   feedHousehold(st, hh); assert.strictEqual(q.health, 63, 'a full meal at the table restores 3');
 }
 // risk: below 50 the hazard is multiplied by 1 + (50 - health) / 25
@@ -43,7 +43,7 @@ for (const health of [100, 50, 0]) {
 }
 // a starving household dies of starvation within a season
 {
-  const st = fresh(), hh = st.households[0], ids = hh.members.filter((m) => st.pawns[m].alive); hh.grain = 0;
+  const st = fresh(), hh = st.households[0], ids = hh.members.filter((m) => st.pawns[m].alive); hh.grain = { barley: 0 };
   for (const f of st.farmsteads[hh.farmstead].fields) f.stage = 'growing';
   for (let d = 0; d < 36; d++) { moveClock(st, 24); if (!hh.dissolved) feedHousehold(st, hh); for (const m of ids) if (st.pawns[m].alive && deathRoll(st, st.pawns[m])) Sim.killPawn(st, m, 'starvation'); }
   assert(ids.every((m) => !st.pawns[m].alive), 'nobody survives 36 days without food');

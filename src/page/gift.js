@@ -11,7 +11,7 @@
   };
   // The household the played pawn gives for, or null: the one it holds.
   const givesFor = (id) => (st.player && st.player.pawn === id && st.pawns[id].died === null ? Sim.holdingOf(st, id) : null);
-  const giftMax = (hh) => Math.max(0, Math.floor(hh.grain - Sim.seedReserve(st, hh)));
+  const giftMax = (hh) => Math.max(0, Math.floor(Sim.grainOf(hh) - Sim.seedReserve(st, hh)));
   // whom it may give to from the list: its kin's households, then the others of its village
   function giftChoices(hh) {
     const f = st.farmsteads[hh.farmstead], kin = Sim.kinHouseholds(st, hh);

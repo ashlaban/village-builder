@@ -1,5 +1,6 @@
 // @sys sim/stakes: a household's stake on the tile of its new field or meadow (VB-158): staked when the project starts, renewed by its work,
-// the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom
+// the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom;
+// a stake lost is told to the project plans (sim/projects) by the event rightLost
 VB['sim/stakes'] = (() => {
   const { CLAIMS } = VB['sim/rules'];
   const CL = VB['sim/claims'];
@@ -44,27 +45,27 @@ VB['sim/stakes'] = (() => {
     const loser = st.households[old.by.id], lf = st.farmsteads[loser.farmstead];
     CL.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
-    if (lf.project && lf.project.tile === tile) lf.project = null; // its job is dropped at the next posting (sim/jobs)
+    // the loser's project on the tile is reviewed at once and dropped (sim/projects; told below); its job goes at the next posting (sim/jobs)
+    emit(st, 'rightLost', { type: 'household', id: loser.id, tile, told: true });
     if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
     log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
       kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
     return true;
   }
-  // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project, and the log tells it.
+  // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project on the tile (sim/projects
+  // reviews it at once), and the log tells it.
   function lapsedStakes(st, dropped) {
     for (const [tile, c] of dropped) {
       if (c.by.type !== 'household' || !STAKE.has(c.why)) continue;
       const f = st.farmsteads[st.households[c.by.id].farmstead];
-      if (!f.project || f.project.tile !== tile) continue;
-      f.project = null;
-      log(st, `${f.name} gives up its stake: the new ${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, {
-        kind: 'stakeLapsed', ...atFarm(f) });
+      emit(st, 'rightLost', { type: 'household', id: c.by.id, tile, text: `${f.name} gives up its stake: the new `
+        + `${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, at: { kind: 'stakeLapsed', ...atFarm(f) } });
     }
   }
-  // A household that dissolves drops its stakes, and every other claim it holds; its farm's project ends.
+  // A household that dissolves drops its stakes, and every other claim it holds; its projects end with it (sim/plans drops them first).
   function dropStakes(st, hh) {
     CL.dropAllOf(st, HH(hh.id));
-    st.farmsteads[hh.farmstead].project = null;
+    emit(st, 'rightLost', { type: 'household', id: hh.id, tile: -1, told: true });
   }
   return { STAKE, stake, realiseStake, contestable, contest, lapsedStakes, dropStakes };
 })();
