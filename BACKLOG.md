@@ -23,6 +23,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-327](backlog/VB-327.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-348](backlog/VB-348.md) | Winter rye and fallow: sown in autumn, standing the winter, reaped in summer | crops | 2 | M | The field cycle carries a crop sown in autumn and reaped the next summer, and a fallow course tilled once in summer that restores soil. Nothing chooses them yet. |
 | [VB-388](backlog/VB-388.md) | A catch that cannot be eaten is dried, and the seed a short household eats is cooked | year | 2 | M | Fishing for the pot waits while fresh fish covers two days, the surplus catch goes to the rack, and the cook cooks the seed a short household would eat. |
+| [VB-389](backlog/VB-389.md) | The fields a household wants are counted net of seed | animals | 2 | S | fieldsWanted counts the yield after seed, so a household plans for its need and not 0.73 of it. |
+| [VB-390](backlog/VB-390.md) | A new household with a meadow wants a cow | animals | 2 | M | A new household of two or more hands with a meadow wants a cow in its standing plan, from kin's herd at a marriage or by a deal. |
+| [VB-391](backlog/VB-391.md) | An ask for help that brings nothing is not the season's ask | - | 2 | S | A household whose seasonal ask brings nothing at all may ask again on a later day. |
 | [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
@@ -52,6 +55,11 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-360](backlog/VB-360.md) | Skills: learnt by doing, faster with aptitude, fading unused | mill | 3 | M | A skill a craft and pawn from 0 to 1: a novice works at 60% and a master at 130%; halfway in 400 hours; a tenth lost a year unused, read in closed form. |
 | [VB-361](backlog/VB-361.md) | Facilities: a registry of built things, raised in stages | mill | 3 | M | st.facilities holds built things on sites with an owner, a kind, a condition and building stages that are plan steps; the bloomery, the loom's house, kilns and mills use it. |
 | [VB-367](backlog/VB-367.md) | Peat: cut in summer and burnt in place of wood | mill | 3 | S | A household short of wood near a peat bog cuts peat in summer; dried, two loads burn as one of wood. |
+| [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
+| [VB-392](backlog/VB-392.md) | The player's wish to settle new land | life | 3 | S | A fourth wish, settle: true passes the round's draw to lead or follow a party, false never does. |
+| [VB-393](backlog/VB-393.md) | A boat is built only by a household with a surplus and two free hands | fair | 3 | S | Until boats are a holder's project (VB-255) kept with tar (VB-301), only a household with a surplus and two free hands builds one. |
+| [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
+| [VB-395](backlog/VB-395.md) | Refactor: the pawn's vital fields are written by sim/records | ownership | 3 | S | pawn.alive and pawn.age get one writer, sim/records, called by lifecycle and births. |
 
 ## Waiting for Kim
 
@@ -59,7 +67,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
 
 ## Blocked
 

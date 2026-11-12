@@ -8,7 +8,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   3 November point there). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
 - `BACKLOG.md`: open tasks, one file each in `backlog/`, done ones in `BACKLOG_ARCHIVE.md`; its last section, "How this backlog works",
   holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
-- `QUESTIONS.md`: open design questions for Kim, answered ones in `QUESTION_ARCHIVE.md`; read, answer and move them with `tools/questions.js`.
+- `QUESTIONS.md`: the questions only Kim can answer (Deciding without Kim), answered ones in `QUESTION_ARCHIVE.md`; read, answer and move
+  them with `tools/questions.js`. `docs/tuning.md`: the parameters and measured shortfalls that wait for a tuning run Kim starts.
 - `docs/roadmap.md`: the order of work (vertical slices, each an arch of the backlog), the late-game budget and cheap measurement.
 - `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
@@ -37,7 +38,7 @@ Otherwise decide by these, write the decision and its reason in the task file, a
    held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
 3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. Agents do not tune:
    tuning is a run over many parameters, for gameplay balance, that Kim starts. A measurement that shows a shortfall is reported and
-   left for that run. Two exceptions: a formula that computes something other than it says is a fix, reported before and after; and a
+   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix, reported before and after; and a
    collapse may be tuned away.
 4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
 5. **Customs** are grounded in history, with defaults leaning to gameplay. Add them freely; Kim will later review them for a smaller set.
