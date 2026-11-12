@@ -9,6 +9,10 @@ VB['gen/paths'] = (() => {
   // rim where the turf breaks, the bare earth, and on paths and lanes a paler middle where the ground is packed hardest.
   const LOOK = {
     ways: 2, // the worn neighbours a tile's way keeps to (keeps, below)
+    // trampled ground: how wide its earth is drawn, in tile radii; how far a layer's unit lies outside it; how far it reaches towards
+    // the end of a way that comes to it, as a share of the way there
+    ground: 1.05, rim: 7, reach: 0.45,
+    groundLayers: ['rgba(150,142,80,0.20)', 'rgba(104,90,54,0.16)', 'rgba(188,164,118,0.60)', null], // its verge, rim and earth
     from: 2, // the stage from which a way is drawn: 2, a path (PATHS.at[2] crossings, about four a day kept up)
     width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
@@ -88,16 +92,30 @@ VB['gen/paths'] = (() => {
   }
   // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
   const DOOR = 0.7;
+  // Trampled ground (Kim, VB-396): between the houses of a village everyone walks every way, and the tiles there are worn side by side,
+  // a net of ways if each is drawn. Such a tile is drawn as bare earth instead, as a village's yard was: a trail tile on open land
+  // beside a house or the green, with two trail tiles beside it that touch each other (worn in a patch, not in a line).
+  function trampled(w, i) {
+    if (!trail(w, i) || w.dev[i]) return false;
+    let yard = false, patch = false;
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[i * 6 + k];
+      if (j < 0) continue;
+      if (w.dev[j] > 1) yard = true;
+      else if (trail(w, j) && trail(w, w.nb[i * 6 + ((k + 1) % 6)])) patch = true;
+    }
+    return yard && patch;
+  }
   // The directions (0..5) in which tile i's trail leaves it: to each linked trail neighbour and worn ford; and, when that makes it a
   // dead end, on into the unworn field or meadow that lies straightest ahead, since that is where the way was going. A lone worn tile
   // between such tiles joins the two most opposite. So a way along a row of fields does not send a spur into each. A house is
   // reached only by its door.
   function exits(w, i) {
-    const out = [], built = [];
+    const out = [], built = [], yard = trampled(w, i);
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
       if (j < 0 || w.water[j]) continue;
-      if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
+      if (trail(w, j)) { if (yard || trampled(w, j) || linked(w, i, j, k)) out.push(k); } // every way beside trampled ground runs onto it
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
       else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
       else if (w.dev[j] === 3) { if (door(w, j) === i) out.push(k); } // a house whose door this is: a way ends there
@@ -137,15 +155,34 @@ VB['gen/paths'] = (() => {
           continue;
         }
         if (!trail(w, j) || !exits(w, j).includes((k + 3) % 6)) continue;
-        const [jx, jy] = bend(w, j);
+        const [jx, jy] = trampled(w, j) ? [w.hx[j], w.hy[j]] : bend(w, j);
         end((jx + w.hx[i]) / 2, (jy + w.hy[i]) / 2, LOOK.width[w.worn[j]], w.worn[j]);
       }
       // every way onto the green runs to the open ground by the well, where they meet: one place, not a mesh of crossings
       return ends.map(([x, y, wd, st]) => [x, y, (x + bx) / 2, (y + by) / 2, bx, by, wd, st]);
     } else for (const k of exits(w, i)) {
-      const j = w.nb[i * 6 + k], t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]];
+      const j = w.nb[i * 6 + k], t = trail(w, j), [jx, jy] = t && !trampled(w, j) ? bend(w, j) : [w.hx[j], w.hy[j]];
       if (w.dev[j] === 3) end(bx + (jx - bx) * DOOR, by + (jy - by) * DOOR, LOOK.width[s] * 0.8, s); // the way to a house's door, a little narrower
       else end((bx + jx) / 2, (by + jy) / 2, t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], t ? Math.min(s, w.worn[j]) : s);
+    }
+    if (trampled(w, i)) {
+      // bare earth about the tile's middle, reaching to each trampled tile beside it so that the patch is one ground (a ninth number
+      // marks it for the painter), all of it one width and painted as a path's earth, so that it is one stroke with no seams; no way
+      // is drawn on it, and the houses beside it open onto it
+      const cx = w.hx[i], cy = w.hy[i], wide = LOOK.ground * w.R, out = [[cx - 1, cy, cx, cy, cx + 1, cy, wide, LOOK.from, 1]];
+      for (const k of exits(w, i)) {
+        const j = w.nb[i * 6 + k];
+        if (!trampled(w, j)) continue;
+        const mx = (cx + w.hx[j]) / 2, my = (cy + w.hy[j]) / 2;
+        out.push([cx, cy, (cx + mx) / 2, (cy + my) / 2, mx, my, wide, LOOK.from, 1]);
+      }
+      for (const k of exits(w, i)) { // towards a way that comes to it, the ground reaches out to meet the way's end
+        const j = w.nb[i * 6 + k];
+        if (!trail(w, j) || trampled(w, j)) continue;
+        const [jx, jy] = bend(w, j), ex = cx + ((cx + jx) / 2 - cx) * LOOK.reach, ey = cy + ((cy + jy) / 2 - cy) * LOOK.reach;
+        out.push([cx, cy, (cx + ex) / 2, (cy + ey) / 2, ex, ey, wide, LOOK.from, 1]);
+      }
+      return out;
     }
     if (!ends.length) return [[bx - 2, by, bx, by + 1, bx + 2, by, LOOK.width[s] * 0.8, s]];
     if (ends.length === 1) {
@@ -191,19 +228,26 @@ VB['gen/paths'] = (() => {
   function paint(ctx, segs, sc) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
-    for (const [k, colours] of LOOK.layers) for (let s = 1; s <= 3; s++) {
-      if (!colours[s]) continue;
-      ctx.strokeStyle = colours[s];
-      // one path a layer and stage for each width, so curves that meet or cross blend as one stroke, with no darker overlaps
-      const byWidth = new Map();
-      for (const g of segs) if (g[7] === s) { if (!byWidth.has(g[6])) byWidth.set(g[6], []); byWidth.get(g[6]).push(g); }
-      for (const [wd, gs] of byWidth) {
-        ctx.lineWidth = Math.max(minW, wd * k);
-        ctx.beginPath();
-        for (const g of gs) { ctx.moveTo(g[0], g[1]); ctx.quadraticCurveTo(g[2], g[3], g[4], g[5]); }
-        ctx.stroke();
+    const stroke = (gs, wd) => {
+      ctx.lineWidth = Math.max(minW, wd);
+      ctx.beginPath();
+      for (const g of gs) { ctx.moveTo(g[0], g[1]); ctx.quadraticCurveTo(g[2], g[3], g[4], g[5]); }
+      ctx.stroke();
+    };
+    const ground = segs.filter((g) => g[8]);
+    LOOK.layers.forEach(([k, colours], n) => {
+      // trampled ground (a ninth number): one stroke a layer, as wide as it is, its verge and rim a little outside it, in its own
+      // paler colours, and with no packed middle; under the ways of the same layer, which run into it
+      if (ground.length && LOOK.groundLayers[n]) { ctx.strokeStyle = LOOK.groundLayers[n]; stroke(ground, ground[0][6] + (k - 1) * LOOK.rim); }
+      for (let s = 1; s <= 3; s++) {
+        if (!colours[s]) continue;
+        ctx.strokeStyle = colours[s];
+        // one path a layer and stage for each width, so curves that meet or cross blend as one stroke, with no darker overlaps
+        const byWidth = new Map();
+        for (const g of segs) if (g[7] === s && !g[8]) { if (!byWidth.has(g[6])) byWidth.set(g[6], []); byWidth.get(g[6]).push(g); }
+        for (const [wd, gs] of byWidth) stroke(gs, wd * k);
       }
-    }
+    });
   }
   // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
   function drawChunk(w, ctx, lv, cx, cy, l) {
@@ -269,5 +313,5 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, door, exits, segments, drawChunk, drawOver, thin };
+  return { LOOK, bend, door, trampled, exits, segments, drawChunk, drawOver, thin };
 })();
