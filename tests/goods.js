@@ -45,7 +45,9 @@ const st = Sim.seed(r.value, 3, 'founders');
 assert(!JSON.stringify(Sim.save(st)).includes('dried fish'), 'nothing of the goods in saved state');
 assert.throws(() => Stores.declareGood({ id: 'cloth' }), /load time/, 'goods close with the rules registry');
 checks += 2;
-const hh = st.households.find((h) => !h.dissolved && h.holder !== null);
+// a household whose pot lacks a source below more than a sack of it (10 rations): the fifth of its need to the harvest (the first
+// household at this seed is too small for that since the villages were laid out anew, VB-396)
+const hh = st.households.find((h) => !h.dissolved && h.holder !== null && NEED.lackingShare * toHarvest(st.t) * dailyNeed(st, h) > 10);
 const need = dailyNeed(st, hh), days = toHarvest(st.t), buffer = st.pawns[hh.holder].buffer;
 const reach = Stores.reserved(st, hh, 'grain') + (days + buffer) * need, ample = Math.max(reach, 2 * YEAR_DAYS * need);
 hh.larder = [{ kind: 'meat', n: 1e-9, until: st.t + DAY }]; // no butter, salt meat or dried fish: those sources the pot lacks

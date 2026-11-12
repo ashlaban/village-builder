@@ -81,7 +81,9 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   assert.strictEqual(H.staysWhy(st, st.pawns[id]), 'its player wishes it to stay');
   H.countDemand(st);
   assert.ok(!st.demand.includes(id), 'wished to stay, it is left out of st.demand');
-  assert.ok(ask(st, id).every((o) => /wishes it to stay/.test(o.why)), 'and every act of the round says so');
+  // the wish for a match is another wish (VB-274): one old enough to marry is offered it whatever it wishes about moving out
+  assert.ok(ask(st, id).every((o) => o.verb === 'match' || /wishes it to stay/.test(o.why)), 'and every act of the round about moving says so');
+  assert.deepStrictEqual([...new Set(ask(st, id).map((o) => o.verb))].filter((v) => v !== 'match').sort(), ['claim', 'leave', 'serve']);
   assert.strictEqual(ask(st, id).find((o) => o.verb === 'leave').own, null, 'though the pawn itself would move out');
   assert.ok(!FC.claimants(st, empty).includes(id) && FC.claimants(st, empty, [id]).length === 1, 'no claimant, though the rules would let it claim');
   Sim.movingRound(st);

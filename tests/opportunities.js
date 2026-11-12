@@ -54,8 +54,9 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
 
 // ---- asking changes nothing and draws nothing; the acts of its own, a cause, and the round's ----
 {
-  // four farms: household 2 has grown children; household 3's holder is left alone; household 1 dies out and its farm stands empty
-  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 4 });
+  // four farms (seed 5: at seed 4 no household has a grown, unmarried child since the villages were laid out anew, VB-396): household 2
+  // has grown children; household 3's holder is left alone; household 1 dies out and its farm stands empty
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 5 });
   const empty = st.farmsteads[st.households[1].farmstead], lone = st.households[3];
   H.extinct(st, st.households[1]);
   for (const id of [...lone.members]) if (id !== lone.holder) Sim.killPawn(st, id, 'illness');
