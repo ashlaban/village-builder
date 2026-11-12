@@ -859,10 +859,160 @@ nothing. Proposed: declare them as signals, which any module may set, and leave 
 
 - **Interfaces for every subsystem** (prompt, deliverable 4): only the boundaries Kim chooses get operations, as above (the review,
   "Not taken").
-- **The stress tests** (`stress-tests.md`): the wrap-up of the `ownership` arch reviews them against the code once the first
-  boundaries are in.
+- **The stress tests** (`stress-tests.md`): reviewed against the code in section 11 (VB-180, 12 November); the map's rerun is section 10.
 - **Reads.** Reads stay free (`docs/review-architecture.md`, section 2, point 1). The readers column is here so a refactor knows whom a
   change of representation touches, not so reads get an owner.
+
+## 10. The map rerun (VB-180, 12 November 2026)
+
+Rerun with `node tools/writes.js --json` on `main` at VB-337; every number below is from that output unless it says otherwise. Sections 1 to 9
+stay the survey as it was on 3 to 6 November. The "before" column is section 1 (VB-172's map). The two do not count the same population: the
+simulation has since gained modules (plans, dig, occasions, exchange, building, eligibility, matching, opportunities, prospect, events) and their
+state, so the fields written rose while the unowned share fell.
+
+| Measure | Before (VB-172) | 6 Nov (6eaa6bc, from the task's notes) | Now |
+| --- | --- | --- | --- |
+| Fields written in play or at seeding | 174 | 177 | 231 |
+| Fields written by two or more modules | 71 | 42 outside the owners table | 52 in all: 38 outside the table (189 write sites), 14 inside it |
+| Write sites on the state | 618 | not recorded | 777 |
+| Writes the scan could not place | 5 | not recorded | 0 |
+| Fields in `src/owners.json` | 0 | 36 | 76 (70 written in play; 6 page signals with 43 write sites) |
+| Ownership baseline (`tests/ownership-baseline.json`) | 124 sites at VB-178's start | 91 after VB-178 | 7 sites, one field |
+| Cycle witnesses (all through `commands`) | 4 | 14 | 19 |
+| Modules in the one strongly connected component | not counted | 24 | 22 |
+| Upward calls by layer (`tools/dependencies.js`) | not counted | 25 of 442 (VB-230) | 20 of 500 |
+
+- **What fell** (from sections 1 to 4 and the VB-17x notes, not re-measured): three copies of household founding became
+  `membership.foundHousehold`; household membership and service have one writer, `sim/records`; grain, rations, sheaves, stakes, ledgers, wood, stone,
+  clay and bog ore are written only by `sim/stores`; ties and culture fields have one writer each; 29 crop writes left the baseline; the clock's
+  rules became `CALENDAR` entries naming their owners (VB-241); unplaced writes fell from 5 to 0. The simulation grew (the task's note counts
+  VB-174 to VB-179 at +211 lines in all); the gain is one writer for a field, not fewer lines.
+- **The baseline is not empty.** The 7 sites are `sim/heirs` `refreshRoles` writing `pawn.role`, a cache owned by `sim/records`
+  (`src/sim/heirs.js`, `refreshRoles`). The fix is small: move the loop into `sim/records` as the cache's rebuild (a follow-up task, in the PR note).
+- **Writes outside an owner that the check does not count**, from the scan: creation modules writing what they seed (`sim/layout` and
+  `sim/scenarios` on `farmstead.fields`, `village.wood`, `household.grain`, `pawn.events`), the save codec (`household.totals`,
+  `village.totals`), and four `lint-allow: owner` lines: `src/sim/fish.js:27` (`w.lakeSize`) and three in `src/sim/plans.js` (243, 249, 264:
+  `plan.reserved`, `plan.reasons`, `plan.dirty`, whose owner is `sim/stores`). The plans lines are the one place an owner's field is written by another
+  module on purpose; whether `sim/plans` should own them is not decided here.
+- **Cycles.** The one strongly connected component has 22 modules (relations, exchange, help, expansion, farmclaims, building, kinds, agents,
+  commands, occasions, plans, jobs, heirs, matching, membership, service, cottage, society, settle, lifecycle, births, clock). Every one of the 19
+  witnesses passes through `commands`: the dispatcher's lookups (`commands.js` lines 86, 90, 114, 121, 122, 128, 134, 146, 155, 172, 179, 182, 188,
+  190, 228) and `issue` called from relations, help, expansion and farmclaims. VB-228 (each domain registers its own verbs) is the task that
+  would remove the dispatcher; the witnesses fall with it (not measured).
+
+### 10.1 Fields still written by two or more modules and not in the table
+
+`sim/layout` and `sim/scenarios` are creation modules: a field listed with only them and one other module is nearly single-writer in play.
+
+| Group | Fields (writers, with sites where more than one) | Boundary |
+| --- | --- | --- |
+| Land use | `w.dev` (layout 3, fields, meadows, expansion), `w.stones` (layout, fields, meadows, expansion, building), `st.used` (layout 9, fields, meadows, expansion), `w.trees` (forest 3, expansion), `st.regrow` (forest 3, expansion) | 7.8 |
+| Farm occupancy | `farmstead.household` (records, heirs, scenarios), `farmstead.state` (records, heirs, scenarios, clock), `farmstead.condition` (farmclaims, building, kinds, heirs, scenarios, clock), `farmstead.condAt` (farmclaims, building, kinds), `farmstead.emptySince` (farmclaims, heirs, scenarios), `farmstead.line` (records, heirs 2, scenarios 4) | 7.7 |
+| Projects and plots | `farmstead.project` (stakes 3, fields 4, meadows 2, settle), `farmstead.meadows` (meadows 12, kinds), `village.plots` (expansion 12, building, agents, cottage 3, scenarios), `village.crowded` (settle 2, scenarios) | new |
+| Stores not yet moved | `household.hay` (herds 5, meadows, byre 3), `household.larder` (hunger 2, byre 2), `household.manure` (fields, byre 2) | 7.6 |
+| Herds and jobs | `herd.head` (herds 10, byre), `herd.cull` (herds, byre 5), `st.jobs` (agents, jobs), `st.jobsBy` (agents, jobs 4) | 7.9 |
+| Pawn fields | `pawn.alive` (society, lifecycle, births), `pawn.age` (society, lifecycle 2, births), `pawn.prestige` and `pawn.interest` (culture, society 2), `pawn.owed` (heirs, cottage), `st.unions` (records, lifecycle) | new |
+| Collections of records | `st.farmsteads` (layout 3, cottage, settle), `village.farmsteads` (cottage, settle), `farmstead.name` (layout 2, settle), `st.demand` (farmclaims 2, heirs 2, settle) | new |
+| Smaller | `settlement.practice`, `settlement.tie` (culture, society, commands), `household.grievance` (claims, territory), `fence.cond`, `fence.dirty` (kinds, clock), `agent.basis` (agents 3, commands) | none yet |
+
+### 10.2 Proposed next boundaries
+
+The questions are in `QUESTIONS.md`, "VB-180". As the rerun shows them: 7.6 is half done (wood, stone, clay and bog ore are `sim/stores`; hay,
+larder and manure remain, with the writers listed above). 7.7, 7.8 and 7.9 are as written: no field of them has an owner. The groups new in this
+rerun are the pawn's vital fields (`pawn.alive` and `pawn.age`: `sim/society` seeds them, `sim/lifecycle` ages and kills, `sim/births` creates) and
+projects and plots (`village.plots`: 18 sites in 5 modules, the largest unowned group). Slice 5 interacts: VB-310 gives `pawn.owed` an owner;
+VB-311 puts `st.titles` beside `st.owner`, which is also where 7.7's `farmstead.household` and 7.8's land fields would be decided, so taking either
+before VB-311 would write it twice.
+
+## 11. The stress tests against the code (VB-180, 12 November 2026)
+
+Each scenario of `stress-tests.md` against the code at VB-337. Marks: **yes** (supported, with the module and function), **partly**, **no** (not in
+the code), **future** (a task or the design names it). "Not checked" marks a claim not verified by reading the code or a tool's output. This is a
+review, not a test: nothing is implemented from it.
+
+### 11.1 The multi-membership pawn (stress-tests.md, section 4), line by line
+
+The pawn lives in Village A, works for an institution in City B, owns land in Village C, owes rent, trades in a market, has ties in all three
+settlements, meets a merchant in a tavern, and has ambitions at odds with the household's. The code has villages, households, farms and pawns on one
+archipelago, with no institution, market, tenancy or traveller, so the scenario as a whole is **no**. The questions:
+
+| Question | Answer | Where, and why |
+| --- | --- | --- |
+| Identity: one persistent person across contexts? | yes | `st.pawns[id]` is an index, never reused; `sim/records` owns the record; other modules hold the id (`pawn.household`, `pawn.father`, `claims.by = {type: 'pawn', id}`). |
+| Identity: can a subsystem refer without owning it? | yes | Modules read the pawn through the id. A gap, not an ownership of identity: `pawn.alive` and `pawn.age` have three writers each (`society`, `lifecycle`, `births`; 10.1). |
+| Household: remain a member while working elsewhere? | partly | Membership has one writer (`records.joinHousehold`, `leaveHousehold`); walking to a job or an occasion changes none (`sim/jobs`, `sim/occasions`). "Elsewhere" is another farm or village on the one map; a long absence is not modelled (VB-292, the played pawn's visit, waits on VB-289; not checked further). |
+| Household: does absence imply departure? | no | Nothing treats absence as departure; moving out is an explicit act (`heirs.moveTo`, `sim/settle`). |
+| Household: obligations continue during absence? | partly | The one obligation, a sibling's share (`pawn.owed`, paid by `sim/cottage` `payOwed`), does not depend on presence. |
+| Employment: work for an institution without membership? | partly | `sim/eligibility` `BASES` lets a pawn take a task as `servant`, `member`, `villager` (a village's task, no household membership needed) or `self`. A task's owner is only a `household` or a `village`: no institution. Future: target-v2 section 8 (no task found: not checked). |
+| Employment: several roles or affiliations? | no | `pawn.role` is one value (`heirs.refreshRoles`); `pawn.servant` is one flag; `agent.side` holds side tasks, not affiliations. VB-365 (occupations from hours worked) is future. |
+| Employment: ends without changing membership? | no | A servant becomes a member of the master's household (`records.setServant`, `sim/service`); ending service moves the pawn. |
+| Land: own land in another settlement? | partly | A household may own any tile (`ownership.setOwner`); a pawn cannot: owners are `household` or `village` (`sim/ownership`). A pawn can hold claims (`claims.by.type === 'pawn'`, `sim/farmclaims`). Whether a household may own outside its village: not checked. |
+| Land: grant use rights to another household? | no | Own and use are not held apart. Future: VB-311 (land rights), VB-316 and VB-317 (tenancy). |
+| Land: rights change without moving identity or membership? | yes | `st.owner` changes through `setOwner` only; no pawn field is touched. |
+| Obligations: owe rent or taxes? | no | Future: VB-310 (obligations), VB-312 (loans), VB-316 (foreclosure); QUESTIONS.md, "VB-184", questions 2 and 10 give the terms. No tax found in the task list (not checked in design.md). |
+| Obligations: disputed, paid, overdue, enforced? | partly | Land claims are disputed and settled by custom (`sim/claims`); a share is paid or still owed (`cottage` `payOwed`). Overdue and enforced: future, VB-315. |
+| Obligations: consequences without governance mutating inventory? | structure yes | Food, wood, stone, clay and ore are written only by `sim/stores` (`src/owners.json`, enforced by `tests/ownership.js`); the case itself is future. |
+| Exchange: offer goods for sale? | no | `sim/exchange` is the gift only (its `@sys` line). Barter at the fair: future, VB-302. |
+| Exchange: buy without the market owning the goods? | structure yes | Inventory is the household's (`sim/stores`); no market exists to own it. |
+| Exchange: trade under obligations? | no | No trade. |
+| Relationships: across settlements? | yes | `pawn.ties` and `pawn.rel` (`sim/relations`) are keyed by pawn id, not by household or village; `dropTies` runs at death only (`src/sim/lifecycle.js:40`). |
+| Relationships: change when people move apart? | yes | Familiarity rises with talk and hours together and decays (`relations` `dailyTies`); kin keep a floor (`floorKin`). Not checked: a test of two pawns in different villages. |
+| Relationships: independent of household? | yes | Same keys; a marriage is `st.unions`, not a household field. |
+| Information: only through plausible paths? | no | Decided, design.md "What a pawn knows": all know all. `opportunities` `actorView` is `(st) => st`, the seam that filters nothing. `tools/gossip.js` (experiment, `tests/gossip.js`) is offline; VB-186 is the plan. |
+| Player: inhabit without privileged access? | partly | Acts: yes; the player's pawn acts through `issue` with source `player` (`commands.js`, `inhabit`, `uninhabit`). Reads: the player sees what the actor view gives, which is all of `st`. |
+
+The section's acceptance criteria. No single subsystem owns the whole pawn: yes (its fields are written by `records`, `relations`, `culture`,
+`hunger`, `heirs`, `births`, `lifecycle`, `society` and `stores`). Every state category has an authoritative owner: no (38 multi-writer fields, 10.1).
+Cross-domain workflows explicit: partly (verbs through `issue`; 19 cycle witnesses). No system inspects arbitrary internals of the others: no; reads
+are free by decision (`docs/review-architecture.md`, section 2).
+
+### 11.2 The other scenarios
+
+| Scenario | Mark | Where, and why |
+| --- | --- | --- |
+| 5A Landowner extracting rent | no | No rent, assessment or tenancy. Pieces in place: ownership is apart from households (`sim/ownership`); inventory moves are `sim/stores` only. Future: VB-311, VB-316, VB-317. |
+| 5B Tax collection | no | No tax, and no periodic subtraction either. The future obligations (VB-310) are the shape the test asks for. |
+| 5C Household planning | partly | `sim/plans`: a standing plan per household (`st.plans`, targets, reviews in `st.plans.due`); reservations are `sim/stores` `reserve` and `release` (`plan.reserved`); pawns choose by bids (`sim/jobs` `fit`) and may leave a job for a more urgent one (`sim/jobs` `@sys`). Project steps, priorities and reconsideration: future, VB-123. Not checked: that no path forces a member to work. |
+| 5D Business formation | no | No business or premises; production is by households. |
+| 5E Apprenticeship | no | No skills: future, VB-360. A servant works for the household. |
+| 6A Local marketplace | no | Future, VB-302 (the fair). |
+| 6B Regional trade | no | No merchant; walking hours between villages are VB-286 (future). |
+| 6C Merchant boat | no | No external entity; no task found (not checked beyond `BACKLOG.md`). |
+| 6D Market disruption | no | No market. |
+| 7A Tavern encounters | partly | `sim/occasions`: gatherings at a place from a start to an end, of those asked, by walking hours (the meeting, a wedding, a funeral ale); talk forms ties (`sim/relations`). No venue operator, capacity, travellers or merchants. |
+| 7B Networks across settlements | yes, structurally | As 11.1, relationships. A sibling in another village exists after `sim/settle`; the merchant friend does not. |
+| 7C Church and religion | no | `culture.js` holds customs and practices per settlement, not an organisation or property. |
+| 7D Fair or festival | future | VB-294, VB-295, VB-302, VB-303. `sim/occasions` is the mechanism a gathering would use. |
+| 8A Ordinary life | yes | `st.player` (`commands.js`): queued commands go before the pawn's own logic; `auto` leaves the pawn to its role; other pawns go on. |
+| 8B Social mobility | no | No apprenticeship, business or wealth path. |
+| 8C Escape from dependency | partly | The player may wish to move out or marry at the round (`st.player.wishes`, `sim/lifecycle`); there is no obligation to escape from. |
+| 8D Self-imposed challenge | no | No economy beyond subsistence and gifts. |
+| 8E Loss of control | yes | `uninhabit` sets `st.player = null` (`commands.js`); the pawn goes on by its role like any other. Not checked: that no state of the pawn needs the `st.player` record. |
+| 9 Lifecycle and continuity | partly | Yes: birth and household formation (`sim/births`, `membership.foundHousehold`), marriage (`st.unions`, `sim/lifecycle`), ageing and retirement, death and inheritance (`sim/heirs`), dissolution (`heirs.extinct`), guardians (`sim/service`). No: apprenticeship, occupational change, injury or illness other than hunger and the death hazard (`sim/deaths`, `sim/hunger`), institutional succession. Obligations at death: not checked. |
+| 10 Information | no | All know all by decision; `actorView` is the seam; stories are VB-186 and the `tools/gossip.js` experiment. |
+| 11 Determinism | yes | Per-system seeded streams (`sim/rng`); the lint rejects `Math.random`, `Date` and `performance.now` in modules (AGENTS.md); `tests/golden.js`, `tests/saves.js`, `tests/plaindata.js` and `tests/invariants.js` exist for the repeatable run, save and load and plain data (not re-read for this review); the page only reads `st` (lint). Reordering independent systems: not checked; `CALENDAR` fixes the order (VB-241). |
+| 12A Village-posted jobs to household planning | partly | Plans exist (`sim/plans`) and a job has a household or village owner (`st.jobsBy`, keys `household:` and `village:`); the village still posts some (the `villager` basis). |
+| 12B A new profession | no | A role is one value (`heirs.refreshRoles`, `rules.js`): the negative test "a profession is only a rigid pawn subtype" applies. VB-365 is the remedy. |
+| 12C A new institution | no | No institution kind: owners of land and tasks are households or villages. |
+| 12D A new venue | partly | A new occasion kind in `sim/occasions` (a place, a time, a set asked); no venue entity. |
+| 12E A new visitor type | no | No external pawns. |
+
+### 11.3 The negative tests (stress-tests.md, section 13)
+
+| Violation | Today |
+| --- | --- |
+| A system mutates another domain's authoritative state | Checked for the 70 written fields of `src/owners.json` by `tests/ownership.js`, with 7 baselined sites (`pawn.role`); the 38 multi-writer fields outside the table are not checked (10.1). |
+| A central manager owns the rules of unrelated systems | `sim/clock` is a table of entries each naming its owner (VB-241); three entries are its own (weather, empty-farm decay, fence decay). |
+| A plan deducts goods without an operation | Not so: reservations are written through `sim/stores` (three `lint-allow` lines in `sim/plans` aside). |
+| A market owns inventories; a settlement owns residents; a church owns beliefs | No market or church. A village does not own pawns (`pawn.household`; the village is derived). Attitudes are `pawn.att`, owned by `culture`. |
+| A profession as a rigid subtype | Applies to `pawn.role` (12B). |
+| A pawn cannot belong to several organisations | Applies (11.1). |
+| The player bypasses the rules | Not for acts (`issue`, source `player`); its reads are all of `st`. |
+| The UI changes the simulation | Not so; the lint enforces it (AGENTS.md, Conventions). |
+| A system assumes all pawns know all world state | Applies, by decision. |
+| A coordinator implements the rules of every activity | Not so: job kinds are one record each in `sim/kinds`; `sim/jobs` posts and bids. |
+| An event bus conceals ownership | `sim/events` exists (`emit` at once, in load order); not examined further. |
+| A feature needs access to many unrelated systems | The 22-module component (section 10) is the case today; VB-228 is the remedy. |
 
 ## VB-178: ties and culture fields (6 November 2026)
 
