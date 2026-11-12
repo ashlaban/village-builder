@@ -291,18 +291,21 @@ const Culture = (() => {
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
     return { S, W };
   }
+  // The share by which a way y must pass the practice x at a village's meeting: most where the practice is the culture's custom (more the
+  // closer the village's tie), least to return to that custom; times fewVoices, as a handful of voices is noisy (below ten the margin grows).
+  const margin = (s, x, y, cust) => (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+  const fewVoices = (n) => 1 + Math.max(0, 10 - n) * 0.1;
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture], changes = [];
     const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s));
     s.lastSupport = S; s.lastVoices = W;
     if (W <= 0) return changes;
-    // a handful of voices is noisy: below ten voices the margin grows
-    const nv = hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length, small = 1 + Math.max(0, 10 - nv) * 0.1;
+    const small = fewVoices(hooks.membersOf(s).filter((p) => hooks.voiceOf(p, s) > 0).length);
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d], n = NOPT[d], x = s.practice[d], cust = c.customs[d];
       let y = 0; for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
       if (y === x) continue;
-      const h = small * (x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin);
+      const h = small * margin(s, x, y, cust);
       if (!(S[o + y] > S[o + x] * (1 + h))) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
       if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
@@ -389,7 +392,7 @@ const Culture = (() => {
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, causeFree: { value: causeFree }, norm: { value: norm },
     WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
-    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf }, margin: { value: margin }, fewVoices: { value: fewVoices } });
   return api;
 })();
 VB['culture'] = Culture;

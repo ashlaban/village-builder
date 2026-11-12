@@ -80,7 +80,8 @@
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
-      const need = x === a.opt ? 0 : x === cust ? Culture.P.margin + Culture.P.tieMargin * s.tie : a.opt === cust ? Culture.P.returnMargin : Culture.P.margin;
+      const voices = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).length;
+      const need = x === a.opt ? 0 : Culture.fewVoices(voices) * Culture.margin(s, x, a.opt, cust);
       h += x === a.opt ? ' It is the village practice.' : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the `
         + `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
     } else h += ' The village has not met yet.';

@@ -53,8 +53,8 @@
     aria-controls="peopleSheet"><span class="nav-label">People</span></button>
   <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
     class="nav-label">Family</span></button>
-  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Customs</span></button>
+  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Culture</span></button>
   <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
     hidden><span class="nav-label">Agenda</span></button>
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
@@ -97,10 +97,10 @@
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
-    <h2 id="drawerTitle">Customs</h2>
+    <h2 id="drawerTitle">Culture</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
       aria-label="Collapse" title="Collapse"></button>
-    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -122,6 +122,7 @@
       <div class="tabs" id="tileTabs" role="tablist" aria-label="About the selection" hidden>
         <button type="button" role="tab" id="tabFacts" data-tab="facts" aria-selected="true" aria-controls="tileFacts">Details</button>
         <button type="button" role="tab" id="tabHistory" data-tab="history" aria-selected="false" aria-controls="tileHistory" tabindex="-1">History</button>
+        <button type="button" role="tab" id="tabCustoms" data-tab="customs" aria-selected="false" aria-controls="tileCustoms" tabindex="-1" hidden>Customs</button>
       </div>
       <div id="tileFacts" role="tabpanel" aria-labelledby="tabFacts">
         <span id="tileCoord"></span>
@@ -138,6 +139,7 @@
         <div class="kinds" id="historyKinds" role="group" aria-label="Kinds of event"></div>
         <div id="historyList"></div>
       </div>
+      <div id="tileCustoms" class="customs" role="tabpanel" aria-labelledby="tabCustoms" hidden></div>
     </div>
   </aside>
   <div class="map-tools" id="mapTools">

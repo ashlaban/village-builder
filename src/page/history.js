@@ -1,7 +1,7 @@
 // @sys page/history: the History tab of the selection card, read from the record of events, and the names in a line as links (VB-099)
   // ======== history ========
-  // The card of a pawn, a farm or a village has two tabs, Details and History; the tab chosen stays as the selection changes, so a name
-  // followed in one history opens the next. The filter by kind is the page's own state too.
+  // The card of a pawn, a farm or a village has the tabs Details and History, and a village's has Customs (page/customs); the tab chosen
+  // stays as the selection changes, so a name followed in one history opens the next. The filter by kind is the page's own state too.
   let cardTab = 'facts', historyGroup = '', historyStamp = '', historyHTML = '';
   const HISTORY_ROWS = 200; // lines drawn; a filter by kind reaches the older ones
   $('historyKinds').innerHTML = [['', 'All'], ...Object.entries(Sim.CHRONICLE).map(([key, g]) => [key, g.label])].map(([key, label]) =>
@@ -45,24 +45,29 @@
     if (h !== historyHTML) { historyHTML = h; updatePanelHTML($('historyList'), h); }
   }
   // Called whenever the card is filled (page/words, card): the tabs show for a pinned pawn, farm or village, and the open one is drawn.
+  // The Customs tab (page/customs) is a village's: on another card Details shows in its place, and the choice is kept for the next village.
   function syncTabs() {
-    const q = st && selectionPinned ? historySubject() : null, history = !!q && cardTab === 'history';
-    $('tileTabs').hidden = !q; $('tileFacts').hidden = history; $('tileHistory').hidden = !history;
+    const q = st && selectionPinned ? historySubject() : null, village = q ? customsVillage() : -1;
+    const tab = !q || (cardTab === 'customs' && village < 0) ? 'facts' : cardTab;
+    $('tileTabs').hidden = !q; $('tabCustoms').hidden = village < 0;
+    $('tileFacts').hidden = tab !== 'facts'; $('tileHistory').hidden = tab !== 'history'; $('tileCustoms').hidden = tab !== 'customs';
     for (const b of $('tileTabs').children) {
-      const on = (b.dataset.tab === 'history') === history;
+      const on = b.dataset.tab === tab;
       b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
     }
     for (const b of $('historyKinds').children) b.setAttribute('aria-pressed', b.dataset.history === historyGroup);
-    if (history) renderHistory(q);
+    if (tab === 'history') renderHistory(q);
+    if (tab === 'customs') renderCustoms(village);
   }
   $('tile').addEventListener('click', (e) => {
     const tab = e.target.closest('[data-tab]'), kind = e.target.closest('[data-history]');
     if (tab) cardTab = tab.dataset.tab; else if (kind) historyGroup = kind.dataset.history; else return;
     syncTabs();
   });
-  // Left and right move between the tabs, as in any tab list.
+  // Left and right move between the tabs shown, as in any tab list.
   $('tileTabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    cardTab = cardTab === 'history' ? 'facts' : 'history'; syncTabs();
-    $(cardTab === 'history' ? 'tabHistory' : 'tabFacts').focus(); e.preventDefault();
+    const tabs = [...$('tileTabs').children].filter((b) => !b.hidden), at = tabs.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+    const to = tabs[(at + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    cardTab = to.dataset.tab; syncTabs(); to.focus(); e.preventDefault();
   });
