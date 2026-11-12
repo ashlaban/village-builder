@@ -587,6 +587,9 @@ function checkState(st) {
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
+  // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
+  for (const a of st.agents) if (a.load && !(a.load > 0 && a.phase === 'back')) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  for (const h of st.households) if (h.threshed !== undefined && !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {

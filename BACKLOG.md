@@ -59,7 +59,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-335](backlog/VB-335.md) | Sheaves come home by the load: 30 rations on the back, 90 on a cart | - | 2 | S | A field's harvest is carried in loads of the one size the fair and journeys use, three or four trips a field on the back or one with a cart and oxen, in place of one armful for the whole field. |
 | [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
 
 ## Blocked

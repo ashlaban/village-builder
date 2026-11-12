@@ -34,7 +34,7 @@ const QUANTITIES = [
   { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
     none: 'the pot is of grain and dried fish alone, a pot of one source in summer, and fishing and gathering are more urgent (sim/pot, VB-119)' },
   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
-    kinds: ['haul'], none: 'nothing to thresh: the threshing job is not posted' },
+    kinds: ['haul'], covers: ['household.threshed'], none: 'nothing to thresh: the threshing job is not posted' },
   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
     kinds: ['slaughter', 'salt', 'milk', 'dry'],
     none: 'meals and grain feed the household alone' },

@@ -30,7 +30,7 @@ function run(seed) {
       let gifts = 0;
       for (const e of hh.ledger) {
         if (e.t < t0 || e.t >= t1) continue;
-        if (e.kind === 'harvest') made.grain += e.n - CROPS.barley.seed; // the seed for that crop was sown from the store
+        if (e.kind === 'harvest') made.grain += e.n - (e.first ? CROPS.barley.seed : 0); // a field's loads are entries; the seed was sown from the store
         else if (e.kind in made) made[e.kind] += e.n;
         else if (e.kind === 'gift') gifts += e.n;
       }

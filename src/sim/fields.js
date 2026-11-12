@@ -130,11 +130,19 @@ VB['sim/fields'] = (() => {
     fd.stage = 'stooks'; fd.reaped = c.day;
     fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
       * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) * (1 - HERD.stray.loss) ** (fd.trampled || 0));
-    delete fd.trampled;
+    delete fd.trampled; delete fd.bin;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
   }
   const hauled = (fd) => { fd.held = 0; fd.stage = 'stubble'; fd.sown = null; };
+  // A load of at most `cap` rations is taken from the stooks (VB-335); the field is hauled when the last is gone. `bin` is the barn entry
+  // (sim/stores sheaf) holding the field's loads so far.
+  function carried(fd, cap) {
+    const n = Math.min(cap, fd.held); fd.held -= n;
+    if (fd.held <= 0) hauled(fd);
+    return n;
+  }
+  const binned = (fd, seq) => { fd.bin = seq; };
   function reclaimed(st, fd) {
     if (fd.stage === 'fallow' || fd.stage === 'scrub') { fd.stage = 'stubble'; st.visualDirty = true; }
   }
@@ -181,7 +189,7 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
-    fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
+  return { hoed, sown, trample, reaped, hauled, carried, binned, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours,
+    yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();

@@ -1,7 +1,7 @@
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
+  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
@@ -70,9 +70,11 @@ VB['sim/agents'] = (() => {
   }
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
-  function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
+  function dropJob(st, j) { if (st.jobs.get(j.key) === j) st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
+    // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
+    if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
     a.phase = null; a.work = null; a.basis = null;
   }
@@ -159,11 +161,12 @@ VB['sim/agents'] = (() => {
     for (const id of [...j.claims]) {
       if (id === finisher) continue;
       const b = st.agents[id];
+      if (b.phase === 'back') continue; // a load on the road stays the job's (VB-335)
       if (b.side && (b.side.partial === j || b.side.background === j)) { unhold(b, j); continue; }
       if (b.phase === 'go') b.path = null;
       b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
     }
-    j.claims = j.claims.filter((id) => id === finisher);
+    j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
   // any other job does what its kind says (sim/kinds).
@@ -177,11 +180,13 @@ VB['sim/agents'] = (() => {
     dropJob(st, j);
   }
   // Home with the load: the kind says what it brings.
-  function deposit(st, a) {
-    const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
-    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
-    dropJob(st, j);
-    a.carry = null; a.job = null; a.basis = null; a.phase = null;
+  function deposit(st, a, farm = null) {
+    const j = a.job, K = KINDS[j.kind];
+    const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
+    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    if (!K.again || !K.again(j)) dropJob(st, j);
+    else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
+    a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
   }
   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function arrived(st, a) {
@@ -212,6 +217,13 @@ VB['sim/agents'] = (() => {
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
     return first === j && hasTeam(st, st.households[j.owner.id]);
   }
+  // The household's team draws the cart: it has one, and no one else has it out, at the plough or on the road (VB-335).
+  function cartFree(st, a) {
+    const hh = st.households[st.pawns[a.id].household];
+    if (!hasTeam(st, hh)) return false;
+    for (const id of hh.members) { const b = st.agents[id]; if (b.phase === 'back' && b.load > TRAVEL.load || withOxen(st, b)) return false; }
+    return true;
+  }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
     j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
@@ -228,8 +240,10 @@ VB['sim/agents'] = (() => {
       a.x = nx; a.y = ny;
     }
     if (j.done >= (j.hours ?? K.hours)) {
-      if (K.carry) {
-        freeHands(st, j, a.id);
+      const n = K.load ? K.load(st, a, j, cartFree(st, a) ? TRAVEL.cart : TRAVEL.load) : null; // a load taken from the field (VB-335)
+      if (K.carry && n !== 0) {
+        if (n !== null && K.again(j)) j.done = 0; // the others go on loading
+        else freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)

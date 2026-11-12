@@ -2,6 +2,20 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 12 November 2026 (VB-335)
+
+## VB-335: sheaves by the load, built and held back (raised 12 November 2026)
+Built as you decided (30 rations on the back, 90 on a cart) and NOT merged: on top of VB-333's longer harvest it leaves the short-handed
+households clearly worse off. The work is `docs/patches/VB-335.patch` (against `942ec05`); the numbers are in `backlog/VB-335.md`.
+1. Populous small, 15 years, against the branch with VB-333: hauling goes from 14 to about 40 hours a household-year and the barn is reached
+   1 to 2 days later; crops lost to frost rise again (field-years: seed 7, 113 to 118; seed 42, 72 to 95; nearly all in households of 5 or 6
+   fields); hungry household-days 1 to 31 (seed 7), 6 to 10 (seed 42), founders 5 to 18; deaths 147 to 161 at seed 7; and by
+   `tools/balance.js` households of nine fall from 1.02 to 0.73 of their need made, the lone holder from 1.61 to 1.51. **P:** merge it
+   together with what lets a household match its fields to its hands, not before: the fields a household wants counting its hands at the
+   harvest (VB-254), and neighbours helping at the harvest (VB-106). Or, sooner and smaller: stooks do not rot at the first frost but lose a
+   share a day after it (the frost kills a standing crop; sheaves in stooks stand some weather), which takes the cliff out of a late haul.
+   **A (Kim, 12 Nov):** Merge VB-335 as built.
+
 # Archived 12 November 2026 (VB-119)
 
 ## VB-119: fresh fish on dried fish (raised 12 November 2026)
