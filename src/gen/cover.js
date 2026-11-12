@@ -1,4 +1,4 @@
-// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand: a wood's trees, a meadow's stones
+// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
 VB['gen/cover'] = (() => {
   // K: what this module needs of gen, which loads after it: { mulberry32, B }, or the whole of VB['gen'].
   // A wood's trees at full cover: +-20% around 60 (broadleaf) or 80 (pine), by the seed and the tile; none on other ground.
@@ -27,5 +27,17 @@ VB['gen/cover'] = (() => {
     w.stones[i] = b === G.B.MEADOW ? meadowStones(G, w.seed, i, w.csample(w.macro, w.hx[i], w.hy[i]), hd) : 0;
     return true;
   }
-  return { fullTrees, meadowStones, set };
+  // A world's tile and cell arrays as they are now, and the same world put back to them: the editor seeds a run on its world to show what is
+  // placed, and takes the run away again before anything on the land changes. What a run adds to the world of its own (w.dev, the wear of
+  // paths, fish, forage) is made anew by each seeding and is not kept.
+  function keep(w) {
+    const kept = {};
+    for (const k of Object.keys(w)) if (ArrayBuffer.isView(w[k])) kept[k] = w[k].slice();
+    return { arrays: kept, veinKind: w.veinKind.slice() };
+  }
+  function restore(w, kept) {
+    for (const k of Object.keys(kept.arrays)) w[k].set(kept.arrays[k]);
+    w.veinKind.length = 0; w.veinKind.push(...kept.veinKind);
+  }
+  return { fullTrees, meadowStones, set, keep, restore };
 })();

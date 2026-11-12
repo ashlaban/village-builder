@@ -4,8 +4,11 @@
   // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
   // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
   const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
-  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed }; cover and deposit: what the
-  // terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew (edApply).
+  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed, places, kept, sim }; cover and
+  // deposit: what the terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew
+  // (edApply). places: what the Settlement tool placed, in order, each {village: tile, farms} or {farm: tile} (Sim.seed's manual scenario).
+  // kept: the world's arrays as raised and painted, with no run (gen/cover, keep); sim: the run seeded on it from the places, the picture
+  // of what is placed, which never advances (`still`). The world is put back to `kept` before it is painted or seeded again.
   let edit = null;
   const editorOpen = () => !$('editor').hidden;
   const edSizeOf = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows) || 'c';
@@ -54,16 +57,17 @@
     $('edName').textContent = wd.name; $('edMeta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles`;
   }
   function edBusy(on, p) {
-    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; $('edPlay').disabled = on || !edit.wd;
+    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; edSettleEcho();
     $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
     if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); }
-    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); }
+    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); edSettleEcho(); }
   }
-  // The editor's world on the stage, alone: no run, so nothing of the game is drawn or advanced. `whole`: seen from above, all of it.
+  // The editor's world on the stage, alone, with the picture of what is placed on it, which stands still: nothing of the game is advanced.
+  // `whole`: seen from above, all of it.
   async function edShow(whole) {
     demo = true; demoAt = null; demoRun = null; document.body.classList.add('demo');
-    await swapWorld(edit.wd, null, edit.painted);
-    intro = null;
+    await swapWorld(edit.wd, edit.sim, edit.painted);
+    still = true; intro = null;
     if (whole) { T = 2; cam.x = edit.wd.W / 2; cam.y = edit.wd.H / 2; cam.z = zt = zMin(); vel.x = vel.y = 0; }
     edFacts();
   }
@@ -71,9 +75,9 @@
   function edRaise(again) {
     const p = again || edRead();
     if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
-    if (!again && edit.cover.size + edit.deposit.size && !edit.armed) { // what was painted would be lost: asked once more
-      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted';
-      $('edState').textContent = 'Regenerating clears what you painted on this land.'; $('edState').classList.add('changed');
+    if (!again && edit.cover.size + edit.deposit.size + edit.places.length && !edit.armed) { // what was made by hand would be lost: asked once more
+      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted and placed';
+      $('edState').textContent = 'Regenerating clears what you painted and placed on this land.'; $('edState').classList.add('changed');
       return;
     }
     $('edMsg').hidden = true; edBusy(true, 0);
@@ -83,10 +87,11 @@
         const opt = { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region };
         const wd = await drive(G.generate(p.seed, opt), (x) => { $('edBarFill').style.width = `${(x * 60).toFixed(1)}%`; });
         if (!edit) return;
-        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); }
+        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); edit.places = []; }
+        const kept = VB['gen/cover'].keep(wd), sim = edLay(wd, kept, p.seed);
         const painted = await paintOverview(wd, (x) => { $('edBarFill').style.width = `${(60 + x * 40).toFixed(1)}%`; });
         const first = !edit.wd || edit.wd.COLS !== wd.COLS || edit.wd.ROWS !== wd.ROWS;
-        edit.p = p; edit.wd = wd; edit.painted = painted;
+        edit.p = p; edit.wd = wd; edit.painted = painted; edit.kept = kept; edit.sim = sim; edStale.clear();
         if (editorOpen()) await edShow(first);
       } catch (e) {
         console.warn('The land could not be raised', e);
@@ -115,11 +120,11 @@
     loader.classList.add('done');
     $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
     if (!edit) {
-      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false };
+      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false, places: [], kept: null, sim: null };
       if ($('edSeed').value) edEcho(); // the settings of an earlier visit
       else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
     }
-    $('edPlay').disabled = edit.busy || !edit.wd; edHoldBrush(); edPaintedEcho();
+    edHoldBrush(); edPaintedEcho(); edSettleEcho();
     if (!edit.wd) edRaise(edit.p);
     else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
     $('edPlay').focus({ preventScroll: true });
@@ -128,9 +133,10 @@
   // shown (not from a form changed since), so the editor keeps its own world, to come back to from the main menu. Such a game cannot be
   // saved yet: a save rebuilds its world from seed and size alone (page/loader, `unsaved`).
   function edPlay() {
-    if (!edit || !edit.wd || edit.busy || building) return;
+    if (!edit || !edit.wd || edit.busy || building || (edManual() && !edit.places.length)) return;
     const p = edit.p;
-    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply });
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply,
+      places: edManual() ? edit.places.map((x) => ({ ...x })) : null });
   }
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
@@ -167,7 +173,8 @@
   // overlay does (page/ground), where no run means every deposit is seen.
   function edHoldBrush() {
     const held = editorOpen() && edTool === 'terrain' && edBrush ? edBrush : null, ground = !!held && held.deposit !== undefined;
-    mapBrush = held ? edStroke : null; document.body.classList.toggle('brushing', !!held);
+    const placing = editorOpen() && edTool === 'settle' && edManual() && edPlace;
+    mapBrush = held ? edStroke : placing ? edPlaceAt : null; document.body.classList.toggle('brushing', !!held || !!placing);
     L.ground.visible = ground || groundOn;
     if (ground) { groundFor = null; drawGround(); }
     edBrushList();
@@ -196,9 +203,20 @@
     if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edBrush) return;
     const wd = edit.wd;
     if (first === null) {
-      if (edStruck) { if (edBrush.deposit !== undefined) Geo.reveins(wd); repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho(); }
-      edAt = null; edStruck = 0; edFar.clear(); return;
+      if (edStruck) {
+        if (edBrush.deposit !== undefined) Geo.reveins(wd);
+        edit.kept = VB['gen/cover'].keep(wd); // the land as painted, still with no run on it
+        repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho();
+      }
+      edAt = null; edStruck = 0; edFar.clear();
+      const had = edit.places.length; // what is placed stands again, on the land as it is now; a place left with no room is gone
+      if (edManual() && had) {
+        edRelay().then(() => {
+          if (edit && edit.places.length < had) $('edBrushNote').textContent = 'What was placed there no longer had room, and was taken away.'; });
+      }
+      return;
     }
+    if (first && edit.sim) edUnseat(); // the land is painted with no run on it
     const [x, y] = toWorld(sx, sy), from = first || !edAt ? [x, y] : edAt, steps = Math.max(1, Math.ceil(Math.hypot(x - from[0], y - from[1]) / wd.HW));
     const r = Number($('edBrushSize').value), seen = new Set(), done = [];
     for (let s = first || !edAt ? steps : 1; s <= steps; s++) {
@@ -225,10 +243,82 @@
     for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
     if (edit.deposit.size) Geo.reveins(wd);
   }
+  // ---- what is placed ----
+  // Settled by a scenario, the land is settled when Play is pressed. Placed by hand (Sim.seed's manual scenario), each place is laid at
+  // once by the game's own generator, and what stands there is that run, which Play begins on a land raised the same.
+  const edManual = () => $('edSettled').value === 'manual';
+  let edPlace = null; // the place tool held: 'village', 'farm', 'remove', or null
+  const edStale = new Set(); // tiles whose look a run taken away or laid has changed, to paint again
+  const edMark = (wd, sim) => {
+    if (sim) for (const t of sim.used) edStale.add(t); if (wd.worn) for (let i = 0; i < wd.N; i++) if (wd.worn[i]) edStale.add(i); };
+  // The run of the places on a world as kept, or null with none. A place that finds no room is taken out of the list, and the rest laid.
+  function edLay(wd, kept, seed) {
+    while (edManual() && edit.places.length) {
+      try { return Sim.seed(wd, seed, 'manual', edit.places); } catch (e) {
+        VB['gen/cover'].restore(wd, kept);
+        if (e.place === undefined) { console.warn('What is placed could not be laid', e); return null; }
+        edit.places.splice(e.place, 1);
+      }
+    }
+    return null;
+  }
+  // The run taken off the editor's world, which is as kept again.
+  function edUnseat() {
+    edMark(edit.wd, edit.sim); VB['gen/cover'].restore(edit.wd, edit.kept); edit.sim = null;
+    buildSettlement(edit.wd, null);
+  }
+  // The places laid anew on the world as kept, and shown.
+  async function edRelay() {
+    if (!edit || !edit.wd || w !== edit.wd) return;
+    const wd = edit.wd;
+    edMark(wd, edit.sim); VB['gen/cover'].restore(wd, edit.kept);
+    edit.sim = edLay(wd, edit.kept, edit.p.seed);
+    edMark(wd, edit.sim);
+    const tiles = [...edStale]; edStale.clear();
+    await buildSettlement(wd, edit.sim); still = true;
+    repaintTiles(tiles, tiles); edSettleEcho();
+  }
+  // page/input's mapBrush, for a place tool: a press on the map places a village about the tile or a household on it, or takes away the
+  // place nearest the tile. A place that finds no room is not kept, and the panel says so.
+  async function edPlaceAt(sx, sy, first) {
+    if (first !== true || !edit || !edit.wd || edit.busy || w !== edit.wd || !edPlace) return;
+    const wd = edit.wd, [x, y] = toWorld(sx, sy), t = loc(x, y, [0, 0]), n = edit.places.length;
+    if (t < 0) return;
+    let msg = '';
+    if (edPlace === 'remove') {
+      let k = -1, kd = 5;
+      edit.places.forEach((p, j) => { const d = VB['sim/hex'].hexSteps(wd, t, p.farm !== undefined ? p.farm : p.village); if (d < kd) { kd = d; k = j; } });
+      if (k < 0) return;
+      edit.places.splice(k, 1);
+    } else edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) } : { farm: t });
+    await edRelay();
+    if (edPlace !== 'remove' && edit.places.length <= n) {
+      msg = edPlace === 'village' ? 'A village finds no room there.' : 'A house cannot stand there, or finds no fields about it.';
+    }
+    $('edPlaceMsg').hidden = !msg; $('edPlaceMsg').textContent = msg;
+  }
+  // The Settlement panel as things stand, and whether Play can begin: placed by hand, only once something is placed.
+  function edSettleEcho() {
+    const manual = edManual(), sim = edit && edit.sim;
+    $('edSettledNote').textContent = manual ? 'Place villages and households yourself. Close households are one village, as they are in play.'
+      : `${START_WORDS[$('edSettled').value].line} They are placed when you press Play.`;
+    $('edPlacing').hidden = $('edPlacedBox').hidden = !manual;
+    for (const b of $('edPlaces').querySelectorAll('button')) b.setAttribute('aria-pressed',
+      String((b.dataset.place === 'none' ? null : b.dataset.place) === edPlace));
+    $('edFarmsOut').textContent = $('edFarms').value; $('edFarmsRow').hidden = edPlace !== 'village';
+    $('edPlaceNote').textContent = edPlace === 'village' ? 'Press on the land: the village is laid about that tile, with the farms that find room.'
+      : edPlace === 'farm' ? 'Press on the land: the house stands on that tile, its fields beside it.'
+        : edPlace === 'remove' ? 'Press on a village\u2019s green, or on a house you placed.' : 'Drag the map to move it. Choose what to place.';
+    const farms = sim ? sim.farmsteads.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
+    $('edPlaced').textContent = sim ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people.`
+      : 'Nothing yet. Play begins once something is placed.';
+    $('edUnplace').disabled = !edit || edit.busy || !edit.places.length;
+    $('edPlay').disabled = !edit || edit.busy || !edit.wd || (manual && !edit.places.length);
+  }
   // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
   function dropEditor() {
     $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush();
-    if (edit) { edit.wd = null; edit.painted = null; }
+    if (edit) { edit.wd = null; edit.painted = null; edit.kept = null; edit.sim = null; }
   }
 
   $('landEdit').addEventListener('click', () => openEditor());
@@ -257,6 +347,16 @@
   // the land as it was raised: the same parameters once more, with nothing laid on it
   $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
   edBrushList();
-  $('edSettled').innerHTML = START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
-  const edSettledEcho = () => { $('edSettledNote').textContent = START_WORDS[$('edSettled').value].line; };
-  $('edSettled').addEventListener('input', edSettledEcho); edSettledEcho();
+  $('edSettled').innerHTML = '<option value="manual">Placed by hand</option>'
+    + START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
+  $('edSettled').value = 'founders';
+  // by hand or by a scenario: the picture of what is placed stands only while it is what Play would begin on
+  $('edSettled').addEventListener('input', () => {
+    edHoldBrush(); edSettleEcho(); if (edit && edit.wd && !edit.busy && (edit.sim || edit.places.length)) edRelay(); });
+  $('edPlaces').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edPlace = b.dataset.place === 'none' ? null : b.dataset.place; $('edPlaceMsg').hidden = true; edHoldBrush(); edSettleEcho();
+  });
+  $('edFarms').addEventListener('input', edSettleEcho);
+  $('edUnplace').addEventListener('click', () => { if (edit && !edit.busy && edit.places.length) { edit.places = []; edRelay(); } });
+  edSettleEcho();

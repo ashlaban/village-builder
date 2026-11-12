@@ -1,7 +1,7 @@
 // @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, WOOD, SETTLE, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -294,14 +294,20 @@ VB['sim/layout'] = (() => {
       if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
-    // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
+    const village = loneVillage(rand, villages, lone.house); villages.push(village);
+    return farmIn(w, used, village, lone.house, lone.fields, farmsteads, fieldsAt, yards);
+  }
+  // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
+  function loneVillage(rand, villages, house) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
-    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
-    village.farmsteads.push(f.id); villages.push(village);
-    for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
-    for (const t of lone.fields) fieldsAt.add(t);
+    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
+  }
+  // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
+  function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
+    const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
+    v.farmsteads.push(f.id);
+    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
+    for (const t of fields) fieldsAt.add(t);
     return f;
   }
   // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
@@ -340,6 +346,20 @@ VB['sim/layout'] = (() => {
       addLoneFarm(nearCenter) {
         const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages, fieldsAt, yards);
         if (f) farmsteads.push(f);
+        return f;
+      },
+      // A farm on this very tile, placed by hand (the archipelago editor), with three fields: it joins the village whose centre is the
+      // nearest within SETTLE.centreApart steps, as close farms are one village in play, or is a village of its own, as a lone farm is.
+      // Null where the tile cannot bear a house (not farmable, taken, a yard, beside a field) or finds no fields.
+      addFarmAt(house) {
+        if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+        const fields = placeFields(w, used, house, 3, yards);
+        if (!fields) return null;
+        let v = null, vd = SETTLE.centreApart + 1;
+        for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
+        if (!v) { v = loneVillage(rand, villages, house); villages.push(v); }
+        const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
+        farmsteads.push(f);
         return f;
       },
       finish() {

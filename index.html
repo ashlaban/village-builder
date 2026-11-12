@@ -1147,7 +1147,24 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         <legend>Settled by</legend>
         <select id="edSettled" aria-label="Settled by"></select>
         <p class="hint" id="edSettledNote"></p>
-        <p class="hint">The villages are placed when you press Play.</p>
+      </fieldset>
+      <fieldset id="edPlacing" hidden>
+        <legend>Place</legend>
+        <div class="ed-brushes" id="edPlaces" role="group" aria-label="Place">
+          <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
+          <button type="button" data-place="village" aria-pressed="false">A village</button>
+          <button type="button" data-place="farm" aria-pressed="false">A household</button>
+          <button type="button" data-place="remove" aria-pressed="false" class="wide">Take one away</button>
+        </div>
+        <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
+          <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <p class="hint" id="edPlaceNote"></p>
+        <p class="err" id="edPlaceMsg" role="alert" hidden></p>
+      </fieldset>
+      <fieldset id="edPlacedBox" hidden>
+        <legend>Placed</legend>
+        <p id="edPlaced"></p>
+        <div class="ed-acts"><button type="button" id="edUnplace" disabled>Take all away</button></div>
       </fieldset>
     </div>
   </section>
@@ -2295,7 +2312,7 @@ VB['gen/geology'] = (() => {
 })();
 </script>
 <script>
-// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand: a wood's trees, a meadow's stones
+// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
 VB['gen/cover'] = (() => {
   // K: what this module needs of gen, which loads after it: { mulberry32, B }, or the whole of VB['gen'].
   // A wood's trees at full cover: +-20% around 60 (broadleaf) or 80 (pine), by the seed and the tile; none on other ground.
@@ -2324,7 +2341,19 @@ VB['gen/cover'] = (() => {
     w.stones[i] = b === G.B.MEADOW ? meadowStones(G, w.seed, i, w.csample(w.macro, w.hx[i], w.hy[i]), hd) : 0;
     return true;
   }
-  return { fullTrees, meadowStones, set };
+  // A world's tile and cell arrays as they are now, and the same world put back to them: the editor seeds a run on its world to show what is
+  // placed, and takes the run away again before anything on the land changes. What a run adds to the world of its own (w.dev, the wear of
+  // paths, fish, forage) is made anew by each seeding and is not kept.
+  function keep(w) {
+    const kept = {};
+    for (const k of Object.keys(w)) if (ArrayBuffer.isView(w[k])) kept[k] = w[k].slice();
+    return { arrays: kept, veinKind: w.veinKind.slice() };
+  }
+  function restore(w, kept) {
+    for (const k of Object.keys(kept.arrays)) w[k].set(kept.arrays[k]);
+    w.veinKind.length = 0; w.veinKind.push(...kept.veinKind);
+  }
+  return { fullTrees, meadowStones, set, keep, restore };
 })();
 </script>
 <script>
@@ -4299,7 +4328,7 @@ VB['sim/forage'] = (() => {
 // @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, WOOD, SETTLE, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -4592,14 +4621,20 @@ VB['sim/layout'] = (() => {
       if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) { ls = s; lone = { house: j, fields }; }
     }
     if (!lone) return null;
-    // the farm is a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms)
+    const village = loneVillage(rand, villages, lone.house); villages.push(village);
+    return farmIn(w, used, village, lone.house, lone.fields, farmsteads, fieldsAt, yards);
+  }
+  // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
+  function loneVillage(rand, villages, house) {
     const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    const village = {
-      id: villages.length, name, center: lone.house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
-    const f = makeFarmstead(w, farmsteads.length, lone.house, lone.fields, village, used);
-    village.farmsteads.push(f.id); villages.push(village);
-    for (let k = 0; k < 6; k++) { const j = w.nb[lone.house * 6 + k]; if (j >= 0) yards.add(j); }
-    for (const t of lone.fields) fieldsAt.add(t);
+    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: 0, ledger: [], totals: [], green: false, well: false };
+  }
+  // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
+  function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
+    const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
+    v.farmsteads.push(f.id);
+    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
+    for (const t of fields) fieldsAt.add(t);
     return f;
   }
   // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
@@ -4638,6 +4673,20 @@ VB['sim/layout'] = (() => {
       addLoneFarm(nearCenter) {
         const f = findLoneFarm(w, used, rand, nearCenter, farmsteads, villages, fieldsAt, yards);
         if (f) farmsteads.push(f);
+        return f;
+      },
+      // A farm on this very tile, placed by hand (the archipelago editor), with three fields: it joins the village whose centre is the
+      // nearest within SETTLE.centreApart steps, as close farms are one village in play, or is a village of its own, as a lone farm is.
+      // Null where the tile cannot bear a house (not farmable, taken, a yard, beside a field) or finds no fields.
+      addFarmAt(house) {
+        if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+        const fields = placeFields(w, used, house, 3, yards);
+        if (!fields) return null;
+        let v = null, vd = SETTLE.centreApart + 1;
+        for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
+        if (!v) { v = loneVillage(rand, villages, house); villages.push(v); }
+        const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
+        farmsteads.push(f);
         return f;
       },
       finish() {
@@ -12435,10 +12484,28 @@ VB['sim/scenarios'] = (() => {
       }
     }
     if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
+    return standing(w, S, rand, gen, sizes, 'populous', seedNum);
+  }
+  // Placed by hand (the archipelago editor): `places` in their order, each {village: tile, farms}, a village laid by the generator about
+  // that tile, or {farm: tile}, a household on that very tile (sim/layout, addFarmAt); the people as in Populous Villages. Where a place
+  // finds no room the error's `place` is its index.
+  function seedManual(w, seedNum, places) {
+    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [];
+    (places || []).forEach((p, k) => {
+      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? gen.addFarmAt(at) : null;
+      const made = p.farm !== undefined ? (f ? [f.id] : []) : w.water[at] || gen.used.has(at) ? [] : gen.addVillage(at, p.farms).farmsteads;
+      if (!made.length) throw Object.assign(new Error('No room for what was placed there'), { place: k });
+      for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); }
+    });
+    if (!gen.farmsteads.length) throw new Error('Nothing is placed');
+    return standing(w, S, rand, gen, sizes, 'manual', seedNum);
+  }
+  // Villages that have stood a while, as the generator laid them: their households of the sizes drawn, a year's grain, herds and meadows.
+  function standing(w, S, rand, gen, sizes, scenario, seedNum) {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = populousHouseholds(R, farmsteads, sizes);
-    const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
+    const st = makeState(w, S, R, households, farmsteads, villages, used, scenario);
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
@@ -12533,7 +12600,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // @state st.scenario: string; 'founders', 'heirs', 'populous', or 'manual' (placed by hand in the editor)
+    // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
@@ -12647,7 +12715,9 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  function seed(w, seedNum, scenario = 'founders') {
+  // places: what was placed by hand, for the 'manual' scenario (seedManual).
+  function seed(w, seedNum, scenario = 'founders', places = null) {
+    if (scenario === 'manual') return seedManual(w, seedNum, places);
     return scenario === 'heirs' ? seedHeirs(w, seedNum) : scenario === 'populous' ? seedPopulous(w, seedNum) : seedFounders(w, seedNum);
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
@@ -13693,6 +13763,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   // `unsaved`: the game open was started from the editor, and cannot be saved yet (page/saves).
   let unsaved = false;
+  // `still`: the run on the stage is the editor's picture of what is placed there, which never advances (page/editor, page/speed).
+  let still = false;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
@@ -13717,7 +13789,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   }
   // Swaps a painted world and its run onto the stage, in place of the one there.
   async function swapWorld(wd, sim, { wc, over }) {
-    job = null;
+    job = null; still = false;
     for (const k of [...chunks.keys()]) dropChunk(k);
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
@@ -13739,8 +13811,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply} (page/editor), `apply(wd)` laying
-  // what was changed by hand on the land raised: such a game is `unsaved`.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
+  // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
     if (!custom) choice = { seed, scenario, size };
@@ -13754,7 +13826,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (custom && custom.apply) custom.apply(wd);
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('menuBtn').disabled = false;
@@ -13935,6 +14007,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function pick(sx, sy, inspect = true) {
     if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
     if (choose) { if (inspect) chooseAt(sx, sy); return; } // whom to play takes the map's clicks (page/choose)
+    if (!$('editor').hidden) { // the editor: no cards; the tile under the pointer is only marked
+      const [ex, ey] = toWorld(sx, sy), t = loc(ex, ey, [0, 0]);
+      if (t !== sel) { sel = t; selPawn = -1; hoverDirty = true; }
+      return;
+    }
     if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
     if (inspect) selectionPinned = true;
     const [x, y] = toWorld(sx, sy), pw = pawnAt(x, y);
@@ -15357,7 +15434,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function advanceSimulation(dt) {
     // behind the menu a game waits, paused; the showcase island (page/loader) goes on at its own speed, unless motion is to be reduced
     if (demo) {
-      if (st && !building && !reduceMotion) {
+      if (st && !still && !building && !reduceMotion) { // `still`: the editor's picture of what is placed (page/editor)
         syncSteps(); stepShare += (dt * DEMO.speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
         const n = Math.floor(stepShare); stepShare -= n; runSteps(n);
       }
@@ -17241,8 +17318,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // world is raised from the form on Regenerate, never while a control moves. `edit.p` holds the parameters of the world raised, so
   // the panel can say when the form has moved on from it. It is page state, as the showcase island is: never saved, and no game.
   const ED = { size: 's', land: 36, region: 7, cols: [40, 400], rows: [30, 300] };
-  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed }; cover and deposit: what the
-  // terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew (edApply).
+  // edit: { p: {seed, cols, rows, land, region} of the world raised, wd, painted, busy, cover, deposit, armed, places, kept, sim }; cover and
+  // deposit: what the terrain brush painted, Maps of tile to biome and to deposit code, laid again on that land whenever it is raised anew
+  // (edApply). places: what the Settlement tool placed, in order, each {village: tile, farms} or {farm: tile} (Sim.seed's manual scenario).
+  // kept: the world's arrays as raised and painted, with no run (gen/cover, keep); sim: the run seeded on it from the places, the picture
+  // of what is placed, which never advances (`still`). The world is put back to `kept` before it is painted or seeded again.
   let edit = null;
   const editorOpen = () => !$('editor').hidden;
   const edSizeOf = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows) || 'c';
@@ -17291,16 +17371,17 @@ if (typeof module !== 'undefined') module.exports = Sim;
     $('edName').textContent = wd.name; $('edMeta').textContent = `Seed ${wd.seed}, ${wd.COLS} by ${wd.ROWS} tiles`;
   }
   function edBusy(on, p) {
-    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; $('edPlay').disabled = on || !edit.wd;
+    edit.busy = on; $('edGo').disabled = $('edMenu').disabled = $('edReset').disabled = on; edSettleEcho();
     $('edBar').hidden = !on; $('edBarFill').style.width = `${((p || 0) * 100).toFixed(1)}%`;
     if (on) { $('edState').textContent = 'Raising the land'; $('edState').classList.remove('changed'); }
-    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); }
+    else { edit.armed = false; $('edGo').textContent = 'Regenerate'; edEcho(); edPaintedEcho(); edSettleEcho(); }
   }
-  // The editor's world on the stage, alone: no run, so nothing of the game is drawn or advanced. `whole`: seen from above, all of it.
+  // The editor's world on the stage, alone, with the picture of what is placed on it, which stands still: nothing of the game is advanced.
+  // `whole`: seen from above, all of it.
   async function edShow(whole) {
     demo = true; demoAt = null; demoRun = null; document.body.classList.add('demo');
-    await swapWorld(edit.wd, null, edit.painted);
-    intro = null;
+    await swapWorld(edit.wd, edit.sim, edit.painted);
+    still = true; intro = null;
     if (whole) { T = 2; cam.x = edit.wd.W / 2; cam.y = edit.wd.H / 2; cam.z = zt = zMin(); vel.x = vel.y = 0; }
     edFacts();
   }
@@ -17308,9 +17389,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
   function edRaise(again) {
     const p = again || edRead();
     if (!p || !edit || edit.busy) { $('edGen').reportValidity(); return; }
-    if (!again && edit.cover.size + edit.deposit.size && !edit.armed) { // what was painted would be lost: asked once more
-      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted';
-      $('edState').textContent = 'Regenerating clears what you painted on this land.'; $('edState').classList.add('changed');
+    if (!again && edit.cover.size + edit.deposit.size + edit.places.length && !edit.armed) { // what was made by hand would be lost: asked once more
+      edit.armed = true; $('edGo').textContent = 'Regenerate, and clear what is painted and placed';
+      $('edState').textContent = 'Regenerating clears what you painted and placed on this land.'; $('edState').classList.add('changed');
       return;
     }
     $('edMsg').hidden = true; edBusy(true, 0);
@@ -17320,10 +17401,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
         const opt = { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region };
         const wd = await drive(G.generate(p.seed, opt), (x) => { $('edBarFill').style.width = `${(x * 60).toFixed(1)}%`; });
         if (!edit) return;
-        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); }
+        if (again) edApply(wd); else { edit.cover.clear(); edit.deposit.clear(); edit.places = []; }
+        const kept = VB['gen/cover'].keep(wd), sim = edLay(wd, kept, p.seed);
         const painted = await paintOverview(wd, (x) => { $('edBarFill').style.width = `${(60 + x * 40).toFixed(1)}%`; });
         const first = !edit.wd || edit.wd.COLS !== wd.COLS || edit.wd.ROWS !== wd.ROWS;
-        edit.p = p; edit.wd = wd; edit.painted = painted;
+        edit.p = p; edit.wd = wd; edit.painted = painted; edit.kept = kept; edit.sim = sim; edStale.clear();
         if (editorOpen()) await edShow(first);
       } catch (e) {
         console.warn('The land could not be raised', e);
@@ -17352,11 +17434,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     loader.classList.add('done');
     $('edMsg').hidden = !msg; $('edMsg').textContent = msg || '';
     if (!edit) {
-      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false };
+      edit = { p: null, wd: null, painted: null, busy: false, cover: new Map(), deposit: new Map(), armed: false, places: [], kept: null, sim: null };
       if ($('edSeed').value) edEcho(); // the settings of an earlier visit
       else edFill({ seed: choice.seed, cols: SIZES[ED.size][0], rows: SIZES[ED.size][1], land: ED.land, region: ED.region });
     }
-    $('edPlay').disabled = edit.busy || !edit.wd; edHoldBrush(); edPaintedEcho();
+    edHoldBrush(); edPaintedEcho(); edSettleEcho();
     if (!edit.wd) edRaise(edit.p);
     else if (w !== edit.wd) onStage(() => (editorOpen() && edit && edit.wd ? edShow(true) : null));
     $('edPlay').focus({ preventScroll: true });
@@ -17365,9 +17447,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // shown (not from a form changed since), so the editor keeps its own world, to come back to from the main menu. Such a game cannot be
   // saved yet: a save rebuilds its world from seed and size alone (page/loader, `unsaved`).
   function edPlay() {
-    if (!edit || !edit.wd || edit.busy || building) return;
+    if (!edit || !edit.wd || edit.busy || building || (edManual() && !edit.places.length)) return;
     const p = edit.p;
-    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply });
+    build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply,
+      places: edManual() ? edit.places.map((x) => ({ ...x })) : null });
   }
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
@@ -17404,7 +17487,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // overlay does (page/ground), where no run means every deposit is seen.
   function edHoldBrush() {
     const held = editorOpen() && edTool === 'terrain' && edBrush ? edBrush : null, ground = !!held && held.deposit !== undefined;
-    mapBrush = held ? edStroke : null; document.body.classList.toggle('brushing', !!held);
+    const placing = editorOpen() && edTool === 'settle' && edManual() && edPlace;
+    mapBrush = held ? edStroke : placing ? edPlaceAt : null; document.body.classList.toggle('brushing', !!held || !!placing);
     L.ground.visible = ground || groundOn;
     if (ground) { groundFor = null; drawGround(); }
     edBrushList();
@@ -17433,9 +17517,20 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (!edit || !edit.wd || edit.busy || w !== edit.wd || !edBrush) return;
     const wd = edit.wd;
     if (first === null) {
-      if (edStruck) { if (edBrush.deposit !== undefined) Geo.reveins(wd); repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho(); }
-      edAt = null; edStruck = 0; edFar.clear(); return;
+      if (edStruck) {
+        if (edBrush.deposit !== undefined) Geo.reveins(wd);
+        edit.kept = VB['gen/cover'].keep(wd); // the land as painted, still with no run on it
+        repaintTiles([], edFar); edFacts(); edPaintedEcho(); edEcho();
+      }
+      edAt = null; edStruck = 0; edFar.clear();
+      const had = edit.places.length; // what is placed stands again, on the land as it is now; a place left with no room is gone
+      if (edManual() && had) {
+        edRelay().then(() => {
+          if (edit && edit.places.length < had) $('edBrushNote').textContent = 'What was placed there no longer had room, and was taken away.'; });
+      }
+      return;
     }
+    if (first && edit.sim) edUnseat(); // the land is painted with no run on it
     const [x, y] = toWorld(sx, sy), from = first || !edAt ? [x, y] : edAt, steps = Math.max(1, Math.ceil(Math.hypot(x - from[0], y - from[1]) / wd.HW));
     const r = Number($('edBrushSize').value), seen = new Set(), done = [];
     for (let s = first || !edAt ? steps : 1; s <= steps; s++) {
@@ -17462,10 +17557,82 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
     if (edit.deposit.size) Geo.reveins(wd);
   }
+  // ---- what is placed ----
+  // Settled by a scenario, the land is settled when Play is pressed. Placed by hand (Sim.seed's manual scenario), each place is laid at
+  // once by the game's own generator, and what stands there is that run, which Play begins on a land raised the same.
+  const edManual = () => $('edSettled').value === 'manual';
+  let edPlace = null; // the place tool held: 'village', 'farm', 'remove', or null
+  const edStale = new Set(); // tiles whose look a run taken away or laid has changed, to paint again
+  const edMark = (wd, sim) => {
+    if (sim) for (const t of sim.used) edStale.add(t); if (wd.worn) for (let i = 0; i < wd.N; i++) if (wd.worn[i]) edStale.add(i); };
+  // The run of the places on a world as kept, or null with none. A place that finds no room is taken out of the list, and the rest laid.
+  function edLay(wd, kept, seed) {
+    while (edManual() && edit.places.length) {
+      try { return Sim.seed(wd, seed, 'manual', edit.places); } catch (e) {
+        VB['gen/cover'].restore(wd, kept);
+        if (e.place === undefined) { console.warn('What is placed could not be laid', e); return null; }
+        edit.places.splice(e.place, 1);
+      }
+    }
+    return null;
+  }
+  // The run taken off the editor's world, which is as kept again.
+  function edUnseat() {
+    edMark(edit.wd, edit.sim); VB['gen/cover'].restore(edit.wd, edit.kept); edit.sim = null;
+    buildSettlement(edit.wd, null);
+  }
+  // The places laid anew on the world as kept, and shown.
+  async function edRelay() {
+    if (!edit || !edit.wd || w !== edit.wd) return;
+    const wd = edit.wd;
+    edMark(wd, edit.sim); VB['gen/cover'].restore(wd, edit.kept);
+    edit.sim = edLay(wd, edit.kept, edit.p.seed);
+    edMark(wd, edit.sim);
+    const tiles = [...edStale]; edStale.clear();
+    await buildSettlement(wd, edit.sim); still = true;
+    repaintTiles(tiles, tiles); edSettleEcho();
+  }
+  // page/input's mapBrush, for a place tool: a press on the map places a village about the tile or a household on it, or takes away the
+  // place nearest the tile. A place that finds no room is not kept, and the panel says so.
+  async function edPlaceAt(sx, sy, first) {
+    if (first !== true || !edit || !edit.wd || edit.busy || w !== edit.wd || !edPlace) return;
+    const wd = edit.wd, [x, y] = toWorld(sx, sy), t = loc(x, y, [0, 0]), n = edit.places.length;
+    if (t < 0) return;
+    let msg = '';
+    if (edPlace === 'remove') {
+      let k = -1, kd = 5;
+      edit.places.forEach((p, j) => { const d = VB['sim/hex'].hexSteps(wd, t, p.farm !== undefined ? p.farm : p.village); if (d < kd) { kd = d; k = j; } });
+      if (k < 0) return;
+      edit.places.splice(k, 1);
+    } else edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) } : { farm: t });
+    await edRelay();
+    if (edPlace !== 'remove' && edit.places.length <= n) {
+      msg = edPlace === 'village' ? 'A village finds no room there.' : 'A house cannot stand there, or finds no fields about it.';
+    }
+    $('edPlaceMsg').hidden = !msg; $('edPlaceMsg').textContent = msg;
+  }
+  // The Settlement panel as things stand, and whether Play can begin: placed by hand, only once something is placed.
+  function edSettleEcho() {
+    const manual = edManual(), sim = edit && edit.sim;
+    $('edSettledNote').textContent = manual ? 'Place villages and households yourself. Close households are one village, as they are in play.'
+      : `${START_WORDS[$('edSettled').value].line} They are placed when you press Play.`;
+    $('edPlacing').hidden = $('edPlacedBox').hidden = !manual;
+    for (const b of $('edPlaces').querySelectorAll('button')) b.setAttribute('aria-pressed',
+      String((b.dataset.place === 'none' ? null : b.dataset.place) === edPlace));
+    $('edFarmsOut').textContent = $('edFarms').value; $('edFarmsRow').hidden = edPlace !== 'village';
+    $('edPlaceNote').textContent = edPlace === 'village' ? 'Press on the land: the village is laid about that tile, with the farms that find room.'
+      : edPlace === 'farm' ? 'Press on the land: the house stands on that tile, its fields beside it.'
+        : edPlace === 'remove' ? 'Press on a village\u2019s green, or on a house you placed.' : 'Drag the map to move it. Choose what to place.';
+    const farms = sim ? sim.farmsteads.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
+    $('edPlaced').textContent = sim ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people.`
+      : 'Nothing yet. Play begins once something is placed.';
+    $('edUnplace').disabled = !edit || edit.busy || !edit.places.length;
+    $('edPlay').disabled = !edit || edit.busy || !edit.wd || (manual && !edit.places.length);
+  }
   // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
   function dropEditor() {
     $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush();
-    if (edit) { edit.wd = null; edit.painted = null; }
+    if (edit) { edit.wd = null; edit.painted = null; edit.kept = null; edit.sim = null; }
   }
 
   $('landEdit').addEventListener('click', () => openEditor());
@@ -17494,9 +17661,19 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // the land as it was raised: the same parameters once more, with nothing laid on it
   $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
   edBrushList();
-  $('edSettled').innerHTML = START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
-  const edSettledEcho = () => { $('edSettledNote').textContent = START_WORDS[$('edSettled').value].line; };
-  $('edSettled').addEventListener('input', edSettledEcho); edSettledEcho();
+  $('edSettled').innerHTML = '<option value="manual">Placed by hand</option>'
+    + START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
+  $('edSettled').value = 'founders';
+  // by hand or by a scenario: the picture of what is placed stands only while it is what Play would begin on
+  $('edSettled').addEventListener('input', () => {
+    edHoldBrush(); edSettleEcho(); if (edit && edit.wd && !edit.busy && (edit.sim || edit.places.length)) edRelay(); });
+  $('edPlaces').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    edPlace = b.dataset.place === 'none' ? null : b.dataset.place; $('edPlaceMsg').hidden = true; edHoldBrush(); edSettleEcho();
+  });
+  $('edFarms').addEventListener('input', edSettleEcho);
+  $('edUnplace').addEventListener('click', () => { if (edit && !edit.busy && edit.places.length) { edit.places = []; edRelay(); } });
+  edSettleEcho();
   // ======== family records ========
   const NODE_W = 168, NODE_H = 64, GAP = 30, SPOUSE_GAP = 18, ROW_H = 120;
   function layoutTree(S) {
@@ -18202,7 +18379,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '1f3fd9d466', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '6497d6ed21', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

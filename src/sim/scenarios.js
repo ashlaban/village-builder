@@ -65,10 +65,28 @@ VB['sim/scenarios'] = (() => {
       }
     }
     if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
+    return standing(w, S, rand, gen, sizes, 'populous', seedNum);
+  }
+  // Placed by hand (the archipelago editor): `places` in their order, each {village: tile, farms}, a village laid by the generator about
+  // that tile, or {farm: tile}, a household on that very tile (sim/layout, addFarmAt); the people as in Populous Villages. Where a place
+  // finds no room the error's `place` is its index.
+  function seedManual(w, seedNum, places) {
+    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [];
+    (places || []).forEach((p, k) => {
+      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? gen.addFarmAt(at) : null;
+      const made = p.farm !== undefined ? (f ? [f.id] : []) : w.water[at] || gen.used.has(at) ? [] : gen.addVillage(at, p.farms).farmsteads;
+      if (!made.length) throw Object.assign(new Error('No room for what was placed there'), { place: k });
+      for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); }
+    });
+    if (!gen.farmsteads.length) throw new Error('Nothing is placed');
+    return standing(w, S, rand, gen, sizes, 'manual', seedNum);
+  }
+  // Villages that have stood a while, as the generator laid them: their households of the sizes drawn, a year's grain, herds and meadows.
+  function standing(w, S, rand, gen, sizes, scenario, seedNum) {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = populousHouseholds(R, farmsteads, sizes);
-    const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
+    const st = makeState(w, S, R, households, farmsteads, villages, used, scenario);
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
@@ -163,7 +181,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders', 'heirs' or 'populous'. st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // @state st.scenario: string; 'founders', 'heirs', 'populous', or 'manual' (placed by hand in the editor)
+    // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
@@ -277,7 +296,9 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  function seed(w, seedNum, scenario = 'founders') {
+  // places: what was placed by hand, for the 'manual' scenario (seedManual).
+  function seed(w, seedNum, scenario = 'founders', places = null) {
+    if (scenario === 'manual') return seedManual(w, seedNum, places);
     return scenario === 'heirs' ? seedHeirs(w, seedNum) : scenario === 'populous' ? seedPopulous(w, seedNum) : seedFounders(w, seedNum);
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, seed };

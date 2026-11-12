@@ -21,6 +21,8 @@
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   // `unsaved`: the game open was started from the editor, and cannot be saved yet (page/saves).
   let unsaved = false;
+  // `still`: the run on the stage is the editor's picture of what is placed there, which never advances (page/editor, page/speed).
+  let still = false;
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
   // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
@@ -45,7 +47,7 @@
   }
   // Swaps a painted world and its run onto the stage, in place of the one there.
   async function swapWorld(wd, sim, { wc, over }) {
-    job = null;
+    job = null; still = false;
     for (const k of [...chunks.keys()]) dropChunk(k);
     for (const ch of L.water.removeChildren()) ch.destroy({ texture: true, textureSource: true });
     if (regionG) { regionG.destroy(); regionG = null; }
@@ -67,8 +69,8 @@
     resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
-  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply} (page/editor), `apply(wd)` laying
-  // what was changed by hand on the land raised: such a game is `unsaved`.
+  // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
+  // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
   async function build(seed, scenario, size, save = null, quick = false) {
     const custom = typeof size === 'object' ? size : null, opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
     if (!custom) choice = { seed, scenario, size };
@@ -82,7 +84,7 @@
     if (custom && custom.apply) custom.apply(wd);
     setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52); await frame();
     let sim = null;
-    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario); }
+    try { sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null); }
     catch (e) { console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e); }
     if (!sim) {
       building = false; $('menuBtn').disabled = false;

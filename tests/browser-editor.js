@@ -2,7 +2,8 @@
 // interface); the tools at the top left open their panels in the one scene, Play and Main menu are at the top right and there is no Back; a
 // changed form is said to be changed, and Regenerate raises the world it asks for; Main menu goes back, and a game that was open comes back
 // with it; the terrain brush lays ground cover and deposits on the land, and Regenerate asks before it clears them; Play starts a game on
-// the world shown, with what was painted, settled as chosen, which cannot be saved yet. Runs in verify only.
+// the world shown, with what was painted, settled as chosen, which cannot be saved yet; placed by hand, a village and a household are laid at
+// once and stand still, Play waits for something placed and begins on what is placed. Runs in verify only.
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
@@ -148,8 +149,51 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
     fail('Clear what is painted left the deposit');
   }
 
+  // Placed by hand: Play waits for something placed; a village is laid at once about a tile, and a household near it joins it
+  await page.click('#edTools [data-tool="settle"]'); await page.selectOption('#edSettled', 'manual');
+  if (!(await page.locator('#edPlay').isDisabled())) fail('Play is offered with nothing placed by hand');
+  const placed = () => page.evaluate(() => { const s = window.__ed.st; return s ? { farms: s.farmsteads.length, villages: s.villages.length, t: s.t,
+    centre: s.villages[0].center, sizes: s.villages.map((v) => v.farmsteads.length) } : { farms: 0, villages: 0 }; });
+  // land tiles on the open map, the best meadows first (or those 4 to 8 steps from a tile), to press on until one takes
+  const tries = (near) => page.evaluate((near) => {
+    const w = window.__ed.w, c = window.__ed.cam, r = document.getElementById('stage').getBoundingClientRect(), out = [];
+    const ax = (i) => { const row = (i / w.COLS) | 0, col = i % w.COLS; return [col - ((row - (row & 1)) >> 1), row]; };
+    const steps = (a, b) => { const [q1, r1] = ax(a), [q2, r2] = ax(b); return (Math.abs(q1 - q2) + Math.abs(r1 - r2) + Math.abs(q1 + r1 - q2 - r2)) / 2; };
+    for (let i = 0; i < w.N; i++) {
+      const x = r.left + r.width / 2 + (w.hx[i] - c.x) * c.z, y = r.top + r.height / 2 + (w.hy[i] - c.y) * c.z;
+      if (w.water[i] || w.biome[i] !== 5 || w.river[i] || x < 420 || x > 1180 || y < 120 || y > 740) continue;
+      if (near >= 0 ? steps(i, near) < 4 || steps(i, near) > 8 : ![0, 1, 2, 3, 4, 5].every((d) => w.nb[i * 6 + d] >= 0 && w.biome[w.nb[i * 6 + d]] === 5)) continue;
+      out.push({ x, y });
+    }
+    return out.slice(0, 40);
+  }, near);
+  const pressUntil = async (list, more) => { for (const p of list) { await page.mouse.click(p.x, p.y); await page.waitForTimeout(250); if (await more()) return true; } return false; };
+  await page.click('#edPlaces [data-place="village"]'); await page.locator('#edFarms').fill('4');
+  if (!(await pressUntil(await tries(-1), async () => (await placed()).farms > 0))) fail('no village could be placed on the meadows');
+  const v1 = await placed();
+  if (v1.villages !== 1 || v1.farms < 2 || v1.farms > 4 || await page.locator('#edPlay').isDisabled()) fail(`a village placed: ${JSON.stringify(v1)}`);
+  await page.click('#edPlaces [data-place="farm"]');
+  if (!(await pressUntil(await tries(v1.centre), async () => (await placed()).farms > v1.farms))) fail('no household could be placed near the village');
+  const v2 = await placed();
+  if (v2.villages !== 1 || v2.farms !== v1.farms + 1) fail(`a household placed near a village is not of it: ${JSON.stringify(v2)}`);
+  await page.waitForTimeout(1500);
+  if ((await placed()).t !== v2.t) fail('the picture of what is placed does not stand still');
+  if (!/households in 1 village/.test(await page.locator('#edPlaced').innerText())) fail(`placed: ${await page.locator('#edPlaced').innerText()}`);
+  // Play begins on what is placed
+  await page.click('#edPlay');
+  await page.waitForFunction(() => window.__ed.st && !window.__ed.demo && window.__ed.st.scenario === 'manual'
+    && document.getElementById('loader').classList.contains('done') && !document.getElementById('menuBtn').disabled, null, { timeout: 180000 });
+  const g2 = await page.evaluate(() => { const s = window.__ed.st; return { farms: s.farmsteads.length, villages: s.villages.length, centre: s.villages[0].center,
+    unsaved: window.__ed.unsaved, choose: !document.getElementById('choose').hidden }; });
+  if (g2.farms !== v2.farms || g2.villages !== 1 || g2.centre !== v2.centre || !g2.unsaved || !g2.choose) fail(`Play, placed by hand: ${JSON.stringify(g2)} for ${JSON.stringify(v2)}`);
+  // back in the editor what was placed stands again; one taken away, then all
+  await page.click('#chooseWatch'); await page.click('#menuBtn'); await landing(); await page.click('#landEdit'); await raised();
+  if ((await placed()).farms !== v2.farms) fail('the editor lost what was placed when a game was played');
+  await page.click('#edUnplace'); await page.waitForTimeout(400);
+  if ((await placed()).farms !== 0 || !(await page.locator('#edPlay').isDisabled())) fail('Take all away left something placed, or Play offered');
+
   await browser.close();
   if (errors.length) { console.log(`browser-editor: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-editor: a world alone on the stage, its tools in one scene, raised again as the parameters ask; the open game kept aside and '
-    + 'brought back; the brush lays cover and deposits; Play starts a game on the world as painted');
+    + 'brought back; the brush lays cover and deposits; a village and a household placed by hand; Play starts a game on the world as made');
 })().catch((e) => { console.error(e); process.exit(1); });

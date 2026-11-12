@@ -345,7 +345,24 @@
         <legend>Settled by</legend>
         <select id="edSettled" aria-label="Settled by"></select>
         <p class="hint" id="edSettledNote"></p>
-        <p class="hint">The villages are placed when you press Play.</p>
+      </fieldset>
+      <fieldset id="edPlacing" hidden>
+        <legend>Place</legend>
+        <div class="ed-brushes" id="edPlaces" role="group" aria-label="Place">
+          <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
+          <button type="button" data-place="village" aria-pressed="false">A village</button>
+          <button type="button" data-place="farm" aria-pressed="false">A household</button>
+          <button type="button" data-place="remove" aria-pressed="false" class="wide">Take one away</button>
+        </div>
+        <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
+          <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <p class="hint" id="edPlaceNote"></p>
+        <p class="err" id="edPlaceMsg" role="alert" hidden></p>
+      </fieldset>
+      <fieldset id="edPlacedBox" hidden>
+        <legend>Placed</legend>
+        <p id="edPlaced"></p>
+        <div class="ed-acts"><button type="button" id="edUnplace" disabled>Take all away</button></div>
       </fieldset>
     </div>
   </section>
