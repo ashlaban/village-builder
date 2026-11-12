@@ -181,6 +181,9 @@ VB['sim/rules'] = (() => {
   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
   // turn-out on spring day 6 (doy 5), 21 days; breeding on spring day 3 (doy 2) with a bull of bullAge or more, or a ram, within reach steps of
   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
+  // ---- what one adult carries (Kim, 10 Nov: one number for the fields, the fair and the journeys): rations on the back, and on a cart with
+  // two oxen (VB-335, VB-291, VB-295) ----
+  const TRAVEL = { load: 30, cart: 90 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -372,7 +375,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
     SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS, WOOD, BUILD };
 })();

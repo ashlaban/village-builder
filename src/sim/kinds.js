@@ -5,7 +5,7 @@ VB['sim/kinds'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
-  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
+  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
@@ -20,7 +20,8 @@ VB['sim/kinds'] = (() => {
   //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
-  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
+  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;
+  //   load(st, a, j, cap): a trip's load from the field; again(j): the job stays open for the next (haul, VB-335);
   //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
   //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
@@ -139,13 +140,12 @@ VB['sim/kinds'] = (() => {
       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
       anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn', window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f) => {
-        Stores.sheaf(st, hh, j.field.held);
-        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
-          kind: 'harvest', ...atFarm(f) });
-        hauled(j.field);
+      load: (st, a, j, cap) => (a.load = carried(j.field, cap)), again: (j) => j.field.stage === 'stooks',
+      deliver: (st, j, hh, f, a) => {
+        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1));
+        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') && !hh.members.some((id) => id !== a.id && st.agents[id].load > 0
+          && st.agents[id].phase === 'back')) log(st, `${f.name} has brought in its harvest.`, { kind: 'harvest', ...atFarm(f) });
       },
-      // a field's stooks, once they have dried dryDays since the reaping
       stages: ['stooks'], available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays) post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
       },

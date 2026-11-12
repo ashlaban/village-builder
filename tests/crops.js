@@ -38,7 +38,9 @@ setClock(st, c.day * DAY);
 KINDS.reap.done(st, j, hh, c);
 const held = fd.held;
 assert(held > 0);
-KINDS.haul.deliver(st, j, hh, f);
+const hand = { id: -1, load: 0 };
+KINDS.haul.load(st, hand, j, 1e9); // the whole field in one load
+KINDS.haul.deliver(st, j, hh, f, hand);
 const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17 };
 f.fields.push(waiting);
 const frostBefore = st.record.filter((e) => e.kind === 'frost').length;

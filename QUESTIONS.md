@@ -182,6 +182,15 @@ Reaping is 15 hours a field and threshing 20, as you decided, and it is merged: 
    reaping (VB-106) and hired hands at the peaks (VB-319) take the rest. If the loss should fall sooner, reaping could start a few days before
    the crop is fully ripe at a small cost in yield.
 
+### VB-335: what a load of hay is (raised 12 November 2026)
+Sheaves now come home by the load, 30 rations on the back and 90 on a cart with two oxen (`TRAVEL.load`, `TRAVEL.cart`). Hay is the same
+question and is not changed: `KINDS.hay` still brings a meadow's 30 units (`HAY` in `src/sim/meadows.js`) home in one job of 4 hours and one
+carry. A unit of hay is a cow's stall day (`HERD.hay`: cow 1, calf 0.4, ewe 0.2), so 30 units is 30 cow-days, a bulky load for one back.
+1. What is a load of hay? **P:** by weight rather than by ration: a load is a third of a meadow, 10 units on the back and 60 on a cart (two
+   oxen draw twice what a sheaf cart takes, for hay is light), so a meadow of 30 is three trips on the back or one cart; the job keeps its
+   hours a load (4 hours for the whole meadow becomes 1.5 a load), and the household's hands come in as they do at the sheaves. The cost is
+   the same walks as VB-335's (rule 9).
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)

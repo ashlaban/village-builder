@@ -192,13 +192,13 @@ VB['sim/stores'] = (() => {
     record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
     return got;
   }
-  function sheaf(st, hh, n) {
-    amount(n); record(st, hh, 'sheaves', n, 'harvest');
-    if (!hh.unthreshed.length) wake(st, hh);
-    hh.unthreshed.push(n);
+  function sheaf(st, hh, n, seq = -1) { // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
+    amount(n); record(st, hh, 'sheaves', n, 'harvest'); if (!hh.unthreshed.length) wake(st, hh);
+    const th = hh.threshed || 0, i = seq - th; // a field's loads add to its entry
+    return i >= 0 && i < hh.unthreshed.length ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
   }
   function thresh(st, hh) {
-    type(hh); const n = hh.unthreshed.shift() || 0;
+    type(hh); const n = hh.unthreshed.shift() || 0; hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
   }
   // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
