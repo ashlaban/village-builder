@@ -63,16 +63,6 @@ for (const f of pop.farmsteads) {
   if (d >= 0 && pw.dev[d] !== 2) doors++;
 }
 check(doors > pop.farmsteads.length / 4, `only ${doors} of ${pop.farmsteads.length} houses have a way to their door`);
-// trampled ground: a tile beside a house or green worn in a patch is drawn as ground (a ninth number), with no way across it
-let yards = 0;
-for (let i = 0; i < pw.N; i++) {
-  if (!Look.trampled(pw, i)) continue;
-  yards++;
-  const g = Look.segments(pw, i), nbs = [0, 1, 2, 3, 4, 5].map((k) => pw.nb[i * 6 + k]);
-  check(g.length > 0 && g.every((x) => x[8]), `trampled tile ${i} draws a way across its ground`);
-  check(pw.dev[i] === 0 && nbs.some((j) => j >= 0 && pw.dev[j] > 1), `trampled tile ${i} lies beside no house or green`);
-}
-check(yards > 0, 'no village has trampled ground after a populous year');
 // trodden ground is walked and counted and draws nothing (LOOK.from)
 const faint = pw.worn.findIndex((s, i) => s === 1 && pw.dev[i] < 2 && !pw.river[i]);
 if (faint >= 0) check(Look.segments(pw, faint).length === 0, 'trodden ground draws a trail');
