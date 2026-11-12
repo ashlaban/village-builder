@@ -112,7 +112,7 @@ const Culture = (() => {
 
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
-  const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  const NAME_PREFS = { farm: ['compass', 'owner', 'position', 'landmark', 'feature', 'age'] };
   // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
   // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
   // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no

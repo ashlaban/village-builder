@@ -152,8 +152,10 @@ VB['sim/settle'] = (() => {
     }
     return best;
   }
-  // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
-  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), drawer(st.rng.settle));
+  // The name of a village founded on tile `site` by p of village `home` (sim/names: by its founder or its mother village, as the site
+  // has it), from a stream of the tile's own, so naming draws nothing from the simulation's streams.
+  const foundedName = (st, p, home, site) => names.villageName({ w: st.w, site, founder: p, mother: home }, new Set(st.villages.map((v) => v.name)),
+    names.tileRand(site, names.VILLAGE.salt));
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
@@ -200,7 +202,7 @@ VB['sim/settle'] = (() => {
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
   function found(st, home, p, party, site, prov) {
     const hs = st.cenv.settlements[home.id];
-    const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], wood: [], grain: {},
+    const v = { id: st.villages.length, name: foundedName(st, p, home, site.house), center: site.house, farmsteads: [], fence: [], wood: [], grain: {},
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
     const f = settleFarm(st, v, home, party, site.house, site.field, prov);
@@ -258,6 +260,6 @@ VB['sim/settle'] = (() => {
       }
     }
   }
-  return { waitingByVillage, markCrowded, partyOf, provisions, landInUse, reachOf, candidates, newSite, smallVillage, founderName, settleFarm, found,
+  return { waitingByVillage, markCrowded, partyOf, provisions, landInUse, reachOf, candidates, newSite, smallVillage, foundedName, settleFarm, found,
     settleRound };
 })();
