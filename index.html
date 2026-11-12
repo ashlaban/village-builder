@@ -452,7 +452,7 @@ body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .culture .row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
 .culture .row .who i { font-weight: 400; line-height: 1.35; }
 .culture .row .who i.stir { color: var(--ink); }
-.culture .mark { display: inline-block; }
+.culture .mark { display: inline-block; margin-right: 5px; }
 .culture .row .state { font-size: 18px; color: var(--muted); }
 .culture .kept { margin-top: 4px; border-top: 1px solid var(--edge); }
 .culture .kept summary { padding: 10px 0; font-size: 14px; color: var(--muted); cursor: pointer; }
@@ -19310,7 +19310,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '9af0db1d6b', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'cb7e96075e', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
