@@ -88,6 +88,23 @@ slices of `docs/roadmap.md` build towards them, and the sections below say how f
 - **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
   Work, Death and the Peasant".
 
+### Principles for decisions (Kim, 12 November 2026)
+
+Decided, in a discussion of the open questions. They say how a question is answered when the sections below do not; `AGENTS.md`,
+Deciding without Kim, is their working form and says which questions still go to Kim.
+
+- **Hunger is an engine.** Shortage drives the gift and goodwill, and through them loans, land passing and the landed class. A household
+  may fail; the design does not aim for every household to be fed.
+- **The island grows without the player.** The island as a whole must grow reliably with nobody steering it: at least 1% a year in the
+  long term, over most seeds (Balance loops and targets, Growth). Only island-wide numbers are judged.
+- **Parameters, not patches.** What balance depends on is a named parameter with a meaning in the physical world or in a gameplay
+  system. Parameters are tuned together, for gameplay balance, in runs Kim starts; otherwise only to avoid a collapse.
+- **History, leaning to gameplay.** Systems, customs and their defaults are grounded in history; where history and play part, play
+  decides. Customs may be added freely for now; a later review will look for a smaller set with the same effects.
+- **Detail where it is a decision.** Quantities and logistics are grounded in history, and the kinds modelled are those that give the
+  head or the player a decision: key kinds, not every kind, as with the crops (Crops and rotations).
+- **References.** Founders is the reference for the early game, populous for the late game (many pawns).
+
 ## 2. World, climate and travel
 
 ### World and scale
@@ -213,7 +230,7 @@ A year has 4 seasons of 12 days, so one game day stands for about a week; at 1×
 | Stall period | Animals stand in the byre from about autumn day 9 to spring day 6, 21 of 48 days (see Animals) | Agreed |
 | Pace of play | A year takes about 38 minutes at 1× and about 4 at 10× | Agreed, trade-off noted |
 
-**Growth and time conflict.** Frontier populations with open land grew close to 3% a year from births. From 10 to 1,000 takes about 150 years, 5–6 generations, or roughly 10 hours at 10×. The game is meant to be slow: 40 hours or more to reach full population is fine, with growth from births and, in a later stage, very limited immigration by boat (Decided).
+**Growth and time conflict.** Frontier populations with open land grew close to 3% a year from births. From 10 to 1,000 takes about 150 years, 5–6 generations, or roughly 10 hours at 10×. The game is meant to be slow: 40 hours or more to reach full population is fine, with growth from births and, in a later stage, very limited immigration by boat (Decided). The target is at least 1% a year in the long term (Decided, 12 Nov; Balance loops and targets, Growth); at exactly 1%, 10 to 1,000 takes about 460 years, about 29 hours at 10×, so a run of the intended length rests on growth nearer 2 to 3%, or on a scenario that starts larger.
 
 **Run length.** A single run should last 40–80 hours (Decided). At about 38 minutes a year, 150 years is about 95 hours at 1×, so a run would mostly play between 1× and 3×.
 
@@ -377,8 +394,8 @@ When a village is full, its landless adults may leave to found a farm of their o
 ### Households and other bodies (slice 5, 11 November)
 
 Proposed by slice 5's plan (backlog VB-184, 11 November 2026), from `docs/roadmap.md` 3.5 and target-v2 (4.4, 4.6, trace 7.1). A body is
-what holds land, owes and is owed: in slice 5 the household and the village; the alderman is the village's first office. The questions
-for Kim are in `QUESTIONS.md`, "VB-184: debt and land".
+what holds land, owes and is owed: in slice 5 the household and the village; the alderman is the village's first office. Its
+answers stand as Agreed (Kim, 12 Nov; `QUESTION_ARCHIVE.md`, VB-184); only the membership graph is open (`QUESTIONS.md`, VB-184, question 7).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
@@ -565,7 +582,7 @@ Goods, the farming year, processing and animals as v0.3 has them. Typed goods, r
 | Meals | A household keeps a store of meals, cooked from its foods and counted in rations; each afternoon the cook makes the next day's meals, and may leave other work after 14:00 to do it; households start with 2 days of meals, so one missed cooking uses the buffer, not a hungry day. The cook puts in what spoils first. Variety is judged in the pot: a pot of 2 sources goes 10% further, of 3 or more 20%, a source being a food that gives at least a fifth of the pot (grain and flour are one source, and so are milk and butter: butter's source is milk, dairy one source; Decided, Kim, 10 Nov). A household with no meals eats its grain uncooked, at a penalty (starting value: 1.25 rations of grain for a ration of need) | Decided, 30 Oct; meals, the pot and the penalty Decided 10 Nov (Kim); the penalty's number Proposed |
 | Food from the wild | Fishing in rivers, lakes and the sea from spring to autumn, and gathering berries, mushrooms and nuts in the woods in late summer and autumn. Both are always posted, with an urgency that is low while the household has food and high when it runs short, so they fill slack hours and answer a lean summer; each water or wood tile holds a stock that use lowers and time restores (backlog VB-117, VB-118) | Decided (by urgency), Proposed (numbers), 30 Oct |
 | Mixed meals | Judged in the pot, at cooking (see Meals; 10 Nov). A day's meals cooked from 2 food sources needs 10% less food, from 3 or more 20% less; grain or flour, fish and gathered food are sources now, milk and meat with the animals. Fresh fish and gathered food are eaten first and spoil after 3 game days; drying and salting come later. Built with hand-quern milling (backlog VB-119, VB-009) | Decided, Agreed (numbers), 30 Oct |
-| Help in hunger | A household short of food asks at most once a season, for enough to reach the next harvest (the start of autumn; in autumn, a season's need): its kin first, then the village store; if the gifts fall short, it waits for the next season. Each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households and is booked as goodwill between their holders (see Exchange, goodwill and obligations, The gift); loans come with money | Decided (the store), Agreed (rest), 30 Oct; revised as a gift, 8 Nov (VB-182); once a season, until the harvest (Kim), 8 Nov |
+| Help in hunger | A household short of food asks at most once a season, for enough to reach the next harvest (the start of autumn; in autumn, a season's need): its kin first, then the village store; if the gifts fall short, it waits for the next season. An ask that brings nothing at all is to be asked again on a later day (Agreed, 12 Nov; backlog VB-391). The holder keeps a reserve of 20–60 days' food (drawn per pawn) before giving; a household without a holder keeps 60. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households and is booked as goodwill between their holders (see Exchange, goodwill and obligations, The gift); loans come with money | Decided (the store), Agreed (rest), 30 Oct; revised as a gift, 8 Nov (VB-182); once a season, until the harvest (Kim), 8 Nov |
 | Soil | Each harvest wears a field down; manure from the byre restores it. Starting values: −0.08 a harvest to a floor of 0.75, +0.04 a load of manure to 1.15 (backlog VB-137). Balance review: the dung heap loses half of what lies on it in a year, and is carted before the hoe; +0.02 a load (so about 3 head of cattle, not 1.5, keep 3 fields) was tried and cost a quarter more hungry days, so +0.04 stays until herding (VB-136) and food from the wild (VB-117, VB-118) give farms more slack | Agreed; numbers Agreed, 31 Oct; Agreed (the heap rots; +0.04 for now), 2 Nov |
 | Risk | Frost destroys whatever is left in the field; each year has a weather factor. With several crops the factor gives way to a season's weather, read by each crop in its own way (Crops and rotations, Crops and the weather; Proposed, 11 Nov) | Agreed |
 | Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); the soil's cap (1.15 from manure) rises by 0.1 a century of a village's years of farming, so a well-dunged old farm out-yields a new one by about 10% after 100 years (backlog VB-160) | Decided (rise), 30 Oct; Agreed (rate), 2 Nov |
@@ -926,7 +943,7 @@ slice 5's (VB-184, 11 November).
 | Goodwill | An opinion that is also a currency, in discrete units (helped build a house, gave a cow): its own measure on the relation between two pawns, tightly coupled to opinion by culture. It makes parties accept unfavourable terms, short of starving themselves; an unfavourable deal changes it in turn | Decided, 3 Nov |
 | Value and acceptance | Customary worth decides what a deal was worth, possibly influenced by need; need decides whether it is accepted | Decided, 3 Nov |
 | Booking | A deal's residual is booked between the two acting pawns only; a household's allowance in a deal is likewise its agent's, toward the other agent | Decided, 3 Nov |
-| Goodwill at retirement | A share of the holder's goodwill passes to the new holder, set by custom | Decided, 3 Nov |
+| Goodwill at retirement | A share of the holder's goodwill passes to the new holder, set by custom (half for now, in every culture, until a custom of inheritance takes it up; The gift, Who books) | Decided, 3 Nov; half, 12 Nov |
 | The floor | No pawn accepts a deal that takes its household below its floor (seed and some days of food); the player's pawn may, with a warning that names who goes hungry | Decided, 3 Nov |
 | Lumps | Goods change hands in whole quanta, so most deals leave a residual that goodwill absorbs; silver, divisible by weight, shrinks it | Proposed (target-v2, section 5.2) |
 | Obligations | Every explicit claim (deal, loan, share, rent, tithe, tax, toll, wage, dowry, fine, service) names a debtor, a creditor, what is owed, when, and who enforces it; the heirs' shares are the first | Proposed (target-v2, section 4.4) |
@@ -944,7 +961,7 @@ slice 5's (VB-184, 11 November).
 | Allowance | How much one agent would give up to another in one deal, in rations, never below 0: the giving household's grain above its floor; less the holder's own reserve beyond the floor, 0 to 40 days of the household's need, drawn per pawn (a stand-in for generosity until traits, slice 7); plus goodwill's term, what the giver owes the receiver less what the receiver owes beyond 30 days of its household's need, which slice 4 switches on. No kinship term until help reaches beyond kin; no custom term until a custom of helping exists. With goodwill's term off, a kin household gives what it gives today. Opinion feeds allowance beside goodwill (Kim, 9 Nov, target-v2's decision 30): with slice 4, a term of the giver's opinion of the receiver (−1 to 1) times 10 rations, one sack, so never more than a sack either way (VB-220) | Agreed, 8 Nov; opinion's term Agreed, 10 Nov |
 | Unit and decay | Customary rations; grain is worth 1 a ration until worth becomes a norm (slice 4). A balance is read from its value and when it last changed, so it decays with no step of its own: it halves in 4 years (tunable from 2 to 20). One under a ration counts as forgotten, and is dropped when either pawn next deals, reaches its cap, or dies. A pawn has at most 32 counterparts; the smallest balance goes to make room | Agreed, 8 Nov; one number decaying when read (Kim), 8 Nov |
 | Goodwill and opinion | The debtor is grateful: +0.15 × s / (s + 20) for a balance of s rations, fading as the balance decays; it adds to the derived opinion (kin standing, affinity and memories: Traits, talk and stories, Opinion) as one more term. How long a debt has stood, and an old debt souring the creditor, are for stories (slice 7), since a balance keeps no age. One set of values for every culture for now. Slice 4 switches this on with allowance's goodwill term; until then goodwill is booked and shown only. It replaces the memory "A gift of food" proposed for VB-039 | Agreed, 8 Nov; by size only (Kim: one number), 8 Nov; adds to the derived opinion (Kim), 10 Nov |
-| Who books | The two holders. The village store's gifts and its yearly filling book nothing until the village has an agent; a household without a holder books nothing. At a handover (a retirement, or a holder's death), half of the old holder's balances pass to the new holder, and a retired holder keeps the rest. Other deaths end a pawn's balances until a person's estate is designed (slice 5) | Agreed, 8 Nov |
+| Who books | The two holders. The village store's gifts and its yearly filling book nothing until the village has an agent; a household without a holder books nothing. At a handover (a retirement, or a holder's death), half of the old holder's balances pass to the new holder, and a retired holder keeps the rest. A balance with the heir himself is halved: the half that would pass has nowhere to go. Other deaths end a pawn's balances until a person's estate is designed (slice 5) | Agreed, 8 Nov |
 | What the player sees | The pawn panel lists up to 5 balances by size ("Owes Erik Larsson 34 rations", "Is owed 12 rations by Anna Persdotter"). On a holder's panel, each row adds how much it would give that pawn, with the parts of its allowance on hover | Agreed, 8 Nov; no reason or year (one number), 8 Nov |
 | The player's gift | The player's pawn gives by the same command as any holder, to any household. Its pawn's allowance does not bind it, since the player decides for its pawn; it may give below its floor, with a warning that names who goes hungry (Decided, 3 Nov). The page's side follows slice 2 | Decided (the floor), 3 Nov; Agreed (rest), 8 Nov |
 
@@ -971,8 +988,8 @@ quanta, the worth table and need curves. Grain loans, once part of this slice, m
 
 Proposed by slice 5's plan (backlog VB-184, 11 November 2026): the alderman's road of target-v2 (section 5.5, trace 7.1), with grain
 loans moved here from slice 4 (Kim, 10 Nov). A lean year lends grain; two unpaid harvests make a case at the meeting; the remedy
-is labour, or a field that passes to the creditor while its old family farms it as tenants (Land and rights). The questions for Kim
-are in `QUESTIONS.md`, "VB-184: debt and land".
+is labour, or a field that passes to the creditor while its old family farms it as tenants (Land and rights). Its answers
+stand as Agreed (Kim, 12 Nov; `QUESTION_ARCHIVE.md`, VB-184).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
@@ -992,6 +1009,8 @@ are in `QUESTIONS.md`, "VB-184: debt and land".
 ## 10. Customs and culture
 
 One culture holds a single set of customs with a default when generated; members' attitudes drift every game day, villages change their practice only at a yearly meeting, and remote villages can drift off into new cultures. (Decided)
+
+Customs are grounded in history, and a custom's default leans to gameplay where the two part. New customs may be added freely for now; Kim will later review them for a smaller set with the same effects. (Decided, 12 Nov)
 
 &#91;embedded content: customs cycle · daily drift, yearly round\]
 
@@ -1167,13 +1186,16 @@ Slices 0 and 9 write this section (backlog VB-181, VB-189); the loops and their 
 | --- | --- | --- |
 | Balance points | Many systems balance themselves, and tuning the game means tuning their balance points: peasant fertility is held in check by taxation and by higher death rates in crowded towns | Decided, 3 Nov (Kim's description) |
 | Population | About 1,000 living pawns on a medium map (see Vision and scope) | Decided, 3 Nov |
+| Growth | The island grows without the player. Yearly growth of a run is `(end / start)^(1 / years) − 1`. Over a scenario's seeds: the median seed grows at least 1% a year; at least three seeds in four end above their start; at most one in eight ends below half its start. Not every seed need grow. Founders is held to it as the early reference; populous while land is free (the loops hold it after); heirs is reported without a target | Decided, 12 Nov (1%, most seeds, the references); Agreed, 12 Nov (the three numbers) |
+| What is judged | Island-wide numbers only. Hunger is an engine (Vision and scope, Principles), so measures of single households (the hungriest household, the share of households hungry, hunger's share of deaths) are reported as descriptions and have no target | Decided, 12 Nov |
+| Collapse and tuning | A collapse is a reference scenario whose median seed shrinks; it may be tuned away at once. Anything short of a target but not a collapse is reported and left: parameters are tuned together, for gameplay balance, in runs Kim starts. A formula that computes something other than it says is a fix, not tuning | Decided, 12 Nov |
 | Strata | 600 farming, 325 in towns and specialised work, 75 elite, per 1,000, at the end game; open to challenge. Proposed reading: a band for a developed island, not a quota, with strata counted by relation to production, not residence | Decided (the target), Proposed (the reading) |
 | Bands | Full-simulation bands are reported nightly and never fail; reduced scenarios (a tiny map, a few years) are asserted and may fail outside their band | Decided, 3 Nov |
 | Loops | About twenty loops, each declared with its stock, probe, setpoints and bands, calibrated fast loops first | Proposed (target-v2, section 6) |
 
 ## 14. Starting scenarios
 
-There are several starting scenarios; the base and default one is the 10 founders, and unless a scenario says otherwise it starts with as few fields and meadows already made as possible, so the first year goes to making them. (Decided)
+There are several starting scenarios; the base and default one is the 10 founders, and unless a scenario says otherwise it starts with as few fields and meadows already made as possible, so the first year goes to making them. (Decided) Founders is the reference for the early game and populous for the late game (Decided, 12 Nov).
 
 | Scenario | Start | Purpose | Status |
 | --- | --- | --- | --- |
@@ -1316,7 +1338,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [x] Births: fertility, child mortality, spacing of children. Decided: spacing by explicit pregnancy and nursing; starting targets for fertility and child mortality Agreed.
 - [x] Stats and traits, and whether children inherit them. Decided (3 Nov): twelve traits, partly inherited (see People, Traits, talk and stories).
 - [ ] A historical division of labour by sex, or free job assignment by role only.
-- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom; sickness and leaving still open.
+- [ ] What hunger does: weakness, sickness, death, leaving. Decided: it can kill, mostly infants and the old, slows work, and postpones marriages and births, and who eats first is a custom. Decided (12 Nov): hunger is an engine of the gift, of loans and of the landed class, and a household may fail (Vision and scope, Principles). Sickness and leaving still open.
 - [x] Faster speeds or skipping nights, given that a generation takes hours of play. A slow game is intended: 40 hours or more to full population is fine (Decided), so growth no longer forces this. Decided (30 Oct): 30× and uncapped speeds, running in the background, and short nights with less sleep; nights are not skipped (backlog VB-084, VB-105).
 - [ ] Cities: how they arise and how much faster they change customs.
 - [ ] Trade and money.
@@ -1441,6 +1463,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (principles) | 12 November 2026 | Kim's decisions in a discussion of the open questions: Vision and scope gains Principles for decisions (hunger as an engine; the island grows without the player; parameters, not patches; history leaning to gameplay; detail where it is a decision; founders and populous as references). Balance loops and targets gains Growth (at least 1% a year, over most seeds), What is judged (island-wide numbers only) and Collapse and tuning. Customs may be added freely, with a later review. `AGENTS.md`, Deciding without Kim, says which questions still go to Kim. |
 | 0.4 (slice 6 plan) | 11 November 2026 | Slice 6's plan (backlog VB-185), on Kim's answers in a session: Goods, production and animals gains The mill and the loom, the kiln and the quarry: two halves; skills (novice 60%, master 130%); wool to cloth and dress; who spins as a practice; the quern stone a good of place that wears out; a water mill where there is a river, with millstones and iron; iron in two steps, lifting the tools' ceiling; pots, peat, brick, tiles and lime; four grades of house, the stone house alone mortared. Tasks VB-360 to VB-371; VB-009, VB-093 and VB-121 rewritten, VB-144 confirmed |
 | 0.4 (the ground) | 11 November 2026 | Kim's decisions in a session on the terrain: World and scale gains Ground (bedrock of six kinds; finite deposits of clay, bog iron, iron, copper, lead-silver, tin and gold, and of peat, flint and amber, with salt springs; each island draws its kinds by tuned chance; a few endless sources), and Goods of place gains In the ground. Generation and views only (task VB-357); Kim's answers the same day on what is known and found, bog iron growing back, quarrying by bedrock and what each kind is for (`QUESTION_ARCHIVE.md`) |
 | 0.4 (crops, first part) | 11 November 2026 | Kim's answers in a discussion of crops, the scale of a hex, planting, yields and the weather (`QUESTION_ARCHIVE.md`, VB-345): Goods and the farming year gains Crops and rotations, with what crops are for, the head's choice by skill (on choices and timing only), seed as knowing a crop, fallow as rest, different starts a village (Decided), and a table of the first crops, barley, winter rye, peas and fallow (Proposed). World and scale gains Two readings of one grid (a site about 10 m, land about 100 m and 0.87 ha a hex; Agreed), and farmland's compression is corrected from "a few hundred times" to about 100 times in area. Second part, the same day: The rotation (at most four courses a field, a short list of rotations bounded by the household's seed, a farm's fields staggered, the village's usual rotation in the culture's year) and How the head chooses what to sow (a poor, an ordinary and a good head; a trial as a project; the player's verbs), Proposed, with a row in Work: opportunities, plans and tasks. Rye is 4:1 (Kim, 11 Nov). Third part, the same day: Kim decided that the player chooses its rotation freely (the other heads' short choice is for cost) and that the village's usual rotation is the one most farms hold, updated at the meeting. Seed (seed is the crop's own grain, held in subtypes, reserved by the plan, the last field's seed eaten last; a crop moves wherever grain moves) and The scenarios' crops (founders: the three farms barley and rye, the lone farm barley and peas; heirs and populous Proposed); Starting scenarios names the founders' two villages. Fourth part, the same day: Crops and the weather (a season's warmth and wetness and two frost days in place of the yearly factor; a draw for the archipelago a season until slice 10, then the weather itself a region; what barley, rye, peas and hay each read; Proposed). Kim: a backup household carries pea seed in founders (Decided); the order in which seed is eaten (Agreed). Last part, the same day: What crops touch, and the tasks VB-346 to VB-356 (ten to build and a wrap-up). Kim then accepted the ten points still Proposed as written (`QUESTION_ARCHIVE.md`, VB-345), which are now Agreed, and the tasks were released at priority 2. Kim: the weather is being built on a branch of its own, so it answers the crops' question if it lands first; losing the spring's forecast is fine for now. The plan task was renumbered from VB-342 to VB-345, two other branches having taken VB-342 to VB-344 |

@@ -6,6 +6,13 @@ for each whether it stays a hard check (it fails a run) or becomes a target (it 
 never fails), and proposes how targets are recorded and read. It changes no test, baseline or workflow; the questions are in
 `QUESTIONS.md` ("VB-261") and the tasks that build the answers wait for them.
 
+**Since then (Kim, 12 November).** Only island-wide numbers are judged, and hunger is an engine (`design.md`, Balance loops and
+targets). Rows 21 and 22 below are as surveyed; today the bands' targets are growth over a scenario's seeds (the median at least 1% a
+year, three seeds in four above their start, at most one in eight halved; founders at sixteen seeds, populous at four, the reduced
+run), no village emptied, and the watched bands. Hunger's share of deaths and the hungry households are described: printed and
+recorded, with no target (`tests/lib/bands.js`). A target that is out is left for a tuning run Kim starts, unless it is a collapse
+(a median seed that shrinks).
+
 **The dividing line.** A hard check guards correctness: something is true or false, it is the same on every machine and every run, and the
 fix is in the change that broke it (a stale build, a clock in a module, a save that does not load back, an owner bypassed, a broken
 invariant, an unlisted behaviour change). A target is a quantity we steer towards: cost, balance, demography, timing. Its value moves
