@@ -55,6 +55,26 @@ check(st.living.every((id) => !st.agents[id].side), 'a side task held at 20:00')
 Sim.advance(st, (Sim.HERD.stall[0] + 1) * Sim.DAY + 8 - st.t);
 check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the byre season');
 
+// --- a herd keeps its pasture: the same tile the next day, at least keepDays days, and until it is grazed down or may not be grazed
+{
+  const s = Sim.seed(world(7), 7, 'populous');
+  Sim.advance(s, 15 * Sim.DAY + 7 - s.t);
+  const hh = s.liveHouseholds.map((id) => s.households[id]).find((h) => h.pasture), c = Sim.cal(s.t), p = hh.pasture.tile;
+  const next = (d) => ({ ...c, day: c.day + d });
+  check(Z.todaysPasture(s, hh, next(1)) === p, 'the pasture not kept the next day');
+  const g0 = s.w.graze[p];
+  s.w.graze[p] = (H.downAt + 1) * Z.yearScale(s);
+  check(Z.todaysPasture(s, hh, { ...c, day: hh.pasture.since + H.keepDays - 1 }) === p, 'a grazed-down pasture left before keepDays');
+  const moved = Z.todaysPasture(s, hh, { ...c, day: hh.pasture.since + H.keepDays });
+  check(moved !== p && moved >= 0 && hh.pasture.tile === moved, 'a grazed-down pasture kept after keepDays');
+  s.w.graze[p] = g0;
+  const q = hh.pasture.tile, was = s.owner[q];
+  s.owner[q] = hh.id + 2; // another household's now
+  check(Z.todaysPasture(s, hh, next(1)) !== q, 'a pasture kept on another\'s land');
+  s.owner[q] = was;
+  check(s.liveHouseholds.every((id) => !s.households[id].pasture || Z.grazable(s, s.households[id], s.households[id].pasture.tile)), 'a kept pasture not grazable');
+}
+
 // --- the pressure halves each game year in closed form, put on the new year's scale at its first step
 {
   const w = { N: 7, nb: new Int32Array(42).fill(-1), graze: new Float32Array(7) };

@@ -1,7 +1,7 @@
 // @sys sim/grazing: herding and grazing pressure (VB-136): the day's pasture, the herder who takes the herds there and home, the pressure
 VB['sim/grazing'] = (() => {
   const { DAY, YEAR, HERD, stalled, cal } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   // docs/review-animals.md, G6: a herd adds pressure only on the tile it grazes with its herder, and the pressure halves each year, as worn
   // paths do; forest spread reads it (VB-091; GRAZE in sim/rules). A herd's herder and the day it was last taken out are the herd's
@@ -35,22 +35,38 @@ VB['sim/grazing'] = (() => {
   }
   // The pressure an hour of the household's herds on a pasture: 1 a head of cattle, HERD.herding.sheep a sheep.
   const herdLoad = (st, hh) => { const [cattle, sheep] = heads(st, hh); return cattle + sheep * HERD.herding.sheep; };
-  // Where the household's herds graze today: a tile within HERD.herding.steps steps of the house, open land or wood (by its grass), not a
-  // field, a house, a green or a meadow but the farm's own mown and carried (its aftermath), not another household's; best grass, least
-  // grazed, nearest. -1 when there is none.
+  // A tile the household's herds may graze: open land or wood (by its grass), not a field, a house, a green or a meadow but the farm's own
+  // mown and carried (its aftermath), not another household's. `greens`: the villages' centres, when the caller has them.
+  function grazable(st, hh, t, greens = null) {
+    const w = st.w, f = st.farmsteads[hh.farmstead];
+    if (!HERD.herding.grass[w.biome[t]] || w.water[t] || w.river[t] || (st.owner[t] > 0 && st.owner[t] !== hh.id + 1)) return false;
+    if (greens ? greens.has(t) : st.villages.some((v) => v.center === t)) return false;
+    return !st.used.has(t) || f.meadows.some((m) => m.tile === t && m.stage === 'aftermath');
+  }
+  // A new pasture: a grazable tile within HERD.herding.steps steps of the house; best grass, least grazed, nearest. -1 when there is none.
   function pasture(st, hh) {
-    const w = st.w, H = HERD.herding, f = st.farmsteads[hh.farmstead], mine = hh.id + 1, greens = new Set(st.villages.map((v) => v.center));
-    const after = new Set(f.meadows.filter((m) => m.stage === 'aftermath').map((m) => m.tile));
+    const w = st.w, H = HERD.herding, f = st.farmsteads[hh.farmstead], greens = new Set(st.villages.map((v) => v.center));
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, H.steps, walkable(w)).dist) {
       VB.count.pastureTiles++;
-      const grass = H.grass[w.biome[t]];
-      if (d < 1 || !grass || w.water[t] || w.river[t] || greens.has(t) || (st.used.has(t) && !after.has(t))) continue;
-      if (st.owner[t] > 0 && st.owner[t] !== mine) continue;
-      const s = grass - grazeOf(st, t) / H.full - H.perStep * d;
+      if (d < 1 || !grazable(st, hh, t, greens)) continue;
+      const s = H.grass[w.biome[t]] - grazeOf(st, t) / H.full - H.perStep * d;
       if (s > bs) { bs = s; best = t; }
     }
     return best;
+  }
+  // @state household.pasture: absent until the household's herds first go out, then {tile, since (the game day it was chosen)}: the
+  //   pasture its herder takes them to each grazing day (sim/grazing; VB-136). A herd keeps its pasture, as herds were kept on one ground for
+  //   days or weeks and moved on when it was eaten down: a new one is chosen only when it may no longer be grazed (a field, a meadow to be
+  //   mown, another's, out of reach of the house), or when it is grazed down (HERD.herding.downAt) and HERD.herding.keepDays have passed
+  //   since it was chosen. So its routes are walked again and stay in the cache, and the search runs once in days (Rules for cost).
+  function todaysPasture(st, hh, c) {
+    const p = hh.pasture, H = HERD.herding, f = st.farmsteads[hh.farmstead];
+    if (p && hexSteps(st.w, f.house, p.tile) <= H.steps && grazable(st, hh, p.tile)
+      && (c.day - p.since < H.keepDays || grazeOf(st, p.tile) < H.downAt)) return p.tile;
+    const t = pasture(st, hh);
+    if (t >= 0) hh.pasture = { tile: t, since: c.day };
+    return t;
   }
   // The herds are out with the herder: taken to pasture by pawn `id` today.
   function driveOut(st, hh, id, c) { for (const hid of hh.herds) { const hd = st.herds[hid]; hd.herder = id; hd.herded = c.day; } }
@@ -78,9 +94,12 @@ VB['sim/grazing'] = (() => {
     hours: HERD.herding.hours, hands: 1, type: 'herding', minAge: HERD.herding.minAge, attention: 'background', reach: HERD.herding.reach,
     rate: HERD.herding.rate, window: { from: HERD.herding.from },
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4], urgency: (st, j, c, U) => U.herd,
-    draw: (st, j) => pasture(st, st.households[j.owner.id]),
+    draw: (st, j) => todaysPasture(st, st.households[j.owner.id], cal(st.t)),
     held: (st, j, a, c) => driveOut(st, st.households[j.owner.id], a.id, c),
-    worked: (st, j, dt) => graze(st, j.site, dt * herdLoad(st, st.households[j.owner.id])),
+    // the pressure is added by whole hours on the pasture, as each is completed (a part hour left when the herder leaves is not counted)
+    worked: (st, j, dt) => {
+      if (Math.floor(j.done + 1e-9) > Math.floor(j.done - dt * KIND.rate + 1e-9)) graze(st, j.site, herdLoad(st, st.households[j.owner.id]));
+    },
     // each grazing day, from HERD.herding.from until HERD.herding.by, for a household with animals whose herds are not out today already
     available: (st, hh, f, c, post) => {
       if (stalled(c) || c.hour < HERD.herding.from || c.hour >= HERD.herding.by || !hh.herds.length || !(herdLoad(st, hh) > 0)) return;
@@ -89,5 +108,5 @@ VB['sim/grazing'] = (() => {
       post(key, f.house, { farm: f });
     },
   };
-  return { yearScale, grazeOf, graze, herdsBack, halveGraze, heads, herdLoad, pasture, driveOut, driveHome, driven, unherded, KIND };
+  return { yearScale, grazeOf, graze, herdsBack, halveGraze, heads, herdLoad, grazable, pasture, todaysPasture, driveOut, driveHome, driven, unherded, KIND };
 })();

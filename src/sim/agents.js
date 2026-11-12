@@ -126,14 +126,17 @@ VB['sim/agents'] = (() => {
   // of the pawn's hours (VB-136: hours, not work: a child minds the herd as long as a man), with its kind's `worked`, while the pawn is
   // within its reach; on its way into reach it is kept, not worked; it is let go out of reach, and outside the working hours. Its work
   // done, a pawn with nothing else in hand goes home (VB-136: the herder brings the herds home).
-  function stepSide(st, a, dt) {
-    for (const slot of ['partial', 'background']) {
-      const j = heldAt(a, slot); if (!j) continue;
+  // A pawn standing still (no path, no work) is where it was last step, so its reach is not looked at again: every walk out of reach is
+  // seen while it has its path, as this runs before the step's walking (VB-136, cost).
+  const SLOTS = ['partial', 'background'];
+  function stepSide(st, a, dt, h) {
+    for (let k = 0; k < 2; k++) {
+      const slot = SLOTS[k], j = heldAt(a, slot); if (!j) continue;
       if (st.jobs.get(j.key) !== j) { unhold(a, j); if (!a.side) return; continue; }
       if (slot !== 'background') continue;
-      const K = KINDS[j.kind], h = ((Math.floor(st.tick / TICKS) % DAY) + DAY) % DAY;
+      const K = KINDS[j.kind];
       if (h < WORK[0] || h >= WORK[1]) { unhold(a, j); if (!a.side) return; continue; }
-      if (!inReach(st, j, tileAt(st, a.x, a.y))) {
+      if ((a.path || a.phase !== null) && !inReach(st, j, tileAt(st, a.x, a.y))) {
         const end = a.path && a.path[a.path.length - 1];
         if (end && inReach(st, j, tileAt(st, end[0], end[1]))) continue;
         unhold(a, j); if (!a.side) return; continue;
@@ -252,7 +255,8 @@ VB['sim/agents'] = (() => {
       if (d <= reach) {
         a.x = tx; a.y = ty; a.seg++; VB.count.walkPoint++;
         const t = a.path[a.seg][3] ?? -1;
-        if (t >= 0) tread(st.w, t, 1 + HERD.herding.move * driven(st, a.id)); // the herds it drives wear the way too (VB-136)
+        // the herds it drives wear the way too (VB-136): only a herder out with them, or bringing them home, can drive any
+        if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
       }
       else if (reach > 0) { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
       else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
@@ -304,7 +308,7 @@ VB['sim/agents'] = (() => {
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
-      if (a.side) stepSide(st, a, dt);
+      if (a.side) stepSide(st, a, dt, c.hour);
       if (a.path) moveAgent(st, a, dt);
       else if (a.phase === 'work') stepWork(st, a, dt);
       else if (wantsWork(st, a, c)) out.push(a);

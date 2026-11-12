@@ -593,6 +593,10 @@ function checkHerds(st, bad) {
     // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
     if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
     if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);
+    // the household's kept pasture (sim/grazing, VB-136): absent, or a tile of the map chosen on a past day
+    const pa = hh && hh.pasture;
+    if (pa !== undefined && !(pa && Number.isInteger(pa.tile) && pa.tile >= 0 && pa.tile < st.w.N && Number.isInteger(pa.since)
+      && pa.since <= Math.floor(st.t / 24))) bad.push(`households[${hd.household}]: pasture ${JSON.stringify(pa)}`);
   }
   for (const hh of st.households) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);

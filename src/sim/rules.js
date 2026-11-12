@@ -205,7 +205,9 @@ VB['sim/rules'] = (() => {
     // step from the house. A herd's load: 1 a head of cattle, `sheep` a sheep, an hour on the pasture, `nb` of it on each neighbour; on the
     // move it wears the tiles it crosses `move` crossings a head (sim/paths). The pressure (w.graze) halves each game year.
     // An unherded herd's cows give `milk` of their milk.
-    herding: { from: 6, by: 10, hours: 9, steps: 8, reach: 3, rate: 1, minAge: 8, full: 100, perStep: 0.05, sheep: 0.25, nb: 0.25, move: 0.25, milk: 0.5,
+    // A herd keeps its pasture until it is grazed down to `downAt` (a middling herd's week on it), and at least `keepDays` days.
+    herding: { from: 6, by: 10, hours: 9, steps: 8, downAt: 300, keepDays: 7, reach: 3, rate: 1, minAge: 8, full: 100, perStep: 0.05, sheep: 0.25,
+      nb: 0.25, move: 0.25, milk: 0.5,
       grass: { [B.MEADOW]: 1, [B.MARSH]: 0.8, [B.HEATH]: 0.6, [B.HILLS]: 0.4, [B.FOREST]: 0.4, [B.PINE]: 0.3, [B.BEACH]: 0.3 } },
     // an unherded herd of cattle (VB-136, G7): with a stretch of its village's fence below `below` beside a growing crop of the village, it
     // gets in with `chance` a day; the field loses `loss` of its yield
