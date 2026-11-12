@@ -18,7 +18,7 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   if (!html.includes(HOOK)) throw new Error('hook not found');
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(html.replace(HOOK,
-    HOOK + ' window.__start = { get st() { return st; }, get demo() { return demo; }, get choosing() { return !!choose; } };')) }));
+    HOOK + ' window.__start = { get st() { return st; }, get demo() { return demo; }, get choosing() { return !!choose; }, get Sim() { return Sim; } };')) }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('landing').hidden);
   await page.click('#landNew');
@@ -135,12 +135,25 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   await page.click('#actMenu [data-bar="close"]'); await card('What you can do');
   await page.click('#actBar [data-group="house"]'); await card('Take some work');
   await page.click('#actMenu button[data-bar="work"]:not([data-why])');
-  if (await page.evaluate(() => !document.getElementById('actBanner').hidden)) await page.keyboard.press('Escape'); // work at several places asks for a tile
-  else await card('That is how you play');
+  await card('The first year');
   if (await page.evaluate(() => 'tutorial' in window.__start.st)) fail('the tutorial wrote to the state');
-  const leave = await page.$('#tutCard [data-tut="leave"]') || await page.$('#tutCard [data-tut="next"]');
-  await leave.click();
-  if (!(await page.evaluate(() => document.getElementById('tutCard').hidden && document.getElementById('tutHole').hidden))) fail('the tutorial did not end');
+  // then the first year's goals: a chip that opens to a card of four, the open one with a Show me that points at the Household list
+  await page.click('#tutCard [data-tut="next"]');
+  await page.waitForFunction(() => document.getElementById('tutCard').hidden && !!document.querySelector('#tutGoals .tut-chip'));
+  await page.click('#tutGoals [data-tut="open"]'); await page.waitForSelector('#tutGoals li');
+  const goals = await page.evaluate(() => ({ rows: document.querySelectorAll('#tutGoals li').length, now: document.querySelectorAll('#tutGoals li.now').length,
+    text: document.getElementById('tutGoals').textContent }));
+  if (goals.rows !== 4 || goals.now !== 1 || !/Norrgården has food for \d+ days/.test(goals.text)) fail(`tutorial, goals: ${JSON.stringify(goals)}`);
+  await page.click('#actMenu [data-bar="close"]'); await page.click('#tutGoals [data-tut="show"]'); await card('Field work');
+  if (await page.evaluate(() => document.getElementById('actMenu').hidden)) fail('Show me did not open the Household list');
+  await page.click('#tutCard [data-tut="next"]'); await page.click('#tutGoals [data-tut="close"]'); await page.waitForSelector('#tutGoals .tut-chip');
+  // a goal is judged from the farm as the day turns, whoever did the work: by spring's end the household has sown, and the chip says so
+  await page.evaluate(async () => { const s = window.__start.st, S = window.__start.Sim;
+    for (let d = 0; d < 12; d++) { S.advance(s, S.DAY); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); } });
+  const chip = await page.evaluate(() => document.getElementById('tutGoals').textContent);
+  if (!/1 of 4/.test(chip) || !/The first field is sown/.test(chip)) fail(`tutorial, the chip after spring: ${chip}`);
+  await page.click('#tutGoals [data-tut="open"]'); await page.click('#tutGoals [data-tut="leave"]'); await page.waitForTimeout(100);
+  if (!(await page.evaluate(() => ['tutCard', 'tutHole', 'tutGoals'].every((id) => document.getElementById(id).hidden)))) fail('the tutorial did not end');
   await browser.close();
   if (errors.length) { console.log(`browser-start: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-start: the three scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '
