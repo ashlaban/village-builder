@@ -83,6 +83,7 @@
     "culture.practices": "culture",
     "pawn.anc": "culture",
     "pawn.advocate": "culture",
+    "pawn.causeSince": "culture",
     "farmstead.fields": "sim/fields",
     "st.visualDirty": "signal",
     "st.biomeDirty": "signal",
