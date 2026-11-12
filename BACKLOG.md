@@ -26,6 +26,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-389](backlog/VB-389.md) | The fields a household wants are counted net of seed | animals | 2 | S | fieldsWanted counts the yield after seed, so a household plans for its need and not 0.73 of it. |
 | [VB-390](backlog/VB-390.md) | A new household with a meadow wants a cow | animals | 2 | M | A new household of two or more hands with a meadow wants a cow in its standing plan, from kin's herd at a marriage or by a deal. |
 | [VB-391](backlog/VB-391.md) | An ask for help that brings nothing is not the season's ask | - | 2 | S | A household whose seasonal ask brings nothing at all may ask again on a later day. |
+| [VB-396](backlog/VB-396.md) | Roads over fields and meadows, a green open on every side, and roads that look right | - | 2 | M | Fields and meadows wear and speed walking and show their roads; street arms may leave the green on any side; the roads' look is put right. |
 | [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
