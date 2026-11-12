@@ -3793,7 +3793,8 @@ VB['sim/routes'] = (() => {
   function buffers(w) {
     let s = scratch.get(w);
     if (!s) {
-      s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), tgt: new Uint32Array(w.N), run: 0, open: null };
+      s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), tgt: new Uint32Array(w.N), run: 0,
+        open: null };
       scratch.set(w, s);
     }
     return s;
@@ -3987,7 +3988,8 @@ VB['sim/routes'] = (() => {
   function refreshHoursStep(st, j) {
     const n = st.villages.length;
     if (n <= ROW_STEPS) { if (j < n) refreshHoursRow(st, j); return; }
-    for (let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS), end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS); k < end; k++) refreshHoursRow(st, k);
+    for (let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS), end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS); k < end;
+      k++) refreshHoursRow(st, k);
   }
   // Walking hours between two villages' greens: 0 for the same village, Infinity beyond reach or by no land route. Allocates nothing.
   function hoursBetween(st, a, b) {
@@ -12785,7 +12787,8 @@ VB['sim/clock'] = (() => {
     { every: 'day', when: (st) => !!st.cenv && short.length > 0, owner: 'sim/service', note: 'the short of people taken in (VB-308)',
       run: (st) => takeIn(st, short) },
     // autumn day 9 from noon (sday 8), before the meetings of day 10 whose tie may read the table (VB-290): a village a step (VB-286)
-    { every: 'year', at: { season: AUTUMN, sday: 8, hour: 12, tick: [0, ROW_STEPS] }, owner: 'sim/routes', note: 'the walking hours between villages, a row a step (VB-286)',
+    { every: 'year', at: { season: AUTUMN, sday: 8, hour: 12, tick: [0, ROW_STEPS] }, owner: 'sim/routes',
+      note: 'the walking hours between villages, a row a step (VB-286)',
       run: (st, c, n) => refreshHoursStep(st, n - 12 * TICKS) },
     { every: 'year', at: { season: AUTUMN, sday: 9 }, when: cenv, owner: 'sim/occasions', note: 'the meeting\'s people called to the green (VB-126)',
       run: (st) => callMeetings(st) },
@@ -18077,7 +18080,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c41c6392ac', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'f06af05734', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
