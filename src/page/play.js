@@ -80,7 +80,8 @@
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
-      const need = x === a.opt ? 0 : x === cust ? Culture.P.margin + Culture.P.tieMargin * s.tie : a.opt === cust ? Culture.P.returnMargin : Culture.P.margin;
+      const voices = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).length;
+      const need = x === a.opt ? 0 : Culture.fewVoices(voices) * Culture.margin(s, x, a.opt, cust);
       h += x === a.opt ? ' It is the village practice.' : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the `
         + `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
     } else h += ' The village has not met yet.';
@@ -140,7 +141,7 @@
   // second (page/animate), and Sim.opportunities is called once per rebuild, for both.
   function renderActions() {
     const id = played(), pl = st && st.player;
-    if ($('actionsBtn').hidden !== id < 0) $('actionsBtn').hidden = id < 0;
+    if ($('actionsBtn').hidden !== id < 0) { $('actionsBtn').hidden = id < 0; $('agendaBtn').hidden = id < 0; }
     if (id < 0) { if (activePanel === 'actions') openPanel(null); closeBar(); return; }
     const sheet = activePanel === 'actions', opps = sheet || barMenu || tool ? Sim.opportunities(st, id) : null;
     renderBar(id, opps);
@@ -165,7 +166,7 @@
         'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village. The cause you argue is under Agenda, in the dock.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }

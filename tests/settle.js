@@ -57,7 +57,10 @@ roll(st, () => S.settleRound(st));
 check(st.villages.length === villages + 1, `a village is founded (${st.villages.length - villages})`);
 const nv = st.villages[st.villages.length - 1], f = st.farmsteads[farms], hh = st.households[households];
 check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `founded from ${v.name} by the settler (${JSON.stringify(nv.founded)})`);
-check(nv.name.startsWith(m.given.endsWith('s') ? m.given : m.given + 's'), `named for the founder (${nv.name})`);
+{ // by its founder or from its mother village (VB-400), one of the names the generators offer for the site
+  const N = VB['sim/names'], nctx = { w: st.w, site: nv.center, founder: m, mother: v }, r = () => N.tileRand(nv.center, 1);
+  check([...N.founder(nctx, r()), ...N.mother(nctx, r())].includes(nv.name), `named for the founder or the mother village (${nv.name})`);
+}
 const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
 check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
 check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth && f.booth.i === 0, 'one farm, in a booth');
@@ -94,14 +97,17 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
-// 4. Founders at seed 7: a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
+// 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
+// The founders' two unmarried young are 16 to 19 and live on either farm by the seed's draw, so the first seed is taken where one of age
+// lives in the village (seed 7 had one until the villages were laid out anew, VB-402).
+const grown = (st) => st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
+  && Sim.spouseOf(st, p.id) === null);
+const foundersSeed = [7, 1, 5, 6, 42].find((seed) => grown(Sim.seed(world(seed), seed, 'founders')));
 const founders = () => {
-  const st = Sim.seed(world(7), 7, 'founders'); st.naturalDeaths = false;
-  const v = st.villages[0], lone = st.villages[1];
-  const m = st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
-    && Sim.spouseOf(st, p.id) === null);
+  const st = Sim.seed(world(foundersSeed), foundersSeed, 'founders'); st.naturalDeaths = false;
+  const v = st.villages[0], lone = st.villages[1], m = grown(st);
   fill(st, v); st.demand = [m.id]; m.landWait = 3; m.stake = 300;
   return { st, v, lone, m };
 };

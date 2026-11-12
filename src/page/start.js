@@ -20,7 +20,7 @@
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [135, 157], s: [320, 354], m: [800, 852], l: [800, 879] },
+    populous: { t: [135, 155], s: [324, 358], m: [804, 864], l: [802, 841] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -116,7 +116,7 @@
   }
 
   // ---- opening, choosing, leaving ----
-  // New archipelago, Back from whom to play, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
+  // Play a Scenario, or a build that found no room (msg, shown in the bar). A game that is open is kept aside.
   function openStart(msg) {
     $('genSeed').value = String(choice.seed); $('genSize').value = choice.size;
     $('genMsg').hidden = !msg; $('genMsg').textContent = msg || '';
@@ -147,13 +147,14 @@
       for (const o of START_ORDER) if (!start.runs.has(o)) onStage(() => (startOpen() && !building ? runOf(o).catch(() => {}) : null));
     });
   }
-  // Back: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
+  // Main menu, on the start: the game kept aside comes back, or, with none, the start's island stays behind the main menu.
   function startBack() {
     if (!start) { showLanding(); return; }
     $('genScreen').hidden = true; $('genMsg').hidden = true;
     onStage(async () => {
       if (aside) await restoreAside();
-      else if (demo && start && start.shown) { const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
+      else if (demo && start && start.shown && st === start.shown.sim) {
+        const v = st.villages[start.shown.village]; demoAt = { x: w.hx[v.center], y: w.hy[v.center], r: w.HW * 5 }; }
       if ($('genScreen').hidden && loader.classList.contains('done') && !building) showLanding();
     });
   }
@@ -162,7 +163,7 @@
     demo = false; demoAt = null; document.body.classList.remove('demo');
     await swapWorld(a.wd, a.sim, a.painted);
     intro = null; cam.x = a.cam.x; cam.y = a.cam.y; cam.z = zt = a.cam.z; vel.x = vel.y = 0;
-    settlersHTML = ''; $('settlers').textContent = ''; customsStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureStamp = ''; charterStamp = '';
     if (choose && choose.farm >= 0) { sel = st.farmsteads[choose.farm].house; selectionPinned = true; hoverDirty = true; renderChoose(); }
   }
   // A game raised or loaded drops the start's islands and the game kept aside (page/loader, build).

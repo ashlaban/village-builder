@@ -10,22 +10,35 @@ VB['sim/paths'] = (() => {
     while (k > 0 && n < PATHS.at[k] * PATHS.keep) k--;
     return k;
   }
+  // Where no path wears: water, a house and the green (w.dev 3 and 2). Fields and meadows (w.dev 1) wear as open land does: the ways
+  // to the fields, the wood and the pastures go over them (Kim, 12 November).
+  const bars = (w, i) => w.dev[i] > 1 || w.water[i];
   // Fresh wear for a world; the settlement generator calls it.
   function initWear(w) {
     // @state w.wear: Float32Array per tile; crossings by walking pawns, fading by half each game year (sim/paths)
     // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
     w.wear = new Float32Array(w.N); w.worn = new Uint8Array(w.N);
   }
-  // A walking pawn enters tile i, with n crossings: 1, and more for the herds it drives (VB-136). Houses, fields and the green wear no path;
+  // A way laid by hand (the archipelago editor) on a run just seeded: each of its tiles worn to `stage` at the least, as if walked so for
+  // years; it fades as any wear does where no one walks. Houses, greens and water take none. The number of tiles worn.
+  function layWay(w, tiles, stage) {
+    let n = 0;
+    for (const i of tiles) {
+      if (i < 0 || i >= w.N || bars(w, i)) continue;
+      w.wear[i] = Math.max(w.wear[i], PATHS.at[stage]); w.worn[i] = Math.max(w.worn[i], stage); n++;
+    }
+    return n;
+  }
+  // A walking pawn enters tile i, with n crossings: 1, and more for the herds it drives (VB-136). Houses and the green wear no path;
   // water is not walked.
-  function tread(w, i, n = 1) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += n; }
-  // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile built on since (a field
-  // broken on a path). A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
+  function tread(w, i, n = 1) { if (i >= 0 && !bars(w, i)) w.wear[i] += n; }
+  // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile a house is built on
+  // since. A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
   function fadeWear(st, onStage) {
     const w = st.w, { wear, worn } = w, f = 0.5 ** (1 / PATHS.halfLifeDays);
     for (let i = 0; i < w.N; i++) {
       if (wear[i] === 0) continue;
-      const n = w.dev[i] ? 0 : wear[i] * f;
+      const n = w.dev[i] > 1 ? 0 : wear[i] * f;
       wear[i] = n < 0.5 ? 0 : n;
       const s = stageOf(wear[i], worn[i]);
       if (s === worn[i]) continue;
@@ -39,7 +52,7 @@ VB['sim/paths'] = (() => {
   function wearIn(w, villages, farmsteads, years) {
     const T = PATHS.trips, f = 0.5 ** (1 / PATHS.halfLifeDays), fD = f ** SEASON_DAYS, gain = (f * (1 - fD)) / (1 - f), touched = new Set();
     for (let season = 0; season < years * 4; season++) {
-      const per = new Map(), add = (t, n) => { if (!w.dev[t] && !w.water[t]) per.set(t, (per.get(t) || 0) + n); };
+      const per = new Map(), add = (t, n) => { if (!bars(w, t)) per.set(t, (per.get(t) || 0) + n); };
       for (const fm of farmsteads) {
         const v = villages[fm.village], trips = fm.fields.map((fd) => [fd.tile, T.field]);
         if (v.well) trips.push([v.center, T.water + T.stroll]);
@@ -61,8 +74,8 @@ VB['sim/paths'] = (() => {
   // Tiles per stage, [none worn, trodden, path, lane], over land that can wear.
   function stageCounts(w) {
     const n = [0, 0, 0, 0];
-    for (let i = 0; i < w.N; i++) if (!w.water[i] && !w.dev[i]) n[w.worn[i]]++;
+    for (let i = 0; i < w.N; i++) if (!bars(w, i)) n[w.worn[i]]++;
     return n;
   }
-  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts };
+  return { bars, stageOf, initWear, tread, fadeWear, wearIn, stageCounts, layWay };
 })();

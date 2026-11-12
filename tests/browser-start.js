@@ -79,20 +79,20 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   const wide = await page.evaluate(() => [document.documentElement.scrollWidth, document.getElementById('genScreen').scrollWidth, innerWidth]);
   if (wide[0] > wide[2] || wide[1] > wide[2]) fail(`the start scrolls sideways at 400 px: ${wide}`);
   await page.setViewportSize({ width: 1440, height: 900 });
-  // each scenario raised from the start: whom to play follows; its Back returns to the start, the raised game kept aside
+  // each scenario raised from the start: whom to play follows; the main menu leads back to the start, the game kept aside
   await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
   for (const sc of ['founders', 'heirs', 'populous']) {
-    if (await page.locator('#genScreen').isHidden()) await page.click('#chooseBack'); // whom to play's Back: the start
+    if (await page.locator('#genScreen').isHidden()) { await page.click('#chooseMenu'); await page.click('#landNew'); } // by the main menu
     await page.click(`[data-sc="${sc}"]`); await page.click('#genGo');
     await page.waitForFunction((sc) => document.getElementById('loader').classList.contains('done') && window.__start.st && !window.__start.demo
       && window.__start.st.scenario === sc && !document.getElementById('choose').hidden, sc, { timeout: 120000 });
     const game = await page.evaluate(() => { window.__game = window.__start.st; return window.__start.st.w.COLS; });
     if (game !== 120) fail(`${sc} raised on ${game} columns, not the tiny map`);
-    await page.click('#chooseBack');
+    await page.click('#chooseMenu'); await page.click('#landNew');
     await page.waitForFunction(() => !document.getElementById('genScreen').hidden && window.__start.demo && document.querySelector('#startPins .pin'));
-    await page.click('#genCancel');
+    await page.click('#genMenu');
     await page.waitForFunction(() => !document.getElementById('landing').hidden);
-    if (!(await page.evaluate(() => window.__start.st === window.__game && !window.__start.demo))) fail(`${sc}: Back from the start did not bring the game back`);
+    if (!(await page.evaluate(() => window.__start.st === window.__game && !window.__start.demo))) fail(`${sc}: the start's Main menu did not bring the game back`);
     await page.click('#landBack');
     if (await page.locator('#choose').isHidden()) fail(`${sc}: Back to game does not return to whom to play`);
   }

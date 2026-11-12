@@ -29,6 +29,7 @@
 <div class="play-offer panel succession" id="succession" role="dialog" aria-label="Go on as another" hidden></div>
 <!-- Whom to play (VB-339): the game itself after a new game is raised; on a narrow screen the map's strip, the household, the archetypes, the bar -->
 <div class="choose" id="choose" hidden>
+  <button id="chooseMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu"></button>
   <div class="choose-map" id="chooseMap"></div>
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
@@ -40,7 +41,7 @@
       d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg>Suggested by the scenario</p>
   </section>
   <div class="choose-bar panel" role="group" aria-label="Whom to play">
-    <button type="button" id="chooseBack">Back</button><button type="button" id="chooseWatch">Watch only</button>
+    <button type="button" id="chooseWatch">Watch only</button>
     <button type="button" class="primary" id="choosePlay">Play as</button>
   </div>
 </div>
@@ -52,8 +53,10 @@
     aria-controls="peopleSheet"><span class="nav-label">People</span></button>
   <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
     class="nav-label">Family</span></button>
-  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Customs</span></button>
+  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Culture</span></button>
+  <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
+    hidden><span class="nav-label">Agenda</span></button>
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Debug</span></button>
 </nav>
@@ -94,10 +97,10 @@
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
-    <h2 id="drawerTitle">Customs</h2>
+    <h2 id="drawerTitle">Culture</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
       aria-label="Collapse" title="Collapse"></button>
-    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -119,6 +122,7 @@
       <div class="tabs" id="tileTabs" role="tablist" aria-label="About the selection" hidden>
         <button type="button" role="tab" id="tabFacts" data-tab="facts" aria-selected="true" aria-controls="tileFacts">Details</button>
         <button type="button" role="tab" id="tabHistory" data-tab="history" aria-selected="false" aria-controls="tileHistory" tabindex="-1">History</button>
+        <button type="button" role="tab" id="tabCustoms" data-tab="customs" aria-selected="false" aria-controls="tileCustoms" tabindex="-1" hidden>Customs</button>
       </div>
       <div id="tileFacts" role="tabpanel" aria-labelledby="tabFacts">
         <span id="tileCoord"></span>
@@ -135,6 +139,7 @@
         <div class="kinds" id="historyKinds" role="group" aria-label="Kinds of event"></div>
         <div id="historyList"></div>
       </div>
+      <div id="tileCustoms" class="customs" role="tabpanel" aria-labelledby="tabCustoms" hidden></div>
     </div>
   </aside>
   <div class="map-tools" id="mapTools">
@@ -187,7 +192,8 @@
   </div>
   <div class="panel landing">
     <h1>Skärgård</h1>
-    <button class="primary" id="landNew" type="button">New archipelago</button>
+    <button class="primary" id="landNew" type="button">Play a Scenario<small>A story on a new archipelago</small></button>
+    <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
     <button id="landBack" type="button" hidden>Back to game</button>
@@ -198,11 +204,12 @@
 </div>
 
 <!-- The start (VB-340; design.md, Starting a game): the scenarios as cards; the chosen one on the showcase island, seen through the frame,
-     with its callouts; who starts and the story archetypes; size, seed, Back and Raise the land in the bar -->
+     with its callouts; who starts and the story archetypes; size, seed and Raise the land in the bar; Main menu at the top right, and no Back -->
 <div class="genscreen start" id="genScreen" hidden>
+  <button id="genMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">New archipelago</h1><span class="stepno">Step 1 of 2</span></div>
+      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
@@ -246,11 +253,139 @@
       <div class="panel start-acts">
       <p class="err" id="genMsg" role="alert" hidden></p>
       <span class="grow"></span>
-      <button id="genCancel" type="button">Back</button>
       <button class="primary" id="genGo" type="submit">Raise the land</button>
       </div>
     </div>
   </form>
+</div>
+
+<!-- The archipelago editor (page/editor): a world alone on the stage, with no run and none of the game's interface. One scene: the tools
+     at the top left, each opening its panel under them (the generator's parameters, a brush for the terrain, who settles it); Play and Main menu at
+     the top right. Regenerate raises the land again from the parameters; Play starts a game on the world as it is shown. -->
+<div class="editor" id="editor" hidden>
+  <div class="panel editor-top">
+    <div class="ed-name"><strong id="edName">Archipelago editor</strong><span id="edMeta">No land raised yet</span></div>
+    <div class="ed-tools" id="edTools" role="group" aria-label="Editor tools">
+      <button type="button" data-tool="gen" aria-pressed="true" aria-controls="edGen">Generation</button>
+      <button type="button" data-tool="terrain" aria-pressed="false" aria-controls="edTerrain">Terrain</button>
+      <button type="button" data-tool="settle" aria-pressed="false" aria-controls="edSettle">Settlement</button>
+    </div>
+  </div>
+  <div class="panel editor-corner">
+    <button class="primary" id="edPlay" type="button">Play</button>
+    <button id="edMenu" type="button" class="icon-btn" data-icon="menu" aria-keyshortcuts="Escape" aria-label="Main menu" title="Main menu (Esc)"></button>
+  </div>
+  <p class="panel editor-msg err" id="edMsg" role="alert" hidden></p>
+  <form class="panel editor-side" id="edGen" autocomplete="off" aria-labelledby="edGenTitle">
+    <h2 id="edGenTitle">Generation</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Seed</legend>
+        <span class="seedrow"><input id="edSeed" type="text" inputmode="numeric" maxlength="9" pattern="[0-9]{1,9}" required
+          aria-label="Seed"><button type="button" id="edReroll">Another</button></span>
+        <p class="hint">The same seed and settings always raise the same land.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Map size</legend>
+        <select id="edSize" aria-label="Map size">
+          <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
+          <option value="m">Medium (280 × 200)</option><option value="l">Large (380 × 270)</option><option value="c">Custom</option>
+        </select>
+        <div class="ed-pair">
+          <label>Columns<input id="edCols" type="number" min="40" max="400" step="1" required></label>
+          <label>Rows<input id="edRows" type="number" min="30" max="300" step="1" required></label>
+        </div>
+        <p class="hint" id="edSizeNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Land and sea</legend>
+        <label class="ed-range"><span>Land<output id="edLandOut" for="edLand"></output></span>
+          <input id="edLand" type="range" min="15" max="60" step="1"></label>
+        <p class="hint">The share of the map that stands above the sea: little gives scattered skerries, much gives a few great islands.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Regions</legend>
+        <label class="ed-range"><span>Region radius<output id="edRegionOut" for="edRegion"></output></span>
+          <input id="edRegion" type="range" min="4" max="12" step="1"></label>
+        <p class="hint">The hexagonal patches the land is divided into: few and wide, or many and small.</p>
+      </fieldset>
+      <fieldset class="ed-facts" id="edFacts" hidden>
+        <legend>This world</legend>
+        <div class="ed-biomes" id="edBiomes" role="img"></div>
+        <dl id="edFactList"></dl>
+      </fieldset>
+    </div>
+    <div class="editor-foot">
+      <p class="hint" id="edState" aria-live="polite"></p>
+      <div class="ed-bar" id="edBar" hidden><i id="edBarFill"></i></div>
+      <div class="ed-acts"><button type="button" id="edReset">Defaults</button><button class="primary" id="edGo" type="submit">Regenerate</button></div>
+    </div>
+  </form>
+  <section class="panel editor-side" id="edTerrain" aria-labelledby="edTerrainTitle" hidden>
+    <h2 id="edTerrainTitle">Terrain</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Brush</legend>
+        <div class="ed-brushes" id="edBrushes" role="group" aria-label="Brush"></div>
+        <p class="hint" id="edBrushNote"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Brush size</legend>
+        <label class="ed-range"><span>Across<output id="edBrushOut" for="edBrushSize"></output></span>
+          <input id="edBrushSize" type="range" min="0" max="4" step="1" value="0"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Painted</legend>
+        <p id="edPainted"></p>
+        <div class="ed-acts"><button type="button" id="edUnpaint" disabled>Clear what is painted</button></div>
+        <p class="hint">Regenerate clears it too. The sea, lakes and rivers cannot be painted yet.</p>
+      </fieldset>
+    </div>
+  </section>
+  <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
+    <h2 id="edSettleTitle">Settlement</h2>
+    <div class="editor-body">
+      <fieldset>
+        <legend>Settled by</legend>
+        <select id="edSettled" aria-label="Settled by"></select>
+        <p class="hint" id="edSettledNote"></p>
+      </fieldset>
+      <fieldset id="edPlacing" hidden>
+        <legend>Place</legend>
+        <div class="ed-brushes" id="edPlaces" role="group" aria-label="Place">
+          <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
+          <button type="button" data-place="village" data-ico="village" aria-pressed="false">A village</button>
+          <button type="button" data-place="farm" data-ico="home" aria-pressed="false">A household</button>
+          <button type="button" data-place="pawn" data-ico="me" aria-pressed="false">A person</button>
+          <button type="button" data-place="green" data-ico="green" aria-pressed="false">A green and well</button>
+          <button type="button" data-place="empty" data-ico="emptyfarm" aria-pressed="false">An empty farm</button>
+          <button type="button" data-place="ruin" data-ico="ruin" aria-pressed="false">A ruin</button>
+          <button type="button" data-place="field" data-ico="sow" aria-pressed="false">A field</button>
+          <button type="button" data-place="meadow" data-ico="hay" aria-pressed="false">A meadow</button>
+          <button type="button" data-place="way" data-ico="road" aria-pressed="false">A road, drawn</button>
+          <button type="button" data-place="route" data-ico="road" aria-pressed="false">A road, found</button>
+          <button type="button" data-place="remove" data-ico="minus" aria-pressed="false" class="wide">Take one away</button>
+        </div>
+        <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
+          <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <label id="edFillRow">Who lives there
+          <select id="edFill"><option value="full">A family, with children</option><option value="couple">A young couple</option></select></label>
+        <div class="ed-pair" id="edPawnRow">
+          <label>Sex<select id="edPawnSex"><option value="f">Woman</option><option value="m">Man</option></select></label>
+          <label>Age<input id="edPawnAge" type="number" min="0" max="80" step="1" value="25"></label>
+          <label class="ed-wide">Place in the house<select id="edPawnRole"><option value="kin">One of the household</option>
+            <option value="servant">A servant</option></select></label>
+        </div>
+        <p class="hint" id="edPlaceNote"></p>
+        <p class="err" id="edPlaceMsg" role="alert" hidden></p>
+      </fieldset>
+      <fieldset id="edPlacedBox" hidden>
+        <legend>Placed</legend>
+        <p id="edPlaced"></p>
+        <div class="ed-acts"><button type="button" id="edUnplace" disabled>Take all away</button></div>
+      </fieldset>
+    </div>
+  </section>
 </div>
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>

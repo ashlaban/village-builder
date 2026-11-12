@@ -23,8 +23,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-327](backlog/VB-327.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
 | [VB-348](backlog/VB-348.md) | Winter rye and fallow: sown in autumn, standing the winter, reaped in summer | crops | 2 | M | The field cycle carries a crop sown in autumn and reaped the next summer, and a fallow course tilled once in summer that restores soil. Nothing chooses them yet. |
 | [VB-388](backlog/VB-388.md) | A catch that cannot be eaten is dried, and the seed a short household eats is cooked | year | 2 | M | Fishing for the pot waits while fresh fish covers two days, the surplus catch goes to the rack, and the cook cooks the seed a short household would eat. |
-| [VB-403](backlog/VB-403.md) | Balance accounts: a report of where the food and the people go | yardstick | 2 | M | One report that closes the yearly accounts of a run: food by source and outlet, people by births, deaths, marriages and moves, the spread between households, goodwill and labour; the properties of the balance map that the game can report. |
-| [VB-406](backlog/VB-406.md) | The village store: why most of its grain rots | - | 2 | S | Measured on populous small: 68 to 85% of the grain households give the village store rots there and 10 to 22% is given back out. Measure its flows a year, explain them, and propose the rule that would make it a store. |
+| [VB-389](backlog/VB-389.md) | The fields a household wants are counted net of seed | animals | 2 | S | fieldsWanted counts the yield after seed, so a household plans for its need and not 0.73 of it. |
+| [VB-390](backlog/VB-390.md) | A new household with a meadow wants a cow | animals | 2 | M | A new household of two or more hands with a meadow wants a cow in its standing plan, from kin's herd at a marriage or by a deal. |
+| [VB-391](backlog/VB-391.md) | An ask for help that brings nothing is not the season's ask | - | 2 | S | A household whose seasonal ask brings nothing at all may ask again on a later day. |
 | [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
@@ -54,6 +55,11 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-360](backlog/VB-360.md) | Skills: learnt by doing, faster with aptitude, fading unused | mill | 3 | M | A skill a craft and pawn from 0 to 1: a novice works at 60% and a master at 130%; halfway in 400 hours; a tenth lost a year unused, read in closed form. |
 | [VB-361](backlog/VB-361.md) | Facilities: a registry of built things, raised in stages | mill | 3 | M | st.facilities holds built things on sites with an owner, a kind, a condition and building stages that are plan steps; the bloomery, the loom's house, kilns and mills use it. |
 | [VB-367](backlog/VB-367.md) | Peat: cut in summer and burnt in place of wood | mill | 3 | S | A household short of wood near a peat bog cuts peat in summer; dried, two loads burn as one of wood. |
+| [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
+| [VB-392](backlog/VB-392.md) | The player's wish to settle new land | life | 3 | S | A fourth wish, settle: true passes the round's draw to lead or follow a party, false never does. |
+| [VB-393](backlog/VB-393.md) | A boat is built only by a household with a surplus and two free hands | fair | 3 | S | Until boats are a holder's project (VB-255) kept with tar (VB-301), only a household with a surplus and two free hands builds one. |
+| [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
+| [VB-395](backlog/VB-395.md) | Refactor: the pawn's vital fields are written by sim/records | ownership | 3 | S | pawn.alive and pawn.age get one writer, sim/records, called by lifecycle and births. |
 
 ## Waiting for Kim
 
@@ -61,10 +67,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-404](backlog/VB-404.md) | Plan: where the elite comes from | debt | 2 | S | The balance review's mocks give an elite of the target's size by office and tithe, and almost none by debt at the game's food ratio; decide the roads to the 75 and rewrite slice 5's class rule and tasks to fit. |
-| [VB-405](backlog/VB-405.md) | Plan: marriage that answers to scarcity, and how founders grow | - | 2 | S | Marriage holds the population and its means test is the master setpoint; growth has a ceiling of 2.4% a year and founders reach about 1%. Decide how marriage and nursing respond, and how an island reaches 1,000. |
-| [VB-407](backlog/VB-407.md) | Plan: outlets for the surplus: feasts that book goodwill, and keeping | - | 2 | S | About a fifth of the harvest rots and the target needs it eaten elsewhere. Design the good year's feast and gift as the source of goodwill and standing, better keeping as a late lever, and animals as stored wealth. |
-| [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
 
 ## Blocked
 
@@ -191,8 +193,8 @@ tasks outside every arch last), then priority, then ID; the archive by when a ta
 **Order and statuses.** Agents take only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
 To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
 same files run one at a time).
-A task is `ready` only when it needs no design decision: the goal, numbers and acceptance criteria are all stated.
-`needs-review` tasks list the questions Kim must answer first; [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
+A task is `ready` when its goal and acceptance criteria are stated; what it leaves open, its agent decides by `AGENTS.md`, Deciding without Kim.
+`needs-review` tasks list the questions only Kim can answer (a Decided point moved, or a new thing the player can do); [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
 in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
 A `blocked` task has a `Waits for:` line after `Status:`, naming the open tasks it waits for, or `Kim`, separated by ", " (`Waits for: VB-185, VB-009`).
 That line, not the prose of the goal or notes, is what holds it: when a task is done, the tasks that wait for it drop it, and a task left
@@ -205,9 +207,9 @@ A sentence deep in the notes is not enough. On 5 and 6 November the late fixture
 ledgers adding half to the save were written in task files, and no one acted on them until the review of 7 November.
 
 **Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
-- **plan:** a plan task gathers the design questions; once Kim has answered them, it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
+- **plan:** a plan task makes the design concrete, deciding by `AGENTS.md`, Deciding without Kim, and asking Kim only what that leaves; it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
 - **implement:** the tasks that build it, each small enough for one agent session (size S or M where possible).
-- **wrap-up:** a task that checks the arch as a whole against the design with long runs, reports the numbers and proposes tuning. It is `blocked` until the arch's implement tasks are done.
+- **wrap-up:** a task that checks the arch as a whole against the design with long runs and reports the numbers; it names the parameters a tuning run of Kim's would move, and tunes nothing. It is `blocked` until the arch's implement tasks are done.
 
 Since 3 November 2026 the archs are the vertical slices of `docs/roadmap.md`, in the order Kim chose (slice 0 to slice 10). Each slice's plan task
 is a design pass: it makes the slice's systems concrete, proposes its sections of `design.md` v0.4, and confirms, rewrites or closes the tasks

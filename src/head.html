@@ -124,14 +124,6 @@ body {
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
-.cust { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 6px; }
-.cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
-.cust thead th { font-weight: 600; border-top: 0; }
-.cust tbody th { font-weight: 500; }
-.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
-.sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
-.sbar i { display: block; height: 100%; }
-.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -173,6 +165,10 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 /* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
+/* and in the world editor, which has an interface of its own (page/editor) and is put away under a menu screen too */
+body.editing .hud, body.editing .navigation, body.editing .sheet, body.editing .toasts, body.editing .play-offer, body.editing .map-tools,
+body.editing .act-bar, body.editing .act-menu, body.editing .act-banner, body.editing .choose, body.editing .tile,
+body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events: none; }
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
@@ -189,10 +185,12 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
+.screen-head .stepno { margin-left: auto; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: var(--bad); font-size: 14px !important; }
-#landQuick small { display: block; color: var(--muted); font-size: 13px; }
+.landing button small { display: block; color: var(--muted); font-size: 13px; }
+.landing button.primary small { color: inherit; opacity: 0.85; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
@@ -330,6 +328,9 @@ body:not(.minimap-open) .ground-key { display: none; }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
 .play p { margin: 4px 0; font-size: 14px; line-height: 1.4; }
 .play .hint { color: var(--muted); }
+.drawer .agenda .linkish { border: 0; border-radius: 0; background: none; min-height: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.agenda button[aria-disabled="true"] { opacity: 0.55; }
+.agenda h4 span { font-size: 13px; }
 .play .refused { color: var(--bad); }
 .play .offer { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
 .play-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
@@ -404,16 +405,69 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-banner button { flex: none; border-radius: 10px; }
 body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
-.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
-.custom-picker select { width: 100%; font-size: 16px; }
-.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
-.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
-.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
-.custom-card .different { color: var(--accent); }
-.custom-card .support { font-size: 13px; color: var(--muted); }
-.custom-card .sbar { height: 8px; margin: 8px 0; }
-.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
-.cust { min-width: 500px; }
+/* the Customs tab of a village's card (page/customs): the charter, its marked phrases, and an opened custom's ways with their faces */
+.customs span, .customs strong { display: inline; margin: 0; font: inherit; color: inherit; }
+.customs h3 { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted); }
+.customs h3.lead { margin: 4px 0; padding: 0; border: 0; font: italic 700 18px/1.15 'Alegreya', Georgia, serif; letter-spacing: 0; text-transform: none;
+  color: var(--ink); }
+.customs p { margin: 0; }
+.customs .note { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.customs .note strong { font-weight: 600; color: var(--ink); }
+.customs .charter { margin: 4px 0 2px; font-size: 16px; line-height: 1.75; color: var(--ink); }
+.customs .phrase { padding: 1px 2px; margin: 0 -2px; border-radius: 4px; font-weight: 600; color: var(--ink); cursor: pointer;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  text-decoration: underline dotted color-mix(in srgb, var(--muted) 70%, transparent); text-underline-offset: 4px; }
+.customs .phrase.differs { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); text-decoration: none; }
+.customs .phrase.contested { text-decoration: underline solid var(--gold); text-decoration-thickness: 2.5px; }
+.customs .phrase.turning { text-decoration: underline solid var(--bad); text-decoration-thickness: 2.5px; }
+.customs .phrase[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.customs .phrase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.customs .stand { margin: 4px 0 6px 2px; padding: 2px 0 6px 12px; border-left: 2px solid var(--edge); }
+.customs .stand .of { font-size: 13px; color: var(--muted); }
+.customs .way { padding: 7px 0 8px; font-size: 15px; color: var(--ink); }
+.customs .way + .way { border-top: 1px solid var(--edge); }
+.customs .way.in > p:first-child { font-weight: 600; }
+.customs .way .none { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.customs .tag { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 99px; font-size: 12px; font-style: normal; font-weight: 500;
+  line-height: 19px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.customs .tag.custom { background: none; box-shadow: inset 0 0 0 1px var(--edge); color: var(--muted); }
+.customs .tag.gold { background: color-mix(in srgb, var(--gold) 18%, transparent); color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .tag.red { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.customs .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px 2px; align-items: start; margin-top: 6px; }
+.customs .voice { display: grid; justify-items: center; align-content: start; text-align: center; min-height: 0; padding: 4px 2px; border: 1px solid transparent;
+  border-radius: 10px; background: none; font-size: 13px; color: var(--ink); }
+.customs .voice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
+  line-height: 1.45; color: var(--ink); }
+.customs .voice img { width: 40px; height: 40px; }
+.customs .voice b { margin-top: 3px; font-weight: 500; }
+.customs .voice small { font-size: 11.5px; line-height: 1.25; color: var(--muted); }
+.customs .voice.waver img { border-radius: 50%; outline: 2px dashed var(--gold); outline-offset: 1px; }
+.customs .voice.waver small { color: color-mix(in srgb, var(--gold) 65%, var(--ink)); }
+.customs .faces .rest { align-self: center; font-size: 13px; color: var(--muted); }
+.customs .stand .note { margin-top: 6px; }
+.customs .key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 13px;
+  color: var(--muted); }
+.customs .key .phrase { font-size: 13px; font-weight: 500; cursor: default; }
+@media (pointer: coarse) { .customs .charter { line-height: 2.05; } }
+/* the Culture pane (page/culture): the charter's pieces again, the villages as rows, the meetings by year */
+.culture .links { margin: 0 0 8px; }
+.culture .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.culture .tabs { margin: 10px 0; }
+.culture .row { padding: 7px 0; border-radius: 0; }
+.culture .row + .row, .culture .kept .row:first-of-type { border-top: 1px solid var(--edge); }
+.culture .row img.mini { width: 32px; height: 32px; }
+.culture .row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.culture .row .who i { font-weight: 400; line-height: 1.35; }
+.culture .row .who i.stir { color: var(--ink); }
+.culture .mark { display: inline-block; margin-right: 5px; }
+.culture .row .state { font-size: 18px; color: var(--muted); }
+.culture .kept { margin-top: 4px; border-top: 1px solid var(--edge); }
+.culture .kept summary { padding: 10px 0; font-size: 14px; color: var(--muted); cursor: pointer; }
+.culture .stand .links { margin: 6px 0 2px; }
+.culture h3.lead { margin-top: 14px; }
+.culture .said { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer,
 body.ui-hidden .act-bar, body.ui-hidden .act-menu, body.ui-hidden .act-banner { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
@@ -497,6 +551,68 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   /* every button answers the pointer: a faint wash of its own colour, over whatever fills it (rows and choice cards have their own) */
   button:not(:disabled, .row, .act-row, .story, .person, .scard):hover { box-shadow: inset 0 0 0 99px color-mix(in srgb, currentColor 9%, transparent); }
 }
+/* The archipelago editor (page/editor): the world alone on the stage. One scene: the tools at the top left with the open tool's panel
+   under them, Play and Main menu at the top right, the menu button where the game's own is; on a narrow screen the panel is a sheet at
+   the foot. */
+.editor { position: fixed; inset: 0; z-index: 8; pointer-events: none; --ed-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  --ed-left: max(14px, env(safe-area-inset-left, 0px)); --ed-right: max(14px, env(safe-area-inset-right, 0px)); }
+.editor > * { pointer-events: auto; position: absolute; }
+.editor-top { left: var(--ed-left); top: var(--ed-top); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 10px 8px 14px;
+  border-radius: 14px; max-width: calc(100% - 200px); min-height: 62px; }
+.ed-name { min-width: 0; }
+.ed-name strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-name span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ed-tools { display: flex; gap: 4px; }
+.ed-tools button { padding: 6px 14px; }
+.ed-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; }
+.editor-corner .icon-btn { width: 44px; height: 44px; flex: none; }
+.editor-corner .primary { padding: 6px 22px; }
+.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: 12px; }
+.editor-side { left: var(--ed-left); top: calc(var(--ed-top) + 72px); width: 340px; max-height: calc(100% - 86px - var(--ed-top)); display: flex;
+  flex-direction: column; border-radius: 16px; min-width: 0; }
+.editor-side[hidden], .editor-msg[hidden] { display: none; }
+.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 'Alegreya', Georgia, serif; flex: none; }
+.editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
+.editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.editor legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.editor p { margin: 0; font-size: 14px; line-height: 1.4; }
+.editor .hint { color: var(--muted); font-size: 13px; }
+.editor .err { max-width: none; color: var(--bad); font-size: 14px !important; }
+.editor label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; min-width: 0; }
+.editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
+  border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
+.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ed-pair .ed-wide { grid-column: 1 / -1; }
+.editor [hidden] { display: none !important; }
+.ed-range span { display: flex; justify-content: space-between; gap: 8px; }
+.ed-range output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ed-biomes { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--edge); }
+.ed-biomes i { display: block; min-width: 0; }
+.ed-facts dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; font-size: 14px; }
+.ed-facts dt { color: var(--muted); display: flex; align-items: center; gap: 7px; } .ed-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ed-brushes h4 { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+.ed-brushes button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; text-align: left; font-size: 14px; line-height: 1.2;
+  color: var(--ink); min-width: 0; }
+.ed-brushes button.wide { grid-column: 1 / -1; }
+.ed-brushes button i { width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1px solid var(--edge); }
+.ed-brushes button svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
+.ed-brushes button i.ore, .ed-brushes button i.gem { border-radius: 50%; }
+.ed-brushes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--node); }
+body.brushing #stage { cursor: crosshair; }
+.ed-bar { height: 6px; border-radius: 3px; background: var(--edge); overflow: hidden; }
+.ed-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.ed-acts { display: flex; gap: 8px; } .ed-acts .primary { flex: 1 1 auto; }
+#edState.changed { color: var(--ink); }
+@media (max-width: 899px) {
+  .editor { --ed-top: calc(env(safe-area-inset-top, 0px) + 8px); --ed-left: max(8px, env(safe-area-inset-left, 0px)); --ed-right: max(8px, env(safe-area-inset-right, 0px)); }
+  .editor-top { top: calc(var(--ed-top) + 68px); max-width: calc(100% - 16px); }
+  .ed-name { display: none; }
+  .editor-side { right: var(--ed-right); top: auto; width: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 46svh; }
+}
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
 .choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
@@ -505,7 +621,13 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   overscroll-behavior: contain; min-width: 0; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
-.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 340px;
+/* Main menu, in the corner where the game's own is; the household's card stands under it. There is no Back (Kim, 12 Nov). */
+.corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
+  width: 44px; height: 44px; border-radius: 999px; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
+/* on the start it lies at the page's corner and scrolls with the sheet, whose head row makes room for it where the two would meet */
+#genScreen .corner-menu { position: absolute; pointer-events: auto; }
+@media (max-width: 1340px) { .start-top .screen-head { padding-right: 56px; } }
+.choose-card { right: max(14px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 82px); width: 340px;
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
 .choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
@@ -658,6 +780,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     0 max(8px, env(safe-area-inset-left, 0px)); }
   .choose > .choose-map { display: block; flex: none; height: 56svh; pointer-events: none; }
   .choose .panel { position: static; width: auto; max-height: none; overflow: visible; }
+  .choose .corner-menu { position: fixed; width: 44px; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
+  #genScreen .corner-menu { top: calc(env(safe-area-inset-top, 0px) + 20px); right: max(20px, env(safe-area-inset-right, 0px)); }
   .choose .choose-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin-top: auto; flex: none; z-index: 1; }
   .choose::after { content: ""; flex: none; height: 1px; }
 }

@@ -111,6 +111,7 @@ const ArchGen = (() => {
   const hexDist = (q1, r1, q2, r2) => { const dq = q1 - q2, dr = r1 - r2; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2; };
 
   function* generate(seed, opt = {}) {
+    const Cover = VB['gen/cover'], K = { mulberry32, B };
     const R = opt.R || 28, COLS = opt.cols || 280, ROWS = opt.rows || 200, RR = opt.regionRadius || 7;
     const HW = SQ3 * R, AP = (SQ3 / 2) * R;
     const W = Math.ceil(HW * (COLS + 0.5)), H = Math.ceil(1.5 * R * (ROWS - 1) + 2 * R);
@@ -266,8 +267,7 @@ const ArchGen = (() => {
     const trees = new Float32Array(N), treesMax = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
-      const k = Math.round((biome[i] === B.PINE ? 80 : 60) * (0.8 + 0.4 * mulberry32((seed * 31 + i * 2654435761 + 0x7ee5) >>> 0)()));
-      trees[i] = treesMax[i] = k;
+      trees[i] = treesMax[i] = Cover.fullTrees(K, seed, i, biome[i]);
     }
 
     // ---- stones: every meadow tile has at least 30; up to +100 more next to hills, fading to nothing beyond 2 tiles ----
@@ -279,9 +279,7 @@ const ArchGen = (() => {
     }
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.MEADOW) continue;
-      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))), rn = mulberry32((seed * 31 + i * 2654435761 + 0x5707e) >>> 0)();
-      const near = hillDist[i] <= 2 ? Math.round((100 * (3 - hillDist[i])) / 2) : 0;
-      stones[i] = Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
+      stones[i] = Cover.meadowStones(K, seed, i, csample(macro, hx[i], hy[i]), hillDist[i]);
     }
     const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [B.HILLS, B.MOUNTAIN, B.MARSH]);
 

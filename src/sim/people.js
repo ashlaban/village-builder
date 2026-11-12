@@ -47,5 +47,28 @@ VB['sim/people'] = (() => {
     }
     return households;
   }
-  return { foundersHouseholds, drawSize, populousHouseholds };
+  // Placed by hand (the archipelago editor; sim/scenarios, seedManual). fill: by farm id, how its house is peopled: 'couple', a young couple
+  // as the founders are; 'empty' or 'ruin', no one; any other farm a family as in Populous, of sizes[id]. people: those placed one by one,
+  // in order, each {farm, sex, age, servant}: they join the farm's household, and on an empty farm the first of them, an adult, founds it
+  // and holds it. Returns the households, and `refused`, the index in `people` of the first who could not be placed (-1: none).
+  function handHouseholds(R, farmsteads, sizes, fill, people) {
+    const rand = R.rand, households = populousHouseholds(R, farmsteads.filter((f) => !fill[f.id]), sizes);
+    for (const f of farmsteads) {
+      if (fill[f.id] !== 'couple') continue;
+      const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      households.push(makeHousehold(R, households.length, f, [man, wife], man));
+      marry(R, man, wife, 1 + ((rand() * 4) | 0));
+    }
+    let refused = -1;
+    people.forEach((p, k) => {
+      const f = farmsteads[p.farm];
+      if (refused >= 0 || !f || fill[f.id] === 'ruin' || (f.household === null && p.age < 18)) { if (refused < 0) refused = k; return; }
+      const id = person(R, { sex: p.sex === 'f' ? 'f' : 'm', age: p.age, servant: !!p.servant && f.household !== null });
+      if (f.household === null) households.push(makeHousehold(R, households.length, f, [id], id));
+      else joinHousehold(R, households[f.household], id);
+    });
+    return { households, refused };
+  }
+  return { foundersHouseholds, drawSize, populousHouseholds, handHouseholds };
 })();

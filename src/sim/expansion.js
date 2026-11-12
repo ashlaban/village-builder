@@ -5,8 +5,8 @@ VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
   const Stores = VB['sim/stores'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
@@ -70,9 +70,12 @@ VB['sim/expansion'] = (() => {
     const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
     const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
+    const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
       if (nextTo(w, h, fields)) continue;
+      // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
+      if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
       let f = -1, fs = -Infinity;
       for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
@@ -93,6 +96,7 @@ VB['sim/expansion'] = (() => {
     for (const tr of tiles) {
       tr.steps = stepsFor(w, tr.tile, tr.kind); tr.i = 0;
       setOwner(st, tr.tile, { type: 'village', id: v.id }); st.used.add(tr.tile); woodTaken(st, tr.tile);
+      if (tr.kind === 'house') { w.dev[tr.tile] = 3; costChanged(st, tr.tile); } // the house's ground: routes go round it from now on
     }
     // its project plan, made by sim/plans: the clearing of its tiles, then the cottage's stages
     const cottage = COTTAGE.map((kind) => ({ kind, place: site.house, hours: COTTAGE_HOURS[kind], done: 0, ...kind === 'walls' ? { wood: 0 } : {} }));

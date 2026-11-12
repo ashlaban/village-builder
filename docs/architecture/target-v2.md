@@ -766,6 +766,11 @@ need); if food binds, the urban hazard changes how many die getting there, not h
 **Bands** (Decided, Kim, 3 Nov): full-simulation bands are reported, run nightly on any commit not yet benchmarked, and never fail;
 reduced scenarios (a tiny map, a few years, toy setups) are asserted in `npm run verify`.
 
+**What is judged, and who tunes** (Decided, Kim, 12 Nov): only island-wide numbers have targets; growth is judged over a scenario's
+seeds (at least 1% a year at the median), and the measures of single households are described. A loop's setpoints are named
+parameters with a physical or gameplay meaning. They are tuned together in runs Kim starts; an agent that measures a shortfall
+reports it and names the setpoints, and changes a value only to end a collapse (`AGENTS.md`, Deciding without Kim).
+
 ```ts
 interface Loop { id: string; stock: string; probe: string; kind: 'balancing' | 'reinforcing' | 'watched';
   responses: Array<{ via: RuleId | string; sign: '+' | '-'; lag: 'days' | 'seasons' | 'years' | 'generations' }>;

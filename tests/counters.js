@@ -43,10 +43,14 @@ assert(VB.count.heirRank > 0, 'countDemand rankings must be counted');
 VB.resetCounts();
 VB['sim/heirs'].ownFirstOf(st);
 assert(VB.count.heirRank >= st.liveHouseholds.length, 'nested ownFirstOf rankings must be counted');
-// A second tiny fixture exercises many pair comparisons without advancing into hunger first.
-const probe = tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
-  [{ at: [10, 15], farms: 3, sizes: [7, 7, 7] }, { at: [38, 15], farms: 3, sizes: [7, 7, 7] }], { seed: 7 });
-VB.resetCounts(); Sim.movingRound(probe);
+// A second tiny fixture exercises many pair comparisons without advancing into hunger first: two villages of four large households, at
+// four seeds, since how many unmarried adults a seed's villages hold varies widely (one village pair of three farms gave 32 pairs at
+// seed 7 and under ten at most seeds; five at seed 7 since the villages were laid out anew, VB-402).
+VB.resetCounts();
+for (const seed of [3, 6, 11, 12]) {
+  Sim.movingRound(tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
+    [{ at: [10, 15], farms: 4, sizes: [9, 9, 9, 9] }, { at: [38, 15], farms: 4, sizes: [9, 9, 9, 9] }], { seed }));
+}
 const probePairs = VB.count.roundPairs;
 assert(probePairs >= 30, 'round probe must exercise at least 30 candidate pairs');
 // A same-tile request does no A* work; a nontrivial route starts a search.

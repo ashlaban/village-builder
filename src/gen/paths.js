@@ -1,4 +1,4 @@
-// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks
+// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['gen/paths'] = (() => {
@@ -8,6 +8,12 @@ VB['gen/paths'] = (() => {
   // A trail is painted in layers, widest first, each [times the width, colour by stage]: the verge of dry, flattened grass, the darker
   // rim where the turf breaks, the bare earth, and on paths and lanes a paler middle where the ground is packed hardest.
   const LOOK = {
+    ways: 2, // the worn neighbours a tile's way keeps to (keeps, below)
+    // the stage from which a way is drawn: 3, a lane (PATHS.at[3] crossings, about sixteen a day kept up). One household alone makes
+    // some eleven crossings a day of the tile at its door (water, the green, its fields and the wood, there and back), so a path
+    // (four a day) is every household's own way and a village's middle was a net of them; a lane is a way several households share,
+    // and those are the roads (Kim, VB-402). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
+    from: 3,
     width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
     layers: [
@@ -22,8 +28,10 @@ VB['gen/paths'] = (() => {
     const h = Math.imul(i ^ 0x2c1b3c6d, 2246822519) >>> 0, a = ((h & 1023) / 1024) * 2 * Math.PI, d = (((h >>> 10) & 1023) / 1024) * 0.22 * w.R;
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
-  // A worn tile that draws its own trail: worn land that is not a house, field, green or river.
-  const trail = (w, i) => i >= 0 && w.worn[i] > 0 && !w.dev[i] && !w.water[i] && !w.river[i];
+  // A worn tile that draws its own trail: land, a field or a meadow (w.dev 0 and 1) worn to LOOK.from or more, not a green, a house or
+  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-402): the small ways
+  // everyone takes across the grass are too slight for the map, and drawn they hid the roads.
+  const trail = (w, i) => i >= 0 && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
   // Worn tiles lie in patches as well as in lines (round a house, where ways part), and a trail to every worn neighbour would draw a
   // mesh of triangles there. So of three worn tiles that all touch, the weakest link is not drawn: strength is the lower stage of the two
@@ -34,8 +42,21 @@ VB['gen/paths'] = (() => {
     const s = Math.min(w.worn[a], w.worn[b]), t = Math.min(w.worn[c], w.worn[d]);
     return s !== t ? s > t : pairHash(a, b) > pairHash(c, d);
   };
+  // Where a whole patch is worn (a village's middle, where everyone walks every way), a trail to every worn neighbour is a net, not a
+  // road. A way runs where the most feet go: tile i keeps to its LOOK.ways most worn trail neighbours, by their count of crossings (a
+  // fixed number by pair settles ties), and two tiles are tied when either keeps to the other, so a side way still joins the main one.
+  function keeps(w, i, j) {
+    let above = 0;
+    for (let k = 0; k < 6; k++) {
+      const m = w.nb[i * 6 + k];
+      if (m === j || !trail(w, m)) continue;
+      if (w.wear[m] > w.wear[j] || (w.wear[m] === w.wear[j] && pairHash(i, m) > pairHash(i, j))) above++;
+    }
+    return above < LOOK.ways;
+  }
   // Trail tiles i and its neighbour j in direction k are joined unless a tile touching both has stronger links to each.
   function joined(w, i, j, k) {
+    if (!keeps(w, i, j) && !keeps(w, j, i)) return false;
     for (const d of [1, 5]) {
       const m = w.nb[i * 6 + ((k + d) % 6)];
       if (trail(w, m) && stronger(w, i, m, i, j) && stronger(w, m, j, i, j)) return false;
@@ -54,18 +75,65 @@ VB['gen/paths'] = (() => {
     }
     return true;
   }
+  // A house's door (VB-402): the one worn tile beside it that its way runs to, the most worn of them (a fixed number by pair settles
+  // ties), or the green if the house stands on one; -1 where nothing beside it is worn. A way ends at a house, and never goes on
+  // through it: the house draws no trail of its own.
+  function door(w, h) {
+    let best = -1, bs = -1;
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[h * 6 + k];
+      if (j < 0) continue;
+      if (w.dev[j] === 2) return j;
+      if (!trail(w, j)) continue;
+      const sc = w.worn[j] + pairHash(h, j) / 2 ** 33;
+      if (sc > bs) { bs = sc; best = j; }
+    }
+    return best;
+  }
+  // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
+  const DOOR = 0.7;
+  // The ways onto a green (Kim, VB-402): of its six sides at most three bring a way, never two side by side, so the green keeps open
+  // ground between its ways. The sides' trail tiles are taken most worn first, by their count of crossings (the lower side settles
+  // ties), each unless a side beside it is taken. The directions (0..5) taken, from the green g.
+  function greenWays(w, g) {
+    const sides = [];
+    for (let k = 0; k < 6; k++) if (trail(w, w.nb[g * 6 + k])) sides.push(k);
+    sides.sort((a, b) => w.wear[w.nb[g * 6 + b]] - w.wear[w.nb[g * 6 + a]] || a - b);
+    const kept = [];
+    for (const k of sides) if (!kept.includes((k + 1) % 6) && !kept.includes((k + 5) % 6)) kept.push(k);
+    return kept;
+  }
+  // A trail tile i on a side of a green that brings no way onto it runs into the way beside it instead, which is its neighbour too: the
+  // tile it joins (the more worn of the two, if both sides beside it are taken), or -1 when i is on no green or has its own way onto it.
+  function joins(w, i) {
+    for (let k = 0; k < 6; k++) {
+      const g = w.nb[i * 6 + k];
+      if (g < 0 || w.dev[g] !== 2) continue;
+      const kept = greenWays(w, g), side = (k + 3) % 6;
+      if (kept.includes(side)) return -1;
+      let best = -1;
+      for (const d of [1, 5]) {
+        const q = (side + d) % 6, j = w.nb[g * 6 + q];
+        if (kept.includes(q) && (best < 0 || w.wear[j] > w.wear[best])) best = j;
+      }
+      return best;
+    }
+    return -1;
+  }
   // The directions (0..5) in which tile i's trail leaves it: to each linked trail neighbour and worn ford; and, when that makes it a
-  // dead end, on into the house, field or green that lies straightest ahead, since that is where the way was going. A lone worn tile
-  // between built tiles joins the two most opposite. So a way along a row of fields does not send a spur into each.
+  // dead end, on into the unworn field or meadow that lies straightest ahead, since that is where the way was going. A lone worn tile
+  // between such tiles joins the two most opposite. So a way along a row of fields does not send a spur into each. A house is
+  // reached only by its door.
   function exits(w, i) {
     const out = [], built = [];
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
       if (j < 0 || w.water[j]) continue;
-      if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
+      if (trail(w, j)) { if (linked(w, i, j, k) || joins(w, i) === j || joins(w, j) === i) out.push(k); }
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
-      else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
-      else if (w.dev[j] === 1) built.push(k);
+      else if (w.dev[j] === 2) { if (greenWays(w, j).includes((k + 3) % 6)) out.push(k); } // a green: the way goes on to the well, if its side is taken
+      else if (w.dev[j] === 3) { if (door(w, j) === i) out.push(k); } // a house whose door this is: a way ends there
+      else if (w.dev[j]) built.push(k); // a field or meadow that is not worn
     }
     while (out.length < 2 && built.length) {
       // the built neighbour most opposite the ways out so far (the first: the lowest fixed number by pair)
@@ -83,11 +151,11 @@ VB['gen/paths'] = (() => {
   }
   // The trail of tile i as curves [x0, y0, cx, cy, x1, y1, width, stage] (quadratic, cx, cy the control point). Each way out of the tile
   // ends at its joint with the neighbour it leads to, halfway to that neighbour's bend (its centre if it draws no trail), and both sides
-  // of a joint have the same width, the mean of the two tiles' widths. Every way out runs one smooth curve to the way most nearly
-  // opposite it, bent towards the tile's own bend: so a trail through many tiles flows, and at a fork the side way swings into the
-  // main one as a footpath does, with no spokes. A dead end runs from its joint to the bend, narrowing.
-  // A green (w.dev 2) wears no path of its own, but the ways that run into it cross it: each from its joint, round the well in the
-  // middle, on to the way most nearly opposite, at that way's width and stage.
+  // of a joint have the same width, the mean of the two tiles' widths. The two ways out most nearly opposite are the main way, one
+  // smooth curve bent towards the tile's own bend, so a trail through many tiles flows; every other way out joins it at its middle.
+  // A dead end runs from its joint to the bend, narrowing.
+  // A green (w.dev 2) wears no path of its own, but the ways that run into it, from any of its six sides, go on over it: each from its
+  // joint to the open ground by the well, at that way's width and stage; and so does the way from the door of each house on the green.
   function segments(w, i) {
     const green = i >= 0 && w.dev[i] === 2;
     if (!green && !trail(w, i)) return [];
@@ -96,54 +164,63 @@ VB['gen/paths'] = (() => {
     if (green) {
       for (let k = 0; k < 6; k++) {
         const j = w.nb[i * 6 + k];
+        if (j >= 0 && w.dev[j] === 3) { // a house on the green: its way runs from its door onto the green
+          end(w.hx[i] + (w.hx[j] - w.hx[i]) * (0.5 + DOOR / 2), w.hy[i] + (w.hy[j] - w.hy[i]) * (0.5 + DOOR / 2), LOOK.width[2] * 0.8, 2);
+          continue;
+        }
         if (!trail(w, j) || !exits(w, j).includes((k + 3) % 6)) continue;
         const [jx, jy] = bend(w, j);
         end((jx + w.hx[i]) / 2, (jy + w.hy[i]) / 2, LOOK.width[w.worn[j]], w.worn[j]);
       }
-      if (!ends.length) return [];
+      // every way onto the green runs to the open ground by the well, where they meet: one place, not a mesh of crossings
+      return ends.map(([x, y, wd, st]) => [x, y, (x + bx) / 2, (y + by) / 2, bx, by, wd, st]);
     } else for (const k of exits(w, i)) {
       const j = w.nb[i * 6 + k], t = trail(w, j), [jx, jy] = t ? bend(w, j) : [w.hx[j], w.hy[j]];
-      end((bx + jx) / 2, (by + jy) / 2, t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], t ? Math.min(s, w.worn[j]) : s);
+      if (w.dev[j] === 3) end(bx + (jx - bx) * DOOR, by + (jy - by) * DOOR, LOOK.width[s] * 0.8, s); // the way to a house's door, a little narrower
+      else end((bx + jx) / 2, (by + jy) / 2, t ? (LOOK.width[s] + LOOK.width[w.worn[j]]) / 2 : LOOK.width[s], t ? Math.min(s, w.worn[j]) : s);
     }
     if (!ends.length) return [[bx - 2, by, bx, by + 1, bx + 2, by, LOOK.width[s] * 0.8, s]];
     if (ends.length === 1) {
       const [x, y, wd, st] = ends[0], mx = (x + bx) / 2, my = (y + by) / 2;
       return [[x, y, (x + mx) / 2, (y + my) / 2, mx, my, wd, st], [mx, my, (mx + bx) / 2, (my + by) / 2, bx, by, wd * 0.7, st]];
     }
-    const out = [], done = new Set();
-    for (let a = 0; a < ends.length; a++) {
-      let b = -1, bd = Infinity;
-      for (let c = 0; c < ends.length; c++) { // the way most nearly opposite: the lowest cosine between them, seen from the bend
-        if (c === a) continue;
-        const d = ends[a][4] * ends[c][4] + ends[a][5] * ends[c][5];
-        if (d < bd) { bd = d; b = c; }
-      }
-      const key = a < b ? a * 8 + b : b * 8 + a;
-      if (done.has(key)) continue;
-      done.add(key);
-      // the curve from joint A to joint B, its control point the bend, drawn in towards the chord where the two ways are close together
-      // (a sharp turn rounds off instead of doubling back); split at its middle so each half keeps the width and stage of its own joint
-      const A = ends[a], B = ends[b], pull = Math.max(0, 0.5 + bd) * 0.6;
-      const qx = bx + ((A[0] + B[0]) / 2 - bx) * pull, qy = by + ((A[1] + B[1]) / 2 - by) * pull, mx = (A[0] + 2 * qx + B[0]) / 4,
-        my = (A[1] + 2 * qy + B[1]) / 4;
-      out.push([A[0], A[1], (A[0] + qx) / 2, (A[1] + qy) / 2, mx, my, A[2], A[3]], [mx, my, (qx + B[0]) / 2, (qy + B[1]) / 2, B[0], B[1], B[2], B[3]]);
+    // the main way through the tile: the two ways out most nearly opposite (the lowest cosine between them, seen from the bend), the
+    // more worn pair where two are as straight; drawn as one curve from joint A to joint B, its control point the bend, drawn in
+    // towards the chord where the two ways are close together (a sharp turn rounds off instead of doubling back), and split at its
+    // middle so each half keeps the width and stage of its own joint
+    let a = 0, b = 1, bd = Infinity;
+    for (let x = 0; x < ends.length; x++) for (let y = x + 1; y < ends.length; y++) {
+      const d = ends[x][4] * ends[y][4] + ends[x][5] * ends[y][5] - 0.05 * Math.min(ends[x][3], ends[y][3]);
+      if (d < bd) { bd = d; a = x; b = y; }
+    }
+    const A = ends[a], B = ends[b], pull = Math.max(0, 0.5 + A[4] * B[4] + A[5] * B[5]) * 0.6;
+    const qx = bx + ((A[0] + B[0]) / 2 - bx) * pull, qy = by + ((A[1] + B[1]) / 2 - by) * pull, mx = (A[0] + 2 * qx + B[0]) / 4,
+      my = (A[1] + 2 * qy + B[1]) / 4;
+    const out = [[A[0], A[1], (A[0] + qx) / 2, (A[1] + qy) / 2, mx, my, A[2], A[3]], [mx, my, (qx + B[0]) / 2, (qy + B[1]) / 2, B[0], B[1], B[2], B[3]]];
+    // every other way joins the main one at its middle, one meeting place a tile: a fork, not a knot of crossings (VB-402)
+    for (let c = 0; c < ends.length; c++) {
+      if (c === a || c === b) continue;
+      const E = ends[c];
+      out.push([E[0], E[1], (E[0] + mx) / 2, (E[1] + my) / 2, mx, my, E[2], E[3]]);
     }
     return out;
   }
-  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
-  function drawChunk(w, ctx, lv, cx, cy, l) {
-    if (!w.worn) return;
-    const { R, HW, AP, COLS, ROWS } = w, sc = lv.scale, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = R;
+  // The trail curves of one chunk at level l (lv: ArchGen.LV[l]), and its worn fields and meadows.
+  function chunkSegments(w, lv, cx, cy, l) {
+    const { R, HW, AP, COLS, ROWS } = w, x0 = cx * lv.size, y0 = cy * lv.size, x1 = x0 + lv.size, y1 = y0 + lv.size, M = R;
     const r0 = Math.max(0, Math.floor((y0 - M - R) / (1.5 * R))), r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)), c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
-    const segs = [];
+    const segs = [], sown = [];
     for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
       const i = row * COLS + col;
-      if ((w.worn[i] && LOOK.level[w.worn[i]] >= l) || (w.dev && w.dev[i] === 2)) for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+      if (!(w.worn[i] && LOOK.level[w.worn[i]] >= l) && !(w.dev && w.dev[i] === 2)) continue;
+      if (w.dev && w.dev[i] === 1) sown.push(i);
+      for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
     }
-    if (!segs.length) return;
-    ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
+    return { segs, sown };
+  }
+  // Strokes the curves in their layers; ctx is set to map units.
+  function paint(ctx, segs, sc) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
     for (const [k, colours] of LOOK.layers) for (let s = 1; s <= 3; s++) {
@@ -159,8 +236,40 @@ VB['gen/paths'] = (() => {
         ctx.stroke();
       }
     }
+  }
+  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
+  function drawChunk(w, ctx, lv, cx, cy, l) {
+    if (!w.worn) return;
+    const { segs } = chunkSegments(w, lv, cx, cy, l);
+    if (!segs.length) return;
+    const sc = lv.scale;
+    ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
+    ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
+    paint(ctx, segs, sc);
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // The same trails where they cross fields and meadows, which the page draws over the chunks: painted on a clear canvas of the chunk's
+  // size (from make(), asked for only if a field or meadow of the chunk is worn) and kept only inside those tiles' panes (FIELD_PANE of
+  // the tile's radius, as the field art is cut), so the two paintings meet at the pane's edge with nothing painted twice. The canvas, or null.
+  const FIELD_PANE = 0.92;
+  function drawOver(w, lv, cx, cy, l, make) {
+    if (!w.worn) return null;
+    const { segs, sown } = chunkSegments(w, lv, cx, cy, l);
+    if (!sown.length || !segs.length) return null;
+    const canvas = make(), ctx = canvas.getContext('2d'), sc = lv.scale;
+    ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
+    paint(ctx, segs, sc);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath();
+    for (const i of sown) for (let k = 0; k < 6; k++) {
+      const a = (Math.PI / 180) * (30 + 60 * k), x = w.hx[i] + Math.cos(a) * w.R * FIELD_PANE, y = w.hy[i] + Math.sin(a) * w.R * FIELD_PANE;
+      if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      if (k === 5) ctx.closePath();
+    }
+    ctx.fillStyle = '#000'; ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return canvas;
   }
   // Squared distance from (x, y) to the segment (ax, ay)-(bx, by).
   function dist2(x, y, ax, ay, bx, by) {
@@ -192,5 +301,5 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, exits, segments, drawChunk, thin };
+  return { LOOK, bend, door, greenWays, joins, exits, segments, drawChunk, drawOver, thin };
 })();

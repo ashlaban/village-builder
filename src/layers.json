@@ -2,14 +2,14 @@
   "layers": ["kernel", "material", "social", "agency", "derived"],
   "roots": ["sim/clock", "sim/saves", "sim/scenarios", "sim"],
   "modules": {
-    "kernel": ["vb", "gen/paths", "gen/rivers", "gen/climate", "gen/marks", "gen/geology", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
-      "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/forest", "sim/people", "sim/records", "sim/prospect", "sim/commands"],
+    "kernel": ["vb", "gen/paths", "gen/rivers", "gen/climate", "gen/marks", "gen/geology", "gen/cover", "gen", "sim/rules", "sim/registry", "sim/events", "sim/rng", "sim/hex", "sim/names",
+      "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/byhand", "sim/forest", "sim/people", "sim/records", "sim/prospect", "sim/commands"],
     "material": ["sim/stores", "sim/projects", "sim/dig", "sim/pot", "sim/hunger", "sim/fields", "sim/meadows", "sim/byre", "sim/grazing", "sim/herds", "sim/ownership", "sim/claims",
       "sim/stakes", "sim/territory", "sim/expansion", "sim/building",
       "sim/drying"],
     "social": ["culture", "sim/relations", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
       "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/occasions"],
     "agency": ["sim/agents", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/eligibility", "sim/plans"],
-    "derived": ["sim/notable", "sim/opportunities"]
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities"]
   }
 }

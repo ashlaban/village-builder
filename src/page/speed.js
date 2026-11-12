@@ -43,7 +43,7 @@
   function advanceSimulation(dt) {
     // behind the menu a game waits, paused; the showcase island (page/loader) goes on at its own speed, unless motion is to be reduced
     if (demo) {
-      if (st && !building && !reduceMotion) {
+      if (st && !still && !building && !reduceMotion) { // `still`: the editor's picture of what is placed (page/editor)
         syncSteps(); stepShare += (dt * DEMO.speed) / HOUR_SECONDS / SIM_SLICE_HOURS;
         const n = Math.floor(stepShare); stepShare -= n; runSteps(n);
       }

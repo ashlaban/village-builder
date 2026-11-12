@@ -130,7 +130,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
   await page.click('#drawerClose');
-  for (const id of ['landBtn', 'settlersBtn', 'customsBtn', 'treeBtn', 'landBtn']) {
+  for (const id of ['landBtn', 'settlersBtn', 'cultureBtn', 'treeBtn', 'landBtn']) {
     await page.click('#' + id); await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');
   }
@@ -138,6 +138,11 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#settlersBtn'); await page.click('#settlers .village-block > summary'); await page.click('#settlers [data-village]');
   for (const next of [null, '#tileList [data-farm]', '#tileList [data-pawn]']) {
     if (next) { await page.click('#tabFacts'); await page.click(next); }
+    else { // the village's Customs tab (VB-396): the charter, and a phrase opened to its ways
+      await page.click('#tabCustoms'); await page.waitForSelector('#tileCustoms .charter [data-phrase]');
+      await page.click('#tileCustoms [data-phrase]'); await page.waitForSelector('#tileCustoms .stand .way');
+      if (await page.locator('#tileCustoms .voice').count()) { await page.click('#tileCustoms .voice'); await page.waitForSelector('#tileCustoms .why'); }
+    }
     await page.click('#tabHistory'); await page.waitForSelector('#historyList time');
     for (const kind of await page.$$('#historyKinds button')) await kind.click();
     await page.click('#historyKinds [data-history=""]');
@@ -349,5 +354,5 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, customs, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir, a marriage offer answered No)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, culture, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir, a marriage offer answered No)');
 })().catch((e) => { console.error(e); process.exit(1); });

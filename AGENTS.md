@@ -8,7 +8,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   3 November point there). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
 - `BACKLOG.md`: open tasks, one file each in `backlog/`, done ones in `BACKLOG_ARCHIVE.md`; its last section, "How this backlog works",
   holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
-- `QUESTIONS.md`: open design questions for Kim, answered ones in `QUESTION_ARCHIVE.md`; read, answer and move them with `tools/questions.js`.
+- `QUESTIONS.md`: the questions only Kim can answer (Deciding without Kim), answered ones in `QUESTION_ARCHIVE.md`; read, answer and move
+  them with `tools/questions.js`. `docs/tuning.md`: the parameters and measured shortfalls that wait for a tuning run Kim starts.
 - `docs/roadmap.md`: the order of work (vertical slices, each an arch of the backlog), the late-game budget and cheap measurement.
 - `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
@@ -20,13 +21,32 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 ## Taking a task
 1. `node tools/backlog.js next`, then `show ID`: the first ready task is the one to take.
 2. Read only what its Design ref and notes name (`tools/doc.js`), and its questions (`node tools/questions.js show ID`).
-3. If it turns out to need a design decision, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
+3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
+   Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm test` and `node tests/golden.js`; for a task of size M or L, or one that touches `src/page/`, `npm run verify`
    instead, once. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
+
+## Deciding without Kim (Kim, 12 November)
+A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
+Otherwise decide by these, write the decision and its reason in the task file, and go on.
+1. **Hunger is an engine.** Shortage drives gifts, goodwill and loans, and through them the landed class. A household may fail. Only
+   island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
+2. **The island grows without the player.** Over a scenario's seeds, yearly growth `(end / start)^(1 / years) - 1`: the median seed
+   grows at least 1% a year, at least three seeds in four end above their start, and at most one in eight below half of it. Populous is
+   held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
+3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. Agents do not tune:
+   tuning is a run over many parameters, for gameplay balance, that Kim starts. A measurement that shows a shortfall is reported and
+   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix,
+   reported before and after; and a collapse may be tuned away.
+4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
+5. **Customs** are grounded in history, with defaults leaning to gameplay. Add them freely; Kim will later review them for a smaller set.
+6. **References:** founders is the early game's, populous the late game's (many pawns). Heirs is reported without a target.
+7. **Detail** is grounded in history and chosen where it gives the head or the player a decision: key kinds, not every kind, as with
+   the crops (`design.md`, Crops and rotations).
 
 ## Commands
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
@@ -45,9 +65,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   stamp names the year. `npm run verify` makes the small pair first when the sources lack it, beside its other scripts; in a test or a
   tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first; `npm run nightly` makes what
   is missing and runs the bench (minutes).
-- Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (verify) asserts each band's reduced run, populous on
-  the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous and founders small, heirs), prints each band
-  as in or out and appends to `docs/bench/bands.jsonl`, never failing (about 15 to 20 minutes; `npm run nightly` runs it for a new commit).
+- Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (verify) checks each band's reduced run, populous on
+  the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous small at four seeds, founders small at
+  sixteen, heirs at two), prints each band and appends to `docs/bench/bands.jsonl`, never failing (`npm run nightly` runs it for a new
+  commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (Deciding without Kim, 1 and 2).
 - Golden file: `node tests/golden.js --update` re-records `tests/golden.json`, only for an intended behaviour change; list the changed entries in the PR.
 - Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
@@ -124,7 +145,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   balance, demography and timing are targets: they print their measure, target and residual, and never set the exit code. A PR has a
   "Targets" section, one line for each target the change moves or was meant to move (before, after, residual, whether the change is
   its cause) and one line summing the targets out and not moved ("8 targets out, as on `main`"). A change never raises a target,
-  re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target. The lint and ownership baselines
+  re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target, and only Kim starts a tuning run
+  (Deciding without Kim, 3). The lint and ownership baselines
   stay ratchets.
 - Rebuild `index.html` before committing; both suites check it.
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the

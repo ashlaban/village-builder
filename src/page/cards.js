@@ -41,18 +41,13 @@
   const villageChip = (v) => `<button type="button" class="chip" data-village="${v.id}">${iconImg(villageIcon(v), 'mini')}${esc(v.name)}</button>`;
   const row = (attr, img, name, note, state) => `<button type="button" class="row" ${attr}>${img}<span class="who">${esc(name)}<i>${
     esc(note)}</i></span><span class="state">${state}</span></button>`;
-  // One listener for every link: a person, a farm, a village, or a village's customs.
+  // One listener for every link: a person, a farm or a village.
   function follow(e) {
-    const b = e.target.closest('button[data-pawn], button[data-farm], button[data-village], button[data-customs]');
+    const b = e.target.closest('button[data-pawn], button[data-farm], button[data-village]');
     if (!b || !st) return;
     if (b.dataset.pawn) focusPawn(+b.dataset.pawn);
     else if (b.dataset.farm) selectFarm(+b.dataset.farm);
-    else if (b.dataset.village) selectVillage(+b.dataset.village);
-    else {
-      customVillage = +b.dataset.customs; customsStamp = '';
-      if (activePanel !== 'customs') openDrawer('customs'); else buildCustoms();
-      renderDrawer();
-    }
+    else selectVillage(+b.dataset.village);
   }
   $('settlers').addEventListener('click', follow);
   $('tile').addEventListener('click', follow);
@@ -85,10 +80,8 @@
         hh ? `Held by ${Sim.fullName(st.pawns[hh.holder])}` : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
         hh ? `${hungerMark(hh)}${hh.members.length} people · ${hungerWord(hh)}` : '');
     }).join('')}`;
-    const customs = st.cenv.settlements[id] && st.cenv.settlements[id].id === id
-      ? `<button type="button" class="chip" data-customs="${id}">Customs</button>` : '';
     card(v.name, lines, '', { badge: iconImg(villageIcon(v)), kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
-      links: (mother ? villageChip(mother) : '') + customs, list });
+      links: mother ? villageChip(mother) : '', list });
   }
 
   // On a wide screen a pinned card opens with its details; on a phone it opens as its summary, to leave the map in view.

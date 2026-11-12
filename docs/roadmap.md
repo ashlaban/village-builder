@@ -283,8 +283,8 @@ The alderman's road (target-v2 7.1), and the first test of whether bodies need a
 
 **Design pass (written 11 November, VB-184; `design.md`, sections 5 (Households and other bodies), 6 (Land and rights), 9 (Loans,
 obligations and cases) and 10 (slice 5's practices); all Proposed).** Written while Kim was away: where this section, target-v2 or an
-archived answer pointed the way, the orchestrator decided in Kim's place, and the answers are questions 1 to 6, 9 and 10 of
-`QUESTIONS.md`, "VB-184: debt and land", for Kim to overturn. In short:
+archived answer pointed the way, the orchestrator decided in Kim's place, and those answers stand (Kim, 12 November;
+`QUESTION_ARCHIVE.md`, "VB-184: debt and land", questions 1 to 6 and 8 to 10). In short:
 - grain loans, moved here from slice 4 (Kim, 10 November), asked when help falls short, repaid at the next harvest with a quarter more
   under a new practice; defaulted after two harvests unpaid;
 - Obligations as a module, its first kind the heirs' shares (moved in unchanged), then loans, rent, labour owed and wages;

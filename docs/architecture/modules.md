@@ -23,6 +23,17 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
+  What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
+- The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
+  tools' panels in one scene, Regenerate, and Play, which calls the loader's `build` with the generation options and `apply(wd)`. The
+  terrain brush changes a world only before a run is seeded on it, through `VB['gen/cover'].set` (a land tile's cover) and the geology's
+  `setDeposit` and `reveins`; what was painted is kept as tile maps and laid again on the land raised anew. The Settlement tool (`src/page/editplace.js`)
+  settles by a scenario, or by hand: `Sim.seed(w, seed, 'manual', places)` (`sim/scenarios`, seedManual; `tests/manual.js`) lays each place in order, a
+  village by the generator or a household on its very tile (`sim/byhand`, farmAt, which joins it to a village whose centre is within
+  `SETTLE.centreApart`), with people as in Populous. A field or a meadow placed is of the farm nearest within `HAND_REACH`
+  (`sim/byhand`, fieldAt; `sim/meadows`, meadowAt), and a road is wear laid as a lane (`sim/paths`, layWay), drawn or found by `findRoute`. The editor shows that run, standing still (`still`), and puts the world back
+  (`gen/cover`, keep and restore) before it is painted or seeded again. A game begun there is
+  `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
 - Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
   search, `reachCosts` (one Dijkstra from a green to many, for the table of walking hours between villages, `st.villageHours`, VB-286),
   the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
@@ -83,6 +94,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The chronicle (VB-099): `Sim.chronicle(st, {pawn | farm | village}, group)` and `Sim.villageLog(st, n)`, also in `src/sim/notable.js`, are the
   record as a history, newest first, and as the village log (`st.events` is gone: `log` writes the record only). `CHRONICLE` names the
   filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
+- Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
+  new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
+  read-only view); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
 - Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `serve`,
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.

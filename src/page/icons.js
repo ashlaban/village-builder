@@ -32,6 +32,7 @@
     menu: svgIcon(20, 20, '<path d="M3 5.5h14M3 10h14M3 14.5h14"/>', ICON_STROKE),
     pawn: svgIcon(20, 20, '<circle cx="10" cy="5" r="2.6"/><path d="M8.2 7.8h3.6l1.4 7H6.8Z"/><rect x="5" y="14.8" width="10" height="2.7" rx="1"/>',
       ICON_STROKE),
+    agenda: svgIcon(20, 20, '<path d="M3.5 8.5v3.5h2.5l6.5 3.2V5.3L6 8.5zM15 8a3 3 0 0 1 0 4.5M6 12l.8 4h2l-.8-3.6"/>', ICON_STROKE),
     bug: svgIcon(20, 20, '<path d="M7 7.5a3 3 0 0 1 6 0"/><rect x="6" y="7.5" width="8" height="9.5" rx="4"/>'
       + '<path d="M10 9.5v7M6 10.5H3M14 10.5h3M6 14H3.5M14 14h2.5M7.5 5L6 3M12.5 5L14 3"/>', ICON_STROKE),
     // the map's bar under the minimap (11 Nov): the grid, the regions, the land held (a claim's flag), which notifications show, the minimap
@@ -71,6 +72,10 @@
     pot: '<path d="M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3"/>',
     pail: '<path d="M6 9h12l-1.5 11h-9zM6 9c0-3.5 3-6 6-6s6 2.5 6 6"/>',
     back: '<path d="M14 6l-6 6 6 6"/>', next: '<path d="M10 6l6 6-6 6"/>', no: '<path d="M6 6l12 12M18 6L6 18"/>',
+    emptyfarm: '<path d="M4 11l8-7 8 7M6 10v9h12v-9"/>', // a house with no door: no one lives there
+    ruin: '<path d="M3 20h18M6 20v-9l3 2.5V9l3 3M18 20v-5l-3-2v7"/>', // broken walls
+    green: '<path d="M6 20v-8h12v8M4 12h16M8 12V6h8v6M12 6V3"/>', // the well on the green
+    road: '<path d="M8 21l2-18M16 21L14 3M12 5v2.5M12 10.5v3M12 16.5v3"/>', // a way running off: its two edges and a broken middle line
     plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
   };
   const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
