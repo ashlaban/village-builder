@@ -1,5 +1,5 @@
 {
-  "creators": ["sim/scenarios", "sim/layout", "sim/people"],
+  "creators": ["sim/scenarios", "sim/layout", "sim/byhand", "sim/people"],
   "exempt": ["sim/saves"],
   "plannedOwners": [],
   "fields": {

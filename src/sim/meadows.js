@@ -7,7 +7,8 @@ VB['sim/meadows'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { nextTo, HAND_REACH } = VB['sim/layout'];
+  const { nextTo } = VB['sim/layout'];
+  const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];

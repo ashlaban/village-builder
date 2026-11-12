@@ -53,6 +53,7 @@ const HINTS = {
   'sim/saves': { v: 'local', h: 'household|village' }, 'sim/byre': { a: 'candidate' }, // byre: a candidate for slaughter {herd, head | sheep}
   'sim/rng': { r: 'st.rng' }, 'sim/records': { R: 'st', x: 'st.idx', l: 'st.idx', s: 'local' }, 'sim/people': { R: 'st' },
   'sim/layout': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' },
+  'sim/byhand': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' }, // a settlementGenerator's, as sim/layout's
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },

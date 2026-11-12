@@ -352,6 +352,10 @@
           <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
           <button type="button" data-place="village" data-ico="village" aria-pressed="false">A village</button>
           <button type="button" data-place="farm" data-ico="home" aria-pressed="false">A household</button>
+          <button type="button" data-place="pawn" data-ico="me" aria-pressed="false">A person</button>
+          <button type="button" data-place="green" data-ico="green" aria-pressed="false">A green and well</button>
+          <button type="button" data-place="empty" data-ico="emptyfarm" aria-pressed="false">An empty farm</button>
+          <button type="button" data-place="ruin" data-ico="ruin" aria-pressed="false">A ruin</button>
           <button type="button" data-place="field" data-ico="sow" aria-pressed="false">A field</button>
           <button type="button" data-place="meadow" data-ico="hay" aria-pressed="false">A meadow</button>
           <button type="button" data-place="way" data-ico="road" aria-pressed="false">A road, drawn</button>
@@ -360,6 +364,14 @@
         </div>
         <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
           <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <label id="edFillRow">Who lives there
+          <select id="edFill"><option value="full">A family, with children</option><option value="couple">A young couple</option></select></label>
+        <div class="ed-pair" id="edPawnRow">
+          <label>Sex<select id="edPawnSex"><option value="f">Woman</option><option value="m">Man</option></select></label>
+          <label>Age<input id="edPawnAge" type="number" min="0" max="80" step="1" value="25"></label>
+          <label class="ed-wide">Place in the house<select id="edPawnRole"><option value="kin">One of the household</option>
+            <option value="servant">A servant</option></select></label>
+        </div>
         <p class="hint" id="edPlaceNote"></p>
         <p class="err" id="edPlaceMsg" role="alert" hidden></p>
       </fieldset>

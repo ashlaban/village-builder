@@ -546,7 +546,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
   border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
-.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ed-pair .ed-wide { grid-column: 1 / -1; }
+.editor [hidden] { display: none !important; }
 .ed-range span { display: flex; justify-content: space-between; gap: 8px; }
 .ed-range output { color: var(--ink); font-variant-numeric: tabular-nums; }
 .ed-biomes { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--edge); }
@@ -1155,6 +1156,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
           <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
           <button type="button" data-place="village" data-ico="village" aria-pressed="false">A village</button>
           <button type="button" data-place="farm" data-ico="home" aria-pressed="false">A household</button>
+          <button type="button" data-place="pawn" data-ico="me" aria-pressed="false">A person</button>
+          <button type="button" data-place="green" data-ico="green" aria-pressed="false">A green and well</button>
+          <button type="button" data-place="empty" data-ico="emptyfarm" aria-pressed="false">An empty farm</button>
+          <button type="button" data-place="ruin" data-ico="ruin" aria-pressed="false">A ruin</button>
           <button type="button" data-place="field" data-ico="sow" aria-pressed="false">A field</button>
           <button type="button" data-place="meadow" data-ico="hay" aria-pressed="false">A meadow</button>
           <button type="button" data-place="way" data-ico="road" aria-pressed="false">A road, drawn</button>
@@ -1163,6 +1168,14 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         </div>
         <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
           <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>
+        <label id="edFillRow">Who lives there
+          <select id="edFill"><option value="full">A family, with children</option><option value="couple">A young couple</option></select></label>
+        <div class="ed-pair" id="edPawnRow">
+          <label>Sex<select id="edPawnSex"><option value="f">Woman</option><option value="m">Man</option></select></label>
+          <label>Age<input id="edPawnAge" type="number" min="0" max="80" step="1" value="25"></label>
+          <label class="ed-wide">Place in the house<select id="edPawnRole"><option value="kin">One of the household</option>
+            <option value="servant">A servant</option></select></label>
+        </div>
         <p class="hint" id="edPlaceNote"></p>
         <p class="err" id="edPlaceMsg" role="alert" hidden></p>
       </fieldset>
@@ -4344,7 +4357,7 @@ VB['sim/forage'] = (() => {
 // @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, WOOD, SETTLE, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -4353,8 +4366,6 @@ VB['sim/layout'] = (() => {
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
-  // A field or a meadow placed by hand (the archipelago editor) is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
-  const HAND_REACH = 6;
   const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
   // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
   // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
@@ -4681,7 +4692,7 @@ VB['sim/layout'] = (() => {
   function settlementGenerator(w, rand, bare = false) {
     const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
-      used, farmsteads, villages,
+      used, farmsteads, villages, rand, fieldsAt, yards, // rand and the two sets: for what is placed by hand (sim/byhand)
       addVillage(center, nFarms) {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
@@ -4696,30 +4707,6 @@ VB['sim/layout'] = (() => {
         if (f) farmsteads.push(f);
         return f;
       },
-      // A farm on this very tile, placed by hand (the archipelago editor), with three fields: it joins the village whose centre is the
-      // nearest within SETTLE.centreApart steps, as close farms are one village in play, or is a village of its own, as a lone farm is.
-      // Null where the tile cannot bear a house (not farmable, taken, a yard, beside a field) or finds no fields.
-      addFarmAt(house) {
-        if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
-        const fields = placeFields(w, used, house, 3, yards);
-        if (!fields) return null;
-        let v = null, vd = SETTLE.centreApart + 1;
-        for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
-        if (!v) { v = loneVillage(rand, villages, house); villages.push(v); }
-        const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
-        farmsteads.push(f);
-        return f;
-      },
-      // A field on this very tile, placed by hand: of the farm whose house is nearest, within HAND_REACH steps. False where the tile
-      // cannot be a field (not farmable, taken, a yard) or no farm is near enough.
-      addFieldAt(tile) {
-        if (!farmable(w, tile) || used.has(tile) || yards.has(tile)) return false;
-        let f = null, fd = HAND_REACH + 1;
-        for (const g of farmsteads) { const d = hexSteps(w, g.house, tile); if (d < fd) { fd = d; f = g; } }
-        if (!f) return false;
-        fieldOn(w, used, f, tile); fieldsAt.add(tile);
-        return true;
-      },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
@@ -4730,9 +4717,58 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, HAND_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
+})();
+</script>
+<script>
+// @sys sim/byhand: what the archipelago editor places by hand on a settlement generator: a farm, a field or a green on a very tile
+VB['sim/byhand'] = (() => {
+  const { SETTLE, farmable } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { nextTo, placeFields, loneVillage, farmIn, fieldOn } = VB['sim/layout'];
+  // A field or a meadow placed by hand is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
+  const HAND_REACH = 6;
+  // gen: a settlementGenerator of sim/layout, before its finish(). Each is false (null) where the tile cannot take what is placed.
+  // A farm on this very tile, with three fields: it joins the village whose centre is the nearest within SETTLE.centreApart steps, as
+  // close farms are one village in play, or is a village of its own, as a lone farm is. Null where the tile cannot bear a house (not
+  // farmable, taken, a yard, beside a field) or finds no fields.
+  function farmAt(w, gen, house) {
+    const { used, farmsteads, villages, fieldsAt, yards } = gen;
+    if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+    const fields = placeFields(w, used, house, 3, yards);
+    if (!fields) return null;
+    let v = null, vd = SETTLE.centreApart + 1;
+    for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
+    if (!v) { v = loneVillage(gen.rand, villages, house); villages.push(v); }
+    const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
+    farmsteads.push(f);
+    return f;
+  }
+  // A green with a well on this very tile: of the village with no green whose centre is the nearest within SETTLE.centreApart steps; the
+  // green is its centre from then on. False where the tile is taken or water, or no such village is near.
+  function greenAt(w, gen, tile) {
+    const { used, villages, yards } = gen;
+    if (w.water[tile] || w.river[tile] || used.has(tile)) return false;
+    let v = null, vd = SETTLE.centreApart + 1;
+    for (const u of villages) { const d = hexSteps(w, u.center, tile); if (!u.green && d < vd) { vd = d; v = u; } }
+    if (!v) return false;
+    v.center = tile; v.green = v.well = true; used.add(tile);
+    for (let k = 0; k < 6; k++) { const j = w.nb[tile * 6 + k]; if (j >= 0) yards.add(j); }
+    return true;
+  }
+  // A field on this very tile: of the farm whose house is nearest, within HAND_REACH steps. False where the tile cannot be a field (not
+  // farmable, taken, a yard) or no farm is near enough.
+  function fieldAt(w, gen, tile) {
+    if (!farmable(w, tile) || gen.used.has(tile) || gen.yards.has(tile)) return false;
+    let f = null, fd = HAND_REACH + 1;
+    for (const g of gen.farmsteads) { const d = hexSteps(w, g.house, tile); if (d < fd) { fd = d; f = g; } }
+    if (!f) return false;
+    fieldOn(w, gen.used, f, tile); gen.fieldsAt.add(tile);
+    return true;
+  }
+  return { HAND_REACH, farmAt, greenAt, fieldAt };
 })();
 </script>
 <script>
@@ -7622,7 +7658,8 @@ VB['sim/meadows'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { nextTo, HAND_REACH } = VB['sim/layout'];
+  const { nextTo } = VB['sim/layout'];
+  const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fields'];
@@ -12460,7 +12497,30 @@ VB['sim/people'] = (() => {
     }
     return households;
   }
-  return { foundersHouseholds, drawSize, populousHouseholds };
+  // Placed by hand (the archipelago editor; sim/scenarios, seedManual). fill: by farm id, how its house is peopled: 'couple', a young couple
+  // as the founders are; 'empty' or 'ruin', no one; any other farm a family as in Populous, of sizes[id]. people: those placed one by one,
+  // in order, each {farm, sex, age, servant}: they join the farm's household, and on an empty farm the first of them, an adult, founds it
+  // and holds it. Returns the households, and `refused`, the index in `people` of the first who could not be placed (-1: none).
+  function handHouseholds(R, farmsteads, sizes, fill, people) {
+    const rand = R.rand, households = populousHouseholds(R, farmsteads.filter((f) => !fill[f.id]), sizes);
+    for (const f of farmsteads) {
+      if (fill[f.id] !== 'couple') continue;
+      const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      households.push(makeHousehold(R, households.length, f, [man, wife], man));
+      marry(R, man, wife, 1 + ((rand() * 4) | 0));
+    }
+    let refused = -1;
+    people.forEach((p, k) => {
+      const f = farmsteads[p.farm];
+      if (refused >= 0 || !f || fill[f.id] === 'ruin' || (f.household === null && p.age < 18)) { if (refused < 0) refused = k; return; }
+      const id = person(R, { sex: p.sex === 'f' ? 'f' : 'm', age: p.age, servant: !!p.servant && f.household !== null });
+      if (f.household === null) households.push(makeHousehold(R, households.length, f, [id], id));
+      else joinHousehold(R, households[f.household], id);
+    });
+    return { households, refused };
+  }
+  return { foundersHouseholds, drawSize, populousHouseholds, handHouseholds };
 })();
 </script>
 <script>
@@ -12473,7 +12533,8 @@ VB['sim/scenarios'] = (() => {
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
-  const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
+  const ByHand = VB['sim/byhand'];
+  const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans } = VB['sim/plans'];
@@ -12535,33 +12596,51 @@ VB['sim/scenarios'] = (() => {
     return standing(w, S, rand, gen, sizes, 'populous', seedNum);
   }
   // Placed by hand (the archipelago editor): `places`, each {village: tile, farms}, a village laid by the generator about that tile;
-  // {farm: tile}, a household on that very tile (sim/layout, addFarmAt); {field: tile} and {meadow: tile}, of the farm nearest (addFieldAt;
-  // sim/meadows, meadowAt); or {way: tiles, stage}, a worn way (sim/paths, layWay). Villages and farms are laid first, in their order, then
-  // the fields, the meadows and the ways; the people are as in Populous Villages. Where a place finds no room the error's `place` is its index.
+  // {farm: tile, fill}, a house on that very tile (sim/byhand, farmAt) with a family as in Populous Villages, or by `fill` a 'couple',
+  // or no one, an 'empty' farm or a 'ruin'; {green: tile}, a green and well for a village without (greenAt); {pawn: tile, sex, age,
+  // servant}, one more of the house on that tile (sim/people, handHouseholds); {field: tile} and {meadow: tile}, of the farm nearest
+  // (fieldAt; sim/meadows, meadowAt); or {way: tiles, stage}, a worn way (sim/paths, layWay). Villages and farms are laid first, in their
+  // order, then the greens, the fields, the people, the meadows and the ways. Where a place finds no room the error's `place` is its index.
+  const EMPTY = { empty: [3, 'derelict', 'fallow'], ruin: [15, 'ruin', 'scrub'] }; // years empty, the farm's state, its fields' stage
   function seedManual(w, seedNum, places) {
-    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [];
-    const each = (key, fn) => (places || []).forEach((p, k) => {
-      if (p[key] !== undefined && !fn(p, k)) throw Object.assign(new Error('No room for what was placed there'), { place: k });
-    });
-    const settle = (made) => { for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); } return made.length > 0; };
-    (places || []).forEach((p, k) => { // villages and farms in the one order, as each takes its room from those after it
+    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [], fill = [];
+    const list = places || [], no = (k) => { throw Object.assign(new Error('No room for what was placed there'), { place: k }); };
+    const each = (key, fn) => list.forEach((p, k) => { if (p[key] !== undefined && !fn(p, k)) no(k); });
+    list.forEach((p, k) => { // villages and farms in the one order, as each takes its room from those after it
       if (p.village === undefined && p.farm === undefined) return;
-      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? gen.addFarmAt(at) : null;
+      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? ByHand.farmAt(w, gen, at) : null;
       const made = p.farm !== undefined ? (f ? [f.id] : []) : w.water[at] || gen.used.has(at) ? [] : gen.addVillage(at, p.farms).farmsteads;
-      if (!settle(made)) throw Object.assign(new Error('No room for what was placed there'), { place: k });
+      if (!made.length) no(k);
+      if (f && p.fill && p.fill !== 'full') { fill[f.id] = p.fill; return; }
+      for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); }
     });
     if (!gen.farmsteads.length) throw new Error('Nothing is placed to live in');
-    each('field', (p) => gen.addFieldAt(p.field));
-    const st = standing(w, S, rand, gen, sizes, 'manual', seedNum, (run) => each('meadow', (p) => meadowAt(run, p.meadow)));
+    each('green', (p) => ByHand.greenAt(w, gen, p.green));
+    each('field', (p) => ByHand.fieldAt(w, gen, p.field));
+    const pawns = list.map((p, k) => (p.pawn === undefined ? null : { k, sex: p.sex, age: p.age | 0, servant: p.servant,
+      farm: gen.farmsteads.findIndex((f) => f.house === p.pawn) })).filter(Boolean);
+    const people = (R, farmsteads) => {
+      const made = handHouseholds(R, farmsteads, sizes, fill, pawns);
+      if (made.refused >= 0) no(pawns[made.refused].k);
+      for (const f of farmsteads) { // a farm left with no one stands empty, as one of the old farms does (seedHeirs)
+        if (f.household !== null) continue;
+        const [years, state, stage] = EMPTY[fill[f.id]] || EMPTY.empty;
+        f.state = state; f.emptySince = -years * YEAR; f.line = null; f.condition = Math.max(0.08, 1 - years * 0.075);
+        for (const fd of f.fields) fd.stage = stage;
+      }
+      return made.households;
+    };
+    const st = standing(w, S, rand, gen, sizes, 'manual', seedNum, (run) => each('meadow', (p) => meadowAt(run, p.meadow)), people);
     each('way', (p) => layWay(w, p.way, p.stage || 3) > 0);
     return st;
   }
   // Villages that have stood a while, as the generator laid them: their households of the sizes drawn, a year's grain, herds and meadows.
-  // byHand(st), if given: what is placed on the run before its farms take the meadows they still want.
-  function standing(w, S, rand, gen, sizes, scenario, seedNum, byHand = null) {
+  // byHand(st), if given: what is placed on the run before its farms take the meadows they still want. people(R, farmsteads), if given,
+  // makes the households in place of a family on every farm.
+  function standing(w, S, rand, gen, sizes, scenario, seedNum, byHand = null, people = null) {
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
-    const households = populousHouseholds(R, farmsteads, sizes);
+    const households = people ? people(R, farmsteads) : populousHouseholds(R, farmsteads, sizes);
     const st = makeState(w, S, R, households, farmsteads, villages, used, scenario);
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
@@ -13443,6 +13522,9 @@ if (typeof module !== 'undefined') module.exports = Sim;
     pot: '<path d="M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3"/>',
     pail: '<path d="M6 9h12l-1.5 11h-9zM6 9c0-3.5 3-6 6-6s6 2.5 6 6"/>',
     back: '<path d="M14 6l-6 6 6 6"/>', next: '<path d="M10 6l6 6-6 6"/>', no: '<path d="M6 6l12 12M18 6L6 18"/>',
+    emptyfarm: '<path d="M4 11l8-7 8 7M6 10v9h12v-9"/>', // a house with no door: no one lives there
+    ruin: '<path d="M3 20h18M6 20v-9l3 2.5V9l3 3M18 20v-5l-3-2v7"/>', // broken walls
+    green: '<path d="M6 20v-8h12v8M4 12h16M8 12V6h8v6M12 6V3"/>', // the well on the green
     road: '<path d="M8 21l2-18M16 21L14 3M12 5v2.5M12 10.5v3M12 16.5v3"/>', // a way running off: its two edges and a broken middle line
     plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
   };
@@ -17691,10 +17773,13 @@ if (typeof module !== 'undefined') module.exports = Sim;
   const ED_NO_ROOM = { village: 'A village finds no room there.', farm: 'A house cannot stand there, or finds no fields about it.',
     field: 'No field can lie there: the ground must be free and fit to till, within six tiles of a house.',
     meadow: 'No meadow can lie there: it takes free meadow, marsh or heath within six tiles of a house.',
+    pawn: 'Press on a house. A child cannot live alone in an empty one, and no one lives in a ruin.',
+    green: 'No green can lie there: it takes a free tile near a village that has none.',
+    empty: 'A house cannot stand there, or finds no fields about it.', ruin: 'A house cannot stand there, or finds no fields about it.',
     way: 'No road can run there.', route: 'No way on foot was found between the two.' };
   const edWayG = new PIXI.Graphics(); L.hover.addChild(edWayG);
   let edWay = null, edFrom = -1; // a road being drawn (its tiles in order); the first press of a road to be found
-  const edAnchors = (p) => (p.way ? p.way : [p.farm !== undefined ? p.farm : p.field !== undefined ? p.field : p.meadow !== undefined ? p.meadow : p.village]);
+  const edAnchors = (p) => (p.way ? p.way : [[p.farm, p.field, p.meadow, p.village, p.pawn, p.green].find((t) => t !== undefined)]);
   // The roads that the land does not show: one being drawn, the start of one to be found, and all of them while no run stands to wear them.
   function edWays() {
     edWayG.clear();
@@ -17732,11 +17817,19 @@ if (typeof module !== 'undefined') module.exports = Sim;
       edFrom = -1;
       if (way && way.length > 1) edit.places.push({ way, stage: 3 });
     } else if (edPlace === 'remove') {
-      let k = -1, kd = 3;
-      edit.places.forEach((p, j) => { for (const a of edAnchors(p)) { const d = steps(wd, t, a); if (d < kd) { kd = d; k = j; } } });
+      let k = -1, kd = 2; // the nearest; of those on one tile, the last placed (a person before the house)
+      edit.places.forEach((p, j) => { for (const a of edAnchors(p)) { const d = steps(wd, t, a); if (d <= kd) { kd = d; k = j; } } });
       if (k < 0) return;
       edit.places.splice(k, 1);
-    } else edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) } : { [edPlace]: t });
+    } else if (edPlace === 'pawn') { // a person, of the house pressed on or beside
+      const f = edit.sim ? edit.sim.farmsteads.find((g) => steps(wd, g.house, t) <= 1) : null,
+        age = clamp(Math.round(Number($('edPawnAge').value) || 0), 0, 80);
+      edit.places.push({ pawn: f ? f.house : t, sex: $('edPawnSex').value, age, servant: $('edPawnRole').value === 'servant' });
+    } else {
+      edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) }
+        : edPlace === 'farm' ? { farm: t, fill: $('edFill').value } : edPlace === 'empty' || edPlace === 'ruin' ? { farm: t, fill: edPlace } : {
+          [edPlace]: t });
+    }
     const was = edPlace;
     await edRelay();
     const msg = was !== 'remove' && edit.places.length <= n ? ED_NO_ROOM[was] : '';
@@ -17751,20 +17844,28 @@ if (typeof module !== 'undefined') module.exports = Sim;
     for (const b of $('edPlaces').querySelectorAll('button')) b.setAttribute('aria-pressed',
       String((b.dataset.place === 'none' ? null : b.dataset.place) === edPlace));
     $('edFarmsOut').textContent = $('edFarms').value; $('edFarmsRow').hidden = edPlace !== 'village';
+    $('edFillRow').hidden = edPlace !== 'farm'; $('edPawnRow').hidden = edPlace !== 'pawn';
     $('edPlaceNote').textContent = { village: 'Press on the land: the village is laid about that tile, with the farms that find room.',
       farm: 'Press on the land: the house stands on that tile, its fields beside it.',
+      pawn: 'Press on a house: the person joins its household. On an empty farm the first adult founds the household and holds the farm.',
+      green: 'Press on a free tile by households you placed: their village takes it as its green, with a well.',
+      empty: 'Press on the land: a house and fields with no one, for an heir or a settler to take.',
+      ruin: 'Press on the land: a farm long empty, its house fallen in and its fields grown over.',
       field: 'Press on free ground near a house: the field is of the nearest farm.',
       meadow: 'Press on free meadow, marsh or heath near a house: the hay meadow is of the nearest farm.',
       way: 'Drag over the land to draw the road. Where no one walks it, it fades with the years.',
       route: edFrom >= 0 ? 'Now press where the road ends.' : 'Press where the road begins, then where it ends: the way is found as people would walk it.',
-      remove: 'Press on a village\u2019s green, or on a house, field, meadow or road you placed.' }[edPlace] ||
+      remove: 'Press on a village\u2019s green, or on a house, field, meadow or road you placed. On a house, those added to it go first.' }[edPlace] ||
         'Drag the map to move it. Choose what to place.';
-    const farms = sim ? sim.farmsteads.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
+    const farms = sim ? sim.households.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
+    const bare = sim ? sim.farmsteads.filter((f) => f.household === null).length : 0;
     const roads = edit ? edit.places.filter((p) => p.way).length : 0,
-      lived = edit ? edit.places.some((p) => p.village !== undefined || p.farm !== undefined) : false;
-    $('edPlaced').textContent = (sim ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people`
-      : roads ? 'No one lives here yet' : 'Nothing yet') + (roads ? `, ${roads} ${roads === 1 ? 'road' : 'roads'}.` : '.')
-      + (lived ? '' : ' Play begins once a village or a household is placed.');
+      lived = !!sim && sim.households.length > 0; // someone to play
+    $('edPlaced').textContent = (sim &&
+      farms ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people`
+      : roads || bare ? 'No one lives here yet' : 'Nothing yet') + (bare ? `, ${bare} empty ${bare === 1 ? 'farm' : 'farms'}` : '')
+      + (roads ? `, ${roads} ${roads === 1 ? 'road' : 'roads'}.` : '.')
+      + (lived ? '' : ' Play begins once someone lives here.');
     $('edUnplace').disabled = !edit || edit.busy || !edit.places.length;
     $('edPlay').disabled = !edit || edit.busy || !edit.wd || (manual && !lived);
   }
@@ -18488,7 +18589,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '159ec4f6c7', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '99ac09f703', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

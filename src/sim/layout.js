@@ -1,7 +1,7 @@
 // @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
-  const { RIVER, PATHS, SOIL, WOOD, SETTLE, farmable, byRiver, fertility } = VB['sim/rules'];
+  const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
   const { farmName, villageName } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -10,8 +10,6 @@ VB['sim/layout'] = (() => {
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
-  // A field or a meadow placed by hand (the archipelago editor) is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
-  const HAND_REACH = 6;
   const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
   // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
   // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
@@ -338,7 +336,7 @@ VB['sim/layout'] = (() => {
   function settlementGenerator(w, rand, bare = false) {
     const used = new Set(), farmsteads = [], villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set();
     return {
-      used, farmsteads, villages,
+      used, farmsteads, villages, rand, fieldsAt, yards, // rand and the two sets: for what is placed by hand (sim/byhand)
       addVillage(center, nFarms) {
         const v = buildVillage(w, used, rand, center, nFarms, villages.length, farmsteads, villages, fieldsAt, yards, homes);
         villages.push(v); return v;
@@ -353,30 +351,6 @@ VB['sim/layout'] = (() => {
         if (f) farmsteads.push(f);
         return f;
       },
-      // A farm on this very tile, placed by hand (the archipelago editor), with three fields: it joins the village whose centre is the
-      // nearest within SETTLE.centreApart steps, as close farms are one village in play, or is a village of its own, as a lone farm is.
-      // Null where the tile cannot bear a house (not farmable, taken, a yard, beside a field) or finds no fields.
-      addFarmAt(house) {
-        if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
-        const fields = placeFields(w, used, house, 3, yards);
-        if (!fields) return null;
-        let v = null, vd = SETTLE.centreApart + 1;
-        for (const u of villages) { const d = hexSteps(w, u.center, house); if (d < vd) { vd = d; v = u; } }
-        if (!v) { v = loneVillage(rand, villages, house); villages.push(v); }
-        const f = farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards);
-        farmsteads.push(f);
-        return f;
-      },
-      // A field on this very tile, placed by hand: of the farm whose house is nearest, within HAND_REACH steps. False where the tile
-      // cannot be a field (not farmable, taken, a yard) or no farm is near enough.
-      addFieldAt(tile) {
-        if (!farmable(w, tile) || used.has(tile) || yards.has(tile)) return false;
-        let f = null, fd = HAND_REACH + 1;
-        for (const g of farmsteads) { const d = hexSteps(w, g.house, tile); if (d < fd) { fd = d; f = g; } }
-        if (!f) return false;
-        fieldOn(w, used, f, tile); fieldsAt.add(tile);
-        return true;
-      },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
@@ -387,7 +361,7 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, HAND_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
-    buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();

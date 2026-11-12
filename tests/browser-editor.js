@@ -189,7 +189,21 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   await page.mouse.click(from.x, from.y); await page.mouse.click(to.x, to.y); await page.waitForTimeout(400);
   const e1 = await extra();
   if (!(e1.lane > e0.lane) || !/1 road/.test(await page.locator('#edPlaced').innerText())) fail(`a road found: ${JSON.stringify([e0, e1])}`);
-  if ((await page.locator('#edPlaces button svg').count()) !== 7) fail('a place button has no icon');
+  if ((await page.locator('#edPlaces button svg').count()) !== 11) fail('a place button has no icon');
+  // an empty farm by the village, and a person placed in it, who founds its household and holds it
+  const folk = () => page.evaluate(() => { const s = window.__ed.st; return { n: s.pawns.length, hh: s.households.length, bare: s.farmsteads.filter((f) => f.household === null).length,
+    last: s.farmsteads[s.farmsteads.length - 1].house, holder: s.households.length ? s.pawns[s.households[s.households.length - 1].holder].age : -1 }; });
+  const f0 = await folk();
+  await page.click('#edPlaces [data-place="empty"]');
+  if (!(await pressUntil(await tries(v1.centre), async () => (await folk()).bare > f0.bare))) fail('no empty farm could be placed near the village');
+  const f1 = await folk();
+  if (f1.n !== f0.n || f1.hh !== f0.hh || !/1 empty farm/.test(await page.locator('#edPlaced').innerText())) fail(`an empty farm: ${JSON.stringify([f0, f1])}`);
+  await page.click('#edPlaces [data-place="pawn"]'); await page.fill('#edPawnAge', '41'); await page.selectOption('#edPawnSex', 'f');
+  const door = await xy(f1.last);
+  await page.mouse.click(door.x, door.y); await page.waitForTimeout(400);
+  const f2 = await folk();
+  if (f2.n !== f1.n + 1 || f2.hh !== f1.hh + 1 || f2.bare !== f0.bare || f2.holder !== 41) fail(`a person placed in an empty farm: ${JSON.stringify([f1, f2])}`);
+  Object.assign(v2, { farms: v2.farms + 1 }); Object.assign(e1, await extra()); // the game is held to all that is placed now
   await page.waitForTimeout(1500);
   if ((await placed()).t !== v2.t) fail('the picture of what is placed does not stand still');
   if (!/households in 1 village/.test(await page.locator('#edPlaced').innerText())) fail(`placed: ${await page.locator('#edPlaced').innerText()}`);
@@ -211,5 +225,5 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   await browser.close();
   if (errors.length) { console.log(`browser-editor: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-editor: a world alone on the stage, its tools in one scene, raised again as the parameters ask; the open game kept aside and '
-    + 'brought back; the brush lays cover and deposits; a village, a household, a field and a road placed by hand; Play starts a game on the world as made');
+    + 'brought back; the brush lays cover and deposits; a village, a household, a field, a road, an empty farm and a person placed by hand; Play starts a game on the world as made');
 })().catch((e) => { console.error(e); process.exit(1); });

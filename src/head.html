@@ -546,7 +546,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
   border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
-.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ed-pair .ed-wide { grid-column: 1 / -1; }
+.editor [hidden] { display: none !important; }
 .ed-range span { display: flex; justify-content: space-between; gap: 8px; }
 .ed-range output { color: var(--ink); font-variant-numeric: tabular-nums; }
 .ed-biomes { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--edge); }

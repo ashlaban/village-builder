@@ -66,6 +66,37 @@ if (lonely !== undefined) for (const p of [{ field: lonely }, { meadow: lonely }
 assert(tryPlaces([{ way, stage: 3 }]) instanceof Error, 'a way alone is no settlement');
 st = tryPlaces(places);
 
+// households built by hand: a couple; an empty farm peopled one by one, its first adult the holder; a servant added to a family; an empty
+// farm and a ruin with no one; a green and well for the village of households placed by hand
+const built = [...base, { farm: near }, { farm: a, fill: 'couple' }, { farm: b, fill: 'empty' }, { pawn: b, sex: 'f', age: 40 }, { pawn: b, sex: 'm', age: 12 },
+  { pawn: near, sex: 'm', age: 17, servant: true }];
+st = tryPlaces(built);
+assert(!(st instanceof Error), `households built by hand: ${st.message}`);
+const hhOf = (t) => st.households[farmOn(t).household], ages = (t) => hhOf(t).members.map((id) => st.pawns[id].age).sort((x, y) => x - y);
+assert.strictEqual(hhOf(a).members.length, 2, 'a couple'); assert(st.unions.some((u) => hhOf(a).members.includes(u.a) && hhOf(a).members.includes(u.b)));
+assert.deepStrictEqual(ages(b), [12, 40]); assert.strictEqual(st.pawns[hhOf(b).holder].age, 40, 'the first adult placed holds the farm');
+assert(hhOf(near).members.some((id) => st.pawns[id].servant && st.pawns[id].age === 17), 'a servant joins the family');
+assert.deepStrictEqual(checkState(st), []);
+Sim.advance(st, 24 * 30); assert.deepStrictEqual(checkState(st), []);
+const greenT = sites(a, 1, 3).find((t) => !(tryPlaces([...base, { farm: a, fill: 'couple' }, { farm: b, fill: 'empty' }, { green: t }]) instanceof Error));
+assert(greenT !== undefined, 'a green finds a tile by the households');
+st = tryPlaces([...base, { farm: a, fill: 'couple' }, { farm: b, fill: 'empty' }, { green: greenT }]);
+const vb = st.villages[farmOn(a).village];
+assert(vb.green && vb.well && vb.center === greenT, 'the green is the village\'s centre, with its well');
+assert(farmOn(b).household === null && farmOn(b).state === 'derelict' && farmOn(b).emptySince < 0, 'a farm with no one stands empty');
+assert.deepStrictEqual(checkState(st), []);
+Sim.advance(st, 24 * 30); assert.deepStrictEqual(checkState(st), []);
+st = tryPlaces([...base, { farm: a, fill: 'ruin' }]);
+assert(farmOn(a).state === 'ruin' && farmOn(a).condition < 0.2 && farmOn(a).household === null, 'a ruin');
+assert.deepStrictEqual(checkState(st), []);
+for (const [bad, k] of [[[...base, { farm: a, fill: 'empty' }, { pawn: a, sex: 'm', age: 9 }], 2], [[...base, { pawn: a, sex: 'm', age: 30 }], 1],
+  [[...base, { farm: a, fill: 'ruin' }, { pawn: a, sex: 'm', age: 30 }], 2], [[...base, { green: centre }], 1]]) {
+  const e = tryPlaces(bad); assert(e instanceof Error && e.place === k, `refused, place ${k}: ${e.message || 'seeded'}`);
+}
+st = tryPlaces([{ farm: a, fill: 'empty' }]); // houses with no one are a run too, for the editor to show: Play waits for someone
+assert(!(st instanceof Error) && st.households.length === 0 && st.farmsteads.length === 1); assert.deepStrictEqual(checkState(st), []);
+st = tryPlaces(places);
+
 // no room: the place says which it is; nothing placed is refused
 const sea = w.water.indexOf(1);
 for (const [bad, k] of [[[...places, { farm: sea }], 4], [[{ village: sea, farms: 3 }], 0], [[...places, { farm: near }], 4]]) {
