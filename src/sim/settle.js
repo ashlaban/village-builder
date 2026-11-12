@@ -153,7 +153,7 @@ VB['sim/settle'] = (() => {
     return best;
   }
   // The founder's given name in the genitive with a settlement ending, as many torp took their founder's name (sim/names); the first not taken.
-  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)), drawer(st.rng.settle));
+  const founderName = (st, p) => names.founderName(p, new Set(st.villages.map((v) => v.name)));
   // ---- a small village to join (VB-147) ----
   // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
   // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under

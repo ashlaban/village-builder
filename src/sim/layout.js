@@ -2,7 +2,7 @@
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
-  const { farmName, villageName } = VB['sim/names'];
+  const { farmName, villageName, tileRand, VILLAGE } = VB['sim/names'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { initWear, wearIn } = VB['sim/paths'];
@@ -169,7 +169,7 @@ VB['sim/layout'] = (() => {
   // The form follows the site: where the street village comes out short of its farms (a neck of land, where the street and its row take
   // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
-    const name = villageName(rand, new Set(villages.map((v) => v.name)));
+    const name = drawnName(rand, villages); // named when all are laid (nameVillages)
     if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
     const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
     const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
@@ -241,6 +241,30 @@ VB['sim/layout'] = (() => {
     village.green = village.well = village.farmsteads.length >= 2;
     return village;
   }
+  // The layout's stream is drawn as it was when village names came from it (VB-026: 11 first parts and 8 last, drawn again while
+  // taken), so every seed's villages stand where they stood: a village holds the drawn name while the villages are laid, and
+  // nameVillages and nameFarms replace it. A change of the name stock (sim/names) never comes here.
+  const DRAWN = [['Hal', 'Skog', 'Ul', 'Bred', 'Lin', 'Sand', 'Hög', 'Ek', 'Vall', 'Rön', 'Al'], ['by', 'sta', 'vik', 'nes', 'inge', 'berga', 'tuna', 'säter']];
+  function drawnName(rand, villages) {
+    const taken = new Set(villages.map((v) => v.name)), draw = () => DRAWN[0][(rand() * 11) | 0] + DRAWN[1][(rand() * 8) | 0];
+    let name = draw(); for (let k = 0; k < 200 && taken.has(name); k++) name = draw();
+    return name;
+  }
+  // Village names at seeding (VB-399), when all are laid: each village of two farms or more by its site (sim/names), from a stream of
+  // its own by its centre tile. The largest (the lowest id among equals) is named first and, with VILLAGE.centre farms, as the map's
+  // old centre; a lone farm's village is named by nameFarms.
+  const VILLAGE_SALT = 0x5bd1e995;
+  function nameVillages(w, villages) {
+    const many = villages.filter((v) => v.farmsteads.length >= 2), taken = new Set();
+    let big = null; for (const v of many) if (!big || v.farmsteads.length > big.farmsteads.length) big = v;
+    const centre = big && big.farmsteads.length >= VILLAGE.centre;
+    for (const v of villages) if (v.farmsteads.length < 2) v.name = '';
+    for (const v of big ? [big, ...many.filter((u) => u !== big)] : []) {
+      const order = centre && v === big ? ['central', 'site'] : ['site'];
+      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE_SALT), order);
+      taken.add(v.name);
+    }
+  }
   // Names at seeding (VB-026), before any culture exists, so by the generators every culture starts with (sim/names): the farms of a village
   // of two or more by compass, then landmark; a lone farm (a one-farm village) by its surroundings, with a name no other village has, and
   // its village takes that name, so the farm's map label is unique on the island.
@@ -300,8 +324,8 @@ VB['sim/layout'] = (() => {
   }
   // A farm as a village of its own: its centre is the house, and it has neither green nor well; it takes its farm's name (nameFarms).
   function loneVillage(rand, villages, house) {
-    const name = villageName(rand, new Set(villages.map((v) => v.name)));
-    return { id: villages.length, name, center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: false, well: false };
+    return { id: villages.length, name: drawnName(rand, villages), center: house, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [],
+      green: false, well: false };
   }
   // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.
   function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
@@ -353,7 +377,7 @@ VB['sim/layout'] = (() => {
         return f;
       },
       finish() {
-        nameFarms(w, villages, farmsteads, rand);
+        nameVillages(w, villages); nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
         if (!bare) wearIn(w, villages, farmsteads, PATHS.wornYears); // villages that have stood a while have their paths (VB-114)
         for (const f of farmsteads) for (const hook of farmHooks) hook(w, f, used);
@@ -362,7 +386,7 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead,
+    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, nameVillages, makeFence, makeFarmstead,
     findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();
