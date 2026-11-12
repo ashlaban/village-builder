@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Archipelago</title>
+<title>Skärgård</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -56,16 +56,15 @@ body {
 .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(5, 18, 30, 0.38) 100%); }
 .hud { position: fixed; left: 0; right: 0; display: flex; justify-content: space-between; gap: 12px; padding: 14px; pointer-events: none; }
 .hud > * { pointer-events: auto; }
-.hud.top { top: 0; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
+.hud.top { top: 0; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
 .hud.bottom { bottom: 0; align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
 .panel {
   background: var(--panel); color: var(--ink); border: 1px solid var(--edge);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
-.hud.top { flex-wrap: wrap; }
-.clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
+.lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 60px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
+.clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -75,7 +74,6 @@ body {
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
 #skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
 .settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
 .settlers p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
@@ -86,7 +84,6 @@ body {
 .settlers .jobs { color: var(--ink); opacity: 0.85; }
 .settlers .doing { font-size: 13px; font-style: italic; }
 .tree { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(6, 18, 26, 0.55); padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
-.tree[hidden] { display: none; }
 .tree-card { width: min(1120px, 100%); height: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-panel); overflow: hidden; }
 .tree-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 14px 18px; border-bottom: 1px solid var(--edge); }
 .tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; line-height: 1.1; margin: 0; }
@@ -124,8 +121,6 @@ body {
 #treeSvg .tn.dead text { opacity: 0.7; }
 #treeSvg .heir { fill: var(--gold); }
 .tree-info .evs { margin: 0 0 14px; padding-left: 18px; font-size: 14px; line-height: 1.45; color: var(--muted); }
-.drawer { position: fixed; right: 14px; top: calc(env(safe-area-inset-top, 0px) + 86px); width: min(420px, calc(100vw - 28px)); max-height: calc(100vh - 230px); overflow: auto; border-radius: var(--r-panel); padding: 12px 14px 16px; z-index: 6; }
-.drawer[hidden] { display: none; }
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
@@ -151,10 +146,8 @@ button.primary { background: var(--accent); color: var(--on-accent); border-colo
 button[aria-pressed="false"] { color: var(--muted); }
 button:disabled { opacity: 0.55; cursor: progress; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tile { border-radius: var(--r-panel); padding: 10px 14px; min-width: 170px; transition: opacity 0.2s; }
-.tile[hidden] { display: block; opacity: 0; pointer-events: none; }
 .tile strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 21px; line-height: 1.1; }
-.tile span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.tile span { display: block; color: var(--muted); font-size: 15px; line-height: 1.4; margin-top: 2px; }
 .tile .rel { margin-top: 7px; padding-top: 5px; border-top: 1px solid var(--edge); }
 .tile .rel h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .tile .rel button { display: flex; gap: 8px; width: 100%; padding: 1px 0; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink);
@@ -180,7 +173,6 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 /* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
-.genscreen[hidden] { display: none; }
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
@@ -204,7 +196,6 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
-.saves-screen[hidden] { display: none; }
 /* opened from the main menu, Saves takes the menu card's place on the menu's own background */
 body:has(#landing:not([hidden])) .saves-screen { background: none; }
 body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
@@ -239,10 +230,8 @@ button { touch-action: manipulation; }
 summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
 summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
-.hud.top { justify-content: flex-end; }
 .menu-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
   padding: 5px; border-radius: var(--r-panel); }
 /* The dock is icons, each with its name under it (VB-338). */
@@ -270,7 +259,6 @@ input, select { font: inherit; color: var(--ink); }
 .sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
 .collapsed .sheet-content { display: none; }
 .collapsed .sheet-head { border-bottom: 0; }
-.settlers { max-height: none; overflow: visible; border-top: 0; margin: 0; padding: 0; }
 .search-label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
 #peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: var(--r-field); background: var(--node); padding: 10px 12px; font-size: 16px; }
 #peopleCount { margin: 8px 0; }
@@ -287,8 +275,7 @@ input, select { font: inherit; color: var(--ink); }
 .fold-section { margin-top: 8px; }
 .fold-section > summary { font-size: 15px; color: var(--ink); }
 .selection-summary { padding: 0 16px 12px; }
-.tile { min-width: 0; transition: none; }
-.tile span { font-size: 15px; line-height: 1.4; }
+.tile { min-width: 0; }
 #tileActivity { color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
@@ -318,7 +305,6 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
 .ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
 body:not(.minimap-open) .ground-key { display: none; }
-.lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
