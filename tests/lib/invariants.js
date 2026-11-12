@@ -114,7 +114,7 @@ function checkState(st) {
     if (!P || !(P.household instanceof Map) || !(P.village instanceof Map) || !(P.pawn instanceof Map) || !(st.plans.projectSeq >= 0)) bad.push('plans: no project plans record');
     else for (const type of ['household', 'village', 'pawn']) for (const [id, list] of P[type]) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
-      if (!h || h.dissolved || (type === 'pawn' && !h.alive)) bad.push(`plans: project plans of a ${type} ${id} that is gone`);
+      if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
       if (type === 'household' && list.length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       for (const pl of list) {
@@ -361,11 +361,14 @@ function checkState(st) {
       for (const m of f.meadows || []) if (!st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unused`);
     }
     // a claim on an empty farm (VB-033): only on an empty, derelict farm, its hours in range, and the claimant's claim on its house
-    if (f.claim) {
-      const c = st.claims && VB['sim/claims'].claimOf(st, f.house, { type: 'pawn', id: f.claim.by });
-      if (f.household !== null || f.state !== 'derelict' || !st.pawns[f.claim.by]) bad.push(`farmsteads[${f.id}]: claim by ${f.claim.by} on a farm ${f.state}, held by ${f.household}`);
-      if (!within(f.claim.done, 0, f.claim.hours + 1e-6) || !within(f.claim.hours, 0, 120)) bad.push(`farmsteads[${f.id}]: claim hours ${f.claim.done} of ${f.claim.hours}`);
-      if (st.claims && (!c || c.why !== 'farm' || c.state !== 'unrealised')) bad.push(`farmsteads[${f.id}]: claim by ${f.claim.by} without its claim on the house`);
+    // (its claimant's project plan, VB-123)
+    const fc = VB['sim/farmclaims'].claimOn(st, f);
+    if ('claim' in f) bad.push(`farmsteads[${f.id}]: a claim kept on the farm`);
+    if (fc) {
+      const c = st.claims && VB['sim/claims'].claimOf(st, f.house, { type: 'pawn', id: fc.by });
+      if (f.household !== null || f.state !== 'derelict' || !st.pawns[fc.by]) bad.push(`farmsteads[${f.id}]: claim by ${fc.by} on a farm ${f.state}, held by ${f.household}`);
+      if (!within(fc.done, 0, fc.hours + 1e-6) || !within(fc.hours, 0, 120)) bad.push(`farmsteads[${f.id}]: claim hours ${fc.done} of ${fc.hours}`);
+      if (st.claims && (!c || c.why !== 'farm' || c.state !== 'unrealised')) bad.push(`farmsteads[${f.id}]: claim by ${fc.by} without its claim on the house`);
     }
     // a field or meadow in the making (its household's project plan, VB-123) is staked by its household, not owned by it (VB-158); the
     // farm holds no project of its own
@@ -400,7 +403,7 @@ function checkState(st) {
         }
         if (c.why === 'farm') { // a pawn's claim on the house of the empty farm it is restoring (VB-033)
           const f = st.farmsteads.find((x) => x.house === tile);
-          if (c.by.type !== 'pawn' || !f || !f.claim || f.claim.by !== c.by.id) bad.push(`claims[${tile}]: ${k} claims a farm with no claim under way`);
+          if (c.by.type !== 'pawn' || !f || VB['sim/farmclaims'].claimOn(st, f)?.by !== c.by.id) bad.push(`claims[${tile}]: ${k} claims a farm with no claim under way`);
         }
         if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];

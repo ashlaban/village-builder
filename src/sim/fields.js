@@ -161,7 +161,7 @@ VB['sim/fields'] = (() => {
       fd.weedOpen = true; fd.weedPosted = day;
     }
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
-    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+    for (const f of st.farmsteads) if (f.household === null && !Projects.onFarm(st, f.id)) {
       const yrs = (st.t - f.emptySince) / YEAR;
       for (const fd of f.fields) {
         const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;

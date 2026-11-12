@@ -41,7 +41,13 @@ VB['sim/projects'] = (() => {
     const text = `${house ? f.name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
     return [text, house ? { household: h.id, farm: f.id, village: f.village } : { [plan.holder.type]: plan.holder.id }];
   }
+  // The restoration under way on farm id (a claimant's project plan, sim/farmclaims), or null: the claimants' plans are few.
+  function onFarm(st, id) {
+    const P = st.plans && st.plans.projects;
+    if (P) for (const list of P.pawn.values()) for (const plan of list) if (plan.farm === id) return plan;
+    return null;
+  }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
-  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, impossible, dropWords, emptyProjects };
+  return { projectsOf, projectOf, openStep, openOf, forEach, holderOf, onFarm, impossible, dropWords, emptyProjects };
 })();

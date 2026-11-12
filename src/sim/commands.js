@@ -144,7 +144,7 @@ VB['sim/commands'] = (() => {
     // claim(target): the actor claims the empty farm `target` and sets about restoring it
     claim: {
       check: (st, c) => living(st, c.actor) || (!st.farmsteads[c.target] ? `there is no farm ${c.target}`
-        : !later('sim/farmclaims').claimable(st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
+        : !later('sim/farmclaims').claimable(st, st.farmsteads[c.target]) ? `farm ${c.target} cannot be claimed` : null),
       run: (st, c) => later('sim/farmclaims').startClaim(st, st.farmsteads[c.target], c.actor),
     },
     // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first

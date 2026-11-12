@@ -83,7 +83,7 @@ const NOT_STOCKS = {
     'farmstead.line', 'farmstead.rowAngle', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
-  'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'farmstead.claim',
+  'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows',
     'farmstead.booth', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',

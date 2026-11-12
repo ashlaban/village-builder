@@ -146,4 +146,13 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   clean(st, 'plot loaded');
   out.push('a plot is one plan of its village, its tiles cleared side by side; a save before plot plans loads');
 }
+{ // a claim on an empty farm: its claimant's project plan (one step, restore, under the claim 'farm'); a save made before kept it on the farm
+  const FC = VB['sim/farmclaims'], st = Sim.seed(r.value, 7, 'heirs'), f = st.farmsteads[0], by = st.households[1].holder;
+  f.claim = { by, since: st.t, hours: 36, done: 20 };
+  VB['sim/saves'].oldProjects(st); // as a load does
+  const c = FC.claimOn(st, f), plan = Plans.projectOf(st, 'pawn', by);
+  assert(c && c.by === by && c.hours === 36 && c.done === 20 && !('claim' in f), 'the claim loads as its claimant\'s plan');
+  assert(plan.what === 'restore' && plan.farm === f.id && plan.steps.length === 1 && plan.steps[0].stake === 'farm', 'one step: the restoration');
+  out.push('a claim on an empty farm is its claimant\'s plan');
+}
 console.log(`projects ok: ${out.join('; ')}`);

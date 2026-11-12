@@ -6,7 +6,7 @@ VB['sim/opportunities'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
-  const { claimable, barred: claimBar } = VB['sim/farmclaims'];
+  const { claimable, barred: claimBar } = VB['sim/farmclaims'], { onFarm } = VB['sim/projects'];
   const { VERBS, goOnAs } = VB['sim/commands'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/rules'];
@@ -104,7 +104,8 @@ VB['sim/opportunities'] = (() => {
     for (const k of v.farmsteads) {
       const f = view.farmsteads[k];
       if (f.household !== null) continue;
-      const why = f.claim ? `${fullName(view.pawns[f.claim.by])} is restoring it` : !claimable(f) ? 'a ruin, past mending' : bar || other(f);
+      const pj = onFarm(view, f.id), why = pj ? `${fullName(view.pawns[pj.holder.id])} is restoring it` : !claimable(view, f) ? 'a ruin, past mending' : bar ||
+        other(f);
       out.push(item('claim', f.id, null, why || check(view, p.id, 'claim', f.id, null), atRound));
     }
     // service with a holder of its village who lives alone

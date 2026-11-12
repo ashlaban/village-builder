@@ -309,6 +309,15 @@ VB['sim/saves'] = (() => {
     }
   }
   // Both, at every load (a save made since has none of either).
-  const oldProjects = (st) => { fromFarms(st); fromPlots(st); };
+  // A save made before restoration plans (VB-123) held a claim on an empty farm on the farm ({by, since, hours, done}): its claimant's plan now.
+  function fromClaims(st) {
+    for (const f of st.farmsteads) {
+      const c = f.claim;
+      if (c) Plans.makeProject(st, 'pawn', c.by, { what: 'restore', farm: f.id, since: c.since,
+        steps: [{ kind: 'restore', place: f.house, hours: c.hours, done: c.done, stake: 'farm' }] });
+      if ('claim' in f) delete f.claim;
+    }
+  }
+  const oldProjects = (st) => { fromFarms(st); fromPlots(st); fromClaims(st); };
   return { encode, decode, save, load, FORMAT, READS, oldProjects };
 })();

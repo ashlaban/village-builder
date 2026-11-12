@@ -50,12 +50,14 @@ assert.equal(waiting.held, 0, 'frost destroys undelivered sheaves');
 assert.equal(st.record.filter((e) => e.kind === 'frost').length, frostBefore + 1, 'only the uncollected crop records frost');
 
 // A claimant suspends overgrowth; after the claim ends, nearby woodland can reclaim the field.
-f.household = null; f.emptySince = 0; f.claim = { by: hh.holder };
+f.household = null; f.emptySince = 0; // a claimant restoring it: its project plan (VB-123)
+VB['sim/plans'].makeProject(st, 'pawn', hh.holder, {
+  what: 'restore', farm: f.id, since: st.t, steps: [{ kind: 'restore', place: f.house, hours: 10, done: 0, stake: 'farm' }] });
 fd.stage = 'stubble'; fd.sown = null;
 setClock(st, 2 * YEAR);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowth');
-f.claim = null;
+VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
 fd.tile = tileAt(w, 12, 10); w.biome[tileAt(w, 13, 10)] = VB.gen.B.FOREST;
