@@ -597,8 +597,9 @@ function checkHerds(st, bad) {
     if (!(hh.grain >= -1e-6)) bad.push(`households[${hh.id}]: grain ${hh.grain}`);
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
-  const { SOIL } = VB['sim/rules'];
+  const { SOIL, CROPS } = VB['sim/rules'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
+    if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
   }
 }

@@ -1,5 +1,6 @@
 // VB-088: the same terrain strip, farm layout and family demographics repeated at two and four villages.
 const assert = require('assert'), VB = require('../src/load.js'), { tinyWorld } = require('./lib/tiny.js');
+const { CROPS } = VB['sim/rules'];
 const { measure, growth, report, NAMES } = require('./lib/cost.js');
 
 function villageWorld(n) {
@@ -35,7 +36,7 @@ function villageWorld(n) {
   VB['sim/society'].initCulture(st, null); VB['sim/heirs'].countDemand(st);
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); VB['sim/territory'].seedOutland(st, true);
   for (const hh of households) {
-    hh.grain = VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * st.ECON.seedPerField;
+    hh.grain = VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * CROPS.barley.seed;
   }
   rng.splitStreams(st, 7);
   assert.strictEqual(villages.length, n);

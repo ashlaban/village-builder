@@ -115,4 +115,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - A new job kind is one record in `KINDS` (`src/sim/kinds.js`): numbers, type of work, labels, where to stand, urgency, and what finishing
   and delivering do. It is posted from `refreshJobs` (`src/sim/jobs.js`); roles rank types of work (`work` in `ROLES`, with `except` for
   single kinds), so a kind of an existing type needs no role numbers. Its `anim` names an animation in the page script.
+- A new crop is one row of `CROPS` in `src/sim/rules.js` (VB-346): `yield`, `seed`, `sow` ([season, first day, last day]), `ripe` (days from
+  sowing), `wear` (the soil a harvest takes), `frost` ([season, day] a standing crop is lost) and `hours` (plow, sow, weed, reap, thresh). A field holds
+  the key as `fd.crop`; `sim/fields` and the kinds read the field's row, never a constant. Today the KINDS take their hours from `CROPS.barley.hours`
+  (the stage's hours live there, not in the kind); a second crop makes them per field. The table is a plain constant, never in saved state.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

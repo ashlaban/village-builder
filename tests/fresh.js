@@ -2,6 +2,7 @@
 // its first harvest; each crop wears it as any field, so without manure both it and an old field reach the floor after 9 crops; manure
 // never lowers it. A plot's field broken on fresh ground keeps it when its farmstead is made.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fields'];
+const { CROPS } = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FRESH FAIL:', m); } };
 const world = (seed, size = [120, 85]) => {
   const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
@@ -21,7 +22,7 @@ const fresh = breakOn(freshTile), old = breakOn(oldTile);
 check(near(fresh.soil, S.fresh) && near(old.soil, S.start), `soil on fresh ground ${fresh.soil}, on old ground ${old.soil}`);
 check(w.dev[freshTile] === 1, 'the fresh tile is farmed now');
 // the first harvest: the fresh field yields more, in proportion to its soil
-const reap = Sim.KINDS.reap.done, ratio = (fd) => fd.held / (st.ECON.fieldYield * fd.fert * st.weather);
+const reap = Sim.KINDS.reap.done, ratio = (fd) => fd.held / (CROPS.barley.yield * fd.fert * st.weather);
 let rf = 0, ro = 0;
 for (let k = 0; k < 9; k++) {
   for (const fd of [fresh, old]) { fd.stage = 'ripe'; fd.weedMiss = 0; reap(st, { field: fd }, hh, cal(30)); }
