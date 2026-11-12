@@ -159,6 +159,18 @@ Herding is merged (children do 69% of it; the numbers are in `backlog/VB-136.md`
    births, deaths and marriages the same): the herders are away from the houses by day. **P:** accept it for now and let the talk plan
    (VB-186) say whether herders meet each other on the pasture, which would give some of it back.
 
+### VB-300: dried fish and the boat, as built (raised 12 November 2026)
+Dried fish and the fishing boat are merged (`backlog/VB-300.md` has the numbers and the builder's decisions). Two things for you; none blocks a task.
+1. Every eligible shore household builds a boat (about 64 and 71 households at populous small, seeds 7 and 42, in 15 years), and a boat doubles
+   the catch, so those households fish less and summer idle rises (28.1 to 32.7% and 32.7 to 36.9%) where the task hoped the craft would fill
+   slack hours. Hunger barely moves (shore villages 19 to 18 hungry household-days at seed 7; 0 to 2 at seed 42). **P:** make the boat rarer
+   and dearer rather than change the catch: it is a holder's project chosen by its values (VB-255), needs tar to keep (VB-301), and until
+   then only a household with a surplus and two free hands builds one; and let the extra catch go to the rack for the fair (VB-255's target
+   in rations), which is where the hours should go.
+2. After the first year most dried fish is eaten from the larder before it would spoil, not through the pot; in winter the cook takes it
+   for a quarter of the meals, a fixed share. **P:** VB-119 (mixed meals, now ready to be applied on dried fish) replaces the fixed quarter:
+   dried fish is a `fish` source of the pot after fresh batches and before grain.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
