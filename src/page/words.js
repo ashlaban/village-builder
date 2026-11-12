@@ -242,8 +242,11 @@
     if (cardShown[id] !== html) { cardShown[id] = html; el.innerHTML = html; }
     el.hidden = !html;
   }
+  let cardOf = ''; // what the card shows; a card of something else opens at its top
   function card(title, lines, activity = '', more = {}) {
     $('tileName').textContent = title;
+    const of = `${selPawn}|${selVillage}|${selFarm}|${sel}`;
+    if (of !== cardOf) { cardOf = of; $('tileDetails').scrollTop = 0; }
     cardPart('tileBadge', more.badge); cardPart('tileKind', more.kind ? esc(more.kind) : ''); cardPart('tileLinks', more.links);
     cardPart('tileList', more.list);
     $('tile').classList.toggle('peek', !selectionPinned);

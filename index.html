@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Archipelago</title>
+<title>Skärgård</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -19,13 +19,17 @@
   --node: #fbfdfc;
   --good: #2f7a4b;
   --bad: #a8432f;
+  --gold: #b3862c; /* heirs, the scenario's suggestion, a short larder */
+  --r-panel: 16px; /* panels and cards */
+  --r-small: 12px; /* small floating pieces: toasts, banners, popups, the minimap */
+  --r-field: 10px; /* inputs and selects */
   color-scheme: light;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root {
     --panel: rgba(11, 27, 34, 0.86);
     --ink: #e1ebe7;
     --muted: #93adae;
@@ -35,18 +39,9 @@
     --node: #17323b;
     --good: #8fd0a2;
     --bad: #f0a08c;
+    --gold: #d9b45a;
     color-scheme: dark;
   }
-}
-:root[data-theme="dark"] {
-  --panel: rgba(11, 27, 34, 0.86);
-  --ink: #e1ebe7;
-  --muted: #93adae;
-  --edge: rgba(225, 235, 231, 0.14);
-  --accent: #84c9b5;
-  --on-accent: #0c1f25;
-  --node: #17323b;
-  color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: inherit; }
 html { height: 100%; background: var(--sea); scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -61,17 +56,15 @@ body {
 .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(5, 18, 30, 0.38) 100%); }
 .hud { position: fixed; left: 0; right: 0; display: flex; justify-content: space-between; gap: 12px; padding: 14px; pointer-events: none; }
 .hud > * { pointer-events: auto; }
-.hud.top { top: 0; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
+.hud.top { top: 0; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
 .hud.bottom { bottom: 0; align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
 .panel {
   background: var(--panel); color: var(--ink); border: 1px solid var(--edge);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
-.hud.top { flex-wrap: wrap; }
-.clock { border-radius: 14px; padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 570px; }
+.lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 60px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
+.clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -81,7 +74,6 @@ body {
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
 #skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.settlers { margin-top: 12px; max-height: min(50vh, 440px); overflow-y: auto; border-top: 1px solid var(--edge); padding: 2px 4px 0 0; }
 .settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
 .settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
 .settlers p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
@@ -92,10 +84,9 @@ body {
 .settlers .jobs { color: var(--ink); opacity: 0.85; }
 .settlers .doing { font-size: 13px; font-style: italic; }
 .tree { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(6, 18, 26, 0.55); padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
-.tree[hidden] { display: none; }
-.tree-card { width: min(1120px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; }
+.tree-card { width: min(1120px, 100%); height: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-panel); overflow: hidden; }
 .tree-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 14px 18px; border-bottom: 1px solid var(--edge); }
-.tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 26px; line-height: 1.1; margin: 0; }
+.tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; line-height: 1.1; margin: 0; }
 .tree-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; min-width: 12ch; }
 .tree-modes { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--edge); }
 .tree-modes button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
@@ -128,21 +119,16 @@ body {
 #treeSvg .marriage.ended { stroke-dasharray: 4 3; }
 #treeSvg .tn.dead rect { opacity: 0.55; }
 #treeSvg .tn.dead text { opacity: 0.7; }
-#treeSvg .heir { fill: #c9a24a; }
+#treeSvg .heir { fill: var(--gold); }
 .tree-info .evs { margin: 0 0 14px; padding-left: 18px; font-size: 14px; line-height: 1.45; color: var(--muted); }
-.actions select { font: inherit; font-size: 15px; color: var(--ink); background: var(--node); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 10px; max-width: 100%; }
-.drawer { position: fixed; right: 14px; top: calc(env(safe-area-inset-top, 0px) + 86px); width: min(420px, calc(100vw - 28px)); max-height: calc(100vh - 230px); overflow: auto; border-radius: 16px; padding: 12px 14px 16px; z-index: 6; }
-.drawer[hidden] { display: none; }
-.drawer .dclose { position: sticky; top: 0; float: right; }
-.drawer .dh { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; margin: 2px 0 6px; }
-.drawer .dh3 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 18px; margin: 14px 0 4px; }
+.drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
 .cust { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 6px; }
 .cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
 .cust thead th { font-weight: 600; border-top: 0; }
 .cust tbody th { font-weight: 500; }
-.cust td.dev { background: rgba(201, 162, 74, 0.16); }
+.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
 .sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
 .sbar i { display: block; height: 100%; }
 .sw-item { white-space: nowrap; }
@@ -150,7 +136,7 @@ body {
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .dbg-row button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
+.drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
 .dchk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; }
 button {
   font: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink);
@@ -160,12 +146,10 @@ button.primary { background: var(--accent); color: var(--on-accent); border-colo
 button[aria-pressed="false"] { color: var(--muted); }
 button:disabled { opacity: 0.55; cursor: progress; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tile { border-radius: 14px; padding: 10px 14px; min-width: 170px; transition: opacity 0.2s; }
-.tile[hidden] { display: block; opacity: 0; pointer-events: none; }
 .tile strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 21px; line-height: 1.1; }
-.tile span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.tile span { display: block; color: var(--muted); font-size: 15px; line-height: 1.4; margin-top: 2px; }
 .tile .rel { margin-top: 7px; padding-top: 5px; border-top: 1px solid var(--edge); }
-.tile .rel h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tile .rel h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .tile .rel button { display: flex; gap: 8px; width: 100%; padding: 1px 0; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink);
   text-align: left; cursor: pointer; }
 .tile .rel button i { flex: 1; font-style: normal; color: var(--muted); }
@@ -174,7 +158,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 258px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 258px; border-radius: var(--r-small); overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -189,8 +173,6 @@ body:has(.genscreen:not([hidden])) .act-bar, body:has(.genscreen:not([hidden])) 
 /* so is it while choosing whom to play (VB-339), which is itself put away under a menu screen */
 body.choosing .hud, body.choosing .navigation, body.choosing .sheet, body.choosing .lod, body.choosing .toasts, body.choosing .play-offer,
 body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.choosing .act-banner, body:has(.genscreen:not([hidden])) .choose { visibility: hidden; pointer-events: none; }
-.genscreen[hidden] { display: none; }
-/* the open game's name, at the main menu's top left (VB-338); it is not shown in play */
 /* The open game at the main menu's top left (VB-338): its name and its map; neither is shown in play.
    On a narrow screen it stands above the menu's card. */
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
@@ -203,18 +185,17 @@ body.choosing .map-tools, body.choosing .act-bar, body.choosing .act-menu, body.
   #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
   .game-info { position: static; width: auto; justify-self: stretch; }
 }
-.genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: 16px; }
+.genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: var(--r-panel); }
 .genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
-.genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
-.genscreen .err { margin: 0; color: #b4382c; font-size: 14px !important; }
+.genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.genscreen .err { margin: 0; color: var(--bad); font-size: 14px !important; }
 #landQuick small { display: block; color: var(--muted); font-size: 13px; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
 .saves-screen { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8, 24, 36, 0.55); }
-.saves-screen[hidden] { display: none; }
 /* opened from the main menu, Saves takes the menu card's place on the menu's own background */
 body:has(#landing:not([hidden])) .saves-screen { background: none; }
 body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
@@ -222,7 +203,7 @@ body:has(#savesScreen:not([hidden])) #landing > .panel { visibility: hidden; }
 .save-slot { display: grid; grid-template-columns: 3.2em 1fr; gap: 3px 8px; align-items: start; }
 .save-slot b { font-weight: 600; }
 .save-slot small { display: block; color: var(--muted); font-size: 13px; }
-.save-slot small.save-other { color: #b4382c; }
+.save-slot small.save-other { color: var(--bad); }
 .save-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .save-slot .save-acts { grid-column: 2; }
 .save-acts button, .save-arch h3 button { min-height: 0; padding: 3px 10px; font-size: 13px; }
@@ -249,18 +230,16 @@ button { touch-action: manipulation; }
 summary { cursor: pointer; padding: 10px 0; line-height: 1.4; }
 summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input, select { font: inherit; color: var(--ink); }
-.hud.top { justify-content: flex-end; }
-.menu-label { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 0 6px; }
+.menu-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
-.clock { max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
-  padding: 5px; border-radius: 18px; }
+  padding: 5px; border-radius: var(--r-panel); }
 /* The dock is icons, each with its name under it (VB-338). */
 .navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
   padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
 .navigation button:not([aria-pressed="true"]) { color: var(--muted); }
 .navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 18px; }
+.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: var(--r-panel); }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
 /* The dock's panels rise from it, centred over it (VB-338); the selection card, opened from the map, keeps the bottom left. */
@@ -280,9 +259,8 @@ input, select { font: inherit; color: var(--ink); }
 .sheet-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 16px 16px; scrollbar-gutter: stable; }
 .collapsed .sheet-content { display: none; }
 .collapsed .sheet-head { border-bottom: 0; }
-.settlers { max-height: none; overflow: visible; border-top: 0; margin: 0; padding: 0; }
 .search-label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
-#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: 12px; background: var(--node); padding: 10px 12px; font-size: 16px; }
+#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: var(--r-field); background: var(--node); padding: 10px 12px; font-size: 16px; }
 #peopleCount { margin: 8px 0; }
 .village-block, .household-block, .fold-section { border-top: 1px solid var(--edge); }
 .village-block > summary { font: italic 700 22px/1.3 'Alegreya', Georgia, serif; }
@@ -297,8 +275,7 @@ input, select { font: inherit; color: var(--ink); }
 .fold-section { margin-top: 8px; }
 .fold-section > summary { font-size: 15px; color: var(--ink); }
 .selection-summary { padding: 0 16px 12px; }
-.tile { min-width: 0; transition: none; }
-.tile span { font-size: 15px; line-height: 1.4; }
+.tile { min-width: 0; }
 #tileActivity { color: var(--ink); }
 .tile .rel button { flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 8px 0; min-height: 44px; font-size: 15px; }
 .tile .rel button i { flex-basis: 45%; }
@@ -307,17 +284,17 @@ input, select { font: inherit; color: var(--ink); }
    toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
 .map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: 14px; }
+.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: var(--r-panel); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
 .map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 #noticeBtn[aria-expanded="true"] { background: var(--edge); }
 @media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
-  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: 14px; }
+  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: var(--r-small); }
 .notice-pop .menu-label { margin: 12px 0 8px; }
 /* The Ground overlay's key (page/ground), over the minimap while the overlay is on: a swatch for each bedrock, a mark for each deposit. */
-.ground-key { width: 258px; padding: 0 14px 10px; border-radius: 14px; font-size: 13px; }
+.ground-key { width: 258px; padding: 0 14px 10px; border-radius: var(--r-small); font-size: 13px; }
 .ground-key .menu-label { margin: 10px 0 6px; }
 .ground-key ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
 .ground-key li { display: flex; align-items: center; gap: 7px; }
@@ -328,19 +305,18 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
 .ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
 body:not(.minimap-open) .ground-key { display: none; }
-.lod { bottom: calc(var(--dock-bottom) + 60px); }
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
 .toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
-  width: min(380px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-.toast { pointer-events: auto; border-radius: 12px; padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
+  width: min(430px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.toast { pointer-events: auto; border-radius: var(--r-small); padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 /* Playing a pawn (VB-210): after its death, whom to go on as, over the toasts; the played pawn's part of its card. */
-.play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(420px, calc(100vw - 28px));
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; color: var(--ink); }
+.play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(430px, calc(100vw - 28px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-small); font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
 .succession ul { flex: 1 1 100%; max-height: 40vh; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .succession li button { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; width: 100%; min-height: 36px;
@@ -348,7 +324,7 @@ body:not(.minimap-open) .ground-key { display: none; }
 .succession li i { font-style: normal; font-size: 13px; color: var(--muted); }
 @media (pointer: coarse) { .succession li button { min-height: 44px; } }
 .play { margin: 8px 0; }
-.play h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.play h3 { margin: 10px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .play h4 { margin: 8px 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .play h5 { margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
 .play h4 span { display: inline; margin: 0 0 0 6px; font-weight: 400; color: var(--muted); }
@@ -379,7 +355,7 @@ body:not(.minimap-open) .ground-key { display: none; }
    the Queue; a group's list of acts rises above it, and the panels rise with it; while an act waits for a tile, a banner under the top bar
    names it, and the toasts go under the banner. */
 .act-bar { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 64px); display: flex; gap: 6px;
-  padding: 6px; border-radius: 16px; width: min(560px, calc(100vw - 28px)); }
+  padding: 6px; border-radius: var(--r-panel); width: min(560px, calc(100vw - 28px)); }
 .act-bar button { flex: 1 1 0; min-width: 0; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 6px 8px;
   border-radius: 10px; background: var(--node); color: var(--ink); font-weight: 700; }
 .act-bar button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -387,11 +363,11 @@ body:not(.minimap-open) .ground-key { display: none; }
 .act-bar button[aria-expanded="true"], .act-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .act-bar b { font-variant-numeric: tabular-nums; }
 body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.bar-open .play-offer { bottom: calc(var(--dock-bottom) + 126px); }
-.act-menu { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 126px); width: min(400px, calc(100vw - 28px));
-  max-height: min(62vh, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; border-radius: 14px; padding: 6px; display: flex;
+.act-menu { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 126px); width: min(430px, calc(100vw - 28px));
+  max-height: min(62vh, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-panel); padding: 6px; display: flex;
   flex-direction: column; gap: 2px; }
 .act-menu .mh { display: flex; align-items: center; gap: 4px; padding: 0 0 4px 8px; }
-.act-menu .mh h2 { flex: 1; min-width: 0; margin: 0; font: italic 700 20px/1.2 'Alegreya', Georgia, serif; }
+.act-menu .mh h2 { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.2 'Alegreya', Georgia, serif; }
 .act-menu .mh button { border: 0; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 8px; flex: none; }
 .act-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-radius: 8px; padding: 7px 8px;
   min-height: 48px; }
@@ -408,11 +384,11 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-menu .act-empty { color: var(--muted); }
 .act-menu .play { margin: 0; padding: 0 8px 6px; }
 .act-form { display: flex; flex-direction: column; gap: 8px; padding: 2px 8px 8px; }
-.act-form .fl { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.act-form .fl { font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .act-form p { margin: 0; font-size: 14px; line-height: 1.4; }
 .act-form .hint { color: var(--muted); }
 .act-form .refused { color: var(--bad); }
-.act-form select, .act-form input { font: inherit; font-size: 15px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--edge);
+.act-form select, .act-form input { font: inherit; font-size: 15px; min-height: 44px; padding: 6px 10px; border-radius: var(--r-field); border: 1px solid var(--edge);
   background: var(--node); color: var(--ink); max-width: 100%; }
 .act-form .give-to { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .act-form .give-to select { flex: 1 1 180px; min-width: 0; }
@@ -421,7 +397,7 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .stepper input { width: 5.5em; text-align: center; font-variant-numeric: tabular-nums; }
 .act-form .switches { display: flex; flex-wrap: wrap; gap: 6px; }
 .act-banner { position: fixed; z-index: 8; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px); width: min(560px, calc(100vw - 28px));
-  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: 12px; }
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: var(--r-small); }
 .act-banner .txt { flex: 1; min-width: 0; font-weight: 500; line-height: 1.3; }
 .act-banner .txt span { display: block; font-size: 14px; }
 .act-banner .bad { color: var(--bad); }
@@ -462,7 +438,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
 .chip img.mini { margin-left: -7px; border-radius: 50%; }
 .roster { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--edge); }
-.roster h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.roster h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: 6px; background: none;
   text-align: left; }
 .tile .row span { margin: 0; }
@@ -470,7 +446,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .row .who i { display: block; font-style: normal; font-size: 13px; color: var(--muted); }
 .tile .row .state { max-width: 46%; font-size: 13px; text-align: right; }
 .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
-.mark.short { background: #c9a24a; }
+.mark.short { background: var(--gold); }
 .mark.hungry { background: var(--bad); }
 .tabs { display: flex; gap: 6px; margin: 6px 0 8px; }
 .tabs button, .history .kinds button { min-height: 36px; padding: 5px 12px; font-size: 14px; }
@@ -506,12 +482,26 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .row:hover, .tile .rel button:hover { background: var(--edge); }
   .sheet-head button { min-height: 36px; }
   summary { min-height: 36px; padding: 7px 0; }
+  /* the family records' controls are the cards' size, and its name links read as text */
+  #treeClose, .tree-modes button { min-height: 36px; }
+  .tree-info dd button { min-height: 0; }
+  /* One height inside the panels, 36px; the top bar, the dock and the menu screens keep 44px, and a row's own button is 28px. */
+  button, select, input[type="search"] { min-height: 36px; }
+  :where(.genscreen, .choose-bar, .navigation) button { min-height: 44px; }
+  .act-form select, .act-form input { min-height: 36px; }
+  .stepper button { width: 36px; height: 36px; }
+  .play .queue button, .save-acts button, .save-arch h3 button { min-height: 28px; }
+  /* the action menu's Back and Close are the sheets' round buttons */
+  .act-menu .mh { gap: 6px; padding: 4px 6px 6px 8px; }
+  .act-menu .mh button { width: 36px; height: 36px; border: 1px solid var(--edge); border-radius: 999px; }
+  /* every button answers the pointer: a faint wash of its own colour, over whatever fills it (rows and choice cards have their own) */
+  button:not(:disabled, .row, .act-row, .story, .person, .scard):hover { box-shadow: inset 0 0 0 99px color-mix(in srgb, currentColor 9%, transparent); }
 }
 /* Whom to play (VB-339; docs/mocks/setup.html, step 2): the live map under three pieces of the menu's family, the archetypes at the left,
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
 .choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
 .choose > * { pointer-events: auto; }
-.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: 16px; overflow-y: auto;
+.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-panel); overflow-y: auto;
   overscroll-behavior: contain; min-width: 0; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
@@ -519,7 +509,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
 .choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
-  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: 999px; overflow: visible; }
+  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: var(--r-panel); overflow: visible; }
 .choose h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
 .choose h2 { margin: 0; font: italic 700 20px/1.15 'Alegreya', Georgia, serif; overflow-wrap: anywhere; }
 .choose h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
@@ -527,7 +517,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .choose .hint { color: var(--muted); }
 .choose .refused { color: var(--bad); }
 .choose .ico { width: 18px; height: 18px; flex: none; }
-.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .sug-note { display: flex; gap: 6px; align-items: center; }
 .stories { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px;
@@ -539,8 +529,8 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .story .few { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; font-size: 12.5px; color: var(--muted); min-height: 22px; }
 .story .few img { width: 22px; height: 22px; margin-right: -3px; }
 .story .few span { margin-left: 8px; }
-.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: rgba(35, 104, 90, 0.12); }
-@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: rgba(35, 104, 90, 0.10); } }
+.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); } }
 .hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
 .hhead img { width: 44px; height: 44px; grid-row: 1 / span 2; }
 .hhead span { color: var(--muted); font-size: 14px; }
@@ -552,26 +542,26 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .person span { overflow-wrap: anywhere; }
 .person small { font-size: 11.5px; color: var(--muted); }
 .person:disabled { cursor: default; }
-.person[aria-pressed="true"] { border-color: var(--accent); background: rgba(35, 104, 90, 0.12); }
-.person.hit img { filter: drop-shadow(0 0 2px #c9a24a); }
+.person[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.person.hit img { filter: drop-shadow(0 0 2px var(--gold)); }
 .detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
 .posline { display: flex; gap: 8px; align-items: flex-start; }
 .posline .ico { color: var(--accent); margin-top: 1px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: rgba(35, 104, 90, 0.10); font-size: 14px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; }
 .pchip .ico { width: 16px; height: 16px; color: var(--accent); }
 /* The start (VB-340; docs/mocks/setup.html, step 1): pieces of the menu's family over the stage, which shows through the frame of the
    picture. The callouts follow the camera (page/start). Nothing changes size under the pointer: a lit person, bar or card only colours. */
 #genScreen.start { display: block; padding: 14px max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
   background: none; pointer-events: none; overflow-x: hidden; }
 .start-sheet { display: grid; gap: 12px; width: min(1180px, 100%); margin: 0 auto; }
-.start-sheet .panel { pointer-events: auto; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: 16px; min-width: 0; }
+.start-sheet .panel { pointer-events: auto; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-panel); min-width: 0; }
 .start h2 { margin: 0; font: italic 700 22px/1.15 'Alegreya', Georgia, serif; }
 .start h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .start p { margin: 0; font-size: 14px; line-height: 1.4; }
 .start .hint { color: var(--muted); }
 .start .ico { width: 18px; height: 18px; flex: none; }
-.start .ico.sug { display: inline-block; width: 15px; height: 15px; color: #b3862c; vertical-align: -1px; }
+.start .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .stepno { font-size: 14px; color: var(--muted); }
 .scards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .scard { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start;
@@ -580,7 +570,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .scard > *:not(.cpic) { margin: 0 10px; }
 .scard b { font-size: 16px; } .scard small { font-size: 13px; line-height: 1.3; color: var(--muted); }
 .scard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-@media (hover: hover) { .scard:hover { background: rgba(35, 104, 90, 0.08); } }
+@media (hover: hover) { .scard:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); } }
 .cpic { display: flex; align-items: flex-end; justify-content: center; gap: 0; height: 64px; padding: 0 8px 4px; overflow: hidden;
   background: linear-gradient(#bcd3e0 0 46%, #a9c48a 46% 100%); }
 .cpic.founders { background: linear-gradient(#bcd3e0 0 46%, #b9c97e 46% 100%); }
@@ -591,7 +581,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ico { width: 15px; height: 15px; }
 .cgrid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 12px; align-items: start; }
 .start-left { display: grid; gap: 12px; min-width: 0; }
-.start-view { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; pointer-events: none;
+.start-view { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-panel); overflow: hidden; pointer-events: none;
   box-shadow: 0 0 0 2px var(--node), 0 10px 30px rgba(3, 16, 26, 0.28); }
 .pins { position: absolute; inset: 0; }
 .pin { position: absolute; left: 0; top: 0; width: 0; height: 0; font-size: 13px; color: var(--ink); white-space: nowrap; }
@@ -874,7 +864,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
-    <div class="minimap panel" id="minimap" aria-label="Overview map, tap to jump" tabindex="0" role="group">
+    <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
     </div>
@@ -16947,8 +16937,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (cardShown[id] !== html) { cardShown[id] = html; el.innerHTML = html; }
     el.hidden = !html;
   }
+  let cardOf = ''; // what the card shows; a card of something else opens at its top
   function card(title, lines, activity = '', more = {}) {
     $('tileName').textContent = title;
+    const of = `${selPawn}|${selVillage}|${selFarm}|${sel}`;
+    if (of !== cardOf) { cardOf = of; $('tileDetails').scrollTop = 0; }
     cardPart('tileBadge', more.badge); cardPart('tileKind', more.kind ? esc(more.kind) : ''); cardPart('tileLinks', more.links);
     cardPart('tileList', more.list);
     $('tile').classList.toggle('peek', !selectionPinned);
@@ -17216,7 +17209,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (c.verb === 'serve') return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
     return VERB_WORDS[c.verb] || c.verb;
   }
-  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
+  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for yourself' };
   // An opportunity the round carries out for a pawn that wishes it (roundBox): read-only, with the reason it may not be taken now or its basis.
   function oppRow(o) {
     return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
@@ -17227,35 +17220,35 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const pick = (kind, value, label, on = wishes[kind] === value) =>
       `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
     const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
-    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
-    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
-    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
-    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
-    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
-      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
-    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    const own = wishes.out === null ? '' : ` On your own you would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>your wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and your spouse has wishes too.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As you would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `You stay now: ${esc(leave.why)}.` :
+      'You are counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any you may')}${pick('claim', false, 'None')}</div>`;
     h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
       o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
       esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
-      : '<p class="hint">No farm of its village stands empty.</p>';
-    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+      : '<p class="hint">No farm of your village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As you would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
     h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
     const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
     if (acts.some((o) => o.verb === 'match')) {
-      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
+      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As you would')}${pick('match', false, 'Not this year')}</div>`;
       h += partners.length ? `<ul class="opps">${partners.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="match" data-value="${
         o.target}" aria-pressed="${wishes.match === o.target}">${esc(o.partner.name)}, ${o.partner.age}<i>${
-        esc(o.why || 'offered at the round, as its own yes')}</i></button></li>`).join('')}</ul>`
-        : '<p class="hint">It knows no unmarried one it might wed.</p>';
+        esc(o.why || 'offered at the round, as your own yes')}</i></button></li>`).join('')}</ul>`
+        : '<p class="hint">You know no unmarried one you might wed.</p>';
     }
     return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
   function causeNote(p) {
-    const a = p.advocate; if (!a) return '<p class="hint">It argues no cause.</p>';
+    const a = p.advocate; if (!a) return '<p class="hint">You argue no cause.</p>';
     const d = Culture.DIMS[a.dim], s = st.cenv.settlements[Sim.settlementIdOf(st, p)], sup = s && s.lastSupport;
-    let h = `<p class="cause">Argues for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
+    let h = `<p class="cause">You argue for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
@@ -17283,7 +17276,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
       if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
       else if (may) h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
-    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Its acts</button></p>';
+    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Your acts</button></p>';
     if (h !== cardPlayHTML) { cardPlayHTML = h; $('cardPlay').innerHTML = h; }
     $('cardPlay').hidden = !h;
   }
@@ -17307,7 +17300,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       h += `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>`
         + `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>`
         + `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${o.daysLeft === 1 ? 'day' :
-          'days'} left; unanswered, it is answered as it would be unplayed.</p>`
+          'days'} left; unanswered, it is answered as you would unplayed.</p>`
         + `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>`
         + `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
     }
@@ -17340,11 +17333,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
       `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
       + `<button type="button" data-play="unqueue" data-i="${i}" aria-label="Remove ${esc(commandWords(c))}">Remove</button></li>`).join('')}</ol>`
-      : `<p class="hint">${pl.auto ? 'Nothing queued: it does what its role would.' :
-        'Nothing queued, and its automatic behaviour is off: it waits, and goes home at dark.'}</p>`;
+      : `<p class="hint">${pl.auto ? 'Nothing queued: you do what your role would.' :
+        'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What it may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }
@@ -17410,7 +17403,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     succAt = now;
     const list = Sim.successors(st, dead);
     let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
-      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+      : 'None of your heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
     if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
       esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
     if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
@@ -17454,6 +17447,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // 'self', 'house' or 'village', and a view inside it, null, 'round', 'causes' or 'give'), its last message (barMsg: {text, bad}), the tool
   // (tool: an act waiting for a tile, below) and the gift's draft (gift). It reads st and queues through Sim, as the sheet does (page/play).
   let barOpen = false, barMenu = null, barMsg = null, barHTML = '', tool = null, toolKey = '', flash = null, bannerHTML = '';
+  const tapWord = coarse ? 'tap' : 'click'; // what a press on the map is called, by the pointer
   const GROUPS = { self: 'Myself', house: 'Household', village: 'Village' };
   const toolG = new PIXI.Graphics();
   L.hover.addChild(toolG);
@@ -17492,7 +17486,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     let h = '';
     for (const [k, items] of kinds) {
       const open = items.filter((o) => o.why === null), o = open[0], whom = (x) => `for ${holderName(x.holder)}, ${BASIS[x.basis]}`;
-      const note = open.length > 1 ? `${open.length} places ${whom(o)}: tap one on the map` : o ? `${whom(o)}` : null;
+      const note = open.length > 1 ? `${open.length} places ${whom(o)}: ${tapWord} one on the map` : o ? `${whom(o)}` : null;
       h += actRow(`data-bar="work" data-kind="${k}" data-holder="${o ? o.holder.type : ''}"`, KIND_ICON[k] || 'hoe', Sim.KINDS[k].name, note,
         o ? null : items[0].why, open.length > 1);
     }
@@ -17509,7 +17503,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       else if (o.verb === 'argue' || o.verb === 'dropCause') by.causes.push(o);
       else by.self.push(o);
     }
-    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Its cause' : 'Argue a cause', give: 'Give grain' };
+    const TITLES = { round: 'At the moving round', causes: p.advocate ? 'Your cause' : 'Argue a cause', give: 'Give grain' };
     let h = `<div class="mh">${m.view ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>` :
       ''}`
       + `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>`
@@ -17518,33 +17512,33 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
     if (m.view === 'causes') {
       return `${h}<div class="play">${causeNote(p)}</div>${by.causes.map((o) =>
-        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'It argues no more',
+        actRow(cmdAttrs(o), o.verb === 'argue' ? 'cause' : 'no', commandWords(o), o.verb === 'argue' ? 'Argue for it before the village' : 'You argue no more',
           o.why)).join('')}`;
     }
     if (m.view === 'give') return h + giveHTML(id);
     if (m.g === 'self') {
       const home = by.self.find((o) => o.verb === 'goHome'), idle = by.self.find((o) => o.verb === 'idle');
-      h += actRow('data-bar="walk"', 'walk', 'Walk here', 'Then tap an open tile on the map');
-      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for itself', home.why);
-      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'It waits where it is', idle.why);
-      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for its answer`, null, true);
-      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Its wishes: moving out, a farm, service, a match',
+      h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
+      h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
+      h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+      if (by.offers.length) h += actRow('data-bar="sheet"', 'offer', 'A match is offered', `${by.offers.length} waiting for your answer`, null, true);
+      if (by.round.length) h += actRow('data-bar="view" data-view="round"', 'round', 'At the moving round', 'Your wishes: moving out, a farm, service, a match',
         null, true);
       return h;
     }
     if (m.g === 'house') {
-      if (!hh) return `${h}<p class="act-empty">It belongs to no household.</p>`;
-      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of its household it may take now.</p>';
+      if (!hh) return `${h}<p class="act-empty">You belong to no household.</p>`;
+      h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of your household you may take now.</p>';
       const own = givesFor(id);
       h += actRow('data-bar="view" data-view="give"', 'gift', 'Give grain', own ? `To kin or a neighbour; ${giftMax(own)} rations above the seed` : '',
         own ? null : "only the household's holder gives its grain", true);
       return h;
     }
-    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work it may take now.</p>';
+    h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
     if (by.causes.length || p.advocate) {
       const a = p.advocate;
       h += actRow('data-bar="view" data-view="causes"', 'cause', TITLES.causes, a ? `For “${Culture.DIMS[a.dim].opts[a.opt][1]}”, `
-        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village it would change', null, true);
+        + `${Math.max(0, a.until - st.cenv.t).toFixed(1)} more years` : 'A custom of the village you would change', null, true);
     }
     return h;
   }
@@ -17597,7 +17591,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       startTool({ kind: 'work', work: kind, holder, icon: KIND_ICON[kind] || 'hoe', title: Sim.KINDS[kind].name, needs: 'a marked tile', keep: true });
       return;
     }
-    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none it may take now.`, bad: true }; return; }
+    if (!open.length) { barMsg = { text: `${Sim.KINDS[kind].name}: none you may take now.`, bad: true }; return; }
     const r = Sim.queue(st, { actor: id, verb: 'work', target: open[0].target });
     barMsg = r === true ? { text: `Queued: ${commandWords(open[0])}.` } : { text: r, bad: true };
   }
@@ -17626,11 +17620,11 @@ if (typeof module !== 'undefined') module.exports = Sim;
     tool.msg = null;
     if (tool.kind === 'walk') {
       const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
-      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: tap an open tile`, bad: true };
+      if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: ${tapWord} an open tile`, bad: true };
       else done(Sim.queue(st, { actor: id, verb: 'walkTo', target: i }), 'Queued: walk to the tile.');
     } else if (tool.kind === 'work') {
       const o = Sim.opportunities(st, id).find((x) => x.verb === 'work' && x.kind === tool.work && x.holder.type === tool.holder && x.site === i);
-      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: tap a marked tile`, bad: true };
+      if (!o) tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: ${tapWord} a marked tile`, bad: true };
       else if (o.why) tool.msg = { text: o.why, bad: true };
       else { const r = Sim.queue(st, { actor: id, verb: 'work', target: o.target });
         tool.msg = r === true ? { text: `Queued: ${commandWords(o)}.` } : { text: r, bad: true }; }
@@ -17647,8 +17641,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const el = $('actBanner');
     let h = '';
     if (tool) {
-      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: tap ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
-        ? '<span class="bad">None is open to it now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
+      h = `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${tool.kind === 'work' && !tool.sites.length
+        ? '<span class="bad">None is open to you now.</span>' : ''}${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}`
         + `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;
     } else if (flash && performance.now() < flash.until) h = `<div class="txt">${esc(flash.text)}</div>`;
     else flash = null;
@@ -17756,7 +17750,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const k = pw >= 0 ? st.pawns[pw].household : named && named.farm !== undefined ? st.farmsteads[named.farm].household
       : house ? house.household : land && land.type === 'household' ? land.id : null;
     if (k === null || k === undefined || st.households[k].dissolved || k === own.id) {
-      tool.msg = { text: 'No other household there: tap a farm, its land or one of its people', bad: true };
+      tool.msg = { text: `No other household there: ${tapWord} a farm, its land or one of its people`, bad: true };
       return;
     }
     gift.to = k; gift.warn = null; gift.msg = ''; endTool();
@@ -18891,7 +18885,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     const id = selected(), p = id >= 0 ? st.pawns[id] : null;
     $('dbgSel').textContent = p ?
       `${Sim.fullName(p)}${p.died !== null ? ' (dead)' : `, ${p.age}, ${roleLine(p)}`}${p.advocate ? `; argues for “${optLabel(p.advocate.dim,
-      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the settlers list or in the family tree.';
+      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the People panel or in the family records.';
     const out = st.demand.filter((q) => st.pawns[q].alive);
     $('dbgOut').textContent = out.length ? out.map((q) =>
       `${Sim.fullName(st.pawns[q])} (${st.pawns[q].age}, ${st.villages[Sim.settlementIdOf(st, st.pawns[q])].name})`).join(', ') : 'Nobody right now.';
@@ -19056,7 +19050,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '80f44362cf', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '0df443b91b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

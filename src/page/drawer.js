@@ -115,7 +115,7 @@
     const id = selected(), p = id >= 0 ? st.pawns[id] : null;
     $('dbgSel').textContent = p ?
       `${Sim.fullName(p)}${p.died !== null ? ' (dead)' : `, ${p.age}, ${roleLine(p)}`}${p.advocate ? `; argues for “${optLabel(p.advocate.dim,
-      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the settlers list or in the family tree.';
+      p.advocate.opt).toLowerCase()}”` : ''}` : 'Select someone on the map, in the People panel or in the family records.';
     const out = st.demand.filter((q) => st.pawns[q].alive);
     $('dbgOut').textContent = out.length ? out.map((q) =>
       `${Sim.fullName(st.pawns[q])} (${st.pawns[q].age}, ${st.villages[Sim.settlementIdOf(st, st.pawns[q])].name})`).join(', ') : 'Nobody right now.';

@@ -37,7 +37,7 @@
     if (c.verb === 'serve') return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
     return VERB_WORDS[c.verb] || c.verb;
   }
-  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for itself' };
+  const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a villager', self: 'for yourself' };
   // An opportunity the round carries out for a pawn that wishes it (roundBox): read-only, with the reason it may not be taken now or its basis.
   function oppRow(o) {
     return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
@@ -48,35 +48,35 @@
     const pick = (kind, value, label, on = wishes[kind] === value) =>
       `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
     const leave = acts.find((o) => o.verb === 'leave'), farms = acts.filter((o) => o.verb === 'claim'), serve = acts.filter((o) => o.verb === 'serve');
-    const own = wishes.out === null ? '' : ` Left to itself it would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
-    let h = '<h4>At the moving round <span>its wishes; the round decides by its rules</span></h4>';
-    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and its spouse has wishes of its own.</p>';
-    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As it would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
-    h += `<p class="hint">${leave.why ? `It stays now: ${esc(leave.why)}.` :
-      'It is counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
-    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any it may')}${pick('claim', false, 'None')}</div>`;
+    const own = wishes.out === null ? '' : ` On your own you would ${leave.own ? `stay: ${esc(leave.own)}` : 'move out'}.`;
+    let h = '<h4>At the moving round <span>your wishes; the round decides by its rules</span></h4>';
+    if (Sim.spouseOf(st, id) !== null) h += '<p class="hint">A couple moves together, and your spouse has wishes too.</p>';
+    h += `<h5>Moving out</h5><div class="switches">${pick('out', null, 'As you would')}${pick('out', true, 'Move out')}${pick('out', false, 'Stay')}</div>`;
+    h += `<p class="hint">${leave.why ? `You stay now: ${esc(leave.why)}.` :
+      'You are counted among those who want land: a farm, a plot, new land or service may come of it.'}${own}</p>`;
+    h += `<h5>An empty farm</h5><div class="switches">${pick('claim', null, 'Any you may')}${pick('claim', false, 'None')}</div>`;
     h += farms.length ? `<ul class="opps">${farms.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="claim" data-value="${
       o.target}" aria-pressed="${wishes.claim === o.target}">Only ${esc(st.farmsteads[o.target].name)}<i>${
       esc(o.why || 'the round gives it to the first claimant')}</i></button></li>`).join('')}</ul>`
-      : '<p class="hint">No farm of its village stands empty.</p>';
-    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As it would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
+      : '<p class="hint">No farm of your village stands empty.</p>';
+    h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As you would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
     h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
     const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
     if (acts.some((o) => o.verb === 'match')) {
-      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As it would')}${pick('match', false, 'Not this year')}</div>`;
+      h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As you would')}${pick('match', false, 'Not this year')}</div>`;
       h += partners.length ? `<ul class="opps">${partners.map((o) => `<li><button type="button" class="opp" data-play="wish" data-kind="match" data-value="${
         o.target}" aria-pressed="${wishes.match === o.target}">${esc(o.partner.name)}, ${o.partner.age}<i>${
-        esc(o.why || 'offered at the round, as its own yes')}</i></button></li>`).join('')}</ul>`
-        : '<p class="hint">It knows no unmarried one it might wed.</p>';
+        esc(o.why || 'offered at the round, as your own yes')}</i></button></li>`).join('')}</ul>`
+        : '<p class="hint">You know no unmarried one you might wed.</p>';
     }
     return h;
   }
   // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
   // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
   function causeNote(p) {
-    const a = p.advocate; if (!a) return '<p class="hint">It argues no cause.</p>';
+    const a = p.advocate; if (!a) return '<p class="hint">You argue no cause.</p>';
     const d = Culture.DIMS[a.dim], s = st.cenv.settlements[Sim.settlementIdOf(st, p)], sup = s && s.lastSupport;
-    let h = `<p class="cause">Argues for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
+    let h = `<p class="cause">You argue for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(0,
       a.until - st.cenv.t).toFixed(1)} more years.`;
     if (sup) {
       const o = Culture.OFF[a.dim], x = s.practice[a.dim], cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
@@ -104,7 +104,7 @@
       const list = Sim.successors(st, pl.pawn), may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
       if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
       else if (may) h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
-    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Its acts</button></p>';
+    } else if (pl && pl.pawn === id) h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Your acts</button></p>';
     if (h !== cardPlayHTML) { cardPlayHTML = h; $('cardPlay').innerHTML = h; }
     $('cardPlay').hidden = !h;
   }
@@ -128,7 +128,7 @@
       h += `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>`
         + `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>`
         + `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${o.daysLeft === 1 ? 'day' :
-          'days'} left; unanswered, it is answered as it would be unplayed.</p>`
+          'days'} left; unanswered, it is answered as you would unplayed.</p>`
         + `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>`
         + `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
     }
@@ -161,11 +161,11 @@
     h += pl.queue.length ? `<ol class="queue">${pl.queue.map((c, i) =>
       `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>`
       + `<button type="button" data-play="unqueue" data-i="${i}" aria-label="Remove ${esc(commandWords(c))}">Remove</button></li>`).join('')}</ol>`
-      : `<p class="hint">${pl.auto ? 'Nothing queued: it does what its role would.' :
-        'Nothing queued, and its automatic behaviour is off: it waits, and goes home at dark.'}</p>`;
+      : `<p class="hint">${pl.auto ? 'Nothing queued: you do what your role would.' :
+        'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'}</p>`;
     if (pl.refused) h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(VERB_WORDS[pl.refused.verb] ||
       pl.refused.verb)}, ${esc(pl.refused.why)}</p>`;
-    h += '<p class="hint">What it may do is in the bar over the dock: Myself, Household and Village.</p>';
+    h += '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village.</p>';
     const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
     if (h + '\n' + rest !== playHTML) { playHTML = h + '\n' + rest; $('playTop').innerHTML = h; $('playRest').innerHTML = rest; }
   }
@@ -231,7 +231,7 @@
     succAt = now;
     const list = Sim.successors(st, dead);
     let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${list.length ? 'Go on as:'
-      : 'None of its heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
+      : 'None of your heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'}</span>`;
     if (list.length) h += `<ul>${list.map((s) => { const q = st.pawns[s.id]; return `<li><button type="button" data-succeed="${s.id}">${
       esc(Sim.fullName(q))}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`; }).join('')}</ul>`;
     if (h !== succHTML) { succHTML = h; box.innerHTML = h; }
