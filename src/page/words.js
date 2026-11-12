@@ -93,6 +93,8 @@
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads.</p>
+          <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
+            hh.boat ? '; a fishing boat on the shore' : ''}.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>` : '');
         body += fold(fieldsKey, 'Fields & work', foldOpen(fieldsKey) ?
           `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
@@ -100,7 +102,7 @@
           <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>` : '');
         let animals = '';
         if (foldOpen(animalsKey)) {
-          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk']]
+          const lots = [['salt meat', 'salt meat'], ['meat', 'fresh meat'], ['butter', 'butter'], ['milk', 'milk'], ['dried fish', 'dried fish']]
             .map(([kind, label]) => [Sim.larderOf(hh, kind), label]).filter(([n]) => n >= .5);
           animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
             <p>Hay ${Math.round(hh.hay)}, ${Math.round(hh.haySpoilt || 0)} spoilt; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>

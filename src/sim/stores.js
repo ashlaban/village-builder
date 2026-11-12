@@ -14,6 +14,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
+  // VB-300: a catch hung on the drying rack (sim/drying), the fish going out of the rack's store and dried fish into the larder.
+  KINDS.push('drying'); ROUTINE.push('drying');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -51,6 +53,7 @@ VB['sim/stores'] = (() => {
     if (good === 'grain' || kind === 'household' && good === 'meals') return good;
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // Explicit writes keep the ownership scan aware of every stored quantity.
@@ -58,12 +61,15 @@ VB['sim/stores'] = (() => {
   const setVillage = (v, n) => { v.grain = n; };
   const setWood = (hh, n) => { hh.wood = n; };
   const setStone = (hh, n) => { hh.stone = n; };
+  // @state household.rack: rations of fresh fish laid by the drying rack, waiting to be split and hung (VB-300; sim/drying), 0 at the start
+  const setRack = (hh, n) => { hh.rack = n; };
   function setFood(hh, good, n) { if (good === 'grain') hh.grain = n; else hh.meals = n; }
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (kind === 'village') setVillage(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
+    else if (good === 'fish') setRack(holder, n);
     else setFood(holder, good, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -97,6 +103,25 @@ VB['sim/stores'] = (() => {
   const mealsFrom = (food, n) => n * FOODS[food].worth;
   // The cook takes up to n of a food from the household's store and makes meals of what it got (today: grain, 1 to 1).
   function cook(st, hh, food, n) { const got = take(st, hh, food, n, 'cooking'); put(st, hh, 'meals', mealsFrom(food, got), 'cooking'); }
+  // ---- dried fish (VB-300; sim/drying): a lot in the larder (sim/hunger's {kind, n, until}), kept the good's keepsDays ----
+  // The fish waiting by the rack are split and hung: they leave the rack's store and are dried fish from now (the weeks on the rack are not
+  // told apart: fish hanging is food in store). Returns the rations hung.
+  function dry(st, hh) {
+    const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
+    if (!(n > 0)) return 0;
+    record(st, hh, 'dried fish', n, 'drying'); hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
+    return n;
+  }
+  // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
+  function cookLarder(st, hh, kind, n) {
+    amount(n); let got = 0;
+    const lots = hh.larder.filter((l) => l.kind === kind).sort((a, b) => a.until - b.until);
+    for (const l of lots) { if (got >= n) break; const k = Math.min(l.n, n - got); l.n -= k; got += k; }
+    if (!(got > 0)) return 0;
+    hh.larder = hh.larder.filter((l) => l.n > 1e-9);
+    record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
+    return got;
+  }
   function sheaf(st, hh, n) {
     amount(n); record(st, hh, 'sheaves', n, 'harvest');
     if (!hh.unthreshed.length) wake(st, hh);
@@ -288,7 +313,7 @@ VB['sim/stores'] = (() => {
   Rules.declare({ id: 'proper', owner: 'culture', combine: 'sum', base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1] });
   return { GOODS, declareGood, goodOf, goods,
-    dug,
+    dug, dry, cookLarder,
     KINDS, ROUTINE, RESERVE, yearNow, close, yearSum, record, put, take, move, mealsFrom, cook, sheaf, thresh, start, spoil, villageDay, prune,
     follow, reserve, release, releaseAll, reserved, aleOf, brew, spoilAle, pour, aleStanding };
 })();
