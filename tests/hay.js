@@ -61,7 +61,7 @@ check(!checkState(st).length, 'populous: ' + checkState(st).slice(0, 3).join('; 
 const m0 = meadows(st)[0]; m0.stage = 'mown'; m0.held = 25; m0.mown = Math.floor(st.t / Sim.DAY);
 st.jobs.forEach((j) => { if (j.meadow === m0) VB['sim/agents'].dropJob(st, j); });
 const hayBefore = st.households.reduce((s, h) => s + h.hay, 0);
-VB['sim/meadows'].meadowsDay(st, { doy: 35, season: 2, sday: 11, day: 35 });
+VB['sim/meadows'].meadowsFrost(st);
 check(m0.stage === 'aftermath' && m0.held === 0, 'frost: hay lying was not lost');
 check(st.households.reduce((s, h) => s + h.hay, 0) === hayBefore, 'frost: rotted hay reached a barn');
 at(st, Sim.YEAR_DAYS + 1);

@@ -37,7 +37,7 @@ VB.resetCounts(); Sim.advance(st, 0.1);
 assert.strictEqual(VB.count.walkStep, st.living.length, 'a step counts living agents, excluding the dead records');
 // The daily mortality walk may remove every current id, including adjacent ids, without skipping anyone.
 const dying = make(); for (const p of dying.pawns) p.health = 0;
-VB['sim/lifecycle'].dailyLife(dying, Sim.cal(dying.t));
+VB['sim/lifecycle'].dailyLife(dying); VB['sim/lifecycle'].dailyDeaths(dying);
 assert.strictEqual(dying.living.length, 0); compare(dying);
 // Orphan care dissolves adjacent households in the same walk. Historical records remain available.
 const orphans = make();
