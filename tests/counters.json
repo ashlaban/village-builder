@@ -3,6 +3,7 @@
   "routeExpand": 1.4977777777777779,
   "routeHit": 3.776666666666667,
   "routeRefresh": 0.8366666666666667,
+  "reachSettled": 0,
   "routeEvict": 0,
   "talkWeighed": 10.335555555555555,
   "walkStep": 82.4,

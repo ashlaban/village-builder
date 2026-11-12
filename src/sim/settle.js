@@ -6,7 +6,7 @@ VB['sim/settle'] = (() => {
   const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, villageAdded } = VB['sim/routes'];
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -202,7 +202,9 @@ VB['sim/settle'] = (() => {
     const v = { id: st.villages.length, name: founderName(st, p), center: site.house, farmsteads: [], fence: [], wood: [], grain: 0,
       ledger: [], totals: [], green: false, well: false, plots: [], crowded: 0, founded: { t: st.t, from: home.id, by: p.id } };
     st.villages.push(v); makePlan(st, 'village', v.id); addSettlement(st, v, hs.culture, hs.practice, hs.tie);
-    return settleFarm(st, v, home, party, site.house, site.field, prov);
+    const f = settleFarm(st, v, home, party, site.house, site.field, prov);
+    villageAdded(st); // VB-286: its row of the table of walking hours, at once
+    return f;
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
   // oldest, may leave (SETTLE.chance by rounds waited) with their party, if it has provisions: to a small village nearby that is not

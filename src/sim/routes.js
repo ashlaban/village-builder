@@ -1,6 +1,6 @@
 // @sys sim/routes: walking costs by terrain and slope, the route search (A*) and the route cache with its daily refresh
 VB['sim/routes'] = (() => {
-  const { TERRAIN, SLOPE, ROUTE, PATHS } = VB['sim/rules'];
+  const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
@@ -33,7 +33,11 @@ VB['sim/routes'] = (() => {
   const scratch = new WeakMap();
   function buffers(w) {
     let s = scratch.get(w);
-    if (!s) { s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), run: 0 }; scratch.set(w, s); }
+    if (!s) {
+      s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), tgt: new Uint32Array(w.N), run: 0,
+        open: null };
+      scratch.set(w, s);
+    }
     return s;
   }
   // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
@@ -43,6 +47,7 @@ VB['sim/routes'] = (() => {
     const swap = (a, b) => { [k[a], k[b]] = [k[b], k[a]]; [n[a], n[b]] = [n[b], n[a]]; };
     return {
       get size() { return n.length; },
+      clear() { k.length = 0; n.length = 0; },
       push(key, tile) {
         let c = k.push(key) - 1; n.push(tile);
         while (c > 0) { const p = (c - 1) >> 1; if (!less(c, p)) break; swap(c, p); c = p; }
@@ -93,6 +98,35 @@ VB['sim/routes'] = (() => {
     }
     VB.count.routeExpand += expanded;
     return null;
+  }
+  // The cheapest cost from tile `from` to each of the tiles `targets` (a list), by one Dijkstra search over passable tiles: the cost to
+  // targets[i] goes to out[i], or null when it lies beyond maxCost or cannot be reached. The search stops at maxCost, or once every target is
+  // settled. As in findRoute, `from` and the targets may be closed tiles (a closed target is reached, never walked through). It reuses the
+  // world's scratch buffers and one heap, and allocates nothing per tile; the tiles it settles are counted in VB.count.reachSettled.
+  // The costs are findRoute + routeCost's, to rounding (the sums are made the same way, from `from`).
+  function reachCosts(w, from, maxCost, targets, out = new Array(targets.length)) {
+    const S = buffers(w), { g, mark, shut, tgt } = S, run = ++S.run, open = S.open || (S.open = heap());
+    let left = 0, settled = 0;
+    for (let i = 0; i < targets.length; i++) if (tgt[targets[i]] !== run) { tgt[targets[i]] = run; left++; }
+    open.clear();
+    g[from] = 0; mark[from] = run; open.push(0, from);
+    while (open.size && left > 0) {
+      const i = open.pop();
+      if (shut[i] === run) continue;
+      shut[i] = run; settled++;
+      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !passable(w, i)) continue; }
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d];
+        if (j < 0 || shut[j] === run || (tgt[j] !== run && !passable(w, j))) continue;
+        const gj = g[i] + stepCost(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        g[j] = gj; mark[j] = run;
+        open.push(gj, j);
+      }
+    }
+    VB.count.reachSettled += settled;
+    for (let i = 0; i < targets.length; i++) out[i] = shut[targets[i]] === run ? g[targets[i]] : null;
+    return out;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
   function routeCost(w, p) {
@@ -160,5 +194,50 @@ VB['sim/routes'] = (() => {
     }
     st.routeDirty.clear();
   }
-  return { tileCost, passable, walkable, slopeCost, stepCost, findRoute, routeCost, route, costChanged, refreshRoutes, trimRoutes };
+
+  // ---- walking hours between villages (VB-286) ----
+  // @state st.villageHours: array, a row for each village id, each of length the number of villages; row[u] the walking hours from village v's
+  //   green (its centre) to u's, by the route search's costs over SPEED, or null beyond ROUTE.reach or with no route by land; the diagonal 0.
+  //   Symmetric, as the costs are. Compiled a village a step by the calendar (autumn day 9), and at once for a village founded
+  //   (sim/routes). Nothing reads it yet: hoursBetween (VB-287, VB-288, VB-290).
+  // Village k's row, and column k of every other row, from one search of the villages' centres.
+  function refreshHoursRow(st, k) {
+    const T = st.villageHours, vs = st.villages;
+    if (!T || T.length !== vs.length || k >= vs.length) return;
+    const targets = vs.map((v) => v.center), costs = reachCosts(st.w, vs[k].center, ROUTE.reach, targets), row = T[k];
+    for (let u = 0; u < costs.length; u++) {
+      const h = u === k ? 0 : costs[u] === null ? null : costs[u] / SPEED;
+      row[u] = h; T[u][k] = h;
+    }
+  }
+  // The whole table: at the seed, and at a load of a save made before it.
+  function buildHours(st) {
+    const n = st.villages.length;
+    st.villageHours = Array.from({ length: n }, () => new Array(n).fill(null));
+    for (let k = 0; k < n; k++) refreshHoursRow(st, k);
+  }
+  // A village was added to st.villages: the table grows by a row and a column, and the new row is found at once.
+  function villageAdded(st) {
+    if (!st.villageHours) return;
+    for (const row of st.villageHours) row.push(null);
+    st.villageHours.push(new Array(st.villages.length).fill(null));
+    refreshHoursRow(st, st.villages.length - 1);
+  }
+  // The calendar's entry, autumn day 9 from noon (sim/clock): on step j of the 60 from noon, the rows of the villages k with
+  // floor(k * 60 / villages) = j (village j itself while there are 60 or fewer).
+  const ROW_STEPS = 60;
+  function refreshHoursStep(st, j) {
+    const n = st.villages.length;
+    if (n <= ROW_STEPS) { if (j < n) refreshHoursRow(st, j); return; }
+    for (let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS), end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS); k < end;
+      k++) refreshHoursRow(st, k);
+  }
+  // Walking hours between two villages' greens: 0 for the same village, Infinity beyond reach or by no land route. Allocates nothing.
+  function hoursBetween(st, a, b) {
+    if (a === b) return 0;
+    const h = st.villageHours[a][b];
+    return h === null ? Infinity : h;
+  }
+  return { tileCost, passable, walkable, slopeCost, stepCost, findRoute, routeCost, reachCosts, route, costChanged, refreshRoutes, trimRoutes,
+    buildHours, villageAdded, refreshHoursStep, hoursBetween, ROW_STEPS };
 })();

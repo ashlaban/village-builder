@@ -2,7 +2,7 @@
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
-  const { trimRoutes } = VB['sim/routes'];
+  const { trimRoutes, buildHours } = VB['sim/routes'];
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'];
   const { migrateTies } = VB['sim/relations'];
@@ -245,6 +245,7 @@ VB['sim/saves'] = (() => {
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
+    if (!st.villageHours) buildHours(st); // VB-286: older saves have no table of walking hours between villages
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
     for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];

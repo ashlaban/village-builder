@@ -5,7 +5,7 @@ VB['sim/scenarios'] = (() => {
   const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, buildHours } = VB['sim/routes'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const { foundersHouseholds, drawSize, populousHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
@@ -259,6 +259,7 @@ VB['sim/scenarios'] = (() => {
     for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
     seedOwners(st);
     refreshRoles(st);
+    buildHours(st); // VB-286: the walking hours between the villages' greens
     for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order

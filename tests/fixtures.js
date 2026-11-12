@@ -23,11 +23,13 @@ for (const name of Object.keys(F.FIXTURES)) {
   const ranks = compareRankings(VB, st);
   assert.deepStrictEqual(ranks.bad, [], `${name}: ${ranks.bad.slice(0, 4).join('; ')}`);
   assert(ranks.claimed > 0, `${name}: no ranking depended on another farm's claim`);
+  // VB-286: the walking hours between villages agree with the route search on every pair of greens
+  const reach = require('./lib/reach.js')(VB, st, name);
   Sim.advance(st, Sim.DAY);
   const bad = checkState(fixture.st);
   assert.deepStrictEqual(bad, [], `${name}: ${bad.slice(0, 8).join('; ')}`);
   console.log(`${name}: loaded (key ${fixture.stamp.key}); ${ranks.checked} rankings by line match the full list (a claim mattered in`
-    + ` ${ranks.claimed}); advanced one day; invariants pass`); loaded++;
+    + ` ${ranks.claimed}); advanced one day; invariants pass; ${reach.routed} of ${reach.pairs} pairs of greens by land agree with the route search`); loaded++;
 }
 const total = Object.keys(F.FIXTURES).length;
 console.log(`fixtures: ${loaded}/${total} saves checked; ${total - loaded} not made (node tools/fixtures.js make)`);

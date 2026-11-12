@@ -59,6 +59,8 @@ function main() {
     else if (name === 'takeInWeighed') continue;
     // Service where labour is short (VB-090) needs a landless adult with hands to spare at home in the round; tests/labour.js exercises it.
     else if (name === 'labourWeighed') continue;
+    // The walking hours between villages are refreshed on autumn day 9 (VB-286); tests/villagehours.js exercises them.
+    else if (name === 'reachSettled') assert(early.work[name] === 0 && late.work[name] === 0, 'no autumn in 30 days');
     else assert(early.work[name] > 0 && late.work[name] > 0, `scaling must exercise ${name}`);
   }
   console.log(`scaling: 2/4 villages, 30 days and one round each; ${early.living.toFixed(3)}/${late.living.toFixed(3)} mean living`);

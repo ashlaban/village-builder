@@ -5,7 +5,7 @@ VB['sim/clock'] = (() => {
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { refreshRoutes, costChanged } = VB['sim/routes'];
+  const { refreshRoutes, costChanged, refreshHoursStep, ROW_STEPS } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
@@ -132,6 +132,10 @@ VB['sim/clock'] = (() => {
     { every: 'day', when: cenv, owner: 'sim/lifecycle', note: 'marriage offers due close (VB-293)', run: (st) => dueOffers(st) },
     { every: 'day', when: (st) => !!st.cenv && short.length > 0, owner: 'sim/service', note: 'the short of people taken in (VB-308)',
       run: (st) => takeIn(st, short) },
+    // autumn day 9 from noon (sday 8), before the meetings of day 10 whose tie may read the table (VB-290): a village a step (VB-286)
+    { every: 'year', at: { season: AUTUMN, sday: 8, hour: 12, tick: [0, ROW_STEPS] }, owner: 'sim/routes',
+      note: 'the walking hours between villages, a row a step (VB-286)',
+      run: (st, c, n) => refreshHoursStep(st, n - 12 * TICKS) },
     { every: 'year', at: { season: AUTUMN, sday: 9 }, when: cenv, owner: 'sim/occasions', note: 'the meeting\'s people called to the green (VB-126)',
       run: (st) => callMeetings(st) },
     // ---- the year ----

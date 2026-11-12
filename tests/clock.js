@@ -79,6 +79,7 @@ const ORDER = [
   "day |  | sim/births | births",
   "day |  | sim/lifecycle | marriage offers due close (VB-293)",
   "day |  | sim/service | the short of people taken in (VB-308)",
+  "year | season 2, sday 8, hour 12, tick 0-59 | sim/routes | the walking hours between villages, a row a step (VB-286)",
   "year | season 2, sday 9 | sim/occasions | the meeting's people called to the green (VB-126)",
   "year |  | sim/clock | the year begins: its weather",
   "year |  | sim/stores | ledgers of dissolved households expire",

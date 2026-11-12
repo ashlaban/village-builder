@@ -11,6 +11,7 @@ VB.COUNTERS = {
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
+  reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   walkStep: 'Agent records walked by the six-minute step (the awake ones, sim/agents)',
