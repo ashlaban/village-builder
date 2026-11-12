@@ -33,7 +33,7 @@ const HOOKS = [
     + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; }, '
     + 'clearSky() { for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); } clouds = []; } };'],
   ['const SIZES = { t: [120, 85],', `const SIZES = { x: [${cols}, ${rows}], t: [120, 85],`],
-  ['sim = Sim.seed(wd, seed, scenario);', 'sim = window.__seedVillage(wd, seed);'],
+  ['Sim.seed(wd, seed, scenario, custom ? custom.places : null)', 'window.__seedVillage(wd, seed)'],
 ];
 let html = fs.readFileSync(htmlPath, 'utf8');
 for (const [from, to] of HOOKS) {
@@ -86,9 +86,9 @@ async function shootSeed(browser, seed) {
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
   }, years);
-  if (has('land')) await page.click('#landBtn');
+  if (has('land')) await page.evaluate(() => document.getElementById('landBtn').click());
   if (!has('clouds')) await page.evaluate(() => window.__vb.clearSky());
-  if (!has('ui')) { await page.click('#uiToggle'); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }
+  if (!has('ui')) { await page.evaluate(() => document.getElementById('uiToggle').click()); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }
   const info = await page.evaluate(() => {
     const st = window.__vb.st, w = st.w, v = st.villages[0], fs = v.farmsteads.map((id) => st.farmsteads[id]);
     const tiles = [v.center, ...fs.flatMap((f) => [f.house, ...f.fields.map((fd) => fd.tile)])];

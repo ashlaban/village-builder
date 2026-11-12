@@ -242,6 +242,8 @@ VB['sim/saves'] = (() => {
     // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
     // VB-285: and the field that held that part is gone
     if ('tickPart' in st) { if (st.tickPart) st.t = st.tick / TICKS; delete st.tickPart; }
+    // Older saves mark a house as they mark a field (w.dev 1); a house is 3 now, so that fields wear paths and houses do not (sim/paths).
+    if (w.dev) for (const f of st.farmsteads) w.dev[f.house] = 3; // lint-allow: owner an older save's mark, set as layout sets it
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);

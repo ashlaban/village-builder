@@ -1,4 +1,4 @@
-// Worn paths (VB-094): crossings count on open land only, the count halves in a game year, stages with a margin, the page is told,
+// Worn paths (VB-094): crossings count on open land, fields and meadows, not on houses, greens or water, the count halves in a game year, stages with a margin, the page is told,
 // and in a run the wear sits where pawns walk; generated villages start worn in (VB-114); the map's trails reach their neighbours and keep
 // trees off paths and lanes.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, P = VB['sim/paths'], Look = VB['gen/paths'];
@@ -14,7 +14,10 @@ check(P.stageOf(0, 3) === 0, 'a tile with no wear has no stage');
 const st = Sim.seed(world(7), 7, 'founders'), w = st.w;
 check(w.wear instanceof Float32Array && w.worn instanceof Uint8Array && w.wear.every((x) => x === 0), 'a new world has no wear');
 const house = st.farmsteads[0].house, open = w.nb.slice(house * 6, house * 6 + 6).find((j) => j >= 0 && !w.dev[j] && !w.water[j]);
+const field = st.farmsteads[0].fields.length ? st.farmsteads[0].fields[0].tile : -1;
 P.tread(w, house); P.tread(w, open);
+if (field >= 0) { P.tread(w, field); check(w.wear[field] === 1 && w.dev[field] === 1, 'a field counts a crossing as open land does'); w.wear[field] = 0; }
+check(w.dev[house] === 3, 'a house is marked as a house');
 check(w.wear[house] === 0 && w.wear[open] === 1, 'a house wears no path; open land counts one crossing');
 // fading: a lane's count halves in a game year and the stage follows; the page hears of each change
 w.wear[open] = 1000; st.pathDirty.clear();
@@ -33,16 +36,18 @@ const pop = Sim.seed(world(7), 7, 'populous'), pw = pop.w, start = P.stageCounts
 check(start[1] > 60 && start[2] > 10, `populous starts with trodden/path/lane ${start.slice(1).join('/')}`);
 check(heirs[1] + heirs[2] > 0, `heirs start with trodden/path/lane ${heirs.slice(1).join('/')}`);
 check(P.stageCounts(Sim.seed(world(7), 7, 'founders').w).slice(1).every((n) => n === 0), 'the founders start with worn paths');
-// a populous run: wear where pawns walk, never on houses, fields, greens or water; stages agree with the counts
+// a populous run: wear where pawns walk, never on houses, greens or water, on fields and meadows too; stages agree with the counts
 Sim.advance(pop, Sim.YEAR);
-let worn = 0, onBuilt = 0, bad = 0;
+let worn = 0, onBuilt = 0, bad = 0, onFields = 0;
 for (let i = 0; i < pw.N; i++) {
-  if (pw.wear[i] > 0 && (pw.water[i] || (pw.dev[i] && pw.worn[i]))) onBuilt++;
+  if (pw.wear[i] > 0 && (pw.water[i] || pw.dev[i] > 1)) onBuilt++;
+  if (pw.worn[i] && pw.dev[i] === 1) onFields++;
   if (pw.worn[i]) worn++;
   if (!(pw.wear[i] >= 0) || pw.worn[i] > 3 || (pw.worn[i] && pw.wear[i] < PATHS.at[pw.worn[i]] * PATHS.keep)) bad++;
 }
 check(worn > 20, `only ${worn} worn tiles after a populous year`);
-check(onBuilt === 0, `${onBuilt} worn houses, fields, greens or water tiles`);
+check(onBuilt === 0, `${onBuilt} worn houses, greens or water tiles`);
+check(onFields > 0, 'no way is worn over a field or meadow after a populous year');
 check(bad === 0, `${bad} tiles whose stage does not fit their count`);
 const counts = P.stageCounts(pw);
 // the trails on the map: every worn trail tile has segments, each from its bend to a joint at most a tile away

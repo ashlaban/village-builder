@@ -4,10 +4,11 @@ VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
-  // bridges, VB-112). Houses and fields cost 1. A worn tile is walked faster by its stage (VB-110).
+  // bridges, VB-112). Houses, greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or
+  // meadow too; houses and greens (w.dev 3 and 2) wear no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return 1;
+    if (w.dev && w.dev[i]) return w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
     const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
     return w.worn ? c / PATHS.speed[w.worn[i]] : c;
   }

@@ -44,15 +44,16 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
 // the village's wood (VB-326), timber (VB-328) and stone (VB-332), and when the weather began to place the
 // biomes, so every island changed (VB-342), and for herding (VB-136: fewer gifts and close friends, the same births, deaths and marriages),
 // and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55), and for fresh food and
-// the pot (VB-119: 55 events, other ones), and for sheaves carried by the load (VB-335: 55 became 68, with VB-119):
+// the pot (VB-119: 55 events, other ones), and for sheaves carried by the load (VB-335: 55 became 68, with VB-119), and when
+// fields and meadows began to wear paths and speed walking (Kim, 12 November: 68 became 72):
 // the lives changed, not how they are read.
 {
   const st = Sim.seed(world(), 7, 'heirs');
   Sim.advance(st, 2.5 * Sim.YEAR);
   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 68, 'heirs 7 at 2.5 years: 68 events on its pawns');
-  assert.strictEqual(hash, '9d2e807b44ba6198', 'a pawn\'s life reads as it did with copies');
+  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 72, 'heirs 7 at 2.5 years: 72 events on its pawns');
+  assert.strictEqual(hash, '538ff39d457892e6', 'a pawn\'s life reads as it did with copies');
 }
 const st = Sim.seed(world(), 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended

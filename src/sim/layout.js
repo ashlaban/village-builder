@@ -92,6 +92,7 @@ VB['sim/layout'] = (() => {
 
   function makeFarmstead(w, id, house, fields, village, used) {
     used.add(house); for (const j of fields) used.add(j);
+    if (w.dev) w.dev[house] = 3; // a house raised in play; a generated one is marked when the land is finished (finishLand)
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
       id, house, fields: fields.map((t, k) => ({ id: k, tile: t, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, t),
@@ -278,6 +279,7 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) for (const fd of f.fields) w.stones[fd.tile] = 0; // fields are already made: no stones
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
+    for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
     initWear(w); initFish(w); initForage(w);
     w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)
