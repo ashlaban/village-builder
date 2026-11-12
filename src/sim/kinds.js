@@ -11,7 +11,7 @@ VB['sim/kinds'] = (() => {
   const { plotJobs } = VB['sim/expansion'];
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
-  const Building = VB['sim/building'];
+  const Building = VB['sim/building'], Pot = VB['sim/pot'];
   const { ground: forageGround, gather } = VB['sim/forage'], Drying = VB['sim/drying'];
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
@@ -35,6 +35,7 @@ VB['sim/kinds'] = (() => {
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
+  //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -57,8 +58,8 @@ VB['sim/kinds'] = (() => {
   // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
-  // The household has fewer meals than the coming meal needs, and grain to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Stores.grainOf(hh) - reserved(st, hh, 'grain') > 0;
+  // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) => Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
@@ -87,10 +88,10 @@ VB['sim/kinds'] = (() => {
   function claimWork(st, holder, at, c, post) {
     for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
   }
-  // The household's spare food in days of its need: grain above the seed reserve and cooked meals (fish go into meals until VB-119).
+  // The household's spare food in days of its need: grain above the seed reserve, cooked meals and fresh food (sim/pot, VB-119).
   const spareDays = (st, hh) => {
     const need = dailyNeed(st, hh);
-    return need > 0 ? (Math.max(0, Stores.grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals) / need : Infinity;
+    return need > 0 ? Pot.spareFood(st, hh) / need : Infinity;
   };
   // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
   const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
@@ -194,16 +195,13 @@ VB['sim/kinds'] = (() => {
     },
     cook: {
       verb: 'Cooking at the hearth', go: 'Going home to cook', name: 'Cook', label: 'Cook', anim: null, hours: 2, hands: 1, type: 'household',
-      inside: true, window: { from: 14 },
+      inside: true, window: { from: 14 }, late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // the meals still missing for the coming day: in winter a share of dried fish (sim/drying), the rest grain above the seed reserve
-      done: (st, j, hh, c) => {
-        const want = dailyNeed(st, hh) - hh.meals, left = want - Drying.intoPot(st, hh, c, want);
-        Stores.cook(st, hh, 'grain', Math.max(0, Math.min(left, Stores.grainOf(hh) - reserved(st, hh, 'grain')))); hh.cookDay = c.day;
-      },
-      // from 14:00 to the end of work, while the household is short of meals and has grain to cook (cookWanted)
+      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain (sim/pot), for the day posted
+      done: (st, j, hh, c) => { Pot.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals)); hh.cookDay = j.day ?? c.day; },
+      // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
       available: (st, hh, f, c, post) => {
-        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f });
+        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c)) post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f, day: c.day });
       },
     },
     brew: {
@@ -344,8 +342,8 @@ VB['sim/kinds'] = (() => {
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch (twice the bank's from a boat, VB-300) goes straight into the household's meals until fresh food (VB-119)
-      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', Drying.catchOf(st, j), 'catch'); },
+      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119)
+      deliver: (st, j, hh) => { Pot.putFresh(st, hh, 'fish', Drying.catchOf(st, j), 'catch'); },
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
         if (!fishing(c)) return;
@@ -360,8 +358,8 @@ VB['sim/kinds'] = (() => {
       verb: 'Gathering berries, mushrooms and nuts', go: 'Going to the woods to gather', back: 'Carrying the baskets home', name: 'Gather wild food',
       label: 'Gathering', anim: 'forage', hours: 3, hands: 1, type: 'foraging', carry: 'basket', to: 'door',
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the baskets go straight into the household's meals until fresh food (VB-119)
-      deliver: (st, j, hh) => { Stores.put(st, hh, 'meals', gather(st, j.site), 'gathering'); },
+      // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
+      deliver: (st, j, hh) => { Pot.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering'); },
       // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
       available: (st, hh, f, c, post) => {
         if (!gathering(c)) return;

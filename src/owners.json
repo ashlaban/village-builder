@@ -42,6 +42,7 @@
     "household.bogOre": "sim/stores",
     "household.digAt": "sim/dig",
     "household.rack": "sim/stores",
+    "household.fresh": "sim/pot",
     "household.boat": "sim/drying",
     "village.fishing": {"owner": "sim/drying", "category": "cache"},
     "w.depositLeft": "sim/dig",

@@ -277,8 +277,21 @@ function checkState(st) {
     if (b !== undefined && b !== null && typeof b !== 'object') bad.push(`households[${h.id}]: boat ${b}`);
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
-    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw ||
+    for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || FOODS[l.kind].held !== 'larder' ||
       !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
+    // fresh food (sim/pot, VB-119): batches of fresh foods above 0, in day order, none from a later day, at most FRESH_CAP of a food (a batch
+    // past its shelf life is held until the store is next touched, and read as gone)
+    if (!Array.isArray(h.fresh)) bad.push(`households[${h.id}]: no fresh store`);
+    else {
+      const today = Math.floor(st.t / globalThis.VB['sim/rules'].DAY), per = {};
+      for (let i = 0; i < h.fresh.length; i++) {
+        const b = h.fresh[i];
+        if (!FOODS[b.food] || FOODS[b.food].held !== 'fresh' || !(b.qty > 0) || !within(b.qty, 0, 1e6) || !Number.isInteger(b.day) || b.day > today
+            || i && h.fresh[i - 1].day > b.day) bad.push(`households[${h.id}]: fresh batch ${JSON.stringify(b)}`);
+        per[b.food] = (per[b.food] || 0) + 1;
+      }
+      for (const k in per) if (per[k] > globalThis.VB['sim/pot'].FRESH_CAP) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
+    }
     // help's seasonal ask (sim/help, VB-222): the season of the last ask, no later than this one
     if (h.askedIn !== undefined &&
       !(Number.isInteger(h.askedIn) && h.askedIn >= 0 && h.askedIn <= Math.floor(st.t / (VB['sim/rules'].SEASON_DAYS * VB['sim/rules'].DAY))))
@@ -306,7 +319,7 @@ function checkState(st) {
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
-  const FISHES = ['fish', 'dried fish']; // the catch by the drying rack and the fish hung on it (VB-300)
+  const FISHES = ['fish', 'dried fish', 'gathered']; // the catch by the drying rack and the fish hung on it (VB-300), fresh food (VB-119)
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t

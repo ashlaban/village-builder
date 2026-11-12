@@ -1,4 +1,4 @@
-// Meals: meals are eaten first, grain covers a missed cook, the cook makes the next meal and may leave other work after 14:00.
+// Meals: meals are eaten first, grain covers a missed cook (uncooked, at a penalty: tests/pot.js), the cook makes the next meal and may leave other work after 14:00.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock } = require('./lib/clock.js');
@@ -20,7 +20,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   hh.meals = need; hh.grain = { barley: 50 }; feedHousehold(st, hh);
   assert(Math.abs(hh.meals) < 1e-9 && Sim.grainOf(hh) === 50 && hh.hungryDays === 0, 'meals first');
   hh.meals = 0; hh.cookDay = -1; feedHousehold(st, hh);
-  assert(Math.abs(Sim.grainOf(hh) - (50 - need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten, nobody is hungry');
+  assert(Math.abs(Sim.grainOf(hh) - (50 - 1.25 * need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten uncooked (VB-119), nobody is hungry');
   hh.grain = { barley: 0 }; feedHousehold(st, hh);
   assert.strictEqual(hh.hungryDays, 1, 'no grain and no meals: short');
 }

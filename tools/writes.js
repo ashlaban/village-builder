@@ -56,7 +56,7 @@ const HINTS = {
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' },
+  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' }, 'sim/pot': { units: 'local' },
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/plans': { T: 'plan.targets' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };
