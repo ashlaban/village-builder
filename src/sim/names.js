@@ -2,17 +2,20 @@
 VB['sim/names'] = (() => {
   const { B } = VB['gen'];
   const { DIRNAME } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   // ---- farms ----
   // A generator is (ctx, rand) => [names, best first]; the caller takes the first not already taken. ctx: {w, f (the farmstead),
   // village (its centre for compass names), owner (the first holder, a pawn, or null)}. A generator offers nothing ([]) when it has no name.
   // compass: by direction from the village centre (Norrgården, Södergården), then the middle farm and the new farm.
+  // The sixth of the compass tile `to` lies in, seen from `from`: an index of DIRNAME.
+  function sixth(w, from, to) {
+    const a = (Math.atan2(w.hy[from] - w.hy[to], w.hx[to] - w.hx[from]) + Math.PI * 2) % (Math.PI * 2);
+    return Math.round(a / (Math.PI / 3)) % 6;
+  }
   function compass(ctx) {
     const { w, f, village: v } = ctx;
     if (!v || f.house === v.center) return [];
-    const dx = w.hx[f.house] - w.hx[v.center], dy = w.hy[f.house] - w.hy[v.center];
-    const a = (Math.atan2(-dy, dx) + Math.PI * 2) % (Math.PI * 2), k = Math.round(a / (Math.PI / 3)) % 6;
-    return [DIRNAME[k] + 'gården', 'Mellangården', 'Nygården'];
+    return [DIRNAME[sixth(w, v.center, f.house)] + 'gården', 'Mellangården', 'Nygården'];
   }
   // landmark: by the surroundings within 2 steps: shore, woods, hills, marsh, or open land (Strand, Lunden, Backa, Myra, Ängen...). The
   // first word is the lone farm's old name; then other words for the same ground, then each word with a prefix from the ground (Björklunden,
@@ -82,7 +85,8 @@ VB['sim/names'] = (() => {
   // One set of generators for every village, seeded or founded in play (VB-399): a generator is (ctx, rand) => [names, best first], as for
   // farms. ctx: {w, site (the centre tile), founder (a pawn, or null), mother (the village it left, or null)}; a village with no mother
   // is an old one. The word stock follows the layers of Swedish place names, to a medieval ceiling (backlog/VB-399.md).
-  const VILLAGE = { reach: 5, isle: 250, head: 0.3, bay: 0.45, wood: 6, hill: 6, open: 0.5, sacred: 0.08, offers: 48, centre: 8 };
+  const VILLAGE = { reach: 5, isle: 250, head: 0.3, bay: 0.45, wood: 6, hill: 6, open: 0.5, sacred: 0.08, offers: 48, centre: 8, far: 12,
+    salt: 0x5bd1e995, prefs: { founder: 3, mother: 1 } };
   // The ground within VILLAGE.reach steps of tile t: counts by kind, and whether t lies on an island of at most VILLAGE.isle tiles.
   function ground(w, t) {
     const g = { n: 0, water: 0, broadleaf: 0, pine: 0, hills: 0, marsh: 0, open: 0, stony: !!(w.stones && w.stones[t] > 96), isle: true };
@@ -161,10 +165,50 @@ VB['sim/names'] = (() => {
     const g = ground(ctx.w, ctx.site), tuna = turned(CENTRAL.tuna, rand), vi = turned(CENTRAL.vi, rand);
     return g.hills >= VILLAGE.hill ? [...vi, ...tuna] : [...tuna, ...vi];
   }
-  const PLACE = { site, central };
+  // Endings of the colonisation layer, for a daughter village: -torp (a daughter farm) and -böle (a new farm) anywhere, -ryd (a
+  // clearing) in wood, -boda (booths by an outlying meadow) on open land, -säter (an outland meadow) and -mark (border forest) far from
+  // the mother village, and the endings of the shore as an old village has them.
+  const woods = (g) => g.broadleaf + g.pine;
+  const shoreFit = (e) => END.find((x) => x.e === e).fits;
+  const NEW_END = [
+    { e: 'torp', n: 2 }, { e: 'böle', n: 2 }, { e: 'ryd', n: 3, fits: (g) => woods(g) >= VILLAGE.wood },
+    { e: 'boda', n: 2, fits: (g) => g.open >= VILLAGE.open * g.n }, { e: 'säter', n: 2, fits: (g, far) => far && g.open > 0 },
+    { e: 'mark', n: 2, fits: (g, far) => far && woods(g) >= VILLAGE.wood },
+    { e: 'vik', n: 2, fits: shoreFit('vik') }, { e: 'näs', n: 2, fits: shoreFit('näs') }, { e: 'ö', n: 3, fits: shoreFit('ö') },
+  ];
+  // xs ([[x, weight]...]) in a random order, the heavier sooner: drawn one by one by weight.
+  function weighed(xs, rand) {
+    const out = [];
+    for (let rest = xs; rest.length;) {
+      let r = rand() * rest.reduce((a, x) => a + x[1], 0), k = 0;
+      while (k < rest.length - 1 && r >= rest[k][1]) r -= rest[k++][1];
+      out.push(rest[k][0]); rest = rest.filter((x, j) => j !== k);
+    }
+    return out;
+  }
+  const far = (ctx) => !!ctx.mother && hexSteps(ctx.w, ctx.mother.center, ctx.site) >= VILLAGE.far;
+  // founder: the founder's given name with an ending of the colonisation layer that fits the site, the endings by weight (Erikstorp,
+  // Olofsryd, Ingridböle): a man's name in the genitive, a woman's bare, as the medieval names have it (Gunnilbo).
+  function founder(ctx, rand) {
+    const p = ctx.founder; if (!p) return [];
+    const g = ground(ctx.w, ctx.site), isFar = far(ctx), stem = p.sex === 'f' || /[sxz]$/.test(p.given) ? p.given : p.given + 's';
+    return weighed(NEW_END.filter((x) => !x.fits || x.fits(g, isFar)).map((x) => [x.e, x.n]), rand).map((e) => join(stem, e)).filter(Boolean);
+  }
+  // mother: from the village it left: the by to its north, south, west or east (Norrby, Sörby, Väsby, Ösby), the new village (Nyby,
+  // Nytorp, Nyböle), the little one of the mother's name (Lillvalby), the village out there (Utby).
+  const DIRBY = { Norr: 'Norrby', Söder: 'Sörby', Väster: 'Väsby', Öster: 'Ösby' };
+  function mother(ctx) {
+    const m = ctx.mother; if (!m) return [];
+    const little = /^[A-ZÅÄÖ][a-zåäö]{3,8}$/.test(m.name) && !/^(Lill|Ny|Ut)/.test(m.name) ? ['Lill' + lower(m.name)] : [];
+    return [DIRBY[DIRNAME[sixth(ctx.w, m.center, ctx.site)]], 'Nyby', ...little, 'Nytorp', 'Nyböle', 'Utby'];
+  }
+  const PLACE = { site, central, founder, mother };
+  // The order of the generators for the village of ctx: a daughter's by the weights of VILLAGE.prefs, at random, then its site; an old
+  // village's by its site alone (and no draw).
+  const placeOrder = (ctx, rand) => (ctx.founder || ctx.mother ? [...weighed(Object.entries(VILLAGE.prefs), rand), 'site'] : ['site']);
   // The name of the village of ctx by the generators in `order`: the first name not in `taken` (a Set); if all are taken, the first
   // offered with the lowest number not taken.
-  function villageName(ctx, taken, rand, order = ['site']) {
+  function villageName(ctx, taken, rand, order = placeOrder(ctx, rand)) {
     let firstOffer = null;
     for (const gname of order) {
       for (const nm of PLACE[gname](ctx, rand)) { if (firstOffer === null) firstOffer = nm; if (!taken.has(nm)) return nm; }
@@ -173,16 +217,6 @@ VB['sim/names'] = (() => {
     let n = 2; while (taken.has(`${base} ${n}`)) n++;
     return `${base} ${n}`;
   }
-  // founder: a village founded in play takes its founder's given name in the genitive with a settlement ending (Erikstorp, Olofsboda), as
-  // many torp did; the first not taken, then the first with a number (till founded villages go through villageName, VB-399's second batch).
-  const SUFFIX = ['torp', 'ryd', 'boda', 'hult', 'mark']; // daughter (-torp), clearing (-ryd), booths (-boda), grove (-hult), outland (-mark)
-  function founderName(p, taken) {
-    const base = p.given.endsWith('s') ? p.given : p.given + 's';
-    for (const s of SUFFIX) if (!taken.has(base + s)) return base + s;
-    let n = 2; while (taken.has(`${base}${SUFFIX[0]} ${n}`)) n++;
-    return `${base}${SUFFIX[0]} ${n}`;
-  }
-  return { FARM, PLACE, VILLAGE, FIRST, END, DEFAULT_PREFS, prefsOf, farmName, tileRand, compass, landmark, owner, ground, join, site, central, villageName,
-    founderName,
-    SUFFIX };
+  return { FARM, PLACE, VILLAGE, FIRST, END, NEW_END, DEFAULT_PREFS, prefsOf, farmName, tileRand, compass, landmark, owner, ground, join, site, central,
+    founder, mother, weighed, villageName };
 })();

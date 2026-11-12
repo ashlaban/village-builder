@@ -253,7 +253,6 @@ VB['sim/layout'] = (() => {
   // Village names at seeding (VB-399), when all are laid: each village of two farms or more by its site (sim/names), from a stream of
   // its own by its centre tile. The largest (the lowest id among equals) is named first and, with VILLAGE.centre farms, as the map's
   // old centre; a lone farm's village is named by nameFarms.
-  const VILLAGE_SALT = 0x5bd1e995;
   function nameVillages(w, villages) {
     const many = villages.filter((v) => v.farmsteads.length >= 2), taken = new Set();
     let big = null; for (const v of many) if (!big || v.farmsteads.length > big.farmsteads.length) big = v;
@@ -261,7 +260,7 @@ VB['sim/layout'] = (() => {
     for (const v of villages) if (v.farmsteads.length < 2) v.name = '';
     for (const v of big ? [big, ...many.filter((u) => u !== big)] : []) {
       const order = centre && v === big ? ['central', 'site'] : ['site'];
-      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE_SALT), order);
+      v.name = villageName({ w, site: v.center, founder: null, mother: null }, taken, tileRand(v.center, VILLAGE.salt), order);
       taken.add(v.name);
     }
   }

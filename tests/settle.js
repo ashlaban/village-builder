@@ -57,7 +57,10 @@ roll(st, () => S.settleRound(st));
 check(st.villages.length === villages + 1, `a village is founded (${st.villages.length - villages})`);
 const nv = st.villages[st.villages.length - 1], f = st.farmsteads[farms], hh = st.households[households];
 check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `founded from ${v.name} by the settler (${JSON.stringify(nv.founded)})`);
-check(nv.name.startsWith(m.given.endsWith('s') ? m.given : m.given + 's'), `named for the founder (${nv.name})`);
+{ // by its founder or from its mother village (VB-400), one of the names the generators offer for the site
+  const N = VB['sim/names'], nctx = { w: st.w, site: nv.center, founder: m, mother: v }, r = () => N.tileRand(nv.center, 1);
+  check([...N.founder(nctx, r()), ...N.mother(nctx, r())].includes(nv.name), `named for the founder or the mother village (${nv.name})`);
+}
 const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
 check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
 check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth && f.booth.i === 0, 'one farm, in a booth');

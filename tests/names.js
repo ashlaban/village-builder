@@ -1,4 +1,5 @@
-// Names (VB-026, VB-399): a village by its site, the largest of a map as its old centre; farms of a village by compass, then landmark, then owner, numbered only when every generator fails; a lone farm's village
+// Names (VB-026, VB-399, VB-400): a village by its site, the largest of a map as its old centre, a daughter by its founder or its mother;
+// farms of a village by compass, then landmark, then owner, numbered only when every generator fails; a lone farm's village
 // bears its farm's name, unique on the island, so the map's labels (a village of two or more farms by its name, a lone farm by its
 // farm's) repeat no name; each culture keeps its order of preference and a split culture inherits it.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, N = VB['sim/names'], Culture = VB['culture'];
@@ -44,7 +45,6 @@ for (const seed of [7, 42]) {
   check(N.farmName({ ...ctx, owner: hans }, all, rand()) === 'Hansgården', 'a given name ending in s takes no other');
   check(N.farmName(ctx, new Set([...all, 'Olofsgården']), rand()) === `${compass[0]} 2`, 'a number only when all fail');
   check(N.farmName(ctx, new Set(compass), rand()) === N.farmName(ctx, new Set(compass), rand()), 'the same stream gives the same name');
-  check(N.founderName({ given: 'Erik' }, new Set(['Erikstorp'])) === 'Eriksryd', 'the founder\'s next ending');
 }
 // 3. Village names (VB-399): one function by the site, from a stream of the centre tile's own
 {
@@ -83,6 +83,25 @@ for (const seed of [7, 42]) {
   const holy = /(tuna|vi)$/, big = many.reduce((a, b) => (b.farmsteads.length > a.farmsteads.length ? b : a));
   check(N.PLACE.central(vctx(v), N.tileRand(v.center, 1)).every((nm) => holy.test(nm) || nm === 'Tuna'), 'the centre\'s names');
   check(holy.test(big.name) && st.villages.filter((u) => holy.test(u.name)).length === 1, `one old centre, the largest (${big.name})`);
+  // a daughter village (VB-400): by its founder or its mother village, the founder's the likelier; then by its site
+  const m = many[0], at = many[2].center, dctx = (given, sex) => (
+    { w: st.w, site: at, founder: given ? { given, sex } : null, mother: m });
+  const stream = () => N.tileRand(at, 2), ends = new RegExp(`(${N.NEW_END.map((x) => x.e).join('|')})$`);
+  const erik = N.founder(dctx('Erik', 'm'), stream()), hans = N.founder(dctx('Hans', 'm'), stream()), ingrid = N.founder(dctx('Ingrid', 'f'), stream());
+  check(erik.length >= 2 && erik.every((nm) => /^Eriks/.test(nm) && ends.test(nm)) && erik.some((nm) => /(torp|böle)$/.test(nm)), `Erik's (${erik})`);
+  check(hans.join() === erik.map((nm) => nm.replace('Eriks', 'Hans')).join(), `a name ending in s takes no other (${hans})`);
+  check(ingrid.join() === erik.map((nm) => nm.replace('Eriks', 'Ingrid')).join(), `a woman's name is bare (${ingrid})`);
+  check(N.founder({ ...dctx('Anna', 'f') }, stream()).every((nm) => !/aö$/.test(nm)), 'no vowel against a vowel in a founder\'s name');
+  const mo = N.mother(dctx(null), stream());
+  check(/^(Norrby|Sörby|Väsby|Ösby)$/.test(mo[0]) && mo[1] === 'Nyby' && mo.includes('Lill' + m.name.toLowerCase()), `the mother's (${mo})`);
+  check(!N.founder({ ...dctx('Erik', 'm'), founder: null }, stream()).length && !N.mother({ ...dctx(null), mother: null }).length, 'no founder, no mother');
+  let byFounder = 0;
+  for (let k = 0; k < 400; k++) if (/^Eriks/.test(N.villageName(dctx('Erik', 'm'), new Set(), N.tileRand(at, 100 + k)))) byFounder++;
+  check(byFounder > 260 && byFounder < 340, `the founder's name ${byFounder} times in 400 (3 in 4)`);
+  const some = new Set([...erik, ...mo]);
+  const last = N.villageName(dctx('Erik', 'm'), some, stream());
+  check(!some.has(last) && !/ \d+$/.test(last), `a daughter's name by its site when the others are taken (${last})`);
+  out.push(`a daughter of ${m.name}: ${erik[0]}, ${ingrid[0]}, ${mo[0]}`);
   out.push(`villages of seed 42: ${many.slice(0, 6).map((u) => u.name).join(', ')}; ${all.size} names in the old layer`);
 }
 if (failed) process.exit(1);
