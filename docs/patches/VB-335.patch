@@ -1,0 +1,1109 @@
+diff --git a/src/sim/agents.js b/src/sim/agents.js
+index d475d54..9c653de 100644
+--- a/src/sim/agents.js
++++ b/src/sim/agents.js
+@@ -1,7 +1,7 @@
+ // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, death and jobs; the six-minute step of the awake agents
+ VB['sim/agents'] = (() => {
+   const { next: rnd } = VB['sim/rng'];
+-  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, workRate } = VB['sim/rules'];
++  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
+   const { route, stepCost, tileCost } = VB['sim/routes'];
+   const { tread } = VB['sim/paths'];
+   const { age } = VB['sim/records'];
+@@ -70,7 +70,7 @@ VB['sim/agents'] = (() => {
+   }
+   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
+   const ownerKey = (o) => `${o.type}:${o.id}`;
+-  function dropJob(st, j) { st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
++  function dropJob(st, j) { if (st.jobs.get(j.key) === j) st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
+   // The pawn leaves its job, which keeps its progress for whoever takes it up.
+   function release(st, a) {
+     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
+@@ -159,11 +159,12 @@ VB['sim/agents'] = (() => {
+     for (const id of [...j.claims]) {
+       if (id === finisher) continue;
+       const b = st.agents[id];
++      if (b.phase === 'back') continue; // a load on the road stays the job's (VB-335)
+       if (b.side && (b.side.partial === j || b.side.background === j)) { unhold(b, j); continue; }
+       if (b.phase === 'go') b.path = null;
+       b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
+     }
+-    j.claims = j.claims.filter((id) => id === finisher);
++    j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
+   }
+   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
+   // any other job does what its kind says (sim/kinds).
+@@ -179,9 +180,10 @@ VB['sim/agents'] = (() => {
+   // Home with the load: the kind says what it brings.
+   function deposit(st, a) {
+     const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+-    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead]);
+-    dropJob(st, j);
+-    a.carry = null; a.job = null; a.basis = null; a.phase = null;
++    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
++    if (!K.again || !K.again(j)) dropJob(st, j);
++    else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
++    a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
+   }
+   const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
+   function arrived(st, a) {
+@@ -212,6 +214,13 @@ VB['sim/agents'] = (() => {
+     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
+     return first === j && hasTeam(st, st.households[j.owner.id]);
+   }
++  // The household's team draws the cart: it has one, and no one else has it out, at the plough or on the road (VB-335).
++  function cartFree(st, a) {
++    const hh = st.households[st.pawns[a.id].household];
++    if (!hasTeam(st, hh)) return false;
++    for (const id of hh.members) { const b = st.agents[id]; if (b.phase === 'back' && b.load > TRAVEL.load || withOxen(st, b)) return false; }
++    return true;
++  }
+   function stepWork(st, a, dt) {
+     const j = a.job, K = KINDS[j.kind];
+     j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
+@@ -228,8 +237,10 @@ VB['sim/agents'] = (() => {
+       a.x = nx; a.y = ny;
+     }
+     if (j.done >= (j.hours ?? K.hours)) {
+-      if (K.carry) {
+-        freeHands(st, j, a.id);
++      const n = K.load ? K.load(st, a, j, cartFree(st, a) ? TRAVEL.cart : TRAVEL.load) : null; // a load taken from the field (VB-335)
++      if (K.carry && n !== 0) {
++        if (n !== null && K.again(j)) j.done = 0; // the others go on loading
++        else freeHands(st, j, a.id);
+         a.carry = K.carry; a.phase = 'back'; a.work = null;
+         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
+         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
+diff --git a/src/sim/fields.js b/src/sim/fields.js
+index d1d6a1c..2066d75 100644
+--- a/src/sim/fields.js
++++ b/src/sim/fields.js
+@@ -130,11 +130,19 @@ VB['sim/fields'] = (() => {
+     fd.stage = 'stooks'; fd.reaped = c.day;
+     fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
+       * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) * (1 - HERD.stray.loss) ** (fd.trampled || 0));
+-    delete fd.trampled;
++    delete fd.trampled; delete fd.bin;
+     wearSoil(fd); // the crop takes from the soil (VB-137)
+     fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
+   }
+   const hauled = (fd) => { fd.held = 0; fd.stage = 'stubble'; fd.sown = null; };
++  // A load of at most `cap` rations is taken from the stooks (VB-335); the field is hauled when the last is gone. `bin` is the barn entry
++  // (sim/stores sheaf) holding the field's loads so far.
++  function carried(fd, cap) {
++    const n = Math.min(cap, fd.held); fd.held -= n;
++    if (fd.held <= 0) hauled(fd);
++    return n;
++  }
++  const binned = (fd, seq) => { fd.bin = seq; };
+   function reclaimed(st, fd) {
+     if (fd.stage === 'fallow' || fd.stage === 'scrub') { fd.stage = 'stubble'; st.visualDirty = true; }
+   }
+@@ -181,7 +189,7 @@ VB['sim/fields'] = (() => {
+       }
+     }
+   }
+-  return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+-    fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
++  return { hoed, sown, trample, reaped, hauled, carried, binned, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours,
++    yearlyRations, fieldsWorkable, fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
+     manureWanted, manureDone };
+ })();
+diff --git a/src/sim/kinds.js b/src/sim/kinds.js
+index 783c01e..cd69a83 100644
+--- a/src/sim/kinds.js
++++ b/src/sim/kinds.js
+@@ -5,7 +5,7 @@ VB['sim/kinds'] = (() => {
+   const { log, atFarm } = VB['sim/records'];
+   const { fellTree, drawWood } = VB['sim/forest'];
+   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
+-  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, hauled, reclaimed, weeded } = VB['sim/fields'];
++  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } = VB['sim/fields'];
+   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
+   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
+   const { plotJobs } = VB['sim/expansion'];
+@@ -20,7 +20,8 @@ VB['sim/kinds'] = (() => {
+   //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
+   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
+   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
+-  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f): what arriving home with the load does;
++  //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;
++  //   load(st, a, j, cap): a trip's load from the field; again(j): the job stays open for the next (haul, VB-335);
+   //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
+   //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
+   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
+@@ -139,13 +140,12 @@ VB['sim/kinds'] = (() => {
+       verb: 'Bringing in the sheaves', go: 'Going for the sheaves', back: 'Carrying sheaves to the barn', name: 'Bring in sheaves', label: 'Hauling sheaves',
+       anim: 'gather', hours: 0.7, hands: Infinity, type: 'harvest', carry: 'sheaf', to: 'barn', window: { from: WORK[0] - 1 }, // dry by the morning
+       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
+-      deliver: (st, j, hh, f) => {
+-        Stores.sheaf(st, hh, j.field.held);
+-        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks' || q === j.field)) log(st, `${f.name} has brought in its harvest.`, {
+-          kind: 'harvest', ...atFarm(f) });
+-        hauled(j.field);
++      load: (st, a, j, cap) => (a.load = carried(j.field, cap)), again: (j) => j.field.stage === 'stooks',
++      deliver: (st, j, hh, f, a) => {
++        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1));
++        if (f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') && !hh.members.some((id) => id !== a.id && st.agents[id].load > 0
++          && st.agents[id].phase === 'back')) log(st, `${f.name} has brought in its harvest.`, { kind: 'harvest', ...atFarm(f) });
+       },
+-      // a field's stooks, once they have dried dryDays since the reaping
+       stages: ['stooks'], available: (st, hh, fd, c, post, f) => {
+         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays) post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+       },
+diff --git a/src/sim/rules.js b/src/sim/rules.js
+index c8d0879..7c35308 100644
+--- a/src/sim/rules.js
++++ b/src/sim/rules.js
+@@ -181,6 +181,9 @@ VB['sim/rules'] = (() => {
+   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
+   // turn-out on spring day 6 (doy 5), 21 days; breeding on spring day 3 (doy 2) with a bull of bullAge or more, or a ram, within reach steps of
+   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
++  // ---- what one adult carries (Kim, 10 Nov: one number for the fields, the fair and the journeys): rations on the back, and on a cart with
++  // two oxen (VB-335, VB-291, VB-295) ----
++  const TRAVEL = { load: 30, cart: 90 };
+   const HERD = {
+     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
+     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
+@@ -372,7 +375,7 @@ VB['sim/rules'] = (() => {
+     SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+     PLOT_PRIO,
+     MALE, FEMALE, patronym, DIRNAME, hazard,
+-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
++    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+     SHARES, SETTLE, SERVICE, MATCH,
+       CLAIMS, WOOD, BUILD };
+ })();
+diff --git a/src/sim/stores.js b/src/sim/stores.js
+index 39efb6b..370f869 100644
+--- a/src/sim/stores.js
++++ b/src/sim/stores.js
+@@ -192,13 +192,13 @@ VB['sim/stores'] = (() => {
+     record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
+     return got;
+   }
+-  function sheaf(st, hh, n) {
+-    amount(n); record(st, hh, 'sheaves', n, 'harvest');
+-    if (!hh.unthreshed.length) wake(st, hh);
+-    hh.unthreshed.push(n);
++  function sheaf(st, hh, n, seq = -1) { // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
++    const th = hh.threshed || 0, i = seq - th, old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
++    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); if (!hh.unthreshed.length) wake(st, hh); // first: its first load
++    return old ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
+   }
+   function thresh(st, hh) {
+-    type(hh); const n = hh.unthreshed.shift() || 0;
++    type(hh); const n = hh.unthreshed.shift() || 0; hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
+     record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
+   }
+   // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
+diff --git a/tests/crops.js b/tests/crops.js
+index fe5c563..3d68c33 100644
+--- a/tests/crops.js
++++ b/tests/crops.js
+@@ -38,7 +38,9 @@ setClock(st, c.day * DAY);
+ KINDS.reap.done(st, j, hh, c);
+ const held = fd.held;
+ assert(held > 0);
+-KINDS.haul.deliver(st, j, hh, f);
++const hand = { id: -1, load: 0 };
++KINDS.haul.load(st, hand, j, 1e9); // the whole field in one load
++KINDS.haul.deliver(st, j, hh, f, hand);
+ const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17 };
+ f.fields.push(waiting);
+ const frostBefore = st.record.filter((e) => e.kind === 'frost').length;
+diff --git a/tests/golden.json b/tests/golden.json
+index 3e8ac39..7c5e97d 100644
+--- a/tests/golden.json
++++ b/tests/golden.json
+@@ -105,22 +105,22 @@
+  },
+  "founders/7/year1": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "aa8ced3a919ca65e",
+-  "biomeDirty": "7c99b19868e7a44e",
++  "agents": "76d2e8e952d7ef1a",
++  "biomeDirty": "72b6106228099e87",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "871a370b93089516",
++  "cenv": "4626706bc1c0df8c",
+   "claimSeq": "ed0f435ed4cb56ae",
+   "claims": "33459b07fd3d8db9",
+   "demand": "8e87797a01a97240",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "99bb4af269426113",
++  "farmsteads": "68c41fb97f3c8551",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4137b6435a4ca2ed",
+-  "herds": "0f0bc45d93cb848d",
+-  "households": "b58ea03ec72091a4",
+-  "idlers": "c2937f691d047a81",
+-  "jobSeq": "f8612cd69fff5cde",
+-  "jobs": "9c1d35c15b61c414",
++  "herds": "2c7c8a9a902819c0",
++  "households": "cd8043a945ae10f6",
++  "idlers": "6a262c6d7e32ae7c",
++  "jobSeq": "0dc732ea80b6ffe3",
++  "jobs": "675b2609a217ff1b",
+   "landDirty": "86959b6ecd1a8ea2",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -131,49 +131,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "3c3b9594632126d5",
+-  "pathCache": "814dd2eaa9d08768",
++  "pathCache": "f6412a67da761154",
+   "pathDirty": "b38b3b0080414e85",
+-  "pawns": "dc1c266d80799bd5",
++  "pawns": "e6d117ebc14fe964",
+   "player": "2be88ca4242c76e8",
+-  "record": "241c0740f3a49093",
++  "record": "c2098d4e2565790c",
+   "recordFold": "0ce436eee1690078",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "b722861b69d80b75",
++  "regrow": "32457856aa4441a1",
+   "rigDirty": "86683ef77653a2e7",
+-  "rng": "a58283185ddaed22",
++  "rng": "8894816c4a223220",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "58d1c709d362099c",
+-  "talks": "a62034a1f30da392",
++  "talks": "3a37987dc77de35c",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "c9ba0a16c615ff2d",
+   "used": "6403b87fe51f1430",
+   "villageHours": "afec550f50516b4c",
+-  "villages": "028937a39e44ec68",
++  "villages": "c62657eeccc40aa2",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "31976c6035a8155f",
++  "wear": "b00593c3d1cd2b59",
+   "weather": "cb14b83d635b0c89"
+  },
+  "founders/7/year2": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "e8b732aa24cb2e9c",
+-  "biomeDirty": "6652a07411233fcb",
++  "agents": "5fad9e43bf0b0da6",
++  "biomeDirty": "9441fe16e1c152b1",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "5c1cba67456e4958",
++  "cenv": "467614e4177a0b93",
+   "claimSeq": "3dea8aa487090d40",
+   "claims": "822a4b3d6d4c5bf3",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "14cd209397524405",
++  "farmsteads": "b0dfc585cd30880e",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4137b6435a4ca2ed",
+-  "herds": "b57c7c708f045c4b",
+-  "households": "db24feff4f9a6ca7",
++  "herds": "5e346b15161ffeb6",
++  "households": "9b53ab0d5b8a902e",
+   "idlers": "2777ff0e7232394c",
+-  "jobSeq": "33495b908732becc",
+-  "jobs": "ddcd91a6282385ee",
++  "jobSeq": "46aa7345ae6b7bc9",
++  "jobs": "2f5d8422988a59fe",
+   "landDirty": "6f81d1b160d3a3d9",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+@@ -184,49 +184,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "deb0b5de78789637",
+-  "pathCache": "2b4a63b9ee97e15c",
++  "pathCache": "675f5bf8df768a2f",
+   "pathDirty": "ed7b39fa2050a64d",
+-  "pawns": "d6fc4d4e7089d768",
++  "pawns": "6f9b32ae55632d33",
+   "player": "2be88ca4242c76e8",
+-  "record": "0d71bd28743489bc",
++  "record": "072949143a91e4c6",
+   "recordFold": "913937e1a5c569ce",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "6c87a51c389bfa26",
++  "regrow": "3c918e180ca9aea5",
+   "rigDirty": "86683ef77653a2e7",
+-  "rng": "96af4bfa0dc47a48",
++  "rng": "88154aca2efa3935",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "6035b33a34db52e8",
+-  "talks": "32d1a163471490ab",
++  "talks": "12d3c430c06259c8",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "b188c75d5bc0ea48",
+   "used": "064eae58921e6c37",
+   "villageHours": "2b16793ec215705e",
+-  "villages": "4fa566e62a4c4648",
++  "villages": "8b1cbd339ad81291",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "5dea0920c33241ae",
++  "wear": "3fa8cc3a50c65873",
+   "weather": "2082e34f34ff26f0"
+  },
+  "founders/7/year3": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "05026e54a32aa3d8",
+-  "biomeDirty": "6652a07411233fcb",
++  "agents": "be035ca1c8d4dd18",
++  "biomeDirty": "9441fe16e1c152b1",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "bf98bb483ae89406",
++  "cenv": "11ce3d8276570925",
+   "claimSeq": "3dea8aa487090d40",
+   "claims": "5ace5810a9179c88",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "a5013a80d09b6690",
++  "farmsteads": "79fd3066a4fd1289",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "a9532cedac3b2b5d",
+-  "herds": "008bd5e3041af46e",
+-  "households": "461899b16262123f",
+-  "idlers": "19a3a4677d413259",
+-  "jobSeq": "ae4378d480313043",
+-  "jobs": "d2acd418239b4a35",
++  "herds": "c6d4779d1a72d882",
++  "households": "1de2e32d9f7439cb",
++  "idlers": "a636d1b8a2dc2bcf",
++  "jobSeq": "f230455cd58b7c90",
++  "jobs": "3214950099608146",
+   "landDirty": "6f81d1b160d3a3d9",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+@@ -237,29 +237,29 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "c51f89ed2477e793",
+-  "pathCache": "779de2fbf4b22608",
+-  "pathDirty": "bbdb0fa6b0e1190b",
+-  "pawns": "ae37d457825f2c38",
++  "pathCache": "856202f986a5e70d",
++  "pathDirty": "88e2f3a883cbabc5",
++  "pawns": "2861a0a968adf174",
+   "player": "2be88ca4242c76e8",
+-  "record": "23160d451d121d91",
++  "record": "f647756bdcf11047",
+   "recordFold": "df9f48626921aa95",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "fe6d785b63509730",
++  "regrow": "8bdba65688babdaf",
+   "rigDirty": "018e763fa63b0372",
+-  "rng": "8565ec79ac16d452",
++  "rng": "711a82ae6852d084",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "01dc1080b53870c0",
+-  "talks": "87e423bfd39a875a",
++  "talks": "b12cf6428f237dd6",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "b188c75d5bc0ea48",
+   "used": "064eae58921e6c37",
+-  "villageHours": "363e621f32f5afa4",
+-  "villages": "51df3c2e8030fdd1",
++  "villageHours": "338e3da459a7e6ac",
++  "villages": "b8c52e9712c68435",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "3d2db5627807096c",
++  "wear": "a3403e65d4041632",
+   "weather": "0beca0c052604825"
+  },
+  "heirs/7/seed": {
+@@ -315,22 +315,22 @@
+  },
+  "heirs/7/year1": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "631ad355b7056bf2",
+-  "biomeDirty": "bc488307f953ce05",
++  "agents": "63afa6e75480b23d",
++  "biomeDirty": "e7599a4f8dbf6744",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "d18eb8c9922bf8d7",
++  "cenv": "09014d5e116661cc",
+   "claimSeq": "c4613abe24a5e276",
+   "claims": "df64565feaefcd5a",
+   "demand": "fdee4c806d5a7c5c",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "d10e494ac7dd7512",
++  "farmsteads": "5ec632c59aa0abce",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "67ee009d5deedae7",
+   "herds": "951227309ddc24ab",
+-  "households": "c79869f48ea3489c",
+-  "idlers": "422b677847e14436",
+-  "jobSeq": "774d530db3674ea7",
+-  "jobs": "28dc922dd4e70ede",
++  "households": "1e86a4d3bfa47eef",
++  "idlers": "6a262c6d7e32ae7c",
++  "jobSeq": "0778915101f1abd0",
++  "jobs": "865e37aa0f8a8db2",
+   "landDirty": "d709cb4f9482b49e",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -341,49 +341,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "becfebc14b813c4f",
+-  "pathCache": "a3693811f68908df",
++  "pathCache": "2e46e869d42309e9",
+   "pathDirty": "5c814c6537a3e9be",
+-  "pawns": "28c736d6d051717f",
++  "pawns": "0fda9f910bf0bbec",
+   "player": "2be88ca4242c76e8",
+-  "record": "53c0e397302560ae",
++  "record": "505f5169d602cff0",
+   "recordFold": "9aebda34f218e5fd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "59636464b748f656",
++  "regrow": "6f13e4882997b8ce",
+   "rigDirty": "c1f077c7e424e325",
+-  "rng": "ef8050fadf2230f0",
++  "rng": "a77a58a3eae43049",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "58d1c709d362099c",
+-  "talks": "75b70435257690a8",
++  "talks": "f8e27cbd6d849f41",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "d9f5601f5fff88ac",
+   "used": "57121670a98b29a2",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "53ad22d04933cb8f",
++  "villages": "4a85eeb1c0ab18d9",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "47aeb58c683d8182",
++  "wear": "89c455de128db4e5",
+   "weather": "cb14b83d635b0c89"
+  },
+  "heirs/7/year2": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "9ce23ad735c75394",
+-  "biomeDirty": "e0f57958b70020ca",
++  "agents": "5648698319c3e96c",
++  "biomeDirty": "c91feaf7551d909b",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "0c1b74f26674cf70",
++  "cenv": "7a61de270b3e082b",
+   "claimSeq": "7ad13aea39dd0b2f",
+   "claims": "2eedf3efbb7fdc5e",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "21b475e05a400d53",
++  "farmsteads": "fb168f5ccd11682f",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "a77e81ef29c10014",
+-  "herds": "0990d929f68121f5",
+-  "households": "472a984ff64c62e0",
+-  "idlers": "d58f279d8eedfaf5",
+-  "jobSeq": "1461f1002e2cfe1d",
+-  "jobs": "c69d4ad3836344d3",
++  "herds": "fffdb7a4b9d30598",
++  "households": "0b7d35b3223ca5e1",
++  "idlers": "70a0e904b66a60f8",
++  "jobSeq": "f31caf62318a32d1",
++  "jobs": "bf78dccf0977786e",
+   "landDirty": "3c7d619507fc3110",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+@@ -394,49 +394,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "b246cff4f301e42a",
+-  "pathCache": "ce3d96961ba1c1e7",
+-  "pathDirty": "f5091543de337cc5",
+-  "pawns": "562b822533b13411",
++  "pathCache": "34b6ec958f91423b",
++  "pathDirty": "b67bc24e26fae564",
++  "pawns": "e8fcb916d98f0653",
+   "player": "2be88ca4242c76e8",
+-  "record": "77f8c4bf480ea1f6",
++  "record": "235c3130e12f638e",
+   "recordFold": "75d785df9591bbfd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "57d92fa6189abf1e",
++  "regrow": "225f8847472ebad2",
+   "rigDirty": "c1f077c7e424e325",
+-  "rng": "7f114ee58ba03d1c",
++  "rng": "035888e1b86fe1e9",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "6035b33a34db52e8",
+-  "talks": "ead5ac8f682d32e0",
++  "talks": "f048b3bc5d9aacd7",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "d9f5601f5fff88ac",
+   "used": "fd7adae64203bdea",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "8e25f1c516a15690",
++  "villages": "1faafa16f4dfe978",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "03bd6c55f06aedf7",
++  "wear": "d521b8961d6a77c7",
+   "weather": "2082e34f34ff26f0"
+  },
+  "heirs/7/year3": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "6859df83dda42cc6",
+-  "biomeDirty": "f00037bc8c8e268a",
++  "agents": "20cfc0fd9caae4e9",
++  "biomeDirty": "c4dffea324cd24ad",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "04346acbb4128944",
++  "cenv": "551c4914504d27da",
+   "claimSeq": "19a6cd811a5f92a9",
+   "claims": "df64565feaefcd5a",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "ddedb107419250f1",
++  "farmsteads": "0c90b22b1daed95a",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "600f5cfe136a0449",
+-  "herds": "cc59179492d5ff9c",
+-  "households": "5bb55de556b72a38",
+-  "idlers": "a636d1b8a2dc2bcf",
+-  "jobSeq": "9355f435d93172b0",
+-  "jobs": "0b72183e8f744e52",
++  "herds": "a2c742152f8de725",
++  "households": "090f79976fddbee4",
++  "idlers": "e238fb3507bdbd79",
++  "jobSeq": "bddcb560cdcebf2e",
++  "jobs": "4dba71b7c74d3c31",
+   "landDirty": "7076b5567379ebef",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+@@ -447,29 +447,29 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "9ea1e3c66ed974ca",
+-  "pathCache": "7bd869d9528b120c",
+-  "pathDirty": "4d6d0df3e1d2ab0c",
+-  "pawns": "9687c452d78fff11",
++  "pathCache": "eb990f73e600cf77",
++  "pathDirty": "06068c2896f4f05f",
++  "pawns": "d44cd55592412e33",
+   "player": "2be88ca4242c76e8",
+-  "record": "808508438d2da846",
+-  "recordFold": "31a4f4cf953a57d8",
+-  "recordYears": "c523693fae308b35",
+-  "regrow": "bd373ed0e67d758c",
++  "record": "0886dc6ab6e17046",
++  "recordFold": "963dc0aae69aa835",
++  "recordYears": "638ac5b102084b87",
++  "regrow": "eaf8ffee82cb5d93",
+   "rigDirty": "41d50eb2d3d74df0",
+-  "rng": "0ada3f63f754e244",
++  "rng": "f76d81a4da7c5b02",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "01dc1080b53870c0",
+-  "talks": "4ce5e30697249026",
++  "talks": "913d0ff0a88ee8e7",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "a78700785743ea71",
+   "used": "391d3c5bcf8e5f89",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "4344cb44848e5475",
++  "villages": "8ec06546e54792b2",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "a0f145a7ecb2753a",
++  "wear": "e8c9e4f0dcb4528c",
+   "weather": "0beca0c052604825"
+  },
+  "world/42": {
+@@ -578,22 +578,22 @@
+  },
+  "founders/42/year1": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "59d057fb057e4cce",
++  "agents": "1aab665d2db2b543",
+   "biomeDirty": "e671b4ab9d1c5855",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "790671df6fa7eda6",
++  "cenv": "7183fa2beecd2d6d",
+   "claimSeq": "70d497adae296416",
+   "claims": "33459b07fd3d8db9",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "25ca1358d9af5e29",
++  "farmsteads": "a5fbe1bc3e3b2e57",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "fff1ec2c249fada0",
+-  "herds": "c7ae47242e143a40",
+-  "households": "3c8e7210d62c546c",
+-  "idlers": "368208ca4ba88a39",
++  "herds": "29419094240ff898",
++  "households": "d9b0dc60c2f00a04",
++  "idlers": "64bca8e941fce2ca",
+   "jobSeq": "d4a4330546432c80",
+-  "jobs": "03636e413b7c75a5",
++  "jobs": "61e7665c091bfa62",
+   "landDirty": "643841883ea638f1",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -604,49 +604,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "7ecd8ec1d0392b0f",
+-  "pathCache": "cf1b1a52996d4a15",
++  "pathCache": "3cad497725c82aee",
+   "pathDirty": "ab65b5f4e3635bdf",
+-  "pawns": "79b7ed59347855d1",
++  "pawns": "bec286a2af931860",
+   "player": "2be88ca4242c76e8",
+-  "record": "30d81c1b1847c6f1",
++  "record": "8e7a21fe59e3c825",
+   "recordFold": "924e7aaab384d81b",
+   "recordYears": "97d170e1550eee4a",
+   "regrow": "b9ab44009ce9ed6a",
+   "rigDirty": "394d240533a4978d",
+-  "rng": "0e1e481c68670364",
++  "rng": "034de0978d37338b",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "58d1c709d362099c",
+-  "talks": "baa9e642dd8567cb",
++  "talks": "685ae5d03d242b02",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+   "used": "c30e50097e20a7e3",
+   "villageHours": "325e26f6693fd8ad",
+-  "villages": "15e44c85fe0d4bff",
++  "villages": "af8dd6fec492037f",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "c966b97ef2275981",
++  "wear": "e226d570a43bb8eb",
+   "weather": "059dda42eee64e8a"
+  },
+  "founders/42/year2": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "7de752cbf444323d",
+-  "biomeDirty": "ce996ab5153f2894",
++  "agents": "ade404b714b3e218",
++  "biomeDirty": "ccdb27cfec697cac",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "5607ce23692b40fc",
++  "cenv": "95663c27d9b7ae49",
+   "claimSeq": "2d873257cb7d5e3d",
+   "claims": "33459b07fd3d8db9",
+   "demand": "8e87797a01a97240",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "25e1c4b75250c2e1",
++  "farmsteads": "74f2b4a09bb771e6",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+-  "herds": "41c97277cb93ec50",
+-  "households": "874974b9c8209f37",
++  "herds": "325a09b952009a6c",
++  "households": "a9bab501ee31c1e2",
+   "idlers": "2777ff0e7232394c",
+-  "jobSeq": "d9ad0be1b512bddb",
+-  "jobs": "1e9d7b81341fc3e0",
++  "jobSeq": "cd9433e81f4bb677",
++  "jobs": "0f205231df4fa097",
+   "landDirty": "233a285eeffe577f",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+@@ -657,49 +657,49 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "93c2030624fe9cb2",
+-  "pathCache": "afd9d56bfb75e248",
+-  "pathDirty": "8e3a377a45cd333a",
+-  "pawns": "d4256e84af4d0a57",
++  "pathCache": "5549ac07769f0fe6",
++  "pathDirty": "2b2cab6eb1fddc78",
++  "pawns": "38916b584512ffa0",
+   "player": "2be88ca4242c76e8",
+-  "record": "d871fa010ebce852",
++  "record": "da945cbbad45735c",
+   "recordFold": "3768b7ae64691543",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "ab95bfbaaf7fd215",
++  "regrow": "6a7f059d27e064d0",
+   "rigDirty": "67fadaf8093c7fba",
+-  "rng": "41e5471822d895d7",
++  "rng": "41c3befebd6e83a1",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "6035b33a34db52e8",
+-  "talks": "9370c7f7e07a5b8e",
++  "talks": "e6ce06cc556a8897",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+   "used": "3c54642e5584ed4f",
+   "villageHours": "19313c043ba89905",
+-  "villages": "aa1b3da137387b7e",
++  "villages": "7d3628ba1b51c510",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "164b6ae7856e73ff",
++  "wear": "c6e421be5753c07e",
+   "weather": "25cb2e7c7829da18"
+  },
+  "founders/42/year3": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "7a5cee6914c51daf",
+-  "biomeDirty": "7578603a872184ea",
++  "agents": "345e1642dc91ec01",
++  "biomeDirty": "0e65f6f427581221",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "208093b64b5498bc",
++  "cenv": "77b72f21545187db",
+   "claimSeq": "2925bffb38029b8f",
+   "claims": "dba3e06404a81395",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "cc1da917ff4ef608",
++  "farmsteads": "1d22bf7d61c673c6",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "756c447231e70610",
+-  "herds": "e267e588a514d1c9",
+-  "households": "896344572da531eb",
+-  "idlers": "702fc73b2de980f4",
+-  "jobSeq": "47728417e3d30bad",
+-  "jobs": "641ab69d085694c4",
++  "herds": "945c684c0215f25e",
++  "households": "a7b882c573209bc5",
++  "idlers": "f71027746a55dd1b",
++  "jobSeq": "3d710261fe8fc1e5",
++  "jobs": "7b595e286efe314b",
+   "landDirty": "01f41bde176307ef",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+@@ -710,29 +710,29 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "bbe178d07fb04fce",
+-  "pathCache": "d3e078b6237affe8",
+-  "pathDirty": "905f06586c1e7162",
+-  "pawns": "f00c786c478191fc",
++  "pathCache": "2ea57f3b79e970fa",
++  "pathDirty": "2016ec34f341f6d1",
++  "pawns": "224a732a412bd9d7",
+   "player": "2be88ca4242c76e8",
+-  "record": "6cc6fb0de542c7f7",
++  "record": "7ae69fc7035303f5",
+   "recordFold": "94750a2f1ab70fae",
+   "recordYears": "fc880d3591c068f7",
+-  "regrow": "0a2846452b934e8a",
++  "regrow": "e5a4b3d7f0412f01",
+   "rigDirty": "d94408880cf4092b",
+-  "rng": "074c29db7b6afb86",
++  "rng": "d69f8b93f27271e0",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "3c83a203d44303bc",
+   "t": "01dc1080b53870c0",
+-  "talks": "4fc4702ff535ea79",
++  "talks": "000105d0222a42c9",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "0725a1a94ddd74c9",
+   "used": "be895f9b869f1f51",
+   "villageHours": "19313c043ba89905",
+-  "villages": "2d40f01de9116d13",
++  "villages": "eabb72a36c51baf3",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "602b076af50eccc7",
++  "wear": "97a90215f37a3ddc",
+   "weather": "1d25ddc2077d0449"
+  },
+  "heirs/42/seed": {
+@@ -788,22 +788,22 @@
+  },
+  "heirs/42/year1": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "aeb05849b3fb68bc",
++  "agents": "ceefef4b86c1c993",
+   "biomeDirty": "4959b542fb5a5543",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "c017f4e71c63d687",
++  "cenv": "aca6112a23597f95",
+   "claimSeq": "e95ffb4a00a1cc01",
+   "claims": "8546ab016dedc4d4",
+   "demand": "fdee4c806d5a7c5c",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "3759f2b4d75365bf",
++  "farmsteads": "5b7c2a21f9ad3bd7",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "4e503578180d9f27",
+-  "herds": "ea4469bd7792ab03",
+-  "households": "91adfa49ffd676e9",
+-  "idlers": "6a262c6d7e32ae7c",
+-  "jobSeq": "77cc49ce0dc47723",
+-  "jobs": "19d546f52acba205",
++  "herds": "56a106b6585d802c",
++  "households": "ed34460857469037",
++  "idlers": "09f37279092b0630",
++  "jobSeq": "d3785e2baedb9f4d",
++  "jobs": "0541d388e7926a19",
+   "landDirty": "549a93f1b15c8172",
+   "lastMeeting": "e3187a2c48582272",
+   "makeFields": "5ffe533b830f08a0",
+@@ -814,135 +814,135 @@
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "4a36afb81145ecb9",
+-  "pathCache": "34bc21b995f4afb2",
+-  "pathDirty": "bb09b4ce4f6846fa",
+-  "pawns": "a7a0d62990c3ae8d",
++  "pathCache": "e2068824af892f77",
++  "pathDirty": "753005823d0f699a",
++  "pawns": "918655adabaf3bed",
+   "player": "2be88ca4242c76e8",
+-  "record": "a876274de8646c43",
++  "record": "48c106c120892adb",
+   "recordFold": "9aebda34f218e5fd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "4683ac5b4b9dc4e9",
++  "regrow": "83f884a296fa1353",
+   "rigDirty": "407a1562a05d23a0",
+-  "rng": "e7964af5e0168979",
++  "rng": "a4aff688c304129f",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "58d1c709d362099c",
+-  "talks": "aff44ce3c663b7a9",
++  "talks": "d8699489e2e33602",
+   "tick": "85f5b6cc4336b526",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+   "used": "32cf12dab88b9be7",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "f181f3d95d27d8ce",
++  "villages": "a3c7c79f6838aa04",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "6de2aa35718de273",
++  "wear": "4b31499c7175068f",
+   "weather": "059dda42eee64e8a"
+  },
+  "heirs/42/year2": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "9fb16824436fd978",
++  "agents": "1234e53180a0228c",
+   "biomeDirty": "2fcd8b6856e2b9bb",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "16103b44c32fe96f",
++  "cenv": "feb713319e31f20e",
+   "claimSeq": "7ad13aea39dd0b2f",
+   "claims": "4a934662e7aeab09",
+   "demand": "6202f32d75b2a76f",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "d515f178d13193bb",
++  "farmsteads": "526f0d1b7ba17376",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "e43ba1ea5da8f63d",
+-  "herds": "d25ea829703e3db2",
+-  "households": "3a32a10b3709f5e3",
++  "herds": "07201def7db345c3",
++  "households": "6b5e53cb0b3758d2",
+   "idlers": "2777ff0e7232394c",
+-  "jobSeq": "bcd50e5493388439",
+-  "jobs": "6bd396efa4aa62f6",
++  "jobSeq": "0431fd158792fbe7",
++  "jobs": "f28980b410f72501",
+   "landDirty": "42ec9271a656d036",
+   "lastMeeting": "e629a4ed53ef36a1",
+   "makeFields": "5ffe533b830f08a0",
+-  "meetingLog": "ac2b94fcc8723ac6",
++  "meetingLog": "fff6f6d0ebc50f03",
+   "naturalDeaths": "5ffe533b830f08a0",
+   "occasionSeq": "5cc4609099db1cf4",
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "2a07f982c5f25874",
+-  "pathCache": "bee958e50c7394b2",
+-  "pathDirty": "51896012753fdd63",
+-  "pawns": "287f6beb290267fa",
++  "pathCache": "b085b3106fe325e3",
++  "pathDirty": "68d10a28465b16e9",
++  "pawns": "c830c5badf22b3c9",
+   "player": "2be88ca4242c76e8",
+-  "record": "2897f5c908826bac",
++  "record": "82cb9f8c881084c8",
+   "recordFold": "75d785df9591bbfd",
+   "recordYears": "97d170e1550eee4a",
+-  "regrow": "0c0a79c83e54fa7e",
++  "regrow": "c5696f82332b49b7",
+   "rigDirty": "c835859d9e7dd00f",
+-  "rng": "239312f3cbde4fd3",
++  "rng": "9c925a842c801e8b",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "6035b33a34db52e8",
+-  "talks": "702ec87fe6574cf7",
++  "talks": "d4513d61e26e9657",
+   "tick": "77df85120957e1a5",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+   "used": "4b4283b4fd19cfe4",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "ec6e476e87af3983",
++  "villages": "c54b529758c7dfff",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "b26c8755a87f76ea",
++  "wear": "4a94ee72400f516b",
+   "weather": "25cb2e7c7829da18"
+  },
+  "heirs/42/year3": {
+   "ECON": "dd132e4c6e8c59c1",
+-  "agents": "10f24cad889addf0",
++  "agents": "36ba5b9b300eaed8",
+   "biomeDirty": "0d1569053dbe56e1",
+   "cairns": "33459b07fd3d8db9",
+-  "cenv": "eb1e8001d80497a3",
++  "cenv": "c1b91c1170d8bfdb",
+   "claimSeq": "2ef3a15e02086f86",
+   "claims": "83b8401f5eaa0378",
+   "demand": "97d170e1550eee4a",
+   "driftMul": "f4e85e2425c9b8d2",
+-  "farmsteads": "93319fcf73cb00dd",
++  "farmsteads": "9c99bf4cd07ac011",
+   "finds": "33459b07fd3d8db9",
+   "headSeq": "20b62d5f6143a891",
+-  "herds": "4c782f25f38a1932",
+-  "households": "64b2bd9269d15649",
+-  "idlers": "a636d1b8a2dc2bcf",
+-  "jobSeq": "51ffd9568ef04f4e",
+-  "jobs": "7fe77438aa1bf5e1",
++  "herds": "11db1c6d78d54fbf",
++  "households": "ab1ba3d4f0d6d127",
++  "idlers": "ef4a0f7b30e98cc7",
++  "jobSeq": "7df6ea9825f5ec5c",
++  "jobs": "805028f0802444b3",
+   "landDirty": "fda3fa2740d549f1",
+   "lastMeeting": "f82e3f836cd983eb",
+   "makeFields": "5ffe533b830f08a0",
+-  "meetingLog": "b3c0f0e45b00d22c",
++  "meetingLog": "90c9bd1b068aaf4b",
+   "naturalDeaths": "5ffe533b830f08a0",
+   "occasionSeq": "3c4c992747862bca",
+   "occasions": "97d170e1550eee4a",
+   "offerSeq": "e3102e9f921e9d46",
+   "offers": "97d170e1550eee4a",
+   "owner": "602e4ab5757578c9",
+-  "pathCache": "780287373cca172f",
+-  "pathDirty": "b8d89ebce4be953b",
+-  "pawns": "9a5c4f0f1c4d620e",
++  "pathCache": "df428f896719bfb3",
++  "pathDirty": "31098deb10a4c4ec",
++  "pawns": "568ce2579a261f4d",
+   "player": "2be88ca4242c76e8",
+-  "record": "deb0af7224b264c9",
+-  "recordFold": "f29f6eb03c757bc8",
+-  "recordYears": "638ac5b102084b87",
+-  "regrow": "75c71dcb68412820",
++  "record": "df5bcda64669de27",
++  "recordFold": "8e953bb79d11f6eb",
++  "recordYears": "a22fda565e86620c",
++  "regrow": "db603d55cc741c81",
+   "rigDirty": "c835859d9e7dd00f",
+-  "rng": "ecea24e24fd6f59d",
++  "rng": "ed53b7a822786302",
+   "routeDirty": "394d240533a4978d",
+   "routeFallbacks": "e3102e9f921e9d46",
+   "scenario": "9a5cdb589bc6b1e3",
+   "t": "01dc1080b53870c0",
+-  "talks": "ed2b929d0591f6ba",
++  "talks": "f1d88ccc5d96a40d",
+   "tick": "4bc917897f8335a0",
+   "treeDirty": "394d240533a4978d",
+   "unions": "2df13f619409cc2d",
+   "used": "da81b3f11558ef40",
+   "villageHours": "1ce7e0f1e41ae3c1",
+-  "villages": "519f03d7730950b5",
++  "villages": "ad0dca061951235d",
+   "visualDirty": "5ffe533b830f08a0",
+-  "wear": "cbdcf457c405d972",
++  "wear": "1fcdfaa801328975",
+   "weather": "1d25ddc2077d0449"
+  },
+  "calibrate": "8926a1da1f5dba1c",
+diff --git a/tests/lib/invariants.js b/tests/lib/invariants.js
+index 8ca304f..bb66a54 100644
+--- a/tests/lib/invariants.js
++++ b/tests/lib/invariants.js
+@@ -574,6 +574,9 @@ function checkState(st) {
+       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
+     }
+   }
++  // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
++  for (const a of st.agents) if (a.load && !(a.load > 0 && a.phase === 'back')) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
++  for (const h of st.households) if (h.threshed !== undefined && !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
+   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
+   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
+   for (const a of st.agents) {
+diff --git a/tests/record.js b/tests/record.js
+index 44869f9..a288461 100644
+--- a/tests/record.js
++++ b/tests/record.js
+@@ -43,15 +43,15 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
+ // seed (VB-282), and for planning days (VB-249) with occasions (VB-126, weddings and funeral ales in the lives), and for digging (VB-359),
+ // the village's wood (VB-326), timber (VB-328) and stone (VB-332), and when the weather began to place the
+ // biomes, so every island changed (VB-342), and for herding (VB-136: fewer gifts and close friends, the same births, deaths and marriages),
+-// and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55):
++// and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55), and for sheaves carried by the load (VB-335: 55 became 59):
+ // the lives changed, not how they are read.
+ {
+   const st = Sim.seed(world(), 7, 'heirs');
+   Sim.advance(st, 2.5 * Sim.YEAR);
+   const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
+   const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
+-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 55, 'heirs 7 at 2.5 years: 55 events on its pawns');
+-  assert.strictEqual(hash, 'ea9542eabb8befc6', 'a pawn\'s life reads as it did with copies');
++  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 59, 'heirs 7 at 2.5 years: 59 events on its pawns');
++  assert.strictEqual(hash, '58cf091547929a21', 'a pawn\'s life reads as it did with copies');
+ }
+ const st = Sim.seed(world(), 7, 'founders');
+ Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
+diff --git a/tools/balance.js b/tools/balance.js
+index 227679f..c04a5f2 100644
+--- a/tools/balance.js
++++ b/tools/balance.js
+@@ -30,7 +30,7 @@ function run(seed) {
+       let gifts = 0;
+       for (const e of hh.ledger) {
+         if (e.t < t0 || e.t >= t1) continue;
+-        if (e.kind === 'harvest') made.grain += e.n - CROPS.barley.seed; // the seed for that crop was sown from the store
++        if (e.kind === 'harvest') made.grain += e.n - (e.first ? CROPS.barley.seed : 0); // a field's loads are entries; the seed was sown from the store
+         else if (e.kind in made) made[e.kind] += e.n;
+         else if (e.kind === 'gift') gifts += e.n;
+       }
+diff --git a/tools/stocks.js b/tools/stocks.js
+index 16303c4..cf00f97 100644
+--- a/tools/stocks.js
++++ b/tools/stocks.js
+@@ -32,7 +32,7 @@ const QUANTITIES = [
+     covers: ['household.cookDay'],
+     none: 'the household eats its grain uncooked, at the same ration (sim/hunger): nothing is lost by not cooking' },
+   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
+-    kinds: ['haul'], none: 'nothing to thresh: the threshing job is not posted' },
++    kinds: ['haul'], covers: ['household.threshed'], none: 'nothing to thresh: the threshing job is not posted' },
+   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
+     kinds: ['slaughter', 'salt', 'milk', 'dry'],
+     none: 'meals and grain feed the household alone' },

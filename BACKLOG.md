@@ -21,7 +21,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-287](backlog/VB-287.md) | Journeys: a pawn who moves to another village walks there, a leg a day | between | 2 | M | Moves between villages (a spouse, a servant, a guardian, a claimant, settlers, children) stop placing the pawn at its new home: it walks the route, 6:00 to 18:00 a day, sleeps where it stops, eats food carried; each leg is a due entry in st.journeys. |
 | [VB-290](backlog/VB-290.md) | The round's other acts reach by walking hours: claims, service, guardians and the tie | between | 2 | M | Claims on empty farms and service reach villages within a day's walk (12 h) in place of 15 hex steps; the nearest village for an orphan's service home, guardians and kin homes read hours; the tie to the centre reads the table in place of its own search. |
 | [VB-327](backlog/VB-327.md) | An empty woodpile: a cold house, poorer health and no cooking | - | 2 | M | A household that cannot feed its hearth is cold: its members lose health and, with VB-062, mood, and it cannot cook, so grain is eaten uncooked and feeds less. |
-| [VB-335](backlog/VB-335.md) | Sheaves come home by the load: 30 rations on the back, 90 on a cart | - | 2 | S | A field's harvest is carried in loads of the one size the fair and journeys use, three or four trips a field on the back or one with a cart and oxen, in place of one armful for the whole field. |
 | [VB-348](backlog/VB-348.md) | Winter rye and fallow: sown in autumn, standing the winter, reaped in summer | crops | 2 | M | The field cycle carries a crop sown in autumn and reaped the next summer, and a fallow course tilled once in summer that restores soil. Nothing chooses them yet. |
 | [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
@@ -60,6 +59,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-119](backlog/VB-119.md) | Mixed meals go further, and fresh food spoils | year | 2 | M | A meal from 2 sources needs 10% less food, from 3 or more 20% less; fish and gathered food spoil after 3 days; with milling (VB-009). |
+| [VB-335](backlog/VB-335.md) | Sheaves come home by the load: 30 rations on the back, 90 on a cart | - | 2 | S | A field's harvest is carried in loads of the one size the fair and journeys use, three or four trips a field on the back or one with a cart and oxen, in place of one armful for the whole field. |
 | [VB-372](backlog/VB-372.md) | Refactor: the role cache is rebuilt by its owner, sim/records | - | 3 | S | refreshRoles moves from sim/heirs to sim/records, the owner of pawn.role, and the ownership baseline is empty. |
 
 ## Blocked

@@ -198,6 +198,26 @@ Reaping is 15 hours a field and threshing 20, as you decided, and it is merged: 
    reaping (VB-106) and hired hands at the peaks (VB-319) take the rest. If the loss should fall sooner, reaping could start a few days before
    the crop is fully ripe at a small cost in yield.
 
+### VB-335: what a load of hay is (raised 12 November 2026)
+Sheaves now come home by the load, 30 rations on the back and 90 on a cart with two oxen (`TRAVEL.load`, `TRAVEL.cart`). Hay is the same
+question and is not changed: `KINDS.hay` still brings a meadow's 30 units (`HAY` in `src/sim/meadows.js`) home in one job of 4 hours and one
+carry. A unit of hay is a cow's stall day (`HERD.hay`: cow 1, calf 0.4, ewe 0.2), so 30 units is 30 cow-days, a bulky load for one back.
+1. What is a load of hay? **P:** by weight rather than by ration: a load is a third of a meadow, 10 units on the back and 60 on a cart (two
+   oxen draw twice what a sheaf cart takes, for hay is light), so a meadow of 30 is three trips on the back or one cart; the job keeps its
+   hours a load (4 hours for the whole meadow becomes 1.5 a load), and the household's hands come in as they do at the sheaves. The cost is
+   the same walks as VB-335's (rule 9).
+
+### VB-335: sheaves by the load, built and held back (raised 12 November 2026)
+Built as you decided (30 rations on the back, 90 on a cart) and NOT merged: on top of VB-333's longer harvest it leaves the short-handed
+households clearly worse off. The work is `docs/patches/VB-335.patch` (against `942ec05`); the numbers are in `backlog/VB-335.md`.
+1. Populous small, 15 years, against the branch with VB-333: hauling goes from 14 to about 40 hours a household-year and the barn is reached
+   1 to 2 days later; crops lost to frost rise again (field-years: seed 7, 113 to 118; seed 42, 72 to 95; nearly all in households of 5 or 6
+   fields); hungry household-days 1 to 31 (seed 7), 6 to 10 (seed 42), founders 5 to 18; deaths 147 to 161 at seed 7; and by
+   `tools/balance.js` households of nine fall from 1.02 to 0.73 of their need made, the lone holder from 1.61 to 1.51. **P:** merge it
+   together with what lets a household match its fields to its hands, not before: the fields a household wants counting its hands at the
+   harvest (VB-254), and neighbours helping at the harvest (VB-106). Or, sooner and smaller: stooks do not rot at the first frost but lose a
+   share a day after it (the frost kills a standing crop; sheaves in stooks stand some weather), which takes the cliff out of a late haul.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
