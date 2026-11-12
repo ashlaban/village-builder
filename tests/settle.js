@@ -13,8 +13,11 @@ function setUp() {
   const sib = m && Sim.siblingsOf(st, m.id).map((q) => st.pawns[q]).find(inA);
   return { st, v: st.villages[0], m, sib };
 }
-// No room left near village v: every tile within 6 steps is taken.
-const fill = (st, v) => { for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t); };
+// No room left near village v: every tile within 6 steps is taken (and the villages' woods reckoned again, VB-326, as a tile built on is).
+const fill = (st, v) => {
+  for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t);
+  for (const u of st.villages) VB['sim/territory'].reckonWood(st, u);
+};
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } }; // every chance comes up
 
 // Spatial occupancy is the union of radius searches, including overlaps, duplicate marks and map edges.
@@ -90,7 +93,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
-// 4. Founders at seed 7: a lone farm lies 12 steps from the crowded village. With room there, a waiting adult joins it, building a
+// 4. Founders at seed 7: a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
 const founders = () => {

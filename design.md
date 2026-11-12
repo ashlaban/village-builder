@@ -92,18 +92,19 @@ slices of `docs/roadmap.md` build towards them, and the sections below say how f
 
 ### World and scale
 
-One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m across, so a house is one tile; distances, farmland and time are compressed rather than tiles mixed in size.
+One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m across, so a house is one tile; distances, farmland and time are compressed rather than tiles mixed in size. The one grid is read at two scales, a site and land (Two readings of one grid, below).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Map | One finite archipelago per seed, regenerable | Decided |
 | Tiles | Pointy-top hexes | Decided |
 | Terrain | Deep sea, sea, shallows, lakes, sandy shore, meadow, heath, broadleaf forest, pine forest, marsh, hills, mountains, snowfields | Agreed |
+| Ground | Under the terrain, a layer a tile, for a Europe of 1300 to 1700, continental and Scandinavian. Bedrock on all land: granite (the common ground), limestone, sandstone and slate in provinces, with lenses of marble and soapstone. Deposits on few tiles, as veins: clay in low, damp ground; bog iron in marsh and on lake shores; iron, copper and lead with silver (one ore) in the uplands; tin only in upland granite; gold in the high mountains; peat in marsh; flint in low limestone and on its shores; amber, rare, on sandy shores; salt springs, rare, inland on limestone or sandstone, which flow on. Each island draws which kinds it has, by tuned chance: an island with everything is uncommon, and islands commonly differ. Deposits are finite, counted in loads, and a few sources do not run out (to be weighed when play is balanced). Nothing digs yet (backlog VB-357) | Decided, 11 Nov (the kinds, the layer, chance by island, finite); Proposed (the shares and amounts) |
 | Mountains | Multi-tile rock relief; no peak glyphs | Decided |
 | Rivers | The world has rivers | Decided, 30 Oct |
 | River courses | Rivers rise in hills, mountains and marshes and run downhill to a lake or the sea, a few on each large island; brooks are narrow, larger rivers a tile wide; they carry fresh water and fish, drive water mills, and wet the ground along their banks, where hay grows well. Crossing is at fords and, later, bridges | Proposed |
 | Tile scale | About 10–12 m per hex, a building plot; one house holds a family | Agreed |
-| Mixed scale | By compression: distance about 10×, farmland a few hundred times, time compressed (see Time) | Agreed |
+| Mixed scale | By compression: distance about 10×, farmland about 100× in area, which is the same 10× in length, time compressed (see Time). One grid, two readings: a site about 10 m across, land about 100 m across (Two readings of one grid) | Agreed; the two readings and farmland's figure (it was "a few hundred times") Agreed, 11 Nov (VB-345) |
 | Map size | Four sizes: Tiny 120 × 85, Small 180 × 130, Medium 280 × 200 (56,000 tiles, about 20,000 of them land; the earlier single size), Large 380 × 270 | Decided |
 | Generation screen | The game opens on a screen to set map size, seed and starting scenario, then generates the map; the same seed, size and scenario always give the same world | Decided |
 | Regions | Hexagonal patches of radius 7 (169 tiles, centres 13 tiles apart) | Agreed |
@@ -113,8 +114,18 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 #### Compression
 
 - **Distance:** villages sit 13–15 tiles apart instead of a realistic 100–250 tiles (1–3 km).
-- **Farmland:** a farm has 2–4 field tiles; a medieval household farmed about 12 ha, close to 1,000 hexes.
+- **Farmland:** a farm has 2–4 field tiles, each standing for a little under a hectare of sown land, about 85 hexes of 10 m (Two readings of one grid). A medieval household's about 12 ha, close to 1,000 such hexes, counted its fallow, meadow and pasture too, which the game holds as other tiles.
 - **Rejected alternative:** a separate world map with local maps to enter (as in RimWorld or Dwarf Fortress). It only pays off with hundreds of settlements and breaks continuous scrolling.
+
+#### Two readings of one grid (Agreed, 11 November; VB-345)
+
+A tile is read at one of two scales by what stands on it, and nothing is drawn finer than a hex.
+
+- **A site** is about 10–12 m across: a house, a well, a pawn walking.
+- **Land** is about 100 m across, about 0.87 ha a hex: a field, a meadow, a stretch of forest, the way between two villages. It is the 10× of distance applied to area.
+- **Today's yields already imply it.** A field nets 75 rations after seed. A game day stands for about a week (7.6 days), so that is about 570 days of an adult's food; at 0.75 to 1 kg of grain a day, 430 to 570 kg net and 570 to 760 kg gross, or about 650 to 900 kg a hectare on 0.87 ha. Medieval grain is usually put at some hundreds of kilograms to a tonne a hectare (the order of magnitude only, from memory: no source was checked for it).
+- **Distances agree:** villages 13–15 tiles apart are 1.3–1.5 km apart at the land's scale, inside the realistic 1–3 km.
+- **Time is the third compression:** a game day is about a week (Time and calendar).
 
 #### Sizing at 1,000 pawns
 
@@ -158,7 +169,7 @@ The map has a day and night cycle, seasons with a temperature, and simple weathe
 - **Rain** comes in fronts: large soft areas, a few regions wide, that drift across the map with the wind, so it can rain on one island and be dry on the next.
 - **Rain stops** haymaking and the carrying in of sheaves, which need dry weather, and slows field work; hay rained on while drying loses value.
 - **Wind** turns the windmill only above a set strength, carries smoke and moves the trees.
-- **The year's weather factor** (see Goods and the farming year) comes from the season's actual weather instead of a separate draw: a wet harvest or a dry early summer makes a poor year.
+- **The year's weather factor** (see Goods and the farming year) comes from the season's actual weather instead of a separate draw: a wet harvest or a dry early summer makes a poor year. What a crop asks of the weather, and what answers until this is built, is in Goods and the farming year, Crops and the weather (11 Nov).
 - **A game day stands for about a week,** so a day's weather reads as a week's weather.
 
 ### Worn paths
@@ -500,6 +511,7 @@ with "job" read as "task".
 | How a holder chooses: foresight | Layer 2. The head reads an estimate of the household's needs, not the needs. Wits, husbandry and years as head set how far ahead it looks (a poor head reacts when a store crosses its target; a good one projects a season ahead) and a persistent bias (one head always lays in too little wood), drawn once when it becomes head. Only the poorest heads, about one in ten, depart from the template's order | Decided, 10 Nov; numbers Open |
 | How a holder chooses: projects | Layer 3. With the year's targets met and labour and stores to spare, the head takes one project at a time from a short menu of what is open to it, weighted by its values: ambition leans to more land, generosity to a farm for the heir, help to kin and village work. A capable head reaches a surplus more often, so reaches more. Slice 3's menu: more fields than the household needs, a claim on land, a farm or cottage for the heir, a barn. Standing for alderman and other offices wait for the slice that builds offices. These are the pawns' own aims, apart from the player's ambitions (Vision and scope), which stay postponed | Decided, 10 Nov; weights Open |
 | Traits before slice 7 | The traits these layers read (wits, husbandry, diligence, ambition, generosity) are stand-ins until slice 7: one number per pawn and trait, drawn from a seeded stream, neutral on average. Slice 7 replaces them with the twelve traits | Decided, 10 Nov |
+| How a holder chooses: what is sown | Each field's rotation and course, by the same three layers: the template names the village's usual rotation, foresight decides how well the head fits crop to field and when it sows, and a crop new to the household is a project (Goods and the farming year, Crops and rotations) | Decided, 11 Nov (the head, by skill); Proposed (the rest) |
 | Planning days | Each holder reviews its plan on its own day: daily when diligent, every second day on average, every third when slack, staggered by id; also at once when a window is closing or a store crosses a target. Work that falls due at a known hour (water, cooking, milking, fodder, the haul once the stooks are dry) is opened by a due-queue and waits for no review | Decided, 3 Nov (staggered); Decided, 10 Nov (the cadence) |
 | Acting without the plan | Any member may act on the household's opportunities, preferring the plan's tasks | Decided, 3 Nov |
 | Village routines | The yearly meeting sets them afresh from the village work available (the fence's stretches, a common field, the green and well, work days), at most four a year. When the meeting does not decide (no quorum, a tie), a practice says what follows: "nothing" by default, so no village work that year and the cattle in the crops become a story; "as last year" is a practice a culture may hold | Decided, 3 Nov (afresh); Decided, 10 Nov (failure) |
@@ -555,11 +567,155 @@ Goods, the farming year, processing and animals as v0.3 has them. Typed goods, r
 | Mixed meals | Judged in the pot, at cooking (see Meals; 10 Nov). A day's meals cooked from 2 food sources needs 10% less food, from 3 or more 20% less; grain or flour, fish and gathered food are sources now, milk and meat with the animals. Fresh fish and gathered food are eaten first and spoil after 3 game days; drying and salting come later. Built with hand-quern milling (backlog VB-119, VB-009) | Decided, Agreed (numbers), 30 Oct |
 | Help in hunger | A household short of food asks at most once a season, for enough to reach the next harvest (the start of autumn; in autumn, a season's need): its kin first, then the village store; if the gifts fall short, it waits for the next season. Each adult keeps a buffer of 20–60 days' food (drawn per pawn) before giving. The village store is filled with 25% of each household's surplus at the moving round. Help is a gift, and it raises the tie between the households and is booked as goodwill between their holders (see Exchange, goodwill and obligations, The gift); loans come with money | Decided (the store), Agreed (rest), 30 Oct; revised as a gift, 8 Nov (VB-182); once a season, until the harvest (Kim), 8 Nov |
 | Soil | Each harvest wears a field down; manure from the byre restores it. Starting values: −0.08 a harvest to a floor of 0.75, +0.04 a load of manure to 1.15 (backlog VB-137). Balance review: the dung heap loses half of what lies on it in a year, and is carted before the hoe; +0.02 a load (so about 3 head of cattle, not 1.5, keep 3 fields) was tried and cost a quarter more hungry days, so +0.04 stays until herding (VB-136) and food from the wild (VB-117, VB-118) give farms more slack | Agreed; numbers Agreed, 31 Oct; Agreed (the heap rots; +0.04 for now), 2 Nov |
-| Risk | Frost destroys whatever is left in the field; each year has a weather factor | Agreed |
+| Risk | Frost destroys whatever is left in the field; each year has a weather factor. With several crops the factor gives way to a season's weather, read by each crop in its own way (Crops and rotations, Crops and the weather; Proposed, 11 Nov) | Agreed |
 | Yield over time | Yields rise slightly over the course of a game (better practice, tools and manuring); the soil's cap (1.15 from manure) rises by 0.1 a century of a village's years of farming, so a well-dunged old farm out-yields a new one by about 10% after 100 years (backlog VB-160) | Decided (rise), 30 Oct; Agreed (rate), 2 Nov |
 | Tilling power | An ard drawn by a pair of oxen tills perhaps 2–3 times faster than a hoe. The advantage can be raised (Kim, 11 Nov): at 2.5 a team saves a farm of three fields about 30 hours a year and few keep one; the team's rate becomes 5 (backlog VB-336) | Agreed; Decided, 11 Nov (may be raised); Agreed, 11 Nov (5) |
 | Field work | The hours of a field's year: hoeing 20, sowing 2, weeding in two rounds of 5 (it was a round of 2 every 6 days, four or five a crop, with as much walking as work), reaping 15 and threshing 20 (they were 5 and 6), so that grain takes a larger share of the year and the harvest is its peak; measured before, three fields took a household about 215 pawn-hours, under a fifth of two hands' year and less than its water and cooking. A missed round of weeding cuts the yield by 0.2, at most 0.4 (backlog VB-333, VB-334) | Decided, 11 Nov (a larger share by reaping and threshing; two rounds of weeding); Agreed, 11 Nov (15 and 20); Proposed (the weeding's numbers) |
 | Bringing in the harvest | Sheaves come home by the load, the one load of the game: 30 rations on the back, 90 on a cart with two oxen, so a field is three or four trips on the back or one or two with a cart (backlog VB-335) | Decided, 11 Nov |
+
+### Crops and rotations (slice plan VB-345, 11 November; being written)
+
+The game grows several crops. Each is a row of rules, and a field holds its crop and its place in a rotation; the field cycle above is read through the crop's row. Written by the plan task VB-345 from Kim's answers of 11 November (`QUESTION_ARCHIVE.md`, VB-345). The table of crops, the rotation, the head's choice, seed, the scenarios' crops, the weather and what crops touch stand; the tasks that build them are VB-346 to VB-356, released on 11 November when Kim had read and accepted the plan.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| What crops are for | Three things alike: risk and the labour calendar (crops fail in different years and want their work at different times), the goods chains (ale, linen), and the flavour of a region (villages on different ground, and with different starts, grow different things) | Decided, 11 Nov |
+| Who chooses | The household's head plans what is sown, through the plan's three layers (Work: opportunities, plans and tasks); how well depends on its skill. Not a custom of the village | Decided, 11 Nov |
+| Where skill acts | On choices and timing only: which crop on which field, the mix, when to sow. Never a multiplier on the yield, or a poor head is punished twice | Decided, 11 Nov |
+| Knowing a crop | A household can sow what it has seed for; there is no knowledge kept apart from seed. A new crop arrives as seed | Decided, 11 Nov |
+| Fallow | Rest only, at first: a fallow field restores its soil and is not grazed. Grazed fallow needs the village to keep step and is left for later | Decided, 11 Nov |
+| Different starts | Villages start with different crops, by a preset a scenario: in founders, barley in both villages and one crop of its own in each, rye in one and peas in the other | Decided, 11 Nov (a mix, presets); Agreed, 11 Nov (rye and peas) |
+| Order of building | A first batch of barley, winter rye, fallow and peas, as its own arch (`crops`) after slice 3; the fibre and ale crops with their chains in slice 6 | Agreed, 11 Nov |
+
+#### The first crops (Agreed, 11 Nov; starting values to tune)
+
+Barley is today's grain, unchanged. Days are game days, a day about a week; hours are a field's.
+
+| | Barley | Winter rye | Peas | Fallow |
+| --- | --- | --- | --- | --- |
+| Sown | Spring days 1–10 | Autumn days 1–6 | Spring days 1–10 | Not sown |
+| Ripe | 26 days after sowing: autumn days 3–12 | 42 days after sowing: summer days 7–12 of the next year | 18 days after sowing: summer day 7 to autumn day 4 | |
+| Harvest and seed | 100 rations, 25 of seed (4:1) | 100, 25 of seed (4:1) | 60, 20 of seed (3:1) | None |
+| Net of seed | 75 | 75 | 40 | 0 |
+| Soil | −0.08 a crop | −0.08 a crop | +0.04 a crop, to at most 1.0 | +0.08 a year, to at most 1.0 |
+| Hours | Hoeing 20, sowing 2, weeding 2 × 5, reaping 15, threshing 20: 67 | Tilling 20, sowing 2, weeding 5, reaping 15, threshing 20: 62 | Hoeing 20, sowing 2, weeding 2 × 5, pulling 10, threshing 10: 52 | One tilling in summer, 10 |
+| Left in the field | Lost to the frost of autumn day 11 | Stands through the winter; lost if not reaped by autumn | Lost to the frost | |
+| In store | Spoils as grain does | As grain | As grain (dried) | |
+| In the pot | Grain | Grain, one source with barley | Pulses, a source of their own | |
+
+- **Rye differs by its calendar, not its yield.** It is sown when the barley is coming in and reaped in summer, before it, so it moves work out of the harvest's weeks and into the autumn's first days and the haymaking; and a year that fails the barley need not fail the rye (the weather, to be written). Late medieval Scandinavian rye is put at about four grains for one sown on permanent fields, and far more on burnt-over ground (Climate of the Past 19, 2463, 2023, on Nordic rye, read only in a search summary: to be read in full); so it gets the 4:1 that Slicher van Bath (1963) gives grain, not the 5:1 first suggested (4:1 accepted by Kim, 11 Nov), and takes its bonus from fresh land (soil 1.4), as every crop does.
+- **Rye needs a free field in early autumn,** which a field under barley is not: it follows fallow or peas. The three courses of one field are fallow, rye, barley.
+- **Peas give less food and more besides:** they restore the soil a little, they are a second source in the pot (10% further), and they are reaped in time for rye. Their numbers have no source yet and are guesses to tune.
+- **Rest and peas restore soil only to 1.0;** only manure raises it above, to its cap of 1.15. A field in three courses wears 0.08 in three years, not 0.24, so it wants a third of the manure.
+- **What it does to a farm's food, before any tuning:** three fields in three courses at soil 1.0 net about 150 rations (75 + 75 + 0), as much as three barley fields worn to the floor net today (3 × 50), for two-thirds of the field hours. A farm fed by three well-dunged barley fields (about 218) is not fed by three courses on the same three fields: it needs a fourth, which is why a fallow field does not count against the fields a hand can till (Agreed, 11 Nov). The retune belongs to the wrap-up of the food balance (VB-048).
+- **Oats** (wet, poor and high ground; a lower yield) come in a second batch. **Flax, hops, turnips and wheat** come with their chains (linen, ale, the garden, standing) in slice 6. None has numbers yet.
+
+#### The rotation (Agreed, 11 Nov, but where a row says otherwise)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| A field's rotation | A field holds a rotation, a sequence of at most four courses, and the step it is at; when its crop is in, it moves to the next step. A course is a crop of the table or fallow | Agreed, 11 Nov |
+| The rotations there are | A short list, as rules: every year (barley, barley: today's farming); two courses (barley, fallow); three courses (fallow, rye, barley); with peas, barley and peas by turns, and peas, rye, barley, where peas take the fallow's place | Agreed, 11 Nov |
+| Seed bounds them | A household may hold only a rotation it has seed for, every crop of it. A village with barley alone has every year and two courses to choose from, so today's farming is what a run with barley only does | Proposed |
+| A farm's fields are staggered | The fields of one farm stand at different steps of the same rotation, so each year has each course and the work and the risk are spread; a new field takes the step fewest of the farm's fields are at | Agreed, 11 Nov |
+| Fallow and the hands | A fallow field does not count against the fields a household's hands can till (about 2 a working adult), so a farm in three courses holds half as many fields again | Agreed, 11 Nov |
+| The culture's year | The template (Work: opportunities, plans and tasks, layer 1) names the village's usual rotation: what everyone there knows how to do. It is the rotation most of the village's farms hold, brought up to date at the autumn meeting and at no other time, and a new farm starts with it if it has the seed | Decided, 11 Nov (most farms; updated at the meeting) |
+| How a crop spreads | A rotation enters a village's template only when most farms hold it, so a new crop is first one head's trial, then a few good heads', then the village's: slow at first, as customs are | Proposed |
+
+#### How the head chooses what to sow (the head choosing, by skill, on choices and timing only: Decided, 11 Nov; the heads' thresholds and the trial as a project: Agreed, 11 Nov)
+
+The choice is made on the head's planning day when a field falls free or a sowing window opens, among the rotations it has seed for and the fields it holds: never an optimiser (Work: opportunities, plans and tasks). The traits are that section's stand-ins until slice 7: wits, husbandry and years as head for foresight, diligence for the planning days, ambition for projects.
+
+| Head | The rotation | The fields | Timing | A new crop |
+| --- | --- | --- | --- | --- |
+| Poor (the lowest fifth of foresight) | Keeps the one it took over, whatever the soil; in a hungry year sows the fallow field too, with whatever seed it has, and so wears the soil it meant to rest | As they come | Sows when its review reaches it, often late in the window: a field sown on spring day 10 ripens after the frost | Eats the seed, or leaves it in the store |
+| Ordinary | Holds the village's usual rotation; reacts to what has happened: a field whose soil has fallen below 0.85 is rested or put under peas next, and after a failed crop it sows more of the other the year after | The worn field rests first | Sows as the window opens | Takes it up once the village's template has it |
+| Good (the highest fifth) | Looks a year ahead: compares what each rotation it has seed for would give with the household's need and its hands, by its estimate, and changes rotation when another serves better | Fits course to field: the poorest soil rests, fresh land takes the rye; keeps two crops in the ground when it has the seed for both | Sows early, and once the weather is in, waits out a cold spell inside the window | Tries it on one field the year the seed comes |
+
+- **An estimate, not the truth.** The head reads an estimate of need and of a rotation's yield, off by its bias, drawn once when it becomes head: one head always trusts barley too much, another sows too little rye.
+- **Timing needs no new rule to matter.** Planning days already come daily to the diligent and every third day to the slack, and a late-sown field already ripens nearer the frost; the weather adds the cold spring and the wet harvest (to be written).
+- **A trial is a project** (layer 3): a head with its targets met, seed to spare and ambition sows a crop new to it on one field. Flax and a hop yard join the menu in slice 6.
+- **The player as head** sets a field's rotation, or sows one field out of turn for a year, through verbs of the plan (VB-253), under the checks that bind any holder: the seed, the window, a free field. The player chooses freely among the rotations there is seed for, not only the village's usual one: the other heads are held to a short choice only to keep their choosing cheap, not because the world forbids more (Decided, Kim, 11 Nov). With no choice made, the holder's rule runs.
+- **What skill never does:** a good head's field of barley yields what a poor head's does, on the same soil, sown the same day and weeded as well.
+- **Cost:** a choice a field a year, made on the holder's planning day; the village's usual rotation once a year at its meeting, over its farms. No new loop, and nothing daily.
+
+#### Seed (Agreed, 11 Nov; the first row Decided)
+
+Seed is not a good of its own: seed rye is rye. So every way grain already moves carries a crop with it, and no rule is needed for the spread of crops.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Having seed is knowing the crop | A household can sow a crop when its store holds a field's seed of it (25 rations of barley or rye, 20 of peas) | Decided, 11 Nov |
+| Grain in subtypes | The household's grain is held a crop: barley and rye are subtypes of grain, peas the first of pulses (Goods, recipes and facilities: goods in subtypes). The village's store holds them the same way. A ration of any of them feeds as a ration | Agreed, 11 Nov |
+| The reserve | The plan reserves, of each crop, the seed for the fields its rotation sows with it next; a trial reserves one field's seed. What is not reserved is food | Agreed, 11 Nov |
+| What is eaten first | The cook takes what spoils first, as now, and unreserved grain whatever its crop. A hungry household eats its seed as the last step (Seed, above): the crop it holds most seed of first, and the last field's seed of each crop last of all, so a household loses a crop only by real hunger | Agreed, 11 Nov |
+| Losing a crop and getting it back | A household with less than a field's seed of a crop cannot sow it; its fields at that course lie fallow, and the head falls back on a rotation it has seed for. It has the crop again when a field's seed of it comes in | Agreed, 11 Nov |
+| How a crop moves inside a village | By what moves grain already: help in hunger and gifts (most often eaten, sometimes kept by a good head), the heirs' shares, the village's store. A new household's start in life takes a field's seed of each crop its old home holds above its own reserve, and so do settlers' provisions | Agreed, 11 Nov |
+| How a crop moves between villages | A marriage between villages (the start in life above; a dowry once slice 4 has it) and the fair: a field's seed is under one back load, and a head who wants a trial is the one who has a need for it. Later the ship, for crops the island has not got | Agreed, 11 Nov |
+| Loans of seed | Seed corn after a failed year is slice 5's first loan; whether it is repaid in the crop lent is left to that slice | Open (slice 5) |
+| Cost | A few numbers a household in place of one; nothing is walked that is not walked today | |
+
+#### The scenarios' crops (a mix, by presets: Decided, 11 Nov; the presets as written: Agreed, 11 Nov)
+
+Every village has barley. What else it has is its scenario's preset, so villages differ from the first day and have something to get from each other.
+
+| Scenario | Crops | Status |
+| --- | --- | --- |
+| Founders | Its two villages are the village of three farms and the lone farm, a village of one. The three farms bring barley and rye, and start in three courses; the lone farm brings barley and peas, and starts with barley and peas by turns. Each household brings a year's food in barley, as now, and seed for the fields it wants, by its rotation. One farm of the village, the backup, also carries a field's seed of peas, held as reserved seed that it does not sow and eats only in hunger, so one bad year at the lone farm does not lose the island its peas (Kim, 11 Nov). Where the map has no room for the lone farm, the third farm of the village grows the peas | Agreed, 11 Nov (barley in both, rye in one, peas in the other); Decided, 11 Nov (a backup household) |
+| Heirs and empty farms | Village A, the culture's centre, has barley and rye in three courses; village B, the remote one, barley and peas. The marriage between the villages in the parents' generation has not carried a crop across | Agreed, 11 Nov |
+| Populous Villages | Drawn a village from its ground, by a seeded draw: rye where forest is most of the land within reach (fresh land to break), peas where meadow is, both in a large village of 12 farms or more, barley alone on heath and high ground. About a third of villages have barley alone | Agreed, 11 Nov (shares to tune) |
+
+#### Crops and the weather (Agreed, 11 Nov, as starting values with no source, to be fitted to the weather branch's harvest factor when it lands)
+
+One yearly weather factor cannot make crops differ. It is replaced by a season's weather, which each crop reads in its own way over its own months, so that crops fail in different years and a mix is worth having. The crops are built before the weather (slice 10), so the question a crop asks is fixed now, and what answers it changes later.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| What a crop asks | For a place and a season: its warmth and its wetness, each from −1 (cold, dry) to 1 (warm, wet) about the place's normal; and for a place and a year, two days: the thaw in spring, before which no ground is tilled or sown, and the first frost of autumn | Agreed, 11 Nov |
+| What answers before the weather does | The weather is being built on a branch of its own (Kim, 11 Nov): its first batch (VB-342, on `main` since 11 Nov) gives each land tile its rain from the seed's wind, and its next is to bring fronts, temperature and the harvest's factor. If that lands first, it answers the question and nothing here is drawn. If the crops land first: a draw for the whole archipelago at the start of each season, from the `weather` stream, most seasons near the normal: 8 numbers a year, and the two days (the thaw on spring day 1 to 4, the frost on autumn day 8 to 12, most often 11, where it is fixed today). Nobody knows a season ahead: the spring's line "the year promises well" gives way to a line a season (fine to lose it for now: Kim, 11 Nov) | Agreed, 11 Nov; losing the forecast Decided, 11 Nov |
+| What answers once the weather is in | The same question, a region, from the weather itself (Weather, seasons and daylight): the temperature curve and its spells, the rain fronts, the colder high ground and north. The weather keeps running sums a region, once a day; a field reads the difference between its sowing and its reaping. Crops do not change when it lands | Agreed, 11 Nov |
+| How the yield reads it | Once, at reaping, as today: harvest = the crop's yield × soil × the crop's reading of its seasons × weeding × the field's small chance. No pass over fields is added | Agreed, 11 Nov |
+| Warmth also moves the ripening | A cold summer ripens barley and peas up to 2 days later, a warm one a day earlier; so a cold year pushes the late-sown field into the frost, and sowing early is worth a good head's care | Agreed, 11 Nov |
+| The frost | Kills what stands unreaped of the spring-sown crops, as today, but on a day that differs a year. Rye is past it: it is reaped in summer and its seedlings stand the winter | Agreed, 11 Nov |
+| Wind | No part in the first version; a storm that flattens ripe grain waits for slice 10 | Agreed, 11 Nov |
+| Hay | The meadows read the same seasons, in place of the same yearly factor | Agreed, 11 Nov |
+| Cost | Before slice 10: 10 numbers drawn a year and two years of them kept in `st` (rye stands across two); a reading a field at its reaping. From slice 10: regions × days for the sums, the weather's own line of the budget, and the same reading | |
+
+What each reads (the harvest is multiplied by each line that applies; w and r are the season's warmth and wetness):
+
+| | Helped by | Hurt by | The year that fails it |
+| --- | --- | --- | --- |
+| Barley | A warm summer: + 0.10 × w | A dry summer: − 0.15 at the driest; a wet autumn, on the sheaves: − 0.15 at the wettest | A dry summer and a wet harvest; a cold summer, by the frost |
+| Winter rye | Nothing; it is the steady crop of a dry year | A cold winter with little snow, the bare frost: − 0.30 when both are at their worst; a wet summer at its reaping: − 0.15 | A hard, snowless winter |
+| Peas | A wet spring: + 0.05 × r | A dry summer: − 0.25 at the driest | A drought |
+| Hay | A wet spring: + 0.15 × r | A wet summer, on the swathes: − 0.15 at the wettest | A dry spring and a wet haymaking |
+
+- **The hedges this gives:** a dry summer is poor for barley and peas and leaves the rye whole; a wet summer is good to no crop but worst for rye and hay; a hard winter touches only the rye. Barley and hay, which every farm has today, fail in different years.
+- **Barley alone stays about as it is:** its reading is tuned so that its mean and spread are today's factor's (0.75 to 1.2, about 0.975 on average), so a village with barley only is fed as now. The golden file changes all the same, and the tasks say so.
+- **A head cannot see the season coming,** so foresight is not prediction: a good head's answer to the weather is the mix, the early sowing and the seed kept of two crops.
+- **Not yet in:** the wetness of a place (a river bank, a marsh's edge; the weather's rain a tile, once merged, is its normal), high ground's short season, and oats, the crop for both.
+
+#### What crops touch (11 November)
+
+| System | What changes | Where it is settled |
+| --- | --- | --- |
+| The work calendar | Rye is sown in the harvest's first days and reaped at haymaking; fallow is tilled in summer; peas come in before the barley. The harvest stays the peak, but less sharply, and the autumn's start is more crowded | Threshing waiting for winter is not built by this arch: the wrap-up (VB-356) measures hours by season against VB-333's first, and proposes it only if the autumn needs it (Agreed, 11 Nov) |
+| Sowing first (VB-023) | Holds within a season: a hoed field is sown before the next is hoed, whatever its crop | VB-350 |
+| Soil and manure (VB-137) | Wear and mending become the crop's; rest and peas mend to 1.0, manure alone above. Manure's numbers stand | VB-348, VB-349 |
+| Fresh land | Soil 1.4 serves every crop; a good head puts the rye there | VB-351 |
+| Yield over time (VB-160) | Unchanged. Its survey weighs rotations as a cause of rising yields, and may then replace its rule by what this arch builds | VB-160 |
+| Animals, fences and deer (VB-136, VB-139) | Rye stands green while the herds are on the stubble in autumn, so a broken fence costs more; fallow is not grazed; straw and oats as fodder wait for oats | Left to VB-136 and VB-139, which read the field's crop and stage; noted in the wrap-up |
+| The pot | Barley and rye are one source, grain; peas are pulses, a second | VB-349 |
+| The stores | Grain a crop, as goods in subtypes; the seed reserve a crop | VB-347 |
+| Help, gifts, shares | Move grain in the proportion the giver holds it; they carry crops with them without a rule of their own | VB-347, VB-352 |
+| The fair (slice 4) | A sack of rye is a good like another; a head who wants a trial has a need for seed. Villages with different crops have a first thing to trade | Slice 4's worth table gains the crops; no task here |
+| Loans (slice 5) | Seed corn after a failed year is the first loan; whether it is repaid in the crop lent is that slice's | Open (slice 5) |
+| Mill and loom (slice 6) | Flax, hops, turnips and wheat come with their chains; ale is brewed of barley by its rule as now | Slice 6's plan |
+| The food balance (VB-048) | A farm in three courses needs a fourth field; the retune of yields and fields a farm reads rations by crop | The wrap-up VB-356 hands its numbers to VB-048 |
+| The player (VB-253, VB-256) | Verbs for a field's rotation and for sowing out of turn; the plan panel lists fields and seed | VB-355 |
+| The page | Each crop drawn at each stage; rye green in autumn | VB-355 |
+| Saves and the golden file | New fields on fields, stores, villages and pawns, each with invariants. Barley-only runs stay as they are until the scenarios' crops (VB-353) and the weather (VB-354), which re-record it | Each task |
+| Cost | A choice a field a year; a village a year at its meeting; a reading a field at its reaping. Nothing daily, nothing over pairs, nothing that grows with history | Named in each task; measured in VB-356 |
 
 ### Long work and processing
 
@@ -674,6 +830,32 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
 | Textiles | Spinning as background work and weaving as partial work: the missing labour sink of the slack seasons; cloth keeps its worth | Proposed (target-v2, section 5.6) |
 
+### The mill and the loom, the kiln and the quarry (slice 6, 11 November)
+
+Slice 6's plan (backlog VB-185), on Kim's answers of 11 November. The slice is built in two halves: the mill and the loom first (the
+quern and the mill, wool to cloth and dress, tools and iron, skills, occupations), taking from the ground only iron and the stone of
+querns and millstones; then the kiln and the quarry (pots, peat, brick, tiles and lime, and the two better houses). The shape is
+Decided; the numbers are Proposed, in the game's work hours (576 an adult a year), each task reporting its own and the wrap-up tuning them.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Skills | A skill a craft and pawn from 0 to 1, learnt by doing, faster with aptitude: a novice works at 60% of the rate and a master at 130%; halfway in about 400 hours; a tenth lost a year unused. So "the smith" and "the weaver" come of hours worked, and a beginner is still of use (VB-360) | Decided, 11 Nov (moderate); Proposed (numbers) |
+| Facilities | Built things on sites, kept in one registry: an owner, a kind, a condition, and building in stages, each stage a recipe of hours and loads and a step of the owner's plan. The bloomery, the kilns and the mill are the first; houses and barns move in when a slice needs it (VB-361) | Proposed (target-v2, 4.3, cut to the slice) |
+| Wool to cloth | A fleece is spun into a skein of yarn as background work indoors, beside minding the house, mostly in winter (40 hours); two skeins are woven into a length of cloth on a loom the household builds (12 hours, partial work). Cloth keeps and is a good of the fair. Dress for a household of six takes about a third of one adult's year, nearly all of it spinning (VB-144, VB-362) | Decided, 11 Nov (spin, weave, wear); Proposed (numbers) |
+| Dress | Each person wears a length of cloth out in about 3 years. In rags, winter's cold costs half as much health again and standing falls. Dyed and fine cloth wait for the ships (VB-363) | Decided, 11 Nov; Proposed (numbers) |
+| Who spins | A practice, "Spinning and weaving are": women's work (default) or everyone's indoor work. It decides whose winter is idle, and villages may drift apart on it (VB-362) | Decided, 11 Nov |
+| The quern | A hand quern makes grain go a quarter further. The stone is a good of place and wears out in about 20 years, so the need never ends: sandstone grinds at full speed, granite a fifth slower; a household without one eats its grain unground. The first households have one (VB-009) | Decided, 11 Nov (a good of place, and it wears); Proposed (numbers) |
+| The mill | A village of 3 farms or more builds a water mill where it has a river in reach (100 hours), else a windmill (140 hours, as agreed on 30 Oct); it grinds 5 times as fast, and other villages pay a toll of 1 in 16. Both need a pair of sandstone millstones and iron fittings, so a village may have to trade before it can build (VB-093) | Decided, 11 Nov (water where possible, millstones and iron); Agreed, 30 Oct (hours, toll) |
+| Tools | A household's tools wear with field work and are mended in winter; work goes at 70 to 100% by their condition. Iron lifts the ceiling: without it tools mend only to half (wooden spades and ards, work at 85%), with it to full. Iron is worth trading for, and nobody starves without it (VB-121) | Decided, 11 Nov; Proposed (numbers) |
+| Iron | Two steps. A household with bog ore builds a bloomery, a small furnace, and smelts ore with wood into blooms (4 loads of ore and 6 of wood, 10 hours, a bloom); mending and making tools is winter craft work at home. A smithy comes when someone specialises; rock iron waits for mines (VB-364, on VB-359's digging) | Decided, 11 Nov (smelt, then forge); Proposed (numbers) |
+| Occupations | A pawn is called by the craft that leads its hours of the last three years, with hysteresis; a view only, read by no rule (VB-365) | Proposed |
+| Pots | Clay's first use: pots fired in a pit at home keep the store from damp and mice, halving the grain's yearly loss where they cover it; a quarter break a year (VB-366) | Decided, 11 Nov (pots, then brick); Proposed (numbers) |
+| Peat | A household short of wood near a bog cuts peat in summer; dried, two loads burn as one of wood. It spares the forest near marsh villages (VB-367) | Decided, 11 Nov; Proposed (numbers) |
+| Brick, tiles and lime | A brick kiln fires clay into brick and roof tiles; a lime kiln burns limestone to lime; both eat much wood (VB-368) | Decided, 11 Nov (brick after pots; lime for mortared walls); Proposed (numbers) |
+| The houses | Four grades. The cottage on the bare ground; the cottage on a dry stone foundation (VB-332); the fine timber house, of hewn lumber on that foundation, not mortared, with a roof of slate or tiles and a brick hearth (VB-369); and the stone house, the most prestigious, its walls of stone or brick laid in lime mortar (VB-370). Each grade gives more standing through the well-kept house and wears more slowly; a village with no limestone must get its lime by exchange | Decided, 11 Nov (the four grades; no mortar under timber; mortar for stone); Proposed (numbers) |
+| Left for the ships | Salt from springs, flint and amber; copper, tin, lead, silver and gold; marble and soapstone for the church (slice 8) | Decided, 11 Nov |
+| Cost | Every craft is a job on its household's planning day; skills, dress, querns and the store's pots are values read in closed form, with no yearly pass; facilities are few and indexed by owner and tile. Each task names its line, and the wrap-up measures the slice on the late saves (VB-371) | Proposed |
+
 ### Goods of place and side crafts (slice 4, 10 November)
 
 Villages must differ before they need each other: where neighbours make the same things, a market has little to move
@@ -696,6 +878,24 @@ proposed with them, for slice 4's plan (VB-183) to confirm.
 | Ale and standing | Ale is brewed as a side craft from grain above the household's floor and reserve: 10 rations of grain and 4 hours give a barrel, which keeps one season and serves 20 guests. A guest's opinion of the host gains 0.05, fading over 3 years; the host's prestige gains 0.05 a barrel poured in the last 3 years, at most 0.2. At the gathering the gain is shared among the host village's holders by what each poured | Agreed, 10 Nov |
 | Quanta and worth | Customary worth in rations, one table for every culture until norms learn from deals (slice 8): grain, a sack of 10 rations, 10; salt meat, butter and dried fish, a lot of 10 rations, 15 (they keep, and add a source to the pot); a barrel of tar 8; a barrel of ale 14; a cow 40, an ox 50, a heifer or steer 20, a sheep 6. Heirs' shares paid in animals use the same table (VB-140). Wool and cheese are not goods yet and wait for slice 6 | Agreed, 10 Nov |
 | Cost | A side craft is ordinary jobs on a household's planning day; goods of place add one reach test per village and resource, refreshed when its land changes | Proposed |
+
+**In the ground (11 November, VB-357).** The world holds the resources these goods of place need (World and scale, Ground): bog iron
+lies where it is drawn, not in every marsh, and "stone ground" is the bedrock, so a village's stone has a kind. Kim's answers of 11
+November (Decided; the numbers are each slice's plan's to set):
+- Known and found. Bedrock, clay, peat and bog iron are known to all: they show at the surface. The upland ores (iron, copper, lead and
+  silver, tin, gold) are found: a vein is unknown until a pawn has worked or herded near it for a season, or prospects for it, and the
+  views show only what is known. Built (VB-358): knowledge is the village's; a finished job within 2 tiles of a vein finds it with chance
+  work hours / 60; a played pawn sees what its village knows, a watcher everything, the unfound faint. Prospecting as work of its own waits
+  for the first good that needs ore.
+- Bog iron grows back, slowly, up to what the tile began with: the peasant's lasting source, where rock iron is the rich and finite one.
+- Quarried stone (VB-332) is of the tile's bedrock. A foundation takes any kind; later uses want the right one. Picked field stone is granite.
+- What each is for: clay, limestone and sandstone with slice 6 (pots, daub and brick; lime burnt for mortar; querns, whetstones and
+  grindstones); bog and rock iron with tools that wear (VB-121), rock iron from a mine; slate, marble and soapstone for standing (roof,
+  church, carving); copper, tin, lead, silver and gold with slice 8 (coin, bells and vessels). Peat, flint, amber and salt springs
+  are laid and have no use yet (Proposed: peat as fuel where wood is short, flint for fire, amber for standing and the ships, a spring
+  for salt where the ships do not reach).
+- Amounts and the share of endless sources stay placeholders until the first good that digs names a year's use: then a village's vein
+  should last about three generations, and an endless source be worth a town.
 
 **What each good is for.** A good has worth only through a need of pawns or households, or through standing (Kim, 10 November: Decided);
 no good is wanted because a table says so. The goods of place, and the goods beside them that the gathering gives a use, with what
@@ -977,7 +1177,7 @@ There are several starting scenarios; the base and default one is the 10 founder
 
 | Scenario | Start | Purpose | Status |
 | --- | --- | --- | --- |
-| Founders (base, default) | 10 unrelated founders: four couples, a farmhand and a maid; houses already standing, next to no fields or meadows made; a year's food and seed brought along; the land mass it needs scales with the map size. The marriage limit starts at “first cousins or further”, since the founders' grandchildren are mostly cousins | The normal game | Decided |
+| Founders (base, default) | 10 unrelated founders: four couples, a farmhand and a maid, in two villages: a village of three farms and a lone farm, which is a village of one (Kim, 11 Nov; as built). The two differ in their crops (Goods and the farming year, The scenarios' crops); houses already standing, next to no fields or meadows made; a year's food and seed brought along; the land mass it needs scales with the map size. The marriage limit starts at “first cousins or further”, since the founders' grandchildren are mostly cousins | The normal game | Decided |
 | Heirs and empty farms | Two established villages, three generations, adult heirs and younger siblings, an empty farm and a ruin | Exploring inheritance, expansion and customs | Decided |
 | Populous Villages | Only villages, in three sizes: small 2–5 farms (about 60% of villages), medium 6–10 (about 30%), large 12–16 (about 10%). Households of 4–9 people, about 6: a couple, their children, sometimes a servant; children 2–3 years apart, the eldest up to 26, so about a third of households have a child of 18 or more (backlog VB-081; Agreed, 30 Oct). At most two generations made, no grandparents on record. 130–170 people on Tiny, 320–380 on Small, 800–950 on Medium and Large | A high population from the start | Decided (scenario, population), Agreed (village and household sizes) |
 
@@ -1241,6 +1441,9 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (slice 6 plan) | 11 November 2026 | Slice 6's plan (backlog VB-185), on Kim's answers in a session: Goods, production and animals gains The mill and the loom, the kiln and the quarry: two halves; skills (novice 60%, master 130%); wool to cloth and dress; who spins as a practice; the quern stone a good of place that wears out; a water mill where there is a river, with millstones and iron; iron in two steps, lifting the tools' ceiling; pots, peat, brick, tiles and lime; four grades of house, the stone house alone mortared. Tasks VB-360 to VB-371; VB-009, VB-093 and VB-121 rewritten, VB-144 confirmed |
+| 0.4 (the ground) | 11 November 2026 | Kim's decisions in a session on the terrain: World and scale gains Ground (bedrock of six kinds; finite deposits of clay, bog iron, iron, copper, lead-silver, tin and gold, and of peat, flint and amber, with salt springs; each island draws its kinds by tuned chance; a few endless sources), and Goods of place gains In the ground. Generation and views only (task VB-357); Kim's answers the same day on what is known and found, bog iron growing back, quarrying by bedrock and what each kind is for (`QUESTION_ARCHIVE.md`) |
+| 0.4 (crops, first part) | 11 November 2026 | Kim's answers in a discussion of crops, the scale of a hex, planting, yields and the weather (`QUESTION_ARCHIVE.md`, VB-345): Goods and the farming year gains Crops and rotations, with what crops are for, the head's choice by skill (on choices and timing only), seed as knowing a crop, fallow as rest, different starts a village (Decided), and a table of the first crops, barley, winter rye, peas and fallow (Proposed). World and scale gains Two readings of one grid (a site about 10 m, land about 100 m and 0.87 ha a hex; Agreed), and farmland's compression is corrected from "a few hundred times" to about 100 times in area. Second part, the same day: The rotation (at most four courses a field, a short list of rotations bounded by the household's seed, a farm's fields staggered, the village's usual rotation in the culture's year) and How the head chooses what to sow (a poor, an ordinary and a good head; a trial as a project; the player's verbs), Proposed, with a row in Work: opportunities, plans and tasks. Rye is 4:1 (Kim, 11 Nov). Third part, the same day: Kim decided that the player chooses its rotation freely (the other heads' short choice is for cost) and that the village's usual rotation is the one most farms hold, updated at the meeting. Seed (seed is the crop's own grain, held in subtypes, reserved by the plan, the last field's seed eaten last; a crop moves wherever grain moves) and The scenarios' crops (founders: the three farms barley and rye, the lone farm barley and peas; heirs and populous Proposed); Starting scenarios names the founders' two villages. Fourth part, the same day: Crops and the weather (a season's warmth and wetness and two frost days in place of the yearly factor; a draw for the archipelago a season until slice 10, then the weather itself a region; what barley, rye, peas and hay each read; Proposed). Kim: a backup household carries pea seed in founders (Decided); the order in which seed is eaten (Agreed). Last part, the same day: What crops touch, and the tasks VB-346 to VB-356 (ten to build and a wrap-up). Kim then accepted the ten points still Proposed as written (`QUESTION_ARCHIVE.md`, VB-345), which are now Agreed, and the tasks were released at priority 2. Kim: the weather is being built on a branch of its own, so it answers the crops' question if it lands first; losing the spring's forecast is fine for now. The plan task was renumbered from VB-342 to VB-345, two other branches having taken VB-342 to VB-344 |
 | 0.4 (starting a game) | 11 November 2026 | Kim's decisions on a mock of the screens after New archipelago (`docs/mocks/setup.html`): The player, commands and views gains Starting a game, with ten principles for these screens (one choice made once; show it on the land; the game's own graphics; few words, none hidden; no invented measures; nothing moves under the pointer; only what exists; after the land is raised the game is the screen; the menu's family; the inputs by the button) and the two steps: the start (scenario cards, an annotated picture, who starts as farm cards or an age pyramid, story archetypes as a look) and whom to play (the map, a farm clicked for its household, a person for their details). Which pawn now chooses on the game itself; Starting scenarios points there |
 | 0.4 (field work) | 11 November 2026 | Kim's answers to a review of what three fields cost a household (about 215 pawn-hours a year, under a fifth of two hands' time): Goods and the farming year gains Field work (reaping 15 and threshing 20 hours a field, weeding in two rounds) and Bringing in the harvest (by the load, 30 on the back and 90 on a cart); Tilling power is raised to 5 times a hoe. Tasks VB-333 to VB-336; VB-337 makes the reviews' two measurements tools |
 | 0.4 (stocks audit) | 11 November 2026 | Kim's answers to an audit of the stored quantities nothing reads: Goods and the farming year gains Water (a day without it: no cooking and a little health; Decided); Land and ecology gains Stone (used for the better house, a cheap house can be upgraded, stone picked from stony meadows or quarried in hills and mountains; Decided); uncooked grain feeds 0.75 in every uncooked meal, confirmed with 29% of grain eaten uncooked today. Tasks VB-331 and VB-332; notes on VB-062, VB-306 and VB-327 |

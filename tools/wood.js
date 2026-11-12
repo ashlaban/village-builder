@@ -12,7 +12,10 @@ for (const f of JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'ut
   require(path.join(root, f));
   if (f === 'sim/forest.js') {
     const F = globalThis.VB['sim/forest'], fell = F.fellTree, clear = F.clearTile;
-    F.fellTree = (st, farm) => { const had = farm.woodlot >= 0 && st.w.trees[farm.woodlot] > 0; fell(st, farm); if (had) { const r = (felled[year] ||= {}); r[farm.village] = (r[farm.village] || 0) + 1; } };
+    F.fellTree = (st, tile) => {
+      const v = globalThis.VB['sim/territory'].woodOf(st, tile), had = tile >= 0 && st.w.trees[tile] > 0; fell(st, tile);
+      if (had && v) { const r = (felled[year] ||= {}); r[v.id] = (r[v.id] || 0) + 1; }
+    };
     F.clearTile = (st, tile) => { clear(st, tile); cleared[year] = (cleared[year] || 0) + 1; };
   }
 }

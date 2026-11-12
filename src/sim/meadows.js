@@ -12,6 +12,7 @@ VB['sim/meadows'] = (() => {
   const { builtTiles } = VB['sim/fields'];
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
+  const Stores = VB['sim/stores'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -63,7 +64,8 @@ VB['sim/meadows'] = (() => {
   function finishMeadow(st, f, hh) {
     const w = st.w, tile = f.project.tile, gone = Math.max(0, w.stones[tile] - KEEP_STONES);
     realiseStake(st, hh, tile);
-    hh.stone += Math.round(gone / STONES_PER_LOAD); w.stones[tile] -= gone;
+    const loads = Math.round(gone / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
+    w.stones[tile] -= gone;
     f.project = null;
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;

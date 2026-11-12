@@ -59,8 +59,9 @@
         optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
         <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
           `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw" style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(
-          support[offset + j] * 100)}%`).join(' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
+        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
+          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
+            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
     });
     h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
       `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');

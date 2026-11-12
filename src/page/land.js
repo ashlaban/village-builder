@@ -1,8 +1,9 @@
-// @sys page/land: the Land overlay (VB-004): who holds each tile and who claims it
+// @sys page/land: the Land overlay (VB-004): who holds each tile and who claims it, and each village's wood
   // ---- the Land overlay (VB-004): who holds each tile and who claims it ----
   // Village land a light tint of the village's colour, household land a stronger one with the household's own outline; borders between
   // villages' land dark; unrealised claims as a dashed ring in the claimant's colour, realised ones (a birthright) as a solid ring; tiles claimed
-  // by two or more hatched; cairns (VB-157) as small stone piles. Redrawn whole when st.landDirty holds tiles, at most twice a second.
+  // by two or more hatched; cairns (VB-157) as small stone piles; the tiles of each village's wood (VB-326) as a small tree in its colour.
+  // Redrawn whole when st.landDirty holds tiles, at most twice a second.
   let landG = null, landOn = false, landAt = -1;
   const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
   function hslHex(h, sat, l) {
@@ -67,6 +68,12 @@
           else for (let d = 0; d < 6; d++) for (const [a, b] of [[0, 0.32], [0.5, 0.82]]) edge(g, i, d, s, a, b);
         g.stroke({ width: R * 0.08, color: claimColour(c.by), alpha: 0.95 });
       });
+    }
+    // each village's wood (VB-326): a small tree in the village's colour on each of its tiles
+    for (const v of st.villages) {
+      if (!v.wood || !v.wood.length) continue;
+      for (const i of v.wood) g.poly([w.hx[i], w.hy[i] - R * 0.4, w.hx[i] + R * 0.24, w.hy[i] + R * 0.14, w.hx[i] - R * 0.24, w.hy[i] + R * 0.14]);
+      g.fill({ color: hslHex(villageHue(v.id), 0.8, 0.35), alpha: 0.9 }).stroke({ width: R * 0.05, color: 0xf6f1e2, alpha: 0.9 });
     }
     for (const i of (st.cairns || new Map()).keys()) {
       for (const [dx, dy, r] of [[-0.16, 0.1, 0.13], [0.16, 0.1, 0.13], [0, -0.1, 0.14]]) g.circle(w.hx[i] + dx * R, w.hy[i] + dy * R, r * R);

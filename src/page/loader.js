@@ -20,8 +20,9 @@
   // that showcase, not a game. It is page state: never saved, never offered to go back to, and dropped when a game is generated or loaded.
   let demo = false, demoJob = null, demoAt = null, demoRun = null, stagePainted = null;
   // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
-  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): heirs finds no room at 43 and 54
-  const DEMO = { seeds: [7, 12, 15, 26, 28, 29, 43, 54, 75, 98], start: [7, 12, 15, 26, 28, 29, 75, 98], cols: 56, rows: 40, speed: 3 };
+  // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
+  // began to place the biomes and the list was chosen again by that fit (VB-342)
+  const DEMO = { seeds: [18, 23, 29, 32, 33, 44, 74, 93, 98, 101], start: [18, 23, 29, 32, 33, 44, 74, 93, 98, 101], cols: 56, rows: 40, speed: 3 };
   function showLanding() {
     $('landBack').hidden = $('gameInfo').hidden = !w || demo; // the open game: its name, its map and settings, at the menu's top left (VB-338)
     $('landLoad').textContent = !w || demo ? 'Load archipelago' : 'Saves'; // with a game open, it can be saved there too
@@ -60,6 +61,7 @@
     await buildSettlement(wd, sim);
     if (landG) landG.clear();
     if (landOn) drawLand();
+    resetGround();
   }
   // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
   async function build(seed, scenario, size, save = null, quick = false) {
@@ -121,7 +123,8 @@
     loader.classList.add('done');
     // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
     if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
-    else if (!save && !sim.player) openChoose(); else if (sim.player && sim.pawns[sim.player.pawn].alive) openPanel('actions');
+    else if (!save && !sim.player) openChoose();
+    else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
     building = false; $('menuBtn').disabled = false;
   }
 

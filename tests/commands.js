@@ -190,7 +190,9 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
 console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 16 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);
 // the player's cause (VB-211): the same advocate slot as a natural cause, so the same pull on the pawn's attitude and its ties'; dropCause ends it
 {
-  const make = () => { const s = Sim.seed(hw, 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
+  // each on a world of its own: a and b are live together, and a world's fish stocks (w.fish, w.fishDay) belong to one run
+  const land = () => { const it4 = G.generate(7); let q; while (!(q = it4.next()).done); return q.value; };
+  const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
   const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
   Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);

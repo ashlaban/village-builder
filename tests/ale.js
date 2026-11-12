@@ -7,7 +7,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, S = VB['sim/stor
 const { cal, BREW, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'], { opinionOf, memNow } = VB['sim/relations'], Soc = VB['sim/society'];
 const { checkState } = require('./lib/invariants.js');
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
+const st = Sim.seed(world(3), 3, 'populous'); st.naturalDeaths = false;
 const hh = st.households.find((h) => !h.dissolved && h.holder !== null), f = st.farmsteads[hh.farmstead];
 const autumnT = (d) => SEASON_DAYS * 2 * DAY + d * DAY + 8, autumn = (d) => cal(autumnT(d)), jobs = (c) => { const out = []; K.KINDS.brew.available(st, hh, f, c, (key) => out.push(key)); return out; };
 
@@ -43,7 +43,7 @@ assert.deepStrictEqual(checkState(st).filter((x) => /ale|pours|stores/.test(x)),
 
 // 5. At an occasion the host pours what it has and the guests remember it; a host with no ale pours nothing and is not remembered.
 {
-  const s2 = Sim.seed(world(7), 7, 'populous'); s2.naturalDeaths = false;
+  const s2 = Sim.seed(world(3), 3, 'populous'); s2.naturalDeaths = false;
   const O = VB['sim/occasions'], host = s2.households.find((h) => !h.dissolved && h.holder !== null && h.members.length >= 3);
   const fm = s2.farmsteads[host.farmstead], guests = s2.households.filter((h) => !h.dissolved && h !== host && h.holder !== null).slice(0, 3).map((h) => h.holder);
   const mk = (come) => ({ id: 900 + s2.occasionSeq++, kind: 'wedding', for: [host.holder, host.members[1]], village: fm.village, farm: fm.id, tile: fm.house, x: 0, y: 0, start: 0, end: 1,
